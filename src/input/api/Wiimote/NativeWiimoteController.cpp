@@ -98,6 +98,11 @@ glm::vec2 NativeWiimoteController::get_prev_position()
 	const auto state = m_provider->get_state(m_index);
 	return state.ir_camera.m_prev_position;
 }
+PositionVisibility NativeWiimoteController::GetPositionVisibility()
+{
+	const auto state = m_provider->get_state(m_index);
+	return state.ir_camera.m_positionVisibility;
+}
 
 bool NativeWiimoteController::has_low_battery()
 {
@@ -206,24 +211,30 @@ ControllerState NativeWiimoteController::raw_state()
 		return result;
 
 	const auto state = m_provider->get_state(m_index);
-	result.buttons = state.buttons;
+	for (int i = 0; i < std::numeric_limits<uint16>::digits; i++)
+		result.buttons.SetButtonState(i, (state.buttons & (1 << i)) != 0);
 
 	if (std::holds_alternative<NunchuckData>(state.m_extension))
 	{
 		const auto nunchuck = std::get<NunchuckData>(state.m_extension);
 		if (nunchuck.c)
-			result.buttons.set(kWiimoteButton_C);
+			result.buttons.SetButtonState(kWiimoteButton_C, true);
 
 		if (nunchuck.z)
-			result.buttons.set(kWiimoteButton_Z);
+			result.buttons.SetButtonState(kWiimoteButton_Z, true);
 
 		result.axis = nunchuck.axis;
 	}
 	else if (std::holds_alternative<ClassicData>(state.m_extension))
 	{
 		const auto classic = std::get<ClassicData>(state.m_extension);
-		result.buttons |= (uint64)classic.buttons << kHighestWiimote;
-
+		uint64 buttons = (uint64)classic.buttons << kHighestWiimote;
+		for (int i = 0; i < std::numeric_limits<uint64>::digits; i++)
+		{
+			// OR with base buttons
+			if((buttons & (1 << i)))
+				result.buttons.SetButtonState(i, true);
+		}
 		result.axis = classic.left_axis;
 		result.rotation = classic.right_axis;
 		result.trigger = classic.trigger;

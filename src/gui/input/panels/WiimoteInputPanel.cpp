@@ -1,5 +1,6 @@
 #include "gui/input/panels/WiimoteInputPanel.h"
 
+#include <wx/button.h>
 #include <wx/gbsizer.h>
 #include <wx/stattext.h>
 #include <wx/statline.h>
@@ -11,6 +12,7 @@
 #include "input/emulated/WiimoteController.h"
 #include "gui/helpers/wxHelpers.h"
 #include "gui/components/wxInputDraw.h"
+#include "gui/PairingDialog.h"
 
 constexpr WiimoteController::ButtonId g_kFirstColumnItems[] =
 {
@@ -36,10 +38,18 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	bold_font.MakeBold();
 
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
+    auto* horiz_main_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-	auto* extensions_sizer = new wxBoxSizer(wxHORIZONTAL);
-	extensions_sizer->Add(new wxStaticText(this, wxID_ANY, _("Extensions:")));
-	extensions_sizer->AddSpacer(10);
+    auto* pair_button = new wxButton(this, wxID_ANY, _("Pair a Wii or Wii U controller"));
+    pair_button->Bind(wxEVT_BUTTON, &WiimoteInputPanel::on_pair_button, this);
+    horiz_main_sizer->Add(pair_button);
+    horiz_main_sizer->AddSpacer(10);
+
+    auto* extensions_sizer = new wxBoxSizer(wxHORIZONTAL);
+    horiz_main_sizer->Add(extensions_sizer, wxSizerFlags(0).Align(wxALIGN_CENTER_VERTICAL));
+
+    extensions_sizer->Add(new wxStaticText(this, wxID_ANY, _("Extensions:")));
+    extensions_sizer->AddSpacer(10);
 
 	m_motion_plus = new wxCheckBox(this, wxID_ANY, _("MotionPlus"));
 	m_motion_plus->Bind(wxEVT_CHECKBOX, &WiimoteInputPanel::on_extension_change, this);
@@ -54,7 +64,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	m_classic->Hide();
 	extensions_sizer->Add(m_classic);
 
-	main_sizer->Add(extensions_sizer, 0, wxEXPAND | wxALL, 5);
+	main_sizer->Add(horiz_main_sizer, 0, wxEXPAND | wxALL, 5);
 	main_sizer->Add(new wxStaticLine(this), 0, wxLEFT | wxRIGHT | wxTOP | wxEXPAND, 5);
 
 	m_item_sizer = new wxGridBagSizer();
@@ -64,16 +74,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	for (const auto& id : g_kFirstColumnItems)
 	{
 		row++;
-
-		m_item_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(WiimoteController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		m_item_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(row, column, id);
 	}
 
 	m_item_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 2), wxGBSpan(11, 1), wxLEFT | wxRIGHT | wxBOTTOM | wxEXPAND, 5);
@@ -90,16 +91,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	for (const auto& id : g_kSecondColumnItems)
 	{
 		row++;
-
-		m_item_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(WiimoteController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
-		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
-		text_ctrl->SetClientData((void*)id);
-		text_ctrl->SetMinSize(wxSize(150, -1));
-		text_ctrl->SetEditable(false);
-		text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
-		bind_hotkey_events(text_ctrl);
-		m_item_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
+		add_button_row(row, column, id);
 	}
 
 	row = 8;
@@ -135,7 +127,11 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 		if (id == WiimoteController::kButtonId_None)
 			continue;
 
-		m_item_sizer->Add(new wxStaticText(this, wxID_ANY, to_wxString(WiimoteController::get_button_name(id))), wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		m_item_sizer->Add(
+			new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(id)))),
+			wxGBPosition(row, column),
+			wxDefaultSpan,
+			wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 		auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
 		text_ctrl->SetClientData((void*)id);
@@ -164,6 +160,22 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	
 	SetSizer(main_sizer);
 	Layout();
+}
+
+void WiimoteInputPanel::add_button_row(sint32 row, sint32 column, const WiimoteController::ButtonId &button_id) {
+	m_item_sizer->Add(
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(button_id)))),
+		wxGBPosition(row, column),
+		wxDefaultSpan,
+		wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+	auto* text_ctrl = new wxTextCtrl(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxTE_PROCESS_ENTER | wxTE_PROCESS_TAB);
+	text_ctrl->SetClientData((void*)button_id);
+	text_ctrl->SetMinSize(wxSize(150, -1));
+	text_ctrl->SetEditable(false);
+	text_ctrl->SetBackgroundColour(kKeyColourNormalMode);
+	bind_hotkey_events(text_ctrl);
+	m_item_sizer->Add(text_ctrl, wxGBPosition(row, column + 1), wxDefaultSpan, wxALL | wxEXPAND, 5);
 }
 
 void WiimoteInputPanel::set_active_device_type(WPADDeviceType type)
@@ -209,9 +221,6 @@ void WiimoteInputPanel::on_volume_change(wxCommandEvent& event)
 
 void WiimoteInputPanel::on_extension_change(wxCommandEvent& event)
 {
-	const auto obj = dynamic_cast<wxCheckBox*>(event.GetEventObject());
-	wxASSERT(obj);
-
 	if(m_motion_plus->GetValue() && m_nunchuck->GetValue())
 		set_active_device_type(kWAPDevMPLSFreeStyle);
 	else if(m_motion_plus->GetValue() && m_classic->GetValue())
@@ -254,4 +263,10 @@ void WiimoteInputPanel::load_controller(const EmulatedControllerPtr& emulated_co
 		wxASSERT(wiimote);
 		set_active_device_type(wiimote->get_device_type());
 	}
+}
+
+void WiimoteInputPanel::on_pair_button(wxCommandEvent& event)
+{
+    PairingDialog pairing_dialog(this);
+    pairing_dialog.ShowModal();
 }

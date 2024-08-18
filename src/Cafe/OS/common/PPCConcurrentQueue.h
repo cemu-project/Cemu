@@ -10,7 +10,7 @@ template <typename T>
 class PPCConcurrentQueue
 {
 public:
-	PPCConcurrentQueue() {}
+	PPCConcurrentQueue() = default;
 	PPCConcurrentQueue(const PPCConcurrentQueue&) = delete;
 	PPCConcurrentQueue& operator=(const PPCConcurrentQueue&) = delete;
 
@@ -21,7 +21,7 @@ public:
 		//OSThread_t* currentThread = coreinit::OSGetCurrentThread();
 		//cemu_assert_debug(thread == nullptr || currentThread == thread);
 
-		// forceLogDebug_printf("push suspend count: %d", _swapEndianU32(thread->suspend) - m_suspendCount);
+		// cemuLog_logDebug(LogType::Force, "push suspend count: {}", _swapEndianU32(thread->suspend) - m_suspendCount);
 
 		//__OSLockScheduler();
 
@@ -46,7 +46,7 @@ public:
 
 		//thread = coreinitThread_getCurrentThread(ppcInterpreterCurrentInstance);
 
-		// forceLogDebug_printf("pop suspend count: %d", _swapEndianU32(thread->suspend) + m_suspendCount);
+		// cemuLog_logDebug(LogType::Force, "pop suspend count: {}", _swapEndianU32(thread->suspend) + m_suspendCount);
 
 		__OSLockScheduler();
 		if (m_queue.empty())

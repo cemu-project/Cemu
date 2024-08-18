@@ -2,9 +2,16 @@
 #include <type_traits>
 #include "betype.h"
 
+using MPTR = uint32; // generic address in PowerPC memory space
+
+#define MPTR_NULL	(0)
+
+using VAddr = uint32; // virtual address
+using PAddr = uint32; // physical address
+
 extern uint8* memory_base;
 extern uint8* PPCInterpreterGetStackPointer();
-extern uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
+extern uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset);
 extern void PPCInterpreterModifyStackPointer(sint32 offset);
 
 class MEMPTRBase {};
@@ -30,7 +37,10 @@ public:
 		if (ptr == nullptr)
 			m_value = 0;
 		else
-			m_value = (uint32)((uintptr_t)ptr - (uintptr_t)memory_base);
+        {
+            cemu_assert_debug((uint8*)ptr >= memory_base && (uint8*)ptr <= memory_base + 0x100000000);
+            m_value = (uint32)((uintptr_t)ptr - (uintptr_t)memory_base);
+        }
 	}
 
 	constexpr MEMPTR(const MEMPTR& memptr)
@@ -56,10 +66,13 @@ public:
 
 	MEMPTR& operator=(T* ptr)
 	{
-		if (ptr == nullptr)
+        if (ptr == nullptr)
 			m_value = 0;
 		else
-			m_value = (uint32)((uintptr_t)ptr - (uintptr_t)memory_base);
+        {
+            cemu_assert_debug((uint8*)ptr >= memory_base && (uint8*)ptr <= memory_base + 0x100000000);
+            m_value = (uint32)((uintptr_t)ptr - (uintptr_t)memory_base);
+        }
 		return *this;
 	}
 
@@ -79,19 +92,6 @@ public:
 	template <typename X>
 	explicit operator MEMPTR<X>() const { return MEMPTR<X>(this->m_value); }
 
-	//bool operator==(const MEMPTR<T>& v) const { return m_value == v.m_value; }
-	//bool operator==(const T* rhs) const { return (T*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value) == rhs; } -> ambigious (implicit cast to T* allows for T* == T*)
-	//bool operator==(std::nullptr_t rhs) const { return m_value == 0; }
-
-	//bool operator!=(const MEMPTR<T>& v) const { return !(*this == v); }
-	//bool operator!=(const void* rhs) const { return !(*this == rhs); }
-	//bool operator!=(int rhs) const { return !(*this == rhs); }
-
-	//bool operator==(const void* rhs) const { return (void*)(m_value == 0 ? nullptr : memory_base + (uint32)m_value) == rhs; }
-
-	//explicit bool operator==(int rhs) const { return *this == (const void*)(size_t)rhs; }
-	
-
 	MEMPTR operator+(const MEMPTR& ptr) { return MEMPTR(this->GetMPTR() + ptr.GetMPTR()); }
 	MEMPTR operator-(const MEMPTR& ptr) { return MEMPTR(this->GetMPTR() - ptr.GetMPTR()); }
 
@@ -105,6 +105,12 @@ public:
 	{
 		// pointer arithmetic
 		return MEMPTR(this->GetMPTR() - v * 4);
+	}
+
+	MEMPTR& operator+=(sint32 v)
+	{
+		m_value += v * sizeof(T);
+		return *this;
 	}
 
 	template <class Q = T>
@@ -123,15 +129,9 @@ public:
 	C* GetPtr() const { return (C*)(GetPtr()); }
 
 	constexpr uint32 GetMPTR() const { return m_value.value(); }
-	constexpr uint32 GetRawValue() const { return m_value.bevalue(); } // accesses value using host-endianness
-
 	constexpr const uint32be& GetBEValue() const { return m_value; }
 
 	constexpr bool IsNull() const { return m_value == 0; }
-
-	constexpr uint32 GetMPTRBE() const { return m_value.bevalue(); }
-
-	uint32be* GetBEPtr() { return &m_value; }
 
 private:
 	uint32be m_value;
@@ -146,5 +146,5 @@ template <typename T>
 struct fmt::formatter<MEMPTR<T>> : formatter<string_view>
 {
 	template <typename FormatContext>
-	auto format(const MEMPTR<T>& v, FormatContext& ctx) { return formatter<string_view>::format(fmt::format("{:#x}", v.GetMPTR()), ctx); }
+	auto format(const MEMPTR<T>& v, FormatContext& ctx) const -> format_context::iterator { return fmt::format_to(ctx.out(), "{:#x}", v.GetMPTR()); }
 };

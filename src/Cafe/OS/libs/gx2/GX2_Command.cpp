@@ -3,6 +3,7 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/OS/libs/coreinit/coreinit.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "GX2.h"
 #include "GX2_Command.h"
@@ -15,7 +16,7 @@ GX2WriteGatherPipeState gx2WriteGatherPipe = { 0 };
 
 void gx2WriteGather_submitU32AsBE(uint32 v)
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
 		return;
 	*(uint32*)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) = _swapEndianU32(v);
@@ -24,7 +25,7 @@ void gx2WriteGather_submitU32AsBE(uint32 v)
 
 void gx2WriteGather_submitU32AsLE(uint32 v)
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
 		return;
 	*(uint32*)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]) = v;
@@ -33,7 +34,7 @@ void gx2WriteGather_submitU32AsLE(uint32 v)
 
 void gx2WriteGather_submitU32AsLEArray(uint32* v, uint32 numValues)
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
 		return;
 	memcpy_dwords((*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]), v, numValues);
@@ -44,6 +45,12 @@ namespace GX2
 {
 	sint32 gx2WriteGatherCurrentMainCoreIndex = -1;
 	bool gx2WriteGatherInited = false;
+
+    void GX2WriteGather_ResetToDefaultState()
+    {
+        gx2WriteGatherCurrentMainCoreIndex = -1;
+        gx2WriteGatherInited = false;
+    }
 
 	void GX2Init_writeGather() // init write gather, make current core 
 	{
@@ -128,7 +135,7 @@ namespace GX2
 
 	bool GX2GetCurrentDisplayList(betype<MPTR>* displayListAddr, uint32be* displayListSize)
 	{
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		uint32 coreIndex = coreinit::OSGetCoreId();
 		if (gx2WriteGatherPipe.displayListStart[coreIndex] == MPTR_NULL)
 			return false;
 
@@ -143,16 +150,8 @@ namespace GX2
 	bool GX2GetDisplayListWriteStatus()
 	{
 		// returns true if we are writing to a display list
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		uint32 coreIndex = coreinit::OSGetCoreId();
 		return gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL;
-	}
-
-	bool GX2WriteGather_isDisplayListActive()
-	{
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
-		if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
-			return true;
-		return false;
 	}
 
 	uint32 GX2WriteGather_getReadWriteDistance()
@@ -165,7 +164,7 @@ namespace GX2
 
 	void GX2WriteGather_checkAndInsertWrapAroundMark()
 	{
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		uint32 coreIndex = coreinit::OSGetCoreId();
 		if (coreIndex != sGX2MainCoreIndex) // only if main gx2 core
 			return;
 		if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
@@ -181,18 +180,18 @@ namespace GX2
 
 	void GX2BeginDisplayList(MEMPTR<void> displayListAddr, uint32 size)
 	{
-		GX2WriteGather_beginDisplayList(ppcInterpreterCurrentInstance, displayListAddr.GetMPTR(), size);
+		GX2WriteGather_beginDisplayList(PPCInterpreter_getCurrentInstance(), displayListAddr.GetMPTR(), size);
 	}
 
 	void GX2BeginDisplayListEx(MEMPTR<void> displayListAddr, uint32 size, bool profiling)
 	{
-		GX2WriteGather_beginDisplayList(ppcInterpreterCurrentInstance, displayListAddr.GetMPTR(), size);
+		GX2WriteGather_beginDisplayList(PPCInterpreter_getCurrentInstance(), displayListAddr.GetMPTR(), size);
 	}
 
 	uint32 GX2EndDisplayList(MEMPTR<void> displayListAddr)
 	{
 		cemu_assert_debug(displayListAddr != nullptr);
-		uint32 displayListSize = GX2WriteGather_endDisplayList(ppcInterpreterCurrentInstance, displayListAddr.GetMPTR());
+		uint32 displayListSize = GX2WriteGather_endDisplayList(PPCInterpreter_getCurrentInstance(), displayListAddr.GetMPTR());
 		return displayListSize;
 	}
 
@@ -214,7 +213,7 @@ namespace GX2
 		// its basically a way to manually submit a command buffer to the GPU
 		// as such it also affects the submission and retire timestamps
 
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 		cemu_assert_debug(coreIndex == sGX2MainCoreIndex);
 		coreIndex = sGX2MainCoreIndex; // always submit to main queue which is owned by GX2 main core (TCLSubmitToRing does not need this workaround)
 
@@ -257,7 +256,7 @@ namespace GX2
 
 		if (patchType == GX2_PATCH_TYPE::VERTEX_SHADER)
 		{
-			GX2VertexShader_t* vertexShader = (GX2VertexShader_t*)obj;
+			GX2VertexShader* vertexShader = (GX2VertexShader*)obj;
 			displayData[patchOffset / 4 + 2] = memory_virtualToPhysical(vertexShader->GetProgramAddr()) >> 8;
 		}
 		else if (patchType == GX2_PATCH_TYPE::PIXEL_SHADER)
@@ -267,7 +266,7 @@ namespace GX2
 		}
 		else if (patchType == GX2_PATCH_TYPE::FETCH_SHADER)
 		{
-			GX2FetchShader_t* fetchShader = (GX2FetchShader_t*)obj;
+			GX2FetchShader* fetchShader = (GX2FetchShader*)obj;
 			displayData[patchOffset / 4 + 2] = memory_virtualToPhysical(fetchShader->GetProgramAddr()) >> 8;
 		}
 		else if (patchType == GX2_PATCH_TYPE::GEOMETRY_COPY_SHADER)
@@ -282,14 +281,13 @@ namespace GX2
 		}
 		else
 		{
-			forceLog_printf("GX2PatchDisplayList(): unsupported patchType %d", (uint32)patchType);
+			cemuLog_log(LogType::Force, "GX2PatchDisplayList(): unsupported patchType {}", (uint32)patchType);
 			cemu_assert_debug(false);
 		}
 	}
 
 	void GX2CommandInit()
 	{
-
 		cafeExportRegister("gx2", GX2BeginDisplayList, LogType::GX2);
 		cafeExportRegister("gx2", GX2BeginDisplayListEx, LogType::GX2);
 		cafeExportRegister("gx2", GX2EndDisplayList, LogType::GX2);
@@ -304,5 +302,10 @@ namespace GX2
 
 		cafeExportRegister("gx2", GX2PatchDisplayList, LogType::GX2);
 	}
+
+    void GX2CommandResetToDefaultState()
+    {
+        GX2WriteGather_ResetToDefaultState();
+    }
 
 }

@@ -150,25 +150,6 @@ private:
 	bool SortFunc(std::span<int> sortColumnOrder, const Type_t& v1, const Type_t& v2);
 
 	static wxString GetTitleEntryText(const TitleEntry& entry, ItemColumn column);
+	static wxString GetTranslatedTitleEntryType(EntryType entryType);
 	std::future<bool> m_context_worker;
-};
-
-template <>
-struct fmt::formatter<wxDownloadManagerList::EntryType> : formatter<string_view>
-{
-	using base = fmt::formatter<fmt::string_view>;
-	template <typename FormatContext>
-	auto format(const wxDownloadManagerList::EntryType& type, FormatContext& ctx)
-	{
-		switch (type)
-		{
-		case wxDownloadManagerList::EntryType::Base:
-			return base::format("base", ctx);
-		case wxDownloadManagerList::EntryType::Update:
-			return base::format("update", ctx);
-		case wxDownloadManagerList::EntryType::DLC:
-			return base::format("DLC", ctx);
-		}
-		return base::format(std::to_string(static_cast<std::underlying_type_t<wxDownloadManagerList::EntryType>>(type)), ctx);
-	}
 };

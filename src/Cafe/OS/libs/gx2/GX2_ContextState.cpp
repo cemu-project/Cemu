@@ -283,7 +283,7 @@ void GX2SetDefaultState()
 
 void gx2Export_GX2SetDefaultState(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDefaultState()");
+	cemuLog_log(LogType::GX2, "GX2SetDefaultState()");
 	GX2SetDefaultState();
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -291,8 +291,7 @@ void gx2Export_GX2SetDefaultState(PPCInterpreter_t* hCPU)
 void _GX2ContextCreateRestoreStateDL(GX2ContextState_t* gx2ContextState)
 {
 	// begin display list
-	if (GX2::GX2WriteGather_isDisplayListActive())
-		assert_dbg();
+	cemu_assert_debug(!GX2::GX2GetDisplayListWriteStatus()); // must not already be writing to a display list
 	GX2::GX2BeginDisplayList((void*)gx2ContextState->loadDL_buffer, sizeof(gx2ContextState->loadDL_buffer));
 	_GX2Context_WriteCmdRestoreState(gx2ContextState, 0);
 	uint32 displayListSize = GX2::GX2EndDisplayList((void*)gx2ContextState->loadDL_buffer);
@@ -301,7 +300,7 @@ void _GX2ContextCreateRestoreStateDL(GX2ContextState_t* gx2ContextState)
 
 void gx2Export_GX2SetupContextStateEx(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetupContextStateEx(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetupContextStateEx(0x{:08x})", hCPU->gpr[3]);
 	cemu_assert_debug(hCPU->gpr[4] == 0 || hCPU->gpr[4] == 1);
 
 	GX2ContextState_t* gx2ContextState = (GX2ContextState_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
@@ -329,7 +328,7 @@ void gx2Export_GX2SetupContextStateEx(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetContextState(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetContextState(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetContextState(0x{:08x})", hCPU->gpr[3]);
 	// parameters:
 	if( hCPU->gpr[3] == MPTR_NULL )
 	{
@@ -380,7 +379,7 @@ void gx2Export_GX2SetContextState(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetContextStateDisplayList(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetContextStateDisplayList(0x%08x, 0x%08x, 0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_log(LogType::GX2, "GX2GetContextStateDisplayList(0x{:08x}, 0x{:08x}, 0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamStructPtr(gx2ContextState, GX2ContextState_t, 0);
 	ppcDefineParamU32BEPtr(displayListPtrOut, 1);
 	ppcDefineParamU32BEPtr(displayListSizeOut, 2);

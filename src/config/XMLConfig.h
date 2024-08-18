@@ -235,6 +235,12 @@ public:
 		set(name, value.load());
 	}
 
+	template <typename T>
+	void set(const char* name, const ConfigValue<T>& value)
+	{
+		set(name, value.GetValue());
+	}
+
 	void set(const char* name, uint64 value)
 	{
 		set(name, (sint64)value);
@@ -344,10 +350,9 @@ public:
 		if (L == nullptr)
 			return false;
 		FileStream* fs = FileStream::openFile(filename.c_str());
-
-		if (fs == nullptr)
+		if (!fs)
 		{
-			forceLogDebug_printfW(L"XMLConfig::Load > failed \"%s\" with error %d", filename.c_str(), errno);
+			cemuLog_logDebug(LogType::Force, "XMLConfig::Load > failed \"{}\" with error {}", boost::nowide::narrow(filename), errno);
 			return false;
 		}
 		std::vector<uint8> xmlData;
@@ -360,7 +365,7 @@ public:
 		const bool success = error == tinyxml2::XML_SUCCESS;
 		if (error != 0)
 		{
-			forceLogDebug_printf("XMLConfig::Load > LoadFile %d", error);
+			cemuLog_logDebug(LogType::Force, "XMLConfig::Load > LoadFile {}", error);
 		}
 		if (success)
 		{
@@ -391,7 +396,7 @@ public:
 		fs::create_directories(fs::path(filename).parent_path(), err);
 		if (err)
 		{
-			forceLog_printf("can't create parent path for save file: %s", err.message().c_str());
+			cemuLog_log(LogType::Force, "can't create parent path for save file: {}", err.message());
 			return false;
 		}
 
@@ -401,9 +406,9 @@ public:
 #else
 		file = fopen(boost::nowide::narrow(tmp_name).c_str(), "wb");
 #endif
-        if (file == nullptr)
+        if (!file)
         {
-            forceLogDebug_printfW(L"XMLConfig::Save > failed \"%s\" with error %d", filename.c_str(), errno);
+			cemuLog_logDebug(LogType::Force, "XMLConfig::Save > failed \"{}\" with error {}", boost::nowide::narrow(filename), errno);
             return false;
         }
 
@@ -417,7 +422,7 @@ public:
 		const tinyxml2::XMLError error = doc.SaveFile(file);
 		const bool success = error == tinyxml2::XML_SUCCESS;
 		if(error != 0)
-			forceLogDebug_printfW(L"XMLConfig::Save > SaveFile %d", error);
+			cemuLog_logDebug(LogType::Force, "XMLConfig::Save > SaveFile {}", error);
 
 		fflush(file);
 		fclose(file);
@@ -425,7 +430,7 @@ public:
 		fs::rename(tmp_name, filename, err);
 		if(err)
 		{
-			forceLog_printf("can't save settings to file: %s", err.message().c_str());
+			cemuLog_log(LogType::Force, "Unable to save settings to file: {}", err.message().c_str());
 			fs::remove(tmp_name, err);
 		}
 
@@ -463,4 +468,3 @@ public:
 private:
 	T m_data;
 };
-

@@ -13,6 +13,7 @@ public:
 		/* 00 */ BASE_TITLE = 0x00, // eShop and disc titles
 		/* 02 */ BASE_TITLE_DEMO = 0x02,
 		/* 0E */ BASE_TITLE_UPDATE = 0x0E, // update for BASE_TITLE (and maybe BASE_TITLE_DEMO?)
+		/* 0F */ HOMEBREW = 0x0F,
 		/* 0C */ AOC = 0x0C, // DLC
 		/* 10 */ SYSTEM_TITLE = 0x10, // eShop etc
 		/* 1B */ SYSTEM_DATA = 0x1B,
@@ -43,6 +44,8 @@ public:
 			return TITLE_TYPE::BASE_TITLE_DEMO;
 		case 0x0E:
 			return TITLE_TYPE::BASE_TITLE_UPDATE;
+		case 0x0F:
+			return TITLE_TYPE::HOMEBREW;
 		case 0x0C:
 			return TITLE_TYPE::AOC;
 		case 0x10:

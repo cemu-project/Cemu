@@ -48,7 +48,7 @@ namespace coreinit
 
 	void coreinitExport_IMGetAPDPeriod(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("IMGetAPDPeriod(0x%08x)\n", hCPU->gpr[3]);
+		cemuLog_logDebug(LogType::Force, "IMGetAPDPeriod(0x{:08x})", hCPU->gpr[3]);
 		// parameters:
 		// r3	uint32*		returns the number of seconds until auto-shutdown occurs
 		memory_writeU32(hCPU->gpr[3], 600);
@@ -57,7 +57,7 @@ namespace coreinit
 
 	void coreinitExport_IM_GetParameter(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("IM_GetParameter()");
+		cemuLog_logDebug(LogType::Force, "IM_GetParameter()");
 
 		ppcDefineParamS32(imHandle, 0); // handle from IM_Open()
 		ppcDefineParamS32(uknR4, 1);
@@ -81,7 +81,7 @@ namespace coreinit
 
 	void coreinitExport_IM_GetRuntimeParameter(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("IM_GetRuntimeParameter()");
+		cemuLog_logDebug(LogType::Force, "IM_GetRuntimeParameter()");
 
 		ppcDefineParamS32(parameterId, 0);
 		ppcDefineParamStructPtr(output, void, 1);

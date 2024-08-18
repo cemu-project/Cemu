@@ -214,9 +214,9 @@ void amiiboDecrypt()
 	bool isValidTagHMAC = memcmp(nfp_data.amiiboNFCData.tagHMAC, nfp_data.amiiboInternal.tagHMAC, 32) == 0;
 	bool isValidDataHMAC = memcmp(nfp_data.amiiboNFCData.dataHMAC, nfp_data.amiiboInternal.dataHMAC, 32) == 0;
 	if (!isValidTagHMAC)
-		forceLog_printf("Decrypt amiibo has invalid tag HMAC");
+		cemuLog_log(LogType::Force, "Decrypt amiibo has invalid tag HMAC");
 	if (!isValidDataHMAC)
-		forceLog_printf("Decrypt amiibo has invalid data HMAC");
+		cemuLog_log(LogType::Force, "Decrypt amiibo has invalid data HMAC");
 	nfp_data.hasInvalidHMAC = !isValidTagHMAC || !isValidDataHMAC;
 }
 
@@ -261,7 +261,7 @@ void amiiboEncrypt(AmiiboRawNFCData* nfcOutput)
 	amiiboCrypto_internalToNfcFormat(&internalCopy, nfcOutput);
 
 	// restore NFC values that aren't part of the internal representation
-	memcpy(nfcOutput->lockBytes, nfp_data.amiiboNFCData.lockBytes, 4);
+	memcpy(nfcOutput->dynamicLock, nfp_data.amiiboNFCData.dynamicLock, 4);
 	memcpy(nfcOutput->cfg0, nfp_data.amiiboNFCData.cfg0, 4);
 	memcpy(nfcOutput->cfg1, nfp_data.amiiboNFCData.cfg1, 4);
 }

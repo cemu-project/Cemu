@@ -28,7 +28,7 @@ enum
 };
 
 RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
-	: wxFrame(&parent, wxID_ANY, _("Register View"), wxDefaultPosition, wxSize(400, 975), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
+	: wxFrame(&parent, wxID_ANY, _("Registers"), wxDefaultPosition, wxSize(400, 975), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
 	m_prev_snapshot({}), m_show_double_values(true), m_context_ctrl(nullptr)
 {
 	SetSizeHints(wxDefaultSize, wxDefaultSize);
@@ -145,7 +145,7 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 	else if (value->GetForegroundColour() != COLOR_BLACK)
 		value->SetForegroundColour(COLOR_BLACK);
 
-	value->SetLabelText(wxString::Format("%08x", registerValue));
+	value->ChangeValue(wxString::Format("%08x", registerValue));
 
 	//const auto label = dynamic_cast<wxTextCtrl*>(GetWindowChild(kRegisterLabelR0 + i));
 	//wxASSERT(label);
@@ -177,7 +177,7 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 
 		if (is_valid_string && buffer.tellp() > 1)
 		{
-			label->SetLabelText(wxString::Format("\"%s\"", buffer.str().c_str()));
+			label->ChangeValue(wxString::Format("\"%s\"", buffer.str().c_str()));
 			return;
 		}
 
@@ -206,7 +206,7 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 
 		if (is_valid_string && buffer.tellp() > 1)
 		{
-			label->SetLabelText(wxString::Format(L"ws\"%s\"", wbuffer.str().c_str()));
+			label->ChangeValue(wxString::Format(L"ws\"%s\"", wbuffer.str().c_str()));
 			return;
 		}
 	}
@@ -215,11 +215,11 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 	RPLModule* code_module = RPLLoader_FindModuleByCodeAddr(registerValue);
 	if (code_module)
 	{
-		label->SetLabelText(wxString::Format("<%s> + %x", code_module->moduleName2.c_str(), registerValue - code_module->regionMappingBase_text.GetMPTR()));
+		label->ChangeValue(wxString::Format("<%s> + %x", code_module->moduleName2.c_str(), registerValue - code_module->regionMappingBase_text.GetMPTR()));
 		return;
 	}
 
-	label->SetLabelText(wxEmptyString);
+	label->ChangeValue(wxEmptyString);
 }
 
 void RegisterWindow::OnUpdateView()
@@ -264,9 +264,9 @@ void RegisterWindow::OnUpdateView()
 			continue;
 
 		if(m_show_double_values)
-			value->SetLabelText(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0));
+			value->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0));
 		else
-			value->SetLabelText(wxString::Format("%016llx", register_value));
+			value->ChangeValue(wxString::Format("%016llx", register_value));
 	}
 
 	for (int i = 0; i < 32; ++i)
@@ -285,9 +285,9 @@ void RegisterWindow::OnUpdateView()
 			continue;
 
 		if (m_show_double_values)
-			value->SetLabelText(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1));
+			value->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1));
 		else
-			value->SetLabelText(wxString::Format("%016llx", register_value));
+			value->ChangeValue(wxString::Format("%016llx", register_value));
 	}
 
 	// update CRs
@@ -318,9 +318,9 @@ void RegisterWindow::OnUpdateView()
 			joinArray.emplace_back("SO");
 
 		if (joinArray.empty())
-			value->SetLabelText("-");
+			value->ChangeValue("-");
 		else
-			value->SetLabelText(fmt::format("{}", fmt::join(joinArray, ", ")));
+			value->ChangeValue(fmt::format("{}", fmt::join(joinArray, ", ")));
 	}
 
 	memcpy(&m_prev_snapshot, &debuggerState.debugSession.ppcSnapshot, sizeof(m_prev_snapshot));
@@ -399,13 +399,13 @@ void RegisterWindow::OnFPViewModePress(wxCommandEvent& event)
 
 		if (m_show_double_values)
 		{
-			value0->SetLabelText(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0));
-			value1->SetLabelText(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1));
+			value0->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0));
+			value1->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1));
 		}
 		else
 		{
-			value0->SetLabelText(wxString::Format("%016llx", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0int));
-			value1->SetLabelText(wxString::Format("%016llx", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1int));
+			value0->ChangeValue(wxString::Format("%016llx", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0int));
+			value1->ChangeValue(wxString::Format("%016llx", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1int));
 		}
 	}
 }

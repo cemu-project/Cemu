@@ -1,4 +1,5 @@
 #pragma once
+
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
@@ -6,6 +7,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h"
 #include "util/math/vector2.h"
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -15,6 +17,9 @@ struct VkSupportedFormatInfo_t
 {
 	bool fmt_d24_unorm_s8_uint{};
 	bool fmt_r4g4_unorm_pack{};
+	bool fmt_r5g6b5_unorm_pack{};
+	bool fmt_r4g4b4a4_unorm_pack{};
+	bool fmt_a1r5g5b5_unorm_pack{};
 };
 
 struct VkDescriptorSetInfo
@@ -121,23 +126,16 @@ class VulkanRenderer : public Renderer
 	friend class LatteTextureReadbackInfoVk;
 	friend class PipelineCompiler;
 
+	using VSync = SwapchainInfoVk::VSync;
+
 	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
-	static const inline int INDEX_STREAM_BUFFER_SIZE = 16 * 1024 * 1024; // 16 MB
 
 	static const inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
 
 	static const inline int OCCLUSION_QUERY_POOL_SIZE = 1024;
 
 public:
-	enum class VSync
-	{
-		// values here must match GeneralSettings2::m_vsync
-		Immediate = 0,
-		FIFO = 1,
-		MAILBOX = 2,
-		SYNC_AND_LIMIT = 3, // synchronize emulated vsync events to monitor vsync. But skip events if rate higher than virtual vsync period
-	};
-	
+
 	// memory management
 	VKRMemoryManager* memoryManager{};
 	VKRMemoryManager* GetMemoryManager() const { return memoryManager; };
@@ -182,17 +180,18 @@ public:
 
 	void GetDeviceFeatures();
 	void DetermineVendor();
-	void Initialize(const Vector2i& size, bool isMainWindow);
+	void InitializeSurface(const Vector2i& size, bool mainWindow);
 
+	const std::unique_ptr<SwapchainInfoVk>& GetChainInfoPtr(bool mainWindow) const;
+	SwapchainInfoVk& GetChainInfo(bool mainWindow) const;
+
+	void StopUsingPadAndWait();
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
-	void ResizeSwapchain(const Vector2i& size, bool isMainWindow);
 
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();
-
-	void EnableVSync(int state) override;
 
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
@@ -200,6 +199,9 @@ public:
 #if BOOST_OS_LINUX
 	static VkSurfaceKHR CreateXlibSurface(VkInstance instance, Display* dpy, Window window);
     static VkSurfaceKHR CreateXcbSurface(VkInstance instance, xcb_connection_t* connection, xcb_window_t window);
+	#ifdef HAS_WAYLAND
+	static VkSurfaceKHR CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* surface);
+	#endif
 #endif
 
 	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo);
@@ -209,7 +211,7 @@ public:
 	void ImguiInit();
 	VkInstance GetVkInstance() const { return m_instance; }
 	VkDevice GetLogicalDevice() const { return m_logicalDevice; }
-	VkPhysicalDevice GetPhysicalDevice() const { return m_physical_device; }
+	VkPhysicalDevice GetPhysicalDevice() const { return m_physicalDevice; }
 
 	VkDescriptorPool GetDescriptorPool() const { return m_descriptorPool; }
 
@@ -226,13 +228,11 @@ public:
 	uint64 GenUniqueId(); // return unique id (uses incrementing counter)
 
 	void DrawEmptyFrame(bool mainWindow) override;
-	void PreparePresentationFrame(bool mainWindow);
 
-	void ProcessDestructionQueues(size_t commandBufferIndex);
 	void InitFirstCommandBuffer();
 	void ProcessFinishedCommandBuffers();
 	void WaitForNextFinishedCommandBuffer();
-	void SubmitCommandBuffer(VkSemaphore* signalSemaphore = nullptr, VkSemaphore* waitSemaphore = nullptr);
+	void SubmitCommandBuffer(VkSemaphore signalSemaphore = VK_NULL_HANDLE, VkSemaphore waitSemaphore = VK_NULL_HANDLE);
 	void RequestSubmitSoon();
 	void RequestSubmitOnIdle();
 
@@ -241,15 +241,9 @@ public:
 	bool HasCommandBufferFinished(uint64 commandBufferId) const;
 	void WaitCommandBufferFinished(uint64 commandBufferId);
 
-	// clean up (deprecated)
-	void destroyViewDepr(VkImageView imageView);
-	void destroyBuffer(VkBuffer buffer);
-	void destroyDeviceMemory(VkDeviceMemory mem);
-	void destroyPipelineInfo(PipelineInfo* pipelineInfo);
-	void destroyShader(RendererShaderVk* shader);
-	// clean up (new)
-	void releaseDestructibleObject(VKRDestructibleObject* destructibleObject);
-	void ProcessDestructionQueue2();
+	// resource destruction queue
+	void ReleaseDestructibleObject(VKRDestructibleObject* destructibleObject);
+	void ProcessDestructionQueue();
 
 	FSpinlock m_spinlockDestructionQueue;
 	std::vector<VKRDestructibleObject*> m_destructionQueue;
@@ -287,24 +281,16 @@ public:
 
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
 
-	void texture_reserveTextureOnGPU(LatteTexture* hostTexture) override;
-	void texture_destroy(LatteTexture* hostTexture) override;
-
 	void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) override;
 	void texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a) override;
 	void texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue) override;
 
 	void texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize) override;
 
-	LatteTexture* texture_createTextureEx(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
+	LatteTexture* texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth) override;
 
-	void texture_bindAndActivate(LatteTextureView* textureView, uint32 textureUnit) override;
-	void texture_bindOnly(LatteTextureView* textureView, uint32 textureUnit) override;
+	void texture_setLatteTexture(LatteTextureView* textureView, uint32 textureUnit) override;
 
-	void texture_bindAndActivateRawTex(LatteTexture* texture, uint32 textureUnit) override {};
-	
-	void texture_rememberBoundTexture(uint32 textureUnit) override {};
-	void texture_restoreBoundTexture(uint32 textureUnit) override {};
 	void texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth) override;
 	LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) override;
 
@@ -313,7 +299,6 @@ public:
 	void surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTexture);
 
 	private:
-	void surfaceCopy_viaBuffer(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcLevel, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstLevel, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 	void surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 
 	void surfaceCopy_cleanup();
@@ -330,10 +315,6 @@ private:
 
 	std::unordered_map<uint64, struct CopySurfacePipelineInfo*> m_copySurfacePipelineCache;
 
-	VkBuffer m_surfaceCopyBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_surfaceCopyBufferMemory = VK_NULL_HANDLE;
-	size_t m_surfaceCopyBufferSize{};
-
 public:
 	// renderer interface
 	void bufferCache_init(const sint32 bufferSize) override;
@@ -341,11 +322,11 @@ public:
 	void bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size) override;
 
 	void buffer_bindVertexBuffer(uint32 bufferIndex, uint32 buffer, uint32 size) override;
+	void buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size);
+	std::pair<VkBuffer, uint32> buffer_genStrideWorkaroundVertexBuffer(MPTR buffer, uint32 size, uint32 oldStride);
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
-	void shader_bind(RendererShader* shader) override;
-	void shader_unbind(RendererShader::ShaderType shaderType) override;
 
 	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
 	void indexData_uploadIndexMemory(uint32 offset, uint32 size) override;
@@ -430,85 +411,25 @@ private:
 		bool drawSequenceSkip; // if true, skip draw_execute()
 	}m_state;
 
-	// swapchain - todo move this to m_swapchainState
-	struct SwapChainInfo
-	{
-		SwapChainInfo(VkDevice device, VkSurfaceKHR surface) : m_device(device), surface(surface) {}
-		SwapChainInfo(const SwapChainInfo&) = delete;
-		SwapChainInfo(SwapChainInfo&&) noexcept = default;
-		~SwapChainInfo()
-		{
-			if (m_swapChainRenderPass)
-			{
-				vkDestroyRenderPass(m_device, m_swapChainRenderPass, nullptr);
-				m_swapChainRenderPass = VK_NULL_HANDLE;
-			}
-			if (swapChain)
-			{
-				vkDestroySwapchainKHR(m_device, swapChain, nullptr);
-				swapChain = VK_NULL_HANDLE;
-			}
-			for (auto& imageView : m_swapchainImageViews)
-				vkDestroyImageView(m_device, imageView, nullptr);
-			m_swapchainImageViews.clear();
-			for (auto& framebuffer : m_swapchainFramebuffers)
-				vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-			m_swapchainFramebuffers.clear();
-		}
-
-		VkDevice m_device;
-
-		VkSurfaceKHR surface{};
-		VkSwapchainKHR swapChain{};
-		VkExtent2D swapchainExtend{};
-		uint32 swapchainImageIndex = (uint32)-1;
-		uint32 m_acquireIndex = 0; // increases with every successful vkAcquireNextImageKHR
-
-		struct AcquireInfo
-		{
-			// move fence here?
-			VkSemaphore acquireSemaphore;
-		};
-		std::vector<AcquireInfo> m_acquireInfo; // indexed by acquireIndex
-
-		// swapchain image ringbuffer (indexed by swapchainImageIndex)
-		std::vector<VkImage> m_swapchainImages;
-		std::vector<VkImageView> m_swapchainImageViews;
-		std::vector<VkFramebuffer> m_swapchainFramebuffers;
-		std::vector<VkSemaphore> m_swapchainPresentSemaphores;
-
-		VkFence m_imageAvailableFence = nullptr;
-		VkRenderPass m_swapChainRenderPass = nullptr;
-		VkRenderPass m_imguiRenderPass = nullptr;
-	};
-	std::unique_ptr<SwapChainInfo> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
+	std::unique_ptr<SwapchainInfoVk> m_mainSwapchainInfo{}, m_padSwapchainInfo{};
+	std::atomic_flag m_destroyPadSwapchainNextAcquire{};
 	bool IsSwapchainInfoValid(bool mainWindow) const;
-	VkSwapchainKHR CreateSwapChain(SwapChainInfo& swap_chain_info, const Vector2i& size, bool mainwindow);
 
-	struct
-	{
-		bool resizeRequestedMainWindow{};
-		Vector2i newExtentMainWindow;
-		bool resizeRequestedPadWindow{};
-		Vector2i newExtentPadWindow;
-		bool tvHasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
-		bool drcHasDefinedSwapchainImage{};
-	}m_swapchainState;
+	VkRenderPass m_imguiRenderPass = VK_NULL_HANDLE;
 
 	VkDescriptorPool m_descriptorPool;
-	VkSurfaceFormatKHR m_swapchainFormat;
 
-	bool m_tvBufferUsesSRGB = false;
-	bool m_drvBufferUsesSRGB = false;
-
-	struct QueueFamilyIndices 
+  public:
+	struct QueueFamilyIndices
 	{
 		int32_t graphicsFamily = -1;
 		int32_t presentFamily = -1;
 
 		bool IsComplete() const	{ return graphicsFamily >= 0 && presentFamily >= 0;	}
 	};
-	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, const VkPhysicalDevice& device);
+	static QueueFamilyIndices FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device);
+
+  private:
 
 	struct FeatureControl
 	{
@@ -528,7 +449,13 @@ private:
 			bool external_memory_host = false; // VK_EXT_external_memory_host
 			bool synchronization2 = false; // VK_KHR_synchronization2
 			bool dynamic_rendering = false; // VK_KHR_dynamic_rendering
+			bool shader_float_controls = false; // VK_KHR_shader_float_controls
 		}deviceExtensions;
+
+		struct
+		{
+			bool shaderRoundingModeRTEFloat32{ false };
+		}shaderFloatControls; // from VK_KHR_shader_float_controls
 
 		struct  
 		{
@@ -537,7 +464,6 @@ private:
 
 		struct  
 		{
-			bool useBufferSurfaceCopies; // if GPU has enough VRAM to spare, allow to use a buffer to copy surfaces (instead of drawcalls)
 			bool useTFEmulationViaSSBO = true; // emulate transform feedback via shader writes to a storage buffer
 		}mode;
 
@@ -547,22 +473,15 @@ private:
 			uint32 nonCoherentAtomSize = 256;
 		}limits;
 
-		bool debugMarkersSupported = false; // frame debugger is attached
-		bool disableMultithreadedCompilation = false; // for old nvidia drivers
+		bool debugMarkersSupported{ false }; // frame debugger is attached
+		bool disableMultithreadedCompilation{ false }; // for old nvidia drivers
 
 	}m_featureControl{};
 	static bool CheckDeviceExtensionSupport(const VkPhysicalDevice device, FeatureControl& info);
 	static std::vector<const char*> CheckInstanceExtensionSupport(FeatureControl& info);
 
-	void SwapBuffer(bool main_window);
-	VSync m_vsync_state = VSync::Immediate;
-
-	struct SwapChainSupportDetails 
-	{
-		VkSurfaceCapabilitiesKHR capabilities;
-		std::vector<VkSurfaceFormatKHR> formats;
-		std::vector<VkPresentModeKHR> presentModes;
-	};
+	bool UpdateSwapchainProperties(bool mainWindow);
+	void SwapBuffer(bool mainWindow);
 
 	VkDescriptorSetLayout m_swapchainDescriptorSetLayout;
 
@@ -570,14 +489,9 @@ private:
 
 	// swapchain
 
-	static SwapChainSupportDetails QuerySwapChainSupport(VkSurfaceKHR surface, const VkPhysicalDevice& device);
 	std::vector<VkDeviceQueueCreateInfo> CreateQueueCreateInfos(const std::set<int>& uniqueQueueFamilies) const;
 	VkDeviceCreateInfo CreateDeviceCreateInfo(const std::vector<VkDeviceQueueCreateInfo>& queueCreateInfos, const VkPhysicalDeviceFeatures& deviceFeatures, const void* deviceExtensionStructs, std::vector<const char*>& used_extensions) const;
 	static bool IsDeviceSuitable(VkSurfaceKHR surface, const VkPhysicalDevice& device);
-	VkSurfaceFormatKHR ChooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& formats, bool mainWindow) const;
-	VkPresentModeKHR ChooseSwapPresentMode(const std::vector<VkPresentModeKHR>& modes);
-	VkExtent2D ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities, const Vector2i& size) const;
-	VkSwapchainCreateInfoKHR CreateSwapchainCreateInfo(VkSurfaceKHR surface, const SwapChainSupportDetails& swapChainSupport, const VkSurfaceFormatKHR& surfaceFormat, uint32 imageCount, const VkExtent2D& extent);
 
 	void CreateCommandPool();
 	void CreateCommandBuffers();
@@ -626,21 +540,17 @@ private:
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
 	// command buffer
-
 	VkCommandBuffer getCurrentCommandBuffer() const { return m_state.currentCommandBuffer; }
 
 	// uniform
 	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader);
 
-	// indices
-	void CreateBackbufferIndexBuffer();
-
 	// misc
 	void CreatePipelineCache();
 	VkPipelineShaderStageCreateInfo CreatePipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, VkShaderModule& module, const char* entryName) const;
 	VkPipeline backbufferBlit_createGraphicsPipeline(VkDescriptorSetLayout descriptorLayout, bool padView, RendererOutputShader* shader);
-	void AcquireNextSwapchainImage(bool main_window);
-	void RecreateSwapchain(bool mainwindow);
+	bool AcquireNextSwapchainImage(bool mainWindow);
+	void RecreateSwapchain(bool mainWindow, bool skipCreate = false);
 
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;
@@ -658,12 +568,9 @@ private:
 	void occlusionQuery_notifyBeginCommandBuffer();
 
 private:
-	VkBuffer m_indexBuffer = VK_NULL_HANDLE;
-	VkDeviceMemory m_indexBufferMemory = VK_NULL_HANDLE;
-	
 	std::vector<const char*> m_layerNames;
 	VkInstance m_instance = VK_NULL_HANDLE;
-	VkPhysicalDevice m_physical_device = VK_NULL_HANDLE;
+	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice  m_logicalDevice = VK_NULL_HANDLE;
 	VkDebugUtilsMessengerEXT m_debugCallback = nullptr;
 	volatile bool m_destructionRequested = false;
@@ -725,15 +632,6 @@ private:
 
 	// command buffer, garbage collection, synchronization
 	static constexpr uint32 kCommandBufferPoolSize = 128;
-
-	struct
-	{
-		std::array<std::vector<VkDescriptorSet>, kCommandBufferPoolSize> m_cmd_descriptor_set_objects;
-		std::array<std::vector<VkImageView>, kCommandBufferPoolSize> m_cmd_image_views;
-		std::array<std::vector<LatteTextureVk*>, kCommandBufferPoolSize> m_host_textures;
-		std::array<std::vector<VkBuffer>, kCommandBufferPoolSize> m_buffers;
-		std::array<std::vector<VkDeviceMemory>, kCommandBufferPoolSize> m_memory;
-	}m_destructionQueues;
 
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)
@@ -977,10 +875,8 @@ private:
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
-	void barrier_image(LatteTextureVk* vkTexture, VkImageSubresourceLayers& subresourceLayers, VkImageLayout newLayout)
+	void barrier_image(VkImage imageVk, VkImageSubresourceRange& subresourceRange, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
-		VkImage imageVk = vkTexture->GetImageObj()->m_image;
-
 		VkPipelineStageFlags srcStages = 0;
 		VkPipelineStageFlags dstStages = 0;
 
@@ -993,32 +889,41 @@ private:
 		barrier_calcStageAndMask<TSrcSyncOp>(srcStages, imageMemBarrier.srcAccessMask);
 		barrier_calcStageAndMask<TDstSyncOp>(dstStages, imageMemBarrier.dstAccessMask);
 		imageMemBarrier.image = imageVk;
-		imageMemBarrier.subresourceRange.aspectMask = subresourceLayers.aspectMask;
-		imageMemBarrier.subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
-		imageMemBarrier.subresourceRange.layerCount = subresourceLayers.layerCount;
-		imageMemBarrier.subresourceRange.baseMipLevel = subresourceLayers.mipLevel;
-		imageMemBarrier.subresourceRange.levelCount = 1;
-		imageMemBarrier.oldLayout = vkTexture->GetImageLayout(imageMemBarrier.subresourceRange);
+		imageMemBarrier.subresourceRange = subresourceRange;
+		imageMemBarrier.oldLayout = oldLayout;
 		imageMemBarrier.newLayout = newLayout;
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer,
-			srcStages, dstStages,
-			0,
-			0, NULL,
-			0, NULL,
-			1, &imageMemBarrier);
+							 srcStages, dstStages,
+							 0,
+							 0, NULL,
+							 0, NULL,
+							 1, &imageMemBarrier);
+	}
 
-		vkTexture->SetImageLayout(imageMemBarrier.subresourceRange, newLayout);
+	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
+	void barrier_image(LatteTextureVk* vkTexture, VkImageSubresourceLayers& subresourceLayers, VkImageLayout newLayout)
+	{
+		VkImage imageVk = vkTexture->GetImageObj()->m_image;
+
+		VkImageSubresourceRange subresourceRange;
+		subresourceRange.aspectMask = subresourceLayers.aspectMask;
+		subresourceRange.baseArrayLayer = subresourceLayers.baseArrayLayer;
+		subresourceRange.layerCount = subresourceLayers.layerCount;
+		subresourceRange.baseMipLevel = subresourceLayers.mipLevel;
+		subresourceRange.levelCount = 1;
+
+		barrier_image<TSrcSyncOp, TDstSyncOp>(imageVk, subresourceRange, vkTexture->GetImageLayout(subresourceRange), newLayout);
+
+		vkTexture->SetImageLayout(subresourceRange, newLayout);
 	}
 
 
 public:
-	bool GetDisableMultithreadedCompilation() { return m_featureControl.disableMultithreadedCompilation; }
-	bool useTFViaSSBO() { return m_featureControl.mode.useTFEmulationViaSSBO; }
-	bool IsDebugUtilsEnabled() const
-	{
-		return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils;
-	}
+	bool GetDisableMultithreadedCompilation() const { return m_featureControl.disableMultithreadedCompilation; }
+	bool UseTFViaSSBO() const { return m_featureControl.mode.useTFEmulationViaSSBO; }
+	bool HasSPRIVRoundingModeRTE32() const { return m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32; }
+	bool IsDebugUtilsEnabled() const { return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils; }
 
 private:
 

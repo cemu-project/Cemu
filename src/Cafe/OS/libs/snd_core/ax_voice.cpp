@@ -3,6 +3,7 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/libs/snd_core/ax_internal.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "util/helpers/fspinlock.h"
 
 namespace snd_core
@@ -40,11 +41,6 @@ namespace snd_core
 		return vpb;
 	}
 
-	void AXVoiceList_ResetFreeVoiceList()
-	{
-		__AXFreeVoices.clear();
-	}
-
 	std::vector<AXVPB*>& AXVoiceList_GetFreeVoices()
 	{
 		return __AXFreeVoices;
@@ -79,6 +75,13 @@ namespace snd_core
 		cemu_assert(priority != AX_PRIORITY_FREE && priority < AX_PRIORITY_MAX);
 		return __AXVoicesPerPriority[priority];
 	}
+
+    void AXVoiceList_Reset()
+    {
+        __AXFreeVoices.clear();
+        for (uint32 i = 0; i < AX_PRIORITY_MAX; i++)
+            __AXVoicesPerPriority[i].clear();
+    }
 
 	SysAllocator<AXVPBInternal_t, AX_MAX_VOICES> _buffer__AXVPBInternalVoiceArray;
 	AXVPBInternal_t* __AXVPBInternalVoiceArray;
@@ -118,7 +121,7 @@ namespace snd_core
 		{
 			return -2;
 		}
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		for (sint32 i = __AXUserProtectionArraySize - 1; i >= 0; i--)
 		{
 			if (__AXUserProtectionArray[i].threadMPTR == currentThreadMPTR)
@@ -149,7 +152,7 @@ namespace snd_core
 		PPCCore_deboostQuantum(10000);
 		if (AXIst_IsFrameBeingProcessed())
 			return -2;
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		for (sint32 i = __AXUserProtectionArraySize - 1; i >= 0; i--)
 		{
 			if (__AXUserProtectionArray[i].threadMPTR == currentThreadMPTR)
@@ -204,7 +207,7 @@ namespace snd_core
 		if (AXIst_IsFrameBeingProcessed())
 			isProtected = __AXVoiceProtection[index].threadMPTR != MPTR_NULL;
 		else
-			isProtected = __AXVoiceProtection[index].threadMPTR != coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+			isProtected = __AXVoiceProtection[index].threadMPTR != memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		return isProtected;
 	}
 
@@ -217,7 +220,7 @@ namespace snd_core
 			return;
 		if (__AXVoiceProtection[index].threadMPTR == MPTR_NULL)
 		{
-			__AXVoiceProtection[index].threadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+			__AXVoiceProtection[index].threadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 			// does not set count?
 		}
 	}
@@ -233,18 +236,18 @@ namespace snd_core
 	{
 		if (voice == nullptr)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice");
 			return -1;
 		}
 		uint32 index = (uint32)voice->index;
 		if (index >= AX_MAX_VOICES)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice index");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice index");
 			return -1;
 		}
 		if (AXIst_IsFrameBeingProcessed())
 			return -2;
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		if (__AXVoiceProtection[index].threadMPTR == MPTR_NULL)
 		{
 			__AXVoiceProtection[index].threadMPTR = currentThreadMPTR;
@@ -273,18 +276,18 @@ namespace snd_core
 	{
 		if (voice == nullptr)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice");
 			return -1;
 		}
 		uint32 index = (uint32)voice->index;
 		if (index >= AX_MAX_VOICES)
 		{
-			forceLog_printf("AXVoiceBegin(): Invalid voice index");
+			cemuLog_log(LogType::Force, "AXVoiceBegin(): Invalid voice index");
 			return -1;
 		}
 		if (AXIst_IsFrameBeingProcessed())
 			return -2;
-		MPTR currentThreadMPTR = coreinitThread_getCurrentThreadMPTRDepr(ppcInterpreterCurrentInstance);
+		MPTR currentThreadMPTR = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
 		if (__AXVoiceProtection[index].threadMPTR == currentThreadMPTR)
 		{
 			if (__AXVoiceProtection[index].count > 0)
@@ -365,7 +368,7 @@ namespace snd_core
 				// get last voice in chain
 				while (voiceItr->next)
 					voiceItr = voiceItr->next.GetPtr();
-				forceLogDebug_printf("Dropped voice %d", (uint32)voiceItr->index);
+				cemuLog_logDebug(LogType::Force, "Dropped voice {}", (uint32)voiceItr->index);
 				// drop voice
 				if (voiceItr->playbackState != 0)
 				{
@@ -393,7 +396,7 @@ namespace snd_core
 	AXVPB* AXAcquireVoiceEx(uint32 priority, MPTR callbackEx, MPTR userParam)
 	{
 		cemu_assert(priority != AX_PRIORITY_FREE && priority < AX_PRIORITY_MAX);
-		__AXVoiceListSpinlock.acquire();
+		__AXVoiceListSpinlock.lock();
 		AXVPB* vpb = AXVoiceList_GetFreeVoice();
 		if (vpb != nullptr)
 		{
@@ -410,7 +413,7 @@ namespace snd_core
 			if (droppedVoice == nullptr)
 			{
 				// no voice available
-				__AXVoiceListSpinlock.release();
+				__AXVoiceListSpinlock.unlock();
 				return nullptr;
 			}
 			vpb->userParam = userParam;
@@ -418,18 +421,18 @@ namespace snd_core
 			vpb->callbackEx = callbackEx;
 			AXVPB_SetVoiceDefault(vpb);
 		}
-		__AXVoiceListSpinlock.release();
+		__AXVoiceListSpinlock.unlock();
 		return vpb;
 	}
 
 	void AXFreeVoice(AXVPB* vpb)
 	{
 		cemu_assert(vpb != nullptr);
-		__AXVoiceListSpinlock.acquire();
+		__AXVoiceListSpinlock.lock();
 		if (vpb->priority == (uint32be)AX_PRIORITY_FREE)
 		{
-			forceLog_printf("AXFreeVoice() called on free voice\n");
-			__AXVoiceListSpinlock.release();
+			cemuLog_log(LogType::Force, "AXFreeVoice() called on free voice");
+			__AXVoiceListSpinlock.unlock();
 			return;
 		}
 		AXVoiceProtection_Release(vpb);
@@ -442,17 +445,25 @@ namespace snd_core
 		vpb->callback = MPTR_NULL;
 		vpb->callbackEx = MPTR_NULL;
 		AXVoiceList_AddFreeVoice(vpb);
-		__AXVoiceListSpinlock.release();
+		__AXVoiceListSpinlock.unlock();
 	}
+
+    void __AXVPBResetVoices()
+    {
+        __AXVPBInternalVoiceArray = _buffer__AXVPBInternalVoiceArray.GetPtr();
+        __AXVPBInternalVoiceShadowCopyArrayPtr = _buffer__AXVPBInternalVoiceShadowCopyArray.GetPtr();
+        __AXVPBArrayPtr = _buffer__AXVPBArray.GetPtr();
+        __AXVPBItdArrayPtr = _buffer__AXVPBItdArray.GetPtr();
+
+        memset(__AXVPBInternalVoiceShadowCopyArrayPtr, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
+        memset(__AXVPBInternalVoiceArray, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
+        memset(__AXVPBItdArrayPtr, 0, sizeof(AXVPBItd)*AX_MAX_VOICES);
+        memset(__AXVPBArrayPtr, 0, sizeof(AXVPB)*AX_MAX_VOICES);
+    }
 
 	void AXVPBInit()
 	{
-		__AXVPBInternalVoiceArray = _buffer__AXVPBInternalVoiceArray.GetPtr();
-
-		memset(__AXVPBInternalVoiceShadowCopyArrayPtr, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
-		memset(__AXVPBInternalVoiceArray, 0, sizeof(AXVPBInternal_t)*AX_MAX_VOICES);
-		memset(__AXVPBItdArrayPtr, 0, sizeof(AXVPBItd)*AX_MAX_VOICES);
-		memset(__AXVPBArrayPtr, 0, sizeof(AXVPB)*AX_MAX_VOICES);
+        __AXVPBResetVoices();
 		for (sint32 i = 0; i < AX_MAX_VOICES; i++)
 		{
 			AXVPBItd* itd = __AXVPBItdArrayPtr + i;
@@ -494,11 +505,15 @@ namespace snd_core
 
 	void AXVPB_Init()
 	{
-		__AXVPBInternalVoiceShadowCopyArrayPtr = _buffer__AXVPBInternalVoiceShadowCopyArray.GetPtr();
-		__AXVPBArrayPtr = _buffer__AXVPBArray.GetPtr();
-		__AXVPBItdArrayPtr = _buffer__AXVPBItdArray.GetPtr();
+		__AXVPBResetVoices();
 		AXVPBInit();
 	}
+
+    void AXVBP_Reset()
+    {
+        AXVoiceList_Reset();
+        __AXVPBResetVoices();
+    }
 
 	sint32 AXIsValidDevice(sint32 device, sint32 deviceIndex)
 	{
@@ -692,7 +707,7 @@ namespace snd_core
 		}
 		else
 		{
-			forceLog_printf("AXSetVoiceSrcType(): Unsupported src type %d", srcType);
+			cemuLog_log(LogType::Force, "AXSetVoiceSrcType(): Unsupported src type {}", srcType);
 		}
 		AXSetSyncFlag(vpb, AX_SYNCFLAG_SRCFILTER);
 		AXVoiceProtection_Acquire(vpb);
@@ -702,7 +717,7 @@ namespace snd_core
 	{
 		AXVPBInternal_t* internal = __AXVPBInternalVoiceArray + (sint32)vpb->index;
 		ratio *= 65536.0f;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (ratio >= 4294967296.0f)
 			assert_dbg();
 #endif
@@ -843,7 +858,7 @@ namespace snd_core
 		MPTR sampleBase = _swapEndianU32(pbOffset->samples);
 		if (sampleBase == MPTR_NULL)
 		{
-			forceLog_printf("AXSetVoiceOffsets(): Invalid sample address");
+			cemuLog_log(LogType::Force, "AXSetVoiceOffsets(): Invalid sample address");
 			cemu_assert_debug(false);
 			return;
 		}
@@ -1004,7 +1019,7 @@ namespace snd_core
 		{
 			cemu_assert_debug(false);
 		}
-		sndApiLog_printf("Retrieved voice offsets for voice %08x - base %08x current %08x loopFlag %04x loop %08x end %08x", memory_getVirtualOffsetFromPointer(vpb), _swapEndianU32(pbOffset->samples), _swapEndianU32(pbOffset->currentOffset), _swapEndianU16(pbOffset->loopFlag), _swapEndianU32(pbOffset->loopOffset), _swapEndianU32(pbOffset->endOffset));
+		cemuLog_log(LogType::SoundAPI, "Retrieved voice offsets for voice {:08x} - base {:08x} current {:08x} loopFlag {:04x} loop {:08x} end {:08x}", memory_getVirtualOffsetFromPointer(vpb), _swapEndianU32(pbOffset->samples), _swapEndianU32(pbOffset->currentOffset), _swapEndianU16(pbOffset->loopFlag), _swapEndianU32(pbOffset->loopOffset), _swapEndianU32(pbOffset->endOffset));
 	}
 
 	void AXGetVoiceOffsetsEx(AXVPB* vpb, AXPBOFFSET_t* pbOffset, MPTR sampleBase)

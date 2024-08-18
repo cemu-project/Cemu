@@ -3,7 +3,6 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 
-#include <glslang/Include/Types.h>
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 
@@ -85,7 +84,7 @@ PipelineInfo::~PipelineInfo()
 	// queue pipeline for destruction
 	if (m_vkrObjPipeline)
 	{
-		VulkanRenderer::GetInstance()->releaseDestructibleObject(m_vkrObjPipeline);
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_vkrObjPipeline);
 		m_vkrObjPipeline = nullptr;
 	}
 

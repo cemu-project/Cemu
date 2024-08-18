@@ -225,7 +225,7 @@ VkFormat PipelineCompiler::GetVertexFormat(uint8 format)
 	case FMT_2_10_10_10:
 		return VK_FORMAT_R32_UINT; // verified to match OpenGL
 	default:
-		forceLog_printf("Unsupported vertex format: %02x", format);
+		cemuLog_log(LogType::Force, "Unsupported vertex format: {:02x}", format);
 		assert_dbg();
 		return VK_FORMAT_UNDEFINED;
 	}
@@ -398,7 +398,7 @@ bool PipelineCompiler::InitShaderStages(VulkanRenderer* vkRenderer, RendererShad
 		(vkGeometryShader && vkGeometryShader->GetShaderModule() == VK_NULL_HANDLE) ||
 		(vkPixelShader && vkPixelShader->GetShaderModule() == VK_NULL_HANDLE))
 	{
-		forceLog_printf("Vulkan-Info: Pipeline creation failed due to invalid shader(s)");
+		cemuLog_log(LogType::Force, "Vulkan-Info: Pipeline creation failed due to invalid shader(s)");
 		return false;
 	}
 
@@ -457,6 +457,11 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 		uint32 bufferStride = (latteRegister.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
 		VkVertexInputBindingDescription entry{};
+#if BOOST_OS_MACOS
+		if (bufferStride % 4 != 0) {
+			bufferStride = bufferStride + (4-(bufferStride % 4));
+		}
+#endif
 		entry.stride = bufferStride;
 		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
 			entry.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -523,7 +528,7 @@ void PipelineCompiler::InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_T
 		inputAssembly.primitiveRestartEnable = false;
 		break;
 	default:
-		forceLogDebug_printf("Vulkan-Unsupported: Graphics pipeline with primitive mode %d created", primitiveMode);
+		cemuLog_logDebug(LogType::Force, "Vulkan-Unsupported: Graphics pipeline with primitive mode {} created", primitiveMode);
 		cemu_assert_debug(false);
 	}
 }
@@ -609,7 +614,29 @@ void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegi
 	multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 }
 
-void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo, bool& usesBlendConstants)
+bool _IsVkIntegerFormat(VkFormat fmt)
+{
+	return
+		// 8bit integer formats
+		fmt == VK_FORMAT_R8_UINT || fmt == VK_FORMAT_R8_SINT ||
+		fmt == VK_FORMAT_R8G8_UINT || fmt == VK_FORMAT_R8G8_SINT ||
+		fmt == VK_FORMAT_R8G8B8_UINT || fmt == VK_FORMAT_R8G8B8_SINT ||
+		fmt == VK_FORMAT_R8G8B8A8_UINT || fmt == VK_FORMAT_R8G8B8A8_SINT ||
+		fmt == VK_FORMAT_B8G8R8A8_UINT || fmt == VK_FORMAT_B8G8R8A8_SINT ||
+		// 16bit integer formats
+		fmt == VK_FORMAT_R16_UINT || fmt == VK_FORMAT_R16_SINT ||
+		fmt == VK_FORMAT_R16G16_UINT || fmt == VK_FORMAT_R16G16_SINT ||
+		fmt == VK_FORMAT_R16G16B16_UINT || fmt == VK_FORMAT_R16G16B16_SINT ||
+		fmt == VK_FORMAT_R16G16B16A16_UINT || fmt == VK_FORMAT_R16G16B16A16_SINT ||
+		// 32bit integer formats
+		fmt == VK_FORMAT_R32_UINT || fmt == VK_FORMAT_R32_SINT ||
+		fmt == VK_FORMAT_R32G32_UINT || fmt == VK_FORMAT_R32G32_SINT ||
+		fmt == VK_FORMAT_R32G32B32_UINT || fmt == VK_FORMAT_R32G32B32_SINT ||
+		fmt == VK_FORMAT_R32G32B32A32_UINT || fmt == VK_FORMAT_R32G32B32A32_SINT;
+}
+
+
+void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister, PipelineInfo* pipelineInfo, bool& usesBlendConstants, VKRObjectRenderPass* renderPassObj)
 {
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = latteRegister.CB_COLOR_CONTROL;
 	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
@@ -625,6 +652,12 @@ void PipelineCompiler::InitBlendState(const LatteContextRegister& latteRegister,
 		else
 			entry.blendEnable = VK_FALSE;
 
+		if (entry.blendEnable != VK_FALSE && _IsVkIntegerFormat(renderPassObj->GetColorFormat(i)))
+		{
+			// force-disable blending for integer formats
+			entry.blendEnable = VK_FALSE;
+		}
+		
 		const auto& blendControlReg = latteRegister.CB_BLENDN_CONTROL[i];
 
 		entry.colorWriteMask = (renderTargetMask >> (i * 4)) & 0xF;
@@ -793,7 +826,7 @@ void PipelineCompiler::InitDepthStencilState()
 
 	depthStencilState.front.reference = stencilRefFront;
 	depthStencilState.front.compareMask = stencilCompareMaskFront;
-	depthStencilState.front.writeMask = stencilWriteMaskBack;
+	depthStencilState.front.writeMask = stencilWriteMaskFront;
 	depthStencilState.front.compareOp = vkDepthCompareTable[(size_t)frontStencilFunc];
 	depthStencilState.front.depthFailOp = stencilOpTable[(size_t)frontStencilZFail];
 	depthStencilState.front.failOp = stencilOpTable[(size_t)frontStencilFail];
@@ -873,7 +906,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	bool usesDepthBias = false;
 	InitRasterizerState(latteRegister, vkRenderer, isPrimitiveRect, usesDepthBias);
 	bool usesBlendConstants = false;
-	InitBlendState(latteRegister, pipelineInfo, usesBlendConstants);
+	InitBlendState(latteRegister, pipelineInfo, usesBlendConstants, renderPassObj);
 	InitDescriptorSetLayouts(vkRenderer, pipelineInfo, pipelineInfo->vertexShader, pipelineInfo->pixelShader, pipelineInfo->geometryShader);
 
 	// ##########################################################################################################################################
@@ -888,7 +921,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	VkResult result = vkCreatePipelineLayout(vkRenderer->m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipeline_layout);
 	if (result != VK_SUCCESS)
 	{
-		forceLog_printf("%s", fmt::format("Failed to create pipeline layout: {}", result).c_str());
+		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", result);
 		s_nvidiaWorkaround.unlock();
 		return false;
 	}
@@ -1008,7 +1041,7 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	}
 	else
 	{
-		forceLog_printf("Failed to create graphics pipeline. Error %d", (sint32)result);
+		cemuLog_log(LogType::Force, "Failed to create graphics pipeline. Error {}", (sint32)result);
 		cemu_assert_debug(false);
 		return true; // true indicates that caller should no longer attempt to compile this pipeline again
 	}

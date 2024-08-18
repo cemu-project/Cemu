@@ -114,7 +114,7 @@ namespace GX2
 
 	void GX2RSetStreamOutBuffer(uint32 bufferIndex, GX2StreamOutBuffer* soBuffer)
 	{
-		// seen in CoD: Ghosts
+		// seen in CoD: Ghosts and CoD: Black Ops 2
 		GX2SetStreamOutBuffer(bufferIndex, soBuffer);
 	}
 

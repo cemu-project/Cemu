@@ -18,7 +18,7 @@ void libusbWrapper::init()
 	m_module = LoadLibraryW(L"libusb-1.0.dll");
 	if (!m_module)
 	{
-		const auto path = ActiveSettings::GetPath("resources/libusb-1.0.dll");
+		const auto path = ActiveSettings::GetDataPath("resources/libusb-1.0.dll");
 		m_module = LoadLibraryW(path.generic_wstring().c_str());
 		if (!m_module)
 		{

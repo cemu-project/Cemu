@@ -36,8 +36,6 @@ public:
 	OpenGLCanvas(wxWindow* parent, const wxSize& size, bool is_main_window)
 		: IRenderCanvas(is_main_window), wxGLCanvas(parent, wxID_ANY, g_gl_attribute_list, wxDefaultPosition, size, wxFULL_REPAINT_ON_RESIZE | wxWANTS_CHARS)
 	{
-		cemuLog_logDebug(LogType::Force, "Creating OpenGL canvas");
-
 		if (m_is_main_window)
 		{
 			sGLTVView = this;
@@ -64,7 +62,31 @@ public:
 			delete sGLContext;
 	}
 
+	void UpdateVSyncState()
+	{
+		int configValue = GetConfig().vsync.GetValue();
+		if(m_activeVSyncState != configValue)
+		{
+#if BOOST_OS_WINDOWS
+			if(wglSwapIntervalEXT)
+				wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
+#elif BOOST_OS_LINUX
+			if (eglSwapInterval)
+			{
+				if (eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
+				{
+					cemuLog_log(LogType::Force, "Failed to set vsync using EGL");
+				}
+			}
+#else
+			cemuLog_log(LogType::Force, "OpenGL vsync not implemented");
+#endif
+			m_activeVSyncState = configValue;
+		}
+	}
+
 private:
+	int m_activeVSyncState = -1;
 	//wxGLContext* m_context = nullptr;
 };
 
@@ -90,7 +112,17 @@ bool GLCanvas_MakeCurrent(bool padView)
 void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
 {
 	if (swapTV && sGLTVView)
+	{
+		GLCanvas_MakeCurrent(false);
 		sGLTVView->SwapBuffers();
+		sGLTVView->UpdateVSyncState();
+	}
 	if (swapDRC && sGLPadView)
+	{
+		GLCanvas_MakeCurrent(true);
 		sGLPadView->SwapBuffers();
+		sGLPadView->UpdateVSyncState();
+	}
+
+	GLCanvas_MakeCurrent(false);
 }

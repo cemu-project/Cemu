@@ -1,6 +1,6 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Common/SysAllocator.h"
-#include "Cafe/OS/RPL/rpl.h"
+#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
@@ -35,12 +35,12 @@
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_BlockHeap.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-coreinitData_t* gCoreinitData = NULL;
+CoreinitSharedData* gCoreinitData = nullptr;
 
 sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 {
-	uint32 stackMinAddr = _swapEndianU32(thread->stackEnd);
-	uint32 stackMaxAddr = _swapEndianU32(thread->stackBase);
+	uint32 stackMinAddr = thread->stackEnd.GetMPTR();
+	uint32 stackMaxAddr = thread->stackBase.GetMPTR();
 
 	sint32 score = 0;
 	uint32 currentStackPtr = sp;
@@ -69,7 +69,7 @@ sint32 ScoreStackTrace(OSThread_t* thread, MPTR sp)
 	return score;
 }
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
+void DebugLogStackTrace(OSThread_t* thread, MPTR sp, bool printSymbols)
 {
 	// sp might not point to a valid stackframe
 	// scan stack and evaluate which sp is most likely the beginning of the stackframe
@@ -95,8 +95,8 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 	// print stack trace
 	uint32 currentStackPtr = highestScoreSP;
-	uint32 stackMinAddr = _swapEndianU32(thread->stackEnd);
-	uint32 stackMaxAddr = _swapEndianU32(thread->stackBase);
+	uint32 stackMinAddr = thread->stackEnd.GetMPTR();
+	uint32 stackMaxAddr = thread->stackBase.GetMPTR();
 	for (sint32 i = 0; i < 20; i++)
 	{
 		uint32 nextStackPtr = memory_readU32(currentStackPtr);
@@ -107,23 +107,18 @@ void DebugLogStackTrace(OSThread_t* thread, MPTR sp)
 
 		uint32 returnAddress = 0;
 		returnAddress = memory_readU32(nextStackPtr + 4);
-		cemuLog_log(LogType::Force, fmt::format("SP {0:08x} ReturnAddr {1:08x}", nextStackPtr, returnAddress));
+
+		RPLStoredSymbol* symbol = nullptr;
+		if(printSymbols)
+			symbol = rplSymbolStorage_getByClosestAddress(returnAddress);
+
+		if(symbol)
+			cemuLog_log(LogType::Force, fmt::format("SP {:08x} ReturnAddr {:08x}   ({}.{}+0x{:x})", nextStackPtr, returnAddress, (const char*)symbol->libName, (const char*)symbol->symbolName, returnAddress - symbol->address));
+		else
+			cemuLog_log(LogType::Force, fmt::format("SP {:08x} ReturnAddr {:08x}", nextStackPtr, returnAddress));
 
 		currentStackPtr = nextStackPtr;
 	}
-}
-
-void coreinitExport_OSPanic(PPCInterpreter_t* hCPU)
-{
-	debug_printf("OSPanic!\n");
-	debug_printf("File: %s:%d\n", memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4]);
-	debug_printf("Msg: %s\n", memory_getPointerFromVirtualOffset(hCPU->gpr[5]));
-	DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
-#ifndef PUBLIC_RELEASE
-	assert_dbg();
-	while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-#endif
-	osLib_returnFromFunction(hCPU, 0);
 }
 
 typedef struct
@@ -175,14 +170,14 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 		}
 	}
 	// some games require a valid result or they will crash, return a pointer to our placeholder font
-	forceLog_printf("OSGetSharedData() called by game but no shareddata fonts loaded. Use placeholder font");
+	cemuLog_log(LogType::Force, "OSGetSharedData() called by game but no shareddata fonts loaded. Use placeholder font");
 	if (placeholderFont == MPTR_NULL)
 	{
 		// load and then return placeholder font
 		uint8* placeholderFontPtr = extractCafeDefaultFont(&placeholderFontSize);
 		placeholderFont = coreinit_allocFromSysArea(placeholderFontSize, 256);
 		if (placeholderFont == MPTR_NULL)
-			forceLog_printf("Failed to alloc placeholder font sys memory");
+			cemuLog_log(LogType::Force, "Failed to alloc placeholder font sys memory");
 		memcpy(memory_getPointerFromVirtualOffset(placeholderFont), placeholderFontPtr, placeholderFontSize);
 		free(placeholderFontPtr);
 	}
@@ -192,32 +187,11 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 1);
 }
 
-typedef struct
-{
-	MPTR getDriverName;
-	MPTR ukn04;
-	MPTR onAcquiredForeground;
-	MPTR onReleaseForeground;
-	MPTR ukn10;
-}OSDriverCallbacks_t;
-
-void coreinitExport_OSDriver_Register(PPCInterpreter_t* hCPU)
-{
-#ifndef PUBLIC_RELEASE
-	forceLog_printf("OSDriver_Register(0x%08x,0x%08x,0x%08x,0x%08x,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
-#endif
-	OSDriverCallbacks_t* driverCallbacks = (OSDriverCallbacks_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[5]);
-
-	// todo
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
 namespace coreinit
 {
 	sint32 OSGetCoreId()
 	{
-		return PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+		return PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	}
 
 	uint32 OSGetCoreCount()
@@ -226,6 +200,11 @@ namespace coreinit
 	}
 
 	uint32 OSIsDebuggerInitialized()
+	{
+		return 0;
+	}
+
+	uint32 OSIsDebuggerPresent()
 	{
 		return 0;
 	}
@@ -247,12 +226,12 @@ namespace coreinit
 
 	uint32 OSGetStackPointer()
 	{
-		return ppcInterpreterCurrentInstance->gpr[1];
+		return PPCInterpreter_getCurrentInstance()->gpr[1];
 	}
 
 	void coreinitExport_ENVGetEnvironmentVariable(PPCInterpreter_t* hCPU)
 	{
-		forceLogDebug_printf("ENVGetEnvironmentVariable(\"%s\",0x08x,0x%x)\n", (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4], hCPU->gpr[5]);
+		cemuLog_logDebug(LogType::Force, "ENVGetEnvironmentVariable(\"{}\",0x08x,0x{:x})", (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]), hCPU->gpr[4], hCPU->gpr[5]);
 		char* envKeyStr = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 		char* outputString = (char*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
 		sint32 outputStringMaxLen = (sint32)hCPU->gpr[5];
@@ -266,7 +245,8 @@ namespace coreinit
 
 	void coreinit_exit(uint32 r)
 	{
-		forceLog_printf("coreinit.exit(%d)", r);
+		cemuLog_log(LogType::Force, "The title terminated the process by calling coreinit.exit({})", (sint32)r);
+        DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
 		cemu_assert_debug(false);
 		// never return
 		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -279,15 +259,26 @@ namespace coreinit
 
 	uint32 OSGetBootPMFlags()
 	{
-		forceLogDebug_printf("OSGetBootPMFlags() - placeholder");
+		cemuLog_logDebug(LogType::Force, "OSGetBootPMFlags() - placeholder");
 		return 0;
 	}
 
 	uint32 OSGetSystemMode()
 	{
-		forceLogDebug_printf("OSGetSystemMode() - placeholder");
+		cemuLog_logDebug(LogType::Force, "OSGetSystemMode() - placeholder");
 		// if this returns 2, barista softlocks shortly after boot
 		return 0;
+	}
+
+	void OSPanic(const char* file, sint32 lineNumber, const char* msg)
+	{
+		cemuLog_log(LogType::Force, "OSPanic!");
+		cemuLog_log(LogType::Force, "File: {}:{}", file, lineNumber);
+		cemuLog_log(LogType::Force, "Msg: {}", msg);
+		DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
+#ifdef CEMU_DEBUG_ASSERT
+		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#endif
 	}
 
 	void InitializeCore()
@@ -295,6 +286,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSGetCoreId, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetCoreCount, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSIsDebuggerInitialized, LogType::CoreinitThread);
+		cafeExportRegister("coreinit", OSIsDebuggerPresent, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetConsoleType, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetMainCoreId, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSIsMainCore, LogType::CoreinitThread);
@@ -306,6 +298,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSIsOffBoot, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetBootPMFlags, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetSystemMode, LogType::CoreinitThread);
+
+		cafeExportRegister("coreinit", OSPanic, LogType::Placeholder);
 	}
 };
 
@@ -316,8 +310,8 @@ void coreinit_load()
 	coreinit::InitializeSysHeap();
 
 	// allocate coreinit global data
-	gCoreinitData = (coreinitData_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitData_t), 32));
-	memset(gCoreinitData, 0x00, sizeof(coreinitData_t));
+	gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
+	memset(gCoreinitData, 0x00, sizeof(CoreinitSharedData));
 
 	// coreinit weak links
 	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));
@@ -360,10 +354,11 @@ void coreinit_load()
 	coreinit::InitializeMessageQueue();
 	coreinit::InitializeIPC();
 	coreinit::InitializeIPCBuf();
+	coreinit::InitializeMemoryMapping();
 	coreinit::InitializeCodeGen();
 	coreinit::InitializeCoroutine();
 	coreinit::InitializeOSScreen();
-
+	
 	// legacy mem stuff
 	coreinit::expheap_load();
 
@@ -371,7 +366,6 @@ void coreinit_load()
 	coreinit::miscInit();
 	osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
 	osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
-	osLib_addFunction("coreinit", "OSDriver_Register", coreinitExport_OSDriver_Register);
 
 	// async callbacks
 	InitializeAsyncCallback();

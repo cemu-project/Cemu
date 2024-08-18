@@ -41,7 +41,6 @@ public:
 	static void Destroy();
 
 private:
-	inline static bool s_com_initialized = false;
 	inline static cubeb* s_context = nullptr;
 
 	cubeb_stream* m_stream = nullptr;

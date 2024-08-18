@@ -14,6 +14,7 @@ public:
 
 	bool Initialize();
 	void InitializeRenderCanvas();
+	void DestroyCanvas();
 
 	void OnKeyUp(wxKeyEvent& event);
 	void OnChar(wxKeyEvent& event);
@@ -26,6 +27,7 @@ private:
 	void OnMouseLeft(wxMouseEvent& event);
 	void OnMouseRight(wxMouseEvent& event);
 	void OnSizeEvent(wxSizeEvent& event);
+	void OnDPIChangedEvent(wxDPIChangedEvent& event);
 	void OnMoveEvent(wxMoveEvent& event);
 	void OnGesturePan(wxPanGestureEvent& event);
 	void OnSetWindowTitle(wxCommandEvent& event);

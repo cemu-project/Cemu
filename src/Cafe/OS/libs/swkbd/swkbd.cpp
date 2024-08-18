@@ -93,7 +93,7 @@ swkbdInternalState_t* swkbdInternalState = NULL;
 
 void swkbdExport_SwkbdCreate(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("swkbd.SwkbdCreate(0x%08x,0x%08x,0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_logDebug(LogType::Force, "swkbd.SwkbdCreate(0x{:08x},0x{:08x},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	if( swkbdInternalState == NULL )
 	{
 		MPTR swkbdInternalStateMPTR = coreinit_allocFromSysArea(sizeof(swkbdInternalState_t), 4);
@@ -204,7 +204,7 @@ static_assert(offsetof(swkbdAppearArg_t, cursorIndex) == 0xC4, "appearArg.cursor
 void swkbdExport_SwkbdAppearInputForm(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(appearArg, swkbdAppearArg_t, 0);
-	forceLogDebug_printf("SwkbdAppearInputForm__3RplFRCQ3_2nn5swkbd9AppearArg LR: %08x\n", hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "SwkbdAppearInputForm__3RplFRCQ3_2nn5swkbd9AppearArg");
 	swkbdInternalState->formStringLength = 0;
 	swkbdInternalState->isActive = true;
 	swkbdInternalState->decideButtonWasPressed = false;
@@ -241,7 +241,7 @@ void swkbdExport_SwkbdAppearInputForm(PPCInterpreter_t* hCPU)
 void swkbdExport_SwkbdAppearKeyboard(PPCInterpreter_t* hCPU)
 {
 	// todo: Figure out what the difference between AppearInputForm and AppearKeyboard is?
-	forceLogDebug_printf("SwkbdAppearKeyboard__3RplFRCQ3_2nn5swkbd11KeyboardArg LR: %08x\n", hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "SwkbdAppearKeyboard__3RplFRCQ3_2nn5swkbd11KeyboardArg");
 	SwkbdKeyboardArg_t* keyboardArg = (SwkbdKeyboardArg_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
 	uint32 argPtr = hCPU->gpr[3];
@@ -276,7 +276,6 @@ void swkbdExport_SwkbdDisappearKeyboard(PPCInterpreter_t* hCPU)
 
 void swkbdExport_SwkbdGetInputFormString(PPCInterpreter_t* hCPU)
 {
-	debug_printf("SwkbdGetInputFormString__3RplFv LR: %08x\n", hCPU->spr.LR);
 	for(sint32 i=0; i<swkbdInternalState->formStringLength; i++)
 	{
 		swkbdInternalState->formStringBufferBE[i] = _swapEndianU16(swkbdInternalState->formStringBuffer[i]);
@@ -287,7 +286,6 @@ void swkbdExport_SwkbdGetInputFormString(PPCInterpreter_t* hCPU)
 
 void swkbdExport_SwkbdIsDecideOkButton(PPCInterpreter_t* hCPU)
 {
-	debug_printf("SwkbdIsDecideOkButton__3RplFPb LR: %08x\n", hCPU->spr.LR);
 	if (swkbdInternalState->decideButtonWasPressed)
 		osLib_returnFromFunction(hCPU, 1);
 	else
@@ -310,7 +308,7 @@ static_assert(sizeof(SwkbdDrawStringInfo_t) != 0x19, "SwkbdDrawStringInfo_t has 
 
 void swkbdExport_SwkbdGetDrawStringInfo(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SwkbdGetDrawStringInfo(0x%08x) - stub LR: %08x", hCPU->gpr[3], hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "SwkbdGetDrawStringInfo(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamStructPtr(drawStringInfo, SwkbdDrawStringInfo_t, 0);
 
 	drawStringInfo->ukn00 = -1;
@@ -326,7 +324,7 @@ void swkbdExport_SwkbdGetDrawStringInfo(PPCInterpreter_t* hCPU)
 
 void swkbdExport_SwkbdInitLearnDic(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("SwkbdInitLearnDic(0x%08x) - stub LR: %08x", hCPU->gpr[3], hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "SwkbdInitLearnDic(0x{:08x})", hCPU->gpr[3]);
 	// todo
 
 	// this has to fail (at least once?) or MH3U will not boot
@@ -373,8 +371,8 @@ void swkbd_render(bool mainWindow)
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, { 0,0 });
 	ImGui::SetNextWindowBgAlpha(0.8f);
-	if (ImGui::Begin("Background overlay", nullptr, kPopupFlags | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing))
-		ImGui::End();
+	ImGui::Begin("Background overlay", nullptr, kPopupFlags | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoBringToFrontOnFocus);
+	ImGui::End();
 	ImGui::PopStyleVar(2);
 
 	ImVec2 position = { io.DisplaySize.x / 2.0f, io.DisplaySize.y / 3.0f };
@@ -412,10 +410,8 @@ void swkbd_render(bool mainWindow)
 		ImGui::PopTextWrapPos();
 
 		position.y += ImGui::GetWindowSize().y + 100.0f;
-
-		ImGui::End();
 	}
-
+	ImGui::End();
 	ImGui::PopFont();
 
 	ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
@@ -490,10 +486,8 @@ void swkbd_render(bool mainWindow)
 			}
 		}
 		ImGui::NewLine();
-		
-
-		ImGui::End();
 	}
+	ImGui::End();
 
 	if (io.NavInputs[ImGuiNavInput_Cancel] > 0)
 	{
@@ -572,7 +566,7 @@ void swkbd_inputStringChanged()
 
 void swkbd_keyInput(uint32 keyCode)
 {
-	if (keyCode == 8) // backspace
+	if (keyCode == 8 || keyCode == 127) // backspace || backwards delete
 	{
 		if (swkbdInternalState->formStringLength > 0)
 			swkbdInternalState->formStringLength--;

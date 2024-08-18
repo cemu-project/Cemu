@@ -45,16 +45,9 @@ public:
 };
 
 template<typename ...TArgs>
-wxString wxStringFormat2(const wxString& format, TArgs&&...args)
+wxString formatWxString(const wxString& format, TArgs&&...args)
 {
-	// ignores locale?
-	return fmt::format(fmt::runtime(format.ToStdString()), std::forward<TArgs>(args)...);
-}
-
-template<typename ...TArgs>
-wxString wxStringFormat2W(const wxString& format, TArgs&&...args)
-{
-	return fmt::format(fmt::runtime(format.ToStdWstring()), std::forward<TArgs>(args)...);
+	return wxString::FromUTF8(fmt::format(fmt::runtime(format.utf8_string()), std::forward<TArgs>(args)...));
 }
 
 // executes a function when destroying the obj
@@ -85,14 +78,6 @@ inline wxString to_wxString(std::string_view str)
 {
 	return wxString::FromUTF8(str.data(), str.size());
 }
-
-// creates utf8 std::string from wxString
-inline std::string from_wxString(const wxString& str)
-{
-	const auto tmp = str.ToUTF8();
-	return std::string{ tmp.data(), tmp.length() };
-}
-
 
 template <typename T>
 T get_next_sibling(const T element)

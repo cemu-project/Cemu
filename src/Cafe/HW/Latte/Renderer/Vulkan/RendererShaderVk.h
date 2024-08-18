@@ -22,13 +22,16 @@ class RendererShaderVk : public RendererShader
 
 public:
 	static void ShaderCacheLoading_begin(uint64 cacheTitleId);
-	static void ShaderCacheLoading_end();
+    static void ShaderCacheLoading_end();
+    static void ShaderCacheLoading_Close();
 
 	RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslCode);
 	virtual ~RendererShaderVk();
 
+	static void Init();
+	static void Shutdown();
+
 	sint32 GetUniformLocation(const char* name) override;
-	void SetUniform1iv(sint32 location, void* data, sint32 count) override;
 	void SetUniform2fv(sint32 location, void* data, sint32 count) override;
 	void SetUniform4iv(sint32 location, void* data, sint32 count) override;
 	VkShaderModule& GetShaderModule() { return m_shader_module; }
@@ -37,16 +40,16 @@ public:
 
 	void TrackDependency(class PipelineInfo* p)
 	{
-		s_dependencyLock.acquire();
+		s_dependencyLock.lock();
 		list_pipelineInfo.emplace_back(p);
-		s_dependencyLock.release();
+		s_dependencyLock.unlock();
 	}
 
 	void RemoveDependency(class PipelineInfo* p)
 	{
-		s_dependencyLock.acquire();
+		s_dependencyLock.lock();
 		vectorRemoveByValue(list_pipelineInfo, p);
-		s_dependencyLock.release();
+		s_dependencyLock.unlock();
 	}
 
 	void PreponeCompilation(bool isRenderThread) override;

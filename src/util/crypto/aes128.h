@@ -2,7 +2,6 @@
 #define _AES_H_
 
 void AES128_init();
-bool AES128_useAESNI();
 
 extern void(*AES128_ECB_encrypt)(uint8* input, const uint8* key, uint8* output);
 

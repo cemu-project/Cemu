@@ -29,7 +29,7 @@ class IntervalTree2
 
 	struct InternalRange
 	{
-		InternalRange() {};
+		InternalRange() = default;
 		InternalRange(TRangeData _rangeBegin, TRangeData _rangeEnd) : rangeBegin(_rangeBegin), rangeEnd(_rangeEnd) { cemu_assert_debug(_rangeBegin < _rangeEnd); };
 
 		TRangeData rangeBegin;
@@ -87,7 +87,7 @@ public:
 				return; // do nothing if added range is already covered
 			rangeBegin = (std::min)(rangeBegin, (*itr).first.rangeBegin);
 			// DEBUG - make sure this is the start point of the merge process (the first entry that starts below minValue)
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (itr != m_map.cbegin())
 			{
 				// check previous result
@@ -257,6 +257,11 @@ public:
 		}
 	}
 
+    bool empty() const
+    {
+        return m_map.empty();
+    }
+
 	const std::map<InternalRange, TNodeObject*>& getAll() const { return m_map; };
 };
 
@@ -304,7 +309,7 @@ public:
 	{
 		if ((rangeBegin & 0xF))
 		{
-			forceLogDebug_printf("writeStreamout(): RangeBegin not aligned to 16. Begin %08x End %08x", rangeBegin, rangeEnd);
+			cemuLog_logDebugOnce(LogType::Force, "writeStreamout(): RangeBegin not aligned to 16. Begin {:08x} End {:08x}", rangeBegin, rangeEnd);
 			rangeBegin = (rangeBegin + 0xF) & ~0xF;
 			rangeEnd = std::max(rangeBegin, rangeEnd);
 		}
@@ -313,7 +318,7 @@ public:
 			// todo - add support for 4 byte granularity for streamout writes and cache
 			// used by Affordable Space Adventures and YWW Level 1-8
 			// also used by CoD Ghosts (8 byte granularity)
-			//forceLogDebug_printf("Streamout write size is not aligned to 16 bytes");
+			//cemuLog_logDebug(LogType::Force, "Streamout write size is not aligned to 16 bytes");
 			rangeEnd &= ~0xF;
 		}
 		//cemu_assert_debug((rangeEnd & 0xF) == 0);
@@ -455,48 +460,6 @@ public:
 			}
 			if(m_invalidationRangeEnd <= m_invalidationRangeBegin)
 				m_hasInvalidation = false;
-
-			//if (resRangeBegin <= m_invalidationRangeBegin)
-			//{
-			//	// shrink/replace invalidation range from the bottom
-			//	uint32 uploadBegin = m_invalidationRangeBegin;//std::max(m_invalidationRangeBegin, resRangeBegin);
-			//	uint32 uploadEnd = std::min(resRangeEnd, m_invalidationRangeEnd);
-			//	cemu_assert_debug(uploadEnd >= uploadBegin);
-			//	if (uploadBegin != uploadEnd)
-			//		checkAndSyncModifications(uploadBegin, uploadEnd, true);
-			//	m_invalidationRangeBegin = uploadEnd;
-			//	cemu_assert_debug(m_invalidationRangeBegin <= m_invalidationRangeEnd);
-			//	if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
-			//		m_hasInvalidation = false;
-			//}
-			//else if (resRangeEnd >= m_invalidationRangeEnd)
-			//{
-			//	// shrink/replace invalidation range from the top
-			//	uint32 uploadBegin = std::max(m_invalidationRangeBegin, resRangeBegin);
-			//	uint32 uploadEnd = m_invalidationRangeEnd;// std::min(resRangeEnd, m_invalidationRangeEnd);
-			//	cemu_assert_debug(uploadEnd >= uploadBegin);
-			//	if (uploadBegin != uploadEnd)
-			//		checkAndSyncModifications(uploadBegin, uploadEnd, true);
-			//	m_invalidationRangeEnd = uploadBegin;
-			//	cemu_assert_debug(m_invalidationRangeBegin <= m_invalidationRangeEnd);
-			//	if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
-			//		m_hasInvalidation = false;
-			//}
-			//else
-			//{
-			//	// since we cant cut holes into the range upload it in it's entirety
-			//	cemu_assert_debug(m_invalidationRangeEnd <= m_rangeEnd);
-			//	cemu_assert_debug(m_invalidationRangeBegin >= m_rangeBegin);
-			//	cemu_assert_debug(m_invalidationRangeBegin < m_invalidationRangeEnd);
-			//	checkAndSyncModifications(m_invalidationRangeBegin, m_invalidationRangeEnd, true);
-			//	m_hasInvalidation = false;
-			//}
-
-
-
-			// todo - dont re-upload the whole range immediately
-			// under ideal circumstances we would only upload the data range requested for the current draw call
-			// but this is a hot path so we can't check
 		}
 	}
 
@@ -734,20 +697,34 @@ private:
 
 	static uint64 hashPage(uint8* mem)
 	{
-		// note - this algorithm is/was also baked into pageWriteStreamoutSignatures()
-		uint64 h = 0;
-		uint64* memU64 = (uint64*)mem;
-		for (uint32 i = 0; i < CACHE_PAGE_SIZE / 8; i++)
-		{
-			//h = _rotr64(h, 7);
-			//h ^= *memU64;
-			//memU64++;
+		static const uint64 k0 = 0x55F23EAD;
+		static const uint64 k1 = 0x185FDC6D;
+		static const uint64 k2 = 0xF7431F49;
+		static const uint64 k3 = 0xA4C7AE9D;
 
-			h = std::rotr<uint64>(h, 7);
-			h += (*memU64 + (uint64)i);
-			memU64++;
+		cemu_assert_debug((CACHE_PAGE_SIZE % 32) == 0);
+		const uint64* ptr = (const uint64*)mem;
+		const uint64* end = ptr + (CACHE_PAGE_SIZE / sizeof(uint64));
+
+		uint64 h0 = 0;
+		uint64 h1 = 0;
+		uint64 h2 = 0;
+		uint64 h3 = 0;
+		while (ptr < end)
+		{
+			h0 = std::rotr(h0, 7);
+			h1 = std::rotr(h1, 7);
+			h2 = std::rotr(h2, 7);
+			h3 = std::rotr(h3, 7);
+
+			h0 += ptr[0] * k0;
+			h1 += ptr[1] * k1;
+			h2 += ptr[2] * k2;
+			h3 += ptr[3] * k3;
+			ptr += 4;
 		}
-		return h;
+
+		return h0 + h1 + h2 + h3;
 	}
 
 	// flag page as having streamout data, also write streamout signatures to page memory
@@ -813,6 +790,21 @@ private:
 	static std::vector<uint32> g_deallocateQueue;
 
 public:
+    static void UnloadAll()
+    {
+        size_t i = 0;
+        while (i < s_allCacheNodes.size())
+        {
+            BufferCacheNode* node = s_allCacheNodes[i];
+            node->ReleaseCacheMemoryImmediately();
+            LatteBufferCache_removeSingleNodeFromTree(node);
+            delete node;
+        }
+        for(auto& it : s_allCacheNodes)
+            delete it;
+        s_allCacheNodes.clear();
+        g_deallocateQueue.clear();
+    }
 	
 	static void ProcessDeallocations()
 	{
@@ -871,11 +863,11 @@ public:
 			// retry allocation
 			if (!newRange->allocateCacheMemory())
 			{
-				forceLog_printf("Out-of-memory in GPU buffer (trying to allocate: %dKB) Cleaning up cache...", (rangeEnd - rangeBegin + 1023) / 1024);
+				cemuLog_log(LogType::Force, "Out-of-memory in GPU buffer (trying to allocate: {}KB) Cleaning up cache...", (rangeEnd - rangeBegin + 1023) / 1024);
 				CleanupCacheAggressive(rangeBegin, rangeEnd);
 				if (!newRange->allocateCacheMemory())
 				{
-					forceLog_printf("Failed to free enough memory in GPU buffer");
+					cemuLog_log(LogType::Force, "Failed to free enough memory in GPU buffer");
 					cemu_assert(false);
 				}
 			}
@@ -907,7 +899,7 @@ public:
 		// todo - add support for splitting BufferCacheNode memory allocations, then we dont need to do a separate allocation
 		if (!newRange->allocateCacheMemory())
 		{
-			forceLog_printf("Out-of-memory in GPU buffer during split operation");
+			cemuLog_log(LogType::Force, "Out-of-memory in GPU buffer during split operation");
 			cemu_assert(false);
 		}
 		newRange->syncFromNode(nodeObject);
@@ -917,7 +909,6 @@ public:
 };
 
 std::vector<uint32> BufferCacheNode::g_deallocateQueue;
-
 IntervalTree2<MPTR, BufferCacheNode> g_gpuBufferCache;
 
 void LatteBufferCache_removeSingleNodeFromTree(BufferCacheNode* node)
@@ -995,8 +986,14 @@ void LatteBufferCache_processDeallocations()
 
 void LatteBufferCache_init(size_t bufferSize)
 {
+    cemu_assert_debug(g_gpuBufferCache.empty());
 	g_gpuBufferHeap.reset(new VHeap(nullptr, (uint32)bufferSize));
 	g_renderer->bufferCache_init((uint32)bufferSize);
+}
+
+void LatteBufferCache_UnloadAll()
+{
+    BufferCacheNode::UnloadAll();
 }
 
 void LatteBufferCache_getStats(uint32& heapSize, uint32& allocationSize, uint32& allocNum)
@@ -1005,8 +1002,67 @@ void LatteBufferCache_getStats(uint32& heapSize, uint32& allocationSize, uint32&
 }
 
 FSpinlock g_spinlockDCFlushQueue;
-std::unordered_set<uint32>* g_DCFlushQueue = new std::unordered_set<uint32>(); // queued pages
-std::unordered_set<uint32>* g_DCFlushQueueAlternate = new std::unordered_set<uint32>();
+
+class SparseBitset
+{
+	static inline constexpr size_t TABLE_MASK = 0xFF;
+
+public:
+	bool Empty() const
+	{
+		return m_numNonEmptyVectors == 0;
+	}
+
+	void Set(uint32 index)
+	{
+		auto& v = m_bits[index & TABLE_MASK];
+		if (std::find(v.cbegin(), v.cend(), index) != v.end())
+			return;
+		if (v.empty())
+		{
+			m_nonEmptyVectors[m_numNonEmptyVectors] = &v;
+			m_numNonEmptyVectors++;
+		}
+		v.emplace_back(index);
+	}
+
+	template<typename TFunc>
+	void ForAllAndClear(TFunc callbackFunc)
+	{
+		auto vCurrent = m_nonEmptyVectors + 0;
+		auto vEnd = m_nonEmptyVectors + m_numNonEmptyVectors;
+		while (vCurrent < vEnd)
+		{
+			std::vector<uint32>* vec = *vCurrent;
+			vCurrent++;
+			for (const auto& it : *vec)
+				callbackFunc(it);
+			vec->clear();
+		}
+		m_numNonEmptyVectors = 0;
+	}
+
+	void Clear()
+	{
+		auto vCurrent = m_nonEmptyVectors + 0;
+		auto vEnd = m_nonEmptyVectors + m_numNonEmptyVectors;
+		while (vCurrent < vEnd)
+		{
+			std::vector<uint32>* vec = *vCurrent;
+			vCurrent++;
+			vec->clear();
+		}
+		m_numNonEmptyVectors = 0;
+	}
+
+private:
+	std::vector<uint32> m_bits[TABLE_MASK + 1];
+	std::vector<uint32>* m_nonEmptyVectors[TABLE_MASK + 1];
+	size_t m_numNonEmptyVectors{ 0 };
+};
+
+SparseBitset* s_DCFlushQueue = new SparseBitset();
+SparseBitset* s_DCFlushQueueAlternate = new SparseBitset();
 
 void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size)
 {
@@ -1015,22 +1071,20 @@ void LatteBufferCache_notifyDCFlush(MPTR address, uint32 size)
 
 	uint32 firstPage = address / CACHE_PAGE_SIZE;
 	uint32 lastPage = (address + size - 1) / CACHE_PAGE_SIZE;
-	g_spinlockDCFlushQueue.acquire();
+	g_spinlockDCFlushQueue.lock();
 	for (uint32 i = firstPage; i <= lastPage; i++)
-		g_DCFlushQueue->emplace(i);
-	g_spinlockDCFlushQueue.release();
+		s_DCFlushQueue->Set(i);
+	g_spinlockDCFlushQueue.unlock();
 }
 
 void LatteBufferCache_processDCFlushQueue()
 {
-	if (g_DCFlushQueue->empty()) // accessing this outside of the lock is technically undefined/unsafe behavior but on all known implementations this is fine and we can avoid the spinlock
+	if (s_DCFlushQueue->Empty()) // quick check to avoid locking if there is no work to do
 		return;
-	g_spinlockDCFlushQueue.acquire();
-	std::swap(g_DCFlushQueue, g_DCFlushQueueAlternate);
-	g_spinlockDCFlushQueue.release();
-	for (auto& itr : *g_DCFlushQueueAlternate)
-		LatteBufferCache_invalidatePage(itr * CACHE_PAGE_SIZE);
-	g_DCFlushQueueAlternate->clear();
+	g_spinlockDCFlushQueue.lock();
+	std::swap(s_DCFlushQueue, s_DCFlushQueueAlternate);
+	g_spinlockDCFlushQueue.unlock();
+	s_DCFlushQueueAlternate->ForAllAndClear([](uint32 index) {LatteBufferCache_invalidatePage(index * CACHE_PAGE_SIZE); });
 }
 
 void LatteBufferCache_notifyDrawDone()

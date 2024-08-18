@@ -197,7 +197,7 @@ struct raLivenessLocation_t
 	bool isRead;
 	bool isWrite;
 
-	raLivenessLocation_t() {};
+	raLivenessLocation_t() = default;
 
 	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
 		: index(index), isRead(isRead), isWrite(isWrite) {};
@@ -373,6 +373,7 @@ extern PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
 extern bool ppcRecompilerEnabled;
 
 void PPCRecompiler_init();
+void PPCRecompiler_Shutdown();
 
 void PPCRecompiler_allocateRange(uint32 startAddress, uint32 size);
 
@@ -383,12 +384,6 @@ extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_visited)();
 extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 
 #define PPC_REC_INVALID_FUNCTION	((PPCRecFunction_t*)-1)
-
-// CPUID
-extern bool hasLZCNTSupport;
-extern bool hasMOVBESupport;
-extern bool hasBMI2Support;
-extern bool hasAVXSupport;
 
 // todo - move some of the stuff above into PPCRecompilerInternal.h
 

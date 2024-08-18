@@ -10,7 +10,7 @@ class PPCFunctionBoundaryTracker
 public:
 	struct PPCRange_t
 	{
-		PPCRange_t() {};
+		PPCRange_t() = default;
 		PPCRange_t(uint32 _startAddress) : startAddress(_startAddress) {};
 
 		uint32 startAddress{};
@@ -153,7 +153,7 @@ private:
 
 	void checkForCollisions()
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		uint32 endOfPrevious = 0;
 		for (auto itr : map_ranges)
 		{

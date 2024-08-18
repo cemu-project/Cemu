@@ -1,6 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
-#include "Cafe/OS/libs/coreinit/coreinit.h"
 #include "iosu_ioctl.h"
 #include "util/helpers/ringbuffer.h"
 
@@ -17,13 +16,13 @@ sint32 iosuIoctl_pushAndWait(uint32 ioctlHandle, ioQueueEntry_t* ioQueueEntry)
 {
 	if (ioctlHandle != IOS_DEVICE_ACT && ioctlHandle != IOS_DEVICE_ACP_MAIN && ioctlHandle != IOS_DEVICE_MCP && ioctlHandle != IOS_DEVICE_BOSS && ioctlHandle != IOS_DEVICE_NIM && ioctlHandle != IOS_DEVICE_FPD)
 	{
-		forceLogDebug_printf("Unsupported IOSU device %d", ioctlHandle);
+		cemuLog_logDebug(LogType::Force, "Unsupported IOSU device {}", ioctlHandle);
 		cemu_assert_debug(false);
 		return 0;
 	}
 	__OSLockScheduler();
 	ioctlMutex.lock();
-	ioQueueEntry->ppcThread = coreinitThread_getCurrentThreadDepr(ppcInterpreterCurrentInstance);
+	ioQueueEntry->ppcThread = coreinit::OSGetCurrentThread();
 	
 	_ioctlRingbuffer[ioctlHandle].Push(ioQueueEntry);
 	ioctlMutex.unlock();

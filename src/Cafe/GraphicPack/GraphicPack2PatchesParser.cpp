@@ -25,7 +25,7 @@ sint32 GraphicPack2::GetLengthWithoutComment(const char* str, size_t length)
 
 void GraphicPack2::LogPatchesSyntaxError(sint32 lineNumber, std::string_view errorMsg)
 {
-	cemuLog_log(LogType::Force, fmt::format(L"Syntax error while parsing patch for graphic pack '{}':", this->GetFilename()));
+	cemuLog_log(LogType::Force, "Syntax error while parsing patch for graphic pack '{}':", _pathToUtf8(this->GetRulesPath()));
 	if(lineNumber >= 0)
 		cemuLog_log(LogType::Force, fmt::format("Line {0}: {1}", lineNumber, errorMsg));
 	else
@@ -68,7 +68,7 @@ void GraphicPack2::AddPatchGroup(PatchGroup* group)
 	if (group->list_patches.size() < (numEstimatedCodeCaveInstr / 8))
 	{
 		// if less than 1/8th of the code cave is filled print a warning
-		forceLog_printf("Graphic pack patches: Code cave for group [%s] in gfx pack \"%s\" ranges from 0 to 0x%x but has only few instructions. Is this intentional?", group->name.c_str(), this->m_name.c_str(), codeCaveMaxAddr);
+		cemuLog_log(LogType::Force, "Graphic pack patches: Code cave for group [{}] in gfx pack \"{}\" ranges from 0 to 0x{:x} but has only few instructions. Is this intentional?", group->name, this->m_name, codeCaveMaxAddr);
 	}
 	group->codeCaveSize = codeCaveMaxAddr;
 	list_patchGroups.emplace_back(group);

@@ -5,31 +5,23 @@
 #include "Cafe/IOSU/fsa/iosu_fsa.h"
 #include "coreinit_MessageQueue.h"
 
-typedef struct
-{
-	uint32be fileHandle;
-}FSFileHandleDepr_t;
-
+typedef MEMPTR<betype<FSFileHandle2>> FSFileHandlePtr;
 typedef MEMPTR<betype<FSDirHandle2>> FSDirHandlePtr;
 
-typedef struct
-{
-	MEMPTR<void>				userCallback;
-	MEMPTR<void>				userContext;
-	MEMPTR<coreinit::OSMessageQueue>	ioMsgQueue;
-}FSAsyncParamsNew_t;
+typedef uint32 FSAClientHandle;
 
-static_assert(sizeof(FSAsyncParamsNew_t) == 0xC);
-
-typedef struct
+struct FSAsyncParams
 {
-	MPTR					userCallback; // 0x96C
-	MPTR					userContext;
-	MPTR					ioMsgQueue;
-}FSAsyncParams_t; // legacy struct. Replace with FSAsyncParamsNew_t
+	MEMPTR<void> userCallback;
+	MEMPTR<void> userContext;
+	MEMPTR<coreinit::OSMessageQueue> ioMsgQueue;
+};
+static_assert(sizeof(FSAsyncParams) == 0xC);
 
 namespace coreinit
 {
+	struct FSCmdBlockBody;
+
 	struct FSCmdQueue
 	{
 		enum class QUEUE_FLAG : uint32
@@ -38,9 +30,9 @@ namespace coreinit
 			CANCEL_ALL = (1 << 4),
 		};
 
-		/* +0x00 */ MPTR firstMPTR;
-		/* +0x04 */ MPTR lastMPTR;
-		/* +0x08 */ OSMutex mutex;
+		/* +0x00 */ MEMPTR<FSCmdBlockBody> first;
+		/* +0x04 */ MEMPTR<FSCmdBlockBody> last;
+		/* +0x08 */ OSFastMutex fastMutex;
 		/* +0x34 */ MPTR dequeueHandlerFuncMPTR;
 		/* +0x38 */ uint32be numCommandsInFlight;
 		/* +0x3C */ uint32 numMaxCommandsInFlight;
@@ -48,8 +40,10 @@ namespace coreinit
 	};
 	DEFINE_ENUM_FLAG_OPERATORS(FSCmdQueue::QUEUE_FLAG);
 
-	#define FS_CLIENT_BUFFER_SIZE           (5888)
-	#define FS_CMD_BLOCK_SIZE               (2688)
+	static_assert(sizeof(FSCmdQueue) == 0x44);
+
+#define FS_CLIENT_BUFFER_SIZE (5888)
+#define FS_CMD_BLOCK_SIZE (2688)
 
 	struct FSClient_t
 	{
@@ -64,7 +58,7 @@ namespace coreinit
 			struct
 			{
 				uint32 mount_it;
-			}data;
+			} data;
 		};
 	};
 
@@ -104,7 +98,7 @@ namespace coreinit
 		uint8 ukn1460[0x10];
 		uint8 ukn1470[0x10];
 		FSCmdQueue fsCmdQueue;
-		/* +0x14C4 */ MEMPTR<struct FSCmdBlockBody_t> currentCmdBlockBody; // set to currently active cmd
+		/* +0x14C4 */ MEMPTR<struct FSCmdBlockBody> currentCmdBlockBody; // set to currently active cmd
 		uint32 ukn14C8;
 		uint32 ukn14CC;
 		uint8 ukn14D0[0x10];
@@ -116,7 +110,7 @@ namespace coreinit
 		uint32 ukn1608;
 		uint32 ukn160C;
 		uint32 ukn1610;
-		MEMPTR<FSClientBody_t> fsClientBodyNext; // next FSClientBody_t* in list of registered clients (list is circular, the last element points to the first element)
+		MEMPTR<FSClientBody_t> fsClientBodyNext;	 // next FSClientBody_t* in list of registered clients (list is circular, the last element points to the first element)
 		uint32 ukn1618;
 		/* +0x161C */ MEMPTR<FSClient_t> selfClient; // pointer to FSClient struct which holds this FSClientBody
 		uint32 ukn1620;
@@ -124,86 +118,93 @@ namespace coreinit
 
 	struct FSAsyncResult
 	{
-		/* +0x00 */ FSAsyncParamsNew_t fsAsyncParamsNew;
+		/* +0x00 */ FSAsyncParams fsAsyncParamsNew;
 
 		// fs message storage
-		struct FSMessage 
+		struct FSMessage
 		{
-			/* +0x0C / 0x0978 */ MEMPTR<FSAsyncResult>	fsAsyncResult;
-			/* +0x10 */ MPTR	fsClientMPTR2;		// 0x097C 
-			/* +0x14 */ MPTR	fsCmdBlockMPTR;		// 0x0980
-			/* +0x18 */ MPTR	commandType;		// 0x0984
+			/* +0x0C / 0x0978 */ MEMPTR<FSAsyncResult> fsAsyncResult;
+			/* +0x10 */ MPTR fsClientMPTR2;	 // 0x097C
+			/* +0x14 */ MPTR fsCmdBlockMPTR; // 0x0980
+			/* +0x18 */ MPTR commandType;	 // 0x0984
 		};
 
 		union
 		{
 			OSMessage osMsg;
 			FSMessage fsMsg;
-		}msgUnion;
+		} msgUnion;
 
-		/* +0x1C */ MEMPTR<FSClient_t> fsClient; // 0x0988
+		/* +0x1C */ MEMPTR<FSClient_t> fsClient;	 // 0x0988
 		/* +0x20 */ MEMPTR<FSCmdBlock_t> fsCmdBlock; // 0x98C
-		/* +0x24 */ uint32be fsStatusNew; // 0x990
+		/* +0x24 */ uint32be fsStatusNew;			 // 0x990
 	};
 
 	static_assert(sizeof(FSAsyncResult) == 0x28);
 
-	struct FSCmdBlockBody_t
+	struct FSCmdBlockReturnValues_t
 	{
-		iosu::fsa::FSAIpcCommand ipcData;
-		uint8 ukn0820[0x10];
-		uint8 ukn0830[0x10];
-		uint8 ukn0840[0x10];
-		uint8 ukn0850[0x10];
-		uint8 ukn0860[0x10];
-		uint8 ukn0870[0x10];
-		MPTR fsCmdBlockBodyMPTR;
-		uint32 ukn0884;
-		uint32 ukn0888;
-		uint32 destBuffer88CMPTR;
-		uint32 ukn0890;
-		uint32 ukn0894;
-		uint32 ukn0898;
-		uint32 ukn089C;
-		uint32 ukn08A0;
-		uint32 ukn08A4;
-		uint32 ukn08A8;
-		uint32 ukn08AC;
-		uint8 ukn08B0[0x10];
-		uint8 ukn08C0[0x10];
-		uint8 ukn08D0[0x10];
-		uint8 ukn08E0[0x10];
-		uint8 ukn08F0[0x10];
-		/* +0x0900 */ uint32be operationType;
-		betype<IOSDevHandle> fsaDevHandle;
-		/* +0x0908 */ uint16be ipcReqType; // 0 -> IoctlAsync, 1 -> IoctlvAsync
-		uint8 ukn090A;
-		uint8 ukn090B;
-		uint32 ukn090C;
-		uint32 ukn0910;
-		uint32 ukn0914;
-		uint32 ukn0918;
-		uint32 ukn091C;
-		uint32 ukn0920;
-		uint32 ukn0924;
-		uint32 ukn0928;
-		uint32 ukn092C;
-		uint32 ukn0930;
-		uint32 ukn0934;
-		/* +0x0938 */ MEMPTR<FSClientBody_t> fsClientBody;
-		/* +0x093C */ uint32 statusCode; // not a status code but rather the state? Uses weird values for some reason
-		/* +0x0940 */ uint32be cancelState; // bitmask. Bit 0 -> If set command has been canceled
-		// return values
-		/* +0x0944 */ uint32 returnValueMPTR; // returnedFilePos (used to store pointer to variable that holds return value?), also used by QUERYINFO to store pointer for result. Also used for GetCwd() to hold the pointer for the returned dir path. Also used by OPENFILE to hold returned fileHandle
-		/* +0x0948 */ uint32 transferSize; // number of bytes to transfer
-		// transfer control?
-		uint32 uknVal094C;
-		uint32 transferElemSize; // number of bytes of a single transferred element (count of elements can be calculated via count = transferSize/transferElemSize)
-		uint32 uknVal0954; // this is set to max(0x10, transferSize) for reads and to min(0x40000, transferSize) for writes?
-		// link for cmd queue
-		MPTR nextMPTR;  // points towards FSCmdQueue->first
-		MPTR previousMPTR; // points towards FSCmdQueue->last
+		union
+		{
+			uint8 ukn0[0x14];
+			struct
+			{
+				MEMPTR<betype<FSResHandle>> handlePtr;
+			} cmdOpenFile;
+			struct
+			{
+				MEMPTR<uint32be> filePosPtr;
+			} cmdGetPosFile;
+			struct
+			{
+				uint32be transferSize;
+				uint32be uknVal094C;
+				uint32be transferElemSize;
+				uint32be uknVal0954;
+			} cmdReadFile;
+			struct
+			{
+				uint32be transferSize;
+				uint32be uknVal094C;
+				uint32be transferElemSize;
+				uint32be uknVal0954;
+			} cmdWriteFile;
+			struct
+			{
+				MEMPTR<uint32be> handlePtr;
+			} cmdOpenDir;
+			struct
+			{
+				MEMPTR<FSDirEntry_t> dirEntryPtr;
+			} cmdReadDir;
+			struct
+			{
+				MEMPTR<char> pathPtr;
+				uint32be transferSize;
+			} cmdGetCwd;
+			struct
+			{
+				MEMPTR<void> queryResultPtr;
+			} cmdQueryInfo;
+			struct
+			{
+				MEMPTR<void> resultPtr;
+			} cmdStatFile;
+		};
+	};
 
+	static_assert(sizeof(FSCmdBlockReturnValues_t) == 0x14);
+
+	struct FSCmdBlockBody
+	{
+		iosu::fsa::FSAShimBuffer fsaShimBuffer;
+		/* +0x0938 */ MEMPTR<FSClientBody_t> fsClientBody;
+		/* +0x093C */ uint32 statusCode;	// not a status code but rather the state? Uses weird values for some reason
+		/* +0x0940 */ uint32be cancelState; // bitmask. Bit 0 -> If set command has been canceled
+		FSCmdBlockReturnValues_t returnValues;
+		// link for cmd queue
+		MEMPTR<FSCmdBlockBody> next;
+		MEMPTR<FSCmdBlockBody> previous;
 		/* +0x960 */ betype<FSA_RESULT> lastFSAStatus;
 		uint32 ukn0964;
 		/* +0x0968 */ uint8 errHandling; // return error flag mask
@@ -223,37 +224,14 @@ namespace coreinit
 		uint32 ukn9FC;
 	};
 
-	static_assert(sizeof(FSAsyncParams_t) == 0xC);
 	static_assert(sizeof(FSCmdBlock_t) == 0xA80);
 
-	#define FSA_CMD_FLAG_SET_POS					(1<<0)
+#define FSA_CMD_FLAG_SET_POS (1 << 0)
 
-	#define FSA_CMD_OPERATION_TYPE_CHANGEDIR		(0x5)
-	#define FSA_CMD_OPERATION_TYPE_GETCWD			(0x6)
-	#define FSA_CMD_OPERATION_TYPE_MAKEDIR			(0x7)
-	#define FSA_CMD_OPERATION_TYPE_REMOVE			(0x8)
-	#define FSA_CMD_OPERATION_TYPE_RENAME			(0x9)
-	#define FSA_CMD_OPERATION_TYPE_OPENDIR			(0xA)
-	#define FSA_CMD_OPERATION_TYPE_READDIR			(0xB)
-	#define FSA_CMD_OPERATION_TYPE_CLOSEDIR			(0xD)
-	#define FSA_CMD_OPERATION_TYPE_OPENFILE			(0xE)
-	#define FSA_CMD_OPERATION_TYPE_READ				(0xF)
-	#define FSA_CMD_OPERATION_TYPE_WRITE			(0x10)
-	#define FSA_CMD_OPERATION_TYPE_GETPOS			(0x11)
-	#define FSA_CMD_OPERATION_TYPE_SETPOS			(0x12)
-	#define FSA_CMD_OPERATION_TYPE_ISEOF			(0x13)
-	#define FSA_CMD_OPERATION_TYPE_GETSTATFILE		(0x14)
-	#define FSA_CMD_OPERATION_TYPE_CLOSEFILE		(0x15)
-	#define FSA_CMD_OPERATION_TYPE_QUERYINFO	(0x18)
-	#define FSA_CMD_OPERATION_TYPE_APPENDFILE		(0x19)
-	#define FSA_CMD_OPERATION_TYPE_TRUNCATEFILE		(0x1A)
-	#define FSA_CMD_OPERATION_TYPE_FLUSHQUOTA		(0x1E)
-
-
-	#define FSA_CMD_STATUS_CODE_D900A21				0xD900A21	// cmd block is initialized
-	#define FSA_CMD_STATUS_CODE_D900A22				0xD900A22	// cmd block is queued
-	#define FSA_CMD_STATUS_CODE_D900A24				0xD900A24	// cmd block was processed and is available again
-	#define FSA_CMD_STATUS_CODE_D900A26				0xD900A26	// cmd block result is being processed
+#define FSA_CMD_STATUS_CODE_D900A21 0xD900A21 // cmd block is initialized
+#define FSA_CMD_STATUS_CODE_D900A22 0xD900A22 // cmd block is queued
+#define FSA_CMD_STATUS_CODE_D900A24 0xD900A24 // cmd block was processed and is available again
+#define FSA_CMD_STATUS_CODE_D900A26 0xD900A26 // cmd block result is being processed
 
 	enum FS_VOLSTATE : sint32
 	{
@@ -261,7 +239,7 @@ namespace coreinit
 	};
 
 	// internal interface
-	sint32 __FSQueryInfoAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* queryString, uint32 queryType, void* queryResult, uint32 errHandling, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 __FSQueryInfoAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* queryString, uint32 queryType, void* queryResult, uint32 errHandling, FSAsyncParams* fsAsyncParams);
 
 	// coreinit exports
 	FS_RESULT FSAddClientEx(FSClient_t* fsClient, uint32 uknR4, uint32 errHandling);
@@ -270,56 +248,55 @@ namespace coreinit
 
 	void FSInitCmdBlock(FSCmdBlock_t* fsCmdBlock);
 
-	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* fileHandle, uint32 errHandling, FSAsyncParamsNew_t* asyncParams);
-	sint32 FSOpenFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* fileHandle, uint32 errHandling);
-	
-	sint32 FSReadFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandlePtr outFileHandle, uint32 errHandling, FSAsyncParams* asyncParams);
+	sint32 FSOpenFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandlePtr outFileHandle, uint32 errHandling);
+
+	sint32 FSReadFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSReadFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask);
-	sint32 FSReadFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSReadFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSReadFileWithPos(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask);
-	
-	sint32 FSWriteFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+
+	sint32 FSWriteFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSWriteFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask);
-	sint32 FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSWriteFileWithPos(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask);
 
-	sint32 FSSetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSSetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSSetPosFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask);
-	sint32 FSGetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSGetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSGetPosFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask);
 
-	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 size, uint32 count, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 size, uint32 count, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSAppendFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 size, uint32 count, uint32 errorMask);
 
-	sint32 FSIsEofAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSIsEofAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSIsEof(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask);
 
-	sint32 FSRenameAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSRenameAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSRename(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask);
-	sint32 FSRemoveAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSRemoveAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSRemove(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask);
-	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const uint8* dirPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
-	sint32 FSMakeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const uint8* path, uint32 errorMask);
-	sint32 FSChangeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* dirPath, uint32 errorMask, FSAsyncParams* fsAsyncParams);
+	sint32 FSMakeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, uint32 errorMask);
+	sint32 FSChangeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSChangeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask);
-	sint32 FSGetCwdAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSGetCwdAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSGetCwd(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask);
 
-	sint32 FSGetFreeSpaceSizeAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSLargeSize* returnedFreeSize, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSGetFreeSpaceSizeAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSLargeSize* returnedFreeSize, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSGetFreeSpaceSize(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSLargeSize* returnedFreeSize, uint32 errorMask);
 
-	sint32 FSOpenDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSOpenDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSOpenDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask);
-	sint32 FSReadDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
-	sint32 FSReadDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
-	sint32 FSCloseDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSReadDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParams* fsAsyncParams);
+	sint32 FSReadDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParams* fsAsyncParams);
+	sint32 FSCloseDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSCloseDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask);
 
-	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams);
+	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSFlushQuota(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask);
 
 	FS_VOLSTATE FSGetVolumeState(FSClient_t* fsClient);
 
 	void InitializeFS();
-};
-
+}; // namespace coreinit

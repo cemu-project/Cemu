@@ -1,1 +1,0 @@
-If you plan to transfer the shader cache to a different PC or Cemu installation you only need to copy the 'transferable' directory.

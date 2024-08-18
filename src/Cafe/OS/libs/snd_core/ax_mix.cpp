@@ -262,7 +262,7 @@ namespace snd_core
 		if (numberOfDecodedAdpcmSamples >= 4096)
 		{
 			memset(output, 0, sizeof(float)*sampleCount);
-			forceLog_printf("Too many ADPCM samples to decode. ratio = %08x", ratio);
+			cemuLog_log(LogType::Force, "Too many ADPCM samples to decode. ratio = {:08x}", ratio);
 			return;
 		}
 		AX_readADPCMSamples(internalShadowCopy, adpcmSampleBuffer, numberOfDecodedAdpcmSamples);
@@ -692,10 +692,10 @@ namespace snd_core
 	{
 		if (internalShadowCopy->biquad.on == AX_BIQUAD_OFF)
 			return;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (internalShadowCopy->biquad.on != 0x0200)
 		{
-			forceLogDebug_printf("AX_ApplyBiquad() with incorrect biquad.on value 0x%04x", _swapEndianU16(internalShadowCopy->biquad.on));
+			cemuLog_logDebug(LogType::Force, "AX_ApplyBiquad() with incorrect biquad.on value 0x{:04x}", _swapEndianU16(internalShadowCopy->biquad.on));
 		}
 #endif
 

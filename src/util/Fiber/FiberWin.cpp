@@ -1,5 +1,4 @@
 #include "Fiber.h"
-#if BOOST_OS_WINDOWS
 #include <Windows.h>
 
 thread_local Fiber* sCurrentFiber{};
@@ -39,5 +38,3 @@ void* Fiber::GetFiberPrivateData()
 {
 	return sCurrentFiber->m_privateData;
 }
-
-#endif

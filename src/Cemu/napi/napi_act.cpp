@@ -14,6 +14,21 @@
 
 namespace NAPI
 {
+	std::string _getACTUrl(NetworkService service)
+	{
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::ACTURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::ACTURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.ACT.GetValue();
+		default:
+			return NintendoURLs::ACTURL;
+		}
+	}
+
 	struct ACTOauthToken : public _NAPI_CommonResultACT
 	{
 		std::string token;
@@ -40,16 +55,16 @@ namespace NAPI
 				sint32 errorCode = StringHelpers::ToInt(errorCodeStr);
 				if (errorCode == 0)
 				{
-					cemuLog_force("Account response with unexpected error code 0");
+					cemuLog_log(LogType::Force, "Account response with unexpected error code 0");
 					result.apiError = NAPI_RESULT::XML_ERROR;
 				}
 				else
 				{
 					result.apiError = NAPI_RESULT::SERVICE_ERROR;
 					result.serviceError = (ACT_ERROR_CODE)errorCode;
-					cemuLog_force("Account response with error code {}", errorCode);
+					cemuLog_log(LogType::Force, "Account response with error code {}", errorCode);
 					if(!errorCodeMsg.empty())
-						cemuLog_force("Message from server: {}", errorCodeMsg);
+						cemuLog_log(LogType::Force, "Message from server: {}", errorCodeMsg);
 				}
 			}
 			else
@@ -91,7 +106,7 @@ namespace NAPI
 
 	struct OAuthTokenCacheEntry 
 	{
-		OAuthTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, std::string_view token, std::string_view refreshToken, uint64 expiresIn) : accountId(accountId), passwordHash(passwordHash), token(token), refreshToken(refreshToken)
+		OAuthTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, std::string_view token, std::string_view refreshToken, uint64 expiresIn, NetworkService service) : accountId(accountId), passwordHash(passwordHash), token(token), refreshToken(refreshToken), service(service)
 		{
 			expires = HighResolutionTimer::now().getTickInSeconds() + expiresIn;
 		};
@@ -107,10 +122,10 @@ namespace NAPI
 		}
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
-
 		std::string token;
 		std::string refreshToken;
 		uint64 expires;
+		NetworkService service;
 	};
 
 	std::vector<OAuthTokenCacheEntry> g_oauthTokenCache;
@@ -122,11 +137,12 @@ namespace NAPI
 		ACTOauthToken result{};
 		
 		// check cache first
+		NetworkService service = authInfo.GetService();
 		g_oauthTokenCacheMtx.lock();
 		auto cacheItr = g_oauthTokenCache.begin();
 		while (cacheItr != g_oauthTokenCache.end())
 		{
-			if (cacheItr->CheckIfSameAccount(authInfo))
+			if (cacheItr->CheckIfSameAccount(authInfo) && cacheItr->service == service)
 			{
 				if (cacheItr->CheckIfExpired())
 				{
@@ -145,7 +161,7 @@ namespace NAPI
 		// token not cached, request from server via oauth2
 		CurlRequestHelper req;
 
-		req.initate(fmt::format("{}/v1/api/oauth20/access_token/generate", LaunchSettings::GetActURLPrefix()), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/oauth20/access_token/generate", _getACTUrl(authInfo.GetService())), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -212,7 +228,7 @@ namespace NAPI
 		result.apiError = NAPI_RESULT::SUCCESS;
 
 		if (result.token.empty())
-			cemuLog_force("OAuth20/token is empty");
+			cemuLog_log(LogType::Force, "OAuth20/token is empty");
 		sint64 expiration = StringHelpers::ToInt64(expires_in);
 		expiration = std::max(expiration - 30LL, 0LL); // subtract a few seconds to compensate for the web request delay
 
@@ -220,7 +236,7 @@ namespace NAPI
 		if (expiration > 0)
 		{
 			g_oauthTokenCacheMtx.lock();
-			g_oauthTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, result.token, result.refreshToken, expiration);
+			g_oauthTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, result.token, result.refreshToken, expiration, service);
 			g_oauthTokenCacheMtx.unlock();
 		}
 		return result;
@@ -230,14 +246,13 @@ namespace NAPI
 	{
 		CurlRequestHelper req;
 
-		req.initate(fmt::format("{}/v1/api/people/@me/profile", LaunchSettings::GetActURLPrefix()), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/people/@me/profile", _getACTUrl(authInfo.GetService())), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 
 		// get oauth2 token
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, 0x0005001010001C00, 0x0001C);
-		
 
 		cemu_assert_unimplemented();
 		return true;
@@ -245,15 +260,16 @@ namespace NAPI
 
 	struct NexTokenCacheEntry
 	{
-		NexTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, uint32 gameServerId, ACTNexToken& nexToken) : accountId(accountId), passwordHash(passwordHash), nexToken(nexToken), gameServerId(gameServerId) {};
+		NexTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, NetworkService networkService, uint32 gameServerId, ACTNexToken& nexToken) : accountId(accountId), passwordHash(passwordHash), networkService(networkService), nexToken(nexToken), gameServerId(gameServerId) {};
 
 		bool IsMatch(const AuthInfo& authInfo, const uint32 gameServerId) const
 		{
-			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && this->gameServerId == gameServerId;
+			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && authInfo.GetService() == networkService && this->gameServerId == gameServerId;
 		}
 
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
+		NetworkService networkService;
 		uint32 gameServerId;
 
 		ACTNexToken nexToken;
@@ -283,7 +299,7 @@ namespace NAPI
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, titleId, titleVersion);
 		if (!oauthToken.isValid())
 		{
-			cemuLog_force("ACT_GetNexToken(): Failed to retrieve OAuth token");
+			cemuLog_log(LogType::Force, "ACT_GetNexToken(): Failed to retrieve OAuth token");
 			if (oauthToken.apiError == NAPI_RESULT::SERVICE_ERROR)
 			{
 				result.apiError = NAPI_RESULT::SERVICE_ERROR;
@@ -297,7 +313,7 @@ namespace NAPI
 		}
 		// do request
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/v1/api/provider/nex_token/@me?game_server_id={:08X}", LaunchSettings::GetActURLPrefix(), serverId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/provider/nex_token/@me?game_server_id={:08X}", _getACTUrl(authInfo.GetService()), serverId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -348,24 +364,23 @@ namespace NAPI
 		pugi::xml_node tokenNode = doc.child("nex_token");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain NexToken node");
+			cemuLog_log(LogType::Force, "Response does not contain NexToken node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
 
 		std::string_view host = tokenNode.child_value("host");
 		std::string_view nex_password = tokenNode.child_value("nex_password");
-		std::string_view pid = tokenNode.child_value("pid");
 		std::string_view port = tokenNode.child_value("port");
 		std::string_view token = tokenNode.child_value("token");
 
-		std::memset(&result.nexToken, 0, sizeof(result.nexToken));
+		memset(&result.nexToken, 0, sizeof(ACTNexToken));
 		if (host.size() > 15)
-			cemuLog_force("NexToken response: host field too long");
+			cemuLog_log(LogType::Force, "NexToken response: host field too long");
 		if (nex_password.size() > 64)
-			cemuLog_force("NexToken response: nex_password field too long");
+			cemuLog_log(LogType::Force, "NexToken response: nex_password field too long");
 		if (token.size() > 512)
-			cemuLog_force("NexToken response: token field too long");
+			cemuLog_log(LogType::Force, "NexToken response: token field too long");
 		for (size_t i = 0; i < std::min(host.size(), (size_t)15); i++)
 			result.nexToken.host[i] = host[i];
 		for (size_t i = 0; i < std::min(nex_password.size(), (size_t)64); i++)
@@ -375,21 +390,21 @@ namespace NAPI
 		result.nexToken.port = (uint16)StringHelpers::ToInt(port);
 		result.apiError = NAPI_RESULT::SUCCESS;
 		g_nexTokenCacheMtx.lock();
-		g_nexTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, serverId, result.nexToken);
+		g_nexTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, authInfo.GetService(), serverId, result.nexToken);
 		g_nexTokenCacheMtx.unlock();
 		return result;
 	}
 
 	struct IndependentTokenCacheEntry
 	{
-		IndependentTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, std::string_view clientId, std::string_view independentToken, sint64 expiresIn) : accountId(accountId), passwordHash(passwordHash), clientId(clientId), independentToken(independentToken)
+		IndependentTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, NetworkService networkService, std::string_view clientId, std::string_view independentToken, sint64 expiresIn) : accountId(accountId), passwordHash(passwordHash), networkService(networkService), clientId(clientId), independentToken(independentToken)
 		{
 			expires = HighResolutionTimer::now().getTickInSeconds() + expiresIn;
 		};
 
 		bool IsMatch(const AuthInfo& authInfo, const std::string_view clientId) const
 		{
-			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && this->clientId == clientId;
+			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && authInfo.GetService() == networkService && this->clientId == clientId;
 		}
 
 		bool CheckIfExpired() const
@@ -399,6 +414,7 @@ namespace NAPI
 
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
+		NetworkService networkService;
 		std::string clientId;
 		sint64 expires;
 
@@ -436,7 +452,7 @@ namespace NAPI
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, titleId, titleVersion);
 		if (!oauthToken.isValid())
 		{
-			cemuLog_force("ACT_GetIndependentToken(): Failed to retrieve OAuth token");
+			cemuLog_log(LogType::Force, "ACT_GetIndependentToken(): Failed to retrieve OAuth token");
 			if (oauthToken.apiError == NAPI_RESULT::SERVICE_ERROR)
 			{
 				result.apiError = NAPI_RESULT::SERVICE_ERROR;
@@ -450,7 +466,7 @@ namespace NAPI
 		}
 		// do request
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/v1/api/provider/service_token/@me?client_id={}", LaunchSettings::GetActURLPrefix(), clientId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/provider/service_token/@me?client_id={}", _getACTUrl(authInfo.GetService()), clientId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -485,7 +501,7 @@ namespace NAPI
 		pugi::xml_node tokenNode = doc.child("service_token");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain service_token node");
+			cemuLog_log(LogType::Force, "Response does not contain service_token node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
@@ -495,7 +511,7 @@ namespace NAPI
 		result.apiError = NAPI_RESULT::SUCCESS;
 
 		g_IndependentTokenCacheMtx.lock();
-		g_IndependentTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, clientId, result.token, 3600);
+		g_IndependentTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, authInfo.GetService(), clientId, result.token, 3600);
 		g_IndependentTokenCacheMtx.unlock();
 		return result;
 	}
@@ -507,7 +523,7 @@ namespace NAPI
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, 0x0005001010001C00, 0);
 		if (!oauthToken.isValid())
 		{
-			cemuLog_force("ACT_ACTConvertNnidToPrincipalId(): Failed to retrieve OAuth token");
+			cemuLog_log(LogType::Force, "ACT_ACTConvertNnidToPrincipalId(): Failed to retrieve OAuth token");
 			if (oauthToken.apiError == NAPI_RESULT::SERVICE_ERROR)
 			{
 				result.apiError = NAPI_RESULT::SERVICE_ERROR;
@@ -521,7 +537,7 @@ namespace NAPI
 		}
 		// do request
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/v1/api/admin/mapped_ids?input_type=user_id&output_type=pid&input={}", LaunchSettings::GetActURLPrefix(), nnid), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/admin/mapped_ids?input_type=user_id&output_type=pid&input={}", _getACTUrl(authInfo.GetService()), nnid), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -559,14 +575,14 @@ namespace NAPI
 		pugi::xml_node tokenNode = doc.child("mapped_ids");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain mapped_ids node");
+			cemuLog_log(LogType::Force, "Response does not contain mapped_ids node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
 		tokenNode = tokenNode.child("mapped_id");
 		if (!tokenNode)
 		{
-			cemuLog_force("Response does not contain mapped_id node");
+			cemuLog_log(LogType::Force, "Response does not contain mapped_id node");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return result;
 		}
@@ -599,7 +615,7 @@ namespace NAPI
 			static bool s_showedLoginError = false;
 			if (!s_showedLoginError)
 			{
-				cemuLog_force("Account login is impossible because the cached password hash is not set");
+				cemuLog_log(LogType::Force, "Account login is impossible because the cached password hash is not set");
 				s_showedLoginError = true;
 			}
 			return false; // password hash not set

@@ -116,7 +116,7 @@ void DirectSoundAPI::AudioThread()
 
 			if (FAILED(hr))
 			{
-				forceLog_printf("DirectSound: Dropped audio block due to locking failure");
+				cemuLog_log(LogType::Force, "DirectSound: Dropped audio block due to locking failure");
 				continue;
 			}
 
@@ -124,7 +124,7 @@ void DirectSoundAPI::AudioThread()
 				std::unique_lock lock(m_mutex);
 				if (m_buffer.empty())
 				{
-					//forceLogDebug_printf("DirectSound: writing silence");
+					//cemuLog_logDebug(LogType::Force, "DirectSound: writing silence");
 
 					// we got no data, just write silence
 					memset(ptr1, 0x00, bytes1);
@@ -189,7 +189,7 @@ bool DirectSoundAPI::FeedBlock(sint16* data)
 	std::unique_lock lock(m_mutex);
 	if (m_buffer.size() > kBlockCount)
 	{
-		forceLogDebug_printf("dropped direct sound block since too many buffers are queued");
+		cemuLog_logDebug(LogType::Force, "dropped direct sound block since too many buffers are queued");
 		return false;
 	}
 

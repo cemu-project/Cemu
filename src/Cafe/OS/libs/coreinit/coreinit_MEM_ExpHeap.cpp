@@ -2,8 +2,6 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 #define EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(__blockchain__) (MEMExpHeapHead2*)((uintptr_t)__blockchain__ - offsetof(MEMExpHeapHead2, expHeapHead) - offsetof(MEMExpHeapHead40_t, chainFreeBlocks))
 
 namespace coreinit
@@ -452,7 +450,7 @@ void* MEMAllocFromExpHeapEx(MEMHeapHandle heap, uint32 size, sint32 alignment)
 	if (alignment == 0)
 	{
 		// this is a guaranteed crash on the actual console
-		forceLog_printf("MEMAllocFromExpHeapEx(): Alignment 0 not allowed");
+		cemuLog_log(LogType::Force, "MEMAllocFromExpHeapEx(): Alignment 0 not allowed");
 		alignment = 4;
 		return nullptr;
 	}
@@ -850,14 +848,14 @@ void export_MEMCreateExpHeapEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(size, 1);
 	ppcDefineParamU16(options, 2);
 	MEMPTR<MEMHeapBase> heap = MEMCreateExpHeapEx(startAddress.GetPtr(), size, options);
-	coreinitMemLog_printf("MEMCreateExpHeapEx(0x%08x, 0x%x, 0x%x) Result: 0x%08x", startAddress.GetMPTR(), size, options, heap.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMCreateExpHeapEx(0x{:08x}, 0x{:x}, 0x{:x}) Result: 0x{:08x}", startAddress.GetMPTR(), size, options, heap.GetMPTR());
 	osLib_returnFromFunction(hCPU, heap.GetMPTR());
 }
 
 void export_MEMDestroyExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
-	coreinitMemLog_printf("MEMDestroyExpHeap(0x%08x)", heap.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMDestroyExpHeap(0x{:08x})", heap.GetMPTR());
 	MEMPTR<MEMHeapBase> oldHeap = (MEMHeapBase*)MEMDestroyExpHeap(heap.GetPtr());
 	osLib_returnFromFunction(hCPU, oldHeap.GetMPTR());
 }
@@ -868,7 +866,7 @@ void export_MEMAllocFromExpHeapEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(size, 1);
 	ppcDefineParamS32(alignment, 2);
 	MEMPTR<void> mem = MEMAllocFromExpHeapEx(heap.GetPtr(), size, alignment);
-	coreinitMemLog_printf("MEMAllocFromExpHeapEx(0x%08x, 0x%x, %d) Result: 0x%08x", heap.GetMPTR(), size, alignment, mem.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMAllocFromExpHeapEx(0x{:08x}, 0x{:x}, {}) Result: 0x{:08x}", heap.GetMPTR(), size, alignment, mem.GetMPTR());
 	osLib_returnFromFunction(hCPU, mem.GetMPTR());
 }
 
@@ -876,7 +874,7 @@ void export_MEMFreeToExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamMEMPTR(mem, void, 1);
-	coreinitMemLog_printf("MEMFreeToExpHeap(0x%08x, 0x%08x)", heap.GetMPTR(), mem.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMFreeToExpHeap(0x{:08x}, 0x{:08x})", heap.GetMPTR(), mem.GetMPTR());
 	MEMFreeToExpHeap(heap.GetPtr(), mem.GetPtr());
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -885,7 +883,7 @@ void export_MEMSetAllocModeForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamU16(mode, 1);
-	coreinitMemLog_printf("MEMSetAllocModeForExpHeap(0x%08x, %d)", heap.GetMPTR(), mode);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMSetAllocModeForExpHeap(0x{:08x}, {})", heap.GetMPTR(), mode);
 	uint16 oldMode = MEMSetAllocModeForExpHeap(heap.GetPtr(), mode);
 	osLib_returnFromFunction(hCPU, oldMode);
 }
@@ -893,7 +891,7 @@ void export_MEMSetAllocModeForExpHeap(PPCInterpreter_t* hCPU)
 void export_MEMGetAllocModeForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
-	coreinitMemLog_printf("MEMGetAllocModeForExpHeap(0x%08x)", heap.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMGetAllocModeForExpHeap(0x{:08x})", heap.GetMPTR());
 	uint16 oldMode = MEMGetAllocModeForExpHeap(heap.GetPtr());
 	osLib_returnFromFunction(hCPU, oldMode);
 }
@@ -901,7 +899,7 @@ void export_MEMGetAllocModeForExpHeap(PPCInterpreter_t* hCPU)
 void export_MEMAdjustExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
-	coreinitMemLog_printf("MEMAdjustExpHeap(0x%08x)", heap.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMAdjustExpHeap(0x{:08x})", heap.GetMPTR());
 	uint32 newSize = MEMAdjustExpHeap(heap.GetPtr());
 	osLib_returnFromFunction(hCPU, newSize);
 }
@@ -912,7 +910,7 @@ void export_MEMResizeForMBlockExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(mem, void, 1);
 	ppcDefineParamU32(size, 2);
 	uint32 newSize = MEMResizeForMBlockExpHeap(heap.GetPtr(), mem.GetPtr(), size);
-	coreinitMemLog_printf("MEMResizeForMBlockExpHeap(0x%08x, 0x%08x, 0x%x) Result: 0x%x", heap.GetMPTR(), mem.GetMPTR(), size, newSize);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMResizeForMBlockExpHeap(0x{:08x}, 0x{:08x}, 0x{:x}) Result: 0x{:x}", heap.GetMPTR(), mem.GetMPTR(), size, newSize);
 	osLib_returnFromFunction(hCPU, newSize);
 }
 
@@ -920,7 +918,7 @@ void export_MEMGetTotalFreeSizeForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	uint32 size = MEMGetTotalFreeSizeForExpHeap(heap.GetPtr());
-	coreinitMemLog_printf("MEMGetTotalFreeSizeForExpHeap(0x%08x) Result: 0x%x", heap.GetMPTR(), size);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMGetTotalFreeSizeForExpHeap(0x{:08x}) Result: 0x{:x}", heap.GetMPTR(), size);
 	osLib_returnFromFunction(hCPU, size);
 }
 
@@ -929,7 +927,7 @@ void export_MEMGetAllocatableSizeForExpHeapEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamS32(alignment, 1);
 	uint32 size = MEMGetAllocatableSizeForExpHeapEx(heap.GetPtr(), alignment);
-	coreinitMemLog_printf("MEMGetAllocatableSizeForExpHeapEx(0x%08x, 0x%x) Result: 0x%x", heap.GetMPTR(), alignment, size);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMGetAllocatableSizeForExpHeapEx(0x{:08x}, 0x{:x}) Result: 0x{:x}", heap.GetMPTR(), alignment, size);
 	osLib_returnFromFunction(hCPU, size);
 }
 
@@ -937,8 +935,8 @@ void export_MEMSetGroupIDForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamU16(groupId, 1);
-	coreinitMemLog_printf("MEMSetGroupIDForExpHeap(0x%08x, %d)", heap.GetMPTR(), groupId);
-#ifndef PUBLIC_RELEASE
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMSetGroupIDForExpHeap(0x{:08x}, {})", heap.GetMPTR(), groupId);
+#ifdef CEMU_DEBUG_ASSERT
 	assert_dbg(); // someone test this and the entire groupId feature
 #endif
 	uint16 oldGroupId = MEMSetGroupIDForExpHeap(heap.GetPtr(), groupId);
@@ -948,7 +946,7 @@ void export_MEMSetGroupIDForExpHeap(PPCInterpreter_t* hCPU)
 void export_MEMGetGroupIDForExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
-	forceLogDebug_printf("MEMGetGroupIDForExpHeap(0x%08x)", heap.GetMPTR());
+	cemuLog_logDebug(LogType::Force, "MEMGetGroupIDForExpHeap(0x{:08x})", heap.GetMPTR());
 	uint16 oldGroupId = MEMGetGroupIDForExpHeap(heap.GetPtr());
 	osLib_returnFromFunction(hCPU, oldGroupId);
 }
@@ -958,7 +956,7 @@ void export_MEMVisitAllocatedForExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamMEMPTR(visitor, void, 1);
 	ppcDefineParamU32(userParam, 2);
-	coreinitMemLog_printf("MEMVisitAllocatedForExpHeap(0x%08x, 0x%08x, 0x%x)", heap.GetMPTR(), visitor.GetMPTR(), userParam);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMVisitAllocatedForExpHeap(0x{:08x}, 0x{:08x}, 0x{:x})", heap.GetMPTR(), visitor.GetMPTR(), userParam);
 	MEMVisitAllocatedForExpHeap(heap.GetPtr(), visitor, userParam);
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -967,14 +965,14 @@ void export_MEMGetSizeForMBlockExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(memBlock, void, 0);
 	uint32 size = MEMGetSizeForMBlockExpHeap(memBlock.GetPtr());
-	coreinitMemLog_printf("MEMGetSizeForMBlockExpHeap(0x%08x) Result: 0x%x", memBlock.GetMPTR(), size);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMGetSizeForMBlockExpHeap(0x{:08x}) Result: 0x{:x}", memBlock.GetMPTR(), size);
 	osLib_returnFromFunction(hCPU, size);
 }
 
 void export_MEMGetGroupIDForMBlockExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(memBlock, void, 0);
-	coreinitMemLog_printf("MEMGetGroupIDForMBlockExpHeap(0x%08x)", memBlock.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMGetGroupIDForMBlockExpHeap(0x{:08x})", memBlock.GetMPTR());
 	uint16 groupId = MEMGetGroupIDForMBlockExpHeap(memBlock.GetPtr());
 	osLib_returnFromFunction(hCPU, groupId);
 }
@@ -982,7 +980,7 @@ void export_MEMGetGroupIDForMBlockExpHeap(PPCInterpreter_t* hCPU)
 void export_MEMGetAllocDirForMBlockExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(memBlock, void, 0);
-	coreinitMemLog_printf("MEMGetAllocDirForMBlockExpHeap(0x%08x)", memBlock.GetMPTR());
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMGetAllocDirForMBlockExpHeap(0x{:08x})", memBlock.GetMPTR());
 	uint16 allocDir = MEMGetAllocDirForMBlockExpHeap(memBlock.GetPtr());
 	osLib_returnFromFunction(hCPU, allocDir);
 }
@@ -991,7 +989,7 @@ void export_MEMCheckExpHeap(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 0);
 	ppcDefineParamU32(options, 1);
-	coreinitMemLog_printf("MEMCheckExpHeap(0x%08x, 0x%x)", heap.GetMPTR(), options);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMCheckExpHeap(0x{:08x}, 0x{:x})", heap.GetMPTR(), options);
 	bool result = MEMCheckExpHeap(heap.GetPtr(), options);
 	osLib_returnFromFunction(hCPU, result ? 1 : 0);
 }
@@ -1002,7 +1000,7 @@ void export_MEMCheckForMBlockExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 1);
 	ppcDefineParamU32(options, 2);
 	bool result = MEMCheckForMBlockExpHeap(memBlock.GetPtr(), heap.GetPtr(), options);
-	coreinitMemLog_printf("MEMCheckForMBlockExpHeap(0x%08x, 0x%08x, 0x%x) Result: %d", memBlock.GetMPTR(), heap.GetMPTR(), options, result);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMCheckForMBlockExpHeap(0x{:08x}, 0x{:08x}, 0x{:x}) Result: {}", memBlock.GetMPTR(), heap.GetMPTR(), options, result);
 	osLib_returnFromFunction(hCPU, result ? 1 : 0);
 }
 
@@ -1011,7 +1009,7 @@ void export_MEMInitAllocatorForExpHeap(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(allocator, MEMAllocator, 0);
 	ppcDefineParamMEMPTR(heap, MEMHeapBase, 1);
 	ppcDefineParamS32(alignment, 2);
-	coreinitMemLog_printf("MEMInitAllocatorForExpHeap(0x%08x, 0x%08x, %d)", allocator.GetMPTR(), heap.GetMPTR(), alignment);
+	cemuLog_logDebug(LogType::CoreinitMem, "MEMInitAllocatorForExpHeap(0x{:08x}, 0x{:08x}, {})", allocator.GetMPTR(), heap.GetMPTR(), alignment);
 	MEMInitAllocatorForExpHeap(allocator.GetPtr(), heap.GetPtr(), alignment);
 	osLib_returnFromFunction(hCPU, 0);
 }

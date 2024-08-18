@@ -3,13 +3,6 @@
 
 namespace wxHelper
 {
-    // wxString to utf8 std::string
-    inline std::string MakeUTF8(const wxString& str)
-    {
-        auto tmpUtf8 = str.ToUTF8();
-        return std::string(tmpUtf8.data(), tmpUtf8.length());
-    }
-
     inline fs::path MakeFSPath(const wxString& str)
     {
         auto tmpUtf8 = str.ToUTF8();
@@ -17,10 +10,27 @@ namespace wxHelper
         return fs::path(sv);
     }
 
-    inline wxString FromUtf8(std::string_view str)
-    {
-        return wxString::FromUTF8(str.data(), str.size());
-    }
+	inline wxString FromUtf8(std::string_view str)
+	{
+		return wxString::FromUTF8(str.data(), str.size());
+	}
 
+	inline wxString FromPath(const fs::path& path)
+	{
+		std::string str = _pathToUtf8(path);
+		return wxString::FromUTF8(str.data(), str.size());
+	}
+
+	inline wxColour CalculateAccentColour(const wxColour& bgColour)
+	{
+		wxColour bgColourSecondary;
+		const uint32 bgLightness = (bgColour.GetRed() + bgColour.GetGreen() + bgColour.GetBlue()) / 3;
+		const bool isDarkTheme = bgLightness < 128;
+		bgColourSecondary = bgColour.ChangeLightness(isDarkTheme ? 110 : 90); // color for even rows
+		// for very light themes we'll use a blue tint to match the older Windows Cemu look
+		if (bgLightness > 250)
+			bgColourSecondary = wxColour(bgColour.Red() - 13, bgColour.Green() - 6, bgColour.Blue() - 2);
+		return bgColourSecondary;
+	}
 
 };

@@ -9,7 +9,7 @@ bool sTLInitialized{ false };
 fs::path sTLCacheFilePath;
 
 // lists for tracking known titles
-// note: The list may only contain titles with valid meta data. Entries loaded from the cache may not have been parsed yet, but they will use a cached value for titleId and titleVersion
+// note: The list may only contain titles with valid meta data (except for certain system titles). Entries loaded from the cache may not have been parsed yet, but they will use a cached value for titleId and titleVersion
 std::mutex sTLMutex;
 std::vector<TitleInfo*> sTLList;
 std::vector<TitleInfo*> sTLListPending;
@@ -65,6 +65,7 @@ void CafeTitleList::LoadCacheFile()
 		if( !TitleIdParser::ParseFromStr(titleInfoNode.attribute("titleId").as_string(), titleId))
 			continue;
 		uint16 titleVersion = titleInfoNode.attribute("version").as_uint();
+		uint32 sdkVersion = titleInfoNode.attribute("sdk_version").as_uint();
 		TitleInfo::TitleDataFormat format = (TitleInfo::TitleDataFormat)ConvertString<uint32>(titleInfoNode.child_value("format"));
 		CafeConsoleRegion region = (CafeConsoleRegion)ConvertString<uint32>(titleInfoNode.child_value("region"));
 		std::string name = titleInfoNode.child_value("name");
@@ -76,11 +77,12 @@ void CafeTitleList::LoadCacheFile()
 		TitleInfo::CachedInfo cacheEntry;
 		cacheEntry.titleId = titleId;
 		cacheEntry.titleVersion = titleVersion;
+		cacheEntry.sdkVersion = sdkVersion;
 		cacheEntry.titleDataFormat = format;
 		cacheEntry.region = region;
-		cacheEntry.titleName = name;
-		cacheEntry.path = _asUtf8(path);
-		cacheEntry.subPath = sub_path;
+		cacheEntry.titleName = std::move(name);
+		cacheEntry.path = _utf8ToPath(path);
+		cacheEntry.subPath = std::move(sub_path);
 		cacheEntry.group_id = group_id;
 		cacheEntry.app_type = app_type;
 
@@ -115,21 +117,22 @@ void CafeTitleList::StoreCacheFile()
 		auto titleInfoNode = title_list_node.append_child("title");
 		titleInfoNode.append_attribute("titleId").set_value(fmt::format("{:016x}", info.titleId).c_str());
 		titleInfoNode.append_attribute("version").set_value(fmt::format("{:}", info.titleVersion).c_str());
+		titleInfoNode.append_attribute("sdk_version").set_value(fmt::format("{:}", info.sdkVersion).c_str());
 		titleInfoNode.append_attribute("group_id").set_value(fmt::format("{:08x}", info.group_id).c_str());
 		titleInfoNode.append_attribute("app_type").set_value(fmt::format("{:08x}", info.app_type).c_str());
 		titleInfoNode.append_child("region").append_child(pugi::node_pcdata).set_value(fmt::format("{}", (uint32)info.region).c_str());
 		titleInfoNode.append_child("name").append_child(pugi::node_pcdata).set_value(info.titleName.c_str());
 		titleInfoNode.append_child("format").append_child(pugi::node_pcdata).set_value(fmt::format("{}", (uint32)info.titleDataFormat).c_str());
-		titleInfoNode.append_child("path").append_child(pugi::node_pcdata).set_value(_utf8Wrapper(info.path).c_str());
+		titleInfoNode.append_child("path").append_child(pugi::node_pcdata).set_value(_pathToUtf8(info.path).c_str());
 		if(!info.subPath.empty())
-			titleInfoNode.append_child("sub_path").append_child(pugi::node_pcdata).set_value(_utf8Wrapper(info.subPath).c_str());
+			titleInfoNode.append_child("sub_path").append_child(pugi::node_pcdata).set_value(_pathToUtf8(info.subPath).c_str());
 	}
 
-	fs::path tmpPath = fs::path(sTLCacheFilePath.parent_path()).append(fmt::format("{}__tmp", _utf8Wrapper(sTLCacheFilePath.filename())));
+	fs::path tmpPath = fs::path(sTLCacheFilePath.parent_path()).append(fmt::format("{}__tmp", _pathToUtf8(sTLCacheFilePath.filename())));
 	std::ofstream fileOut(tmpPath, std::ios::out | std::ios::binary | std::ios::trunc);
 	if (!fileOut.is_open())
 	{
-		cemuLog_log(LogType::Force, "Unable to store title list in {}", _utf8Wrapper(tmpPath));
+		cemuLog_log(LogType::Force, "Unable to store title list in {}", _pathToUtf8(tmpPath));
 		return;
 	}
 	doc.save(fileOut, " ", 1, pugi::xml_encoding::encoding_utf8);
@@ -158,7 +161,7 @@ void CafeTitleList::SetMLCPath(fs::path path)
 	std::error_code ec;
 	if (!fs::is_directory(path, ec))
 	{
-		cemuLog_log(LogType::Force, "MLC set to invalid path: {}", _utf8Wrapper(path));
+		cemuLog_log(LogType::Force, "MLC set to invalid path: {}", _pathToUtf8(path));
 		return;
 	}
 	sTLMLCPath = path;
@@ -211,12 +214,12 @@ void _RemoveTitleFromMultimap(TitleInfo* titleInfo)
 // in the special case that path points to a WUA file, all contained titles will be added
 void CafeTitleList::AddTitleFromPath(fs::path path)
 {
-	if (path.has_extension() && boost::iequals(_utf8Wrapper(path.extension()), ".wua"))
+	if (path.has_extension() && boost::iequals(_pathToUtf8(path.extension()), ".wua"))
 	{
 		ZArchiveReader* zar = ZArchiveReader::OpenFromFile(path);
 		if (!zar)
 		{
-			cemuLog_log(LogType::Force, "Found {} but it is not a valid Wii U archive file", _utf8Wrapper(path));
+			cemuLog_log(LogType::Force, "Found {} but it is not a valid Wii U archive file", _pathToUtf8(path));
 			return;
 		}
 		// enumerate all contained titles
@@ -233,7 +236,7 @@ void CafeTitleList::AddTitleFromPath(fs::path path)
 			uint16 parsedVersion;
 			if (!TitleInfo::ParseWuaTitleFolderName(dirEntry.name, parsedId, parsedVersion))
 			{
-				cemuLog_log(LogType::Force, "Invalid title directory in {}: \"{}\"", _utf8Wrapper(path), dirEntry.name);
+				cemuLog_log(LogType::Force, "Invalid title directory in {}: \"{}\"", _pathToUtf8(path), dirEntry.name);
 				continue;
 			}
 			// valid subdirectory
@@ -255,6 +258,7 @@ void CafeTitleList::AddTitleFromPath(fs::path path)
 
 bool CafeTitleList::RefreshWorkerThread()
 {
+	SetThreadName("TitleListWorker");
 	while (sTLRefreshRequests.load())
 	{
 		sTLRefreshRequests.store(0);
@@ -321,17 +325,26 @@ bool CafeTitleList::RefreshWorkerThread()
 	return true;
 }
 
-bool _IsKnownFileExtension(std::string fileExtension)
+bool _IsKnownFileNameOrExtension(const fs::path& path)
 {
+	std::string fileExtension = _pathToUtf8(path.extension());
 	for (auto& it : fileExtension)
-		if (it >= 'A' && it <= 'Z')
-			it -= ('A' - 'a');
+		it = _ansiToLower(it);
+	if(fileExtension == ".tmd")
+	{
+		// must be "title.tmd"
+		std::string fileName = _pathToUtf8(path.filename());
+		for (auto& it : fileName)
+			it = _ansiToLower(it);
+		return fileName == "title.tmd";
+	}
 	return
 		fileExtension == ".wud" ||
 		fileExtension == ".wux" ||
 		fileExtension == ".iso" ||
-		fileExtension == ".wua";
-	// note: To detect extracted titles with RPX we use the content/code/meta folder structure
+		fileExtension == ".wua" ||
+		fileExtension == ".wuhb";
+	// note: To detect extracted titles with RPX we rely on the presence of the content,code,meta directory structure
 }
 
 void CafeTitleList::ScanGamePath(const fs::path& path)
@@ -350,8 +363,7 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 		else if (it.is_directory(ec))
 		{
 			dirsInDirectory.emplace_back(it.path());
-
-			std::string dirName = _utf8Wrapper(it.path().filename());
+			std::string dirName = _pathToUtf8(it.path().filename());
 			if (boost::iequals(dirName, "content"))
 				hasContentFolder = true;
 			else if (boost::iequals(dirName, "code"))
@@ -363,10 +375,10 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 	// always check individual files
 	for (auto& it : filesInDirectory)
 	{
-		// since checking files is slow, we only do it for known file extensions
+		// since checking individual files is slow, we limit it to known file names or extensions
 		if (!it.has_extension())
 			continue;
-		if (!_IsKnownFileExtension(_utf8Wrapper(it.extension())))
+		if (!_IsKnownFileNameOrExtension(it))
 			continue;
 		AddTitleFromPath(it);
 	}
@@ -384,7 +396,7 @@ void CafeTitleList::ScanGamePath(const fs::path& path)
 		{
 			for (auto& it : dirsInDirectory)
 			{
-				std::string dirName = _utf8Wrapper(it.filename());
+				std::string dirName = _pathToUtf8(it.filename());
 				if (!boost::iequals(dirName, "content") &&
 					!boost::iequals(dirName, "code") &&
 					!boost::iequals(dirName, "meta"))
@@ -408,7 +420,7 @@ void CafeTitleList::ScanMLCPath(const fs::path& path)
 		if (!it.is_directory())
 			continue;
 		// only scan directories which match the title id naming scheme
-		std::string dirName = _utf8Wrapper(it.path().filename());
+		std::string dirName = _pathToUtf8(it.path().filename());
 		if(dirName.size() != 8)
 			continue;
 		bool containsNoHexCharacter = false;
@@ -482,7 +494,7 @@ void CafeTitleList::AddTitle(TitleInfo* titleInfo)
 		}
 	}
 	sTLList.emplace_back(titleInfo);
-	sTLMap.insert(std::pair(titleInfo->GetAppTitleId(), titleInfo));
+	sTLMap.emplace(titleInfo->GetAppTitleId(), titleInfo);
 	// send out notification
 	CafeTitleListCallbackEvent evt;
 	evt.eventType = CafeTitleListCallbackEvent::TYPE::TITLE_DISCOVERED;
@@ -623,8 +635,7 @@ GameInfo2 CafeTitleList::GetGameInfo(TitleId titleId)
 	uint64 baseTitleId;
 	if (!FindBaseTitleId(titleId, baseTitleId))
 	{
-		cemuLog_logDebug(LogType::Force, "Failed to translate title id in GetGameInfo()");
-		return gameInfo;
+		cemu_assert_suspicious();
 	}
 	// determine if an optional update title id exists
 	TitleIdParser tip(baseTitleId);
@@ -638,12 +649,15 @@ GameInfo2 CafeTitleList::GetGameInfo(TitleId titleId)
 	{
 		TitleId appTitleId = it->GetAppTitleId();
 		if (appTitleId == baseTitleId)
+		{
 			gameInfo.SetBase(*it);
+		}
 		if (hasSeparateUpdateTitleId && appTitleId == updateTitleId)
 		{
 			gameInfo.SetUpdate(*it);
 		}
 	}
+
 	// if this title can have AOC content then do a second scan
 	// todo - get a list of all AOC title ids from the base/update meta information
 	// for now we assume there is a direct match between the base titleId and the aoc titleId

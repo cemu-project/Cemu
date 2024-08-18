@@ -99,8 +99,8 @@ namespace coreinit
 		if (deallocAddr < lcAddr[coreIndex] || deallocAddr >= (lcAddr[coreIndex] + LC_LOCKED_CACHE_SIZE))
 		{
 			// out of bounds
-#ifndef PUBLIC_RELEASE
-			forceLog_printf("LCDealloc(): Out of bounds");
+#ifdef CEMU_DEBUG_ASSERT
+			cemuLog_log(LogType::Force, "LCDealloc(): Out of bounds");
 #endif
 			osLib_returnFromFunction(hCPU, 0);
 			return;
@@ -198,7 +198,7 @@ namespace coreinit
 			assert_dbg();
 #endif
 		LCIsEnabled[PPCInterpreter_getCoreIndex(hCPU)]--;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		if (LCIsEnabled[PPCInterpreter_getCoreIndex(hCPU)] == 0)
 		{
 			uint32 coreIndex = PPCInterpreter_getCoreIndex(hCPU);
@@ -209,7 +209,7 @@ namespace coreinit
 				{
 					if (_lcDisableErrorCounter < 15)
 					{
-						forceLog_printf("LC disabled but there is still memory allocated");
+						cemuLog_log(LogType::Force, "LC disabled but there is still memory allocated");
 						_lcDisableErrorCounter++;
 					}
 				}

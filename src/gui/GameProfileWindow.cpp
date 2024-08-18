@@ -118,7 +118,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Shader multiplication accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		wxString mul_values[] = { _("false"), _("true"), _("minimal") };
+		wxString mul_values[] = { _("false"), _("true")};
 		m_shader_mul_accuracy = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(mul_values), mul_values);
 		m_shader_mul_accuracy->SetToolTip(_("EXPERT OPTION\nControls the accuracy of floating point multiplication in shaders.\n\nRecommended: true"));
 		first_row->Add(m_shader_mul_accuracy, 0, wxALL, 5);
@@ -166,9 +166,8 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 		for (int i = 0; i < 8; ++i)
 		{
-			profile_sizer->Add(new wxStaticText(panel, wxID_ANY, fmt::format("{} {}", _("Controller").ToStdString(), (i + 1))), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			profile_sizer->Add(new wxStaticText(panel, wxID_ANY, formatWxString(_("Controller {}"), i + 1)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-			wxArrayString m_controller_profileChoices;
 			m_controller_profile[i] = new wxComboBox(panel, wxID_ANY,"", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN| wxCB_READONLY);
 			m_controller_profile[i]->SetMinSize(wxSize(250, -1));
 			m_controller_profile[i]->Bind(wxEVT_COMBOBOX_DROPDOWN, &GameProfileWindow::OnControllerProfileDropdown, this);
@@ -245,7 +244,7 @@ void GameProfileWindow::SetProfileInt(gameProfileIntegerOption_t& option, wxChec
 void GameProfileWindow::ApplyProfile()
 {
 	if(m_game_profile.m_gameName)
-		this->SetTitle(fmt::format("{} - {}", _("Edit game profile").ToStdString(), m_game_profile.m_gameName.value()));
+		this->SetTitle(_("Edit game profile") + " - " + m_game_profile.m_gameName.value());
 
 	// general
 	m_load_libs->SetValue(m_game_profile.m_loadSharedLibraries.value());
@@ -269,10 +268,7 @@ void GameProfileWindow::ApplyProfile()
 		m_graphic_api->SetSelection(0); // selecting ""
 	else
 		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan
-	//m_extended_texture_readback->SetValue(m_game_profile.m_extendedTextureReadback);
-	//m_precompiled->SetSelection((int)m_game_profile.m_precompiledShaders.value());
 	m_shader_mul_accuracy->SetSelection((int)m_game_profile.m_accurateShaderMul);
-	//m_cache_accuracy->SetSelection((int)m_game_profile.m_gpuBufferCacheAccuracy.value());
 
 	//// audio
 	//m_disable_audio->Set3StateValue(GetCheckboxState(m_game_profile.disableAudio));
@@ -332,6 +328,9 @@ void GameProfileWindow::SaveProfile()
 
 	// gpu
 	m_game_profile.m_accurateShaderMul = (AccurateShaderMulOption)m_shader_mul_accuracy->GetSelection();
+	if (m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::False && m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::True)
+		m_game_profile.m_accurateShaderMul = AccurateShaderMulOption::True; // force a legal value
+
 	if (m_graphic_api->GetSelection() == 0)
 		m_game_profile.m_graphics_api = {};
 	else

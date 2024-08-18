@@ -29,7 +29,7 @@ sint32 nexService_parseResponse(uint8* data, sint32 length, nexServiceResponse_t
 	protocolId &= 0x7F;
 	if (isRequest)
 	{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg(); // should never reach since we handle requests before this function is called
 #endif
 	}
@@ -106,7 +106,7 @@ nexService::nexService()
 
 nexService::nexService(prudpClient* con) : nexService()
 {
-	if (con->isConnected() == false)
+	if (con->IsConnected() == false)
 		cemu_assert_suspicious();
 	this->conNexService = con;
 	bufferReceive = std::vector<uint8>(1024 * 4);
@@ -160,11 +160,10 @@ bool nexService::isMarkedForDestruction()
 
 void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* parameter, void(*nexServiceResponse)(nexService* nex, nexServiceResponse_t* serviceResponse), void* custom, bool callHandlerIfError)
 {
-	// add to queue
 	queuedRequest_t queueRequest = { 0 };
 	queueRequest.protocolId = protocolId;
 	queueRequest.methodId = methodId;
-	queueRequest.parameterData = std::vector<uint8>(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
+	queueRequest.parameterData.assign(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
 	queueRequest.nexServiceResponse = nexServiceResponse;
 	queueRequest.custom = custom;
 	queueRequest.callHandlerIfError = callHandlerIfError;
@@ -175,11 +174,10 @@ void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* 
 
 void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* parameter, std::function<void(nexServiceResponse_t*)> cb, bool callHandlerIfError)
 {
-	// add to queue
 	queuedRequest_t queueRequest = { 0 };
 	queueRequest.protocolId = protocolId;
 	queueRequest.methodId = methodId;
-	queueRequest.parameterData = std::vector<uint8>(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
+	queueRequest.parameterData.assign(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
 	queueRequest.nexServiceResponse = nullptr;
 	queueRequest.cb2 = cb;
 	queueRequest.callHandlerIfError = callHandlerIfError;
@@ -193,7 +191,7 @@ void nexService::processQueuedRequest(queuedRequest_t* queuedRequest)
 	uint32 callId = _currentCallId;
 	_currentCallId++;
 	// check state of connection
-	if (conNexService->getConnectionState() != prudpClient::STATE_CONNECTED)
+	if (conNexService->GetConnectionState() != prudpClient::ConnectionState::Connected)
 	{
 		nexServiceResponse_t response = { 0 };
 		response.isSuccessful = false;
@@ -216,7 +214,7 @@ void nexService::processQueuedRequest(queuedRequest_t* queuedRequest)
 		assert_dbg();
 	memcpy((packetBuffer + 0x0D), &queuedRequest->parameterData.front(), queuedRequest->parameterData.size());
 	sint32 length = 0xD + (sint32)queuedRequest->parameterData.size();
-	conNexService->sendDatagram(packetBuffer, length, true);
+	conNexService->SendDatagram(packetBuffer, length, true);
 	// remember request
 	nexActiveRequestInfo_t requestInfo = { 0 };
 	requestInfo.callId = callId;
@@ -301,13 +299,13 @@ void nexService::registerForAsyncProcessing()
 void nexService::updateTemporaryConnections()
 {
 	// check for connection
-	conNexService->update();
-	if (conNexService->isConnected())
+	conNexService->Update();
+	if (conNexService->IsConnected())
 	{
 		if (connectionState == STATE_CONNECTING)
 			connectionState = STATE_CONNECTED;
 	}
-	if (conNexService->getConnectionState() == prudpClient::STATE_DISCONNECTED)
+	if (conNexService->GetConnectionState() == prudpClient::ConnectionState::Disconnected)
 		connectionState = STATE_DISCONNECTED;
 }
 
@@ -358,18 +356,18 @@ void nexService::sendRequestResponse(nexServiceRequest_t* request, uint32 errorC
 	// update length field
 	*(uint32*)response.getDataPtr() = response.getWriteIndex()-4;
 	if(request->nex->conNexService)
-		request->nex->conNexService->sendDatagram(response.getDataPtr(), response.getWriteIndex(), true);
+		request->nex->conNexService->SendDatagram(response.getDataPtr(), response.getWriteIndex(), true);
 }
 
 void nexService::updateNexServiceConnection()
 {
-	if (conNexService->getConnectionState() == prudpClient::STATE_DISCONNECTED)
+	if (conNexService->GetConnectionState() == prudpClient::ConnectionState::Disconnected)
 	{
 		this->connectionState = STATE_DISCONNECTED;
 		return;
 	}
-	conNexService->update();
-	sint32 datagramLen = conNexService->receiveDatagram(bufferReceive);
+	conNexService->Update();
+	sint32 datagramLen = conNexService->ReceiveDatagram(bufferReceive);
 	if (datagramLen > 0)
 	{
 		if (nexIsRequest(&bufferReceive[0], datagramLen))
@@ -456,12 +454,12 @@ bool _extractStationUrlParamValue(const char* urlStr, const char* paramName, cha
 	return false;
 }
 
-void nexServiceAuthentication_parseStationURL(char* urlStr, stationUrl_t* stationUrl)
+void nexServiceAuthentication_parseStationURL(char* urlStr, prudpStationUrl* stationUrl)
 {
 	// example:
 	// prudps:/address=34.210.xxx.xxx;port=60181;CID=1;PID=2;sid=1;stream=10;type=2
 
-	memset(stationUrl, 0, sizeof(stationUrl_t));
+	memset(stationUrl, 0, sizeof(prudpStationUrl));
 
 	char optionValue[128];
 	if (_extractStationUrlParamValue(urlStr, "address", optionValue, sizeof(optionValue)))
@@ -501,7 +499,7 @@ typedef struct
 	sint32 kerberosTicketSize;
 	uint8 kerberosTicket2[4096];
 	sint32 kerberosTicket2Size;
-	stationUrl_t server;
+	prudpStationUrl server;
 	// progress info
 	bool hasError;
 	bool done;
@@ -512,21 +510,21 @@ void nexServiceAuthentication_handleResponse_requestTicket(nexService* nex, nexS
 	authenticationService_t* authService = (authenticationService_t*)response->custom;
 	if (response->isSuccessful == false)
 	{
-		forceLog_printf("NEX: RPC error while requesting auth ticket with error code 0x%08x", response->errorCode);
+		cemuLog_log(LogType::Force, "NEX: RPC error while requesting auth ticket with error code 0x{:08x}", response->errorCode);
 		authService->hasError = true;
 		return;
 	}
 	uint32 returnValue = response->data.readU32();
 	if (returnValue & 0x80000000)
 	{
-		forceLog_printf("NEX: Failed to request auth ticket with error code 0x%08x", returnValue);
+		cemuLog_log(LogType::Force, "NEX: Failed to request auth ticket with error code 0x{:08x}", returnValue);
 		authService->hasError = true;
 	}
 	authService->kerberosTicket2Size = response->data.readBuffer(authService->kerberosTicket2, sizeof(authService->kerberosTicket2));
 	if (response->data.hasReadOutOfBounds())
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Out of bounds error while reading auth ticket");
+		cemuLog_log(LogType::Force, "NEX: Out of bounds error while reading auth ticket");
 		return;
 	}
 	authService->done = true;
@@ -538,7 +536,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (response->isSuccessful == false)
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: RPC error in login response 0x%08x", response->errorCode);
+		cemuLog_log(LogType::Force, "NEX: RPC error in login response 0x{:08x}", response->errorCode);
 		return;
 	}
 
@@ -546,7 +544,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (returnValue & 0x80000000)
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Error 0x%08x in login response (returnCode 0x%08x)", response->errorCode, returnValue);
+		cemuLog_log(LogType::Force, "NEX: Error 0x{:08x} in login response (returnCode 0x{:08x})", response->errorCode, returnValue);
 		return;
 	}
 
@@ -571,7 +569,7 @@ void nexServiceAuthentication_handleResponse_login(nexService* nex, nexServiceRe
 	if (response->data.hasReadOutOfBounds())
 	{
 		authService->hasError = true;
-		forceLog_printf("NEX: Read out of bounds");
+		cemuLog_log(LogType::Force, "NEX: Read out of bounds");
 		return;
 	}
 	// request ticket data
@@ -595,14 +593,14 @@ void nexServiceSecure_handleResponse_RegisterEx(nexService* nex, nexServiceRespo
 	uint32 returnCode = response->data.readU32();
 	if (response->isSuccessful == false || response->data.hasReadOutOfBounds())
 	{
-		forceLog_printf("NEX: RPC error in secure register");
+		cemuLog_log(LogType::Force, "NEX: RPC error in secure register");
 		info->isSuccessful = false;
 		info->isComplete = true;
 		return;
 	}
 	if (returnCode & 0x80000000)
 	{
-		forceLog_printf("NEX: Secure register failed with error code 0x%08x", returnCode);
+		cemuLog_log(LogType::Force, "NEX: Secure register failed with error code 0x{:08x}", returnCode);
 		info->isSuccessful = false;
 		info->isComplete = true;
 		return;
@@ -613,21 +611,21 @@ void nexServiceSecure_handleResponse_RegisterEx(nexService* nex, nexServiceRespo
 	return;
 }
 
-nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* accessKey, const char* nexToken)
+nexService* nex_secureLogin(prudpAuthServerInfo* authServerInfo, const char* accessKey, const char* nexToken)
 {
 	prudpClient* prudpSecureSock = new prudpClient(authServerInfo->server.ip, authServerInfo->server.port, accessKey, authServerInfo);
 	// wait until connected
 	while (true)
 	{
-		prudpSecureSock->update();
-		if (prudpSecureSock->isConnected())
+		prudpSecureSock->Update();
+		if (prudpSecureSock->IsConnected())
 		{
 			break;
 		}
-		if (prudpSecureSock->getConnectionState() == prudpClient::STATE_DISCONNECTED)
+		if (prudpSecureSock->GetConnectionState() == prudpClient::ConnectionState::Disconnected)
 		{
 			// timeout or disconnected
-			forceLog_printf("NEX: Secure login connection time-out");
+			cemuLog_log(LogType::Force, "NEX: Secure login connection time-out");
 			delete prudpSecureSock;
 			return nullptr;
 		}
@@ -640,7 +638,7 @@ nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* access
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	
 	char clientStationUrl[256];
-	sprintf(clientStationUrl, "prudp:/port=%u;natf=0;natm=0;pmp=0;sid=15;type=2;upnp=0", (uint32)nex->getPRUDPConnection()->getSourcePort());
+	sprintf(clientStationUrl, "prudp:/port=%u;natf=0;natm=0;pmp=0;sid=15;type=2;upnp=0", (uint32)nex->getPRUDPConnection()->GetSourcePort());
 	// station url list
 	packetBuffer.writeU32(1);
 	packetBuffer.writeString(clientStationUrl);
@@ -656,13 +654,13 @@ nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* access
 			break;
 		if (nex->getState() == nexService::STATE_DISCONNECTED)
 		{
-			forceLog_printf("NEX: Connection error while registering");
+			cemuLog_log(LogType::Force, "NEX: Connection error while registering");
 			break;
 		}
 	}
 	if (secureRegisterExData.isSuccessful == false)
 	{
-		forceLog_printf("NEX: Failed to register to secure server");
+		cemuLog_log(LogType::Force, "NEX: Failed to register to secure server");
 		nex->destroy();
 		return nullptr;
 	}
@@ -682,7 +680,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	{
 		// error
 		authConnection->destroy();
-		forceLog_printf("NEX: Failed to connect to the NEX server");
+		cemuLog_log(LogType::Force, "NEX: Failed to connect to the NEX server");
 		return nullptr;
 	}
 	// send auth login request
@@ -704,7 +702,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	{
 		// error
 		authConnection->destroy();
-		forceLog_printf("NEX: Error during authentication");
+		cemuLog_log(LogType::Force, "NEX: Error during authentication");
 		return nullptr;
 	}
 	// close connection to auth server
@@ -726,7 +724,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	if (nexAuthService.kerberosTicket2Size < 16)
 	{
 		nexAuthService.hasError = true;
-		forceLog_printf("NEX: Kerberos ticket too short");
+		cemuLog_log(LogType::Force, "NEX: Kerberos ticket too short");
 		return nullptr;
 	}
 	// check hmac of ticket
@@ -735,13 +733,13 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 	if (memcmp(hmacTicket, nexAuthService.kerberosTicket2 + nexAuthService.kerberosTicket2Size - 16, 16) != 0)
 	{
 		nexAuthService.hasError = true;
-		forceLog_printf("NEX: Kerberos ticket hmac invalid");
+		cemuLog_log(LogType::Force, "NEX: Kerberos ticket hmac invalid");
 		return nullptr;
 	}
 	// auth info
-	std::unique_ptr<authServerInfo_t> authServerInfo(new authServerInfo_t);
+	auto authServerInfo = std::make_unique<prudpAuthServerInfo>();
 	// decrypt ticket
-	RC4Ctx_t rc4Ticket;
+	RC4Ctx rc4Ticket;
 	RC4_initCtx(&rc4Ticket, kerberosKey, 16);
 	RC4_transform(&rc4Ticket, nexAuthService.kerberosTicket2, nexAuthService.kerberosTicket2Size - 16, nexAuthService.kerberosTicket2);
 	nexPacketBuffer packetKerberosTicket(nexAuthService.kerberosTicket2, nexAuthService.kerberosTicket2Size - 16, false);
@@ -752,13 +750,13 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 
 	if (packetKerberosTicket.hasReadOutOfBounds())
 	{
-		forceLog_printf("NEX: Parse error");
+		cemuLog_log(LogType::Force, "NEX: Parse error");
 		return nullptr;
 	}
 
 	memcpy(authServerInfo->kerberosKey, kerberosKey, 16);
 	memcpy(authServerInfo->secureKey, secureKey, 16);
-	memcpy(&authServerInfo->server, &nexAuthService.server, sizeof(stationUrl_t));
+	memcpy(&authServerInfo->server, &nexAuthService.server, sizeof(prudpStationUrl));
 	authServerInfo->userPid = pid;
 
 	return nex_secureLogin(authServerInfo.get(), accessKey, nexToken);

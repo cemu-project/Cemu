@@ -5,6 +5,7 @@
 #include "input/api/Wiimote/WiimoteMessages.h"
 
 #include "input/api/ControllerProvider.h"
+#include "input/api/ControllerState.h"
 
 #include <list>
 #include <variant>
@@ -61,6 +62,7 @@ public:
 			std::array<IRDot, 4> dots{}, prev_dots{};
 
 			glm::vec2 position{}, m_prev_position{};
+			PositionVisibility m_positionVisibility;
 			glm::vec2 middle {};
 			float distance = 0;
 			std::pair<sint32, sint32> indices{ 0,1 };

@@ -50,7 +50,7 @@ struct _FileCacheAsyncWriter
 private:
 	void FileCacheThread()
 	{
-		SetThreadName("fileCache_thread");
+		SetThreadName("fileCache");
 		while (true)
 		{
 			std::unique_lock lock(m_fileCacheMutex);
@@ -87,12 +87,12 @@ private:
 #define FILECACHE_FILETABLE_NAME2			0xFEFEFEFEFEFEFEFEULL
 #define FILECACHE_FILETABLE_FREE_NAME		0ULL
 
-FileCache* FileCache::Create(wzstring_view path, uint32 extraVersion)
+FileCache* FileCache::Create(const fs::path& path, uint32 extraVersion)
 {
-	FileStream* fs = FileStream::createFile(std::wstring(path).c_str());
+	FileStream* fs = FileStream::createFile2(path);
 	if (!fs)
 	{
-		forceLog_printf("Failed to create cache file \"%ls\"", path);
+		cemuLog_log(LogType::Force, "Failed to create cache file \"{}\"", _pathToUtf8(path));
 		return nullptr;
 	}
 	// init file cache
@@ -124,9 +124,9 @@ FileCache* FileCache::Create(wzstring_view path, uint32 extraVersion)
 	return fileCache;
 }
 
-FileCache* FileCache::_OpenExisting(wzstring_view path, bool compareExtraVersion, uint32 extraVersion)
+FileCache* FileCache::_OpenExisting(const fs::path& path, bool compareExtraVersion, uint32 extraVersion)
 {
-	FileStream* fs = FileStream::openFile2(path.data(), true);
+	FileStream* fs = FileStream::openFile2(path, true);
 	if (!fs)
 		return nullptr;
 	// read header
@@ -165,7 +165,7 @@ FileCache* FileCache::_OpenExisting(wzstring_view path, bool compareExtraVersion
 	fs->readU64(headerFileTableOffset);
 	if (!fs->readU32(headerFileTableSize))
 	{
-		forceLog_printf("\"%ls\" is corrupted", path);
+		cemuLog_log(LogType::Force, "\"{}\" is corrupted", _pathToUtf8(path));
 		delete fs;
 		return nullptr;
 	}
@@ -176,7 +176,7 @@ FileCache* FileCache::_OpenExisting(wzstring_view path, bool compareExtraVersion
 	invalidFileTableSize = (headerFileTableSize % sizeof(FileTableEntry)) != 0;
 	if (invalidFileTableSize)
 	{
-		forceLog_printf("\"%ls\" is corrupted", path);
+		cemuLog_log(LogType::Force, "\"{}\" is corrupted", _pathToUtf8(path));
 		delete fs;
 		return nullptr;
 	}
@@ -212,14 +212,14 @@ FileCache* FileCache::_OpenExisting(wzstring_view path, bool compareExtraVersion
 	}
 	if (incompleteFileTable)
 	{
-		forceLog_printf("\"%ls\" is corrupted (incomplete file table)", path);
+		cemuLog_log(LogType::Force, "\"{}\" is corrupted (incomplete file table)", _pathToUtf8(path));
 		delete fileCache;
 		return nullptr;
 	}
 	return fileCache;
 }
 
-FileCache* FileCache::Open(wzstring_view path, bool allowCreate, uint32 extraVersion)
+FileCache* FileCache::Open(const fs::path& path, bool allowCreate, uint32 extraVersion)
 {
 	FileCache* fileCache = _OpenExisting(path, true, extraVersion);
 	if (fileCache)
@@ -229,7 +229,7 @@ FileCache* FileCache::Open(wzstring_view path, bool allowCreate, uint32 extraVer
 	return Create(path, extraVersion);
 }
 
-FileCache* FileCache::Open(wzstring_view path)
+FileCache* FileCache::Open(const fs::path& path)
 {
 	return _OpenExisting(path, false, 0);
 }
@@ -263,7 +263,7 @@ void FileCache::fileCache_updateFiletable(sint32 extraEntriesToAllocate)
 	// update file table info in struct
 	if (this->fileTableEntries[0].name1 != FILECACHE_FILETABLE_NAME1 || this->fileTableEntries[0].name2 != FILECACHE_FILETABLE_NAME2)
 	{
-		forceLog_printf("Corruption in cache file detected");
+		cemuLog_log(LogType::Force, "Corruption in cache file detected");
 		assert_dbg();
 	}
 	this->fileTableOffset = this->fileTableEntries[0].fileOffset;
@@ -287,7 +287,10 @@ uint8* _fileCache_compressFileData(const uint8* fileData, uint32 fileSize, sint3
 	Bytef* compressedData = (Bytef*)malloc(4 + compressedLen);
 	int zret = compress2(compressedData + 4, &compressedLen, uncompressedInput, uncompressedLen, 4); // level 4 has good compression to performance ratio
 	if (zret != Z_OK)
+	{
+		free(compressedData);
 		return nullptr;
+	}
 	compressedData[0] = ((uint32)fileSize >> 24) & 0xFF;
 	compressedData[1] = ((uint32)fileSize >> 16) & 0xFF;
 	compressedData[2] = ((uint32)fileSize >> 8) & 0xFF;
@@ -387,7 +390,7 @@ void FileCache::_addFileInternal(uint64 name1, uint64 name2, const uint8* fileDa
 			{
 				if (name1 == FILECACHE_FILETABLE_NAME1 && name2 == FILECACHE_FILETABLE_NAME2)
 				{
-					forceLog_printf("Error in cache file");
+					cemuLog_log(LogType::Force, "Error in cache file");
 					cemu_assert_debug(false);
 				}
 				// no free entry, recreate file table with larger size
@@ -549,7 +552,7 @@ bool FileCache::GetFileByIndex(sint32 index, uint64* name1, uint64* name2, std::
 	FileTableEntry* entry = this->fileTableEntries + index;
 	if (this->fileTableEntries == nullptr)
 	{
-		forceLog_printf("GetFileByIndex() fileTable is NULL");
+		cemuLog_log(LogType::Force, "GetFileByIndex() fileTable is NULL");
 		return false;
 	}
 	if (entry->name1 == FILECACHE_FILETABLE_FREE_NAME && entry->name2 == FILECACHE_FILETABLE_FREE_NAME)
@@ -611,7 +614,7 @@ sint32 FileCache::GetFileCount()
 
 void fileCache_test()
 {
-	FileCache* fc = FileCache::Create(L"testCache.bin", 0);
+	FileCache* fc = FileCache::Create("testCache.bin", 0);
 	uint32 time1 = GetTickCount();
 
 	char* testString1 = (char*)malloc(1024 * 1024 * 8);
@@ -634,7 +637,7 @@ void fileCache_test()
 	debug_printf("Writing took %dms\n", time2-time1);
 	delete fc;
 	// verify if all entries are still valid
-	FileCache* fcRead = FileCache::Open(L"testCache.bin", 0);
+	FileCache* fcRead = FileCache::Open("testCache.bin", 0);
 	uint32 time3 = GetTickCount();
 	for(sint32 i=0; i<2200; i++)
 	{

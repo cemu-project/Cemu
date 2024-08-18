@@ -10,6 +10,12 @@
 #include <wx/gauge.h>
 #include <wx/button.h>
 #include <wx/msgdlg.h>
+#include <wx/stdpaths.h>
+
+#ifndef BOOST_OS_WINDOWS
+#include <unistd.h>
+#include <sys/stat.h>
+#endif
 
 #include <curl/curl.h>
 #include <zip.h>
@@ -23,7 +29,7 @@ wxDECLARE_EVENT(wxEVT_PROGRESS, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_PROGRESS, wxCommandEvent);
 
 CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, "Cemu update", wxDefaultPosition, wxDefaultSize,
+	: wxDialog(parent, wxID_ANY, _("Cemu update"), wxDefaultPosition, wxDefaultSize,
 		wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
@@ -34,7 +40,7 @@ CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
 	auto* rows = new wxFlexGridSizer(0, 2, 0, 0);
 	rows->AddGrowableCol(1);
 
-	m_text = new wxStaticText(this, wxID_ANY, "Checking for latest version...");
+	m_text = new wxStaticText(this, wxID_ANY, _("Checking for latest version..."));
 	rows->Add(m_text, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 	{
@@ -104,11 +110,11 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 	auto* curl = curl_easy_init();
 	urlStr.append(_curlUrlEscape(curl, BUILD_VERSION_STRING));
 #if BOOST_OS_LINUX
-	urlStr.append("&platform=linux");
+	urlStr.append("&platform=linux_appimage_x86");
 #elif BOOST_OS_WINDOWS
 	urlStr.append("&platform=windows");
 #elif BOOST_OS_MACOS
-	urlStr.append("&platform=macos_x86");
+	urlStr.append("&platform=macos_bundle_x86");
 #elif
 
 #error Name for current platform is missing
@@ -129,7 +135,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &http_code);
 		if (http_code != 0 && http_code != 200)
 		{
-			forceLog_printf("Update check failed (http code: %d)", http_code);
+			cemuLog_log(LogType::Force, "Update check failed (http code: {})", http_code);
 			cemu_assert_debug(false);
 			return false;
 		}
@@ -153,7 +159,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 	}
 	else
 	{
-		forceLog_printf("Update check failed with CURL error %d", (int)cr);
+		cemuLog_log(LogType::Force, "Update check failed with CURL error {}", (int)cr);
 		cemu_assert_debug(false);
 	}
 
@@ -260,7 +266,7 @@ bool CemuUpdateWindow::DownloadCemuZip(const std::string& url, const fs::path& f
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("can't remove update.zip on error: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't remove update.zip on error: {}", ex.what());
 		}
 	}
 	return result;
@@ -308,13 +314,13 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 				catch (const std::exception& ex)
 				{
 					SystemException sys(ex);
-					forceLog_printf("can't create folder \"%s\" for update: %s", sb.name, sys.what());
+					cemuLog_log(LogType::Force, "can't create folder \"{}\" for update: {}", sb.name, sys.what());
 				}
 				// the root should have only one Cemu_... directory, we track it here
 				if ((std::count(sb.name, sb.name + len, '/') + std::count(sb.name, sb.name + len, '\\')) == 1)
 				{
 					if (!cemuFolderName.empty())
-						forceLog_printf("update zip has multiple folders in root");
+						cemuLog_log(LogType::Force, "update zip has multiple folders in root");
 					cemuFolderName.assign(sb.name, len - 1);
 				}
 				continue;
@@ -324,7 +330,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			auto* zf = zip_fopen_index(za, i, 0);
 			if (!zf)
 			{
-				forceLog_printf("can't open zip file \"%s\"", sb.name);
+				cemuLog_log(LogType::Force, "can't open zip file \"{}\"", sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -333,7 +339,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			const auto read = zip_fread(zf, buffer.data(), sb.size);
 			if (read != (sint64)sb.size)
 			{
-				forceLog_printf("could only read 0x%x of 0x%x bytes from zip file \"%s\"", read, sb.size, sb.name);
+				cemuLog_log(LogType::Force, "could only read 0x{:x} of 0x{:x} bytes from zip file \"{}\"", read, sb.size, sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -341,7 +347,7 @@ bool CemuUpdateWindow::ExtractUpdate(const fs::path& zipname, const fs::path& ta
 			auto* file = fopen(fname.string().c_str(), "wb");
 			if (file == nullptr)
 			{
-				forceLog_printf("can't create update file \"%s\"", sb.name);
+				cemuLog_log(LogType::Force, "can't create update file \"{}\"", sb.name);
 				zip_close(za);
 				return false;
 			}
@@ -406,7 +412,13 @@ void CemuUpdateWindow::WorkerThread()
 				if (!exists(tmppath))
 					create_directory(tmppath);
 
+#if BOOST_OS_WINDOWS
 				const auto update_file = tmppath / L"update.zip";
+#elif BOOST_OS_LINUX
+				const auto update_file = tmppath / L"Cemu.AppImage";
+#elif BOOST_OS_MACOS
+				const auto update_file = tmppath / L"cemu.dmg";
+#endif	
 				if (DownloadCemuZip(url, update_file))
 				{
 					auto* event = new wxCommandEvent(wxEVT_RESULT);
@@ -426,6 +438,7 @@ void CemuUpdateWindow::WorkerThread()
 
 				// extract
 				std::string cemuFolderName;
+#if BOOST_OS_WINDOWS
 				if (!ExtractUpdate(update_file, tmppath, cemuFolderName))
 				{
 					cemuLog_log(LogType::Force, "Extracting Cemu zip failed");
@@ -436,7 +449,7 @@ void CemuUpdateWindow::WorkerThread()
 					cemuLog_log(LogType::Force, "Cemu folder not found in zip");
 					break;
 				}
-
+#endif
 				const auto expected_path = tmppath / cemuFolderName;
 				if (exists(expected_path))
 				{
@@ -459,7 +472,7 @@ void CemuUpdateWindow::WorkerThread()
 						catch (const std::exception& ex)
 						{
 							SystemException sys(ex);
-							forceLog_printf("can't remove extracted tmp files: %s", sys.what());
+							cemuLog_log(LogType::Force, "can't remove extracted tmp files: {}", sys.what());
 						}
 					}
 
@@ -470,16 +483,29 @@ void CemuUpdateWindow::WorkerThread()
 					break;
 
 				// apply update
-				std::wstring target_directory = ActiveSettings::GetPath().generic_wstring();
+				fs::path exePath = ActiveSettings::GetExecutablePath();
+#if BOOST_OS_WINDOWS
+				std::wstring target_directory = exePath.parent_path().generic_wstring();
 				if (target_directory[target_directory.size() - 1] == '/')
 					target_directory = target_directory.substr(0, target_directory.size() - 1); // remove trailing /
 
 				// get exe name
-				const auto exec = ActiveSettings::GetFullPath();
+				const auto exec = ActiveSettings::GetExecutablePath();
 				const auto target_exe = fs::path(exec).replace_extension("exe.backup");
 				fs::rename(exec, target_exe);
-				m_restartFile = exec;
-
+				m_restartFile = exec;				
+#elif BOOST_OS_LINUX
+				const char* appimage_path = std::getenv("APPIMAGE");
+				const auto target_exe = fs::path(appimage_path).replace_extension("AppImage.backup");
+				const char* filePath = update_file.c_str();
+				mode_t permissions = S_IRUSR | S_IWUSR | S_IXUSR | S_IRGRP | S_IXGRP | S_IROTH | S_IXOTH;
+				fs::rename(appimage_path, target_exe);
+				m_restartFile = appimage_path;
+				chmod(filePath, permissions);
+				wxString wxAppPath = wxString::FromUTF8(appimage_path);
+				wxCopyFile (wxT("/tmp/cemu_update/Cemu.AppImage"), wxAppPath);
+#endif
+#if BOOST_OS_WINDOWS
 				const auto index = expected_path.wstring().size();
 				int counter = 0;
 				for (const auto& it : fs::recursive_directory_iterator(expected_path))
@@ -504,17 +530,17 @@ void CemuUpdateWindow::WorkerThread()
 					catch (const std::exception& ex)
 					{
 						SystemException sys(ex);
-						forceLog_printf("applying update error: %s", sys.what());
+						cemuLog_log(LogType::Force, "applying update error: {}", sys.what());
 					}
 
-					if ((counter++ / 10) * 10 == counter)
+					if ((counter++ % 10) == 0)
 					{
 						auto* event = new wxCommandEvent(wxEVT_PROGRESS);
 						event->SetInt(counter);
 						wxQueueEvent(this, event);
 					}
 				}
-
+#endif
 				auto* event = new wxCommandEvent(wxEVT_PROGRESS);
 				event->SetInt(m_gaugeMaxValue);
 				wxQueueEvent(this, event);
@@ -527,7 +553,7 @@ void CemuUpdateWindow::WorkerThread()
 		catch (const std::exception& ex)
 		{
 			SystemException sys(ex);
-			forceLog_printf("update error: %s", sys.what());
+			cemuLog_log(LogType::Force, "update error: {}", sys.what());
 
 			// clean leftovers
 			if (exists(tmppath))
@@ -563,8 +589,24 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 
 		exit(0);
 	}
-#else
-	cemuLog_log(LogType::Force, "unimplemented - restart on update");
+#elif BOOST_OS_LINUX
+	if (m_restartRequired && !m_restartFile.empty() && fs::exists(m_restartFile))
+	{
+		const char* appimage_path = std::getenv("APPIMAGE");
+		execlp(appimage_path, appimage_path, (char *)NULL);
+
+		exit(0);
+	}
+#elif BOOST_OS_MACOS
+	if (m_restartRequired)
+	{
+	    const auto tmppath = fs::temp_directory_path() / L"cemu_update/Cemu.dmg";
+	    fs::path exePath = ActiveSettings::GetExecutablePath().parent_path();
+	    const auto apppath = exePath / L"update.sh";
+	    execlp("sh", "sh", apppath.c_str(), NULL);
+        
+        exit(0);
+	}	
 #endif
 }
 

@@ -42,7 +42,7 @@ private:
 			if(colorBuffer[i].texture == nullptr)
 				continue;
 			sint32 effectiveWidth, effectiveHeight;
-			LatteTexture_getEffectiveSize(colorBuffer[i].texture->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, colorBuffer[i].texture->firstMip);
+			colorBuffer[i].texture->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, colorBuffer[i].texture->firstMip);
 			if (rtEffectiveSize.x == 0 && rtEffectiveSize.y == 0)
 			{
 				rtEffectiveSize.x = effectiveWidth;
@@ -50,12 +50,12 @@ private:
 			}
 			if (effectiveWidth < rtEffectiveSize.x)
 			{
-				forceLogDebug_printf("Framebuffer has color texture with smaller effective width (%d -> %d)", rtEffectiveSize.x, effectiveWidth);
+				cemuLog_logDebug(LogType::Force, "Framebuffer has color texture with smaller effective width ({} -> {})", rtEffectiveSize.x, effectiveWidth);
 				rtEffectiveSize.x = effectiveWidth;
 			}
 			if (effectiveHeight < rtEffectiveSize.y)
 			{
-				forceLogDebug_printf("Framebuffer has color texture with smaller effective height (%d -> %d)", rtEffectiveSize.y, effectiveHeight);
+				cemuLog_logDebug(LogType::Force, "Framebuffer has color texture with smaller effective height ({} -> {})", rtEffectiveSize.y, effectiveHeight);
 				rtEffectiveSize.y = effectiveHeight;
 			}
 			numViews++;
@@ -64,7 +64,7 @@ private:
 		if (depthBuffer.texture)
 		{
 			sint32 effectiveWidth, effectiveHeight;
-			LatteTexture_getEffectiveSize(depthBuffer.texture->baseTexture, &effectiveWidth, &effectiveHeight, nullptr, depthBuffer.texture->firstMip);
+			depthBuffer.texture->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, depthBuffer.texture->firstMip);
 			if (rtEffectiveSize.x == 0 && rtEffectiveSize.y == 0)
 			{
 				rtEffectiveSize.x = effectiveWidth;
@@ -72,12 +72,12 @@ private:
 			}
 			if (effectiveWidth < rtEffectiveSize.x)
 			{
-				forceLogDebug_printf("Framebuffer has depth texture with smaller effective width (%d -> %d)", rtEffectiveSize.x, effectiveWidth);
+				cemuLog_logDebug(LogType::Force, "Framebuffer has depth texture with smaller effective width ({} -> {})", rtEffectiveSize.x, effectiveWidth);
 				rtEffectiveSize.x = effectiveWidth;
 			}
 			if (effectiveHeight < rtEffectiveSize.y)
 			{
-				forceLogDebug_printf("Framebuffer has depth texture with smaller effective height (%d -> %d)", rtEffectiveSize.y, effectiveHeight);
+				cemuLog_logDebug(LogType::Force, "Framebuffer has depth texture with smaller effective height ({} -> {})", rtEffectiveSize.y, effectiveHeight);
 				rtEffectiveSize.y = effectiveHeight;
 			}
 			numViews++;

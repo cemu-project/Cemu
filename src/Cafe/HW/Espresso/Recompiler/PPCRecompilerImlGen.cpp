@@ -415,7 +415,7 @@ uint32 PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGe
 
 void PPCRecompilerImlGen_TW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-//#ifndef PUBLIC_RELEASE
+//#ifdef CEMU_DEBUG_ASSERT
 //	PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
 //#endif
 	PPCRecompilerImlGen_generateNewInstruction_macro(ppcImlGenContext, PPCREC_IML_MACRO_LEAVE, ppcImlGenContext->ppcAddressOfCurrentInstruction, 0, 0);
@@ -643,7 +643,7 @@ bool PPCRecompilerImlGen_B(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 		{
 			// generate NOP iml instead of BL macro (this assures that segment PPC range remains intact)
 			PPCRecompilerImlGen_generateNewInstruction_noOp(ppcImlGenContext, NULL);
-			//forceLog_printf("Inline func 0x%08x at %08x", jumpAddressDest, ppcImlGenContext->ppcAddressOfCurrentInstruction);
+			//cemuLog_log(LogType::Force, "Inline func 0x{:08x} at {:08x}", jumpAddressDest, ppcImlGenContext->ppcAddressOfCurrentInstruction);
 			uint32* prevInstructionPtr = ppcImlGenContext->currentInstruction;
 			ppcImlGenContext->currentInstruction = (uint32*)memory_getPointerFromVirtualOffset(jumpAddressDest);
 			PPCRecompiler_generateInlinedCode(ppcImlGenContext, jumpAddressDest, inlineFuncInstructionCount);
@@ -2271,7 +2271,7 @@ bool PPCRecompilerImlGen_LSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		// if nb == 4 this instruction immitates LWZ
 		if( rA == 0 )
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			assert_dbg(); // special form where gpr is ignored and only imm is used
 #endif
 			return false;
@@ -2291,7 +2291,7 @@ bool PPCRecompilerImlGen_LSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		// if nb == 2 this instruction immitates a LHZ but the result is shifted left by 16 bits
 		if( rA == 0 )
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			assert_dbg(); // special form where gpr is ignored and only imm is used
 #endif
 			return false;
@@ -2313,7 +2313,7 @@ bool PPCRecompilerImlGen_LSWI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		// if nb == 3 this instruction loads a 3-byte big-endian and the result is shifted left by 8 bits
 		if( rA == 0 )
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			assert_dbg(); // special form where gpr is ignored and only imm is used
 #endif
 			return false;
@@ -4560,7 +4560,7 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 		if( ppcImlGenContext.imlList[i].type == PPCREC_IML_TYPE_JUMPMARK )
 		{
 			ppcImlGenContext.imlList[i].op_jumpmark.flags |= PPCREC_IML_OP_FLAG_UNUSED;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (map_jumpMarks.find(ppcImlGenContext.imlList[i].op_jumpmark.address) != map_jumpMarks.end())
 				assert_dbg();
 #endif

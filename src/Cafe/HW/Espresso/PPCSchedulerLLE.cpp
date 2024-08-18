@@ -163,7 +163,7 @@ void smdpArea_processCommand(smdpArea_t* smdpArea, smdpCommand_t* cmd)
 	{
 		cmd->ukn08 = 1;
 		// cmd->ukn2C ?
-		forceLogDebug_printf("SMDP command received - todo");
+		cemuLog_logDebug(LogType::Force, "SMDP command received - todo");
 		smdpArea_pushResult(smdpArea, memory_getVirtualOffsetFromPointer(cmd));
 	}
 	else
@@ -220,7 +220,7 @@ void PPCCoreLLE_startSingleCoreScheduler(uint32 entrypoint)
 		for (uint32 coreIndex = 0; coreIndex < 3; coreIndex++)
 		{
 			PPCInterpreter_t* hCPU = cpuContext->cores+coreIndex;
-			ppcInterpreterCurrentInstance = hCPU;
+			PPCInterpreter_setCurrentInstance(hCPU);
 			if (coreIndex == 1)
 			{
 				// check SCR core 1 enable bit

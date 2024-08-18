@@ -92,7 +92,7 @@ void SaveTransfer::OnTransfer(wxCommandEvent& event)
 		target_id = ConvertString<uint32>(m_target_selection->GetValue().ToStdString(), 16);
 		if(target_id < Account::kMinPersistendId)
 		{
-			const auto msg = wxStringFormat2(_("The given account id is not valid!\nIt must be a hex number bigger or equal than {:08x}"), Account::kMinPersistendId);
+			const auto msg = formatWxString(_("The given account id is not valid!\nIt must be a hex number bigger or equal than {:08x}"), Account::kMinPersistendId);
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			return;
 		}
@@ -108,7 +108,7 @@ void SaveTransfer::OnTransfer(wxCommandEvent& event)
 	{
 		if(!fs::is_directory(target_path))
 		{
-			const auto msg = wxStringFormat2(_("There's already a file at the target directory:\n{}"), _utf8Wrapper(target_path));
+			const auto msg = formatWxString(_("There's already a file at the target directory:\n{}"), _pathToUtf8(target_path));
 			wxMessageBox(msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			m_return_code = wxCANCEL;
 			Close();
@@ -131,7 +131,7 @@ void SaveTransfer::OnTransfer(wxCommandEvent& event)
 
 			if (ec)
 			{
-				const auto error_msg = wxStringFormat2(_("Error when trying to delete the former save game:\n{}"), GetSystemErrorMessage(ec));
+				const auto error_msg = formatWxString(_("Error when trying to delete the former save game:\n{}"), GetSystemErrorMessage(ec));
 				wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 				return;
 			}
@@ -181,13 +181,13 @@ void SaveTransfer::OnTransfer(wxCommandEvent& event)
 	}
 
 	if (!meta_file_edited)
-		forceLog_printf("SaveTransfer::OnTransfer: couldn't update save entry in saveinfo.xml: %s", saveinfo.generic_u8string().c_str());
+		cemuLog_log(LogType::Force, "SaveTransfer::OnTransfer: couldn't update save entry in saveinfo.xml: {}", _pathToUtf8(saveinfo));
 
 	std::error_code ec;
 	fs::rename(source_path, target_path, ec);
 	if (ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to move the save game:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = formatWxString(_("Error when trying to move the save game:\n{}"), GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 		return;
 	}

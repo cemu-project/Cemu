@@ -9,6 +9,7 @@
 #include <wx/msgdlg.h>
 
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "util/crypto/aes128.h"
 
 #include "Cafe/Filesystem/FST/FST.h"
@@ -59,6 +60,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		("version,v", "Displays the version of Cemu")
 
 		("game,g", po::wvalue<std::wstring>(), "Path of game to launch")
+        ("title-id,t", po::value<std::string>(), "Title ID of the title to be launched (overridden by --game)")
 		("mlc,m", po::wvalue<std::wstring>(), "Custom mlc folder location")
 
 		("fullscreen,f", po::value<bool>()->implicit_value(true), "Launch games in fullscreen mode")
@@ -67,10 +69,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		("account,a", po::value<std::string>(), "Persistent id of account")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler")
-
-		("act-url", po::value<std::string>(), "URL prefix for account server")
-		("ecs-url", po::value<std::string>(), "URL for ECS service");
-
+		("enable-gdbstub", po::value<bool>()->implicit_value(true), "Enable GDB stub to debug executables inside Cemu using an external debugger");
 
 	po::options_description hidden{ "Hidden options" };
 	hidden.add_options()
@@ -131,6 +130,21 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			
 			s_load_game_file = tmp;
 		}
+        if (vm.count("title-id"))
+        {
+            auto title_param = vm["title-id"].as<std::string>();
+            try {
+
+                if (title_param.starts_with('=')){
+                    title_param.erase(title_param.begin());
+                }
+                s_load_title_id = std::stoull(title_param, nullptr, 16);
+            }
+            catch (std::invalid_argument const& e)
+            {
+                std::cerr << "Expected title_param ID as an unsigned 64-bit hexadecimal string\n";
+            }
+        }
 			
 		if (vm.count("mlc"))
 		{
@@ -156,11 +170,12 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		
 		if (vm.count("nsight"))
 			s_nsight_mode = vm["nsight"].as<bool>();
-		if (vm.count("legacy"))
-			s_force_intel_legacy = vm["legacy"].as<bool>();
 
 		if(vm.count("force-interpreter"))
 			s_force_interpreter = vm["force-interpreter"].as<bool>();
+		
+		if (vm.count("enable-gdbstub"))
+			s_enable_gdbstub = vm["enable-gdbstub"].as<bool>();
 
 		std::wstring extract_path, log_path;
 		std::string output_path;
@@ -170,16 +185,6 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			output_path = vm["path"].as<std::string>();
 		if (vm.count("output"))
 			log_path = vm["output"].as<std::wstring>();
-
-		// urls
-		if (vm.count("act-url"))
-		{
-			serviceURL_ACT = vm["act-url"].as<std::string>();
-			if (serviceURL_ACT.size() > 0 && serviceURL_ACT.back() == '/')
-				serviceURL_ACT.pop_back();
-		}
-		if (vm.count("ecs-url"))
-			serviceURL_ECS = vm["ecs-url"].as<std::string>();
 
 		if(!extract_path.empty())
 		{
@@ -194,9 +199,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		std::string errorMsg;
 		errorMsg.append("Error while trying to parse command line parameter:\n");
 		errorMsg.append(ex.what());
-		wxMessageBox(errorMsg, wxT("Parameter error"), wxICON_ERROR);
-		//cemuLog_log(LogType::Force, ex.what());
-		//std::cout << "Command line parameter error: " << ex.what() << std::endl;
+		wxMessageBox(errorMsg, "Parameter error", wxICON_ERROR);
 		return false;
 	}
 	
@@ -249,7 +252,7 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 		}
 		catch (const std::exception& ex)
 		{
-			forceLog_printf("can't write file: %s", ex.what());
+			cemuLog_log(LogType::Force, "can't write file: {}", ex.what());
 			puts(fmt::format("can't write file: %s\n", ex.what()).c_str());
 		}
 	}
@@ -263,5 +266,3 @@ bool LaunchSettings::ExtractorTool(std::wstring_view wud_path, std::string_view 
 	
 	return true;
 }
-
-

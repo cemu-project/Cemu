@@ -1,5 +1,6 @@
-#include "input/api/Keyboard/KeyboardController.h"
+#include <boost/container/small_vector.hpp>
 
+#include "input/api/Keyboard/KeyboardController.h"
 #include "gui/guiWrapper.h"
 
 KeyboardController::KeyboardController()
@@ -35,9 +36,13 @@ std::string KeyboardController::get_button_name(uint64 button) const
 	char key_name[128];
 	if (GetKeyNameTextA(scan_code, key_name, std::size(key_name)) != 0)
 		return key_name;
-#endif
-	
+	else
+		return fmt::format("key_{}", button);
+#elif BOOST_OS_LINUX
+	return gui_gtkRawKeyCodeToString(button);
+#else
 	return fmt::format("key_{}", button);
+#endif
 }
 
 extern WindowInfo g_window_info;
@@ -45,22 +50,8 @@ extern WindowInfo g_window_info;
 ControllerState KeyboardController::raw_state()
 {
 	ControllerState result{};
-	if (g_window_info.app_active)
-	{
-		static_assert(result.buttons.size() == std::size(g_window_info.keydown), "invalid size");
-		for (uint32 i = wxKeyCode::WXK_BACK; i < result.buttons.size(); ++i)
-		{
-			if(const bool v = g_window_info.keydown[i])
-			{
-				result.buttons.set(i, v);
-			}
-		}
-		// ignore generic key codes on Windows when there is also a left/right variant
-#if BOOST_OS_WINDOWS
-		result.buttons.set(VK_SHIFT, false);
-		result.buttons.set(VK_CONTROL, false);
-		result.buttons.set(VK_MENU, false);
-#endif
-	}
+	boost::container::small_vector<uint32, 16> pressedKeys;
+	g_window_info.iter_keystates([&pressedKeys](const std::pair<const uint32, bool>& keyState) { if (keyState.second) pressedKeys.emplace_back(keyState.first); });
+	result.buttons.SetPressedButtons(pressedKeys);
 	return result;
 }

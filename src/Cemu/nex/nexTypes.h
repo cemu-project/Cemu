@@ -16,7 +16,9 @@ public:
 
 class nexType
 {
-public:
+  public:
+	virtual ~nexType(){};
+
 	virtual const char* getMetaName()
 	{
 		cemu_assert_unimplemented();
@@ -222,7 +224,7 @@ public:
 		if (this->currentIndex + bufferLength > this->size)
 		{
 			readOutOfBounds = true;
-			outputStr = std::string("");
+			outputStr.clear();
 			return 0;
 		}
 		sint32 copiedLength = bufferLength;

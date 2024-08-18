@@ -228,13 +228,13 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	else if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_Y)
 	{
 		// use alu divisor 1
-		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[mmVGT_INSTANCE_STEP_RATE_0 + 0];
+		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_0];
 		cemu_assert_debug(attribGroup->attrib[groupAttribIndex].aluDivisor > 0);
 	}
 	else if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_Z)
 	{
 		// use alu divisor 2
-		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[mmVGT_INSTANCE_STEP_RATE_0 + 1];
+		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_1];
 		cemu_assert_debug(attribGroup->attrib[groupAttribIndex].aluDivisor > 0);
 	}
 }
@@ -505,7 +505,7 @@ LatteFetchShader* LatteFetchShader::FindByGPUState()
 		lookupInfo->programSize = _getFSProgramSize();
 		lookupInfo->lastFrameAccessed = LatteGPUState.frameCounter;
 		g_fetchShaderLookupCache.store(fsPhysAddr24, lookupInfo);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		cemu_assert_debug(g_fetchShaderLookupCache.lookup(fsPhysAddr24) == lookupInfo);
 #endif
 	}
@@ -516,16 +516,16 @@ FSpinlock s_spinlockFetchShaderCache;
 
 LatteFetchShader* LatteFetchShader::RegisterInCache(CacheHash fsHash)
 {
-	s_spinlockFetchShaderCache.acquire();
+	s_spinlockFetchShaderCache.lock();
 	auto itr = s_fetchShaderByHash.find(fsHash);
 	if (itr != s_fetchShaderByHash.end())
 	{
 		LatteFetchShader* fs = itr->second;
-		s_spinlockFetchShaderCache.release();
+		s_spinlockFetchShaderCache.unlock();
 		return fs;
 	}
 	s_fetchShaderByHash.emplace(fsHash, this);
-	s_spinlockFetchShaderCache.release();
+	s_spinlockFetchShaderCache.unlock();
 	return nullptr;
 }
 
@@ -533,11 +533,11 @@ void LatteFetchShader::UnregisterInCache()
 {
 	if (!m_isRegistered)
 		return;
-	s_spinlockFetchShaderCache.acquire();
+	s_spinlockFetchShaderCache.lock();
 	auto itr = s_fetchShaderByHash.find(m_cacheHash);
 	cemu_assert(itr == s_fetchShaderByHash.end());
 	s_fetchShaderByHash.erase(itr);
-	s_spinlockFetchShaderCache.release();
+	s_spinlockFetchShaderCache.unlock();
 }
 
 std::unordered_map<LatteFetchShader::CacheHash, LatteFetchShader*> LatteFetchShader::s_fetchShaderByHash;

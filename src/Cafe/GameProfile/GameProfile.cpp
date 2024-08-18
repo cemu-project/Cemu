@@ -43,7 +43,7 @@ bool gameProfile_loadBooleanOption(IniParser* iniParser, char* optionName, gameP
 		return true;
 	}
 	else
-		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
 	return false;
 }
 
@@ -64,7 +64,7 @@ bool gameProfile_loadBooleanOption2(IniParser& iniParser, const char* optionName
 		return true;
 	}
 	else
-		cemuLog_force("Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Unknown value '{}' for option '{}' in game profile", *option_value, optionName);
 	return false;
 }
 
@@ -94,7 +94,7 @@ bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
 	sint32 val = StringHelpers::ToInt(*option_value, defaultValue);
 	if (val < minVal || val > maxVal)
 	{
-		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 		option->value = defaultValue;
 		return false;
 	}
@@ -116,7 +116,7 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 		T val = ConvertString<T>(*option_value);
 		if (val < minVal || val > maxVal)
 		{
-			cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+			cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 			return false;
 		}
 
@@ -125,7 +125,7 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 	}
 	catch(std::exception&)
 	{
-		cemuLog_force("Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
+		cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 		return false;
 	}	
 }
@@ -175,17 +175,17 @@ void gameProfile_load()
 	ppcThreadQuantum = g_current_game_profile->GetThreadQuantum();
 
 	if (ppcThreadQuantum != GameProfile::kThreadQuantumDefault)
-		cemuLog_force("Thread quantum set to {}", ppcThreadQuantum);
+		cemuLog_log(LogType::Force, "Thread quantum set to {}", ppcThreadQuantum);
 }
 
 bool GameProfile::Load(uint64_t title_id)
 {
-	auto gameProfilePath = ActiveSettings::GetPath("gameProfiles/{:016x}.ini", title_id);
+	auto gameProfilePath = ActiveSettings::GetConfigPath("gameProfiles/{:016x}.ini", title_id);
 
 	std::optional<std::vector<uint8>> profileContents = FileStream::LoadIntoMemory(gameProfilePath);
 	if (!profileContents)
 	{
-		gameProfilePath = ActiveSettings::GetPath("gameProfiles/default/{:016x}.ini", title_id);
+		gameProfilePath = ActiveSettings::GetDataPath("gameProfiles/default/{:016x}.ini", title_id);
 		profileContents = FileStream::LoadIntoMemory(gameProfilePath);
 		if (!profileContents)
 			return false;
@@ -209,7 +209,7 @@ bool GameProfile::Load(uint64_t title_id)
 		m_gameName = std::string(game_name.begin(), game_name.end());
 		trim(m_gameName.value());
 	}
-	IniParser iniParser(*profileContents, gameProfilePath.string());
+	IniParser iniParser(*profileContents, _pathToUtf8(gameProfilePath));
 	// parse ini
 	while (iniParser.NextSection())
 	{
@@ -276,11 +276,14 @@ bool GameProfile::Load(uint64_t title_id)
 
 void GameProfile::Save(uint64_t title_id)
 {
-	auto gameProfilePath = ActiveSettings::GetPath("gameProfiles/{:016x}.ini", title_id);
+	auto gameProfileDir = ActiveSettings::GetConfigPath("gameProfiles");
+	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec)) 
+		fs::create_directories(gameProfileDir, ex_ec);
+	auto gameProfilePath = gameProfileDir / fmt::format("{:016x}.ini", title_id);
 	FileStream* fs = FileStream::createFile2(gameProfilePath);
 	if (!fs)
 	{
-		cemuLog_force("Failed to write game profile");
+		cemuLog_log(LogType::Force, "Failed to write game profile");
 		return;
 	}
 
@@ -304,15 +307,10 @@ void GameProfile::Save(uint64_t title_id)
 	fs->writeLine("");
 
 	fs->writeLine("[Graphics]");
-	//WRITE_OPTIONAL_ENTRY(gpuBufferCacheAccuracy);
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
-
-	/*stream_writeLine(stream_gameProfile, "[Audio]");
-	WRITE_ENTRY(disableAudio);
-	stream_writeLine(stream_gameProfile, "");*/
 
 	fs->writeLine("[Controller]");
 	for (int i = 0; i < 8; ++i)

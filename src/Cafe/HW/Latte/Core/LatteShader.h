@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 
 void LatteSHRC_Init();
+void LatteSHRC_UnloadAll();
 
 void LatteSHRC_ResetCachedShaderHash();
 void LatteShaderSHRC_UpdateFetchShader();
@@ -94,6 +95,7 @@ extern uint64 _shaderBaseHash_vs;
 extern uint64 _shaderBaseHash_gs;
 extern uint64 _shaderBaseHash_ps;
 
+void LatteShader_GetDecompilerOptions(struct LatteDecompilerOptions& options, LatteConst::ShaderType shaderType, bool geometryShaderEnabled);
 LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompilerOutput_t& decompilerOutput, uint64 baseHash, bool calculateAuxHash, uint64 optionalAuxHash, uint32* contextRegister);
 
 void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compileAsync);
@@ -116,11 +118,12 @@ void LatteShader_DumpShader(uint64 baseHash, uint64 auxHash, LatteDecompilerShad
 void LatteShader_DumpRawShader(uint64 baseHash, uint64 auxHash, uint32 type, uint8* programCode, uint32 programLen);
 
 // shader cache file
-void LatteShaderCache_load();
+void LatteShaderCache_Load();
+void LatteShaderCache_Close();
 
 void LatteShaderCache_writeSeparableVertexShader(uint64 shaderBaseHash, uint64 shaderAuxHash, uint8* fetchShader, uint32 fetchShaderSize, uint8* vertexShader, uint32 vertexShaderSize, uint32* contextRegisters, bool usesGeometryShader);
 void LatteShaderCache_writeSeparableGeometryShader(uint64 shaderBaseHash, uint64 shaderAuxHash, uint8* geometryShader, uint32 geometryShaderSize, uint8* gsCopyShader, uint32 gsCopyShaderSize, uint32* contextRegisters, uint32* hleSpecialState, uint32 vsRingParameterCount);
 void LatteShaderCache_writeSeparablePixelShader(uint64 shaderBaseHash, uint64 shaderAuxHash, uint8* pixelShader, uint32 pixelShaderSize, uint32* contextRegisters, bool usesGeometryShader);
 
-// todo - sort this
+// todo - refactor this
 sint32 LatteDecompiler_getTextureSamplerBaseIndex(LatteConst::ShaderType shaderType);

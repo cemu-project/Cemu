@@ -1,9 +1,7 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteShaderAssembly.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cafe/OS/libs/gx2/GX2.h" // todo - remove this dependency
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInternal.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
@@ -77,75 +75,6 @@ void _remapUniformAccess(LatteDecompilerShaderContext* shaderContext, bool isReg
 }
 
 /*
- * Checks for register collisions and marks the instructions accordingly
- * startIndex is the first instruction of the group
- * endIndex is inclusive the last instruction of the same group
- */
-void _analyzeALUInstructionGroupForRegisterCollision(LatteDecompilerShaderContext* shaderContext, LatteDecompilerCFInstruction* cfInstruction, sint32 startIndex, sint32 endIndex)
-{
-	uint8 registerChannelWriteMask[(LATTE_NUM_GPR *4+7)/8] = {0};
-
-	struct  
-	{
-		uint8 gprIndex;
-		uint8 channel;
-	}registerBackupEntries[5];
-	sint32 registerBackupCount = 0;
-
-	for(sint32 i=startIndex; i<=endIndex; i++)
-	{
-		LatteDecompilerALUInstruction& aluInstruction = cfInstruction->instructionsALU[i];
-		// ignore NOP instruction
-		if( aluInstruction.isOP3 == false && aluInstruction.opcode == ALU_OP2_INST_NOP )
-			continue;
-		if( aluInstruction.destElem > 3 )
-			debugBreakpoint();
-		registerChannelWriteMask[(aluInstruction.destGpr * 4 + aluInstruction.destElem) / 8] |= (1 << ((aluInstruction.destGpr * 4 + aluInstruction.destElem) % 8));
-		// check if any previously written register is read
-		for(sint32 f=0; f<3; f++)
-		{
-			if( GPU7_ALU_SRC_IS_GPR(aluInstruction.sourceOperand[f].sel) == false )
-				continue;
-			sint32 gprIndex = GPU7_ALU_SRC_GET_GPR_INDEX(aluInstruction.sourceOperand[f].sel);
-			if( aluInstruction.sourceOperand[f].chan > 3 )
-				debugBreakpoint();
-			if( (registerChannelWriteMask[(gprIndex*4+aluInstruction.sourceOperand[f].chan)/8]&(1<<((gprIndex*4+aluInstruction.sourceOperand[f].chan)%8))) != 0 )
-			{
-				// register is overwritten by same or previous instruction, mark register backup for this instruction
-				// check if this register already has a backup
-				bool hasBackup = false;
-				for(sint32 t=0; t<registerBackupCount; t++)
-				{
-					if( (sint32)registerBackupEntries[t].gprIndex == gprIndex && registerBackupEntries[t].channel == aluInstruction.sourceOperand[f].chan )
-					{
-						aluInstruction.sourceOperand[f].requiredRegisterBackup = true;
-						aluInstruction.sourceOperand[f].registerBackupIndex = t;
-						hasBackup = true;
-						break;
-					}
-				}
-				if( hasBackup == false )
-				{
-					// add new entry
-					if( registerBackupCount < sizeof(registerBackupEntries)/sizeof(registerBackupEntries[0]) )
-					{
-						// add entry
-						registerBackupEntries[registerBackupCount].gprIndex = gprIndex;
-						registerBackupEntries[registerBackupCount].channel = aluInstruction.sourceOperand[f].chan;
-						registerBackupCount++;
-						// mark operand for backup
-						aluInstruction.sourceOperand[f].requiredRegisterBackup = true;
-						aluInstruction.sourceOperand[f].registerBackupIndex = registerBackupCount-1;
-					}
-					else
-						debugBreakpoint();
-				}
-			}
-		}
-	}
-}
-
-/*
  * Returns true if the instruction takes integer operands or returns a integer value
  */
 bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
@@ -176,6 +105,7 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP2_INST_COS:
 		case ALU_OP2_INST_RNDNE:
 		case ALU_OP2_INST_MAX_DX10:
+		case ALU_OP2_INST_MIN_DX10:
 		case ALU_OP2_INST_SETGT:
 		case ALU_OP2_INST_SETGE:
 		case ALU_OP2_INST_SETNE:
@@ -233,7 +163,7 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP2_INST_SETNE_DX10:
 			return true;
 		default:
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			debug_printf("_isIntegerInstruction(): OP3=%s opcode=%02x\n", aluInstruction.isOP3 ? "true" : "false", aluInstruction.opcode);
 			cemu_assert_debug(false);
 #endif
@@ -259,7 +189,7 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP3_INST_CMOVGE_INT:
 			return true;
 		default:
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			debug_printf("_isIntegerInstruction(): OP3=%s opcode=%02x\n", aluInstruction.isOP3?"true":"false", aluInstruction.opcode);
 #endif
 			break;
@@ -282,10 +212,10 @@ void LatteDecompiler_analyzeALUClause(LatteDecompilerShaderContext* shaderContex
 	for(auto& aluInstruction : cfInstruction->instructionsALU)
 	{
 		// ignore NOP instruction
-		if( aluInstruction.isOP3 == false && aluInstruction.opcode == ALU_OP2_INST_NOP )
+		if( !aluInstruction.isOP3 && aluInstruction.opcode == ALU_OP2_INST_NOP )
 			continue;
 		// check for CUBE instruction
-		if( aluInstruction.isOP3 == false && aluInstruction.opcode == ALU_OP2_INST_CUBE )
+		if( !aluInstruction.isOP3 && aluInstruction.opcode == ALU_OP2_INST_CUBE )
 		{
 			shaderContext->analyzer.hasRedcCUBE = true;
 		}
@@ -298,47 +228,39 @@ void LatteDecompiler_analyzeALUClause(LatteDecompilerShaderContext* shaderContex
 			// check input for uniform access
 			if( aluInstruction.sourceOperand[f].sel == 0xFFFFFFFF )
 				continue; // source operand not set/used
+			// about uniform register and buffer access tracking:
+			// for absolute indices we can determine a maximum size that is accessed
+			// relative accesses are tricky because the upper bound of accessed indices is unknown
+			// worst case we have to load the full file (256 * 16 byte entries) or for buffers an arbitrary upper bound (64KB in our case)
 			if( GPU7_ALU_SRC_IS_CFILE(aluInstruction.sourceOperand[f].sel) )
 			{
-				// uniform register access
-
-				// relative register file accesses are tricky because the range of possible indices is unknown
-				// worst case we have to load the full file (256 * 16 byte entries)
-				// but here we track all access indices so the analyzer can make guesstimates about the actual size when there are relative accesses
-
-				shaderContext->analyzer.uniformRegisterAccess = true;
 				if (aluInstruction.sourceOperand[f].rel)
 				{
-					shaderContext->analyzer.uniformRegisterDynamicAccess = true;
-					shaderContext->analyzer.uniformRegisterAccessIndices.emplace_back(GPU7_ALU_SRC_GET_CFILE_INDEX(aluInstruction.sourceOperand[f].sel), true);
+					shaderContext->analyzer.uniformRegisterAccessTracker.TrackAccess(GPU7_ALU_SRC_GET_CFILE_INDEX(aluInstruction.sourceOperand[f].sel), true);
 				}
 				else
 				{
 					_remapUniformAccess(shaderContext, true, 0, GPU7_ALU_SRC_GET_CFILE_INDEX(aluInstruction.sourceOperand[f].sel));
-					shaderContext->analyzer.uniformRegisterAccessIndices.emplace_back(GPU7_ALU_SRC_GET_CFILE_INDEX(aluInstruction.sourceOperand[f].sel), false);
+					shaderContext->analyzer.uniformRegisterAccessTracker.TrackAccess(GPU7_ALU_SRC_GET_CFILE_INDEX(aluInstruction.sourceOperand[f].sel), false);
 				}
 			}
 			else if( GPU7_ALU_SRC_IS_CBANK0(aluInstruction.sourceOperand[f].sel) )
 			{
 				// uniform bank 0 (uniform buffer with index cfInstruction->cBank0Index)
 				uint32 uniformBufferIndex = cfInstruction->cBank0Index;
-				if( uniformBufferIndex >= LATTE_NUM_MAX_UNIFORM_BUFFERS)
-					debugBreakpoint();
-				shaderContext->analyzer.uniformBufferAccessMask |= (1<<uniformBufferIndex);
-				if( aluInstruction.sourceOperand[f].rel )
-					shaderContext->analyzer.uniformBufferDynamicAccessMask |= (1<<uniformBufferIndex);
-				_remapUniformAccess(shaderContext, false, uniformBufferIndex, GPU7_ALU_SRC_GET_CBANK0_INDEX(aluInstruction.sourceOperand[f].sel)+cfInstruction->cBank0AddrBase);
+				cemu_assert(uniformBufferIndex < LATTE_NUM_MAX_UNIFORM_BUFFERS);
+				uint32 offset = GPU7_ALU_SRC_GET_CBANK0_INDEX(aluInstruction.sourceOperand[f].sel)+cfInstruction->cBank0AddrBase;
+				_remapUniformAccess(shaderContext, false, uniformBufferIndex, offset);
+				shaderContext->analyzer.uniformBufferAccessTracker[uniformBufferIndex].TrackAccess(offset, aluInstruction.sourceOperand[f].rel);
 			}
 			else if( GPU7_ALU_SRC_IS_CBANK1(aluInstruction.sourceOperand[f].sel) )
 			{
 				// uniform bank 1 (uniform buffer with index cfInstruction->cBank1Index)
 				uint32 uniformBufferIndex = cfInstruction->cBank1Index;
-				if( uniformBufferIndex >= LATTE_NUM_MAX_UNIFORM_BUFFERS)
-					debugBreakpoint();
-				shaderContext->analyzer.uniformBufferAccessMask |= (1<<uniformBufferIndex);
-				if( aluInstruction.sourceOperand[f].rel )
-					shaderContext->analyzer.uniformBufferDynamicAccessMask |= (1<<uniformBufferIndex);
-				_remapUniformAccess(shaderContext, false, uniformBufferIndex, GPU7_ALU_SRC_GET_CBANK1_INDEX(aluInstruction.sourceOperand[f].sel)+cfInstruction->cBank1AddrBase);
+				cemu_assert(uniformBufferIndex < LATTE_NUM_MAX_UNIFORM_BUFFERS);
+				uint32 offset = GPU7_ALU_SRC_GET_CBANK1_INDEX(aluInstruction.sourceOperand[f].sel)+cfInstruction->cBank1AddrBase;
+				_remapUniformAccess(shaderContext, false, uniformBufferIndex, offset);
+				shaderContext->analyzer.uniformBufferAccessTracker[uniformBufferIndex].TrackAccess(offset, aluInstruction.sourceOperand[f].rel);
 			}
 			else if( GPU7_ALU_SRC_IS_GPR(aluInstruction.sourceOperand[f].sel) )
 			{
@@ -354,29 +276,8 @@ void LatteDecompiler_analyzeALUClause(LatteDecompilerShaderContext* shaderContex
 			}
 		}
 		if( aluInstruction.destRel != 0 )
-		{
 			shaderContext->analyzer.usesRelativeGPRWrite = true;
-		}
 		shaderContext->analyzer.gprUseMask[aluInstruction.destGpr/8] |= (1<<(aluInstruction.destGpr%8));
-	}
-	// check for register collisions inside instruction groups (registers that are overwritten while being read)
-	sint32 currentGroupIndex = 0;
-	sint32 currentGroupStartIndex = 0;
-	for(uint32 i=0; i<cfInstruction->instructionsALU.size(); i++)
-	{
-		LatteDecompilerALUInstruction& aluInstruction = cfInstruction->instructionsALU[i];
-		if( aluInstruction.instructionGroupIndex != currentGroupIndex )
-		{
-			cemu_assert_debug(i != 0); // first group cant end at first instruction
-			_analyzeALUInstructionGroupForRegisterCollision(shaderContext, cfInstruction, currentGroupStartIndex, i-1);
-			// start next group
-			currentGroupIndex = aluInstruction.instructionGroupIndex;
-			currentGroupStartIndex = i;
-		}
-	}
-	if( currentGroupStartIndex < (sint32)cfInstruction->instructionsALU.size() )
-	{
-		_analyzeALUInstructionGroupForRegisterCollision(shaderContext, cfInstruction, currentGroupStartIndex, (uint32)cfInstruction->instructionsALU.size()-1);
 	}
 }
 
@@ -399,7 +300,7 @@ void LatteDecompiler_analyzeTEXClause(LatteDecompilerShaderContext* shaderContex
 		{
 			if (texInstruction.textureFetch.textureIndex < 0 || texInstruction.textureFetch.textureIndex >= LATTE_NUM_MAX_TEX_UNITS)
 			{
-				forceLogDebug_printf("Shader %llx has out of bounds texture access (texture %d)", shaderContext->shader->baseHash, (sint32)texInstruction.textureFetch.textureIndex);
+				cemuLog_logDebug(LogType::Force, "Shader {:16x} has out of bounds texture access (texture {})", shaderContext->shader->baseHash, (sint32)texInstruction.textureFetch.textureIndex);
 				continue;
 			}
 			if( texInstruction.textureFetch.samplerIndex < 0 || texInstruction.textureFetch.samplerIndex >= 0x12 )
@@ -449,8 +350,7 @@ void LatteDecompiler_analyzeTEXClause(LatteDecompilerShaderContext* shaderContex
 			if( texInstruction.textureFetch.textureIndex >= 0x80 && texInstruction.textureFetch.textureIndex <= 0x8F )
 			{
 				uint32 uniformBufferIndex = texInstruction.textureFetch.textureIndex - 0x80;
-				shaderContext->analyzer.uniformBufferAccessMask |= (1<<uniformBufferIndex);
-				shaderContext->analyzer.uniformBufferDynamicAccessMask |= (1<<uniformBufferIndex);
+				shaderContext->analyzer.uniformBufferAccessTracker[uniformBufferIndex].TrackAccess(0, true);
 			}
 			else if( texInstruction.textureFetch.textureIndex == 0x9F && shader->shaderType == LatteConst::ShaderType::Geometry )
 			{
@@ -541,7 +441,8 @@ void LatteDecompiler_analyzeSubroutine(LatteDecompilerShaderContext* shaderConte
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 		}
@@ -575,11 +476,11 @@ namespace LatteDecompiler
 				continue;
 			sint32 textureBindingPoint;
 			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
-				textureBindingPoint = i + CEMU_VS_TEX_UNIT_BASE;
+				textureBindingPoint = i + LATTE_CEMU_VS_TEX_UNIT_BASE;
 			else if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
-				textureBindingPoint = i + CEMU_GS_TEX_UNIT_BASE;
+				textureBindingPoint = i + LATTE_CEMU_GS_TEX_UNIT_BASE;
 			else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
-				textureBindingPoint = i + CEMU_PS_TEX_UNIT_BASE;
+				textureBindingPoint = i + LATTE_CEMU_PS_TEX_UNIT_BASE;
 
 			decompilerContext->output->resourceMappingGL.textureUnitToBindingPoint[i] = textureBindingPoint;
 		}
@@ -629,7 +530,7 @@ namespace LatteDecompiler
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry && decompilerContext->analyzer.outputPointSize && decompilerContext->analyzer.writesPointSize == false)
 			decompilerContext->hasUniformVarBlock = true; // uf_pointSize
 		if (decompilerContext->analyzer.useSSBOForStreamout &&
-			(decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->usesGeometryShader == false) ||
+			(decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 			(decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
 		{
 			decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance and uf_streamoutBufferBase*
@@ -665,7 +566,7 @@ namespace LatteDecompiler
 			// for Vulkan we use consecutive indices
 			for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
 			{
-				if ((decompilerContext->analyzer.uniformBufferAccessMask&(1 << i)) == 0)
+				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 				sint32 uniformBindingPoint = i;
 				if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -681,7 +582,7 @@ namespace LatteDecompiler
 			// for OpenGL we use the relative buffer index
 			for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
 			{
-				if ((decompilerContext->analyzer.uniformBufferAccessMask&(1 << i)) == 0)
+				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 				sint32 uniformBindingPoint = i;
 				if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -734,7 +635,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// analyze render state
 	shaderContext->analyzer.isPointsPrimitive = shaderContext->contextRegistersNew->VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE() == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::POINTS;
 	shaderContext->analyzer.hasStreamoutEnable = shaderContext->contextRegisters[mmVGT_STRMOUT_EN] != 0; // set if the shader is used for transform feedback operations
-	if (shaderContext->shaderType == LatteConst::ShaderType::Vertex && shaderContext->usesGeometryShader == false)
+	if (shaderContext->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
 		shaderContext->analyzer.outputPointSize = shaderContext->analyzer.isPointsPrimitive;
 	else if (shaderContext->shaderType == LatteConst::ShaderType::Geometry)
 	{
@@ -745,10 +646,9 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// analyze input attributes for vertex/geometry shader
 	if (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry)
 	{
-		for (sint32 f = 0; f < shaderContext->fetchShaderCount; f++)
+		if(shaderContext->fetchShader)
 		{
-			LatteFetchShader* parsedFetchShader = (LatteFetchShader*)shaderContext->fetchShaderList[f];
-			
+			LatteFetchShader* parsedFetchShader = shaderContext->fetchShader;
 			for(auto& bufferGroup : parsedFetchShader->bufferGroups)
 			{
 				for (sint32 i = 0; i < bufferGroup.attribCount; i++)
@@ -786,7 +686,8 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 			shaderContext->analyzer.hasLoops = true;
@@ -855,17 +756,24 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		LatteDecompiler_analyzeSubroutine(shaderContext, subroutineAddr);
 	}
 	// decide which uniform mode to use
-	if(shaderContext->analyzer.uniformBufferAccessMask != 0 && shaderContext->analyzer.uniformRegisterAccess )
-		debugBreakpoint(); // not allowed
-	if(shaderContext->analyzer.uniformBufferDynamicAccessMask != 0 )
+	bool hasAnyDynamicBufferAccess = false;
+	bool hasAnyBufferAccess = false;
+	for(auto& it : shaderContext->analyzer.uniformBufferAccessTracker)
+	{
+		if( it.HasRelativeAccess() )
+			hasAnyDynamicBufferAccess = true;
+		if( it.HasAccess() )
+			hasAnyBufferAccess = true;
+	}
+	if (hasAnyDynamicBufferAccess)
 	{
 		shader->uniformMode = LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK;
 	}
-	else if(shaderContext->analyzer.uniformRegisterDynamicAccess )
+	else if(shaderContext->analyzer.uniformRegisterAccessTracker.HasRelativeAccess() )
 	{
 		shader->uniformMode = LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE;
 	}
-	else if(shaderContext->analyzer.uniformBufferAccessMask != 0 || shaderContext->analyzer.uniformRegisterAccess != 0 )
+	else if(hasAnyBufferAccess || shaderContext->analyzer.uniformRegisterAccessTracker.HasAccess() )
 	{
 		shader->uniformMode = LATTE_DECOMPILER_UNIFORM_MODE_REMAPPED;
 	}
@@ -873,16 +781,18 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	{
 		shader->uniformMode = LATTE_DECOMPILER_UNIFORM_MODE_NONE;
 	}
-	// generate list of uniform buffers based on uniformBufferAccessMask (for faster access)
-	shader->uniformBufferListCount = 0;
+	// generate compact list of uniform buffers (for faster access)
+	cemu_assert_debug(shader->list_quickBufferList.empty());
 	for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
 	{
-		if( !HAS_FLAG(shaderContext->analyzer.uniformBufferAccessMask, (1<<i)) )
+		if( !shaderContext->analyzer.uniformBufferAccessTracker[i].HasAccess() )
 			continue;
-		shader->uniformBufferList[shader->uniformBufferListCount] = i;
-		shader->uniformBufferListCount++;
+		LatteDecompilerShader::QuickBufferEntry entry;
+		entry.index = i;
+		entry.size = shaderContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(shaderContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE) * 16;
+		shader->list_quickBufferList.push_back(entry);
 	}
-	// get dimension of each used textures
+	// get dimension of each used texture
 	_LatteRegisterSetTextureUnit* texRegs = nullptr;
 	if( shader->shaderType == LatteConst::ShaderType::Vertex )
 		texRegs = shaderContext->contextRegistersNew->SQ_TEX_START_VS;
@@ -937,9 +847,9 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// analyze input attributes again (if shader has relative GPR read)
 	if(shaderContext->analyzer.usesRelativeGPRRead && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry) )
 	{
-		for (sint32 f = 0; f < shaderContext->fetchShaderCount; f++)
+		if(shaderContext->fetchShader)
 		{
-			LatteFetchShader* parsedFetchShader = (LatteFetchShader*)shaderContext->fetchShaderList[f];
+			LatteFetchShader* parsedFetchShader = shaderContext->fetchShader;
 			for(auto& bufferGroup : parsedFetchShader->bufferGroups)
 			{
 				for (sint32 i = 0; i < bufferGroup.attribCount; i++)
@@ -1021,7 +931,8 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			if (cfCurrentStackDepth < 0)
 				debugBreakpoint();
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			// no effect on stack depth
 			cfInstruction.activeStackDepth = cfCurrentStackDepth;
@@ -1074,9 +985,9 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		cemu_assert_debug(false);
 	}
 	if(list_subroutineAddrs.empty() == false)
-		forceLogDebug_printf("Todo - analyze shader subroutine CF stack");
+		cemuLog_logDebug(LogType::Force, "Todo - analyze shader subroutine CF stack");
 	// TF mode
-	if (shaderContext->useTFViaSSBO && shaderContext->output->streamoutBufferWriteMask.any())
+	if (shaderContext->options->useTFViaSSBO && shaderContext->output->streamoutBufferWriteMask.any())
 	{
 		shaderContext->analyzer.useSSBOForStreamout = true;
 	}

@@ -599,7 +599,7 @@ void LatteTextureLoader_loadTextureDataIntoSlice(LatteTexture* hostTexture, sint
 	}
 }
 
-void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 textureUnit, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex)
+void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex)
 {
 	LatteTextureLoaderCtx textureLoader = { 0 };
 	
@@ -621,7 +621,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 texture
 
 	if (tex->isDataDefined == false)
 	{
-		g_renderer->texture_reserveTextureOnGPU(tex);
+		tex->AllocateOnHost();
 		tex->isDataDefined = true;
 		// if decoder is not set then clear texture
 		// on Vulkan this is used to make sure the texture is no longer in UNDEFINED layout
@@ -661,7 +661,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 texture
 	uint64 benchmarkResultMicroSeconds = (benchmark_end.QuadPart - benchmark_begin.QuadPart) * 1000000ULL / benchmark_freq.QuadPart;
 	textureDecodeBenchmark_perFormatSum[(int)tex->format & 0x3F] += benchmarkResultMicroSeconds;
 	textureDecodeBenchmark_totalSum += benchmarkResultMicroSeconds;
-	forceLog_printf("TexDecode %04dx%04dx%04d Fmt %04x Dim %d TileMode %02x Took %03d.%03dms Sum(format) %06dms Sum(total) %06dms", textureLoader.width, textureLoader.height, textureLoader.surfaceInfoDepth, (int)tex->format, (int)tex->dim, textureLoader.tileMode, (uint32)(benchmarkResultMicroSeconds / 1000ULL), (uint32)(benchmarkResultMicroSeconds % 1000ULL), (uint32)(textureDecodeBenchmark_perFormatSum[tex->gx2Format & 0x3F] / 1000ULL), (uint32)(textureDecodeBenchmark_totalSum / 1000ULL));
+	cemuLog_log(LogType::Force, "TexDecode {:04}x{:04}x{:04} Fmt {:04x} Dim {} TileMode {:02x} Took {:03}.{:03}ms Sum(format) {:06}ms Sum(total) {:06}ms", textureLoader.width, textureLoader.height, textureLoader.surfaceInfoDepth, (int)tex->format, (int)tex->dim, textureLoader.tileMode, (uint32)(benchmarkResultMicroSeconds / 1000ULL), (uint32)(benchmarkResultMicroSeconds % 1000ULL), (uint32)(textureDecodeBenchmark_perFormatSum[tex->gx2Format & 0x3F] / 1000ULL), (uint32)(textureDecodeBenchmark_totalSum / 1000ULL));
 #endif
 
 	// convert texture to RGBA when dumping is enabled
@@ -695,7 +695,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 texture
 	if (textureLoader.dump)
 	{
 		wchar_t path[1024];
-		swprintf(path, 1024, L"dump\\textures\\%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
+		swprintf(path, 1024, L"dump/textures/%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
 		tga_write_rgba(path, textureLoader.width, textureLoader.height, textureLoader.dumpRGBA);
 		free(textureLoader.dumpRGBA);
 	}
@@ -736,15 +736,17 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 	LatteTextureLoaderCtx textureLoader = { 0 };
 	LatteTextureLoader_begin(&textureLoader, sliceIndex, mipIndex, textureData->physAddress, textureData->physMipAddress, textureData->format, textureData->dim, textureData->width, textureData->height, textureData->depth, textureData->mipLevels, textureData->pitch, textureData->tileMode, textureData->swizzle);
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if (textureData->depth != 1)
-		forceLog_printf("_writeReadbackTextureToMemory(): Texture has multiple slices (not supported)");
+		cemuLog_log(LogType::Force, "_writeReadbackTextureToMemory(): Texture has multiple slices (not supported)");
 #endif
 	if (textureLoader.physAddress == MPTR_NULL)
 	{
-		forceLog_printf("_writeReadbackTextureToMemory(): Texture has invalid address");
+		cemuLog_log(LogType::Force, "_writeReadbackTextureToMemory(): Texture has invalid address");
 		return;
 	}
+
+	cemuLog_log(LogType::TextureReadback, "[TextureReadback-Write] PhysAddr {:08x} Res {}x{} Fmt {} Slice {} Mip {}", textureData->physAddress, textureData->width, textureData->height, textureData->format, sliceIndex, mipIndex);
 
 	if (textureData->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
 	{
@@ -816,7 +818,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		}
 		else
 		{
-			forceLogDebug_printf("Linear texture readback unsupported for format 0x%04x", (uint32)textureData->format);
+			cemuLog_logDebug(LogType::Force, "Linear texture readback unsupported for format 0x{:04x}", (uint32)textureData->format);
 			debugBreakpoint();
 		}
 		return;
@@ -854,7 +856,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 	}	
 	else
 	{
-		forceLogDebug_printf("Texture readback unsupported format %04x for tileMode 0x%02x", (uint32)textureData->format, textureData->tileMode);
+		cemuLog_logDebug(LogType::Force, "Texture readback unsupported format {:04x} for tileMode 0x{:02x}", (uint32)textureData->format, textureData->tileMode);
 	}
 
 }

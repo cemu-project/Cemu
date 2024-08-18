@@ -15,10 +15,10 @@
 
 void gx2Export_GX2SetSwapInterval(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetSwapInterval(%d)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2SetSwapInterval({})", hCPU->gpr[3]);
 	if( hCPU->gpr[3] >= 20 )
 	{
-		forceLog_printf("GX2SetSwapInterval() called with out of range value (%d)\n", hCPU->gpr[3]);
+		cemuLog_log(LogType::Force, "GX2SetSwapInterval() called with out of range value ({})", hCPU->gpr[3]);
 	}
 	else
 		LatteGPUState.sharedArea->swapInterval = hCPU->gpr[3];
@@ -27,7 +27,7 @@ void gx2Export_GX2SetSwapInterval(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2GetSwapInterval(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetSwapInterval()\n");
+	cemuLog_log(LogType::GX2, "GX2GetSwapInterval()");
 	osLib_returnFromFunction(hCPU, LatteGPUState.sharedArea->swapInterval);
 }
 
@@ -37,15 +37,15 @@ void gx2Export_GX2GetSwapStatus(PPCInterpreter_t* hCPU)
 {
 	memory_writeU32(hCPU->gpr[3], _swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE));
 	memory_writeU32(hCPU->gpr[4], _swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE));
-	memory_writeU64Slow(hCPU->gpr[5], lastSwapTime);
-	memory_writeU64Slow(hCPU->gpr[6], lastSwapTime);
+	memory_writeU64(hCPU->gpr[5], lastSwapTime);
+	memory_writeU64(hCPU->gpr[6], lastSwapTime);
 
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2GetGPUTimeout(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2GetGPUTimeout()\n");
+	cemuLog_log(LogType::GX2, "GX2GetGPUTimeout()");
 	osLib_returnFromFunction(hCPU, 0x3E8);
 }
 
@@ -53,15 +53,15 @@ void gx2Export_GX2GetGPUTimeout(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SampleTopGPUCycle(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SampleTopGPUCycle(0x%08x)\n", hCPU->gpr[3]);
-	memory_writeU64Slow(hCPU->gpr[3], coreinit::coreinit_getTimerTick());
+	cemuLog_log(LogType::GX2, "GX2SampleTopGPUCycle(0x{:08x})", hCPU->gpr[3]);
+	memory_writeU64(hCPU->gpr[3], coreinit::coreinit_getTimerTick());
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2SampleBottomGPUCycle(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SampleBottomGPUCycle(0x%08x)\n", hCPU->gpr[3]);
-	memory_writeU64Slow(hCPU->gpr[3], GX2_INVALID_COUNTER_VALUE_U64);
+	cemuLog_log(LogType::GX2, "GX2SampleBottomGPUCycle(0x{:08x})", hCPU->gpr[3]);
+	memory_writeU64(hCPU->gpr[3], GX2_INVALID_COUNTER_VALUE_U64);
 
 	osLib_returnFromFunction(hCPU, 0);
 	return;
@@ -115,6 +115,9 @@ namespace GX2
 	void _GX2DriverReset()
 	{
 		LatteGPUState.gx2InitCalled = 0;
+        sGX2MainCoreIndex = 0;
+        GX2CommandResetToDefaultState();
+        GX2EventResetToDefaultState();
 	}
 
 	sint32 GX2GetMainCoreId(PPCInterpreter_t* hCPU)

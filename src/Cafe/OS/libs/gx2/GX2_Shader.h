@@ -2,7 +2,7 @@
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "GX2_Streamout.h"
 
-struct GX2FetchShader_t
+struct GX2FetchShader
 {
 	enum class FetchShaderType : uint32
 	{
@@ -10,12 +10,12 @@ struct GX2FetchShader_t
 	};
 
 	/* +0x00 */ betype<FetchShaderType> fetchShaderType;
-	/* +0x04 */ uint32 _regs[1];
+	/* +0x04 */ betype<Latte::LATTE_SQ_PGM_RESOURCES_FS> reg_SQ_PGM_RESOURCES_FS;
 	/* +0x08 */ uint32 shaderSize;
 	/* +0x0C */ MPTR shaderPtr;
 	/* +0x10 */ uint32 attribCount;
 	/* +0x14 */ uint32 divisorCount;
-	/* +0x18 */ uint32 divisors[2];
+	/* +0x18 */ uint32be divisors[2];
 
 	MPTR GetProgramAddr() const
 	{
@@ -23,8 +23,8 @@ struct GX2FetchShader_t
 	}
 };
 
-static_assert(sizeof(GX2FetchShader_t) == 0x20);
-static_assert(sizeof(betype<GX2FetchShader_t::FetchShaderType>) == 4);
+static_assert(sizeof(GX2FetchShader) == 0x20);
+static_assert(sizeof(betype<GX2FetchShader::FetchShaderType>) == 4);
 
 namespace GX2
 {
@@ -32,19 +32,43 @@ namespace GX2
 	void GX2ShaderInit();
 }
 
-// code below still needs to be modernized (use betype, enum classes)
+// code below still needs to be modernized (use betype, enum classes, move to namespace)
 
+// deprecated, use GX2_SHADER_MODE enum class instead
 #define GX2_SHADER_MODE_UNIFORM_REGISTER	0
 #define GX2_SHADER_MODE_UNIFORM_BLOCK		1
 #define GX2_SHADER_MODE_GEOMETRY_SHADER		2
 #define GX2_SHADER_MODE_COMPUTE_SHADER		3
 
-struct GX2VertexShader_t
+enum class GX2_SHADER_MODE : uint32
 {
-	/* +0x000 */ uint32 regs[52];
-	/* +0x0D0 */ uint32 shaderSize;
-	/* +0x0D4 */ MPTR shaderPtr;
-	/* +0x0D8 */ uint32 shaderMode; // GX2_SHADER_MODE_*
+	UNIFORM_REGISTER = 0,
+	UNIFORM_BLOCK = 1,
+	GEOMETRY_SHADER = 2,
+	COMPUTE_SHADER = 3,
+};
+
+struct GX2VertexShader
+{
+	/* +0x000 */
+	struct
+	{
+		/* +0x00 */ betype<Latte::LATTE_SQ_PGM_RESOURCES_VS> SQ_PGM_RESOURCES_VS; // compatible with SQ_PGM_RESOURCES_ES
+		/* +0x04 */ betype<Latte::LATTE_VGT_PRIMITIVEID_EN> VGT_PRIMITIVEID_EN;
+		/* +0x08 */ betype<Latte::LATTE_SPI_VS_OUT_CONFIG> SPI_VS_OUT_CONFIG;
+		/* +0x0C */ uint32be vsOutIdTableSize;
+		/* +0x10 */ betype<Latte::LATTE_SPI_VS_OUT_ID_N> LATTE_SPI_VS_OUT_ID_N[10];
+		/* +0x38 */ betype<Latte::LATTE_PA_CL_VS_OUT_CNTL> PA_CL_VS_OUT_CNTL;
+		/* +0x3C */ uint32be uknReg15; // ?
+		/* +0x40 */ uint32be semanticTableSize;
+		/* +0x44 */ betype<Latte::LATTE_SQ_VTX_SEMANTIC_X> SQ_VTX_SEMANTIC_N[32];
+		/* +0xC4 */ uint32be uknReg49; // ?
+		/* +0xC8 */ uint32be uknReg50; // vgt_vertex_reuse_block_cntl
+		/* +0xCC */ uint32be uknReg51; // vgt_hos_reuse_depth
+	}regs;
+	/* +0x0D0 */ uint32be shaderSize;
+	/* +0x0D4 */ MEMPTR<void> shaderPtr;
+	/* +0x0D8 */ betype<GX2_SHADER_MODE> shaderMode;
 	/* +0x0DC */ uint32 uniformBlockCount;
 	/* +0x0E0 */ MPTR uniformBlockInfo;
 	/* +0x0E4 */ uint32 uniformVarCount;
@@ -57,20 +81,20 @@ struct GX2VertexShader_t
 	/* +0x100 */ MPTR samplerInfo;
 	/* +0x104 */ uint32 attribCount;
 	/* +0x108 */ MPTR attribInfo;
-	/* +0x10C */ uint32 ringItemsize; // for GS
-	/* +0x110 */ uint32 usesStreamOut;
-	/* +0x114 */ uint32 streamOutVertexStride[GX2_MAX_STREAMOUT_BUFFERS];
+	/* +0x10C */ uint32be ringItemsize; // for GS
+	/* +0x110 */ uint32be usesStreamOut;
+	/* +0x114 */ uint32be streamOutVertexStride[GX2_MAX_STREAMOUT_BUFFERS];
 	/* +0x124 */ GX2RBuffer rBuffer;
 
 	MPTR GetProgramAddr() const
 	{
-		if (_swapEndianU32(this->shaderPtr) != MPTR_NULL)
-			return _swapEndianU32(this->shaderPtr);
+		if (this->shaderPtr)
+			return this->shaderPtr.GetMPTR();
 		return this->rBuffer.GetVirtualAddr();
 	}
 };
 
-static_assert(sizeof(GX2VertexShader_t) == 0x134);
+static_assert(sizeof(GX2VertexShader) == 0x134);
 
 typedef struct _GX2PixelShader
 {

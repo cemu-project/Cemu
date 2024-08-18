@@ -559,7 +559,7 @@ static void PPCSprSupervisor_set(PPCInterpreter_t* hCPU, uint32 spr, uint32 newV
 		break;
 	default:
 		debug_printf("[C%d] Set unhandled SPR 0x%x to %08x (supervisor mode)\n", hCPU->spr.UPIR, spr, newValue);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		break;
@@ -598,7 +598,7 @@ static void PPCSpr_set(PPCInterpreter_t* hCPU, uint32 spr, uint32 newValue)
 		break;
 	default:
 		debug_printf("[C%d] Set unhandled SPR %d to %08x\n", hCPU->spr.UPIR, spr, newValue);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		break;
@@ -782,7 +782,7 @@ static uint32 PPCSprSupervisor_get(PPCInterpreter_t* hCPU, uint32 spr)
 		break;
 	default:
 		debug_printf("[C%d] Get unhandled SPR %d\n", hCPU->spr.UPIR, spr);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		break;
@@ -840,7 +840,7 @@ static uint32 PPCSpr_get(PPCInterpreter_t* hCPU, uint32 spr)
 		break;
 	default:
 		debug_printf("[C%d] Get unhandled SPR %d\n", hCPU->spr.UPIR, spr);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		assert_dbg();
 #endif
 		break;

@@ -7,7 +7,9 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include "napi_helper.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
-
+#include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
+#include "config/LaunchSettings.h"
 #include "pugixml.hpp"
 #include <charconv>
 
@@ -19,16 +21,16 @@ CURLcode _sslctx_function_NUS(CURL* curl, void* sslctx, void* param)
 {
 	if (iosuCrypto_addCACertificate(sslctx, 102) == false)
 	{
-		forceLog_printf("Invalid CA certificate (102)");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (102)");
 	}
 	if (iosuCrypto_addCACertificate(sslctx, 0x69) == false)
 	{
-		forceLog_printf("Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
 	}
 
 	if (iosuCrypto_addClientCertificate(sslctx, 3) == false)
 	{
-		forceLog_printf("Certificate error");
+		cemuLog_log(LogType::Force, "Certificate error");
 	}
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
@@ -40,7 +42,7 @@ CURLcode _sslctx_function_IDBE(CURL* curl, void* sslctx, void* param)
 {
 	if (iosuCrypto_addCACertificate(sslctx, 105) == false)
 	{
-		forceLog_printf("Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
 	}
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
@@ -52,13 +54,45 @@ CURLcode _sslctx_function_SOAP(CURL* curl, void* sslctx, void* param)
 {
 	if (iosuCrypto_addCACertificate(sslctx, 102) == false)
 	{
-		forceLog_printf("Invalid CA certificate (102)");
-		forceLog_printf("Certificate error");
+		cemuLog_log(LogType::Force, "Invalid CA certificate (102)");
+		cemuLog_log(LogType::Force, "Certificate error");
 	}
 	if (iosuCrypto_addClientCertificate(sslctx, 1) == false)
 	{
-		forceLog_printf("Certificate error");
+		cemuLog_log(LogType::Force, "Certificate error");
 	}
+	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
+	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
+	SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, nullptr);
+	return CURLE_OK;
+}
+
+CURLcode _sslctx_function_OLIVE(CURL* curl, void* sslctx, void* param)
+{
+	if (iosuCrypto_addCACertificate(sslctx, 105) == false)
+	{
+		cemuLog_log(LogType::Force, "Invalid CA certificate (105)");
+		cemuLog_log(LogType::Force, "Certificate error");
+	}
+	if (iosuCrypto_addClientCertificate(sslctx, 7) == false)
+	{
+		cemuLog_log(LogType::Force, "Olive client certificate error");
+	}
+
+	// NSSLAddServerPKIGroups(sslCtx, 3, &x, &y);
+	{
+		std::vector<sint16> certGroups = {
+			100,  101,  102,   103,  104,  105,
+			1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009,
+			1010, 1011, 1012, 1013, 1014, 1015, 1016, 1017, 1018, 1019,
+			1020, 1021, 1022, 1023, 1024, 1025, 1026, 1027, 1028, 1029,
+			1030, 1031, 1032, 1033
+		};
+
+		for (auto& certId : certGroups)
+			iosuCrypto_addCACertificate(sslctx, certId);
+	}
+
 	SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
 	SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
 	SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, nullptr);
@@ -73,6 +107,7 @@ CurlRequestHelper::CurlRequestHelper()
 
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 2);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	if(GetConfig().proxy_server.GetValue() != "")
 	{
@@ -85,7 +120,7 @@ CurlRequestHelper::~CurlRequestHelper()
 	curl_easy_cleanup(m_curl);
 }
 
-void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
+void CurlRequestHelper::initate(NetworkService service, std::string url, SERVER_SSL_CONTEXT sslContext)
 {
 	// reset parameters
 	m_headerExtraFields.clear();
@@ -97,7 +132,12 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, 60);
 
 	// SSL
-	if (sslContext == SERVER_SSL_CONTEXT::ACT || sslContext == SERVER_SSL_CONTEXT::TAGAYA)
+	curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 1L);
+	if (IsNetworkServiceSSLDisabled(service))
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	}
+	else if (sslContext == SERVER_SSL_CONTEXT::ACT || sslContext == SERVER_SSL_CONTEXT::TAGAYA)
 	{
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_NUS);
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
@@ -115,6 +155,11 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	else if (sslContext == SERVER_SSL_CONTEXT::CCS)
 	{
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
+	}
+	else if (sslContext == SERVER_SSL_CONTEXT::OLIVE)
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_OLIVE);
 		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
 	}
 	else
@@ -173,9 +218,11 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	// post
 	if (isPost)
 	{
-		curl_easy_setopt(m_curl, CURLOPT_POST, 1);
-		curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_postData.data());
-		curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, m_postData.size());
+		if (!m_isUsingMultipartFormData) {
+			curl_easy_setopt(m_curl, CURLOPT_POST, 1);
+			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDS, m_postData.data());
+			curl_easy_setopt(m_curl, CURLOPT_POSTFIELDSIZE, m_postData.size());
+		}
 	}
 	else
 		curl_easy_setopt(m_curl, CURLOPT_POST, 0);
@@ -184,7 +231,7 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	int res = curl_easy_perform(m_curl);
 	if (res != CURLE_OK)
 	{
-		cemuLog_force("CURL web request failed with error {}. Retrying...", res);
+		cemuLog_log(LogType::Force, "CURL web request failed with error {}. Retrying...", res);
 		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		// retry
 		res = curl_easy_perform(m_curl);
@@ -212,17 +259,25 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	return true;
 }
 
-CurlSOAPHelper::CurlSOAPHelper()
+CurlSOAPHelper::CurlSOAPHelper(NetworkService service)
 {
 	m_curl = curl_easy_init();
 	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, __curlWriteCallback);
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	// SSL
-	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
-	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
-	
-	if(GetConfig().proxy_server.GetValue() != "")
+	if (!IsNetworkServiceSSLDisabled(service))
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 1L);
+	}
+	else
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	}
+	if (GetConfig().proxy_server.GetValue() != "")
 	{
 		curl_easy_setopt(m_curl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
 	}
@@ -335,9 +390,8 @@ bool CurlSOAPHelper::submitRequest()
 	headers = curl_slist_append(headers, "Accept-Charset: UTF-8");
 	headers = curl_slist_append(headers, fmt::format("SOAPAction: urn:{}.wsapi.broadon.com/{}", m_serviceType, m_requestMethod).c_str());
 	headers = curl_slist_append(headers, "Accept: */*");
-	headers = curl_slist_append(headers, "User-Agent: EVL NUP 040800 Sep 18 2012 20:20:02");
-
 	curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(m_curl, CURLOPT_USERAGENT, "EVL NUP 040800 Sep 18 2012 20:20:02");
 
 	// send request
 	auto res = curl_easy_perform(m_curl);
@@ -368,7 +422,7 @@ namespace NAPI
 		// parse XML response
 		if (!doc.load_buffer(soapHelper.getReceivedData().data(), soapHelper.getReceivedData().size()))
 		{
-			forceLog_printf("Failed to parse GetRegistrationInfo() response");
+			cemuLog_log(LogType::Force, "Failed to parse GetRegistrationInfo() response");
 			result.apiError = NAPI_RESULT::XML_ERROR;
 			return false;
 		}

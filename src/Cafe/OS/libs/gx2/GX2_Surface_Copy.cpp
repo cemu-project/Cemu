@@ -208,7 +208,7 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 	if( srcHwFormat != dstHwFormat )
 	{
 		// mismatching format
-		forceLogDebug_printf("GX2CopySurface(): Format mismatch\n");
+		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format mismatch");
 		return;
 	}
 
@@ -379,7 +379,7 @@ typedef struct
 
 void gx2Export_GX2CopySurfaceEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GX2CopySurfaceEx(0x%08x,%d,%d,0x%08x,%d,%d,%d,0x%08x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10], memory_readU32(hCPU->gpr[1]+0x8));
+	cemuLog_logDebug(LogType::Force, "GX2CopySurfaceEx(0x{:08x},{},{},0x{:08x},{},{},{},0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8], hCPU->gpr[9], hCPU->gpr[10], memory_readU32(hCPU->gpr[1]+0x8));
 	GX2Surface* srcSurface = (GX2Surface*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	uint32 srcMip = hCPU->gpr[4];
 	uint32 srcSlice = hCPU->gpr[5];
@@ -394,10 +394,10 @@ void gx2Export_GX2CopySurfaceEx(PPCInterpreter_t* hCPU)
 	GX2Point_t* rectDst = (GX2Point_t*)memory_getPointerFromVirtualOffset(pointDstArrayMPTR);
 	for (sint32 i = 0; i < rectCount; i++)
 	{
-		forceLogDebug_printf("rect left-top: %d/%d size: %d/%d", _swapEndianU32(rectSrc->left), _swapEndianU32(rectSrc->top), _swapEndianU32(rectSrc->right) - _swapEndianU32(rectSrc->left), _swapEndianU32(rectSrc->bottom) - _swapEndianU32(rectSrc->top));
+		cemuLog_logDebug(LogType::Force, "rect left-top: {}/{} size: {}/{}", _swapEndianU32(rectSrc->left), _swapEndianU32(rectSrc->top), _swapEndianU32(rectSrc->right) - _swapEndianU32(rectSrc->left), _swapEndianU32(rectSrc->bottom) - _swapEndianU32(rectSrc->top));
 	}
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if( rectCount != 1 )
 		assert_dbg();
 	if( srcMip != 0 )
@@ -440,7 +440,7 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	uint32 srcSlice = _swapEndianU32(srcColorBuffer->viewFirstSlice);
 	uint32 dstSlice = hCPU->gpr[6];
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	if( _swapEndianU32(srcColorBuffer->viewMip) != 0 || _swapEndianU32(srcColorBuffer->viewFirstSlice) != 0 )
 		assert_dbg();
 #endif
@@ -576,7 +576,7 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2ConvertDepthBufferToTextureSurface(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2ConvertDepthBufferToTextureSurface(0x%x, 0x%x, %d, %d)\n", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_log(LogType::GX2, "GX2ConvertDepthBufferToTextureSurface(0x{:x}, 0x{:x}, {}, {})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
 	GX2DepthBuffer* depthBuffer = (GX2DepthBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	GX2Surface* dstSurface = (GX2Surface*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
 	uint32 dstMip = hCPU->gpr[5];

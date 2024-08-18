@@ -12,9 +12,7 @@ class DualStringBuffer
 public:
 	DualStringBuffer() : m_offsetBegin(N / 2), m_offsetEnd(N / 2) { }
 
-	~DualStringBuffer()
-	{
-	}
+	~DualStringBuffer() = default;
 
 	static_assert(sizeof(char) == sizeof(uint8));
 
@@ -97,7 +95,7 @@ namespace ZirEmitter
 	void GLSL::GenerateBasicBlockCode(ZpIR::ZpIRBasicBlock& basicBlock)
 	{
 		// init context		
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		for (auto& itr : m_blockContext.regInlinedExpression)
 		{
 			cemu_assert_debug(itr == nullptr); // leaked buffer

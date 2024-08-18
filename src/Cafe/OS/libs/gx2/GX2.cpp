@@ -4,8 +4,8 @@
 #include "GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/CafeSystem.h"
-
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 
 #include "GX2_Command.h"
@@ -20,6 +20,8 @@
 #include "GX2_Surface.h"
 #include "GX2_Surface_Copy.h"
 #include "GX2_Texture.h"
+
+#include <cinttypes>
 
 #define GX2_TV_RENDER_NONE			0
 #define GX2_TV_RENDER_480			1
@@ -46,7 +48,7 @@ uint64 lastSwapTime = 0;
 
 void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SwapScanBuffers()");
+	cemuLog_log(LogType::GX2, "GX2SwapScanBuffers()");
 
 	bool isPokken = false;
 
@@ -66,7 +68,7 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 
 	// Orochi Warriors seems to call GX2SwapScanBuffers on arbitrary threads/cores. The PM4 commands should go through to the GPU as long as there is no active display list and no other core is submitting commands simultaneously
 	// right now, we work around this by avoiding the infinite loop below (request counter incremented, but PM4 not sent)
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = coreinit::OSGetCoreId();
 	if (GX2::sGX2MainCoreIndex == coreIndex)
 		LatteGPUState.sharedArea->flipRequestCountBE = _swapEndianU32(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) + 1);
 
@@ -90,7 +92,7 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2CopyColorBufferToScanBuffer(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2CopyColorBufferToScanBuffer(0x%08x,%d)\n", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2CopyColorBufferToScanBuffer(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	GX2ReserveCmdSpace(5);
 
 	// todo: proper implementation
@@ -260,7 +262,7 @@ void gx2Export_GX2CalcDRCSize(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetDRCScale(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetDRCScale(%d,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetDRCScale({},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	osLib_returnFromFunction(hCPU, 0);
 }
 
@@ -268,7 +270,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamS32(channel, 0);
 	ppcDefineParamMEMPTR(callback, void, 1);
-	gx2Log_printf("GX2SetDRCConnectCallback(%d, 0x%08x)", channel, callback.GetMPTR());
+	cemuLog_log(LogType::GX2, "GX2SetDRCConnectCallback({}, 0x{:08x})", channel, callback.GetMPTR());
 	if(callback.GetPtr())
 		PPCCoreCallback(callback, channel, TRUE);
 	osLib_returnFromFunction(hCPU, 0);
@@ -276,7 +278,7 @@ void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2SetSemaphore(0x%08x,%d)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_log(LogType::GX2, "GX2SetSemaphore(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
 	ppcDefineParamMPTR(semaphoreMPTR, 0);
 	ppcDefineParamS32(mode, 1);
 
@@ -309,7 +311,7 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2Flush(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2Flush()");
+	cemuLog_log(LogType::GX2, "GX2Flush()");
 	_GX2SubmitToTCL();
 	osLib_returnFromFunction(hCPU, 0);
 }
@@ -330,11 +332,11 @@ uint64 Latte_GetTime()
 
 void _GX2SubmitToTCL()
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
 	// do nothing if called from non-main GX2 core
 	if (GX2::sGX2MainCoreIndex != coreIndex)
 	{
-		forceLogDebug_printf("_GX2SubmitToTCL() called on non-main GX2 core");
+		cemuLog_logDebug(LogType::Force, "_GX2SubmitToTCL() called on non-main GX2 core");
 		return;
 	}
 	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
@@ -343,7 +345,7 @@ void _GX2SubmitToTCL()
 	// update last submitted CB timestamp
 	uint64 commandBufferTimestamp = Latte_GetTime();
 	LatteGPUState.lastSubmittedCommandBufferTimestamp.store(commandBufferTimestamp);
-	gx2Log_printf("Submitting GX2 command buffer with timestamp %016I64x", commandBufferTimestamp);
+	cemuLog_log(LogType::GX2, "Submitting GX2 command buffer with timestamp {:016x}", commandBufferTimestamp);
 	// submit HLE packet to write retirement timestamp
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
 	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp>>32ULL));
@@ -371,7 +373,7 @@ uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
  */
 void GX2ReserveCmdSpace(uint32 reservedFreeSpaceInU32)
 {
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance);
+	uint32 coreIndex = coreinit::OSGetCoreId();
 	// if we are in a display list then do nothing
 	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
 		return;
@@ -394,21 +396,13 @@ void gx2_load()
 	osLib_addFunction("gx2", "GX2GetCurrentScanBuffer", gx2Export_GX2GetCurrentScanBuffer);
 
 	// shader stuff
-	osLib_addFunction("gx2", "GX2GetVertexShaderGPRs", gx2Export_GX2GetVertexShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetVertexShaderStackEntries", gx2Export_GX2GetVertexShaderStackEntries);
-	osLib_addFunction("gx2", "GX2GetPixelShaderGPRs", gx2Export_GX2GetPixelShaderGPRs);
-	osLib_addFunction("gx2", "GX2GetPixelShaderStackEntries", gx2Export_GX2GetPixelShaderStackEntries);
-	osLib_addFunction("gx2", "GX2SetFetchShader", gx2Export_GX2SetFetchShader);
-	osLib_addFunction("gx2", "GX2SetVertexShader", gx2Export_GX2SetVertexShader);
 	osLib_addFunction("gx2", "GX2SetPixelShader", gx2Export_GX2SetPixelShader);
 	osLib_addFunction("gx2", "GX2SetGeometryShader", gx2Export_GX2SetGeometryShader);
 	osLib_addFunction("gx2", "GX2SetComputeShader", gx2Export_GX2SetComputeShader);
-	osLib_addFunction("gx2", "GX2SetVertexUniformReg", gx2Export_GX2SetVertexUniformReg);
 	osLib_addFunction("gx2", "GX2SetVertexUniformBlock", gx2Export_GX2SetVertexUniformBlock);
 	osLib_addFunction("gx2", "GX2RSetVertexUniformBlock", gx2Export_GX2RSetVertexUniformBlock);
 
 	osLib_addFunction("gx2", "GX2SetPixelUniformBlock", gx2Export_GX2SetPixelUniformBlock);
-	osLib_addFunction("gx2", "GX2SetPixelUniformReg", gx2Export_GX2SetPixelUniformReg);
 	osLib_addFunction("gx2", "GX2SetGeometryUniformBlock", gx2Export_GX2SetGeometryUniformBlock);
 	osLib_addFunction("gx2", "GX2SetShaderModeEx", gx2Export_GX2SetShaderModeEx);
 

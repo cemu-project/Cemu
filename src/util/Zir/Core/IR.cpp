@@ -207,11 +207,11 @@ namespace ZpIR
 		// print imports
 		printf("Imports:\n");
 		for(auto itr : block->m_imports)
-			printf("   reg: %s sym:0x%lux\n", getRegisterName(block, itr.reg).c_str(), itr.name);
+			printf("   reg: %s sym:0x%llx\n", getRegisterName(block, itr.reg).c_str(), itr.name);
 		// print exports
 		printf("Exports:\n");
 		for (auto itr : block->m_exports)
-			printf("   reg: %s sym:0x%lux\n", getRegisterName(block, itr.reg).c_str(), itr.name);
+			printf("   reg: %s sym:0x%llx\n", getRegisterName(block, itr.reg).c_str(), itr.name);
 		// print instructions
 		printf("Assembly:\n");
 		IR::__InsBase* instruction = block->m_instructionFirst;

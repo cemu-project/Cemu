@@ -9,7 +9,7 @@
 #endif
 
 
-void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
+static void state_cb(cubeb_stream* stream, void* user, cubeb_state state)
 {
 	if (!stream)
 		return;
@@ -75,7 +75,7 @@ CubebAPI::CubebAPI(cubeb_devid devid, uint32 samplerate, uint32 channels, uint32
 		output_params.layout = CUBEB_LAYOUT_3F4_LFE;
 		break;
 	case 6:
-		output_params.layout = CUBEB_LAYOUT_QUAD_LFE | CHANNEL_FRONT_CENTER;
+		output_params.layout = CUBEB_LAYOUT_3F2_LFE_BACK;
 		break;
 	case 4:
 		output_params.layout = CUBEB_LAYOUT_QUAD;
@@ -122,7 +122,7 @@ bool CubebAPI::FeedBlock(sint16* data)
 	std::unique_lock lock(m_mutex);
 	if (m_buffer.capacity() <= m_buffer.size() + m_bytesPerBlock)
 	{
-		forceLogDebug_printf("dropped direct sound block since too many buffers are queued");
+		cemuLog_logDebug(LogType::Force, "dropped direct sound block since too many buffers are queued");
 		return false;
 	}
 
@@ -167,25 +167,11 @@ void CubebAPI::SetVolume(sint32 volume)
 
 bool CubebAPI::InitializeStatic()
 {
-#if BOOST_OS_WINDOWS
-	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)));
-#endif
-
 	if (cubeb_init(&s_context, "Cemu Cubeb", nullptr))
 	{
-		cemuLog_force("can't create cubeb audio api");
-
-#if BOOST_OS_WINDOWS
-		if (s_com_initialized)
-		{
-			CoUninitialize();
-			s_com_initialized = false;
-		}
-#endif
-
+		cemuLog_log(LogType::Force, "can't create cubeb audio api");
 		return false;
 	}
-
 	return true;
 }
 
@@ -193,10 +179,6 @@ void CubebAPI::Destroy()
 {
 	if (s_context)
 		cubeb_destroy(s_context);
-#if BOOST_OS_WINDOWS
-	if (s_com_initialized)
-		CoUninitialize();
-#endif
 }
 
 std::vector<IAudioAPI::DeviceDescriptionPtr> CubebAPI::GetDevices()
@@ -206,15 +188,20 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> CubebAPI::GetDevices()
 		return {};
 
 	std::vector<DeviceDescriptionPtr> result;
-	result.reserve(devices.count);
+	result.reserve(devices.count + 1); // Reserve space for the default device
+
+	// Add the default device to the list
+	auto defaultDevice = std::make_shared<CubebDeviceDescription>(nullptr, "default", L"Default Device");
+	result.emplace_back(defaultDevice);
+
 	for (size_t i = 0; i < devices.count; ++i)
 	{
-		//const auto& device = devices.device[i];
+		// const auto& device = devices.device[i];
 		if (devices.device[i].state == CUBEB_DEVICE_STATE_ENABLED)
 		{
 			auto device = std::make_shared<CubebDeviceDescription>(devices.device[i].devid, devices.device[i].device_id,
-			                                                       boost::nowide::widen(
-				                                                       devices.device[i].friendly_name));
+																   boost::nowide::widen(
+																	   devices.device[i].friendly_name));
 			result.emplace_back(device);
 		}
 	}

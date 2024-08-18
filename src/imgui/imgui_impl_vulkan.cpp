@@ -97,7 +97,7 @@ void ImGui_ImplVulkanH_DestroyFrame(VkDevice device, ImGui_ImplVulkanH_Frame* fd
 void ImGui_ImplVulkanH_DestroyFrameSemaphores(VkDevice device, ImGui_ImplVulkanH_FrameSemaphores* fsd, const VkAllocationCallbacks* allocator);
 void ImGui_ImplVulkanH_DestroyFrameRenderBuffers(VkDevice device, ImGui_ImplVulkanH_FrameRenderBuffers* buffers, const VkAllocationCallbacks* allocator);
 void ImGui_ImplVulkanH_DestroyWindowRenderBuffers(VkDevice device, ImGui_ImplVulkanH_WindowRenderBuffers* buffers, const VkAllocationCallbacks* allocator);
-void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count);
+void ImGui_ImplVulkanH_CreateWindowSwapchain(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count);
 void ImGui_ImplVulkanH_CreateWindowCommandBuffers(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, uint32_t queue_family, const VkAllocationCallbacks* allocator);
 
 struct ImGuiTexture
@@ -245,18 +245,13 @@ static void check_vk_result(VkResult err)
 
 static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory, VkDeviceSize& p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage)
 {
-	VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance();
-
-    ImGui_ImplVulkan_InitInfo* v = &g_VulkanInitInfo;
+	ImGui_ImplVulkan_InitInfo* v = &g_VulkanInitInfo;
+	vkDeviceWaitIdle(v->Device); // make sure previously created buffer is not in use anymore
     VkResult err;
 	if (buffer != VK_NULL_HANDLE)
-	{
-		vkRenderer->destroyBuffer(buffer);
-	}
+		vkDestroyBuffer(v->Device, buffer, v->Allocator);
 	if (buffer_memory != VK_NULL_HANDLE)
-	{
-		vkRenderer->destroyDeviceMemory(buffer_memory);
-	}
+		vkFreeMemory(v->Device, buffer_memory, v->Allocator);
     VkDeviceSize vertex_buffer_size_aligned = ((new_size - 1) / g_BufferMemoryAlignment + 1) * g_BufferMemoryAlignment;
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -912,7 +907,7 @@ void ImGui_ImplVulkan_Shutdown()
     ImGui_ImplVulkan_DestroyDeviceObjects();
 }
 
-void ImGui_ImplVulkan_NewFrame(VkCommandBuffer command_buffer, VkFramebuffer framebuffer, VkExtent2D& extend)
+void ImGui_ImplVulkan_NewFrame(VkCommandBuffer command_buffer, VkFramebuffer framebuffer, VkExtent2D extent)
 {
 	auto& io = ImGui::GetIO();
 
@@ -921,7 +916,7 @@ void ImGui_ImplVulkan_NewFrame(VkCommandBuffer command_buffer, VkFramebuffer fra
 	renderPassInfo.renderPass = g_RenderPass;
 	renderPassInfo.framebuffer = framebuffer;
 	renderPassInfo.renderArea.offset = {0, 0};
-	renderPassInfo.renderArea.extent = extend;
+	renderPassInfo.renderArea.extent = extent;
 	renderPassInfo.clearValueCount = 0;
 	vkCmdBeginRenderPass(command_buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
@@ -1082,7 +1077,7 @@ int ImGui_ImplVulkanH_GetMinImageCountFromPresentMode(VkPresentModeKHR present_m
 }
 
 // Also destroy old swap chain and in-flight frames data, if any.
-void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count)
+void ImGui_ImplVulkanH_CreateWindowSwapchain(VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, const VkAllocationCallbacks* allocator, int w, int h, uint32_t min_image_count)
 {
     VkResult err;
     VkSwapchainKHR old_swapchain = wd->Swapchain;
@@ -1245,7 +1240,7 @@ void ImGui_ImplVulkanH_CreateWindowSwapChain(VkPhysicalDevice physical_device, V
 void ImGui_ImplVulkanH_CreateWindow(VkInstance instance, VkPhysicalDevice physical_device, VkDevice device, ImGui_ImplVulkanH_Window* wd, uint32_t queue_family, const VkAllocationCallbacks* allocator, int width, int height, uint32_t min_image_count)
 {
     (void)instance;
-    ImGui_ImplVulkanH_CreateWindowSwapChain(physical_device, device, wd, allocator, width, height, min_image_count);
+	ImGui_ImplVulkanH_CreateWindowSwapchain(physical_device, device, wd, allocator, width, height, min_image_count);
     ImGui_ImplVulkanH_CreateWindowCommandBuffers(physical_device, device, wd, queue_family, allocator);
 }
 
@@ -1460,7 +1455,7 @@ ImTextureID ImGui_ImplVulkan_GenerateTexture(VkCommandBuffer commandBuffer, cons
     }
     catch (const std::exception & ex)
     {
-        forceLog_printf("can't generate imgui texture: %s", ex.what());
+        cemuLog_log(LogType::Force, "can't generate imgui texture: {}", ex.what());
         return nullptr;
     }
 }

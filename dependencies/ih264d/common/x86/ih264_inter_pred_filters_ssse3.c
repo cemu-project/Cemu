@@ -54,6 +54,12 @@
 #include "ih264_platform_macros.h"
 #include "ih264_inter_pred_filters.h"
 
+#ifdef __GNUC__
+#define ATTRIBUTE_SSSE3 __attribute__((target("ssse3")))
+#else
+#define ATTRIBUTE_SSSE3
+#endif
+
 /*****************************************************************************/
 /* Constant Data variables                                                   */
 /*****************************************************************************/
@@ -87,6 +93,7 @@
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_copy_ssse3(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
@@ -213,6 +220,7 @@ void ih264_inter_pred_luma_copy_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_horz_ssse3(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
@@ -478,6 +486,7 @@ void ih264_inter_pred_luma_horz_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_vert_ssse3(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
@@ -764,6 +773,7 @@ void ih264_inter_pred_luma_vert_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_horz_hpel_vert_hpel_ssse3(UWORD8 *pu1_src,
                                                      UWORD8 *pu1_dst,
                                                      WORD32 src_strd,
@@ -1488,6 +1498,7 @@ void ih264_inter_pred_luma_horz_hpel_vert_hpel_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_horz_qpel_ssse3(UWORD8 *pu1_src,
                                            UWORD8 *pu1_dst,
                                            WORD32 src_strd,
@@ -1782,6 +1793,7 @@ void ih264_inter_pred_luma_horz_qpel_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_vert_qpel_ssse3(UWORD8 *pu1_src,
                                            UWORD8 *pu1_dst,
                                            WORD32 src_strd,
@@ -2107,6 +2119,7 @@ void ih264_inter_pred_luma_vert_qpel_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_horz_qpel_vert_qpel_ssse3(UWORD8 *pu1_src,
                                                      UWORD8 *pu1_dst,
                                                      WORD32 src_strd,
@@ -2675,6 +2688,7 @@ void ih264_inter_pred_luma_horz_qpel_vert_qpel_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_horz_qpel_vert_hpel_ssse3(UWORD8 *pu1_src,
                                                      UWORD8 *pu1_dst,
                                                      WORD32 src_strd,
@@ -3285,6 +3299,7 @@ void ih264_inter_pred_luma_horz_qpel_vert_hpel_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_luma_horz_hpel_vert_qpel_ssse3(UWORD8 *pu1_src,
                                                      UWORD8 *pu1_dst,
                                                      WORD32 src_strd,
@@ -3991,6 +4006,7 @@ void ih264_inter_pred_luma_horz_hpel_vert_qpel_ssse3(UWORD8 *pu1_src,
 /*                      Senthoor                                             */
 /*                                                                           */
 /*****************************************************************************/
+ATTRIBUTE_SSSE3
 void ih264_inter_pred_chroma_ssse3(UWORD8 *pu1_src,
                                    UWORD8 *pu1_dst,
                                    WORD32 src_strd,

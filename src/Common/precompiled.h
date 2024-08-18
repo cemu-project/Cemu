@@ -24,13 +24,22 @@
 // }
 // #endif
 
+// arch defines
+
+#if defined(__x86_64__) || defined(_M_X64) || defined(_M_AMD64)
+#define ARCH_X86_64
+#endif
+
 // c includes
 #include <cstdint>
 #include <cstdlib>
 #include <cmath>
 #include <ctime>
 #include <cassert>
+
+#if defined(ARCH_X86_64)
 #include <immintrin.h>
+#endif
 
 // c++ includes
 #include <string>
@@ -60,23 +69,23 @@
 #include <filesystem>
 #include <memory>
 #include <chrono>
+#include <ctime>
 #include <regex>
 #include <type_traits>
 #include <optional>
 #include <span>
+#include <ranges>
 
 #include <boost/predef.h>
 #include <boost/nowide/convert.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
-#include <boost/filesystem.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
 namespace fs = std::filesystem;
 
 #include "enumFlags.h"
-#include "zstring_view.h"
 
 // base types
 using uint64 = uint64_t;
@@ -88,11 +97,6 @@ using sint64 = int64_t;
 using sint32 = int32_t;
 using sint16 = int16_t;
 using sint8 = int8_t;
-
-using MPTR = uint32;
-using MPTR_UINT8 = uint32;
-using MPTR_UINT16 = uint32;
-using MPTR_UINT32 = uint32;
 
 // types with explicit big endian order
 #include "betype.h"
@@ -106,11 +110,6 @@ using uint8le = uint8_t;
 // logging
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
-
-// CPU extensions
-extern bool _cpuExtension_SSSE3;
-extern bool _cpuExtension_SSE4_1;
-extern bool _cpuExtension_AVX2;
 
 // manual endian-swapping
 
@@ -210,6 +209,21 @@ typedef union _LARGE_INTEGER {
     inline T& operator^= (T& a, T b) { return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type<T>::type&>(a) ^= static_cast<std::underlying_type<T>::type>(b) ); }
 #endif
 
+template<typename T>
+inline T GetBits(T value, uint32 index, uint32 numBits)
+{
+	T mask = (1<<numBits)-1;
+	return (value>>index) & mask;
+}
+
+template<typename T>
+inline void SetBits(T& value, uint32 index, uint32 numBits, uint32 bitValue)
+{
+	T mask = (1<<numBits)-1;
+	value &= ~(mask << index);
+	value |= (bitValue << index);
+}
+
 #if !defined(_MSC_VER) || defined(__clang__) // clang-cl does not have built-in _udiv128
 inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, uint64 *remainder)
 {
@@ -221,10 +235,18 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 
 #if defined(_MSC_VER)
     #define UNREACHABLE __assume(false)
-#elif defined(__GNUC__)
+	#define ASSUME(__cond) __assume(__cond)
+	#define TLS_WORKAROUND_NOINLINE // no-op for MSVC as it has a flag for fiber-safe TLS optimizations
+#elif defined(__GNUC__) && !defined(__llvm__)
     #define UNREACHABLE __builtin_unreachable()
+	#define ASSUME(__cond) __attribute__((assume(__cond)))
+	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
+#elif defined(__clang__)
+	#define UNREACHABLE __builtin_unreachable()
+	#define ASSUME(__cond) __builtin_assume(__cond)
+	#define TLS_WORKAROUND_NOINLINE __attribute__((noinline))
 #else
-    #define UNREACHABLE
+    #error Unknown compiler
 #endif
 
 #if defined(_MSC_VER)
@@ -246,35 +268,99 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
     #error No definition for DLLEXPORT
 #endif
 
-#ifdef __GNUC__
-#include <cpuid.h>
+#if BOOST_OS_WINDOWS
+	#define NOEXPORT
+#elif defined(__GNUC__)
+	#define NOEXPORT __attribute__ ((visibility ("hidden")))
 #endif
 
-inline void cpuid(int cpuInfo[4], int functionId) {
-#if defined(_MSC_VER)
-    __cpuid(cpuInfo, functionId);
-#elif defined(__GNUC__)
-    __cpuid(functionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuid
-#endif
+// On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
+#if defined(__aarch64__)
+
+inline void _mm_pause()
+{
+    asm volatile("yield");
 }
 
-inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
-#if defined(_MSC_VER)
-    __cpuidex(cpuInfo, functionId, subFunctionId);
-#elif defined(__GNUC__)
-    __cpuid_count(functionId, subFunctionId, cpuInfo[0], cpuInfo[1], cpuInfo[2], cpuInfo[3]);
-#else
-    #error No definition for cpuidex
-#endif
+inline uint64 __rdtsc()
+{
+    uint64 t;
+    asm volatile("mrs %0, cntvct_el0" : "=r" (t));
+    return t;
 }
 
+inline void _mm_mfence()
+{
+    
+}
+
+inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
+{
+    *result = a + b + (unsigned long long)carry;
+    if (*result < a)
+        return 1;
+    return 0;
+}
+
+#endif
+
+// asserts
+
+
+inline void cemu_assert(bool _condition)
+{
+    if ((_condition) == false)
+    {
+        DEBUG_BREAK;
+    }
+}
+
+#ifndef CEMU_DEBUG_ASSERT
+//#define cemu_assert_debug(__cond) -> Forcing __cond not to be evaluated currently has unexpected side-effects
+
+inline void cemu_assert_debug(bool _condition)
+{
+}
+
+inline void cemu_assert_unimplemented()
+{
+}
+
+inline void cemu_assert_suspicious()
+{
+}
+
+inline void cemu_assert_error()
+{
+	DEBUG_BREAK;
+}
+#else
+inline void cemu_assert_debug(bool _condition)
+{
+    if ((_condition) == false)
+        DEBUG_BREAK;
+}
+
+inline void cemu_assert_unimplemented()
+{
+    DEBUG_BREAK;
+}
+
+inline void cemu_assert_suspicious()
+{
+    DEBUG_BREAK;
+}
+
+inline void cemu_assert_error()
+{
+    DEBUG_BREAK;
+}
+#endif
+
+#define assert_dbg() DEBUG_BREAK // old style unconditional generic assert
 
 // MEMPTR
 #include "Common/MemPtr.h"
-
-#define MPTR_NULL	(0)
 
 template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
@@ -336,10 +422,9 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 #endif
 }
 
-
 [[nodiscard]] static std::chrono::steady_clock::time_point tick_cached() noexcept
 {
-#ifdef _WIN32
+#if BOOST_OS_WINDOWS
     // get current time
 	static const long long _Freq = _Query_perf_frequency();	// doesn't change after system boot
 	const long long _Ctr = _Query_perf_counter();
@@ -347,63 +432,16 @@ bool match_any_of(T1 value, T2 compareTo, Types&&... others)
 	const long long _Whole = (_Ctr / _Freq) * std::nano::den;
 	const long long _Part = (_Ctr % _Freq) * std::nano::den / _Freq;
 	return (std::chrono::steady_clock::time_point(std::chrono::nanoseconds(_Whole + _Part)));
-#else
-    // todo: Add faster implementation for linux
-    return std::chrono::steady_clock::now();
+#elif BOOST_OS_LINUX
+	struct timespec tp;
+	clock_gettime(CLOCK_MONOTONIC_RAW, &tp);
+	return std::chrono::steady_clock::time_point(
+		std::chrono::seconds(tp.tv_sec) + std::chrono::nanoseconds(tp.tv_nsec));
+#elif BOOST_OS_MACOS
+	return std::chrono::steady_clock::time_point(
+		std::chrono::nanoseconds(clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)));
 #endif
 }
-
-inline void cemu_assert(bool _condition)
-{
-    if ((_condition) == false)
-    {
-        DEBUG_BREAK;
-    }
-}
-
-#ifdef PUBLIC_RELEASE
-//#define cemu_assert_debug(__cond) -> Forcing __cond not to be evaluated currently has unexpected side-effects
-
-inline void cemu_assert_debug(bool _condition)
-{
-}
-
-inline void cemu_assert_unimplemented()
-{
-}
-
-inline void cemu_assert_suspicious()
-{
-}
-
-inline void cemu_assert_error()
-{
-	DEBUG_BREAK;
-}
-#else
-inline void cemu_assert_debug(bool _condition)
-{
-    if ((_condition) == false)
-        DEBUG_BREAK;
-}
-
-inline void cemu_assert_unimplemented()
-{
-    DEBUG_BREAK;
-}
-
-inline void cemu_assert_suspicious()
-{
-    DEBUG_BREAK;
-}
-
-inline void cemu_assert_error()
-{
-    DEBUG_BREAK;
-}
-#endif
-
-#define assert_dbg() DEBUG_BREAK // old style unconditional generic assert
 
 // Some string conversion helpers because C++20 std::u8string is too cumbersome to use in practice
 // mixing string types generally causes loads of issues and many of the libraries we use dont expose interfaces for u8string
@@ -420,25 +458,27 @@ inline std::string_view _utf8Wrapper(std::u8string_view input)
     return v;
 }
 
-// returns a std::u8string as std::string, the contents are left as-is
-inline std::string _utf8Wrapper(const std::u8string& u8str)
+// convert fs::path to utf8 encoded string
+inline std::string _pathToUtf8(const fs::path& path)
 {
-    std::string v;
-    v.resize(u8str.size());
-    memcpy(v.data(), u8str.data(), u8str.size());
+    std::u8string strU8 = path.generic_u8string();
+    std::string v((const char*)strU8.data(), strU8.size());
     return v;
 }
 
-// get utf8 generic path string directly from std::filesystem::path
-inline std::string _utf8Wrapper(const fs::path& path)
+// convert utf8 encoded string to fs::path
+inline fs::path _utf8ToPath(std::string_view input)
 {
-    return _utf8Wrapper(path.generic_u8string());
+    std::basic_string_view<char8_t> v((char8_t*)input.data(), input.size());
+    return fs::path(v);
 }
 
-inline std::u8string_view _asUtf8(std::string_view input)
+// locale-independent variant of tolower() which also matches Wii U behavior
+inline char _ansiToLower(char c)
 {
-	std::basic_string_view<char8_t> v((char8_t*)input.data(), input.size());
-	return v;
+	if (c >= 'A' && c <= 'Z')
+		c -= ('A' - 'a');
+	return c;
 }
 
 class RunAtCemuBoot // -> replaces this with direct function calls. Linkers other than MSVC may optimize way object files entirely if they are not referenced from outside. So a source file self-registering using this would be causing issues
@@ -460,6 +500,14 @@ bool future_is_ready(std::future<T>& f)
 	return f._Is_ready();
 #endif
 }
+
+// replace with std::scope_exit once available
+struct scope_exit
+{
+	std::function<void()> f_;
+	explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
+	~scope_exit() { if (f_) f_(); }
+};
 
 // helper function to cast raw pointers to std::atomic
 // this is technically not legal but works on most platforms as long as alignment restrictions are met and the implementation of atomic doesnt come with additional members
@@ -503,3 +551,40 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 #include "Cafe/HW/MMU/MMU.h"
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
+
+// PPC stack trace printer
+void DebugLogStackTrace(struct OSThread_t* thread, MPTR sp, bool printSymbols = false);
+
+// generic formatter for enums (to underlying)
+template <typename Enum>
+	requires std::is_enum_v<Enum>
+struct fmt::formatter<Enum> : fmt::formatter<underlying_t<Enum>>
+{
+	auto format(const Enum& e, format_context& ctx) const
+	{
+		//return fmt::format_to(ctx.out(), "{}", fmt::underlying(e));
+
+		return formatter<underlying_t<Enum>>::format(fmt::underlying(e), ctx);
+	}
+};
+
+// formatter for betype<T>
+template <typename T>
+struct fmt::formatter<betype<T>> : fmt::formatter<T>
+{
+	auto format(const betype<T>& e, format_context& ctx) const
+	{
+		return formatter<T>::format(static_cast<T>(e), ctx);
+	}
+};
+
+// useful C++23 stuff that isn't yet widely supported
+
+// std::to_underlying
+namespace stdx
+{
+    template <typename EnumT, typename = std::enable_if_t < std::is_enum<EnumT>{} >>
+        constexpr std::underlying_type_t<EnumT> to_underlying(EnumT e) noexcept {
+        return static_cast<std::underlying_type_t<EnumT>>(e);
+    };
+}

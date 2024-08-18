@@ -1,23 +1,24 @@
-﻿#include "gui/guiWrapper.h"
+#include "gui/guiWrapper.h"
 #include "gui/wxgui.h"
 #include "util/crypto/aes128.h"
 #include "gui/MainWindow.h"
 #include "Cafe/OS/RPL/rpl.h"
-#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
-#include "gui/CemuApp.h"
-#include "Cafe/HW/Latte/Core/LatteOverlay.h"
+#include "config/NetworkSettings.h"
 #include "config/LaunchSettings.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+#include "input/InputManager.h"
+#include "gui/CemuApp.h"
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/SaveList.h"
 
 #include "Common/ExceptionHandler/ExceptionHandler.h"
+#include "Common/cpu_features.h"
 
 #include <wx/setup.h>
 #include "util/helpers/helpers.h"
@@ -28,6 +29,7 @@
 #include "Cafe/OS/libs/vpad/vpad.h"
 
 #include "audio/IAudioAPI.h"
+#include "audio/IAudioInputAPI.h"
 #if BOOST_OS_WINDOWS
 #pragma comment(lib,"Dbghelp.lib")
 #endif
@@ -35,8 +37,13 @@
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
+#if BOOST_OS_LINUX
 #define _putenv(__s) putenv((char*)(__s))
+#include <sys/sysinfo.h>
+#elif BOOST_OS_MACOS
+#define _putenv(__s) putenv((char*)(__s))
+#include <sys/types.h>
+#include <sys/sysctl.h>
 #endif
 
 #if BOOST_OS_WINDOWS
@@ -47,104 +54,9 @@ extern "C"
 }
 #endif
 
-bool _cpuExtension_SSSE3 = false;
-bool _cpuExtension_SSE4_1 = false;
-bool _cpuExtension_AVX2 = false;
-
 std::atomic_bool g_isGPUInitFinished = false;
 
 std::wstring executablePath;
-
-void logCPUAndMemoryInfo()
-{
-	#if BOOST_OS_WINDOWS
-	int CPUInfo[4] = { -1 };
-	unsigned   nExIds, i = 0;
-	char CPUBrandString[0x40];
-	// Get the information associated with each extended ID.
-	cpuid(CPUInfo, 0x80000000);
-	nExIds = CPUInfo[0];
-	for (i = 0x80000000; i <= nExIds; ++i)
-	{
-		cpuid(CPUInfo, i);
-		// Interpret CPU brand string
-		if (i == 0x80000002)
-			memcpy(CPUBrandString, CPUInfo, sizeof(CPUInfo));
-		else if (i == 0x80000003)
-			memcpy(CPUBrandString + 16, CPUInfo, sizeof(CPUInfo));
-		else if (i == 0x80000004)
-			memcpy(CPUBrandString + 32, CPUInfo, sizeof(CPUInfo));
-	}
-	forceLog_printf("CPU: %s", CPUBrandString);
-
-	MEMORYSTATUSEX statex;
-	statex.dwLength = sizeof(statex);
-	GlobalMemoryStatusEx(&statex);
-	uint32 memoryInMB = (uint32)(statex.ullTotalPhys / 1024LL / 1024LL);
-	forceLog_printf("RAM: %uMB", memoryInMB);
-	#endif
-}
-
-bool g_running_in_wine = false;
-bool IsRunningInWine()
-{
-	return g_running_in_wine;
-}
-
-void checkForWine()
-{
-	#if BOOST_OS_WINDOWS
-	const HMODULE hmodule = GetModuleHandleA("ntdll.dll");
-	if (!hmodule)
-		return;
-
-	const auto pwine_get_version = (const char*(__cdecl*)())GetProcAddress(hmodule, "wine_get_version");
-	if (pwine_get_version)
-	{
-		g_running_in_wine = true;
-		forceLog_printf("Wine version: %s", pwine_get_version());
-	}
-	#else
-	g_running_in_wine = false;
-	#endif
-}
-
-void infoLog_cemuStartup()
-{
-	cemuLog_force("------- Init {} -------", BUILD_VERSION_WITH_NAME_STRING);
-	cemuLog_force("Init Wii U memory space (base: 0x{:016x})", (size_t)memory_base);
-	cemuLog_force(u8"mlc01 path: {}", ActiveSettings::GetMlcPath().generic_u8string());
-	// check for wine version
-	checkForWine();
-	// CPU and RAM info
-	logCPUAndMemoryInfo();
-	// extensions that Cemu uses
-	char cpuExtensionStr[256];
-	strcpy(cpuExtensionStr, "");
-	if (_cpuExtension_SSSE3)
-	{
-		strcat(cpuExtensionStr, "SSSE3");
-	}
-	if (_cpuExtension_SSE4_1)
-	{
-		if (cpuExtensionStr[0] != '\0')
-			strcat(cpuExtensionStr, ", ");
-		strcat(cpuExtensionStr, "SSE4.1");
-	}
-	if (_cpuExtension_AVX2)
-	{
-		if (cpuExtensionStr[0] != '\0')
-			strcat(cpuExtensionStr, ", ");
-		strcat(cpuExtensionStr, "AVX2");
-	}
-	if (AES128_useAESNI())
-	{
-		if (cpuExtensionStr[0] != '\0')
-			strcat(cpuExtensionStr, ", ");
-		strcat(cpuExtensionStr, "AES-NI");
-	}
-	cemuLog_force("Used CPU extensions: {}", cpuExtensionStr);
-}
 
 // some implementations of _putenv dont copy the string and instead only store a pointer
 // thus we use a helper to keep a permanent copy
@@ -160,13 +72,13 @@ void _putenvSafe(const char* c)
 void reconfigureGLDrivers()
 {
 	// reconfigure GL drivers to store 
-	const fs::path nvCacheDir = ActiveSettings::GetPath("shaderCache/driver/nvidia/");
+	const fs::path nvCacheDir = ActiveSettings::GetCachePath("shaderCache/driver/nvidia/");
 
 	std::error_code err;
 	fs::create_directories(nvCacheDir, err);
 
 	std::string nvCacheDirEnvOption("__GL_SHADER_DISK_CACHE_PATH=");
-	nvCacheDirEnvOption.append(_utf8Wrapper(nvCacheDir));
+	nvCacheDirEnvOption.append(_pathToUtf8(nvCacheDir));
 
 #if BOOST_OS_WINDOWS
 	std::wstring tmpW = boost::nowide::widen(nvCacheDirEnvOption);
@@ -184,24 +96,9 @@ void reconfigureVkDrivers()
     _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
 }
 
-void mainEmulatorCommonInit()
+void WindowsInitCwd()
 {
-	reconfigureGLDrivers();
-	reconfigureVkDrivers();
-	// crypto init
-	AES128_init();
-	// init PPC timer (call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds)
-	PPCTimer_init();
-	// check available CPU extensions
-	int cpuInfo[4];
-	cpuid(cpuInfo, 0x1);
-	_cpuExtension_SSSE3 = ((cpuInfo[2] >> 9) & 1) != 0;
-	_cpuExtension_SSE4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
-
-	cpuidex(cpuInfo, 0x7, 0);
-	_cpuExtension_AVX2 = ((cpuInfo[1] >> 5) & 1) != 0;
-
-#if BOOST_OS_WINDOWS
+	#if BOOST_OS_WINDOWS
 	executablePath.resize(4096);
 	int i = GetModuleFileName(NULL, executablePath.data(), executablePath.size());
 	if(i >= 0)
@@ -209,64 +106,39 @@ void mainEmulatorCommonInit()
 	else
 		executablePath.clear();
 	SetCurrentDirectory(executablePath.c_str());
-
 	// set high priority
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-#endif
-    ExceptionHandler_init();
+	#endif
+}
+
+void CemuCommonInit()
+{
+	reconfigureGLDrivers();
+	reconfigureVkDrivers();
+	// crypto init
+	AES128_init();
+	// init PPC timer
+	// call this as early as possible because it measures frequency of RDTSC using an asynchronous thread over 3 seconds
+	PPCTimer_init();
+
+	WindowsInitCwd();
+    ExceptionHandler_Init();
 	// read config
 	g_config.Load();
-	// symbol storage
-	rplSymbolStorage_init();
-	// static initialization
-	IAudioAPI::InitializeStatic();
-	// load graphic packs (must happen before config is loaded)
-	GraphicPack2::LoadAll();
-	// initialize file system
-	fsc_init();
-}
-
-void mainEmulatorLLE();
-void ppcAsmTest();
-void gx2CopySurfaceTest();
-void ExpressionParser_test();
-void FSTVolumeTest();
-
-void unitTests()
-{
-	ExpressionParser_test();
-	gx2CopySurfaceTest();
-	ppcAsmTest();
-	FSTVolumeTest();
-}
-
-int mainEmulatorHLE()
-{
-	if (!TestWriteAccess(ActiveSettings::GetPath()))
-		wxMessageBox("Cemu doesn't have write access to it's own directory.\nPlease move it to a different location or run Cemu as administrator!", "Warning", wxOK|wxICON_ERROR); // todo - different error messages per OS
-	LatteOverlay_init();
-	// run a couple of tests if in non-release mode
-#ifndef PUBLIC_RELEASE
-	unitTests();
-#endif
-	// init common
-	mainEmulatorCommonInit();
-	// reserve memory (no allocations yet)
-	memory_init();
-	// init ppc core
-	PPCCore_init();
-	// log Cemu startup info
-	infoLog_cemuStartup();
-	// init RPL loader
-	RPLLoader_InitState();
-	// init IOSU components
-	iosuCrypto_init();
-	// init Cafe system (todo - the stuff above should be part of this too)
+	if (NetworkConfig::XMLExists())
+		n_config.Load();
+	// parallelize expensive init code
+	std::future<int> futureInitAudioAPI = std::async(std::launch::async, []{ IAudioAPI::InitializeStatic(); IAudioInputAPI::InitializeStatic(); return 0; });
+	std::future<int> futureInitGraphicPacks = std::async(std::launch::async, []{ GraphicPack2::LoadAll(); return 0; });
+	InputManager::instance().load();
+	futureInitAudioAPI.wait();
+	futureInitGraphicPacks.wait();
+	// init Cafe system
 	CafeSystem::Initialize();
 	// init title list
-	CafeTitleList::Initialize(ActiveSettings::GetPath("title_list_cache.xml"));
+	CafeTitleList::Initialize(ActiveSettings::GetUserDataPath("title_list_cache.xml"));
 	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(it);
+		CafeTitleList::AddScanPath(_utf8ToPath(it));
 	fs::path mlcPath = ActiveSettings::GetMlcPath();
 	if (!mlcPath.empty())
 		CafeTitleList::SetMLCPath(mlcPath);
@@ -278,9 +150,22 @@ int mainEmulatorHLE()
 		CafeSaveList::SetMLCPath(mlcPath);
 		CafeSaveList::Refresh();
 	}
-	// Create UI
-	gui_create();
-	return 0;
+}
+
+void mainEmulatorLLE();
+void ppcAsmTest();
+void gx2CopySurfaceTest();
+void ExpressionParser_test();
+void FSTVolumeTest();
+void CRCTest();
+
+void UnitTests()
+{
+	ExpressionParser_test();
+	gx2CopySurfaceTest();
+	ppcAsmTest();
+	FSTVolumeTest();
+	CRCTest();
 }
 
 bool isConsoleConnected = false;
@@ -304,7 +189,7 @@ void HandlePostUpdate()
 {
 	// finalize update process
 	// delete update cemu.exe.backup if available
-	const auto filename = ActiveSettings::GetFullPath().replace_extension("exe.backup");
+	const auto filename = ActiveSettings::GetExecutablePath().replace_extension("exe.backup");
 	if (fs::exists(filename))
 	{
 #if BOOST_OS_WINDOWS
@@ -324,10 +209,10 @@ void HandlePostUpdate()
 			fs::remove(filename, ec);
 		}
 #else
-		while( fs::exists(filename) )
+		while (fs::exists(filename))
 		{
 			std::error_code ec;
-			fs::remove(filename, ec);		
+			fs::remove(filename, ec);
 			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 		}
 #endif
@@ -338,39 +223,32 @@ void ToolShaderCacheMerger();
 
 #if BOOST_OS_WINDOWS
 
-#ifndef PUBLIC_RELEASE
-#include <crtdbg.h>
-int wmain(int argc, wchar_t* argv[])
+// entrypoint for release builds
+int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nShowCmd)
 {
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+		cemuLog_log(LogType::Force, "CoInitializeEx() failed");
 	SDL_SetMainReady();
-	_CrtSetDbgFlag(_CRTDBG_CHECK_DEFAULT_DF);
-	//ToolShaderCacheMerger();
-
-	if (!LaunchSettings::HandleCommandline(argc, argv))
-		return 0;	
-
-	ActiveSettings::LoadOnce();
-	
-	HandlePostUpdate();
-	return mainEmulatorHLE();
-}
-#else
-int wWinMain( _In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPTSTR lpCmdLine, _In_ int nShowCmd)
-{
-	SDL_SetMainReady();
-
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
-
-	ActiveSettings::LoadOnce();
-
-	HandlePostUpdate();
-	return mainEmulatorHLE();
+	gui_create();
+	return 0;
 }
 
-#endif
+// entrypoint for debug builds with console
+int main(int argc, char* argv[])
+{
+	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
+		cemuLog_log(LogType::Force, "CoInitializeEx() failed");
+	SDL_SetMainReady();
+	if (!LaunchSettings::HandleCommandline(argc, argv))
+		return 0;
+	gui_create();
+	return 0;
+}
 
 #else
+
 int main(int argc, char *argv[])
 {
 #if BOOST_OS_LINUX
@@ -378,11 +256,8 @@ int main(int argc, char *argv[])
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-
-	ActiveSettings::LoadOnce();
-
-	HandlePostUpdate();
-	return mainEmulatorHLE();
+	gui_create();
+	return 0;
 }
 #endif
 

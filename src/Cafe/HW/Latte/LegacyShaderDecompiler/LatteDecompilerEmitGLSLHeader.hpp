@@ -37,36 +37,14 @@ namespace LatteDecompiler
 		}
 		else if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE)
 		{
-			// here we try to predict the accessed range so we dont have to upload the whole register file
-			// we assume that if there is a fixed-index access on an index higher than a relative access, it bounds the prior relative access
-			sint16 highestAccessIndex = -1;
-			bool highestAccessIndexIsRel = false;
-			for(auto& accessItr : decompilerContext->analyzer.uniformRegisterAccessIndices)
-			{
-				if (accessItr.index > highestAccessIndex || (accessItr.index == highestAccessIndex && accessItr.isRelative && !highestAccessIndexIsRel))
-				{
-					highestAccessIndex = accessItr.index;
-					highestAccessIndexIsRel = accessItr.isRelative;
-				}
-			}
-			if (highestAccessIndex < 0)
-				highestAccessIndex = 0;
-
-			uint32 cfileSize;
-			if (highestAccessIndexIsRel)
-				cfileSize = 256;
-			else
-				cfileSize = highestAccessIndex + 1;
-
-			// full uniform register file has to be present
+			uint32 cfileSize = decompilerContext->analyzer.uniformRegisterAccessTracker.DetermineSize(decompilerContext->shaderBaseHash, 256);
+			// full or partial uniform register file has to be present
 			if (shaderType == LatteConst::ShaderType::Vertex)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterVS[{}];" _CRLF, cfileSize);
 			else if (shaderType == LatteConst::ShaderType::Pixel)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterPS[{}];" _CRLF, cfileSize);
 			else if (shaderType == LatteConst::ShaderType::Geometry)
 				shaderSrc->addFmt("uniform ivec4 uf_uniformRegisterGS[{}];" _CRLF, cfileSize);
-			else
-				debugBreakpoint();
 			uniformOffsets.offset_uniformRegister = uniformCurrentOffset;
 			uniformOffsets.count_uniformRegister = cfileSize;
 			uniformCurrentOffset += 16 * cfileSize;
@@ -95,7 +73,7 @@ namespace LatteDecompiler
 		}
 		if (decompilerContext->analyzer.outputPointSize && decompilerContext->analyzer.writesPointSize == false)
 		{
-			if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->usesGeometryShader) ||
+			if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 				decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
 			{
 				uniformCurrentOffset = (uniformCurrentOffset + 3)&~3;
@@ -135,7 +113,7 @@ namespace LatteDecompiler
 		}
 		// define uf_verticesPerInstance + uf_streamoutBufferBaseX
 		if (decompilerContext->analyzer.useSSBOForStreamout &&
-			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->usesGeometryShader == false) ||
+			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
 			(shader->shaderType == LatteConst::ShaderType::Geometry) )
 		{
 			shaderSrc->add("uniform int uf_verticesPerInstance;" _CRLF);
@@ -168,7 +146,7 @@ namespace LatteDecompiler
 		{
 			for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
 			{
-				if ((decompilerContext->analyzer.uniformBufferAccessMask&(1 << i)) == 0)
+				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 
 				cemu_assert_debug(decompilerContext->output->resourceMappingGL.uniformBuffersBindingPoint[i] >= 0);
@@ -178,7 +156,7 @@ namespace LatteDecompiler
 
 				shaderSrc->addFmt("uniform {}{}" _CRLF, _getShaderUniformBlockInterfaceName(decompilerContext->shaderType), i);
 				shaderSrc->add("{" _CRLF);
-				shaderSrc->addFmt("vec4 {}{}[{}];" _CRLF, _getShaderUniformBlockVariableName(decompilerContext->shaderType), i, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE);
+				shaderSrc->addFmt("vec4 {}{}[{}];" _CRLF, _getShaderUniformBlockVariableName(decompilerContext->shaderType), i, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(decompilerContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
 				shaderSrc->add("};" _CRLF _CRLF);
 				shaderSrc->add(_CRLF);
 			}
@@ -298,14 +276,21 @@ namespace LatteDecompiler
 
 			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
 			{
-				if (decompilerContext->usesGeometryShader)
+				if (decompilerContext->options->usesGeometryShader)
 					src->add("#define V2G_LAYOUT layout(location = 0)" _CRLF);
 			}
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
 		{
-			//fCStr_shaderSource->append("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy+uf_fragCoordScale.zw,gl_FragCoord.zw)" STR_LINEBREAK);
-			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy,gl_FragCoord.zw)" _CRLF);
+			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy,gl_FragCoord.z, 1.0/gl_FragCoord.w)" _CRLF);
+		}
+		if (decompilerContext->options->spirvInstrinsics.hasRoundingModeRTEFloat32)
+		{
+			src->add("#extension GL_EXT_spirv_intrinsics: enable" _CRLF);
+			// set RoundingModeRTE
+			src->add("spirv_execution_mode(4462, 16);" _CRLF);
+			src->add("spirv_execution_mode(4462, 32);" _CRLF);
+			src->add("spirv_execution_mode(4462, 64);" _CRLF);
 		}
 		src->add("#else" _CRLF);
 		// OpenGL defines
@@ -318,7 +303,7 @@ namespace LatteDecompiler
 				src->add("#define XFB_BLOCK_LAYOUT(__bufferIndex, __stride, __location) layout(xfb_buffer = __bufferIndex, xfb_stride = __stride)" _CRLF);
 
 			src->add("#define SET_POSITION(_v) gl_Position = _v\r\n");
-			if (decompilerContext->usesGeometryShader)
+			if (decompilerContext->options->usesGeometryShader)
 				src->add("#define V2G_LAYOUT" _CRLF);
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
@@ -426,7 +411,7 @@ namespace LatteDecompiler
 	{
 		auto src = decompilerContext->shaderSource;
 		// per-vertex output (VS or GS)
-		if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->usesGeometryShader == false) ||
+		if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 			(decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
 		{
 			src->add("out gl_PerVertex" _CRLF);
@@ -437,7 +422,7 @@ namespace LatteDecompiler
 			src->add("};" _CRLF);
 		}
 		// varyings (variables passed from vertex to pixel shader, only if geometry stage is disabled
-		if (decompilerContext->usesGeometryShader == false)
+		if (decompilerContext->options->usesGeometryShader == false)
 		{
 			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
 			{
@@ -533,7 +518,7 @@ namespace LatteDecompiler
 		// streamout buffer (transform feedback)
 		if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry) && decompilerContext->analyzer.hasStreamoutEnable)
 		{
-			if (decompilerContext->useTFViaSSBO)
+			if (decompilerContext->options->useTFViaSSBO)
 			{
 				if (decompilerContext->analyzer.useSSBOForStreamout && decompilerContext->analyzer.hasStreamoutWrite)
 				{

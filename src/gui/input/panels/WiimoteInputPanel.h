@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui/input/panels/InputPanel.h"
+#include "input/emulated/WiimoteController.h"
 #include <wx/slider.h>
 
 class wxCheckBox;
@@ -24,6 +25,7 @@ private:
 
 	void on_volume_change(wxCommandEvent& event);
 	void on_extension_change(wxCommandEvent& event);
+    void on_pair_button(wxCommandEvent& event);
 
 	wxGridBagSizer* m_item_sizer;
 
@@ -33,7 +35,8 @@ private:
 	wxSlider* m_volume;
 
 	std::vector<wxWindow*> m_nunchuck_items;
-	bool m_extensions_changed;
+
+	void add_button_row(sint32 row, sint32 column, const WiimoteController::ButtonId &button_id);
 };
 
 

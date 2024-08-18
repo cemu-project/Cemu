@@ -10,6 +10,7 @@
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
+#include <Cafe/TitleList/GameInfo.h>
 #include "util/helpers/Semaphore.h"
 
 class wxTitleIdEvent : public wxCommandEvent
@@ -50,10 +51,15 @@ public:
 	bool IsVisible(long item) const; // only available in wxwidgets 3.1.3
 
 	void ReloadGameEntries(bool cached = false);
+	void DeleteCachedStrings();
+
+#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
+    void CreateShortcut(GameInfo2& gameInfo);
+#endif
 
 	long FindListItemByTitleId(uint64 title_id) const;
 	void OnClose(wxCloseEvent& event);
-	
+
 private:
 	std::atomic_bool m_exit = false;
 	Style m_style;
@@ -74,7 +80,9 @@ private:
 		ColumnGameTime,
 		ColumnGameStarted,
 		ColumnRegion,
-		ColumnFavorite
+        ColumnTitleID,
+        //ColumnFavorite,
+		ColumnCounts,
 	};
 
 	int s_last_column = ColumnName;
@@ -109,6 +117,8 @@ private:
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
 
+	void RemoveCache(const std::list<fs::path>& cachePath, const std::string& titleName);
+
 	void AsyncWorkerThread();
 	void RequestLoadIconAsync(TitleId titleId);
 	bool QueryIconForTitle(TitleId titleId, int& icon, int& iconSmall);
@@ -142,6 +152,10 @@ private:
 	void OnTimer(wxTimerEvent& event);
 	void OnMouseMove(wxMouseEvent& event);
 	void OnLeaveWindow(wxMouseEvent& event);
+
+	void OnGameListSize(wxSizeEvent& event);
+	void AdjustLastColumnWidth();
+	int GetColumnDefaultWidth(int column);
 
 	static inline std::once_flag s_launch_file_once;
 };

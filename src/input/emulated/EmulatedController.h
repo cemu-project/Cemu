@@ -67,8 +67,8 @@ public:
 	bool has_position() const;
 	glm::vec2 get_position() const;
 	glm::vec2 get_prev_position() const;
-	
-	std::shared_ptr<ControllerBase> find_controller(std::string_view uuid, InputAPI::Type type) const;
+	PositionVisibility GetPositionVisibility() const;
+
 	void add_controller(std::shared_ptr<ControllerBase> controller);
 	void remove_controller(const std::shared_ptr<ControllerBase>& controller);
 	void clear_controllers();

@@ -143,7 +143,6 @@ void LatteTextureViewLookupCache::RemoveAll(LatteTextureView* view)
 	}
 }
 
-
 LatteTextureView* LatteTextureViewLookupCache::lookup(MPTR physAddr, sint32 width, sint32 height, sint32 depth, sint32 pitch, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, Latte::E_GX2SURFFMT format, Latte::E_DIM dim)
 {
 	// todo - add tileMode param to this and the other lookup functions?
@@ -163,7 +162,7 @@ LatteTextureView* LatteTextureViewLookupCache::lookup(MPTR physAddr, sint32 widt
 	return nullptr;
 }
 
-LatteTextureView* LatteTextureViewLookupCache::lookup(MPTR physAddr, sint32 width, sint32 height, sint32 depth, sint32 pitch, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, Latte::E_GX2SURFFMT format, Latte::E_DIM dim, bool isDepth)
+LatteTextureView* LatteTextureViewLookupCache::lookupWithColorOrDepthType(MPTR physAddr, sint32 width, sint32 height, sint32 depth, sint32 pitch, sint32 firstMip, sint32 numMip, sint32 firstSlice, sint32 numSlice, Latte::E_GX2SURFFMT format, Latte::E_DIM dim, bool isDepth)
 {
 	cemu_assert_debug(firstSlice == 0);
 	uint32 key = _getViewBucketKey(physAddr, width, height, pitch);

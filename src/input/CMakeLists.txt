@@ -1,5 +1,3 @@
-project(CemuInput)
-
 add_library(CemuInput
 	InputManager.cpp
 	InputManager.h
@@ -11,6 +9,24 @@ add_library(CemuInput
 	api/ControllerState.cpp
 	api/InputAPI.h
 	api/ControllerProvider.h
+	api/DSU/DSUController.h
+	api/DSU/DSUControllerProvider.cpp
+	api/DSU/DSUController.cpp
+	api/DSU/DSUControllerProvider.h
+	api/DSU/DSUMessages.h
+	api/DSU/DSUMessages.cpp
+	api/SDL/SDLController.cpp
+	api/SDL/SDLControllerProvider.cpp
+	api/SDL/SDLController.h
+	api/SDL/SDLControllerProvider.h
+	api/Keyboard/KeyboardControllerProvider.h
+	api/Keyboard/KeyboardControllerProvider.cpp
+	api/Keyboard/KeyboardController.cpp
+	api/Keyboard/KeyboardController.h
+	api/GameCube/GameCubeController.cpp
+	api/GameCube/GameCubeControllerProvider.h
+	api/GameCube/GameCubeControllerProvider.cpp
+	api/GameCube/GameCubeController.h
 	emulated/ProController.cpp
 	emulated/EmulatedController.h
 	emulated/EmulatedController.cpp
@@ -27,53 +43,7 @@ add_library(CemuInput
 
 set_property(TARGET CemuInput PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-# SDL
-target_sources(CemuInput PRIVATE
-	api/SDL/SDLController.cpp
-	api/SDL/SDLControllerProvider.cpp
-	api/SDL/SDLController.h
-	api/SDL/SDLControllerProvider.h
-)
-
-# DSU
-target_sources(CemuInput PRIVATE
-	api/DSU/DSUController.h
-	api/DSU/DSUControllerProvider.cpp
-	api/DSU/DSUController.cpp
-	api/DSU/DSUControllerProvider.h
-	api/DSU/DSUMessages.h
-	api/DSU/DSUMessages.cpp
-)
-
-# Keyboard controller
-target_sources(CemuInput PRIVATE
-	api/Keyboard/KeyboardControllerProvider.h
-	api/Keyboard/KeyboardControllerProvider.cpp
-	api/Keyboard/KeyboardController.cpp
-	api/Keyboard/KeyboardController.h
-)
-
-# Native gamecube
-target_sources(CemuInput PRIVATE
-	api/GameCube/GameCubeController.cpp
-	api/GameCube/GameCubeControllerProvider.h
-	api/GameCube/GameCubeControllerProvider.cpp
-	api/GameCube/GameCubeController.h
-)
-
 if(WIN32)
-	# Native wiimote (Win32 only for now)
-	target_sources(CemuInput PRIVATE
-		api/Wiimote/WiimoteControllerProvider.h
-		api/Wiimote/windows/WinWiimoteDevice.cpp
-		api/Wiimote/windows/WinWiimoteDevice.h
-		api/Wiimote/WiimoteControllerProvider.cpp
-		api/Wiimote/WiimoteMessages.h
-		api/Wiimote/NativeWiimoteController.h
-		api/Wiimote/NativeWiimoteController.cpp
-		api/Wiimote/WiimoteDevice.h
-	)
-
 	# XInput
 	target_sources(CemuInput PRIVATE
 		api/XInput/XInputControllerProvider.cpp
@@ -91,6 +61,21 @@ if(WIN32)
 	)
 endif()
 
+if (ENABLE_WIIMOTE)
+	target_compile_definitions(CemuInput PUBLIC SUPPORTS_WIIMOTE)
+	target_sources(CemuInput PRIVATE
+			api/Wiimote/WiimoteControllerProvider.h
+			api/Wiimote/WiimoteControllerProvider.cpp
+			api/Wiimote/WiimoteMessages.h
+			api/Wiimote/NativeWiimoteController.h
+			api/Wiimote/NativeWiimoteController.cpp
+			api/Wiimote/WiimoteDevice.h
+			api/Wiimote/hidapi/HidapiWiimote.cpp
+			api/Wiimote/hidapi/HidapiWiimote.h
+	)
+endif ()
+
+
 target_include_directories(CemuInput PUBLIC "../")
 
 target_link_libraries(CemuInput PRIVATE
@@ -105,6 +90,9 @@ target_link_libraries(CemuInput PRIVATE
 	pugixml::pugixml
 	SDL2::SDL2
 )
+if (ENABLE_HIDAPI)
+	target_link_libraries(CemuInput PRIVATE hidapi::hidapi)
+endif()
 
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuInput PRIVATE wx::base wx::core)

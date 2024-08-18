@@ -2,7 +2,7 @@
 
 #include "input/api/Controller.h"
 
-#if BOOST_OS_WINDOWS
+#ifdef SUPPORTS_WIIMOTE
 #include "input/api/Wiimote/NativeWiimoteController.h"
 #endif
 
@@ -131,15 +131,15 @@ bool EmulatedController::has_second_motion() const
 		if(controller->use_motion())
 		{
 			// if wiimote has nunchuck connected, we use its acceleration
-			#if BOOST_OS_WINDOWS
-			if(controller->api() == InputAPI::Wiimote)
+            #if SUPPORTS_WIIMOTE
+            if(controller->api() == InputAPI::Wiimote)
 			{
 				if(((NativeWiimoteController*)controller.get())->get_extension() == NativeWiimoteController::Nunchuck)
 				{
 					return true;
 				}
 			}
-			#endif
+            #endif
 			motion++;
 		}
 	}
@@ -156,7 +156,7 @@ MotionSample EmulatedController::get_second_motion_data() const
 		if (controller->use_motion())
 		{
 			// if wiimote has nunchuck connected, we use its acceleration
-			#if BOOST_OS_WINDOWS
+            #ifdef SUPPORTS_WIIMOTE
 			if (controller->api() == InputAPI::Wiimote)
 			{
 				if (((NativeWiimoteController*)controller.get())->get_extension() == NativeWiimoteController::Nunchuck)
@@ -207,26 +207,26 @@ glm::vec2 EmulatedController::get_prev_position() const
 	return {};
 }
 
-std::shared_ptr<ControllerBase> EmulatedController::find_controller(std::string_view uuid, InputAPI::Type type) const
+PositionVisibility EmulatedController::GetPositionVisibility() const
 {
-	std::scoped_lock lock(m_mutex);
-	const auto it = std::find_if(m_controllers.cbegin(), m_controllers.cend(), [uuid, type](const auto& c) { return c->api() == type && c->uuid() == uuid; });
-	if (it != m_controllers.cend())
-		return *it;
-
-	return {};
+	std::shared_lock lock(m_mutex);
+	for (const auto& controller : m_controllers)
+	{
+		if (controller->has_position())
+			return controller->GetPositionVisibility();
+	}
+	return PositionVisibility::NONE;
 }
 
 void EmulatedController::add_controller(std::shared_ptr<ControllerBase> controller)
 {
 	controller->connect();
 
-	#if BOOST_OS_WINDOWS
-	if (const auto wiimote = std::dynamic_pointer_cast<NativeWiimoteController>(controller)) {
+    #ifdef SUPPORTS_WIIMOTE
+    if (const auto wiimote = std::dynamic_pointer_cast<NativeWiimoteController>(controller)) {
 		wiimote->set_player_index(m_player_index);
 	}
-	#endif
-
+    #endif
 	std::scoped_lock lock(m_mutex);
 	m_controllers.emplace_back(std::move(controller));
 }
@@ -279,11 +279,9 @@ bool EmulatedController::is_mapping_down(uint64 mapping) const
 	const auto it = m_mappings.find(mapping);
 	if (it != m_mappings.cend())
 	{
-		if (const auto controller = it->second.controller.lock()) {
-			return controller->get_state().buttons.test(it->second.button);
-		}
+		if (const auto controller = it->second.controller.lock())
+			return controller->get_state().buttons.GetButtonState(it->second.button);
 	}
-
 	return false;
 }
 

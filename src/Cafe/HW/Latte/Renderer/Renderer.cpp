@@ -10,6 +10,11 @@
 
 #include "config/ActiveSettings.h"
 
+#include <wx/image.h>
+#include <wx/dataobj.h>
+#include <wx/clipbrd.h>
+#include <wx/log.h>
+
 std::unique_ptr<Renderer> g_renderer;
 
 bool Renderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
@@ -32,18 +37,50 @@ bool Renderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 	return false;
 }
 
+
+void Renderer::Initialize()
+{
+	// imgui
+	imguiFontAtlas = new ImFontAtlas();
+	imguiFontAtlas->AddFontDefault();
+
+	auto setupContext = [](ImGuiContext* context){
+		ImGui::SetCurrentContext(context);
+		ImGuiIO& io = ImGui::GetIO();
+		io.WantSaveIniSettings = false;
+		io.IniFilename = nullptr;
+	};
+
+	imguiTVContext = ImGui::CreateContext(imguiFontAtlas);
+	imguiPadContext = ImGui::CreateContext(imguiFontAtlas);
+	setupContext(imguiTVContext);
+	setupContext(imguiPadContext);
+}
+
+void Renderer::Shutdown()
+{
+	// imgui
+	ImGui::DestroyContext(imguiTVContext);
+	ImGui::DestroyContext(imguiPadContext);
+    ImGui_ClearFonts();
+	delete imguiFontAtlas;
+}
+
 bool Renderer::ImguiBegin(bool mainWindow)
 {
 	sint32 w = 0, h = 0;
 	if(mainWindow)
-		gui_getWindowSize(&w, &h);
+		gui_getWindowPhysSize(w, h);
 	else if(gui_isPadWindowOpen())
-		gui_getPadWindowSize(&w, &h);
+		gui_getPadWindowPhysSize(w, h);
 	else
 		return false;
 		
 	if (w == 0 || h == 0)
 		return false;
+
+	// select the right context
+	ImGui::SetCurrentContext(mainWindow ? imguiTVContext : imguiPadContext);
 
 	const Vector2f window_size{ (float)w,(float)h };
 	auto& io = ImGui::GetIO();
@@ -77,126 +114,107 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 	return (uint8)(cs * 255.0f);
 }
 
-void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
+static std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
+{
+	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
+	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
+	// if the file already exists add a suffix counter (_2.png, _3.png etc)
+	std::time_t time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::tm* tm = std::localtime(&time_t);
+
+	std::string screenshotFileName = fmt::format("Screenshot_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}", tm->tm_year+1900, tm->tm_mon+1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
+	if (isDRC)
+		screenshotFileName.append("_GamePad");
+
+	fs::path screenshotPath;
+	for(sint32 i=0; i<999; i++)
+	{
+		screenshotPath = screendir;
+		if (i == 0)
+			screenshotPath.append(fmt::format("{}.png", screenshotFileName));
+		else
+			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
+		
+		std::error_code ec;
+		bool exists = fs::exists(screenshotPath, ec);
+		
+		if (!ec && !exists)
+			return screenshotPath;
+	}
+	return std::nullopt;
+}
+
+std::mutex s_clipboardMutex;
+
+static bool SaveScreenshotToClipboard(const wxImage &image)
+{
+	bool success = false;
+
+	s_clipboardMutex.lock();
+	if (wxTheClipboard->Open())
+	{
+		wxTheClipboard->SetData(new wxImageDataObject(image));
+		wxTheClipboard->Close();
+		success = true;
+	}
+	s_clipboardMutex.unlock();
+
+	return success;
+}
+
+static bool SaveScreenshotToFile(const wxImage &image, bool mainWindow)
+{
+	auto path = GenerateScreenshotFilename(!mainWindow);
+	if (!path) return false;
+
+	std::error_code ec;
+	fs::create_directories(path->parent_path(), ec);
+	if (ec) return false;
+
+	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
+	wxLogNull _logNo;
+	return image.SaveFile(path->wstring());
+}
+
+static void ScreenshotThread(std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
 {
 #if BOOST_OS_WINDOWS
-	const bool save_screenshot = GetConfig().save_screenshot;
-	std::thread([](std::vector<uint8> data, bool save_screenshot, int width, int height, bool mainWindow)
-	{
-		if (mainWindow)
-		{
-			// copy to clipboard
-			std::vector<uint8> buffer(sizeof(BITMAPINFO) + data.size());
-			auto* bmpInfo = (BITMAPINFO*)buffer.data();
-			bmpInfo->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-			bmpInfo->bmiHeader.biWidth = width;
-			bmpInfo->bmiHeader.biHeight = height;
-			bmpInfo->bmiHeader.biPlanes = 1;
-			bmpInfo->bmiHeader.biBitCount = 24;
-			bmpInfo->bmiHeader.biCompression = BI_RGB;
-
-			uint8* clipboard_image = buffer.data() + sizeof(BITMAPINFOHEADER);
-			// RGB -> BGR
-			for (sint32 iy = 0; iy < height; ++iy)
-			{
-				for (sint32 ix = 0; ix < width; ++ix)
-				{
-					uint8* pIn = data.data() + (ix + iy * width) * 3;
-					uint8* pOut = clipboard_image + (ix + (height - iy - 1) * width) * 3;
-
-					pOut[0] = pIn[2];
-					pOut[1] = pIn[1];
-					pOut[2] = pIn[0];
-				}
-			}
-
-			if (OpenClipboard(nullptr))
-			{
-				EmptyClipboard();
-
-				const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, buffer.size());
-				if (hGlobal)
-				{
-					memcpy(GlobalLock(hGlobal), buffer.data(), buffer.size());
-					GlobalUnlock(hGlobal);
-
-					SetClipboardData(CF_DIB, hGlobal);
-					GlobalFree(hGlobal);
-				}
-
-				CloseClipboard();
-			}
-
-			LatteOverlay_pushNotification("Screenshot saved", 2500);
-		}
-
-		// save to png file
-		if (save_screenshot)
-		{
-			fs::path screendir = ActiveSettings::GetPath("screenshots");
-			if (!fs::exists(screendir))
-				fs::create_directory(screendir);
-
-			auto counter = 0;
-			for (const auto& it : fs::directory_iterator(screendir))
-			{
-				int tmp;
-				if (swscanf_s(it.path().filename().c_str(), L"screenshot_%d", &tmp) == 1)
-					counter = std::max(counter, tmp);
-			}
-
-			screendir /= fmt::format(L"screenshot_{}.png", ++counter);
-			FileStream* fs = FileStream::createFile2(screendir);
-			if (fs)
-			{
-				bool success = true;
-				auto png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-				if (png_ptr)
-				{
-					auto info_ptr = png_create_info_struct(png_ptr);
-					if (info_ptr)
-					{
-						if (!setjmp(png_jmpbuf(png_ptr)))
-						{
-							auto pngWriter = [](png_structp png_ptr, png_bytep data, png_size_t length) -> void
-							{
-								FileStream* fs = (FileStream*)png_get_io_ptr(png_ptr);
-								fs->writeData(data, length);
-							};
-
-							//png_init_io(png_ptr, file);
-							png_set_write_fn(png_ptr, (void*)fs, pngWriter, nullptr);
-
-							png_set_IHDR(png_ptr, info_ptr, width, height, 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-							             PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-							png_write_info(png_ptr, info_ptr);
-							for (int i = 0; i < height; ++i)
-							{
-								uint8* pData = data.data() + (i * width) * 3;
-								png_write_row(png_ptr, pData);
-							}
-
-							png_write_end(png_ptr, nullptr);
-						}
-						else
-							success = false;
-
-						png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
-					}
-
-					png_destroy_write_struct(&png_ptr, nullptr);
-				}
-				delete fs;
-				if (!success)
-				{
-					std::error_code ec;
-					fs::remove(screendir, ec);
-				}
-			}
-		}
-	}, rgb_data, save_screenshot, width, height, mainWindow).detach();
-
-#else
-cemuLog_log(LogType::Force, "Screenshot feature not implemented");
+	// on Windows wxWidgets uses OLE API for the clipboard
+	// to make this work we need to call OleInitialize() on the same thread
+	OleInitialize(nullptr);
 #endif
+	
+	wxImage image(width, height, data.data(), true);
+
+	if (mainWindow)
+	{
+		if(SaveScreenshotToClipboard(image))
+		{
+			if (!save_screenshot)
+				LatteOverlay_pushNotification("Screenshot saved to clipboard", 2500);
+		}
+		else
+		{
+			LatteOverlay_pushNotification("Failed to open clipboard", 2500);
+		}
+	}
+
+	if (save_screenshot)
+	{
+		if (SaveScreenshotToFile(image, mainWindow))
+		{
+			if (mainWindow)
+				LatteOverlay_pushNotification("Screenshot saved", 2500);
+		}
+		else
+		{
+			LatteOverlay_pushNotification("Failed to save screenshot to file", 2500);
+		}
+	}
+}
+
+void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const
+{
+	const bool save_screenshot = GetConfig().save_screenshot;
+	std::thread(ScreenshotThread, rgb_data, save_screenshot, width, height, mainWindow).detach();
 }

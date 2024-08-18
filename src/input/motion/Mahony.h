@@ -33,7 +33,7 @@ public:
 		if (fabs(gv.z) < 0.015f)
 			gv.z = 0.0f;
 
-		// forceLogDebug_printf("[IMU Quat] time %7.4lf | %7.2lf %7.2lf %7.2lf %7.2lf | gyro( - bias) %7.4lf %7.4lf %7.4lf | acc %7.2lf %7.2lf %7.2lf | GyroBias %7.4lf %7.4lf %7.4lf", deltaTime, m_imuQ.x, m_imuQ.y, m_imuQ.z, m_imuQ.w, gv.x, gv.y, gv.z, ax, ay, az, m_gyroBias[0], m_gyroBias[1], m_gyroBias[2]);
+		// cemuLog_logDebug(LogType::Force, "[IMU Quat] time {:7.4} | {:7.2} {:7.2} {:7.2} {:7.2} | gyro( - bias) {:7.4} {:7.4} {:7.4} | acc {:7.2} {:7.2} {:7.2} | GyroBias {:7.4} {:7.4} {:7.4}", deltaTime, m_imuQ.x, m_imuQ.y, m_imuQ.z, m_imuQ.w, gv.x, gv.y, gv.z, ax, ay, az, m_gyroBias[0], m_gyroBias[1], m_gyroBias[2]);
 
 		if (fabs(av.x) > 0.000001f || fabs(av.y) > 0.000001f || fabs(av.z) > 0.000001f)
 		{

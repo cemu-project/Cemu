@@ -25,6 +25,8 @@ struct LatteGPUState_t
 	// context control
 	uint32 contextControl0;
 	uint32 contextControl1;
+	// optional features
+	bool allowFramebufferSizeOptimization{false}; // allow using scissor box as size hint to determine non-padded rendertarget size
 	// draw context
 	struct  
 	{
@@ -50,6 +52,7 @@ struct LatteGPUState_t
 	uint32 gx2InitCalled; // incremented every time GX2Init() is called
 	// OpenGL control
 	uint32 glVendor; // GLVENDOR_*
+	bool alwaysDisplayDRC = false;
 	// temporary (replace with proper solution later)
 	bool tvBufferUsesSRGB;
 	bool drcBufferUsesSRGB;
@@ -64,8 +67,8 @@ struct LatteGPUState_t
 		{
 			bool isEnabled;
 			MPTR physPtr;
-			volatile uint32 flipRequestCount;
-			volatile uint32 flipExecuteCount;
+			std::atomic<uint32> flipRequestCount;
+			std::atomic<uint32> flipExecuteCount;
 		}screen[2];
 	}osScreen;
 };
@@ -83,6 +86,10 @@ extern uint8* gxRingBufferReadPtr; // currently active read pointer (gx2 ring bu
 void LatteTextureLoader_estimateAccessedDataRange(LatteTexture* texture, sint32 sliceIndex, sint32 mipIndex, uint32& addrStart, uint32& addrEnd);
 
 // render target
+
+#define RENDER_TARGET_TV (1 << 0)
+#define RENDER_TARGET_DRC (1 << 2)
+
 void LatteRenderTarget_updateScissorBox();
 
 void LatteRenderTarget_trackUpdates();
@@ -93,7 +100,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 void LatteRenderTarget_GetCurrentVirtualViewportSize(sint32* viewportWidth, sint32* viewportHeight);
 
 void LatteRenderTarget_itHLESwapScanBuffer();
-void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorBufferMPTR, MPTR colorBufferFormat, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferPitch, uint32 colorBufferViewFirstSlice, uint32 colorBufferViewNumSlice, MPTR depthBufferMPTR, MPTR depthBufferFormat, Latte::E_HWTILEMODE depthBufferTileMode, sint32 depthBufferWidth, sint32 depthBufferHeight, sint32 depthBufferPitch, sint32 depthBufferViewFirstSlice, sint32 depthBufferViewNumSlice, float r, float g, float b, float a, float clearDepth, uint32 clearStencil);
+void LatteRenderTarget_itHLEClearColorDepthStencil(uint32 clearMask, MPTR colorBufferMPTR, Latte::E_GX2SURFFMT colorBufferFormat, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferPitch, uint32 colorBufferViewFirstSlice, uint32 colorBufferViewNumSlice, MPTR depthBufferMPTR, Latte::E_GX2SURFFMT depthBufferFormat, Latte::E_HWTILEMODE depthBufferTileMode, sint32 depthBufferWidth, sint32 depthBufferHeight, sint32 depthBufferPitch, sint32 depthBufferViewFirstSlice, sint32 depthBufferViewNumSlice, float r, float g, float b, float a, float clearDepth, uint32 clearStencil);
 void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uint32 colorBufferWidth, uint32 colorBufferHeight, uint32 colorBufferSliceIndex, uint32 colorBufferFormat, uint32 colorBufferPitch, Latte::E_HWTILEMODE colorBufferTilemode, uint32 colorBufferSwizzle, uint32 renderTarget);
 
 void LatteRenderTarget_unloadAll();
@@ -110,7 +117,7 @@ void LatteTC_RegisterTexture(LatteTexture* tex);
 void LatteTC_UnregisterTexture(LatteTexture* tex);
 
 uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture);
-void LatteTexture_ReloadData(LatteTexture* hostTexture, uint32 textureUnit);
+void LatteTexture_ReloadData(LatteTexture* hostTexture);
 
 bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force = false);
 void LatteTC_ResetTextureChangeTracker(LatteTexture* hostTexture, bool force = false);
@@ -162,7 +169,7 @@ void LatteBufferCache_LoadRemappedUniforms(struct LatteDecompilerShader* shader,
 
 void LatteRenderTarget_updateViewport();
 
-#define LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE	(1024) // maximum size for uniform blocks (in vec4s). On Nvidia hardware 4096 is the maximum (64K / 16 = 4096) all other vendors have much higher limits
+#define LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE	(4096) // maximum size for uniform blocks (in vec4s). On Nvidia hardware 4096 is the maximum (64K / 16 = 4096) all other vendors have much higher limits
 
 //static uint32 glTempError;
 //#define catchOpenGLError() glFinish(); if( (glTempError = glGetError()) != 0 ) { printf("OpenGL error 0x%x: %s : %d timestamp %08x\n", glTempError, __FILE__, __LINE__, GetTickCount()); __debugbreak(); }
@@ -172,4 +179,5 @@ void LatteRenderTarget_updateViewport();
 // Latte emulation control
 void Latte_Start();
 void Latte_Stop();
-bool Latte_IsActive();
+bool Latte_GetStopSignal(); // returns true if stop was requested or if in stopped state
+void LatteThread_Exit();

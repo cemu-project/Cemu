@@ -65,7 +65,7 @@ bool DownloadGraphicPacksWindow::curlDownloadFile(const char *url, curlDownloadF
 bool checkGraphicPackDownloadedVersion(const char* nameVersion, bool& hasVersionFile)
 {
 	hasVersionFile = false;
-	const auto path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks/version.txt");
+	const auto path = ActiveSettings::GetUserDataPath("graphicPacks/downloadedGraphicPacks/version.txt");
 	std::unique_ptr<FileStream> file(FileStream::openFile2(path));
 
 	std::string versionInFile;
@@ -78,19 +78,19 @@ bool checkGraphicPackDownloadedVersion(const char* nameVersion, bool& hasVersion
 
 void createGraphicPackDownloadedVersionFile(const char* nameVersion)
 {
-	const auto path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks/version.txt");
+	const auto path = ActiveSettings::GetUserDataPath("graphicPacks/downloadedGraphicPacks/version.txt");
 	std::unique_ptr<FileStream> file(FileStream::createFile2(path));
 	if (file)
 		file->writeString(nameVersion);
 	else
 	{
-		cemuLog_force("Failed to write graphic pack version.txt");
+		cemuLog_log(LogType::Force, "Failed to write graphic pack version.txt");
 	}
 }
 
 void deleteDownloadedGraphicPacks()
 {
-	const auto path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks");
+	const auto path = ActiveSettings::GetUserDataPath("graphicPacks/downloadedGraphicPacks");
 	std::error_code er;
 	if (!fs::exists(path, er))
 		return;
@@ -110,14 +110,6 @@ void deleteDownloadedGraphicPacks()
 
 void DownloadGraphicPacksWindow::UpdateThread()
 {
-	if (CafeSystem::IsTitleRunning())
-	{
-		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
-		// cancel update
-		m_threadState = ThreadFinished;
-		return;
-	}
-	
 	// get github url
 	std::string githubAPIUrl;
 	curlDownloadFileState_t tempDownloadState;
@@ -136,8 +128,8 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	else
 	{
 		// cemu api request failed, use hardcoded github url
-		forceLog_printf("Graphic pack update request failed or returned invalid URL. Using default repository URL instead");
-		githubAPIUrl = "https://api.github.com/repos/slashiee/cemu_graphic_packs/releases/latest";
+		cemuLog_log(LogType::Force, "Graphic pack update request failed or returned invalid URL. Using default repository URL instead");
+		githubAPIUrl = "https://api.github.com/repos/cemu-project/cemu_graphic_packs/releases/latest";
 	}
 	// github API request
 	if (curlDownloadFile(githubAPIUrl.c_str(), &tempDownloadState) == false)
@@ -238,7 +230,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 		return;
 	}
 
-	auto path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks");
+	auto path = ActiveSettings::GetUserDataPath("graphicPacks/downloadedGraphicPacks");
 	std::error_code er;
 	//fs::remove_all(path, er); -> Don't delete the whole folder and recreate it immediately afterwards because sometimes it just fails
 	deleteDownloadedGraphicPacks();
@@ -258,7 +250,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 			std::strstr(sb.name, "..\\") != nullptr)
 			continue; // bad path
 
-		path = ActiveSettings::GetPath("graphicPacks/downloadedGraphicPacks/{}", sb.name);
+		path = ActiveSettings::GetUserDataPath("graphicPacks/downloadedGraphicPacks/{}", sb.name);
 
 		size_t sbNameLen = strlen(sb.name);
 		if(sbNameLen == 0)
@@ -326,8 +318,6 @@ DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
 
 
 	m_downloadState = std::make_unique<curlDownloadFileState_t>();
-
-	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
 }
 
 DownloadGraphicPacksWindow::~DownloadGraphicPacksWindow()
@@ -344,6 +334,12 @@ const std::string& DownloadGraphicPacksWindow::GetException() const
 
 int DownloadGraphicPacksWindow::ShowModal()
 {
+	if(CafeSystem::IsTitleRunning())
+	{
+		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
+		return wxID_CANCEL;
+	}
+	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
 	wxDialog::ShowModal();
 	return m_threadState == ThreadCanceled ? wxID_CANCEL : wxID_OK;
 }

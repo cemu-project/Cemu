@@ -159,7 +159,7 @@ ControllerProviderPtr ControllerFactory::CreateControllerProvider(InputAPI::Type
 			}
 			catch (const std::bad_cast&)
 			{
-				cemuLog_force("failing to cast ControllerProviderSettings class to DSUControllerProvider");
+				cemuLog_log(LogType::Force, "failing to cast ControllerProviderSettings class to DSUControllerProvider");
 				return std::make_shared<DSUControllerProvider>();
 			}
 		}

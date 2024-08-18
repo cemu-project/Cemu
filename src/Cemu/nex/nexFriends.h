@@ -7,10 +7,7 @@
 class nexGameKey : public nexType
 {
 public:
-	nexGameKey()
-	{
-
-	}
+	nexGameKey() = default;
 
 	nexGameKey(uint64 titleId, uint16 ukn)
 	{
@@ -175,10 +172,9 @@ public:
 	}
 
 	nexPrincipalBasicInfo(uint32 principalId, char* nnid, const nexMiiV2& mii)
+		: principalId(principalId), mii(mii)
 	{
-		this->principalId = principalId;
 		strcpy(this->nnid, nnid);
-		this->mii = mii;
 	}
 
 	nexPrincipalBasicInfo(nexPacketBuffer* pb)
@@ -218,10 +214,8 @@ public:
 	}
 
 	nexNNAInfo(uint8 countryCode, uint8 countrySubCode, const nexPrincipalBasicInfo& principalBasicInfo)
+		: countryCode(countryCode), countrySubCode(countrySubCode), principalInfo(principalBasicInfo)
 	{
-		this->countryCode = countryCode;
-		this->countrySubCode = countrySubCode;
-		this->principalInfo = principalBasicInfo;
 	}
 
 	nexNNAInfo(nexPacketBuffer* pb)
@@ -250,16 +244,13 @@ public:
 class nexPrincipalPreference : public nexType
 {
 public:
-	nexPrincipalPreference()
-	{
-
-	}
+	nexPrincipalPreference() = default;
 
 	nexPrincipalPreference(uint8 ukn0, uint8 ukn1, uint8 ukn2)
 	{
-		this->ukn0 = ukn0;
-		this->ukn1 = ukn1;
-		this->ukn2 = ukn2;
+		this->showOnline = ukn0;
+		this->showGame = ukn1;
+		this->blockFriendRequests = ukn2;
 	}
 
 	nexPrincipalPreference(nexPacketBuffer* pb)
@@ -269,21 +260,21 @@ public:
 
 	void writeData(nexPacketBuffer* pb) const override
 	{
-		pb->writeU8(ukn0);
-		pb->writeU8(ukn1);
-		pb->writeU8(ukn2);
+		pb->writeU8(showOnline);
+		pb->writeU8(showGame);
+		pb->writeU8(blockFriendRequests);
 	}
 	
 	void readData(nexPacketBuffer* pb) override
 	{
-		ukn0 = pb->readU8();
-		ukn1 = pb->readU8();
-		ukn2 = pb->readU8();
+		showOnline = pb->readU8();
+		showGame = pb->readU8();
+		blockFriendRequests = pb->readU8();
 	}
 public:
-	uint8 ukn0;
-	uint8 ukn1;
-	uint8 ukn2;
+	uint8 showOnline;
+	uint8 showGame;
+	uint8 blockFriendRequests;
 };
 
 class nexComment : public nexType
@@ -440,7 +431,7 @@ public:
 	{
 		nnaInfo.readData(pb);
 		presence.readData(pb);
-		gameModeMessage.readData(pb);
+		comment.readData(pb);
 		friendsSinceTimestamp = pb->readU64();
 		lastOnlineTimestamp = pb->readU64();
 		ukn6 = pb->readU64();
@@ -448,7 +439,7 @@ public:
 public:
 	nexNNAInfo		nnaInfo;
 	nexPresenceV2	presence;
-	nexComment		gameModeMessage;
+	nexComment		comment;
 	uint64			friendsSinceTimestamp;
 	uint64			lastOnlineTimestamp;
 	uint64			ukn6;
@@ -514,13 +505,12 @@ public:
 	uint32		type;
 	std::string	msg;
 };
-class NexFriends;
-
-typedef void (*NEXFRIENDS_CALLBACK)(NexFriends* nexFriends, uint32 result, void* custom);
 
 class NexFriends
 {
 public:
+  	using RpcErrorCode = int; // replace with enum class later
+
 	static const int ERR_NONE = 0;
 	static const int ERR_RPC_FAILED = 1;
 	static const int ERR_UNEXPECTED_RESULT = 2;
@@ -553,27 +543,29 @@ public:
 	int getPendingFriendRequestCount();
 
 	bool requestGetAllInformation();
-	bool requestGetAllInformation(std::function<void(uint32)> cb);
 	bool addProvisionalFriendByPidGuessed(uint32 principalId);
-	void acceptFriendRequest(uint64 messageId, std::function<void(uint32)> cb);
-	bool isOnline();
 
+	// synchronous API (returns immediately)
+	bool requestGetAllInformation(std::function<void(uint32)> cb);
 	void getFriendPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count, bool includeFriendRequests);
 	void getFriendRequestPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count, bool includeIncoming, bool includeOutgoing);
 	bool getFriendByPID(nexFriend& friendData, uint32 pid);
 	bool getFriendRequestByPID(nexFriendRequest& friendRequestData, bool* isIncoming, uint32 searchedPid);
 	bool getFriendRequestByMessageId(nexFriendRequest& friendRequestData, bool* isIncoming, uint64 messageId);
+	bool isOnline();
+	void getMyPreference(nexPrincipalPreference& preference);
 
-	bool addProvisionalFriend(char* name, std::function<void(uint32)> cb);
-	void addFriendRequest(uint32 pid, const char* comment, std::function<void(uint32)> cb);
-
-	void requestPrincipleBaseInfoByPID(nexPrincipalBasicInfo* basicInfo, uint32* pidList, sint32 count, NEXFRIENDS_CALLBACK cb, void* customParam);
-	void removeFriend(uint32 pid, std::function<void(uint32)> cb);
-	void cancelOutgoingProvisionalFriendRequest(uint32 pid, std::function<void(uint32)> cb);
-	void markFriendRequestsAsReceived(uint64* messageIdList, sint32 count, std::function<void(uint32)> cb);
-
+	// asynchronous API (data has to be requested)
+	bool addProvisionalFriend(char* name, std::function<void(RpcErrorCode)> cb);
+	void addFriendRequest(uint32 pid, const char* comment, std::function<void(RpcErrorCode)> cb);
+	void requestPrincipleBaseInfoByPID(uint32* pidList, sint32 count, const std::function<void(RpcErrorCode result, std::span<nexPrincipalBasicInfo> basicInfo)>& cb);
+	void removeFriend(uint32 pid, std::function<void(RpcErrorCode)> cb);
+	void cancelOutgoingProvisionalFriendRequest(uint32 pid, std::function<void(RpcErrorCode)> cb);
+	void markFriendRequestsAsReceived(uint64* messageIdList, sint32 count, std::function<void(RpcErrorCode)> cb);
+	void acceptFriendRequest(uint64 messageId, std::function<void(RpcErrorCode)> cb);
+	void deleteFriendRequest(uint64 messageId, std::function<void(RpcErrorCode)> cb); // rejecting incoming friend request (differs from blocking friend requests)
+	bool updatePreferencesAsync(const nexPrincipalPreference newPreferences, std::function<void(RpcErrorCode)> cb);
 	void updateMyPresence(nexPresenceV2& myPresence);
-	bool updatePreferences(const nexPrincipalPreference& newPreferences);
 
 	void setNotificationHandler(void(*notificationHandler)(NOTIFICATION_TYPE notificationType, uint32 pid));
 
@@ -587,7 +579,6 @@ private:
 
 	static void handleResponse_acceptFriendRequest(nexService* nex, nexServiceResponse_t* response);
 	static void handleResponse_getAllInformation(nexServiceResponse_t* response, NexFriends* nexFriends, std::function<void(uint32)> cb);
-	static void handleResponse_updatePreferences(nexServiceResponse_t* response, NexFriends* nexFriends, std::function<void(uint32)> cb);
 
 	void generateNotification(NOTIFICATION_TYPE notificationType, uint32 pid);
 	void trackNotifications();
@@ -627,6 +618,7 @@ private:
 	}auth;
 	// local friend state
 	nexPresenceV2 myPresence;
+	nexPrincipalPreference myPreference;
 
 	std::recursive_mutex mtx_lists;
 	std::vector<nexFriend> list_friends;

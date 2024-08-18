@@ -8,11 +8,9 @@
 #include "openssl/x509.h"
 #include "openssl/ssl.h"
 #include "util/helpers/helpers.h"
-
-#include <thread>
-
 #include "Cemu/napi/napi.h"
 #include "Cemu/ncrypto/ncrypto.h"
+#include "Cafe/CafeSystem.h"
 
 namespace iosu
 {
@@ -47,6 +45,13 @@ namespace iosu
 			bool backgroundThreadStarted;
 		} g_nim = {};
 
+		bool nim_CheckDownloadsDisabled()
+		{
+			// currently for the Wii U menu we disable NIM to speed up boot times
+			uint64 tid = CafeSystem::GetForegroundTitleId();
+			return tid == 0x0005001010040000 || tid == 0x0005001010040100 || tid == 0x0005001010040200;
+		}
+
 		bool nim_getLatestVersion()
 		{
 			g_nim.latestVersion = -1;
@@ -58,7 +63,7 @@ namespace iosu
 				return false;
 			if (versionListVersionResult.fqdnURL.size() >= 256)
 			{
-				cemuLog_force("NIM: fqdn URL too long");
+				cemuLog_log(LogType::Force, "NIM: fqdn URL too long");
 				return false;
 			}
 			g_nim.latestVersion = (sint32)versionListVersionResult.version;
@@ -101,6 +106,13 @@ namespace iosu
 
 		void nim_buildDownloadList()
 		{
+			if(nim_CheckDownloadsDisabled())
+			{
+				cemuLog_logDebug(LogType::Force, "nim_buildDownloadList: Downloads are disabled for this title");
+				g_nim.packages.clear();
+				return;
+			}
+
 			sint32 titleCount = mcpGetTitleCount();
 			MCPTitleInfo* titleList = (MCPTitleInfo*)malloc(titleCount * sizeof(MCPTitleInfo));
 			memset(titleList, 0, titleCount * sizeof(MCPTitleInfo));
@@ -108,7 +120,7 @@ namespace iosu
 			uint32be titleCountBE = titleCount;
 			if (mcpGetTitleList(titleList, titleCount * sizeof(MCPTitleInfo), &titleCountBE) != 0)
 			{
-				forceLog_printf("IOSU: nim failed to acquire title list");
+				cemuLog_log(LogType::Force, "IOSU: nim failed to acquire title list");
 				free(titleList);
 				return;
 			}
@@ -141,6 +153,8 @@ namespace iosu
 		void nim_getPackagesInfo(uint64* titleIdList, sint32 count, titlePackageInfo_t* packageInfoList)
 		{
 			memset(packageInfoList, 0, sizeof(titlePackageInfo_t)*count);
+			if(nim_CheckDownloadsDisabled())
+				return;
 			for (sint32 i = 0; i < count; i++)
 			{
 				uint64 titleId = _swapEndianU64(titleIdList[i]);
@@ -214,11 +228,11 @@ namespace iosu
 				}
 			}
 
-			auto result = NAPI::IDBE_Request(titleId);
+			auto result = NAPI::IDBE_Request(ActiveSettings::GetNetworkService(), titleId);
 			if (!result)
 			{
 				memset(idbeIconOutput, 0, sizeof(NAPI::IDBEIconDataV0));
-				forceLog_printf("NIM: Unable to download IDBE icon");
+				cemuLog_log(LogType::Force, "NIM: Unable to download IDBE icon");
 				return 0;
 			}
 			// add new cache entry
@@ -249,7 +263,7 @@ namespace iosu
 		{
 			if (g_nim.backgroundThreadStarted == false)
 			{
-				forceLog_printf("IOSU: Starting nim background thread");
+				cemuLog_log(LogType::Force, "IOSU: Starting nim background thread");
 				std::thread t(nim_backgroundThread);
 				t.detach();
 				g_nim.backgroundThreadStarted = true;

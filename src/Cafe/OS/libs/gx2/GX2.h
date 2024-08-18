@@ -7,11 +7,6 @@
 #define GX2_ENABLE	1
 #define GX2_DISABLE	0
 
-// tex unit base for render backends
-#define CEMU_PS_TEX_UNIT_BASE	0
-#define CEMU_VS_TEX_UNIT_BASE	32
-#define CEMU_GS_TEX_UNIT_BASE	64
-
 #include "GX2_Surface.h"
 
 // general
@@ -20,20 +15,12 @@ void gx2_load();
 
 // shader
 
-void gx2Export_GX2SetFetchShader(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetVertexShaderGPRs(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetVertexShaderStackEntries(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetPixelShaderGPRs(PPCInterpreter_t* hCPU);
-void gx2Export_GX2GetPixelShaderStackEntries(PPCInterpreter_t* hCPU);
-void gx2Export_GX2SetVertexShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetPixelShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetGeometryShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetComputeShader(PPCInterpreter_t* hCPU);
-void gx2Export_GX2SetVertexUniformReg(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetVertexUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2RSetVertexUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetPixelUniformBlock(PPCInterpreter_t* hCPU);
-void gx2Export_GX2SetPixelUniformReg(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetGeometryUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetShaderModeEx(PPCInterpreter_t* hCPU);
 void gx2Export_GX2CalcGeometryShaderInputRingBufferSize(PPCInterpreter_t* hCPU);

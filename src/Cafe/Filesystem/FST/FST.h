@@ -11,7 +11,13 @@ private:
 struct FSTDirectoryIterator
 {
 	friend class FSTVolume;
+
+	const FSTFileHandle& GetDirHandle() const
+	{
+		return dirHandle;
+	}
 private:
+    FSTFileHandle dirHandle;
 	uint32 startIndex;
 	uint32 endIndex;
 	uint32 currentIndex;
@@ -20,11 +26,21 @@ private:
 class FSTVolume
 {
 public:
+	enum class ErrorCode
+  	{
+		OK = 0,
+		UNKNOWN_ERROR = 1,
+	  	DISC_KEY_MISSING = 2,
+	  	TITLE_TIK_MISSING = 3,
+	    BAD_TITLE_TMD = 4,
+	    BAD_TITLE_TIK = 5,
+  	};
+
 	static bool FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey);
 
-	static FSTVolume* OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey);
-	static FSTVolume* OpenFromDiscImage(const fs::path& path, bool* keyFound = nullptr);
-	static FSTVolume* OpenFromContentFolder(fs::path folderPath);
+	static FSTVolume* OpenFromDiscImage(const fs::path& path, NCrypto::AesKey& discTitleKey, ErrorCode* errorCodeOut = nullptr);
+	static FSTVolume* OpenFromDiscImage(const fs::path& path, ErrorCode* errorCodeOut = nullptr);
+	static FSTVolume* OpenFromContentFolder(fs::path folderPath, ErrorCode* errorCodeOut = nullptr);
 
 	~FSTVolume();
 
@@ -33,15 +49,15 @@ public:
 	bool OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bool openOnlyFiles = false);
 
 	// file and directory functions
-	bool IsDirectory(FSTFileHandle& fileHandle) const;
-	bool IsFile(FSTFileHandle& fileHandle) const;
-	bool HasLinkFlag(FSTFileHandle& fileHandle) const;
+	bool IsDirectory(const FSTFileHandle& fileHandle) const;
+	bool IsFile(const FSTFileHandle& fileHandle) const;
+	bool HasLinkFlag(const FSTFileHandle& fileHandle) const;
 
-	std::string_view GetName(FSTFileHandle& fileHandle) const;
-	std::string GetPath(FSTFileHandle& fileHandle) const;
+	std::string_view GetName(const FSTFileHandle& fileHandle) const;
+	std::string GetPath(const FSTFileHandle& fileHandle) const;
 
 	// file functions
-	uint32 GetFileSize(FSTFileHandle& fileHandle) const;
+	uint32 GetFileSize(const FSTFileHandle& fileHandle) const;
 	uint32 ReadFile(FSTFileHandle& fileHandle, uint32 offset, uint32 size, void* dataOut);
 
 	// directory iterator

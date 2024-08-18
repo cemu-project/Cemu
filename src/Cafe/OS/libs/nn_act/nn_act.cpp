@@ -5,6 +5,7 @@
 #include "nn_act.h"
 #include "Cafe/OS/libs/nn_common.h"
 #include "Cafe/CafeSystem.h"
+#include "Common/CafeString.h"
 
 sint32 numAccounts = 1;
 
@@ -95,6 +96,60 @@ namespace act
 			return result;
 		}
 
+		uint32 GetTransferableIdEx(uint64* transferableId, uint32 unique, uint8 slot)
+		{
+			actPrepareRequest2();
+			actRequest->requestCode = IOSU_ARC_TRANSFERABLEID;
+			actRequest->accountSlot = slot;
+			actRequest->unique = unique;
+
+			uint32 result = _doCemuActRequest(actRequest);
+
+			*transferableId = _swapEndianU64(actRequest->resultU64.u64);
+
+			return result;
+		}
+
+		uint32 AcquireIndependentServiceToken(independentServiceToken_t* token, const char* clientId, uint32 cacheDurationInSeconds)
+		{
+			memset(token, 0, sizeof(independentServiceToken_t));
+			actPrepareRequest();
+			actRequest->accountSlot = iosu::act::ACT_SLOT_CURRENT;
+			actRequest->requestCode = IOSU_ARC_ACQUIREINDEPENDENTTOKEN;
+			actRequest->titleId = CafeSystem::GetForegroundTitleId();
+			actRequest->titleVersion = CafeSystem::GetForegroundTitleVersion();
+			actRequest->expiresIn = cacheDurationInSeconds;
+			strcpy(actRequest->clientId, clientId);
+
+			uint32 resultCode = __depr__IOS_Ioctlv(IOS_DEVICE_ACT, IOSU_ACT_REQUEST_CEMU, 1, 1, actBufferVector);
+
+			memcpy(token, actRequest->resultBinary.binBuffer, sizeof(independentServiceToken_t));
+			return getNNReturnCode(resultCode, actRequest);
+		}
+
+		sint64 GetUtcOffset()
+		{
+			return ((ppcCyclesSince2000 / ESPRESSO_CORE_CLOCK) - (ppcCyclesSince2000_UTC / ESPRESSO_CORE_CLOCK)) * 1'000'000;
+		}
+
+		sint32 GetUtcOffsetEx(sint64be* pOutOffset, uint8 slotNo)
+		{
+
+			if (!pOutOffset)
+				return 0xc0712c80;
+
+			*pOutOffset = GetUtcOffset();
+			return 0;
+		}
+
+		nnResult GetTimeZoneId(CafeString<65>* outTimezoneId)
+		{
+			// return a placeholder timezone id for now
+			// in the future we should emulated this correctly and read the timezone from the account via IOSU
+			outTimezoneId->assign("Europe/London");
+			return 0;
+		}
+
 		sint32 g_initializeCount = 0; // inc in Initialize and dec in Finalize
 		uint32 Initialize()
 		{
@@ -117,27 +172,26 @@ namespace act
 			NN_ERROR_CODE errCode = NNResultToErrorCode(*nnResult, NN_RESULT_MODULE_NN_ACT);
 			return errCode;
 		}
-
 	}
 }
 
 
 void nnActExport_CreateConsoleAccount(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("CreateConsoleAccount(...) LR %08x", hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "CreateConsoleAccount(...)");
 	//numAccounts++;
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void nnActExport_GetNumOfAccounts(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetNumOfAccounts()\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetNumOfAccounts()");
 	osLib_returnFromFunction(hCPU, numAccounts); // account count
 }
 
 void nnActExport_IsSlotOccupied(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.IsSlotOccupied(%d)\n", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsSlotOccupied({})", hCPU->gpr[3]);
 	ppcDefineParamU8(slot, 0);
 	
 	osLib_returnFromFunction(hCPU, nn::act::GetPersistentIdEx(slot) != 0 ? 1 : 0);
@@ -170,21 +224,6 @@ uint32 GetPrincipalIdEx(uint32be* principalId, uint8 slot)
 	return result;
 }
 
-
-uint32 GetTransferableIdEx(uint64* transferableId, uint32 unique, uint8 slot)
-{
-	actPrepareRequest2();
-	actRequest->requestCode = IOSU_ARC_TRANSFERABLEID;
-	actRequest->accountSlot = slot;
-	actRequest->unique = unique;
-
-	uint32 result = _doCemuActRequest(actRequest);
-
-	*transferableId = _swapEndianU64(actRequest->resultU64.u64);
-
-	return result;
-}
-
 uint32 GetCountryEx(char* country, uint8 slot)
 {
 	actPrepareRequest2();
@@ -213,7 +252,7 @@ uint32 IsNetworkAccount(uint8* isNetworkAccount, uint8 slot)
 
 void nnActExport_IsNetworkAccount(PPCInterpreter_t* hCPU)
 {
-	//forceLogDebug_printf("nn_act.IsNetworkAccount()\n");
+	//cemuLog_logDebug(LogType::Force, "nn_act.IsNetworkAccount()");
 	uint8 isNetAcc = 0;
 	IsNetworkAccount(&isNetAcc, 0xFE);
 	osLib_returnFromFunction(hCPU, isNetAcc);
@@ -222,7 +261,7 @@ void nnActExport_IsNetworkAccount(PPCInterpreter_t* hCPU)
 void nnActExport_IsNetworkAccountEx(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU8(slot, 0);
-	forceLogDebug_printf("nn_act.IsNetworkAccountEx(%d)\n", slot);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsNetworkAccountEx({})", slot);
 	uint8 isNetAcc = 0;
 	IsNetworkAccount(&isNetAcc, slot);
 	osLib_returnFromFunction(hCPU, isNetAcc);
@@ -230,7 +269,7 @@ void nnActExport_IsNetworkAccountEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetSimpleAddressId(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetSimpleAddressId()\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSimpleAddressId()");
 
 	uint32be simpleAddressId;
 	nn::act::GetSimpleAddressIdEx(&simpleAddressId, iosu::act::ACT_SLOT_CURRENT);
@@ -240,7 +279,7 @@ void nnActExport_GetSimpleAddressId(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetSimpleAddressIdEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetSimpleAddressIdEx(0x%08x, %d)\n", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSimpleAddressIdEx(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
 
 	ppcDefineParamU32BEPtr(simpleAddressId, 0);
 	ppcDefineParamU8(slot, 1);
@@ -253,7 +292,6 @@ void nnActExport_GetSimpleAddressIdEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetPrincipalId(PPCInterpreter_t* hCPU)
 {
 	// return error for non-nnid accounts?
-	forceLogDebug_printf("nn_act.GetPrincipalId()\n");
 	uint32be principalId;
 	GetPrincipalIdEx(&principalId, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, (uint32)principalId);
@@ -262,12 +300,28 @@ void nnActExport_GetPrincipalId(PPCInterpreter_t* hCPU)
 void nnActExport_GetPrincipalIdEx(PPCInterpreter_t* hCPU)
 {
 	// return error for non-nnid accounts?
-	forceLogDebug_printf("nn_act.GetPrincipalIdEx(0x%08x, %d)\n", hCPU->gpr[3], hCPU->gpr[4]&0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPrincipalIdEx(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4]&0xFF);
 	ppcDefineParamU32BEPtr(principalId, 0);
 	ppcDefineParamU8(slot, 1);
 	GetPrincipalIdEx(principalId, slot);
 	
 	osLib_returnFromFunction(hCPU, 0); // ResultSuccess
+}
+
+void nnActExport_GetTransferableId(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(unique, 0);
+
+	cemuLog_logDebug(LogType::Force, "nn_act.GetTransferableId(0x{:08x})", hCPU->gpr[3]);
+
+	uint64 transferableId;
+	uint32 r = nn::act::GetTransferableIdEx(&transferableId, unique, iosu::act::ACT_SLOT_CURRENT);
+	if (NN_RESULT_IS_FAILURE(r))
+	{
+		transferableId = 0;
+	}
+
+	osLib_returnFromFunction64(hCPU, _swapEndianU64(transferableId));
 }
 
 void nnActExport_GetTransferableIdEx(PPCInterpreter_t* hCPU)
@@ -276,16 +330,16 @@ void nnActExport_GetTransferableIdEx(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(unique, 1);
 	ppcDefineParamU8(slot, 2);
 
-	forceLogDebug_printf("nn_act.GetTransferableIdEx(0x%08x, 0x%08x, %d)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetTransferableIdEx(0x{:08x}, 0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5] & 0xFF);
 	
-	uint32 r = GetTransferableIdEx(transferableId, unique, slot);
+	uint32 r = nn::act::GetTransferableIdEx(transferableId, unique, slot);
 
 	osLib_returnFromFunction(hCPU, 0); // ResultSuccess
 }
 
 void nnActExport_GetPersistentId(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetPersistentId()");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPersistentId()");
 	uint32 persistentId = nn::act::GetPersistentIdEx(iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, persistentId);
 }
@@ -293,7 +347,7 @@ void nnActExport_GetPersistentId(PPCInterpreter_t* hCPU)
 void nnActExport_GetPersistentIdEx(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamU8(slot, 0);
-	forceLogDebug_printf("nn_act.GetPersistentIdEx(%d)", slot);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetPersistentIdEx({})", slot);
 
 	uint32 persistentId = nn::act::GetPersistentIdEx(slot);
 
@@ -302,7 +356,7 @@ void nnActExport_GetPersistentIdEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetCountry(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetCountry(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetCountry(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamStr(country, 0);
 	uint32 r = GetCountryEx(country, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, r);
@@ -311,7 +365,7 @@ void nnActExport_GetCountry(PPCInterpreter_t* hCPU)
 bool g_isParentalControlCheckEnabled = false;
 void nnActExport_EnableParentalControlCheck(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.EnableParentalControlCheck(%d)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.EnableParentalControlCheck({})", hCPU->gpr[3]);
 	ppcDefineParamU8(isEnabled, 0);
 	g_isParentalControlCheckEnabled = isEnabled != 0;
 	osLib_returnFromFunction(hCPU, 0);
@@ -319,13 +373,13 @@ void nnActExport_EnableParentalControlCheck(PPCInterpreter_t* hCPU)
 
 void nnActExport_IsParentalControlCheckEnabled(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.IsParentalControlCheckEnabled() -> %d", g_isParentalControlCheckEnabled);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsParentalControlCheckEnabled() -> {}", g_isParentalControlCheckEnabled);
 	osLib_returnFromFunction(hCPU, g_isParentalControlCheckEnabled);
 }
 
 void nnActExport_GetHostServerSettings(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetHostServerSettings() - stub");
+	cemuLog_logDebug(LogType::Force, "GetHostServerSettings() - stub");
 	ppcDefineParamStr(ukn, 1);
 	strcpy(ukn, "");
 	osLib_returnFromFunction(hCPU, 0x00000000);
@@ -333,7 +387,7 @@ void nnActExport_GetHostServerSettings(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMii(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetMii(...)\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetMii(...)");
 	ppcDefineParamUStr(miiData, 0);
 	uint32 r = nn::act::GetMiiEx(miiData, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, r);
@@ -341,7 +395,7 @@ void nnActExport_GetMii(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetMiiEx(...)\n");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetMiiEx(...)");
 	ppcDefineParamUStr(miiData, 0);
 	ppcDefineParamU8(slot, 1);
 	uint32 r = nn::act::GetMiiEx(miiData, slot);
@@ -350,19 +404,19 @@ void nnActExport_GetMiiEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiImageEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetMiiImageEx unimplemented LR %08x", hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "GetMiiImageEx unimplemented");
 
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetMiiName(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "GetMiiName(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamWStrBE(miiName, 0);
 
 	StackAllocator<FFLData_t> miiData;
 
-	uint32 r = nn::act::GetMiiEx(miiData, iosu::act::ACT_SLOT_CURRENT);
+	uint32 r = nn::act::GetMiiEx(&miiData, iosu::act::ACT_SLOT_CURRENT);
 	// extract name
 	sint32 miiNameLength = 0;
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)
@@ -379,13 +433,13 @@ void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetMiiNameEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("GetMiiNameEx(0x%08x, %d)", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "GetMiiNameEx(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4] & 0xFF);
 	ppcDefineParamWStrBE(miiName, 0);
 	ppcDefineParamU8(slot, 1);
 
 	StackAllocator<FFLData_t> miiData;
 
-	uint32 r = nn::act::GetMiiEx(miiData, slot);
+	uint32 r = nn::act::GetMiiEx(&miiData, slot);
 	// extract name
 	sint32 miiNameLength = 0;
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)
@@ -452,7 +506,7 @@ void nnActExport_UpdateMii(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetUuid(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetUuid(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetUuid(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamUStr(uuid, 0);
 	nn::act::GetUuidEx(uuid, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, 0); // 0 -> result ok
@@ -460,7 +514,7 @@ void nnActExport_GetUuid(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetUuidEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetUuidEx(0x%08x,0x%02x)", hCPU->gpr[3], hCPU->gpr[3]&0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetUuidEx(0x{:08x},0x{:02x})", hCPU->gpr[3], hCPU->gpr[3]&0xFF);
 	ppcDefineParamUStr(uuid, 0);
 	ppcDefineParamU8(slot, 1);
 	nn::act::GetUuidEx(uuid, slot);
@@ -469,7 +523,7 @@ void nnActExport_GetUuidEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetUuidEx2(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetUuidEx(0x%08x,0x%02x,0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetUuidEx(0x{:08x},0x{:02x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5]);
 	ppcDefineParamUStr(uuid, 0);
 	ppcDefineParamU8(slot, 1);
 	ppcDefineParamS32(name, 2);
@@ -479,7 +533,7 @@ void nnActExport_GetUuidEx2(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetAccountId(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetAccountId(0x%08x)", hCPU->gpr[3]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetAccountId(0x{:08x})", hCPU->gpr[3]);
 	ppcDefineParamUStr(accId, 0);
 	GetAccountIdEx((char*)accId, iosu::act::ACT_SLOT_CURRENT);
 	osLib_returnFromFunction(hCPU, 0);
@@ -487,7 +541,7 @@ void nnActExport_GetAccountId(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetAccountIdEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetAccountIdEx(0x%08x, 0x%02x)", hCPU->gpr[3], hCPU->gpr[3] & 0xFF);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetAccountIdEx(0x{:08x}, 0x{:02x})", hCPU->gpr[3], hCPU->gpr[3] & 0xFF);
 	ppcDefineParamUStr(accId, 0);
 	ppcDefineParamU8(slot, 1);
 	GetAccountIdEx((char*)accId, slot);
@@ -497,7 +551,7 @@ void nnActExport_GetAccountIdEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetParentalControlSlotNoEx(PPCInterpreter_t* hCPU)
 {
 	// GetParentalControlSlotNoEx(uint8* output, uint8 slot)
-	forceLogDebug_printf("nn_act.GetParentalControlSlotNoEx(0x%08x, 0x%02x)", hCPU->gpr[3], hCPU->gpr[4]);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetParentalControlSlotNoEx(0x{:08x}, 0x{:02x})", hCPU->gpr[3], hCPU->gpr[4]);
 	//memory_writeU8(hCPU->gpr[3], 0x01); // returned slot no (slot indices start at 1)
 	memory_writeU8(hCPU->gpr[3], 1); // 0 -> No parental control for slot?
 	//memory_writeU8(hCPU->gpr[3], 0); // 0 -> No parental control for slot?
@@ -507,21 +561,19 @@ void nnActExport_GetParentalControlSlotNoEx(PPCInterpreter_t* hCPU)
 void nnActExport_GetDefaultAccount(PPCInterpreter_t* hCPU)
 {
 	// todo
-	forceLogDebug_printf("GetDefaultAccount(): Return 1?");
+	cemuLog_logDebug(LogType::Force, "GetDefaultAccount(): Return 1?");
 	osLib_returnFromFunction(hCPU, 1);
 }
 
 void nnActExport_GetSlotNo(PPCInterpreter_t* hCPU)
 {
 	// id of active account
-	// uint8 GetSlotNo(void);
-	forceLogDebug_printf("nn_act.GetSlotNo()");
 	osLib_returnFromFunction(hCPU, 1); // 1 is the first slot (0 is invalid)
 }
 
 void nnActExport_GetSlotNoEx(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.GetSlotNoEx(...)");
+	cemuLog_logDebug(LogType::Force, "nn_act.GetSlotNoEx(...)");
 	// get slot no by uuid
 	ppcDefineParamUStr(uuid, 0);
 
@@ -544,7 +596,7 @@ void nnActExport_GetSlotNoEx(PPCInterpreter_t* hCPU)
 
 void nnActExport_Initialize(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("nn_act.Initialize()");
+	cemuLog_logDebug(LogType::Force, "nn_act.Initialize()");
 
 	nn::act::Initialize();
 
@@ -553,7 +605,7 @@ void nnActExport_Initialize(PPCInterpreter_t* hCPU)
 
 void nnActExport_HasNfsAccount(PPCInterpreter_t* hCPU)
 {
-	forceLogDebug_printf("Called nn_act.HasNfsAccount LR %08x", hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "Called nn_act.HasNfsAccount");
 	osLib_returnFromFunction(hCPU, 1); // Nfs = Nintendo Friend System? (Splatoon tries to call nn_fp.RegisterAccount if we set this to false)
 }
 
@@ -576,6 +628,7 @@ void nnActExport_AcquireNexServiceToken(PPCInterpreter_t* hCPU)
 	ppcDefineParamU32(serverId, 1);
 	memset(token, 0, sizeof(nexServiceToken_t));
 	actPrepareRequest();
+	actRequest->accountSlot = iosu::act::ACT_SLOT_CURRENT;
 	actRequest->requestCode = IOSU_ARC_ACQUIRENEXTOKEN;
 	actRequest->titleId = CafeSystem::GetForegroundTitleId();
 	actRequest->titleVersion = CafeSystem::GetForegroundTitleVersion();
@@ -585,39 +638,15 @@ void nnActExport_AcquireNexServiceToken(PPCInterpreter_t* hCPU)
 
 	memcpy(token, actRequest->resultBinary.binBuffer, sizeof(nexServiceToken_t));
 
-	forceLogDebug_printf("Called nn_act.AcquireNexServiceToken LR %08x", hCPU->spr.LR);
+	cemuLog_logDebug(LogType::Force, "Called nn_act.AcquireNexServiceToken");
 	osLib_returnFromFunction(hCPU, getNNReturnCode(resultCode, actRequest));
-}
-
-struct independentServiceToken_t
-{
-	/* +0x000 */ char token[0x201];
-};
-static_assert(sizeof(independentServiceToken_t) == 0x201); // todo - verify size
-
-uint32 AcquireIndependentServiceToken(independentServiceToken_t* token, const char* clientId, uint32 cacheDurationInSeconds)
-{
-	memset(token, 0, sizeof(independentServiceToken_t));
-	actPrepareRequest();
-	actRequest->requestCode = IOSU_ARC_ACQUIREINDEPENDENTTOKEN;
-	actRequest->titleId = CafeSystem::GetForegroundTitleId();
-	actRequest->titleVersion = CafeSystem::GetForegroundTitleVersion();
-	actRequest->expiresIn = cacheDurationInSeconds;
-	strcpy(actRequest->clientId, clientId);
-
-	uint32 resultCode = __depr__IOS_Ioctlv(IOS_DEVICE_ACT, IOSU_ACT_REQUEST_CEMU, 1, 1, actBufferVector);
-
-	memcpy(token, actRequest->resultBinary.binBuffer, sizeof(independentServiceToken_t));
-	return getNNReturnCode(resultCode, actRequest);
 }
 
 void nnActExport_AcquireIndependentServiceToken(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(token, independentServiceToken_t, 0);
-	ppcDefineParamMEMPTR(serviceToken, const char, 1);
-	uint32 result =  AcquireIndependentServiceToken(token.GetPtr(), serviceToken.GetPtr(), 0);
-	forceLogDebug_printf("nn_act.AcquireIndependentServiceToken(0x%p, %s) -> %x | LR %08x", (void*)token.GetPtr(), serviceToken.GetPtr(), result, hCPU->spr.LR);
-	forceLogDebug_printf("Token: %s", serviceToken.GetPtr());
+	ppcDefineParamMEMPTR(clientId, const char, 1);
+	uint32 result = nn::act::AcquireIndependentServiceToken(token.GetPtr(), clientId.GetPtr(), 0);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -626,16 +655,14 @@ void nnActExport_AcquireIndependentServiceToken2(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(token, independentServiceToken_t, 0);
 	ppcDefineParamMEMPTR(clientId, const char, 1);
 	ppcDefineParamU32(cacheDurationInSeconds, 2); 
-	uint32 result = AcquireIndependentServiceToken(token, clientId.GetPtr(), cacheDurationInSeconds);
-	forceLogDebug_printf("Called nn_act.AcquireIndependentServiceToken2 LR %08x", hCPU->spr.LR);
+	uint32 result = nn::act::AcquireIndependentServiceToken(token, clientId.GetPtr(), cacheDurationInSeconds);
 	osLib_returnFromFunction(hCPU, result);
 }
 
 void nnActExport_AcquireEcServiceToken(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(pEcServiceToken, independentServiceToken_t, 0);
-	uint32 result = AcquireIndependentServiceToken(pEcServiceToken.GetPtr(), "71a6f5d6430ea0183e3917787d717c46", 0);
-	forceLogDebug_printf("Called nn_act.AcquireEcServiceToken LR %08x", hCPU->spr.LR);
+	uint32 result = nn::act::AcquireIndependentServiceToken(pEcServiceToken.GetPtr(), "71a6f5d6430ea0183e3917787d717c46", 0);
 	osLib_returnFromFunction(hCPU, result);
 }
 
@@ -644,7 +671,7 @@ void nnActExport_AcquirePrincipalIdByAccountId(PPCInterpreter_t* hCPU)
 	ppcDefineParamMEMPTR(principalId, uint32be, 0);
 	ppcDefineParamMEMPTR(nnid, char, 1);
 	ppcDefineParamU32(ukn, 2); // some option, can be 0 or 1 ?
-	forceLogDebug_printf("nn_act.AcquirePrincipalIdByAccountId(0x%08x,\"%s\", %d) - last param unknown", principalId.GetMPTR(), nnid.GetPtr(), ukn);
+	cemuLog_logDebug(LogType::Force, "nn_act.AcquirePrincipalIdByAccountId(0x{:08x},\"{}\", {}) - last param unknown", principalId.GetMPTR(), nnid.GetPtr(), ukn);
 	actPrepareRequest2();
 	actRequest->requestCode = IOSU_ARC_ACQUIREPIDBYNNID;
 	strcpy(actRequest->clientId, nnid.GetPtr());
@@ -654,30 +681,6 @@ void nnActExport_AcquirePrincipalIdByAccountId(PPCInterpreter_t* hCPU)
 	*principalId.GetPtr() = actRequest->resultU32.u32;
 
 	osLib_returnFromFunction(hCPU, result);
-}
-
-void nnActExport_GetUtcOffsetEx(PPCInterpreter_t* hCPU)
-{
-	// GetUtcOffsetEx__Q2_2nn3actFPLUc
-	ppcDefineParamU32BEPtr(utcOffsetOut, 0);
-	ppcDefineParamU32(uknParam, 1);
-
-	forceLogDebug_printf("Called nn_act.GetUtcOffsetEx LR %08x", hCPU->spr.LR);
-
-	*utcOffsetOut = 0;
-
-	forceLogDebug_printf("GetUtcOffsetEx stub");
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-void nnActExport_GetUtcOffset(PPCInterpreter_t* hCPU)
-{
-	uint64 utcOffset = 0;
-
-	uint64 utcDifferenceInSeconds = (ppcCyclesSince2000_UTC / ESPRESSO_CORE_CLOCK) - (ppcCyclesSince2000 / ESPRESSO_CORE_CLOCK);
-
-	osLib_returnFromFunction64(hCPU, utcDifferenceInSeconds * 1000000ULL);
 }
 
 // register account functions
@@ -704,12 +707,15 @@ void nnAct_load()
 	osLib_addFunction("nn_act", "GetPrincipalId__Q2_2nn3actFv", nnActExport_GetPrincipalId);
 	osLib_addFunction("nn_act", "GetPrincipalIdEx__Q2_2nn3actFPUiUc", nnActExport_GetPrincipalIdEx);
 	// transferable id
+	osLib_addFunction("nn_act", "GetTransferableId__Q2_2nn3actFUi", nnActExport_GetTransferableId);
 	osLib_addFunction("nn_act", "GetTransferableIdEx__Q2_2nn3actFPULUiUc", nnActExport_GetTransferableIdEx);
 	// persistent id
 	osLib_addFunction("nn_act", "GetPersistentId__Q2_2nn3actFv", nnActExport_GetPersistentId);
 	osLib_addFunction("nn_act", "GetPersistentIdEx__Q2_2nn3actFUc", nnActExport_GetPersistentIdEx);
 	// country
 	osLib_addFunction("nn_act", "GetCountry__Q2_2nn3actFPc", nnActExport_GetCountry);
+	// timezone
+	cafeExportRegisterFunc(nn::act::GetTimeZoneId, "nn_act", "GetTimeZoneId__Q2_2nn3actFPc", LogType::Placeholder);
 
 	// parental
 	osLib_addFunction("nn_act", "EnableParentalControlCheck__Q2_2nn3actFb", nnActExport_EnableParentalControlCheck);
@@ -744,8 +750,8 @@ void nnAct_load()
 	// placeholders / incomplete implementations
 	osLib_addFunction("nn_act", "HasNfsAccount__Q2_2nn3actFv", nnActExport_HasNfsAccount);
 	osLib_addFunction("nn_act", "GetHostServerSettings__Q2_2nn3actFPcT1Uc", nnActExport_GetHostServerSettings);
-	osLib_addFunction("nn_act", "GetUtcOffset__Q2_2nn3actFv", nnActExport_GetUtcOffset);
-	osLib_addFunction("nn_act", "GetUtcOffsetEx__Q2_2nn3actFPLUc", nnActExport_GetUtcOffsetEx);
+	cafeExportRegisterFunc(nn::act::GetUtcOffset, "nn_act", "GetUtcOffset__Q2_2nn3actFv", LogType::Placeholder);
+	cafeExportRegisterFunc(nn::act::GetUtcOffsetEx, "nn_act", "GetUtcOffsetEx__Q2_2nn3actFPLUc", LogType::Placeholder);
 
 }
 

@@ -2,9 +2,10 @@
 
 namespace GX2
 {
-	void GX2EventInit();
 	void GX2Init_event();
+	void GX2EventResetToDefaultState();
 
+	void GX2EventInit();
 	void GX2WaitForVsync();
 	void GX2WaitForFlip();
 	void GX2DrawDone();

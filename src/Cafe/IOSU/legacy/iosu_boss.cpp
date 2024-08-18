@@ -10,6 +10,7 @@
 #include <fstream>
 
 #include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 #include "curl/curl.h"
 #include "openssl/bn.h"
 #include "openssl/x509.h"
@@ -118,7 +119,7 @@ namespace iosu
 		uint32 turn_state = 0;
 		uint32 wait_state = 0;
 
-		uint32 http_status_code = 0;
+		long http_status_code = 0;
 		ContentType content_type = ContentType::kUnknownContent;
 
 		std::vector<uint8> result_buffer;
@@ -238,7 +239,7 @@ namespace iosu
 		//	task->result_buffer.resize(task->result_buffer.size() + writeByteSize);
 		//writeByteSize = min(writeByteSize, task->result_buffer.capacity() - task->processed_length);
 
-		//forceLogDebug_printf("task_write_callback: %d (processed: %d)", writeByteSize, task->processed_length);
+		//cemuLog_logDebug(LogType::Force, "task_write_callback: {} (processed: {})", writeByteSize, task->processed_length);
 		if (writeByteSize > 0)
 		{
 			//memcpy(task->result_buffer.data() + task->processed_length, ptr, writeByteSize);
@@ -251,7 +252,7 @@ namespace iosu
 
 	size_t task_download_header_callback(char* ptr, size_t size, size_t nitems, void* userdata)
 	{
-		//forceLogDebug_printf("\tHeader: %s", ptr);
+		//cemuLog_logDebug(LogType::Force, "\tHeader: {}", ptr);
 
 		return size * nitems;
 	}
@@ -283,7 +284,7 @@ namespace iosu
 		else if (starts_with(ptr, "Content-Type: "))
 		{
 			const char* type = &ptr[14];
-			if (starts_with(type, "application/xml"))
+			if (starts_with(type, "application/xml") || starts_with(type, "text/xml"))
 				task->content_type = ContentType::kXmlContent;
 			else if (starts_with(type, "x-application/octet-stream"))
 				task->content_type = ContentType::kBinaryFile;
@@ -291,7 +292,7 @@ namespace iosu
 				task->content_type = ContentType::kText;
 			else
 			{
-				forceLogDebug_printf("task_header_callback: unknown content type > %s", type);
+				cemuLog_logDebug(LogType::Force, "task_header_callback: unknown content type > {}", type);
 			}
 		}
 		else if (starts_with(ptr, "Last-Modified: "))
@@ -299,8 +300,8 @@ namespace iosu
 			// TODO timestamp (?)
 		}
 
-		//forceLogDebug_printf("task_header_callback: len %d (%d) and type %d", task->content_length, task->result_buffer.capacity(), task->content_type);
-		//forceLogDebug_printf("\t%s", ptr);
+		//cemuLog_logDebug(LogType::Force, "task_header_callback: len {} ({}) and type {}", task->content_length, task->result_buffer.capacity(), task->content_type);
+		//cemuLog_logDebug(LogType::Force, "\t{}", ptr);
 		return size * nitems;
 	}
 
@@ -309,7 +310,7 @@ namespace iosu
 		auto task_settings = (TaskSetting*)param;
 		if (task_settings->taskType == kRawDlTaskSetting)
 		{
-			forceLogDebug_printf("sslctx_function: adding client cert: %d", (int)task_settings->settings[TaskSetting::kClientCert]);
+			cemuLog_logDebug(LogType::Force, "sslctx_function: adding client cert: {}", (int)task_settings->settings[TaskSetting::kClientCert]);
 			if (!iosuCrypto_addClientCertificate(sslctx, task_settings->settings[TaskSetting::kClientCert]))
 				assert_dbg();
 
@@ -318,10 +319,10 @@ namespace iosu
 			{
 				if (task_settings->settings[location] != 0)
 				{
-					forceLogDebug_printf("sslctx_function: adding ca cert: %d", (int)task_settings->settings[location]);
+					cemuLog_logDebug(LogType::Force, "sslctx_function: adding ca cert: {}", (int)task_settings->settings[location]);
 					if (!iosuCrypto_addCACertificate(sslctx, task_settings->settings[location]))
 					{
-						forceLog_printf("Failed to load CA certificate file");
+						cemuLog_log(LogType::Force, "Failed to load CA certificate file");
 						assert_dbg();
 					}
 				}
@@ -333,13 +334,13 @@ namespace iosu
 		{
 			if (!iosuCrypto_addCACertificate(sslctx, 105))
 			{
-				forceLog_printf("Failed to load certificate file");
+				cemuLog_log(LogType::Force, "Failed to load certificate file");
 				assert_dbg();
 			}
 
 			if (!iosuCrypto_addClientCertificate(sslctx, 3))
 			{
-				forceLog_printf("Failed to load client certificate file");
+				cemuLog_log(LogType::Force, "Failed to load client certificate file");
 				assert_dbg();
 			}
 		}
@@ -366,7 +367,7 @@ namespace iosu
 	bool parse_xml_content(Task& task)
 	{
 		tinyxml2::XMLDocument doc;
-		//cafeLog_writeLineToLog((char*)task.result_buffer.data());
+		//cemuLog_log(LogType::Force, (char*)task.result_buffer.data());
 		if (doc.Parse((const char*)task.result_buffer.data(), task.processed_length) != tinyxml2::XML_SUCCESS)
 			return false;
 
@@ -456,7 +457,7 @@ namespace iosu
 			it->wait_state = TRUE;
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_BOSS, 0);
 		}
-		forceLogDebug_printf("task run state: %d | exec: %d (tasks: %d)", it->turn_state, it->exec_count, g_boss.tasks.size());
+		cemuLog_logDebug(LogType::Force, "task run state: {} | exec: {} (tasks: {})", it->turn_state, it->exec_count, g_boss.tasks.size());
 		it->turn_state = kRunning;
 		it->exec_count++;
 
@@ -485,7 +486,7 @@ namespace iosu
 		CURL* curl = it->curl.get();
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 		curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 2);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		curl_easy_setopt(curl, CURLOPT_VERBOSE, 1);
 		char errbuf[CURL_ERROR_SIZE]{};
 		curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, errbuf);
@@ -497,19 +498,27 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
-		curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
-		curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, &it->task_settings);
-		curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_0);
+		if (IsNetworkServiceSSLDisabled(ActiveSettings::GetNetworkService()))
+		{ 
+			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
+		}
+		else 
+		{
+			curl_easy_setopt(curl, CURLOPT_SSL_CTX_FUNCTION, task_sslctx_function);
+			curl_easy_setopt(curl, CURLOPT_SSL_CTX_DATA, &it->task_settings);
+			curl_easy_setopt(curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_0);
+		}
 
-		char url[512];
+		std::string requestUrl;
 		if(it->task_settings.taskType == kRawDlTaskSetting)
 		{
 			char serviceToken[TaskSetting::kServiceTokenLen];
 			strncpy(serviceToken, (char*)&it->task_settings.settings[TaskSetting::kServiceToken], TaskSetting::kServiceTokenLen);
 			list_headerParam = append_header_param(list_headerParam, "X-Nintendo-ServiceToken: {}", serviceToken);
 
+			char url[TaskSetting::kURLLen + 1]{};
 			strncpy(url, (char*)&it->task_settings.settings[TaskSetting::kURL], TaskSetting::kURLLen);
-			forceLogDebug_printf("\tserviceToken: %s", serviceToken);
+			requestUrl.assign(url);
 		}
 		else
 		{
@@ -562,15 +571,28 @@ namespace iosu
 			char boss_code[0x20];
 			strncpy(boss_code, (char*)&it->task_settings.settings[TaskSetting::kBossCode], TaskSetting::kBossCodeLen);
 
-			sprintf(url, "https://npts.app.nintendo.net/p01/tasksheet/%s/%s/%s?c=%s&l=%s", "1", boss_code, it->task_id, countryCode, languageCode);
+			switch (ActiveSettings::GetNetworkService())
+			{
+			case NetworkService::Pretendo:
+				requestUrl = PretendoURLs::BOSSURL;
+				break;
+			case NetworkService::Custom:
+				requestUrl = GetNetworkConfig().urls.BOSS.GetValue();
+				break;
+			case NetworkService::Nintendo:
+			default:
+				requestUrl = NintendoURLs::BOSSURL;
+				break;
+			}
+			requestUrl.append(fmt::format(fmt::runtime("/{}/{}/{}?c={}&l={}"), "1", boss_code, it->task_id, countryCode, languageCode));
 		}
 
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, list_headerParam);
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		forceLogDebug_printf("task_run url %s", url);
+		curl_easy_setopt(curl, CURLOPT_URL, requestUrl.c_str());
 
 		int curl_result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &it->http_status_code);
+		static_assert(sizeof(it->http_status_code) == sizeof(long));
 
 		//it->turn_state = kFinished;
 
@@ -579,26 +601,26 @@ namespace iosu
 
 		if (curl_result != CURLE_OK)
 		{
-#ifndef PUBLIC_RELEASE
-			forceLogDebug_printf("curl error buff: %s", errbuf);
+#ifdef CEMU_DEBUG_ASSERT
+			cemuLog_logDebug(LogType::Force, "curl error buff: {}", errbuf);
 #endif
 			it->turn_state = kError;
 			it->wait_state = TRUE;
-			forceLogDebug_printf("task_run curl fail: %d", curl_result);
+			cemuLog_logDebug(LogType::Force, "task_run curl fail: {}", curl_result);
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_BOSS, 0);
 		}
 		else
 		{
 			if (it->http_status_code != 200)
 			{
-				forceLogDebug_printf("BOSS task_run: Received unexpected HTTP response code");
+				cemuLog_logDebug(LogType::Force, "BOSS task_run: Received unexpected HTTP response code");
 			}
 			if (it->http_status_code == 404)
 			{
 				// todo - is this correct behavior?
 				it->turn_state = kError;
 				it->wait_state = TRUE;
-				forceLogDebug_printf("task_run failed due to 404 error");
+				cemuLog_logDebug(LogType::Force, "task_run failed due to 404 error");
 				return BUILD_NN_RESULT(NN_RESULT_LEVEL_FATAL, NN_RESULT_MODULE_NN_BOSS, 0);
 			}
 		}
@@ -612,7 +634,7 @@ namespace iosu
 
 			break;
 		case ContentType::kText:
-			forceLogDebug_printf("task_run returns text: %.*s", it->content_length, it->result_buffer.data());
+			cemuLog_logDebug(LogType::Force, "task_run returns text: {}", fmt::ptr(it->result_buffer.data()));
 			break;
 		}
 
@@ -632,7 +654,7 @@ namespace iosu
 
 				char targetFileName[TaskSetting::kFileNameLen + 1]{};
 				strncpy(targetFileName, (char*)&it->task_settings.settings[TaskSetting::kNbdlFileName], TaskSetting::kFileNameLen);
-				forceLogDebug_printf("\tnbdl task target filename: \"%s\"", targetFileName);
+				cemuLog_logDebug(LogType::Force, "\tnbdl task target filename: \"{}\"", targetFileName);
 				const bool hasFileName = targetFileName[0] != '\0';
 
 				while (!it->queued_files.empty())
@@ -664,7 +686,8 @@ namespace iosu
 					}
 
 					auto currentEntry = boss_storage_fad_find_entry(fad_content, file.data_id);
-					if(currentEntry)
+					//TODO deep dive into IOSU to figure out how caching actually works on th Wii U
+					if(currentEntry && fs::exists(path / fmt::format(L"{:08x}", file.data_id)))
 					{
 						uint64 timestamp = (uint64)currentEntry->timestampRelated + kTimeStampConvertSeconds;
 						curl_easy_setopt(curl, CURLOPT_TIMEVALUE, timestamp);
@@ -682,7 +705,7 @@ namespace iosu
 					curl_result = curl_easy_perform(curl);
 					if (curl_result != CURLE_OK)
 					{
-						forceLogDebug_printf("task_run curl failed on file download (%d): %s > %s", curl_result, file.file_name.c_str(), file.url.c_str());
+						cemuLog_logDebug(LogType::Force, "task_run curl failed on file download ({}): {} > {}", curl_result, file.file_name, file.url);
 						if (hasFileName)
 						{
 							turnstate = kError;
@@ -705,7 +728,7 @@ namespace iosu
 
 					if(it->processed_file_size != file.size)
 					{
-						forceLogDebug_printf("task_run file download size mismatch: %s > %s > %d from %d bytes", file.file_name.c_str(), file.url.c_str(), it->processed_file_size, file.size);
+						cemuLog_logDebug(LogType::Force, "task_run file download size mismatch: {} > {} > {} from {} bytes", file.file_name, file.url, it->processed_file_size, file.size);
 						if (hasFileName)
 						{
 							turnstate = kError;
@@ -774,7 +797,7 @@ namespace iosu
 					}
 					catch (const std::exception& ex)
 					{
-						forceLogDebug_printf("file error: %s", ex.what());
+						cemuLog_logDebug(LogType::Force, "file error: {}", ex.what());
 					}
 
 					if (hasFileName)
@@ -783,7 +806,7 @@ namespace iosu
 			}
 			catch (const std::exception& ex)
 			{
-				forceLogDebug_printf("dir error: %s", ex.what());
+				cemuLog_logDebug(LogType::Force, "dir error: {}", ex.what());
 			}
 		}
 
@@ -843,7 +866,7 @@ namespace iosu
 		{
 			if (timeout != 0 && (uint32)std::chrono::duration_cast<std::chrono::seconds>(tick_cached() - start).count() >= timeout)
 			{
-				forceLogDebug_printf("task_wait: timeout reached -> %d seconds passed", timeout);
+				cemuLog_logDebug(LogType::Force, "task_wait: timeout reached -> {} seconds passed", timeout);
 				return false;
 			}
 
@@ -887,10 +910,10 @@ namespace iosu
 		return it != g_boss.tasks.cend() ? std::make_pair(it->exec_count, it->processed_length) : std::make_pair(0u, (uint64)0);
 	}
 
-	std::pair<uint32, uint32> task_get_http_status_code(const char* taskId, uint32 accountId, uint64 titleId)
+	std::pair<uint32, long> task_get_http_status_code(const char* taskId, uint32 accountId, uint64 titleId)
 	{
 		const auto it = get_task(taskId, accountId, titleId);
-		return it != g_boss.tasks.cend() ? std::make_pair(it->exec_count, it->http_status_code) : std::make_pair(0u, (uint32)0);
+		return it != g_boss.tasks.cend() ? std::make_pair(it->exec_count, it->http_status_code) : std::make_pair(0u, (long)0);
 	}
 
 	std::pair<uint32, uint32> task_get_turn_state(const char* taskId, uint32 accountId, uint64 titleId)

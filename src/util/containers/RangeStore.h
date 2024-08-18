@@ -13,10 +13,7 @@ public:
 		size_t lastIterationIndex;
 	}rangeEntry_t;
 
-	RangeStore()
-	{
-
-	}
+	RangeStore() = default;
 
 	size_t getBucket(_ADDR addr)
 	{
@@ -124,6 +121,15 @@ public:
 		}
 		return false;
 	}
+
+    void clear()
+    {
+        for(auto& bucket : rangeBuckets)
+        {
+            while(!bucket.list_ranges.empty())
+                deleteRange(bucket.list_ranges[0]);
+        }
+    }
 
 private:
 	typedef struct

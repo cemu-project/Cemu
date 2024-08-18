@@ -5,6 +5,7 @@
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/CafeSystem.h"
+#include <wx/intl.h>
 
 enum ControllerVPADMapping2 : uint32
 {
@@ -237,7 +238,7 @@ void VPADController::update_touch(VPADStatus_t& status)
 
 		m_last_touch_position = glm::ivec2{ status.tpData.x, status.tpData.y };
 
-		/*cemuLog_force("TDATA: {},{} -> {},{} -> {},{} -> {},{} -> {},{} -> {},{}",
+		/*cemuLog_log(LogType::Force, "TDATA: {},{} -> {},{} -> {},{} -> {},{} -> {},{} -> {},{}",
 			left_mouse->x, left_mouse->y,
 			(left_mouse.value() - image_pos).x, (left_mouse.value() - image_pos).y,
 			relative_mouse_pos.x, relative_mouse_pos.y,
@@ -308,8 +309,13 @@ void VPADController::update_motion(VPADStatus_t& status)
 
 		//Vector2<float> mousePos(mouse.x, mouse.y);
 
-
 		POINT mousePos;
+    
+		int w, h;
+		if (pad_view)
+			gui_getPadWindowPhysSize(w, h);
+		else
+			gui_getWindowPhysSize(w, h);
 
 		GetCursorPos(&mousePos);
 
@@ -396,21 +402,21 @@ std::string_view VPADController::get_button_name(ButtonId id)
 	case kButtonId_ZR: return "ZR";
 	case kButtonId_Plus: return "+";
 	case kButtonId_Minus: return "-";
-	case kButtonId_Up: return "up";
-	case kButtonId_Down: return "down";
-	case kButtonId_Left: return "left";
-	case kButtonId_Right: return "right";
-	case kButtonId_StickL: return "click";
-	case kButtonId_StickR: return "click";
-	case kButtonId_StickL_Up: return "up";
-	case kButtonId_StickL_Down: return "down";
-	case kButtonId_StickL_Left: return "left";
-	case kButtonId_StickL_Right: return "right";
-	case kButtonId_StickR_Up: return "up";
-	case kButtonId_StickR_Down: return "down";
-	case kButtonId_StickR_Left: return "left";
-	case kButtonId_StickR_Right: return "right";
-	case kButtonId_Home: return "home";
+	case kButtonId_Up: return wxTRANSLATE("up");
+	case kButtonId_Down: return wxTRANSLATE("down");
+	case kButtonId_Left: return wxTRANSLATE("left");
+	case kButtonId_Right: return wxTRANSLATE("right");
+	case kButtonId_StickL: return wxTRANSLATE("click");
+	case kButtonId_StickR: return wxTRANSLATE("click");
+	case kButtonId_StickL_Up: return wxTRANSLATE("up");
+	case kButtonId_StickL_Down: return wxTRANSLATE("down");
+	case kButtonId_StickL_Left: return wxTRANSLATE("left");
+	case kButtonId_StickL_Right: return wxTRANSLATE("right");
+	case kButtonId_StickR_Up: return wxTRANSLATE("up");
+	case kButtonId_StickR_Down: return wxTRANSLATE("down");
+	case kButtonId_StickR_Left: return wxTRANSLATE("left");
+	case kButtonId_StickR_Right: return wxTRANSLATE("right");
+	case kButtonId_Home: return wxTRANSLATE("home");
 	default:
 		cemu_assert_debug(false);
 		return "";
@@ -437,7 +443,7 @@ bool VPADController::push_rumble(uint8* pattern, uint8 length)
 	std::scoped_lock lock(m_rumble_mutex);
 	if (m_rumble_queue.size() >= 5)
 	{
-		forceLogDebug_printf("too many cmds");
+		cemuLog_logDebug(LogType::Force, "too many cmds");
 		return false;
 	}
 

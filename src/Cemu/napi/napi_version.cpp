@@ -7,6 +7,8 @@
 
 #include "Cemu/ncrypto/ncrypto.h"
 #include <charconv>
+#include "config/ActiveSettings.h"
+#include "config/NetworkSettings.h"
 
 namespace NAPI
 {
@@ -14,7 +16,24 @@ namespace NAPI
 	{
 		NAPI_VersionListVersion_Result result;
 		CurlRequestHelper req;
-		req.initate(fmt::format("https://tagaya.wup.shop.nintendo.net/tagaya/versionlist/{}/{}/latest_version", NCrypto::GetRegionAsString(authInfo.region), authInfo.country), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+
+		std::string requestUrl;
+		switch (authInfo.GetService())
+		{
+		case NetworkService::Pretendo:
+			requestUrl = PretendoURLs::TAGAYAURL;
+			break;
+		case NetworkService::Custom:
+			requestUrl = GetNetworkConfig().urls.TAGAYA.GetValue();
+			break;
+		case NetworkService::Nintendo:
+		default:
+			requestUrl = NintendoURLs::TAGAYAURL;
+			break;
+		}
+		requestUrl.append(fmt::format(fmt::runtime("/{}/{}/latest_version"), NCrypto::GetRegionAsString(authInfo.region), authInfo.country.empty() ? "NN" : authInfo.country));
+		req.initate(authInfo.GetService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request version of update list"));
@@ -44,7 +63,7 @@ namespace NAPI
 	{
 		NAPI_VersionList_Result result;
 		CurlRequestHelper req;
-		req.initate(fmt::format("https://{}/tagaya/versionlist/{}/{}/list/{}.versionlist", fqdnURL, NCrypto::GetRegionAsString(authInfo.region), authInfo.country, versionListVersion), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
+		req.initate(authInfo.GetService(), fmt::format("https://{}/tagaya/versionlist/{}/{}/list/{}.versionlist", fqdnURL, NCrypto::GetRegionAsString(authInfo.region), authInfo.country.empty() ? "NN" : authInfo.country, versionListVersion), CurlRequestHelper::SERVER_SSL_CONTEXT::TAGAYA);
 		if (!req.submitRequest(false))
 		{
 			cemuLog_log(LogType::Force, fmt::format("Failed to request update list"));
@@ -55,7 +74,7 @@ namespace NAPI
 		pugi::xml_document doc;
 		if (!doc.load_buffer(receivedData.data(), receivedData.size()))
 		{
-			forceLog_printf("Failed to parse update list XML");
+			cemuLog_log(LogType::Force, "Failed to parse update list XML");
 			return result;
 		}
 		// example:

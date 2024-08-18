@@ -236,7 +236,7 @@ namespace coreinit
 		blockHeapHead->nextFreeBlock = _swapEndianU32(nextFreeBlockMPTR);
 		if (_swapEndianU32(blockHeapHead->freeBlocksLeft) == 0)
 		{
-			forceLog_printf("BlockHeap: No free blocks left\n");
+			cemuLog_log(LogType::Force, "BlockHeap: No free blocks left");
 			assert_dbg();
 		}
 		blockHeapHead->freeBlocksLeft = _swapEndianU32(_swapEndianU32(blockHeapHead->freeBlocksLeft) - 1);
@@ -462,7 +462,7 @@ namespace coreinit
 		if (block != NULL)
 		{
 			MPTR blockMPTR = memory_getVirtualOffsetFromPointer(block);
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (block->isFree != 0)
 				assert_dbg();
 			_blockHeapDebugVerifyLinkOrder(blockHeapHead);

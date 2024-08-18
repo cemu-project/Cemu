@@ -1,6 +1,7 @@
 #pragma once
 #include <wx/collpane.h>
 #include <wx/propgrid/propgrid.h>
+#include <Cafe/Account/Account.h>
 
 class wxColourPickerCtrl;
 
@@ -41,7 +42,10 @@ private:
 	wxCheckBox* m_save_padwindow_position_size;
 	wxCheckBox* m_discord_presence, *m_fullscreen_menubar;
 	wxCheckBox* m_auto_update, *m_save_screenshot;
-	wxCheckBox* m_permanent_storage;
+	wxCheckBox* m_disable_screensaver;
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+   	wxCheckBox* m_feral_gamemode;
+#endif
 	wxListBox* m_game_paths;
 	wxTextCtrl* m_mlc_path;
 
@@ -58,14 +62,14 @@ private:
 	// Audio
 	wxChoice* m_audio_api;
 	wxSlider *m_audio_latency;
-	wxSlider *m_tv_volume, *m_pad_volume;
-	wxChoice *m_tv_channels, *m_pad_channels;
-	wxChoice *m_tv_device, *m_pad_device;
+	wxSlider *m_tv_volume, *m_pad_volume, *m_input_volume;
+	wxChoice *m_tv_channels, *m_pad_channels, *m_input_channels;
+	wxChoice *m_tv_device, *m_pad_device, *m_input_device;
 
 	// Account
 	wxButton* m_create_account, * m_delete_account;
 	wxChoice* m_active_account;
-	wxCheckBox* m_online_enabled;
+	wxRadioBox* m_active_service;
 	wxCollapsiblePane* m_account_information;
 	wxPropertyGrid* m_account_grid;
 	wxBitmapButton* m_validate_online;
@@ -73,6 +77,7 @@ private:
 
 	// Debug
 	wxChoice* m_crash_dump;
+	wxSpinCtrl* m_gdb_port;
 
 	void OnAccountCreate(wxCommandEvent& event);
 	void OnAccountDelete(wxCommandEvent& event);
@@ -90,9 +95,12 @@ private:
 	void OnRemovePathClicked(wxCommandEvent& event);
 	void OnActiveAccountChanged(wxCommandEvent& event);
 	void OnMLCPathSelect(wxCommandEvent& event);
-	void OnMLCPathChar(wxKeyEvent& event);
+	void OnMLCPathClear(wxCommandEvent& event);
 	void OnShowOnlineValidator(wxCommandEvent& event);
-	void OnOnlineEnable(wxCommandEvent& event);
+	void OnAccountServiceChanged(wxCommandEvent& event);
+	static wxString GetOnlineAccountErrorMessage(OnlineAccountError error);
+
+	uint32 GetSelectedAccountPersistentId();
 
 	// updates cemu audio devices
 	void UpdateAudioDevice();

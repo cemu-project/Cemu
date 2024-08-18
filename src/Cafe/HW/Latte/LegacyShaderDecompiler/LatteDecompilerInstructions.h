@@ -31,6 +31,7 @@
 #define ALU_OP2_INST_MAX			(0x003)
 #define ALU_OP2_INST_MIN			(0x004)
 #define ALU_OP2_INST_MAX_DX10		(0x005)
+#define ALU_OP2_INST_MIN_DX10		(0x006)
 #define ALU_OP2_INST_SETE			(0x008)
 #define ALU_OP2_INST_SETGT			(0x009)
 #define ALU_OP2_INST_SETGE			(0x00A)

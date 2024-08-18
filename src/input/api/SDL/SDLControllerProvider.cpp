@@ -32,11 +32,11 @@ SDLControllerProvider::SDLControllerProvider()
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_LUNA, "1");
 
 	if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC | SDL_INIT_EVENTS) < 0) 
-		throw std::runtime_error(fmt::format("couldn't initialize SDL: %s", SDL_GetError()));
+		throw std::runtime_error(fmt::format("couldn't initialize SDL: {}", SDL_GetError()));
 		
 
 	if (SDL_GameControllerEventState(SDL_ENABLE) < 0) {
-		forceLog_printf("Couldn't enable SDL gamecontroller event polling: %s", SDL_GetError());
+		cemuLog_log(LogType::Force, "Couldn't enable SDL gamecontroller event polling: {}", SDL_GetError());
 	}
 
 	m_running = true;
@@ -124,7 +124,7 @@ MotionSample SDLControllerProvider::motion_sample(int diid)
 
 void SDLControllerProvider::event_thread()
 {
-	SetThreadName("SDLControllerProvider::event_thread");
+	SetThreadName("SDL_events");
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		SDL_Event event{};

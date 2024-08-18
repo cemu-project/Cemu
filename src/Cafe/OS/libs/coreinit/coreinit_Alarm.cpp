@@ -70,7 +70,7 @@ namespace coreinit
 				return;
 
 			// debug begin
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			uint64 prevTick = 0;
 			auto itr = g_activeAlarmList.begin();
 			while (itr != g_activeAlarmList.end())
@@ -116,6 +116,12 @@ namespace coreinit
 			// fast way to check if any alarm was triggered without requiring scheduler lock
 			return currentTick >= g_soonestAlarm;
 		}
+
+        static void Reset()
+        {
+            g_activeAlarmList.clear();
+            g_soonestAlarm = 0;
+        }
 
 	public:
 		struct ComparatorFireTime
@@ -176,12 +182,11 @@ namespace coreinit
 		alarm->setMagic();
 	}
 
-	void coreinitExport_OSCreateAlarmEx(PPCInterpreter_t* hCPU)
+	void OSCreateAlarmEx(OSAlarm_t* alarm, const char* alarmName)
 	{
-		OSAlarm_t* OSAlarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-		OSCreateAlarm(OSAlarm);
-		OSAlarm->name = _swapEndianU32(hCPU->gpr[4]);
-		osLib_returnFromFunction(hCPU, 0);
+		memset(alarm, 0, sizeof(OSAlarm_t));
+		alarm->setMagic();
+		alarm->name = alarmName;
 	}
 
 	std::unordered_map<OSAlarm_t*, OSHostAlarm*> g_activeAlarms;
@@ -212,6 +217,7 @@ namespace coreinit
 
 	void __OSInitiateAlarm(OSAlarm_t* alarm, uint64 startTime, uint64 period, MPTR handlerFunc, bool isPeriodic)
 	{
+        cemu_assert_debug(MMU_IsInPPCMemorySpace(alarm));
 		cemu_assert_debug(__OSHasSchedulerLock());
 
 		uint64 nextTime = startTime;
@@ -250,7 +256,7 @@ namespace coreinit
 		if (existingAlarmItr != g_activeAlarms.end())
 		{
 			// delete existing alarm
-			forceLogDebug_printf("__OSInitiateAlarm() called on alarm which was already active");
+			cemuLog_logDebug(LogType::Force, "__OSInitiateAlarm() called on alarm which was already active");
 			OSHostAlarmDestroy(existingAlarmItr->second);
 			g_activeAlarms.erase(existingAlarmItr);
 		}
@@ -274,21 +280,29 @@ namespace coreinit
 
 	void OSSetAlarmUserData(OSAlarm_t* alarm, uint32 userData)
 	{
-		alarm->userData = _swapEndianU32(userData);
+		alarm->userData = userData;
 	}
 
-	void coreinitExport_OSGetAlarmUserData(PPCInterpreter_t* hCPU)
+	uint32 OSGetAlarmUserData(OSAlarm_t* alarm)
 	{
-		OSAlarm_t* OSAlarmBE = (OSAlarm_t*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-		MPTR userData = _swapEndianU32(OSAlarmBE->userData);
-		osLib_returnFromFunction(hCPU, userData);
+		return alarm->userData;
 	}
 
-	void OSAlarm_resetAll()
+	void OSAlarm_Shutdown()
 	{
-		cemu_assert_debug(g_activeAlarms.empty());
-
-		cemu_assert_debug(false);
+        __OSLockScheduler();
+        if(g_activeAlarms.empty())
+        {
+            __OSUnlockScheduler();
+            return;
+        }
+        for(auto& itr : g_activeAlarms)
+        {
+            OSHostAlarmDestroy(itr.second);
+        }
+        g_activeAlarms.clear();
+        OSHostAlarm::Reset();
+        __OSUnlockScheduler();
 	}
 
 	void _OSAlarmThread(PPCInterpreter_t* hCPU)
@@ -337,15 +351,13 @@ namespace coreinit
 
 	void InitializeAlarm()
 	{
-		cafeExportRegister("coreinit", OSCreateAlarm, LogType::Placeholder);
-		cafeExportRegister("coreinit", OSCancelAlarm, LogType::Placeholder);
-		cafeExportRegister("coreinit", OSSetAlarm, LogType::Placeholder);
-		cafeExportRegister("coreinit", OSSetPeriodicAlarm, LogType::Placeholder);
-
-		cafeExportRegister("coreinit", OSSetAlarmUserData, LogType::Placeholder);
-
-		osLib_addFunction("coreinit", "OSCreateAlarmEx", coreinitExport_OSCreateAlarmEx);
-		osLib_addFunction("coreinit", "OSGetAlarmUserData", coreinitExport_OSGetAlarmUserData);
+		cafeExportRegister("coreinit", OSCreateAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSCreateAlarmEx, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSCancelAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetPeriodicAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetAlarmUserData, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSGetAlarmUserData, LogType::CoreinitAlarm);
 
 		// init event
 		OSInitEvent(g_alarmEvent.GetPtr(), OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, OSEvent::EVENT_MODE::MODE_AUTO);

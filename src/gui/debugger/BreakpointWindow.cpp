@@ -11,9 +11,11 @@
 
 enum
 {
-	MENU_ID_CREATE_MEM_BP_READ = 1,
+	MENU_ID_CREATE_CODE_BP_EXECUTION = 1,
+	MENU_ID_CREATE_CODE_BP_LOGGING,
+	MENU_ID_CREATE_MEM_BP_READ,
 	MENU_ID_CREATE_MEM_BP_WRITE,
-
+	MENU_ID_DELETE_BP,
 };
 
 enum ItemColumns
@@ -118,6 +120,8 @@ void BreakpointWindow::OnUpdateView()
 				const char* typeName = "UKN";
 				if (bp->bpType == DEBUGGER_BP_T_NORMAL)
 					typeName = "X";
+				else if (bp->bpType == DEBUGGER_BP_T_LOGGING)
+					typeName = "LOG";
 				else if (bp->bpType == DEBUGGER_BP_T_ONE_SHOT)
 					typeName = "XS";
 				else if (bp->bpType == DEBUGGER_BP_T_MEMORY_READ)
@@ -211,31 +215,56 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 
 void BreakpointWindow::OnRightDown(wxMouseEvent& event)
 {
-	wxMenu menu;
+	const auto position = event.GetPosition();
+	const sint32 index = (position.y / m_breakpoints->GetCharHeight()) - 2;
+	if (index < 0 || index >= m_breakpoints->GetItemCount())
+	{
+		wxMenu menu;
+		menu.Append(MENU_ID_CREATE_CODE_BP_EXECUTION, _("Create execution breakpoint"));
+		menu.Append(MENU_ID_CREATE_CODE_BP_LOGGING, _("Create logging breakpoint"));
+		menu.Append(MENU_ID_CREATE_MEM_BP_READ, _("Create memory breakpoint (read)"));
+		menu.Append(MENU_ID_CREATE_MEM_BP_WRITE, _("Create memory breakpoint (write)"));
 
-	menu.Append(MENU_ID_CREATE_MEM_BP_READ, _("Create memory breakpoint (read)"));
-	menu.Append(MENU_ID_CREATE_MEM_BP_WRITE, _("Create memory breakpoint (write)"));
+		menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(BreakpointWindow::OnContextMenuClick), nullptr, this);
+		PopupMenu(&menu);
+	}
+	else
+	{
+		m_breakpoints->SetItemState(index, wxLIST_STATE_FOCUSED, wxLIST_STATE_FOCUSED);
+		m_breakpoints->SetItemState(index, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
 
-	menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(BreakpointWindow::OnContextMenuClick), nullptr, this);
-	PopupMenu(&menu);
+		wxMenu menu;
+		menu.Append(MENU_ID_DELETE_BP, _("Delete breakpoint"));
+
+		menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(BreakpointWindow::OnContextMenuClickSelected), nullptr, this);
+		PopupMenu(&menu);
+	}
+}
+
+void BreakpointWindow::OnContextMenuClickSelected(wxCommandEvent& evt)
+{
+	if (evt.GetId() == MENU_ID_DELETE_BP)
+	{
+		long sel = m_breakpoints->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+		if (sel != -1)
+		{
+			if (sel >= debuggerState.breakpoints.size())
+				return;
+
+			auto it = debuggerState.breakpoints.begin();
+			std::advance(it, sel);
+
+			debugger_deleteBreakpoint(*it);
+
+			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
+			wxPostEvent(this->m_parent, evt);
+		}
+	}
 }
 
 void BreakpointWindow::OnContextMenuClick(wxCommandEvent& evt)
 {
-	switch (evt.GetId())
-	{
-	case MENU_ID_CREATE_MEM_BP_READ:
-		MemoryBreakpointDialog(false);
-		return;
-	case MENU_ID_CREATE_MEM_BP_WRITE:
-		MemoryBreakpointDialog(true);
-		return;
-	}
-}
-
-void BreakpointWindow::MemoryBreakpointDialog(bool isWrite)
-{
-	wxTextEntryDialog goto_dialog(this, _("Enter a memory address"), _("Memory breakpoint"), wxEmptyString);
+	wxTextEntryDialog goto_dialog(this, _("Enter a memory address"), _("Set breakpoint"), wxEmptyString);
 	if (goto_dialog.ShowModal() == wxID_OK)
 	{
 		ExpressionParser parser;
@@ -243,22 +272,34 @@ void BreakpointWindow::MemoryBreakpointDialog(bool isWrite)
 		auto value = goto_dialog.GetValue().ToStdString();
 		std::transform(value.begin(), value.end(), value.begin(), tolower);
 
-
+		uint32_t newBreakpointAddress = 0;
 		try
 		{
 			debugger_addParserSymbols(parser);
-			const auto result = (uint32)parser.Evaluate(value);
-			debug_printf("goto eval result: %x\n", result);
-
-			debugger_createMemoryBreakpoint(result, isWrite == false, isWrite == true);
-			this->OnUpdateView();
+			newBreakpointAddress = parser.IsConstantExpression("0x"+value) ? (uint32)parser.Evaluate("0x"+value) : (uint32)parser.Evaluate(value);
 		}
-		catch (const std::exception& e)
+		catch (const std::exception& ex)
 		{
-			//ctx.errorHandler.printError(nullptr, -1, fmt::format("Unexpected error in expression \"{}\"", expressionString));
-			//return EXPRESSION_RESOLVE_RESULT::EXPRESSION_ERROR;
-			wxMessageBox(e.what(), "Invalid expression");
+			wxMessageBox(ex.what(), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			return;
 		}
-		
+
+		switch (evt.GetId())
+		{
+		case MENU_ID_CREATE_CODE_BP_EXECUTION:
+			debugger_createCodeBreakpoint(newBreakpointAddress, DEBUGGER_BP_T_NORMAL);
+			break;
+		case MENU_ID_CREATE_CODE_BP_LOGGING:
+			debugger_createCodeBreakpoint(newBreakpointAddress, DEBUGGER_BP_T_LOGGING);
+			break;
+		case MENU_ID_CREATE_MEM_BP_READ:
+			debugger_createMemoryBreakpoint(newBreakpointAddress, true, false);
+			break;
+		case MENU_ID_CREATE_MEM_BP_WRITE:
+			debugger_createMemoryBreakpoint(newBreakpointAddress, false, true);
+			break;
+		}
+
+		this->OnUpdateView();
 	}
 }

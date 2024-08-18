@@ -1,9 +1,14 @@
 #include "Cafe/HW/Espresso/Const.h"
-#include <immintrin.h>
 #include "asm/x64util.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
+#include "Common/cpu_features.h"
+
+#if defined(ARCH_X86_64)
+#include <immintrin.h>
+#pragma intrinsic(__rdtsc)
+#endif
 
 uint64 _rdtscLastMeasure = 0;
 uint64 _rdtscFrequency = 0;
@@ -18,8 +23,6 @@ static_assert(sizeof(uint128_t) == 16);
 
 uint128_t _rdtscAcc{};
 
-#pragma intrinsic(__rdtsc)
-
 uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 {
 	uint64 diva = a / d;
@@ -29,17 +32,12 @@ uint64 muldiv64(uint64 a, uint64 b, uint64 d)
 	return diva * b + moda * divb + moda * modb / d;
 }
 
-bool PPCTimer_hasInvariantRDTSCSupport()
-{
-	uint32 cpuv[4];
-	cpuid((int*)cpuv, 0x80000007);
-	return ((cpuv[3] >> 8) & 1);
-}
-
 uint64 PPCTimer_estimateRDTSCFrequency()
 {
-	if (PPCTimer_hasInvariantRDTSCSupport() == false)
-		forceLog_printf("Invariant TSC not supported");
+    #if defined(ARCH_X86_64)
+	if (!g_CPUFeatures.x86.invariant_tsc)
+		cemuLog_log(LogType::Force, "Invariant TSC not supported");
+    #endif
 
 	_mm_mfence();
 	uint64 tscStart = __rdtsc();
@@ -62,12 +60,12 @@ uint64 PPCTimer_estimateRDTSCFrequency()
 	uint64 tsc_freq = muldiv64(tsc_diff, hrtFreq, hrtDiff);
 
 	// uint64 freqMultiplier = tsc_freq / hrtFreq;
-	//forceLog_printf("RDTSC measurement test:");
-	//forceLog_printf("TSC-diff:   0x%016llx", tsc_diff);
-	//forceLog_printf("TSC-freq:   0x%016llx", tsc_freq);
-	//forceLog_printf("HPC-diff:   0x%016llx", qpc_diff);
-	//forceLog_printf("HPC-freq:   0x%016llx", (uint64)qpc_freq.QuadPart);
-	//forceLog_printf("Multiplier: 0x%016llx", freqMultiplier);
+	//cemuLog_log(LogType::Force, "RDTSC measurement test:");
+	//cemuLog_log(LogType::Force, "TSC-diff:   0x{:016x}", tsc_diff);
+	//cemuLog_log(LogType::Force, "TSC-freq:   0x{:016x}", tsc_freq);
+	//cemuLog_log(LogType::Force, "HPC-diff:   0x{:016x}", qpc_diff);
+	//cemuLog_log(LogType::Force, "HPC-freq:   0x{:016x}", (uint64)qpc_freq.QuadPart);
+	//cemuLog_log(LogType::Force, "Multiplier: 0x{:016x}", freqMultiplier);
 
 	return tsc_freq;
 }
@@ -129,7 +127,7 @@ FSpinlock sTimerSpinlock;
 // thread safe
 uint64 PPCTimer_getFromRDTSC()
 {
-	sTimerSpinlock.acquire();
+	sTimerSpinlock.lock();
 	_mm_mfence();
 	uint64 rdtscCurrentMeasure = __rdtsc();
 	uint64 rdtscDif = rdtscCurrentMeasure - _rdtscLastMeasure;
@@ -165,6 +163,6 @@ uint64 PPCTimer_getFromRDTSC()
 
 	_tickSummary += elapsedTick;
 
-	sTimerSpinlock.release();
+	sTimerSpinlock.unlock();
 	return _tickSummary;
 }

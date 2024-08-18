@@ -126,12 +126,12 @@ namespace coreinit
 		return physicalAddr;
 	}
 
-	void OSMemoryBarrier(PPCInterpreter_t* hCPU)
+	void OSMemoryBarrier()
 	{
 		// no-op
 	}
 
-	void OSGetMemBound(sint32 memType, MPTR* offsetOutput, uint32* sizeOutput)
+	void OSGetMemBound(sint32 memType, MEMPTR<void>* offsetOutput, uint32be* sizeOutput)
 	{
 		MPTR memAddr = MPTR_NULL;
 		uint32 memSize = 0;
@@ -184,7 +184,7 @@ namespace coreinit
 				titleId == 0x0005000010135E00 // US
 				)
 			{
-				forceLogDebug_printf("Hack: Reduce available memory to simulate loaded RPLs");
+				cemuLog_logDebug(LogType::Force, "Hack: Reduce available memory to simulate loaded RPLs");
 				currentRPLAllocatorOffset += (48 * 1024 * 1024); // 48MB
 			}
 			memAddr = currentRPLAllocatorOffset;
@@ -195,9 +195,9 @@ namespace coreinit
 			cemu_assert_debug(false);
 		}
 		if (offsetOutput)
-			*offsetOutput = _swapEndianU32(memAddr);
+			*offsetOutput = memAddr;
 		if (sizeOutput)
-			*sizeOutput = _swapEndianU32(memSize);
+			*sizeOutput = memSize;
 	}
 
 	void InitializeMemory()

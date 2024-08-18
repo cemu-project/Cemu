@@ -1,8 +1,36 @@
-project(CemuComponents)
-
-file(GLOB_RECURSE CPP_FILES *.cpp)
-file(GLOB_RECURSE H_FILES *.h)
-add_library(CemuComponents ${CPP_FILES} ${H_FILES})
+add_library(CemuComponents
+  DiscordPresence/DiscordPresence.cpp
+  DiscordPresence/DiscordPresence.h
+  ExpressionParser/ExpressionParser.cpp
+  ExpressionParser/ExpressionParser.h
+  FileCache/FileCache.cpp
+  FileCache/FileCache.h
+  Logging/CemuDebugLogging.h
+  Logging/CemuLogging.cpp
+  Logging/CemuLogging.h
+  napi/napi_act.cpp
+  napi/napi_ec.cpp
+  napi/napi.h
+  napi/napi_helper.cpp
+  napi/napi_helper.h
+  napi/napi_idbe.cpp
+  napi/napi_version.cpp
+  ncrypto/ncrypto.cpp
+  ncrypto/ncrypto.h
+  nex/nex.cpp
+  nex/nexFriends.cpp
+  nex/nexFriends.h
+  nex/nex.h
+  nex/nexThread.cpp
+  nex/nexThread.h
+  nex/nexTypes.h
+  nex/prudp.cpp
+  nex/prudp.h
+  PPCAssembler/ppcAssembler.cpp
+  PPCAssembler/ppcAssembler.h
+  Tools/DownloadManager/DownloadManager.cpp
+  Tools/DownloadManager/DownloadManager.h
+)
 
 set_property(TARGET CemuComponents PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 

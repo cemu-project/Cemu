@@ -1,14 +1,16 @@
 #include "CemuLogging.h"
-#include "config/CemuConfig.h"
 #include "gui/LoggingWindow.h"
-#include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
+#include "config/CemuConfig.h"
+#include "config/ActiveSettings.h"
 
 #include <mutex>
 #include <condition_variable>
 #include <chrono>
 
 #include <fmt/printf.h>
+
+uint64 s_loggingFlagMask = cemuLog_getFlag(LogType::Force);
 
 struct _LogContext
 {
@@ -33,39 +35,35 @@ struct _LogContext
 
 const std::map<LogType, std::string> g_logging_window_mapping
 {
-	{LogType::File, "Coreinit File-Access"},
-	{LogType::GX2, "GX2"},
-	{LogType::ThreadSync, "Coreinit Thread-Synchronization"},
-	{LogType::SoundAPI, "Audio"},
-	{LogType::Input, "Input"},
-	{LogType::Socket, "Socket"},
-	{LogType::Save, "Save"},
-	{LogType::CoreinitMem, "Coreinit Memory"},
-	{LogType::H264, "H264"},
-	{LogType::OpenGL, "OpenGL"},
-	{LogType::TextureCache, "Texture Cache"},
-	{LogType::nn_nfp, "NFP"},
+	{LogType::UnsupportedAPI,     "Unsupported API calls"},
+	{LogType::APIErrors, 		  "Invalid API usage"},
+	{LogType::CoreinitLogging,    "Coreinit Logging"},
+	{LogType::CoreinitFile,       "Coreinit File-Access"},
+	{LogType::CoreinitThreadSync, "Coreinit Thread-Synchronization"},
+	{LogType::CoreinitMem,        "Coreinit Memory"},
+	{LogType::CoreinitMP,         "Coreinit MP"},
+	{LogType::CoreinitThread,     "Coreinit Thread"},
+	{LogType::NN_NFP,             "nn::nfp"},
+	{LogType::NN_FP,              "nn::fp"},
+	{LogType::NN_BOSS,            "nn::boss"},
+	{LogType::GX2,                "GX2"},
+	{LogType::SoundAPI,           "Audio"},
+	{LogType::InputAPI,           "Input"},
+	{LogType::Socket,             "Socket"},
+	{LogType::Save,               "Save"},
+	{LogType::H264,               "H264"},
+	{LogType::NFC,                "NFC"},
+	{LogType::NTAG,               "NTAG"},
+	{LogType::Patches,            "Graphic pack patches"},
+	{LogType::TextureCache,       "Texture cache"},
+	{LogType::TextureReadback,    "Texture readback"},
+	{LogType::OpenGLLogging,      "OpenGL debug output"},
+	{LogType::VulkanValidation,   "Vulkan validation layer"},
 };
-
-uint64 cemuLog_getFlag(LogType type)
-{
-	return type <= LogType::Force ? 0 : (1ULL << ((uint64)type - 1));
-}
 
 bool cemuLog_advancedPPCLoggingEnabled()
 {
 	return GetConfig().advanced_ppc_logging;
-}
-
-bool cemuLog_isLoggingEnabled(LogType type)
-{
-	if (type == LogType::Placeholder)
-		return false;
-
-	if (type == LogType::None)
-		return false;
-	
-	return (type == LogType::Force)	|| ((GetConfig().log_flag.GetValue() & cemuLog_getFlag(type)) != 0);
 }
 
 void cemuLog_thread()
@@ -92,13 +90,18 @@ void cemuLog_thread()
 	}
 }
 
+fs::path cemuLog_GetLogFilePath()
+{
+    return ActiveSettings::GetUserDataPath("log.txt");
+}
+
 void cemuLog_createLogFile(bool triggeredByCrash)
 {
 	std::unique_lock lock(LogContext.log_mutex);
 	if (LogContext.file_stream.is_open())
 		return;
 
-	const auto path = ActiveSettings::GetPath("log.txt");
+	const auto path = cemuLog_GetLogFilePath();
 	LogContext.file_stream.open(path, std::ios::out);
 	if (LogContext.file_stream.fail())
 	{
@@ -121,12 +124,8 @@ void cemuLog_writeLineToLog(std::string_view text, bool date, bool new_line)
 		const auto temp_time = std::chrono::system_clock::to_time_t(now);
 		const auto& time = *std::localtime(&temp_time);
 
-#ifdef PUBLIC_RELEASE
-		auto time_str = fmt::format("[{:02d}:{:02d}:{:02d}] ", time.tm_hour, time.tm_min, time.tm_sec);
-#else
 		auto time_str = fmt::format("[{:02d}:{:02d}:{:02d}.{:03d}] ", time.tm_hour, time.tm_min, time.tm_sec,
 			std::chrono::duration_cast<std::chrono::milliseconds>(now - std::chrono::time_point_cast<std::chrono::seconds>(now)).count());
-#endif
 
 		LogContext.text_cache.emplace_back(std::move(time_str));
 	}
@@ -163,14 +162,6 @@ bool cemuLog_log(LogType type, std::u8string_view text)
 	return cemuLog_log(type, s);
 }
 
-bool cemuLog_log(LogType type, std::wstring_view text)
-{
-	if (!cemuLog_isLoggingEnabled(type))
-		return false;
-
-	return cemuLog_log(type, boost::nowide::narrow(text.data(), text.size()));
-}
-
 void cemuLog_waitForFlush()
 {
 	cemuLog_createLogFile(false);
@@ -182,93 +173,15 @@ void cemuLog_waitForFlush()
 		std::this_thread::yield();
 		lock.lock();
 	}
-	
 }
 
 // used to atomically write multiple lines to the log
-std::unique_lock<decltype(LogContext.log_mutex)> cafeLog_acquire()
+std::unique_lock<decltype(LogContext.log_mutex)> cemuLog_acquire()
 {
 	return std::unique_lock(LogContext.log_mutex);
 }
 
-void cafeLog_log(uint32 type, const char* format, ...)
+void cemuLog_setActiveLoggingFlags(uint64 flagMask)
 {
-	const auto logType = (LogType)type;
-	if (!cemuLog_isLoggingEnabled(logType))
-		return;
-	
-	char logTempStr[2048];
-	va_list(args);
-	va_start(args, format);
-#if BOOST_OS_WINDOWS
-	vsprintf_s(logTempStr, format, args);
-#else
-	vsprintf(logTempStr, format, args);
-#endif
-	va_end(args);
-
-	cemuLog_writeLineToLog(logTempStr);
-	
-	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[logType](const auto& entry) { return entry.first == logType; });
-	if (it == g_logging_window_mapping.cend())
-		LoggingWindow::Log(logTempStr);
-	else
-		LoggingWindow::Log(it->second, logTempStr);
-}
-
-void cafeLog_logW(uint32 type, const wchar_t* format, ...)
-{
-	const auto logType = (LogType)type;
-	if (!cemuLog_isLoggingEnabled(logType))
-		return;
-	
-	wchar_t logTempStr[2048];
-	va_list(args);
-	va_start(args, format);
-#if BOOST_OS_WINDOWS
-	vswprintf_s(logTempStr, format, args);
-#else
-	vswprintf(logTempStr, 2048, format, args);
-#endif
-	va_end(args);
-	
-	cemuLog_log(logType, logTempStr);
-
-	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
-		[logType](const auto& entry) { return entry.first == logType; });
-	if (it == g_logging_window_mapping.cend())
-		LoggingWindow::Log(logTempStr);
-	else
-		LoggingWindow::Log(it->second, logTempStr);
-}
-
-void cemuLog_log()
-{
-	typedef void(*VoidFunc)();
-	const VoidFunc func = (VoidFunc)cafeLog_log;
-	func();
-}
-
-void cafeLog_logLine(uint32 type, const char* line)
-{
-	if (!cemuLog_isLoggingEnabled((LogType)type))
-		return;
-	
-	cemuLog_writeLineToLog(line);
-}
-
-void cafeLog_setLoggingFlagEnable(sint32 loggingType, bool isEnable)
-{
-	if (isEnable)
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() | cemuLog_getFlag((LogType)loggingType);
-	else
-		GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag((LogType)loggingType);
-	
-	g_config.Save();
-}
-
-bool cafeLog_isLoggingFlagEnabled(sint32 loggingType)
-{
-	return cemuLog_isLoggingEnabled((LogType)loggingType);
+	s_loggingFlagMask = flagMask | cemuLog_getFlag(LogType::Force);
 }

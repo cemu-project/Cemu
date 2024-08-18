@@ -144,24 +144,12 @@ struct RPLModule
 {
 	uint32 ukn00; // pointer to shared memory region? (0xEFE01000)
 	uint32 ukn04; // related to text region size?
-	char* moduleNamePtr__depr; // converted to lower case
-	uint32 moduleNameLength__depr; // length of module name
-	uint32 moduleNameSize; // aligned alloc size, not the same as actual length
 	uint32 padding14;
 	uint32 padding18;
 	rplHeaderNew_t rplHeader;
 	rplSectionEntryNew_t* sectionTablePtr; // copy of section table
 
-	RPLFileInfoData* fileInfoPtr__depr{}; // copy of fileinfo section
-	uint32 fileInfoSize__depr{}; // size of fileInfo section
-	uint32 fileInfoAllocSize__depr{}; // aligned alloc size
-
-	uint32be* crcTablePtr_depr{}; // copy of CRC section
-	uint32 crcTableAllocSize_depr{};
-
 	uint32 entrypoint;
-
-	uint8* rplData_depr; // Cemuhook might still read this
 
 	MPTR textRegionTemp; // temporary memory for text section?
 
@@ -171,15 +159,11 @@ struct RPLModule
 	uint8* tempRegionPtr;
 	uint32 tempRegionAllocSize;
 
-	rplSectionAddressEntry_t* sectionAddressTable__depr;
-	uint32 sectionAddressTableSize__depr;
-
 	uint32 exportDCount;
 	rplExportTableEntry_t* exportDDataPtr;
 	uint32 exportFCount;
 	rplExportTableEntry_t* exportFDataPtr;
 
-	/* above are hardcoded in Cemuhook */
 	std::string moduleName2;
 	
 	std::vector<rplSectionAddressEntry_t> sectionAddressTable2;
@@ -241,17 +225,17 @@ struct RPLModule
 
 };
 
-typedef struct
+struct RPLDependency
 {
 	char modulename[RPL_MODULE_NAME_LENGTH];
 	char filepath[RPL_MODULE_PATH_LENGTH];
 	bool loadAttempted;
-	//bool isHLEModule; // determined to be a HLE module
-	RPLModule* rplLoaderContext; // context of loaded module
+	bool isCafeOSModule; // name is a known Cafe OS RPL
+	RPLModule* rplLoaderContext; // context of loaded module, can be nullptr for HLE COS modules
 	sint32 referenceCount;
 	uint32 coreinitHandle; // fake handle for coreinit
 	sint16 tlsModuleIndex; // tls module index assigned to this dependency
-}rplDependency_t;
+};
 
 RPLModule* RPLLoader_FindModuleByCodeAddr(uint32 addr);
 RPLModule* RPLLoader_FindModuleByDataAddr(uint32 addr);

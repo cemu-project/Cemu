@@ -173,7 +173,7 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 	}
 	else
 	{
-		forceLogDebug_printf("RendererOutputShader() - todo for Vulkan");
+		cemuLog_logDebug(LogType::Force, "RendererOutputShader() - todo for Vulkan");
 		m_attributes[0].m_loc_texture_src_resolution = -1;
 		m_attributes[0].m_loc_input_resolution = -1;
 		m_attributes[0].m_loc_output_resolution = -1;
@@ -231,12 +231,6 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 		res[1] = (float)output_res.y;
 		m_fragment_shader->SetUniform2fv(m_attributes[1].m_loc_output_resolution, res, 1);
 	}
-}
-
-void RendererOutputShader::Bind() const
-{
-	g_renderer->shader_bind(m_vertex_shader);
-	g_renderer->shader_bind(m_fragment_shader);
 }
 
 RendererOutputShader* RendererOutputShader::s_copy_shader;

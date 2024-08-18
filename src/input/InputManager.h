@@ -3,6 +3,9 @@
 #if BOOST_OS_WINDOWS
 #include "input/api/DirectInput/DirectInputControllerProvider.h"
 #include "input/api/XInput/XInputControllerProvider.h"
+#endif
+
+#ifdef SUPPORTS_WIIMOTE
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
 #endif
 
@@ -114,7 +117,7 @@ private:
 		}
 		catch (const std::exception& ex)
 		{
-			cemuLog_force(ex.what());
+			cemuLog_log(LogType::Force, ex.what());
 		}
 	}
 };

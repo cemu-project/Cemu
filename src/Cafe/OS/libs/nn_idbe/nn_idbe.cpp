@@ -40,19 +40,19 @@ namespace nn
 		static_assert(offsetof(nnIdbeEncryptedIcon_t, iconData) == 0x22, "");
 		static_assert(sizeof(nnIdbeEncryptedIcon_t) == 0x12082);
 
-		void asyncDownloadIconFile(uint64 titleId, nnIdbeEncryptedIcon_t* iconOut, OSThread_t* thread)
+		void asyncDownloadIconFile(uint64 titleId, nnIdbeEncryptedIcon_t* iconOut, coreinit::OSEvent* event)
 		{
-			std::vector<uint8> idbeData = NAPI::IDBE_RequestRawEncrypted(titleId);
+			std::vector<uint8> idbeData = NAPI::IDBE_RequestRawEncrypted(ActiveSettings::GetNetworkService(), titleId);
 			if (idbeData.size() != sizeof(nnIdbeEncryptedIcon_t))
 			{
 				// icon does not exist or has the wrong size
-				cemuLog_force("IDBE: Failed to retrieve icon for title {:016x}", titleId);
+				cemuLog_log(LogType::Force, "IDBE: Failed to retrieve icon for title {:016x}", titleId);
 				memset(iconOut, 0, sizeof(nnIdbeEncryptedIcon_t));
-				coreinit_resumeThread(thread);
+				coreinit::OSSignalEvent(event);
 				return;
 			}
 			memcpy(iconOut, idbeData.data(), sizeof(nnIdbeEncryptedIcon_t));
-			coreinit_resumeThread(thread);
+			coreinit::OSSignalEvent(event);
 		}
 
 		void export_DownloadIconFile(PPCInterpreter_t* hCPU)
@@ -62,9 +62,10 @@ namespace nn
 			ppcDefineParamU32(uknR7, 4);
 			ppcDefineParamU32(uknR8, 5);
 
-			auto asyncTask = std::async(std::launch::async, asyncDownloadIconFile, titleId, encryptedIconData, coreinit::OSGetCurrentThread());
-			coreinit::OSSuspendThread(coreinit::OSGetCurrentThread());
-			PPCCore_switchToScheduler();
+			StackAllocator<coreinit::OSEvent> event;
+			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+			auto asyncTask = std::async(std::launch::async, asyncDownloadIconFile, titleId, encryptedIconData, &event);
+			coreinit::OSWaitEvent(&event);
 			osLib_returnFromFunction(hCPU, 1);
 		}
 
@@ -89,12 +90,12 @@ namespace nn
 			nnIdbeHeader_t* idbeHeader = (nnIdbeHeader_t*)iconInput;
 			if (idbeHeader->formatVersion != 0)
 			{
-				forceLog_printf("idbe header version unknown (%d)", (sint32)idbeHeader->formatVersion);
+				cemuLog_log(LogType::Force, "idbe header version unknown ({})", (sint32)idbeHeader->formatVersion);
 				return false;
 			}
 			if (idbeHeader->keyIndex >= 4)
 			{
-				forceLog_printf("idbe header key count invalid (%d)", (sint32)idbeHeader->keyIndex);
+				cemuLog_log(LogType::Force, "idbe header key count invalid ({})", (sint32)idbeHeader->keyIndex);
 				return false;
 			}
 			// decrypt data
@@ -108,7 +109,7 @@ namespace nn
 			SHA256((const unsigned char*)iconOutput, sizeof(nnIdbeIconDataV0_t), calculatedSHA256);
 			if (memcmp(calculatedSHA256, decryptedSHA256, SHA256_DIGEST_LENGTH) != 0)
 			{
-				forceLogDebug_printf("Idbe icon has incorrect sha256 hash");
+				cemuLog_logDebug(LogType::Force, "Idbe icon has incorrect sha256 hash");
 				return false;
 			}
 			return true;
@@ -141,14 +142,14 @@ namespace nn
 			ppcDefineParamTypePtr(input, nnIdbeEncryptedIcon_t, 1);
 			ppcDefineParamU32(platformMode, 2);
 
-			forceLogDebug_printf("nn_idbe.DecryptIconFile(...)");
+			cemuLog_logDebug(LogType::Force, "nn_idbe.DecryptIconFile(...)");
 
 			if (decryptIcon(input, output))
 			{
 				osLib_returnFromFunction(hCPU, 1);
 				return;
 			}
-			forceLogDebug_printf("Unable to decrypt idbe icon file, using default icon");
+			cemuLog_logDebug(LogType::Force, "Unable to decrypt idbe icon file, using default icon");
 
 			// return default icon
 			TGAHeader* tgaHeader = (TGAHeader*)(output->GetTGAData());

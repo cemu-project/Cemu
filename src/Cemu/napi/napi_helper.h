@@ -27,6 +27,7 @@ public:
 		CCS, // ccs.
 		IDBE, // idbe-wup.
 		TAGAYA, // tagaya.wup.shop.nintendo.net
+		OLIVE, // olv.
 	};
 
 	CurlRequestHelper();
@@ -37,7 +38,7 @@ public:
 		return m_curl;
 	}
 
-	void initate(std::string url, SERVER_SSL_CONTEXT sslContext);
+	void initate(NetworkService service, std::string url, SERVER_SSL_CONTEXT sslContext);
 	void addHeaderField(const char* fieldName, std::string_view value);
 	void addPostField(const char* fieldName, std::string_view value);
 	void setWriteCallback(bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData);
@@ -48,6 +49,11 @@ public:
 	std::vector<uint8>& getReceivedData()
 	{
 		return m_receiveBuffer;
+	}
+
+	void setUseMultipartFormData(bool isUsingMultipartFormData)
+	{
+		m_isUsingMultipartFormData = isUsingMultipartFormData;
 	}
 
 private:
@@ -61,12 +67,14 @@ private:
 	// write callback redirect
 	bool (*m_cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast);
 	void* m_writeCallbackUserData{};
+
+	bool m_isUsingMultipartFormData = false;
 };
 
 class CurlSOAPHelper // todo - make this use CurlRequestHelper
 {
 public:
-	CurlSOAPHelper();
+	CurlSOAPHelper(NetworkService service);
 	~CurlSOAPHelper();
 
 	CURL* getCURL()

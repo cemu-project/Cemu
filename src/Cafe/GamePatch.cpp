@@ -52,7 +52,7 @@ typedef struct
 void hleExport_xcx_enterCriticalSection(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamStructPtr(xcxCS, xcxCS_t, 0);
-	uint32 threadId = coreinitThread_getCurrentThreadMPTRDepr(hCPU);
+	uint32 threadId = MEMPTR<OSThread_t>(coreinit::OSGetCurrentThread()).GetMPTR();
 	cemu_assert_debug(xcxCS->ukn08 != 0);
 	cemu_assert_debug(threadId);
 	if (xcxCS->ownerThreadId == (uint32be)threadId)
@@ -83,7 +83,7 @@ void hleExport_xcx_enterCriticalSection(PPCInterpreter_t* hCPU)
 				osLib_returnFromFunction(hCPU, 0);
 				return;
 			}
-			_mm_pause();
+            _mm_pause();
 		}
 		PPCCore_switchToScheduler();
 	}
@@ -139,7 +139,7 @@ void hle_scan(uint8* data, sint32 dataLength, char* hleFunctionName)
 			uint32 offset = (uint32)(scanCurrent - scanStart) + 0x01000000;
 			debug_printf("HLE signature for '%s' found at 0x%08x\n", hleFunctionName, offset);
 			uint32 opcode = (1<<26)|(functionIndex+0x1000); // opcode for HLE: 0x1000 + FunctionIndex
-			memory_writeU32Direct(offset, opcode);
+			memory_write<uint32>(offset, opcode);
 			break;
 		}
 		scanCurrent += 4;
@@ -199,7 +199,7 @@ MPTR hle_locate(uint8* data, uint8* mask, sint32 dataLength)
 		}
 		else
 		{
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 			if (mask[0] != 0xFF)
 				assert_dbg();
 #endif
@@ -299,8 +299,8 @@ void GamePatch_scan()
 	hleAddr = hle_locate(xcx_gpuHangDetection_degradeFramebuffer, NULL, sizeof(xcx_gpuHangDetection_degradeFramebuffer));
 	if( hleAddr )
 	{
-#ifndef PUBLIC_RELEASE
-		forceLog_printf("HLE: XCX GPU hang detection");
+#ifdef CEMU_DEBUG_ASSERT
+		cemuLog_log(LogType::Force, "HLE: XCX GPU hang detection");
 #endif
 		// remove the ADDI r25, r25, 1 instruction
 		memory_writeU32(hleAddr, memory_readU32(hleAddr+4));
@@ -309,8 +309,8 @@ void GamePatch_scan()
 	hleAddr = hle_locate(xcx_framebufferReductionSignature, xcx_framebufferReductionMask, sizeof(xcx_framebufferReductionSignature));
 	if( hleAddr )
 	{
-#ifndef PUBLIC_RELEASE
-		forceLog_printf("HLE: Prevent XCX rendertarget reduction");
+#ifdef CEMU_DEBUG_ASSERT
+		cemuLog_log(LogType::Force, "HLE: Prevent XCX rendertarget reduction");
 #endif
 		uint32 bl = memory_readU32(hleAddr+0x14);
 		uint32 func_isReductionBuffer = hleAddr + 0x14 + (bl&0x3FFFFFC);
@@ -325,23 +325,23 @@ void GamePatch_scan()
 	hleAddr = hle_locate(botw_busyLoopSignature, botw_busyLoopMask, sizeof(botw_busyLoopSignature));
 	if (hleAddr)
 	{
-#ifndef PUBLIC_RELEASE
-		forceLog_printf("HLE: Patch BotW busy loop 1 at 0x%08x", hleAddr);
+#ifdef CEMU_DEBUG_ASSERT
+		cemuLog_log(LogType::Force, "HLE: Patch BotW busy loop 1 at 0x{:08x}", hleAddr);
 #endif
 		sint32 functionIndex = hleIndex_h000000001;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
-		memory_writeU32Direct(hleAddr - 4, opcode);
+		memory_write<uint32>(hleAddr - 4, opcode);
 	}
 	hleIndex_h000000002 = osLib_getFunctionIndex("hle", "h000000002");
 	hleAddr = hle_locate(botw_busyLoopSignature2, botw_busyLoopMask2, sizeof(botw_busyLoopSignature2));
 	if (hleAddr)
 	{
-#ifndef PUBLIC_RELEASE
-		forceLog_printf("HLE: Patch BotW busy loop 2 at 0x%08x", hleAddr);
+#ifdef CEMU_DEBUG_ASSERT
+		cemuLog_log(LogType::Force, "HLE: Patch BotW busy loop 2 at 0x{:08x}", hleAddr);
 #endif
 		sint32 functionIndex = hleIndex_h000000002;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
-		memory_writeU32Direct(hleAddr - 4, opcode);
+		memory_write<uint32>(hleAddr - 4, opcode);
 	}
 
 	// FFL library float array endian conversion
@@ -350,17 +350,17 @@ void GamePatch_scan()
 	hleAddr = hle_locate(ffl_floatArrayEndianSwap, NULL, sizeof(ffl_floatArrayEndianSwap));
 	if (hleAddr)
 	{
-		forceLogDebug_printf("HLE: Hook FFL float array endian swap function at 0x%08x", hleAddr);
+		cemuLog_logDebug(LogType::Force, "HLE: Hook FFL float array endian swap function at 0x{:08x}", hleAddr);
 		sint32 functionIndex = hleIndex_h000000003;
 		uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
-		memory_writeU32Direct(hleAddr, opcode);
+		memory_write<uint32>(hleAddr, opcode);
 	}
 
 	// XCX freeze workaround
 	//hleAddr = hle_locate(xcx_enterCriticalSectionSignature, xcx_enterCriticalSectionMask, sizeof(xcx_enterCriticalSectionSignature));
 	//if (hleAddr)
 	//{
-	//	forceLogDebug_printf("HLE: Hook XCX enterCriticalSection function at 0x%08x", hleAddr);
+	//	cemuLog_logDebug(LogType::Force, "HLE: Hook XCX enterCriticalSection function at 0x{:08x}", hleAddr);
 	//	hleIndex_h000000004 = osLib_getFunctionIndex("hle", "h000000004");
 	//	sint32 functionIndex = hleIndex_h000000004;
 	//	uint32 opcode = (1 << 26) | (functionIndex); // opcode for HLE: 0x1000 + FunctionIndex
@@ -372,7 +372,7 @@ void GamePatch_scan()
 	if (hleAddr)
 	{
 		uint32 patchAddr = hleAddr + 0x10;
-		forceLog_printf("HLE: Patch MH3U race condition candidate at 0x%08x", patchAddr);
+		cemuLog_log(LogType::Force, "HLE: Patch MH3U race condition candidate at 0x{:08x}", patchAddr);
 		uint32 funcAddr = PPCInterpreter_makeCallableExportDepr(hleExport_mh3u_raceConditionWorkaround);
 		// set absolute jump
 		uint32 opc = 0x48000000;
@@ -387,7 +387,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(smash4_softlockFixV0Signature, smash4_softlockFixV0Mask, sizeof(smash4_softlockFixV0Signature));
 	if (hleAddr)
 	{
-		forceLogDebug_printf("Smash softlock fix: 0x%08x", hleAddr);
+		cemuLog_logDebug(LogType::Force, "Smash softlock fix: 0x{:08x}", hleAddr);
 		memory_writeU32(hleAddr+0x20, memory_readU32(hleAddr+0x1C));
 	}
 
@@ -396,7 +396,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(pmcs_yellowPaintStarCrashV0Signature, nullptr, sizeof(pmcs_yellowPaintStarCrashV0Signature));
 	if (hleAddr)
 	{
-		forceLogDebug_printf("Color Splash crash fix: 0x%08x", hleAddr);
+		cemuLog_logDebug(LogType::Force, "Color Splash crash fix: 0x{:08x}", hleAddr);
 		uint32 funcAddr = PPCInterpreter_makeCallableExportDepr(hleExport_pmcs_yellowPaintStarCrashWorkaround);
 		// set absolute jump
 		uint32 opc = 0x48000000;
@@ -411,7 +411,7 @@ void GamePatch_scan()
 	if (hleAddr)
 	{
 		// replace CMPL with CMP
-		forceLog_printf("Patching Bayonetta 2 audio bug at: 0x%08x", hleAddr+0x34);
+		cemuLog_log(LogType::Force, "Patching Bayonetta 2 audio bug at: 0x{:08x}", hleAddr+0x34);
 		uint32 opc = memory_readU32(hleAddr + 0x34);
 		opc &= ~(0x3FF << 1); // turn CMPL to CMP
 		memory_writeU32(hleAddr + 0x34, opc);
@@ -444,7 +444,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(sm3dw_dynFrameBufferResScale, nullptr, sizeof(sm3dw_dynFrameBufferResScale));
 	if (hleAddr)
 	{
-		forceLog_printf("Patching SM3DW dynamic resolution scaling at: 0x%08x", hleAddr);
+		cemuLog_log(LogType::Force, "Patching SM3DW dynamic resolution scaling at: 0x{:08x}", hleAddr);
 		memory_writeU32(hleAddr, 0x4E800020); // BLR
 	}
 
@@ -453,7 +453,7 @@ void GamePatch_scan()
 	hleAddr = hle_locate(tww_waitFunc, nullptr, sizeof(tww_waitFunc));
 	if (hleAddr)
 	{
-		forceLog_printf("Patching TWW race conditon at: 0x%08x", hleAddr);
+		cemuLog_log(LogType::Force, "Patching TWW race conditon at: 0x{:08x}", hleAddr);
 		// NOP calls to Lock/Unlock mutex
 		memory_writeU32(hleAddr + 0x34, 0x60000000);
 		memory_writeU32(hleAddr + 0x48, 0x60000000);
@@ -462,7 +462,7 @@ void GamePatch_scan()
 	}
 
 	uint32 hleInstallEnd = GetTickCount();
-	forceLog_printf("HLE scan time: %dms", hleInstallEnd-hleInstallStart);
+	cemuLog_log(LogType::Force, "HLE scan time: {}ms", hleInstallEnd-hleInstallStart);
 }
 
 RunAtCemuBoot _loadGamePatchAPI([]()

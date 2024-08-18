@@ -1,4 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLTextureReadback.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 
@@ -76,7 +77,7 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 	}
 	else
 	{
-		forceLogDebug_printf("Unsupported texture readback format %04x\n", (uint32)textureView->format);
+		cemuLog_logDebug(LogType::Force, "Unsupported texture readback format {:04x}", (uint32)textureView->format);
 		return;
 	}
 }
@@ -93,8 +94,7 @@ LatteTextureReadbackInfoGL::~LatteTextureReadbackInfoGL()
 void LatteTextureReadbackInfoGL::StartTransfer()
 {
 	cemu_assert(m_textureView);
-
-	g_renderer->texture_bindAndActivate(m_textureView, 0);
+	((OpenGLRenderer*)g_renderer.get())->texture_bindAndActivate(m_textureView, 0);
 	// create unsynchronized buffer
 	glGenBuffers(1, &texImageBufferGL);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, texImageBufferGL);

@@ -1,0 +1,42 @@
+name: Generate translation template
+
+on:
+  pull_request:
+    paths-ignore:
+      - "*.md"
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    paths-ignore:
+      - "*.md"
+    branches:
+      - main
+
+jobs:
+  generate-pot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v3
+
+      - name: "Install gettext"
+        run: |
+          sudo apt update -qq
+          sudo apt install -y gettext
+
+      - name: "Generate POT file using xgettext"
+        run: >
+          find src -name *.cpp -o -name *.hpp -o -name *.h | 
+          xargs xgettext --from-code=utf-8 -w 100
+          --keyword="_" --keyword="wxTRANSLATE" --keyword="wxPLURAL:1,2"
+          --check=space-ellipsis --omit-header
+          -o cemu.pot
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: POT file
+          path: ./cemu.pot
+          if-no-files-found: error

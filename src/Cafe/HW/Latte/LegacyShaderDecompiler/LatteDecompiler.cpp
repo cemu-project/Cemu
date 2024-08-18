@@ -101,7 +101,8 @@ bool LatteDecompiler_ParseCFInstruction(LatteDecompilerShaderContext* shaderCont
 			// ignored (we use ALU/IF/ELSE/PUSH/POP clauses to determine code flow)
 			return true;
 		}
-		else if (cf_inst23_7 == GPU7_CF_INST_LOOP_START_DX10 || cf_inst23_7 == GPU7_CF_INST_LOOP_END)
+		else if (cf_inst23_7 == GPU7_CF_INST_LOOP_START_DX10 || cf_inst23_7 == GPU7_CF_INST_LOOP_END ||
+				 cf_inst23_7 == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			LatteDecompilerCFInstruction& cfInstruction = instructionList.emplace_back();
 			// set type and address
@@ -345,6 +346,7 @@ bool LatteDecompiler_IsALUTransInstruction(bool isOP3, uint32 opcode)
 		opcode == ALU_OP2_INST_SETGE_UINT ||
 		opcode == ALU_OP2_INST_SETGT_UINT ||
 		opcode == ALU_OP2_INST_MAX_DX10 ||
+		opcode == ALU_OP2_INST_MIN_DX10 ||
 		opcode == ALU_OP2_INST_PRED_SETE ||
 		opcode == ALU_OP2_INST_PRED_SETNE ||
 		opcode == ALU_OP2_INST_PRED_SETGE ||
@@ -665,6 +667,9 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 			uint32 offsetY = (word2 >> 5) & 0x1F;
 			uint32 offsetZ = (word2 >> 10) & 0x1F;
 
+			sint8 lodBias = (word2 >> 21) & 0x7F;
+			if ((lodBias&0x40) != 0)
+				lodBias |= 0x80;
 			// bufferID -> Texture index
 			// samplerId -> Sampler index
 			sint32 textureIndex = bufferId - 0x00;
@@ -692,6 +697,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 			texInstruction.textureFetch.unnormalized[1] = coordTypeY == 0;
 			texInstruction.textureFetch.unnormalized[2] = coordTypeZ == 0;
 			texInstruction.textureFetch.unnormalized[3] = coordTypeW == 0;
+			texInstruction.textureFetch.lodBias = (sint8)lodBias;
 			cfInstruction->instructionsTEX.emplace_back(texInstruction);
 		}
 		else if( inst0_4 == GPU7_TEX_INST_SET_CUBEMAP_INDEX )
@@ -931,7 +937,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 		}
 		else
 		{
-			forceLogDebug_printf("Unsupported tex instruction %d\n", inst0_4);
+			cemuLog_logDebug(LogType::Force, "Unsupported tex instruction {}", inst0_4);
 			shaderContext->hasError = true;
 			break;
 		}
@@ -961,7 +967,8 @@ void LatteDecompiler_ParseClauses(LatteDecompilerShaderContext* decompilerContex
 		{
 			// no sub-instructions
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			// no sub-instructions
 		}
@@ -1065,44 +1072,32 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	_LatteDecompiler_GenerateDataForFastAccess(shaderContext->shader);
 }
 
-void LatteDecompiler_InitContext(LatteDecompilerShaderContext& dCtx, LatteDecompilerOutput_t* output, LatteConst::ShaderType shaderType, uint64 shaderBaseHash, uint32* contextRegisters)
+void LatteDecompiler_InitContext(LatteDecompilerShaderContext& dCtx, const LatteDecompilerOptions& options, LatteDecompilerOutput_t* output, LatteConst::ShaderType shaderType, uint64 shaderBaseHash, uint32* contextRegisters)
 {
 	dCtx.output = output;
 	dCtx.shaderType = shaderType;
-	output->shaderType = shaderType;
+	dCtx.options = &options;
 	dCtx.shaderBaseHash = shaderBaseHash;
 	dCtx.contextRegisters = contextRegisters;
 	dCtx.contextRegistersNew = (LatteContextRegister*)contextRegisters;
+	output->shaderType = shaderType;
 }
 
-void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, LatteFetchShader** fetchShaderList, sint32 fetchShaderCount, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output, bool useTFViaSSBO)
+void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, struct LatteFetchShader* fetchShader, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
+	cemu_assert_debug(fetchShader);
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	LatteDecompiler_InitContext(shaderContext, output, LatteConst::ShaderType::Vertex, shaderBaseHash, contextRegisters);
-	cemu_assert_debug(fetchShaderCount == 1);
-	for (sint32 i = 0; i < fetchShaderCount; i++)
-	{
-		shaderContext.fetchShaderList[i] = fetchShaderList[i];
-	}
-	shaderContext.fetchShaderCount = fetchShaderCount;
-	// ugly hack to get tf mode from Vulkan renderer
-	shaderContext.useTFViaSSBO = useTFViaSSBO;
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
-		shaderContext.useTFViaSSBO = VulkanRenderer::GetInstance()->useTFViaSSBO();
-	}
+	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Vertex, shaderBaseHash, contextRegisters);
+	shaderContext.fetchShader = fetchShader;
 	// prepare shader (deprecated)
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shader->shaderType = LatteConst::ShaderType::Vertex;
-	shader->compatibleFetchShader = shaderContext.fetchShaderList[0];
-	shaderContext.shaderType = LatteConst::ShaderType::Vertex;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Vertex);
+	shader->compatibleFetchShader = shaderContext.fetchShader;
 	output->shaderType = LatteConst::ShaderType::Vertex;
 	shaderContext.shader = shader;
 	output->shader = shader;
-	shaderContext.usesGeometryShader = usesGeometryShader;
 	for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
 		shader->textureUnitSamplerAssignment[i] = LATTE_DECOMPILER_SAMPLER_NONE;
@@ -1113,24 +1108,19 @@ void LatteDecompiler_DecompileVertexShader(uint64 shaderBaseHash, uint32* contex
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
-void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32* hleSpecialState, uint32 vsRingParameterCount, LatteDecompilerOutput_t* output, bool useTFViaSSBO)
+void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint8* gsCopyProgramData, uint32 gsCopyProgramSize, uint32 vsRingParameterCount, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	shaderContext.fetchShaderCount = 0;
-	LatteDecompiler_InitContext(shaderContext, output, LatteConst::ShaderType::Geometry, shaderBaseHash, contextRegisters);
+	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Geometry, shaderBaseHash, contextRegisters);
 	// prepare shader
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shaderContext.output = output;
-	shader->shaderType = LatteConst::ShaderType::Geometry;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Geometry);
 	shader->ringParameterCountFromPrevStage = vsRingParameterCount;
-	shaderContext.shaderType = LatteConst::ShaderType::Geometry;
 	output->shaderType = LatteConst::ShaderType::Geometry;
 	shaderContext.shader = shader;
 	output->shader = shader;
-	shaderContext.usesGeometryShader = true;
 	if (gsCopyProgramData == NULL)
 	{
 		shader->hasError = true;
@@ -1144,34 +1134,24 @@ void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* cont
 		shader->textureUnitSamplerAssignment[i] = LATTE_DECOMPILER_SAMPLER_NONE;
 		shader->textureUsesDepthCompare[i] = false;
 	}
-	// ugly hack to get tf mode from Vulkan renderer
-	shaderContext.useTFViaSSBO = useTFViaSSBO;
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
-		shaderContext.useTFViaSSBO = VulkanRenderer::GetInstance()->useTFViaSSBO();
-	}
 	// parse & compile
 	_LatteDecompiler_Process(&shaderContext, programData, programSize);
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
-void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, uint32* hleSpecialState, bool usesGeometryShader, LatteDecompilerOutput_t* output)
+void LatteDecompiler_DecompilePixelShader(uint64 shaderBaseHash, uint32* contextRegisters, uint8* programData, uint32 programSize, LatteDecompilerOptions& options, LatteDecompilerOutput_t* output)
 {
 	cemu_assert_debug((programSize & 3) == 0);
 	performanceMonitor.gpuTime_shaderCreate.beginMeasuring();
 	// prepare decompiler context
 	LatteDecompilerShaderContext shaderContext = { 0 };
-	LatteDecompiler_InitContext(shaderContext, output, LatteConst::ShaderType::Pixel, shaderBaseHash, contextRegisters);
+	LatteDecompiler_InitContext(shaderContext, options, output, LatteConst::ShaderType::Pixel, shaderBaseHash, contextRegisters);
 	shaderContext.contextRegisters = contextRegisters;
 	// prepare shader
-	LatteDecompilerShader* shader = new LatteDecompilerShader();
-	shaderContext.output = output;
-	shader->shaderType = LatteConst::ShaderType::Pixel;
-	shaderContext.shaderType = LatteConst::ShaderType::Pixel;
+	LatteDecompilerShader* shader = new LatteDecompilerShader(LatteConst::ShaderType::Pixel);
 	output->shaderType = LatteConst::ShaderType::Pixel;
 	shaderContext.shader = shader;
 	output->shader = shader;
-	shaderContext.usesGeometryShader = usesGeometryShader;
 	for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
 		shader->textureUnitSamplerAssignment[i] = LATTE_DECOMPILER_SAMPLER_NONE;

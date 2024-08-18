@@ -653,7 +653,7 @@ public:
 			{
 				immD = ep.Evaluate(svExpressionPart);
 				sint32 imm = (sint32)immD;
-				if (imm < -32768 && imm > 32767)
+				if (imm < -32768 || imm > 32767)
 				{
 					std::string msg = fmt::format("\"{}\" evaluates to offset out of range (Valid range is -32768 to 32767)", svExpressionPart);
 					ppcAssembler_setError(assemblerCtx->ctx, msg);
@@ -2126,7 +2126,7 @@ bool _ppcAssembler_isConstantBranchTargetExpr(std::string& expressionString, sin
 		{
 			return false;
 		}
-		relativeAddr = (uint32)branchDistance;
+		relativeAddr = (sint32)branchDistance;
 		return true;
 	}
 	return false;
@@ -2418,6 +2418,9 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	_ppcAssembler_translateAlias(instructionName);
 	// parse operands
 	internalInfo.listOperandStr.clear();
+
+	bool isInString = false;
+
 	while (currentPtr < endPtr)
 	{
 		currentPtr++;
@@ -2425,7 +2428,10 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 		// find end of operand
 		while (currentPtr < endPtr)
 		{
-			if (*currentPtr == ',')
+			if (*currentPtr == '"')
+				isInString=!isInString;
+
+			if (*currentPtr == ',' && !isInString)
 				break;
 			currentPtr++;
 		}
@@ -3497,7 +3503,7 @@ void ppcAsmTestDisassembler()
 
 void ppcAsmTest()
 {
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	ppcAsmTestDisassembler();
 #endif
 }

@@ -37,16 +37,16 @@ public:
 
 	void TrackDependency(class PipelineInfo* pipelineInfo)
 	{
-		s_spinlockDependency.acquire();
+		s_spinlockDependency.lock();
 		m_usedByPipelines.emplace_back(pipelineInfo);
-		s_spinlockDependency.release();
+		s_spinlockDependency.unlock();
 	}
 
 	void RemoveDependency(class PipelineInfo* pipelineInfo)
 	{
-		s_spinlockDependency.acquire();
+		s_spinlockDependency.lock();
 		vectorRemoveByValue(m_usedByPipelines, pipelineInfo);
-		s_spinlockDependency.release();
+		s_spinlockDependency.unlock();
 	}
 
 	[[nodiscard]] const VkExtent2D& GetExtend() const { return m_extend;}
@@ -75,10 +75,6 @@ private:
 	VkRenderingAttachmentInfoKHR m_vkColorAttachments[8];
 	VkRenderingAttachmentInfoKHR m_vkDepthAttachment;
 	VkRenderingAttachmentInfoKHR m_vkStencilAttachment;
-	//uint8 m_vkColorAttachmentsCount{0};
-	bool m_vkHasDepthAttachment{ false };
-	bool m_vkHasStencilAttachment{ false };
-
 
 	std::vector<class PipelineInfo*> m_usedByPipelines; // PipelineInfo objects which use this renderpass/framebuffer
 };

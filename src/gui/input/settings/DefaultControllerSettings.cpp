@@ -248,6 +248,12 @@ void DefaultControllerSettings::on_timer(wxTimerEvent& event)
 	m_controller->apply_axis_setting(state.rotation, default_state.rotation, m_settings.rotation);
 	m_controller->apply_axis_setting(state.trigger, default_state.trigger, m_settings.trigger);
 
+	if (m_controller->api() == InputAPI::SDLController)
+	{
+		state.axis.y *= -1;
+		state.rotation.y *= -1;
+	}
+
 	m_axis_draw->SetDeadzone(m_settings.axis.deadzone);
 	m_axis_draw->SetAxisValue(state.axis);
 

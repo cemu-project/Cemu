@@ -93,6 +93,13 @@ glm::vec2 DSUController::get_prev_position()
 	return {};
 }
 
+PositionVisibility DSUController::GetPositionVisibility()
+{
+	const auto state = m_provider->get_prev_state(m_index);
+
+	return (state.data.tpad1.active || state.data.tpad2.active) ? PositionVisibility::FULL : PositionVisibility::NONE;
+}
+
 std::string DSUController::get_button_name(uint64 button) const
 {
 	switch (button)
@@ -137,7 +144,7 @@ ControllerState DSUController::raw_state()
 	{
 		if (HAS_BIT(state.data.state1, i))
 		{
-			result.buttons.set(bitindex);
+			result.buttons.SetButtonState(bitindex, true);
 		}
 	}
 
@@ -145,12 +152,12 @@ ControllerState DSUController::raw_state()
 	{
 		if (HAS_BIT(state.data.state2, i))
 		{
-			result.buttons.set(bitindex);
+			result.buttons.SetButtonState(bitindex, true);
 		}
 	}
 
 	if (state.data.touch)
-		result.buttons.set(kButton16);
+		result.buttons.SetButtonState(kButton16, true);
 
 	result.axis.x = (float)state.data.lx / std::numeric_limits<uint8>::max();
 	result.axis.x = (result.axis.x * 2.0f) - 1.0f;
@@ -164,5 +171,8 @@ ControllerState DSUController::raw_state()
 	result.rotation.y = (float)state.data.ry / std::numeric_limits<uint8>::max();
 	result.rotation.y = (result.rotation.y * 2.0f) - 1.0f;
 
-	return result;
+    result.trigger.x = (float)state.data.l2 / std::numeric_limits<uint8>::max();
+    result.trigger.y = (float)state.data.r2 / std::numeric_limits<uint8>::max();
+
+    return result;
 }

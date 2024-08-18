@@ -23,7 +23,7 @@ MPTR coreinit_allocFromSysArea(uint32 size, uint32 alignment)
 	sysAreaAllocatorOffset += (size+3)&~3;
 	if( sysAreaAllocatorOffset >= mmuRange_CEMU_AREA.getSize() )
 	{
-		forceLog_printf("Ran out of system memory");
+		cemuLog_log(LogType::Force, "Ran out of system memory");
 		cemu_assert(false); // out of bounds
 	}
 	s_allocator_mutex.unlock();
@@ -50,7 +50,7 @@ namespace coreinit
 	MEMList g_list3;
 
 	std::array<uint32, 3> gHeapFillValues{ 0xC3C3C3C3, 0xF3F3F3F3, 0xD3D3D3D3 };
-	OSSpinLock gHeapGlobalLock;
+	SysAllocator<OSSpinLock> gHeapGlobalLock;
 	MEMHeapBase* gDefaultHeap;
 
 	bool MEMHeapTable_Add(MEMHeapBase* heap)
@@ -128,7 +128,7 @@ namespace coreinit
 	{
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(1, &memBound, &memBoundSize);
 
 		MEMPTR<void> bucket;
 		uint32be bucketSize;
@@ -257,7 +257,7 @@ namespace coreinit
 	{
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(1, &memBound, &memBoundSize);
 
 		MEMPTR<void> bucket;
 		uint32be bucketSize;
@@ -464,7 +464,7 @@ namespace coreinit
 	void* default_MEMAllocFromDefaultHeap(uint32 size)
 	{
 		void* mem = MEMAllocFromExpHeapEx(gDefaultHeap, size, 0x40);
-		coreinitMemLog_printf("MEMAllocFromDefaultHeap(0x%08x) Result: 0x%08x", size, memory_getVirtualOffsetFromPointer(mem));
+		cemuLog_logDebug(LogType::CoreinitMem, "MEMAllocFromDefaultHeap(0x{:08x}) Result: 0x{:08x}", size, memory_getVirtualOffsetFromPointer(mem));
 		return mem;
 	}
 
@@ -478,7 +478,7 @@ namespace coreinit
 	void* default_MEMAllocFromDefaultHeapEx(uint32 size, sint32 alignment)
 	{
 		void* mem = MEMAllocFromExpHeapEx(gDefaultHeap, size, alignment);
-		coreinitMemLog_printf("MEMAllocFromDefaultHeap(0x%08x,%d) Result: 0x%08x", size, alignment, memory_getVirtualOffsetFromPointer(mem));
+		cemuLog_logDebug(LogType::CoreinitMem, "MEMAllocFromDefaultHeap(0x{:08x},{}) Result: 0x{:08x}", size, alignment, memory_getVirtualOffsetFromPointer(mem));
 		return mem;
 	}
 
@@ -593,16 +593,16 @@ namespace coreinit
 		{
 			MEMPTR<void> memBound;
 			uint32be memBoundSize;
-			OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+			OSGetMemBound(1, &memBound, &memBoundSize);
 			mem1Heap = MEMCreateFrmHeapEx(memBound.GetPtr(), (uint32)memBoundSize, 0);
 
-			OSGetForegroundBucketFreeArea((MPTR*)memBound.GetBEPtr(), (MPTR*)&memBoundSize);
+			OSGetForegroundBucketFreeArea(&memBound, &memBoundSize);
 			memFGHeap = MEMCreateFrmHeapEx(memBound.GetPtr(), (uint32)memBoundSize, 0);
 		}
 
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(2, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(2, &memBound, &memBoundSize);
 		mem2Heap = MEMDefaultHeap_Init(memBound.GetPtr(), (uint32)memBoundSize);
 
 		// set DynLoad allocators
@@ -615,10 +615,24 @@ namespace coreinit
 		cemu_assert_unimplemented();
 	}
 
+    void MEMResetToDefaultState()
+    {
+        for (auto& it : sHeapBaseHandle)
+            it = nullptr;
+
+        g_heapTableCount = 0;
+        g_slockInitialized = false;
+        g_listsInitialized = false;
+        gDefaultHeap = nullptr;
+
+        memset(&g_list1, 0, sizeof(g_list1));
+        memset(&g_list2, 0, sizeof(g_list2));
+        memset(&g_list3, 0, sizeof(g_list3));
+    }
+
 	void InitializeMEM()
 	{
-		for (auto& it : sHeapBaseHandle)
-			it = nullptr;
+        MEMResetToDefaultState();
 
 		cafeExportRegister("coreinit", CoreInitDefaultHeap, LogType::CoreinitMem);
 

@@ -14,11 +14,15 @@
 #include "gui/components/wxGameList.h"
 
 #include <future>
+#include "Cafe/HW/Espresso/Debugger/GDBStub.h"
+#include "Cafe/CafeSystem.h"
 
 class DebuggerWindow2;
 struct GameEntry;
 class DiscordPresence;
 class TitleManager;
+class GraphicPacksWindow2;
+class EmulatedUSBDeviceFrame;
 class wxLaunchGameEvent;
 
 wxDECLARE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
@@ -49,18 +53,21 @@ private:
 	INITIATED_BY m_initiatedBy;
 };
 
-class MainWindow : public wxFrame
+class MainWindow : public wxFrame, public CafeSystem::SystemImplementation
 {
 	friend class CemuApp;
 
 public:
 	MainWindow();
 	~MainWindow();
-	
+
+    void CreateGameListAndStatusBar();
+    void DestroyGameListAndStatusBar();
+
 	void UpdateSettingsAfterGameLaunch();
 	void RestoreSettingsAfterGameExited();
 
-	bool FileLoad(std::wstring fileName, wxLaunchGameEvent::INITIATED_BY initiatedBy);
+	bool FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATED_BY initiatedBy);
 
 	[[nodiscard]] bool IsGameLaunched() const { return m_game_launched; }
 
@@ -78,6 +85,7 @@ public:
 	PadViewFrame* GetPadView() const { return m_padView; }
 
 	void OnSizeEvent(wxSizeEvent& event);
+	void OnDPIChangedEvent(wxDPIChangedEvent& event);
 	void OnMove(wxMoveEvent& event);
 
 	void OnDebuggerClose(wxCloseEvent& event);
@@ -86,6 +94,7 @@ public:
 	void OnMouseWheel(wxMouseEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void OnFileMenu(wxCommandEvent& event);
+	void OnOpenFolder(wxCommandEvent& event);
 	void OnLaunchFromFile(wxLaunchGameEvent& event);
 	void OnInstallUpdate(wxCommandEvent& event);
 	void OnFileExit(wxCommandEvent& event);
@@ -93,17 +102,15 @@ public:
 	void OnOptionsInput(wxCommandEvent& event);
 	void OnAccountSelect(wxCommandEvent& event);
 	void OnConsoleLanguage(wxCommandEvent& event);
-	void OnHelpVistWebpage(wxCommandEvent& event);
 	void OnHelpAbout(wxCommandEvent& event);
-	void OnHelpGettingStarted(wxCommandEvent& event);
 	void OnHelpUpdate(wxCommandEvent& event);
-	void OnAfterCallShowErrorDialog();
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
 	void OnPPCInfoToggle(wxCommandEvent& event);
 	void OnDebugDumpUsedTextures(wxCommandEvent& event);
 	void OnDebugDumpUsedShaders(wxCommandEvent& event);
 	void OnLoggingWindow(wxCommandEvent& event);
+	void OnGDBStubToggle(wxCommandEvent& event);
 	void OnDebugViewPPCThreads(wxCommandEvent& event);
 	void OnDebugViewPPCDebugger(wxCommandEvent& event);
 	void OnDebugViewAudioDebugger(wxCommandEvent& event);
@@ -118,6 +125,7 @@ public:
 	void OnSetWindowTitle(wxCommandEvent& event);
 
 	void OnKeyUp(wxKeyEvent& event);
+	void OnKeyDown(wxKeyEvent& event);
 	void OnChar(wxKeyEvent& event);
 
 	void OnToolsInput(wxCommandEvent& event);
@@ -130,7 +138,6 @@ public:
 	void CreateCanvas();
 	void DestroyCanvas();
 
-	std::wstring GetGameName(std::wstring_view file_name);
 	static void ShowCursor(bool state);
 
 	uintptr_t GetRenderCanvasHWND();
@@ -140,20 +147,25 @@ public:
 
 private:
 	void RecreateMenu();
+	void UpdateChildWindowTitleRunningState();
 	static wxString GetInitialWindowTitle();
-	void ShowGettingStartedDialog();
-	bool EnableOnlineMode() const;
 
 	bool InstallUpdate(const fs::path& metaFilePath);
 
 	void OnTimer(wxTimerEvent& event);
 
+	// CafeSystem implementation
+	void CafeRecreateCanvas() override;
+
+	void OnRequestRecreateCanvas(wxCommandEvent& event);
+
 	wxRect GetDesktopRect();
 
 	MemorySearcherTool* m_toolWindow = nullptr;
 	TitleManager* m_title_manager = nullptr;
+	EmulatedUSBDeviceFrame* m_usb_devices = nullptr;
 	PadViewFrame* m_padView = nullptr;
-	wxWindow* m_graphic_pack_window = nullptr;
+	GraphicPacksWindow2* m_graphic_pack_window = nullptr;
 
 	wxTimer* m_timer;
 	wxPoint m_mouse_position{};
@@ -170,6 +182,7 @@ private:
 
 	std::string m_launched_game_name;
 
+	wxMenuItem* m_gdbstub_toggle{};
 	DebuggerWindow2* m_debugger_window = nullptr;
 	LoggingWindow* m_logging_window = nullptr;
 
@@ -178,8 +191,6 @@ private:
 	wxMenuItem* m_check_update_menu{};
 	void LoadSettings();
 	void SaveSettings();
-
-	std::string GetRegionString(uint32 region) const;
 
 	void OnGraphicWindowClose(wxCloseEvent& event);
 	void OnGraphicWindowOpen(wxTitleIdEvent& event);
@@ -191,42 +202,40 @@ private:
 	wxWindow* m_render_canvas{};
 
 	// gamelist
-	wxGameList* m_game_list;
-	wxInfoBar* m_info_bar;
+	wxGameList* m_game_list{};
+	wxInfoBar* m_info_bar{};
 
 	// menu
-	wxMenuBar* m_menuBar = nullptr;
+	wxMenuBar* m_menuBar{};
 
 	// file
-	wxMenu* m_fileMenu;
-	wxMenuItem* m_fileMenuSeparator0;
-	wxMenuItem* m_fileMenuSeparator1;
-	wxMenuItem* m_loadMenuItem;
-	wxMenuItem* m_installUpdateMenuItem;
-	wxMenuItem* m_exitMenuItem;
+	wxMenu* m_fileMenu{};
+	wxMenuItem* m_fileMenuSeparator0{};
+	wxMenuItem* m_fileMenuSeparator1{};
+	wxMenuItem* m_loadMenuItem{};
+	wxMenuItem* m_installUpdateMenuItem{};
+	wxMenuItem* m_exitMenuItem{};
 
 	// options
-	//wxMenu* m_gpuBufferCacheAccuracySubmenu;
-	wxMenu* m_optionsAccountMenu;
+	wxMenu* m_optionsAccountMenu{};
 
-	wxMenuItem* m_fullscreenMenuItem;
-	wxMenuItem* m_padViewMenuItem;
+	wxMenuItem* m_fullscreenMenuItem{};
+	wxMenuItem* m_padViewMenuItem{};
 
 	// tools
-	wxMenuItem* m_memorySearcherMenuItem;
+	wxMenuItem* m_memorySearcherMenuItem{};
 
 	// cpu
-	//wxMenu* m_cpuModeSubmenu;
-	wxMenu* m_cpuTimerSubmenu;
+	wxMenu* m_cpuTimerSubmenu{};
 
 	// nfc
-	wxMenu* m_nfcMenu;
-	wxMenuItem* m_nfcMenuSeparator0;
+	wxMenu* m_nfcMenu{};
+	wxMenuItem* m_nfcMenuSeparator0{};
 
 	// debug
-	wxMenu* m_debugMenu;
-	wxMenu* m_loggingSubmenu;
-	wxMenuItem* m_asyncCompile;
+	wxMenu* m_debugMenu{};
+	wxMenu* m_loggingSubmenu{};
+	wxMenuItem* m_asyncCompile{};
 
 wxDECLARE_EVENT_TABLE();
 };

@@ -1,8 +1,28 @@
-project(CemuCommon)
-
-file(GLOB CPP_FILES *.cpp)
-file(GLOB H_FILES *.h)
-add_library(CemuCommon ${CPP_FILES} ${H_FILES})
+add_library(CemuCommon 
+  betype.h
+  cpu_features.cpp
+  cpu_features.h
+  enumFlags.h
+  ExceptionHandler/ExceptionHandler.cpp
+  ExceptionHandler/ExceptionHandler.h
+  FileStream.h
+  GLInclude/glext.h
+  GLInclude/glFunctions.h
+  GLInclude/GLInclude.h
+  GLInclude/glxext.h
+  GLInclude/khrplatform.h
+  GLInclude/wglext.h
+  MemPtr.h
+  platform.h
+  precompiled.cpp
+  precompiled.h
+  socket.h
+  StackAllocator.h
+  SysAllocator.cpp
+  SysAllocator.h
+  CafeString.h
+  version.h
+)
 
 set_property(TARGET CemuCommon PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
@@ -16,16 +36,22 @@ if(WIN32)
 else()
 target_sources(CemuCommon
 PRIVATE
+    unix/date.h
+    unix/fast_float.h
     unix/platform.cpp
     unix/platform.h
     unix/FileStream_unix.cpp
+    unix/FileStream_unix.h
     ExceptionHandler/ExceptionHandler_posix.cpp
 )
 endif()
 
-target_sources(CemuCommon PRIVATE
-	ExceptionHandler/ExceptionHandler.h
-)
+if(UNIX AND NOT APPLE)
+	target_sources(CemuCommon PRIVATE
+		ExceptionHandler/ELFSymbolTable.cpp
+		ExceptionHandler/ELFSymbolTable.h
+	)
+endif()
 
 # All the targets wanting to use the precompiled.h header
 # have to link to CemuCommon

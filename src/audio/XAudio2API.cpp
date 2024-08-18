@@ -23,7 +23,6 @@ static const GUID DEVINTERFACE_AUDIO_RENDER_GUID = { 0xe6327cad, 0xdcec, 0x4949,
 static_assert(IAudioAPI::kBlockCount < XAUDIO2_MAX_QUEUED_BUFFERS, "too many xaudio2 buffers");
 
 HMODULE XAudio2API::s_xaudio_dll = nullptr;
-bool XAudio2API::s_com_initialized = false;
 std::vector<XAudio2API::DeviceDescriptionPtr> XAudio2API::s_devices;
 
 XAudio2API::XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channels, uint32 samples_per_block, uint32 bits_per_sample)
@@ -50,8 +49,8 @@ XAudio2API::XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channel
 	m_wfx.Format.nChannels = channels;
 	m_wfx.Format.nSamplesPerSec = samplerate;
 	m_wfx.Format.wBitsPerSample = bits_per_sample;
-	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels × wBitsPerSample) / 8
-	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec × nBlockAlign.
+	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels Ã— wBitsPerSample) / 8
+	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec Ã— nBlockAlign.
 	m_wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 
 	m_wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
@@ -143,8 +142,6 @@ bool XAudio2API::InitializeStatic()
 {
 	if (s_xaudio_dll)
 		return true;
-	
-	s_com_initialized = (SUCCEEDED(CoInitializeEx(nullptr, COINIT_MULTITHREADED)));
 
 	// win 10
 	s_xaudio_dll = LoadLibraryEx(XAUDIO2_DLL, nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
@@ -166,9 +163,6 @@ bool XAudio2API::InitializeStatic()
 		if (s_xaudio_dll)
 			FreeLibrary(s_xaudio_dll);
 
-		if (s_com_initialized)
-			CoUninitialize();
-
 		return false;
 	}
 }
@@ -177,18 +171,11 @@ void XAudio2API::Destroy()
 {
 	if (s_xaudio_dll)
 		FreeLibrary(s_xaudio_dll);
-
-	if (s_com_initialized)
-		CoUninitialize();
 }
 
 const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices()
 {
-	// this function must be called from the same thread as we called CoInitializeEx
 	s_devices.clear();
-
-	if (FAILED(CoInitializeEx(nullptr, COINIT_MULTITHREADED | COINIT_DISABLE_OLE1DDE)))
-		return s_devices;
 
 	try
 	{
@@ -271,7 +258,7 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 	}
 	catch (const std::system_error& ex)
 	{
-		forceLog_printf("XAudio2API::RefreshDevices: error while refreshing device list (%s - code: 0x%08x)", ex.what(), ex.code().value());
+		cemuLog_log(LogType::Force, "XAudio2API::RefreshDevices: error while refreshing device list ({} - code: 0x{:08x})", ex.what(), ex.code().value());
 	}
 
 	CoUninitialize();
@@ -289,7 +276,7 @@ bool XAudio2API::FeedBlock(sint16* data)
 
 		if (m_blocks_queued >= kBlockCount)
 		{
-			forceLogDebug_printf("dropped xaudio2 block since too many buffers are queued");
+			cemuLog_logDebug(LogType::Force, "dropped xaudio2 block since too many buffers are queued");
 			return false;
 		}
 	}

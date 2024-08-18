@@ -189,11 +189,11 @@ private:
 		auto it = list_chunks[addr.chunkIndex]->map_allocatedRange.find(addr.offset);
 		if (it == list_chunks[addr.chunkIndex]->map_allocatedRange.end())
 		{
-			forceLog_printf("Internal heap error. %08x %08x", addr.chunkIndex, addr.offset);
-			forceLog_printf("Debug info:");
+			cemuLog_log(LogType::Force, "Internal heap error. {:08x} {:08x}", addr.chunkIndex, addr.offset);
+			cemuLog_log(LogType::Force, "Debug info:");
 			for (auto& rangeItr : list_chunks[addr.chunkIndex]->map_allocatedRange)
 			{
-				forceLog_printf("%08x %08x", rangeItr.second->offset, rangeItr.second->size);
+				cemuLog_log(LogType::Force, "{:08x} {:08x}", rangeItr.second->offset, rangeItr.second->size);
 			}
 			return;
 		}
@@ -489,6 +489,11 @@ private:
 
 	bool _alloc(uint32 size, uint32 alignment, uint32& allocOffsetOut)
 	{
+		if(size == 0)
+		{
+			size = 1; // zero-sized allocations are not supported
+			cemu_assert_suspicious();
+		}
 		// find smallest bucket to scan
 		uint32 alignmentM1 = alignment - 1;
 		uint32 bucketIndex = ulog2(size);
@@ -521,7 +526,10 @@ private:
 	{
 		auto it = map_allocatedRange.find(addrOffset);
 		if (it == map_allocatedRange.end())
-			assert_dbg();
+		{
+			cemuLog_log(LogType::Force, "VHeap internal error");
+			cemu_assert(false);
+		}
 		allocRange_t* range = it->second;
 		map_allocatedRange.erase(it);
 		m_statsMemAllocated -= range->size;

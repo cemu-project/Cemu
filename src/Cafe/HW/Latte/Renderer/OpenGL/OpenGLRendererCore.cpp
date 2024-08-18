@@ -467,7 +467,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 		uint32 h = LatteDrawGL_calculateIndexDataHash(memory_getPointerFromPhysicalOffset(indexDataMPTR), cacheEntryItr->physSize);
 		if (cacheEntryItr->hash != h)
 		{
-			forceLogDebug_printf("IndexData hash changed");
+			cemuLog_logDebug(LogType::Force, "IndexData hash changed");
 			_decodeAndUploadIndexData(cacheEntryItr);
 			cacheEntryItr->hash = h;
 		}
@@ -494,7 +494,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 				break;
 			if (indexDataCacheFirst == nullptr)
 			{
-				forceLog_printf("Unable to allocate entry in index cache");
+				cemuLog_log(LogType::Force, "Unable to allocate entry in index cache");
 				assert_dbg();
 			}
 		}
@@ -527,7 +527,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 void LatteDraw_handleSpecialState8_clearAsDepth()
 {
 	if (LatteGPUState.contextNew.GetSpecialStateValues()[0] == 0)
-		forceLogDebug_printf("Special state 8 requires special state 0 but it is not set?");
+		cemuLog_logDebug(LogType::Force, "Special state 8 requires special state 0 but it is not set?");
 	// get depth buffer information
 	uint32 regDepthBuffer = LatteGPUState.contextRegister[mmDB_HTILE_DATA_BASE];
 	uint32 regDepthSize = LatteGPUState.contextRegister[mmDB_DEPTH_SIZE];
@@ -551,34 +551,39 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 	while (true)
 	{
 		LatteTextureView* view = LatteTC_LookupTextureByData(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, 1, sliceIndex, 1, &searchIndex);
-		if (view != nullptr)
+		if (!view)
 		{
-			sint32 effectiveClearWidth = view->baseTexture->width;
-			sint32 effectiveClearHeight = view->baseTexture->height;
-			LatteTexture_scaleToEffectiveSize(view->baseTexture, &effectiveClearWidth, &effectiveClearHeight, 0);
+			// should we clear in RAM instead?
+			break;
+		}
+		sint32 effectiveClearWidth = view->baseTexture->width;
+		sint32 effectiveClearHeight = view->baseTexture->height;
+		LatteTexture_scaleToEffectiveSize(view->baseTexture, &effectiveClearWidth, &effectiveClearHeight, 0);
 
-			// hacky way to get clear color
-			float* regClearColor = (float*)(LatteGPUState.contextRegister + 0xC000 + 0); // REG_BASE_ALU_CONST
+		// hacky way to get clear color
+		float* regClearColor = (float*)(LatteGPUState.contextRegister + 0xC000 + 0); // REG_BASE_ALU_CONST
 
-			uint8 clearColor[4] = { 0 };
-			clearColor[0] = (uint8)(regClearColor[0] * 255.0f);
-			clearColor[1] = (uint8)(regClearColor[1] * 255.0f);
-			clearColor[2] = (uint8)(regClearColor[2] * 255.0f);
-			clearColor[3] = (uint8)(regClearColor[3] * 255.0f);
+		uint8 clearColor[4] = { 0 };
+		clearColor[0] = (uint8)(regClearColor[0] * 255.0f);
+		clearColor[1] = (uint8)(regClearColor[1] * 255.0f);
+		clearColor[2] = (uint8)(regClearColor[2] * 255.0f);
+		clearColor[3] = (uint8)(regClearColor[3] * 255.0f);
 
-			// todo - use fragment shader software emulation (evoke for one pixel) to determine clear color
-			// todo - dont clear entire slice, use effectiveClearWidth, effectiveClearHeight
+		// todo - use fragment shader software emulation (evoke for one pixel) to determine clear color
+		// todo - dont clear entire slice, use effectiveClearWidth, effectiveClearHeight
 
-			if (g_renderer->GetType() == RendererAPI::OpenGL)
-			{
-				//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
-				if (glClearTexSubImage)
-					glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
-			}
+		if (g_renderer->GetType() == RendererAPI::OpenGL)
+		{
+			//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
+			if (glClearTexSubImage)
+				glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
+		}
+		else
+		{
+			if (view->baseTexture->isDepth)
+				g_renderer->texture_clearDepthSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, true, view->baseTexture->hasStencil, 0.0f, 0);
 			else
-			{
 				g_renderer->texture_clearColorSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-			}
 		}
 	}
 }
@@ -907,6 +912,21 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	{
 		beginPerfMonProfiling(performanceMonitor.gpuTime_dcStageShaderAndUniformMgr);
 		LatteSHRC_UpdateActiveShaders();
+		LatteDecompilerShader* vs = (LatteDecompilerShader*)LatteSHRC_GetActiveVertexShader();
+		LatteDecompilerShader* gs = (LatteDecompilerShader*)LatteSHRC_GetActiveGeometryShader();
+		LatteDecompilerShader* ps = (LatteDecompilerShader*)LatteSHRC_GetActivePixelShader();
+		if (vs)
+			shader_bind(vs->shader);
+		else
+			shader_unbind(RendererShader::ShaderType::kVertex);
+		if (ps && LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] == 0)
+			shader_bind(ps->shader);
+		else
+			shader_unbind(RendererShader::ShaderType::kFragment);
+		if (gs)
+			shader_bind(gs->shader);
+		else
+			shader_unbind(RendererShader::ShaderType::kGeometry);
 		endPerfMonProfiling(performanceMonitor.gpuTime_dcStageShaderAndUniformMgr);
 	}
 	if (LatteGPUState.activeShaderHasError)
@@ -930,7 +950,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	bool streamoutEnable = LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] != 0;
 	if (streamoutEnable)
 	{
-		if (glBeginTransformFeedback == nullptr || LatteGPUState.glVendor == GLVENDOR_INTEL_NOLEGACY)
+		if (glBeginTransformFeedback == nullptr)
 		{
 			cemu_assert_debug(false);
 			return; // transform feedback not supported
@@ -1037,7 +1057,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 		LatteTextureView* rt_depth = LatteMRT::GetDepthAttachment();
 		if (!rt_depth || !rt_color)
 		{
-			cemuLog_force("GPU7 special state 5 used but render target not setup correctly");
+			cemuLog_log(LogType::Force, "GPU7 special state 5 used but render target not setup correctly");
 			return;
 		}
 		surfaceCopy_copySurfaceWithFormatConversion(rt_depth->baseTexture, rt_depth->firstMip, rt_depth->firstSlice, rt_color->baseTexture, rt_color->firstMip, rt_color->firstSlice, rt_depth->baseTexture->width, rt_depth->baseTexture->height);
@@ -1196,20 +1216,10 @@ void OpenGLRenderer::draw_beginSequence()
 void OpenGLRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
 	bool isMinimal = !isFirst;
-	if (ActiveSettings::FrameProfilerEnabled())
-	{
-		if (isMinimal)
-			draw_genericDrawHandler<true, true>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-		else
-			draw_genericDrawHandler<false, true>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-	}
-	else
-	{
-		if (isMinimal)
-			draw_genericDrawHandler<true, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-		else
-			draw_genericDrawHandler<false, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
-	}	
+    if (isMinimal)
+        draw_genericDrawHandler<true, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
+    else
+        draw_genericDrawHandler<false, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
 }
 
 void OpenGLRenderer::draw_endSequence()
@@ -1332,7 +1342,7 @@ uint32 _correctTextureCompSelGL(Latte::E_GX2SURFFMT format, uint32 compSel)
 	return compSel;
 }
 
-#define quickBindTexture() 		if( textureIsActive == false ) { g_renderer->texture_bindAndActivate(hostTextureView, hostTextureUnit); textureIsActive = true; }
+#define quickBindTexture() 		if( textureIsActive == false ) { texture_bindAndActivate(hostTextureView, hostTextureUnit); textureIsActive = true; }
 
 uint32 _getGLMinFilter(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_XY_FILTER filterMin, Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_Z_FILTER filterMip)
 {
@@ -1355,11 +1365,9 @@ uint32 _getGLMinFilter(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_XY_FILTER filterMi
 /*
 * Update channel swizzling and other texture settings for a texture unit
 * hostTextureView is the texture unit view used on the host side
-* The baseGX2TexUnit parameter is used to identify the shader stage in which this texture is accessed
 */
 void OpenGLRenderer::renderstate_updateTextureSettingsGL(LatteDecompilerShader* shaderContext, LatteTextureView* _hostTextureView, uint32 hostTextureUnit, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N texUnitWord4, uint32 texUnitIndex, bool isDepthSampler)
 {
-	// todo - this is OpenGL-specific, decouple this from the renderer-neutral backend
 	auto hostTextureView = (LatteTextureViewGL*)_hostTextureView;
 
 	LatteTexture* baseTexture = hostTextureView->baseTexture;

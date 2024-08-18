@@ -370,15 +370,15 @@ void GX2TilingAperature_RetileTexture(ActiveTilingAperature* tilingAperture, boo
 	}
 
 	//double benchmarkTime = benchmarkTimer_stop(timerTilingStart);
-	//forceLogDebug_printf("TilingAperture res %04dx%04d fmt %04x tm %02x mip %d isWrite %d", (uint32)tilingAperture->surface.width, (uint32)tilingAperture->surface.height, (uint32)tilingAperture->surface.format, (uint32)tilingAperture->surface.tileMode, tilingAperture->mipLevel, doWrite?1:0);
-	//forceLogDebug_printf("Tiling took %.4lfms", benchmarkTime);
+	//cemuLog_logDebug(LogType::Force, "TilingAperture res {:04}x{:04} fmt {:04x} tm {:02x} mip {} isWrite {}", (uint32)tilingAperture->surface.width, (uint32)tilingAperture->surface.height, (uint32)tilingAperture->surface.format, (uint32)tilingAperture->surface.tileMode, tilingAperture->mipLevel, doWrite?1:0);
+	//cemuLog_logDebug(LogType::Force, "Tiling took {:.4}ms", benchmarkTime);
 }
 
 void gx2Export_GX2AllocateTilingApertureEx(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2AllocateTilingApertureEx(0x%08x, %d, %d, %d, 0x%08x, 0x%08x)", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
+	cemuLog_log(LogType::GX2, "GX2AllocateTilingApertureEx(0x{:08x}, {}, {}, {}, 0x{:08x}, 0x{:08x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 	GX2Surface* surface = (GX2Surface*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
-	gx2Log_printf("Tiling Tex: %08X %dx%d Swizzle: %08x tm: %d fmt: %04x use: %02x", (uint32)surface->imagePtr, (uint32)surface->width, (uint32)surface->height, (uint32)surface->swizzle, (uint32)surface->tileMode.value(), (uint32)surface->format.value(), (uint32)surface->resFlag);
+	cemuLog_log(LogType::GX2, "Tiling Tex: {:08x} {}x{} Swizzle: {:08x} tm: {} fmt: {:04x} use: {:02x}", (uint32)surface->imagePtr, (uint32)surface->width, (uint32)surface->height, (uint32)surface->swizzle, (uint32)surface->tileMode.value(), (uint32)surface->format.value(), (uint32)surface->resFlag);
 
 	if( activeTilingAperatureCount >= GX2_MAX_ACTIVE_TILING_APERATURES )
 	{
@@ -437,7 +437,7 @@ void gx2Export_GX2AllocateTilingApertureEx(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2FreeTilingAperture(PPCInterpreter_t* hCPU)
 {
-	gx2Log_printf("GX2FreeTilingAperture(0x%08x)\n", hCPU->gpr[3]);
+	cemuLog_log(LogType::GX2, "GX2FreeTilingAperture(0x{:08x})", hCPU->gpr[3]);
 	uint32 handle = hCPU->gpr[3];
 	for(sint32 i=0; i<activeTilingAperatureCount; i++)
 	{

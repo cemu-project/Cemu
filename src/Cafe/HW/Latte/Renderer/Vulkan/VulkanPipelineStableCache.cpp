@@ -32,8 +32,8 @@ VulkanPipelineStableCache& VulkanPipelineStableCache::GetInstance()
 uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 {
 	std::error_code ec;
-	fs::create_directories(ActiveSettings::GetPath("shaderCache/transferable"), ec);
-	const auto pathCacheFile = ActiveSettings::GetPath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
+	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/transferable"), ec);
+	const auto pathCacheFile = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_vkpipeline.bin", cacheTitleId);
 	
 	// init cache loader state
 	g_vkCacheState.pipelineLoadIndex = 0;
@@ -59,11 +59,10 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 
 	// open cache file or create it
 	cemu_assert_debug(s_cache == nullptr);
-	const uint32 cacheFileVersion = 1;
-	s_cache = FileCache::Open(pathCacheFile.generic_wstring(), true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
+	s_cache = FileCache::Open(pathCacheFile, true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
 	if (!s_cache)
 	{
-		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", pathCacheFile.generic_string());
+		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", _pathToUtf8(pathCacheFile));
 		return 0;
 	}
 	else
@@ -116,6 +115,15 @@ void VulkanPipelineStableCache::EndLoading()
 		m_compilationQueue.push({}); // push empty workload for every thread. Threads then will shutdown after checking for m_numCompilationThreads == 0
 	}
 	// keep cache file open for writing of new pipelines
+}
+
+void VulkanPipelineStableCache::Close()
+{
+    if(s_cache)
+    {
+        delete s_cache;
+        s_cache = nullptr;
+    }
 }
 
 struct CachedPipeline
@@ -206,14 +214,18 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 
 	// deserialize file
 	LatteContextRegister* lcr = new LatteContextRegister();
-	s_spinlockSharedInternal.acquire();
+	s_spinlockSharedInternal.lock();
 	CachedPipeline* cachedPipeline = new CachedPipeline();
-	s_spinlockSharedInternal.release();
+	s_spinlockSharedInternal.unlock();
 
 	MemStreamReader streamReader(fileData.data(), fileData.size());
 	if (!DeserializePipeline(streamReader, *cachedPipeline))
 	{
 		// failed to deserialize
+		s_spinlockSharedInternal.lock();
+		delete lcr;
+		delete cachedPipeline;
+		s_spinlockSharedInternal.unlock();
 		return;
 	}
 	// restored register view from compacted state
@@ -228,7 +240,7 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		vertexShader = LatteSHRC_FindVertexShader(cachedPipeline->vsHash.baseHash, cachedPipeline->vsHash.auxHash);
 		if (!vertexShader)
 		{
-			forceLogDebug_printf("Vertex shader not found in cache");
+			cemuLog_logDebug(LogType::Force, "Vertex shader not found in cache");
 			return;
 		}
 	}
@@ -238,7 +250,7 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		geometryShader = LatteSHRC_FindGeometryShader(cachedPipeline->gsHash.baseHash, cachedPipeline->gsHash.auxHash);
 		if (!geometryShader)
 		{
-			forceLogDebug_printf("Geometry shader not found in cache");
+			cemuLog_logDebug(LogType::Force, "Geometry shader not found in cache");
 			return;
 		}
 	}
@@ -248,7 +260,7 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		pixelShader = LatteSHRC_FindPixelShader(cachedPipeline->psHash.baseHash, cachedPipeline->psHash.auxHash);
 		if (!pixelShader)
 		{
-			forceLogDebug_printf("Pixel shader not found in cache");
+			cemuLog_logDebug(LogType::Force, "Pixel shader not found in cache");
 			return;
 		}
 	}
@@ -260,18 +272,18 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	}
 	auto renderPass = __CreateTemporaryRenderPass(pixelShader, *lcr);
 	// create pipeline info
-	m_pipelineIsCachedLock.acquire();
+	m_pipelineIsCachedLock.lock();
 	PipelineInfo* pipelineInfo = new PipelineInfo(0, 0, vertexShader->compatibleFetchShader, vertexShader, pixelShader, geometryShader);
-	m_pipelineIsCachedLock.release();
+	m_pipelineIsCachedLock.unlock();
 	// compile
 	{
 		PipelineCompiler pp;
 		if (!pp.InitFromCurrentGPUState(pipelineInfo, *lcr, renderPass))
 		{
-			s_spinlockSharedInternal.acquire();
+			s_spinlockSharedInternal.lock();
 			delete lcr;
 			delete cachedPipeline;
-			s_spinlockSharedInternal.release();
+			s_spinlockSharedInternal.unlock();
 			return;
 		}
 		pp.Compile(true, true, false);
@@ -280,16 +292,16 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// on success, calculate pipeline hash and flag as present in cache
 	uint64 pipelineBaseHash = vertexShader->baseHash;
 	uint64 pipelineStateHash = VulkanRenderer::draw_calculateGraphicsPipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, renderPass, *lcr);
-	m_pipelineIsCachedLock.acquire();
+	m_pipelineIsCachedLock.lock();
 	m_pipelineIsCached.emplace(pipelineBaseHash, pipelineStateHash);
-	m_pipelineIsCachedLock.release();
+	m_pipelineIsCachedLock.unlock();
 	// clean up
-	s_spinlockSharedInternal.acquire();
+	s_spinlockSharedInternal.lock();
 	delete pipelineInfo;
 	delete lcr;
 	delete cachedPipeline;
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(renderPass);
-	s_spinlockSharedInternal.release();
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(renderPass);
+	s_spinlockSharedInternal.unlock();
 }
 
 bool VulkanPipelineStableCache::HasPipelineCached(uint64 baseHash, uint64 pipelineStateHash)
@@ -396,6 +408,7 @@ bool VulkanPipelineStableCache::DeserializePipeline(MemStreamReader& memReader, 
 
 int VulkanPipelineStableCache::CompilerThread()
 {
+	SetThreadName("plCacheCompiler");
 	while (m_numCompilationThreads != 0)
 	{
 		std::vector<uint8> pipelineData = m_compilationQueue.pop();
@@ -409,6 +422,7 @@ int VulkanPipelineStableCache::CompilerThread()
 
 void VulkanPipelineStableCache::WorkerThread()
 {
+	SetThreadName("plCacheWriter");
 	while (true)
 	{
 		CachedPipeline* job;

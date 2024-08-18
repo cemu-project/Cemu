@@ -1,4 +1,5 @@
 #pragma once
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "util/math/vector2.h"
 
 class VKRMoveableRefCounterRef
@@ -21,7 +22,7 @@ public:
 		cemu_assert_debug(refCount == 0);
 
 		// remove references
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		for (auto itr : refs)
 		{
 			auto& rev = itr->ref->reverseRefs;
@@ -58,7 +59,7 @@ public:
 		this->refs.emplace_back(refTarget->selfRef);
 		refTarget->refCount++;
 
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 		// add reverse ref
 		refTarget->reverseRefs.emplace_back(this->selfRef);
 #endif
@@ -80,7 +81,7 @@ protected:
 private:
 	VKRMoveableRefCounterRef* selfRef;
 	std::vector<VKRMoveableRefCounterRef*> refs;
-#ifndef PUBLIC_RELEASE
+#ifdef CEMU_DEBUG_ASSERT
 	std::vector<VKRMoveableRefCounterRef*> reverseRefs;
 #endif
 
@@ -150,14 +151,28 @@ public:
 
 	struct AttachmentInfo_t
 	{
-		AttachmentEntryColor_t colorAttachment[8];
+		AttachmentEntryColor_t colorAttachment[Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS];
 		AttachmentEntryDepth_t depthAttachment;
 	};
 
+	VkFormat GetColorFormat(size_t index)
+	{
+		if (index >= Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS)
+			return VK_FORMAT_UNDEFINED;
+		return m_colorAttachmentFormat[index];
+	}
+
+	VkFormat GetDepthFormat()
+	{
+		return m_depthAttachmentFormat;
+	}
+
 public:
-	VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint32 colorAttachmentCount = 8);
+	VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint32 colorAttachmentCount = Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS);
 	~VKRObjectRenderPass() override;
 	VkRenderPass m_renderPass{ VK_NULL_HANDLE };
+	VkFormat m_colorAttachmentFormat[Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS];
+	VkFormat m_depthAttachmentFormat;
 	uint64 m_hashForPipeline; // helper var. Holds hash of all the renderpass creation parameters (mainly the formats) that affect the pipeline state
 };
 

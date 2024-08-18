@@ -10,6 +10,7 @@
 /* Includes:                                                                 */
 /*****************************************************************************/
 #include "aes128.h"
+#include "Common/cpu_features.h"
 
 /*****************************************************************************/
 /* Defines:                                                                  */
@@ -22,8 +23,6 @@
 #define KEYLEN 16
 // The number of rounds in AES Cipher.
 #define Nr 10
-
-bool useAESNI = false;
 
 typedef uint8 state_t[4][4];
 
@@ -601,7 +600,8 @@ void AES128_CBC_decrypt_updateIV(uint8* output, uint8* input, uint32 length, con
 	memcpy(iv, newIv, KEYLEN);
 }
 
-inline __m128i AESNI128_ASSIST(
+#if defined(ARCH_X86_64)
+ATTRIBUTE_AESNI inline __m128i AESNI128_ASSIST(
 	__m128i temp1,
 	__m128i temp2)
 {
@@ -621,7 +621,7 @@ inline __m128i AESNI128_ASSIST(
 	return temp1;
 }
 
-void AESNI128_KeyExpansionEncrypt(const unsigned char *userkey, unsigned char *key)
+ATTRIBUTE_AESNI void AESNI128_KeyExpansionEncrypt(const unsigned char *userkey, unsigned char *key)
 {
 	__m128i temp1, temp2;
 	__m128i *Key_Schedule = (__m128i*)key;
@@ -659,7 +659,7 @@ void AESNI128_KeyExpansionEncrypt(const unsigned char *userkey, unsigned char *k
 	Key_Schedule[10] = temp1;
 }
 
-void AESNI128_KeyExpansionDecrypt(const unsigned char *userkey, unsigned char *key)
+ATTRIBUTE_AESNI void AESNI128_KeyExpansionDecrypt(const unsigned char *userkey, unsigned char *key)
 {
 	__m128i temp1, temp2;
 	__m128i *Key_Schedule = (__m128i*)key;
@@ -702,7 +702,7 @@ void AESNI128_KeyExpansionDecrypt(const unsigned char *userkey, unsigned char *k
 	}
 }
 
-void AESNI128_CBC_encrypt(const unsigned char *in,
+ATTRIBUTE_AESNI void AESNI128_CBC_encrypt(const unsigned char *in,
 	unsigned char *out,
 	unsigned char ivec[16],
 	unsigned long length,
@@ -730,7 +730,7 @@ void AESNI128_CBC_encrypt(const unsigned char *in,
 	}
 }
 
-void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
+ATTRIBUTE_AESNI void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
 	unsigned char *out,
 	const unsigned char ivec[16],
 	unsigned long length,
@@ -757,7 +757,7 @@ void AESNI128_CBC_decryptWithExpandedKey(const unsigned char *in,
 	}
 }
 
-void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv)
+ATTRIBUTE_AESNI void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv)
 {
 	alignas(16) uint8 expandedKey[11 * 16];
 	AESNI128_KeyExpansionDecrypt(key, expandedKey);
@@ -772,7 +772,7 @@ void __aesni__AES128_CBC_decrypt(uint8* output, uint8* input, uint32 length, con
 	}
 }
 
-void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
+ATTRIBUTE_AESNI void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
 {
 	alignas(16) uint8 expandedKey[11 * 16];
 	AESNI128_KeyExpansionEncrypt(key, expandedKey);
@@ -792,6 +792,7 @@ void __aesni__AES128_ECB_encrypt(uint8* input, const uint8* key, uint8* output)
 	feedback = _mm_aesenclast_si128(feedback, ((__m128i*)expandedKey)[10]);
 	_mm_storeu_si128(&((__m128i*)output)[0], feedback);
 }
+#endif
 
 void(*AES128_ECB_encrypt)(uint8* input, const uint8* key, uint8* output);
 void (*AES128_CBC_decrypt)(uint8* output, uint8* input, uint32 length, const uint8* key, const uint8* iv) = nullptr;
@@ -836,10 +837,8 @@ void AES128_init()
 		lookupTable_multiply[i] = (vE << 0) | (v9 << 8) | (vD << 16) | (vB << 24);
 	}
 	// check if AES-NI is available
-	int v[4];
-	cpuid(v, 1);
-	useAESNI = (v[2] & 0x2000000) != 0;
-	if (useAESNI)
+	#if defined(ARCH_X86_64)
+	if (g_CPUFeatures.x86.aesni)
 	{
 		// AES-NI implementation
 		AES128_CBC_decrypt = __aesni__AES128_CBC_decrypt;
@@ -851,9 +850,8 @@ void AES128_init()
 		AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
 		AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
 	}
-}
-
-bool AES128_useAESNI()
-{
-	return useAESNI;
+    #else
+	AES128_CBC_decrypt = __soft__AES128_CBC_decrypt;
+	AES128_ECB_encrypt = __soft__AES128_ECB_encrypt;
+    #endif
 }

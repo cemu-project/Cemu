@@ -1,40 +1,9 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+#include "coreinit_IPCBuf.h"
 
 namespace coreinit
 {
-
-	struct FIFOEntry_t
-	{
-		MEMPTR<uint8> p;
-	};
-
-	struct IPCFifo_t
-	{
-		uint32be writeIndex;
-		uint32be readIndex;
-		uint32be availableEntries; // number of available entries
-		uint32be entryCount;
-		MEMPTR<FIFOEntry_t> entryArray;
-	};
-
-	struct IPCBufPool_t
-	{
-		/* +0x00 */ uint32be		magic;
-		/* +0x04 */	MEMPTR<void>	fullBufferPtr;
-		/* +0x08 */ uint32be		fullBufferSize;
-		/* +0x0C */ uint32be		uknFromParamR7; // boolean?
-		/* +0x10 */ uint32be		ukn10; // set to zero on init
-		/* +0x14 */ uint32be		entrySize1;
-		/* +0x18 */ uint32be		entrySize2; // set to same value as entrySize1
-		/* +0x1C */ uint32be		entryCount; // actual number of used entries
-		/* +0x20 */	MEMPTR<uint8>	entryStartPtr;
-		/* +0x24 */ uint32be		entryCountMul4;
-		/* +0x28 */ IPCFifo_t		fifo;
-		/* +0x3C */ coreinit::OSMutex mutex;
-		// full size is 0x68
-	};
-
 	void FIFOInit(IPCFifo_t* fifo, uint32 entryCount, void* entryArray)
 	{
 		fifo->entryCount = entryCount;
@@ -89,8 +58,6 @@ namespace coreinit
 		uint64 v = ((uint64)addr) & ~(uint64)(alignment - 1);
 		return (uint8*)v;
 	}
-
-	static_assert(sizeof(IPCBufPool_t) == 0x68);
 
 	IPCBufPool_t* IPCBufPoolCreate(uint8* bufferArea, uint32 bufferSize, uint32 entrySize, uint32be* entryCountOutput, uint32 uknR7)
 	{

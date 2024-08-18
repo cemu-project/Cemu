@@ -1,13 +1,11 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "1b0252ca70ca2244a711535462c7f981eb439e83",
+  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
   "dependencies": [
-    "imgui",
     "pugixml",
     "zlib",
-    "libpng",
-	"zstd",
+    "zstd",
     {
       "name": "libzip",
       "default-features": false
@@ -19,20 +17,22 @@
     "boost-program-options",
     "boost-nowide",
     "boost-algorithm",
-    "boost-range",
     "boost-functional",
-    "boost-dll",
     "boost-optional",
     "boost-signals2",
-    "boost-crc",
     "boost-asio",
     "boost-ptr-container",
     "boost-property-tree",
     "boost-static-string",
     "boost-random",
     "fmt",
+    "hidapi",
+    "libpng",
     "glm",
-    "glslang",
+    {
+      "name": "glslang",
+      "default-features": false
+    },
     "zstd",
     {
       "name": "wxwidgets",
@@ -43,6 +43,23 @@
       "name": "curl",
       "default-features": false,
       "features": [ "openssl" ]
+    },
+    {
+      "name": "dbus",
+      "default-features": false,
+      "platform": "linux"
+    },
+    {
+      "name": "tiff",
+      "default-features": false,
+      "features": ["jpeg", "zip"]
+    },
+    "libusb"
+  ],
+  "overrides": [
+    {
+      "name": "sdl2",
+      "version": "2.30.3"
     }
   ]
 }

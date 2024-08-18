@@ -133,7 +133,7 @@ namespace GX2
 	{
 		if ((size_t)eventType >= GX2CallbackEventTypeCount)
 		{
-			forceLog_printf("GX2SetEventCallback(): Unknown eventType\n");
+			cemuLog_log(LogType::Force, "GX2SetEventCallback(): Unknown eventType");
 			return;
 		}
 		s_eventCallback[(size_t)eventType].callbackFuncPtr = callbackFuncPtr;
@@ -144,7 +144,7 @@ namespace GX2
 	{
 		if ((size_t)eventType >= GX2CallbackEventTypeCount)
 		{
-			forceLog_printf("GX2GetEventCallback(): Unknown eventType\n");
+			cemuLog_log(LogType::Force, "GX2GetEventCallback(): Unknown eventType");
 			return;
 		}
 		if (callbackFuncPtrOut)
@@ -263,7 +263,7 @@ namespace GX2
 			gx2WriteGather_submitU32AsBE(0x00000000); // unused
 		}
 		// flush pipeline
-		if (_GX2GetUnflushedBytes(PPCInterpreter_getCoreIndex(ppcInterpreterCurrentInstance)) > 0)
+		if (_GX2GetUnflushedBytes(coreinit::OSGetCoreId()) > 0)
 			_GX2SubmitToTCL();
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();
@@ -308,4 +308,15 @@ namespace GX2
 		coreinit::OSInitEvent(s_updateRetirementEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 		coreinit::OSInitSemaphore(s_eventCbQueueSemaphore, 0);
 	}
+
+    void GX2EventResetToDefaultState()
+    {
+        s_callbackThreadLaunched = false;
+        s_lastRetirementTimestamp = 0;
+        for(auto& it : s_eventCallback)
+        {
+            it.callbackFuncPtr = nullptr;
+            it.userData = nullptr;
+        }
+    }
 }
