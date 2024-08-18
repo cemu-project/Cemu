@@ -69,7 +69,7 @@ public:
 
         // If no free range was found, allocate a new buffer
         m_allocationSize = std::max(m_allocationSize, size);
-        MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, m_storageMode);
+        MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, m_storageMode | MTL::ResourceCPUCacheModeWriteCombined);
     #ifdef CEMU_DEBUG_ASSERT
         buffer->setLabel(GetLabel("Buffer from buffer allocator", buffer));
     #endif

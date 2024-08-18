@@ -132,7 +132,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
         return;
     }
 
-    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, m_mtlr->GetOptimalResourceStorageMode());
+    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, m_mtlr->GetOptimalResourceStorageMode() | MTL::ResourceCPUCacheModeWriteCombined);
 #ifdef CEMU_DEBUG_ASSERT
     m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
 #endif

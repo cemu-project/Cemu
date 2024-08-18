@@ -11,6 +11,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 {
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
     desc->setStorageMode(m_mtlr->HasUnifiedMemory() ? MTL::StorageModeShared : MTL::StorageModePrivate);
+    desc->setCpuCacheMode(MTL::CPUCacheModeWriteCombined);
 
 	sint32 effectiveBaseWidth = width;
 	sint32 effectiveBaseHeight = height;
