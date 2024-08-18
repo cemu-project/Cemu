@@ -215,12 +215,10 @@ bool MetalRenderer::IsPadWindowActive()
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 {
-    debug_printf("MetalRenderer::GetVRAMInfo not implemented\n");
+    usageInMB = m_device->currentAllocatedSize();
+    totalInMB = usageInMB;
 
-    usageInMB = 1024;
-    totalInMB = 1024;
-
-    return false;
+    return true;
 }
 
 void MetalRenderer::ClearColorbuffer(bool padView)
