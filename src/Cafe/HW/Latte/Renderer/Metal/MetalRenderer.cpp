@@ -19,6 +19,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Metal/MTLDevice.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -34,6 +35,7 @@ MetalRenderer::MetalRenderer()
 
     // Feature support
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
+    m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
 
     // Resources
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
@@ -391,7 +393,7 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->GetFormat(), textureMtl->IsDepth(), width);
     // No need to set bytesPerImage for 3D textures, since we always load just one slice
     //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->IsDepth(), height, bytesPerRow);
-    if (HasUnifiedMemory())
+    if (IsAppleGPU())
     {
         textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
     }

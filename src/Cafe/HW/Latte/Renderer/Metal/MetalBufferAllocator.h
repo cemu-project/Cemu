@@ -149,7 +149,7 @@ struct MetalSyncedBuffer
 class MetalTemporaryBufferAllocator : public MetalBufferAllocator<MetalSyncedBuffer>
 {
 public:
-    MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer, metalRenderer->GetOptimalResourceStorageMode()) {}
+    MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer, metalRenderer->GetOptimalBufferStorageMode()) {}
 
     void SetActiveCommandBuffer(MTL::CommandBuffer* commandBuffer)
     {

@@ -366,12 +366,17 @@ public:
         return m_hasUnifiedMemory;
     }
 
-    MTL::StorageMode GetOptimalStorageMode() const
+    bool IsAppleGPU() const
     {
-        return (m_hasUnifiedMemory ? MTL::StorageModeShared : MTL::StorageModeManaged);
+        return m_isAppleGPU;
     }
 
-    MTL::ResourceOptions GetOptimalResourceStorageMode() const
+    MTL::StorageMode GetOptimalTextureStorageMode() const
+    {
+        return (m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModePrivate);
+    }
+
+    MTL::ResourceOptions GetOptimalBufferStorageMode() const
     {
         return (m_hasUnifiedMemory ? MTL::ResourceStorageModeShared : MTL::ResourceStorageModeManaged);
     }
@@ -391,6 +396,7 @@ private:
 
 	// Feature support
 	bool m_hasUnifiedMemory;
+	bool m_isAppleGPU;
 
 	// Managers and caches
 	class MetalMemoryManager* m_memoryManager;
