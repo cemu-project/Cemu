@@ -90,9 +90,9 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook);
-	auto* panelSizer = new wxBoxSizer(wxBOTH);
+	auto* panelSizer = new wxBoxSizer(wxVERTICAL);
 	auto* box = new wxStaticBox(panel, wxID_ANY, _("Infinity Manager"));
-	auto* boxSizer = new wxStaticBoxSizer(box, wxBOTH);
+	auto* boxSizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
 	auto* row = new wxBoxSizer(wxHORIZONTAL);
 
