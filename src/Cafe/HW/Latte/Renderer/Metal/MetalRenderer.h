@@ -80,6 +80,16 @@ struct MetalEncoderState
     size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 };
 
+struct MetalStreamoutState
+{
+	struct
+	{
+		bool enabled;
+		uint32 ringBufferOffset;
+	} buffers[LATTE_NUM_STREAMOUT_BUFFER];
+	sint32 verticesPerInstance;
+};
+
 struct MetalState
 {
     MetalEncoderState m_encoderState{};
@@ -99,6 +109,8 @@ struct MetalState
 
     MTL::Viewport m_viewport;
     MTL::ScissorRect m_scissor;
+
+    MetalStreamoutState m_streamoutState;
 };
 
 struct MetalCommandBuffer

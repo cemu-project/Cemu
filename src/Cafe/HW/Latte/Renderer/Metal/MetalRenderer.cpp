@@ -634,7 +634,9 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    debug_printf("MetalRenderer::bufferCache_copyStreamoutToMainBuffer not implemented\n");
+    auto blitCommandEncoder = GetBlitCommandEncoder();
+
+    blitCommandEncoder->copyFromBuffer(m_xfbRingBuffer, srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size);
 }
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
@@ -669,17 +671,18 @@ RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, ui
 
 void MetalRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize)
 {
-    debug_printf("MetalRenderer::streamout_setupXfbBuffer not implemented\n");
+    m_state.m_streamoutState.buffers[bufferIndex].enabled = true;
+	m_state.m_streamoutState.buffers[bufferIndex].ringBufferOffset = ringBufferOffset;
 }
 
 void MetalRenderer::streamout_begin()
 {
-    debug_printf("MetalRenderer::streamout_begin not implemented\n");
+    // Do nothing
 }
 
 void MetalRenderer::streamout_rendererFinishDrawcall()
 {
-    debug_printf("MetalRenderer::streamout_rendererFinishDrawcall not implemented\n");
+    // Do nothing
 }
 
 void MetalRenderer::draw_beginSequence()
@@ -966,6 +969,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
   		encoderState.m_renderPipelineState = renderPipelineState;
    	}
 
+	// Prepare streamout
+	m_state.m_streamoutState.verticesPerInstance = count;
+	LatteStreamout_PrepareDrawcall(count, instanceCount);
+
 	// Uniform buffers, textures and samplers
 	BindStageResources(renderCommandEncoder, vertexShader);
 	BindStageResources(renderCommandEncoder, pixelShader);
@@ -980,6 +987,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	{
 		renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
 	}
+
+	LatteStreamout_FinishDrawcall(false);
 
 	LatteGPUState.drawCallCounter++;
 }
@@ -1498,20 +1507,17 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 			LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
 		}
-		// TODO: uncomment
-		/*
 		if (shader->uniform.loc_verticesPerInstance >= 0)
 		{
-			*(int*)(supportBufferData + ((size_t)shader->uniform.loc_verticesPerInstance / 4)) = m_streamoutState.verticesPerInstance;
+			*(int*)(supportBufferData + ((size_t)shader->uniform.loc_verticesPerInstance / 4)) = m_state.m_streamoutState.verticesPerInstance;
 			for (sint32 b = 0; b < LATTE_NUM_STREAMOUT_BUFFER; b++)
 			{
 				if (shader->uniform.loc_streamoutBufferBase[b] >= 0)
 				{
-					*(uint32*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_streamoutBufferBase[b]) = m_streamoutState.buffer[b].ringBufferOffset;
+					*(uint32*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_streamoutBufferBase[b]) = m_state.m_streamoutState.buffers[b].ringBufferOffset;
 				}
 			}
 		}
-		*/
 
 		auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
 		size_t size = shader->uniform.uniformRangeSize;
