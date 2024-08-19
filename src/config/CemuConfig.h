@@ -413,7 +413,8 @@ struct CemuConfig
 	Vector2i pad_size{ -1,-1 };
 	ConfigValue<bool> pad_maximized;
 
-	ConfigValue<bool> check_update{false};
+	ConfigValue<bool> check_update{true};
+	ConfigValue<bool> receive_untested_updates{false};
 	ConfigValue<bool> save_screenshot{true};
 
 	ConfigValue<bool> did_show_vulkan_warning{false};

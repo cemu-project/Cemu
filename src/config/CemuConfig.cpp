@@ -38,6 +38,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
 	feral_gamemode = parser.get("feral_gamemode", false);
 	check_update = parser.get("check_update", check_update);
+	receive_untested_updates = parser.get("receive_untested_updates", check_update);
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
@@ -360,6 +361,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("fullscreen_menubar", fullscreen_menubar);
     	config.set<bool>("feral_gamemode", feral_gamemode);
 	config.set<bool>("check_update", check_update);
+	config.set<bool>("receive_untested_updates", receive_untested_updates);
 	config.set<bool>("save_screenshot", save_screenshot);
 	config.set<bool>("vk_warning", did_show_vulkan_warning);
 	config.set<bool>("gp_download", did_show_graphic_pack_download);

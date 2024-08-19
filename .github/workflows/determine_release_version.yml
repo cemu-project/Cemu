@@ -1,0 +1,74 @@
+name: Calculate Next Version from release history
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    outputs:
+      next_version:
+        description: "The next semantic version"
+        value: ${{ jobs.calculate-version.outputs.next_version }}
+      next_version_major:
+        description: "The next semantic version (major)"
+        value: ${{ jobs.calculate-version.outputs.next_version_major }}
+      next_version_minor:
+        description: "The next semantic version (minor)"
+        value: ${{ jobs.calculate-version.outputs.next_version_minor }}
+
+jobs:
+  calculate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      next_version: ${{ steps.calculate_next_version.outputs.next_version }}
+      next_version_major: ${{ steps.calculate_next_version.outputs.next_version_major }}
+      next_version_minor: ${{ steps.calculate_next_version.outputs.next_version_minor }}      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get all releases
+        id: get_all_releases
+        run: |
+          # Fetch all releases and check for API errors
+          RESPONSE=$(curl -s -o response.json -w "%{http_code}" "https://api.github.com/repos/${{ github.repository }}/releases?per_page=100")
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Failed to fetch releases. HTTP status: $RESPONSE"
+            cat response.json
+            exit 1
+          fi
+          
+          # Extract and sort tags
+          ALL_TAGS=$(jq -r '.[].tag_name' response.json | grep -E '^v[0-9]+\.[0-9]+(-[0-9]+)?$' | sed 's/-.*//' | sort -V | tail -n 1)
+
+          # Exit if no tags were found
+          if [ -z "$ALL_TAGS" ]; then
+            echo "No valid tags found."
+            exit 1
+          fi
+
+          echo "::set-output name=tag::$ALL_TAGS"
+          # echo "tag=$ALL_TAGS" >> $GITHUB_STATE
+
+      - name: Calculate next semver minor
+        id: calculate_next_version
+        run: |
+          LATEST_VERSION=${{ steps.get_all_releases.outputs.tag }}
+
+          # strip 'v' prefix and split into major.minor
+          LATEST_VERSION=${LATEST_VERSION//v/}
+          IFS='.' read -r -a VERSION_PARTS <<< "$LATEST_VERSION"
+
+          MAJOR=${VERSION_PARTS[0]}
+          MINOR=${VERSION_PARTS[1]}
+
+          # increment the minor version
+          MINOR=$((MINOR + 1))
+
+          NEXT_VERSION="${MAJOR}.${MINOR}"
+
+          echo "Major: $MAJOR"
+          echo "Minor: $MINOR"
+
+          echo "Next version: $NEXT_VERSION"
+          echo "::set-output name=next_version::$NEXT_VERSION"
+          echo "::set-output name=next_version_major::$MAJOR"
+          echo "::set-output name=next_version_minor::$MINOR"          
