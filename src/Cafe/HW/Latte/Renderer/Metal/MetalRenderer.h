@@ -371,6 +371,11 @@ public:
         return m_isAppleGPU;
     }
 
+    const MetalPixelFormatSupport& GetPixelFormatSupport() const
+    {
+        return m_pixelFormatSupport;
+    }
+
     MTL::StorageMode GetOptimalTextureStorageMode() const
     {
         return (m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModePrivate);
@@ -397,6 +402,7 @@ private:
 	// Feature support
 	bool m_hasUnifiedMemory;
 	bool m_isAppleGPU;
+	MetalPixelFormatSupport m_pixelFormatSupport;
 
 	// Managers and caches
 	class MetalMemoryManager* m_memoryManager;

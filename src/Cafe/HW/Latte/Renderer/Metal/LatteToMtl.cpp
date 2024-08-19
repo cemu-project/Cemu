@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLDepthStencil.hpp"
+#include "Metal/MTLPixelFormat.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLRenderPipeline.hpp"
 #include "Metal/MTLSampler.hpp"
@@ -74,7 +75,6 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 };
 
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
-    // TODO: one of these 2 formats is not supported on Apple silicon
 	{Latte::E_GX2SURFFMT::D24_S8_UNORM, {MTL::PixelFormatDepth24Unorm_Stencil8, MetalDataType::NONE, 4, {1, 1}, true}},
 	{Latte::E_GX2SURFFMT::D24_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 4, {1, 1}, true}},
 	{Latte::E_GX2SURFFMT::D32_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 5, {1, 1}, true}},
@@ -103,6 +103,37 @@ const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, boo
     }
 
     return formatInfo;
+}
+
+MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport)
+{
+    auto pixelFormat = GetMtlPixelFormatInfo(format, isDepth).pixelFormat;
+
+    if (!pixelFormatSupport.m_supportsR8Unorm_sRGB && pixelFormat == MTL::PixelFormatR8Unorm_sRGB)
+        pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
+
+    if (!pixelFormatSupport.m_supportsRG8Unorm_sRGB && pixelFormat == MTL::PixelFormatRG8Unorm_sRGB)
+        pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
+
+    if (!pixelFormatSupport.m_supportsPacked16BitFormats)
+    {
+        switch (pixelFormat)
+        {
+        case MTL::PixelFormatB5G6R5Unorm:
+        case MTL::PixelFormatA1BGR5Unorm:
+        case MTL::PixelFormatABGR4Unorm:
+        case MTL::PixelFormatBGR5A1Unorm:
+            pixelFormat = MTL::PixelFormatRGBA8Unorm;
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (!pixelFormatSupport.m_supportsDepth24Unorm_Stencil8 && pixelFormat == MTL::PixelFormatDepth24Unorm_Stencil8)
+        pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
+
+    return pixelFormat;
 }
 
 inline uint32 CeilDivide(uint32 a, uint32 b) {

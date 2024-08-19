@@ -36,6 +36,7 @@ MetalRenderer::MetalRenderer()
     // Feature support
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
     // Resources
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();

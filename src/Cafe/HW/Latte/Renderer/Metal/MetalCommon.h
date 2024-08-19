@@ -1,7 +1,24 @@
 #pragma once
 
-#include "Foundation/NSString.hpp"
+#include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
+
+struct MetalPixelFormatSupport
+{
+	bool m_supportsR8Unorm_sRGB;
+	bool m_supportsRG8Unorm_sRGB;
+	bool m_supportsPacked16BitFormats;
+	bool m_supportsDepth24Unorm_Stencil8;
+
+	MetalPixelFormatSupport() = default;
+	MetalPixelFormatSupport(MTL::Device* device)
+	{
+        m_supportsR8Unorm_sRGB = device->supportsFamily(MTL::GPUFamilyApple1);
+        m_supportsRG8Unorm_sRGB = device->supportsFamily(MTL::GPUFamilyApple1);
+        m_supportsPacked16BitFormats = device->supportsFamily(MTL::GPUFamilyApple1);
+        m_supportsDepth24Unorm_Stencil8 = device->supportsFamily(MTL::GPUFamilyMac2);
+	}
+};
 
 #define MAX_MTL_BUFFERS 31
 // Buffer index 30 is reserved for the support buffer, buffer indices 27-29 are reserved for the helper shaders

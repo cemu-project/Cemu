@@ -1,15 +1,11 @@
 #pragma once
 
-#include <Metal/Metal.hpp>
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 //#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLDepthStencil.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
-#include "Metal/MTLSampler.hpp"
-#include "Metal/MTLTexture.hpp"
 
 struct Uvec2 {
     uint32 x;
@@ -33,6 +29,8 @@ struct MetalPixelFormatInfo {
 };
 
 const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth);
+
+MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport);
 
 size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, bool isDepth, uint32 width);
 

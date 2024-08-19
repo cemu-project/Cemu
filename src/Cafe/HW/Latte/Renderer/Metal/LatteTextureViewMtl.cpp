@@ -127,8 +127,8 @@ MTL::Texture* LatteTextureViewMtl::CreateSwizzledView(uint32 gpuSamplerSwizzle)
     swizzle.blue = GetMtlTextureSwizzle(compSelB);
     swizzle.alpha = GetMtlTextureSwizzle(compSelA);
 
-    auto formatInfo = GetMtlPixelFormatInfo(format, m_baseTexture->IsDepth());
-    MTL::Texture* texture = m_baseTexture->GetTexture()->newTextureView(formatInfo.pixelFormat, textureType, NS::Range::Make(baseLevel, levelCount), NS::Range::Make(baseLayer, layerCount), swizzle);
+    auto pixelFormat = GetMtlPixelFormat(format, m_baseTexture->IsDepth(), m_mtlr->GetPixelFormatSupport());
+    MTL::Texture* texture = m_baseTexture->GetTexture()->newTextureView(pixelFormat, textureType, NS::Range::Make(baseLevel, levelCount), NS::Range::Make(baseLayer, layerCount), swizzle);
 
     return texture;
 }
