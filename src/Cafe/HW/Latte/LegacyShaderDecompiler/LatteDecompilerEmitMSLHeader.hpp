@@ -386,7 +386,7 @@ namespace LatteDecompiler
 			// streamout buffer (transform feedback)
 			if (decompilerContext->analyzer.hasStreamoutEnable && decompilerContext->analyzer.hasStreamoutWrite)
 			{
-				src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingVK.getTFStorageBufferBindingPoint());
+				src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingVK.tfStorageBindingPoint);
 			}
 
             break;

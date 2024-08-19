@@ -18,7 +18,7 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
-#include "Metal/MTLResource.hpp"
+#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -79,7 +79,7 @@ MetalRenderer::MetalRenderer()
 #endif
 
     // Transform feedback
-    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize(), MTL::ResourceStorageModePrivate);
+    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize() * 32, MTL::ResourceStorageModePrivate);
 #ifdef CEMU_DEBUG_ASSERT
     m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
 #endif
@@ -761,11 +761,18 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Shaders
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
 	{
         debug_printf("no vertex function, skipping draw\n");
 	    return;
+	}
+	// TODO: remove this?
+	if (geometryShader)
+	{
+	    debug_printf("geometry shader aren't supported on Metal yet, skipping draw\n");
+		return;
 	}
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
@@ -1590,21 +1597,22 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 	// Storage buffer
 	if (shader->resourceMapping.tfStorageBindingPoint >= 0)
 	{
-	   switch (shader->shaderType)
+	    switch (shader->shaderType)
         {
         case LatteConst::ShaderType::Vertex:
         {
-     			renderCommandEncoder->setVertexBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
-     			break;
+ 			renderCommandEncoder->setVertexBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
+ 			break;
         }
         case LatteConst::ShaderType::Pixel:
         {
             renderCommandEncoder->setFragmentBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
-     			break;
+            break;
         }
         default:
-     			UNREACHABLE;
+            UNREACHABLE;
         }
+        m_state.m_encoderState.m_uniformBufferOffsets[mtlShaderType][shader->resourceMapping.tfStorageBindingPoint] = INVALID_OFFSET;
 	}
 }
 
