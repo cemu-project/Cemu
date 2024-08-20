@@ -3355,7 +3355,7 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 			}
 			else if (parameterExportType == 2 && parameterExportBase < 16)
 			{
-				src->addFmt("passG2PParameter{}.", parameterExportBase);
+				src->addFmt("out.passParameterSem{}.", parameterExportBase);
 				_emitXYZWByMask(src, cfInstruction->memWriteCompMask);
 				src->addFmt(" = ");
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, burstIndex);
@@ -3587,9 +3587,10 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 			src->addFmt("if( {} == true ) {{" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
 		// write point size
 		if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
-			src->add("gl_PointSize = supportBuffer.pointSize;" _CRLF);
+			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 		// emit vertex
-		src->add("EmitVertex();" _CRLF);
+		src->add("mesh.set_vertex(out);" _CRLF);
+		src->add("mesh.set_index(tid, tid);" _CRLF);
 		// increment transform feedback pointer
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
@@ -3846,7 +3847,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		{
 		    // Defined just-in-time
 			// Will also modify vid in case of an indexed draw
-		    src->add("ObjectIn fetchInput(VERTEX_BUFFER_DEFINITIONS, thread uint& vid);" _CRLF);
+		    src->add("VertexIn fetchInput(VERTEX_BUFFER_DEFINITIONS, thread uint& vid);" _CRLF);
 
 			functionType = "[[object, max_total_threads_per_threadgroup(MAX_THREADS_PER_THREADGROUP), max_total_threadgroups_per_mesh_grid(1)]]";
 			outputTypeName = "void";
@@ -3857,6 +3858,10 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     	    outputTypeName = "VertexOut";
 		}
 		break;
+	case LatteConst::ShaderType::Geometry:
+        functionType = "[[mesh, max_total_threads_per_threadgroup(MAX_THREADS_PER_THREADGROUP)]]";
+        outputTypeName = "void";
+        break;
 	case LatteConst::ShaderType::Pixel:
 	    functionType = "fragment";
 	    outputTypeName = "FragmentOut";
@@ -3866,16 +3871,23 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
 	LatteDecompiler::emitInputs(shaderContext);
 	src->add(") {" _CRLF);
-	if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader)
+	if (shaderContext->options->usesGeometryShader)
 	{
-	    // Calculate the imaginary vertex id
-	    src->add("uint vid = tig * PRIMITIVE_VERTEX_COUNT + tid;" _CRLF);
-		// TODO: don't hardcode the instance index
-		src->add("uint iid = 0;" _CRLF);
-		// Fetch the input
-		src->add("ObjectIn in = fetchInput(VERTEX_BUFFERS, vid);" _CRLF);
-		// Output is defined as object payload
-		src->add("object_payload ObjectPayload& out = objectPayload[tid];" _CRLF);
+	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
+		{
+    	    // Calculate the imaginary vertex id
+    	    src->add("uint vid = tig * PRIMITIVE_VERTEX_COUNT + tid;" _CRLF);
+    		// TODO: don't hardcode the instance index
+    		src->add("uint iid = 0;" _CRLF);
+    		// Fetch the input
+    		src->add("VertexIn in = fetchInput(VERTEX_BUFFERS, vid);" _CRLF);
+    		// Output is defined as object payload
+    		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
+		}
+		else
+		{
+		    src->add("GeometryOut out;" _CRLF);
+		}
 	}
 	else
 	{
@@ -4077,9 +4089,9 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			{
 				// import from geometry shader
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{} = asy_type<int4>(passG2PParameter{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = asy_type<int4>(passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-					src->addFmt("{} = passG2PParameter{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else
 					cemu_assert_unimplemented();
 			}
@@ -4132,7 +4144,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 
 	// return
-	src->add("return out;" _CRLF);
+	if (!shaderContext->options->usesGeometryShader)
+	    src->add("return out;" _CRLF);
 	// end of shader main
 	src->add("}" _CRLF);
 	src->shrink_to_fit();
