@@ -1007,16 +1007,31 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         auto& vertexBufferRange = m_state.m_vertexBuffers[i];
         if (vertexBufferRange.offset != INVALID_OFFSET)
         {
-            // Restride
-            uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + i * 7;
-            uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+            MTL::Buffer* buffer;
+            size_t offset;
 
-            auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride);
+            // Restride
+            if (geometryShader)
+            {
+                // Object shaders don't need restriding, since the attribute are fetched in the shader
+                buffer = m_memoryManager->GetBufferCache();
+                offset = m_state.m_vertexBuffers[i].offset;
+            }
+            else
+            {
+                uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + i * 7;
+                uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+                auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride);
+
+                buffer = restridedBuffer.buffer;
+                offset = restridedBuffer.offset;
+            }
 
             // Bind
             if (true)
             {
-                SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, (geometryShader != nullptr)),restridedBuffer.buffer, restridedBuffer.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+                SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, (geometryShader != nullptr)), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
             }
         }
     }
