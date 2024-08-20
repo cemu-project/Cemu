@@ -92,7 +92,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 		bufferStride = Align(bufferStride, 4);
 
 		// HACK
@@ -117,6 +117,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 
 	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
+	mtlVertexShader->CompileVertexFunction();
 	mtlPixelShader->CompileFragmentFunction(activeFBO);
 
 	// Render pipeline state
@@ -127,9 +128,9 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	desc->setVertexDescriptor(vertexDescriptor);
 
 	// Color attachments
-	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
+	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
 	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
-	uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
+	uint32 renderTargetMask = lcr.CB_TARGET_MASK.get_MASK();
 	for (uint8 i = 0; i < 8; i++)
 	{
 	    const auto& colorBuffer = activeFBO->colorBuffer[i];
@@ -149,7 +150,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		{
     		colorAttachment->setBlendingEnabled(true);
 
-    		const auto& blendControlReg = LatteGPUState.contextNew.CB_BLENDN_CONTROL[i];
+    		const auto& blendControlReg = lcr.CB_BLENDN_CONTROL[i];
 
     		auto rgbBlendOp = GetMtlBlendOp(blendControlReg.get_COLOR_COMB_FCN());
     		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());

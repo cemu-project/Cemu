@@ -766,16 +766,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-	if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
+	if (!vertexShader)
 	{
         debug_printf("no vertex function, skipping draw\n");
 	    return;
-	}
-	// TODO: remove this?
-	if (geometryShader)
-	{
-	    debug_printf("geometry shader aren't supported on Metal yet, skipping draw\n");
-		return;
 	}
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 

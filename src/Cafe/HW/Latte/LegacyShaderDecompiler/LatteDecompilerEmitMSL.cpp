@@ -3847,7 +3847,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		{
 		    // Defined just-in-time
 			// Will also modify vid in case of an indexed draw
-		    src->add("VertexIn fetchInput(VERTEX_BUFFER_DEFINITIONS, thread uint& vid);" _CRLF);
+		    src->add("VertexIn fetchInput(thread uint& vid VERTEX_BUFFER_DEFINITIONS);" _CRLF);
 
 			functionType = "[[object, max_total_threads_per_threadgroup(VERTICES_PER_PRIMITIVE), max_total_threadgroups_per_mesh_grid(1)]]";
 			outputTypeName = "void";
@@ -3880,7 +3880,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     		// TODO: don't hardcode the instance index
     		src->add("uint iid = 0;" _CRLF);
     		// Fetch the input
-    		src->add("VertexIn in = fetchInput(VERTEX_BUFFERS, vid);" _CRLF);
+    		src->add("VertexIn in = fetchInput(vid VERTEX_BUFFERS);" _CRLF);
     		// Output is defined as object payload
     		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
 		}

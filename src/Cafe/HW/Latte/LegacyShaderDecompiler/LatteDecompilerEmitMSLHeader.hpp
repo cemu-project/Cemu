@@ -156,6 +156,7 @@ namespace LatteDecompiler
 	static void _emitAttributes(LatteDecompilerShaderContext* decompilerContext)
 	{
 		auto src = decompilerContext->shaderSource;
+		std::string attributeNames;
 
 		if (decompilerContext->shader->shaderType == LatteConst::ShaderType::Vertex)
 		{
@@ -168,13 +169,16 @@ namespace LatteDecompiler
 					cemu_assert_debug(decompilerContext->output->resourceMappingVK.attributeMapping[i] >= 0);
 
 					src->addFmt("uint4 attrDataSem{}", i);
-					if (!decompilerContext->options->usesGeometryShader)
+					if (decompilerContext->options->usesGeometryShader)
+					    attributeNames += "#define ATTRIBUTE_NAME" + std::to_string((sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]) + " attrDataSem" + std::to_string(i) + "\n";
+					else
 					    src->addFmt(" [[attribute({})]]", (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]);
 					src->add(";" _CRLF);
 				}
 			}
 			src->add("};" _CRLF _CRLF);
 		}
+		src->addFmt("{}", attributeNames);
 	}
 
 	static void _emitVSOutputs(LatteDecompilerShaderContext* shaderContext)
@@ -335,6 +339,21 @@ namespace LatteDecompiler
 
 	static void emitHeader(LatteDecompilerShaderContext* decompilerContext)
 	{
+	    auto src = decompilerContext->shaderSource;
+
+        if (decompilerContext->options->usesGeometryShader && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
+        {
+            src->add("#if PRIMITIVE_TYPE == point" _CRLF);
+           	src->add("#define VERTICES_PER_PRIMITIVE 1" _CRLF);
+            src->add("#if PRIMITIVE_TYPE == line" _CRLF);
+           	src->add("#define VERTICES_PER_PRIMITIVE 2" _CRLF);
+            src->add("#if PRIMITIVE_TYPE == triangle" _CRLF);
+           	src->add("#define VERTICES_PER_PRIMITIVE 3" _CRLF);
+            src->add("#else" _CRLF);
+            src->add("#error unsupported primitive type" _CRLF);
+           	src->add("#endif" _CRLF);
+        }
+
 		const bool dump_shaders_enabled = ActiveSettings::DumpShadersEnabled();
 		if(dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// start of shader inputs/outputs, predetermined by Cemu. Do not touch" _CRLF);
