@@ -31,27 +31,57 @@ struct MetalRestrideInfo
 
 struct MetalBoundBuffer
 {
-    bool needsRebind = false;
     size_t offset = INVALID_OFFSET;
     size_t size = 0;
     // Memory manager will write restride info to this variable
     MetalRestrideInfo restrideInfo;
 };
 
+enum MetalGeneralShaderType
+{
+    METAL_GENERAL_SHADER_TYPE_VERTEX,
+    METAL_GENERAL_SHADER_TYPE_GEOMETRY,
+    METAL_GENERAL_SHADER_TYPE_FRAGMENT,
+
+    METAL_GENERAL_SHADER_TYPE_TOTAL
+};
+
+inline MetalGeneralShaderType GetMtlGeneralShaderType(LatteConst::ShaderType shaderType)
+{
+    switch (shaderType)
+    {
+    case LatteConst::ShaderType::Vertex:
+        return METAL_GENERAL_SHADER_TYPE_VERTEX;
+    case LatteConst::ShaderType::Geometry:
+        return METAL_GENERAL_SHADER_TYPE_GEOMETRY;
+    case LatteConst::ShaderType::Pixel:
+        return METAL_GENERAL_SHADER_TYPE_FRAGMENT;
+    default:
+        return METAL_GENERAL_SHADER_TYPE_TOTAL;
+    }
+}
+
 enum MetalShaderType
 {
     METAL_SHADER_TYPE_VERTEX,
+    METAL_SHADER_TYPE_OBJECT,
+    METAL_SHADER_TYPE_MESH,
     METAL_SHADER_TYPE_FRAGMENT,
 
     METAL_SHADER_TYPE_TOTAL
 };
 
-inline MetalShaderType GetMtlShaderType(LatteConst::ShaderType shaderType)
+inline MetalShaderType GetMtlShaderType(LatteConst::ShaderType shaderType, bool usesGeometryShader)
 {
     switch (shaderType)
     {
     case LatteConst::ShaderType::Vertex:
-        return METAL_SHADER_TYPE_VERTEX;
+        if (usesGeometryShader)
+            return METAL_SHADER_TYPE_OBJECT;
+        else
+            return METAL_SHADER_TYPE_VERTEX;
+    case LatteConst::ShaderType::Geometry:
+        return METAL_SHADER_TYPE_MESH;
     case LatteConst::ShaderType::Pixel:
         return METAL_SHADER_TYPE_FRAGMENT;
     default:
@@ -105,7 +135,7 @@ struct MetalState
     MetalBoundBuffer m_vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     // TODO: find out what is the max number of bound textures on the Wii U
     class LatteTextureViewMtl* m_textures[64] = {nullptr};
-    size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
+    size_t m_uniformBufferOffsets[METAL_GENERAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 
     MTL::Viewport m_viewport;
     MTL::ScissorRect m_scissor;
@@ -347,7 +377,7 @@ public:
 	bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer);
 	void WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer);
 	MTL::RenderCommandEncoder* GetTemporaryRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor);
-	MTL::RenderCommandEncoder* GetRenderCommandEncoder(bool forceRecreate = false, bool rebindStateIfNewEncoder = true);
+	MTL::RenderCommandEncoder* GetRenderCommandEncoder(bool forceRecreate = false);
     MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
     MTL::BlitCommandEncoder* GetBlitCommandEncoder();
     void EndEncoding();
@@ -355,8 +385,7 @@ public:
 
     bool AcquireNextDrawable(bool mainWindow);
 
-    void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader);
-    void RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder);
+    void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader);
 
     void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);
 

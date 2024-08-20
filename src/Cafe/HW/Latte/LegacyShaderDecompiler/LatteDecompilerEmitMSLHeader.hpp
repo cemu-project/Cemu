@@ -325,7 +325,7 @@ namespace LatteDecompiler
     			{
     				if (decompilerContext->parsedGSCopyShader->paramMapping[p].exportType != 2)
     					continue;
-    				src->addFmt("float4 passParameterSem{} [[user(locn)]];" _CRLF, (sint32)decompilerContext->parsedGSCopyShader->paramMapping[p].exportParam, decompilerContext->parsedGSCopyShader->paramMapping[p].exportParam & 0x7F);
+    				src->addFmt("float4 passParameterSem{} [[user(locn{})]];" _CRLF, (sint32)decompilerContext->parsedGSCopyShader->paramMapping[p].exportParam, decompilerContext->parsedGSCopyShader->paramMapping[p].exportParam & 0x7F);
     			}
                 src->add("};" _CRLF _CRLF);
 
@@ -345,9 +345,9 @@ namespace LatteDecompiler
         {
             src->add("#if PRIMITIVE_TYPE == point" _CRLF);
            	src->add("#define VERTICES_PER_PRIMITIVE 1" _CRLF);
-            src->add("#if PRIMITIVE_TYPE == line" _CRLF);
+            src->add("#elif PRIMITIVE_TYPE == line" _CRLF);
            	src->add("#define VERTICES_PER_PRIMITIVE 2" _CRLF);
-            src->add("#if PRIMITIVE_TYPE == triangle" _CRLF);
+            src->add("#elif PRIMITIVE_TYPE == triangle" _CRLF);
            	src->add("#define VERTICES_PER_PRIMITIVE 3" _CRLF);
             src->add("#else" _CRLF);
             src->add("#error unsupported primitive type" _CRLF);
@@ -462,7 +462,7 @@ namespace LatteDecompiler
 			    src->add(", mesh_grid_properties meshGridProperties");
 				src->add(", uint tig [[threadgroup_position_in_grid]]");
 				src->add(", uint tid [[thread_index_in_threadgroup]]");
-				src->add(", VERTEX_BUFFER_DEFINITIONS");
+				src->add(" VERTEX_BUFFER_DEFINITIONS");
 			}
 			else
 			{

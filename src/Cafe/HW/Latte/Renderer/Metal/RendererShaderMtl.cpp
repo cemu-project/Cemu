@@ -58,7 +58,6 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
     std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
     std::string vertexBuffers = "#define VERTEX_BUFFERS ";
     std::string inputFetchDefinition = "VertexIn fetchInput(thread uint& vid VERTEX_BUFFER_DEFINITIONS) {\n";
-    inputFetchDefinition += "VertexIn in;\n";
     if (hostIndexType != Renderer::INDEX_TYPE::NONE)
     {
         vertexBufferDefinitions += ", device ";
@@ -77,8 +76,9 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
         // TODO: don't hardcode the index
         vertexBufferDefinitions += "* indexBuffer [[buffer(20)]]";
         vertexBuffers += ", indexBuffer";
-        inputFetchDefinition += "vid = indexBuffer[vid]\n";
+        inputFetchDefinition += "vid = indexBuffer[vid];\n";
     }
+    inputFetchDefinition += "VertexIn in;\n";
     for (auto& bufferGroup : fetchShader->bufferGroups)
 	{
         std::optional<LatteConst::VertexFetchType2> fetchType;
@@ -92,51 +92,67 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
      			continue; // attribute not used?
 
             std::string formatName;
+            uint8 componentCount = 0;
             switch (GetMtlVertexFormat(attr.format))
             {
             case MTL::VertexFormatUChar:
                 formatName = "uchar";
+                componentCount = 1;
                 break;
             case MTL::VertexFormatUChar2:
                 formatName = "uchar2";
+                componentCount = 2;
                 break;
             case MTL::VertexFormatUChar3:
                 formatName = "uchar3";
+                componentCount = 3;
                 break;
             case MTL::VertexFormatUChar4:
                 formatName = "uchar4";
+                componentCount = 4;
                 break;
             case MTL::VertexFormatUShort:
                 formatName = "ushort";
+                componentCount = 1;
                 break;
             case MTL::VertexFormatUShort2:
                 formatName = "ushort2";
+                componentCount = 2;
                 break;
             case MTL::VertexFormatUShort3:
                 formatName = "ushort3";
+                componentCount = 3;
                 break;
             case MTL::VertexFormatUShort4:
                 formatName = "ushort4";
+                componentCount = 4;
                 break;
             case MTL::VertexFormatUInt:
                 formatName = "uint";
+                componentCount = 1;
                 break;
             case MTL::VertexFormatUInt2:
                 formatName = "uint2";
+                componentCount = 2;
                 break;
             case MTL::VertexFormatUInt3:
                 formatName = "uint3";
+                componentCount = 3;
                 break;
             case MTL::VertexFormatUInt4:
                 formatName = "uint4";
+                componentCount = 4;
                 break;
             }
 
             // Fetch the attribute
             inputFetchDefinition += "in.ATTRIBUTE_NAME" + std::to_string(semanticId) + " = ";
-            inputFetchDefinition += "*(device " + formatName + "*)";
+            inputFetchDefinition += "uint4(*(device " + formatName + "*)";
             inputFetchDefinition += "(vertexBuffer" + std::to_string(attr.attributeBufferIndex);
-            inputFetchDefinition += " + vid + " + std::to_string(attr.offset) + ");\n";
+            inputFetchDefinition += " + vid + " + std::to_string(attr.offset) + ")";
+            for (uint8 i = 0; i < (4 - componentCount); i++)
+                inputFetchDefinition += ", 0";
+            inputFetchDefinition += ");\n";
 
       		if (fetchType.has_value())
      			cemu_assert_debug(fetchType == attr.fetchType);
@@ -153,7 +169,8 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
-		fullCode += ", device uchar* vertexBuffer" + std::to_string(bufferIndex) + " [[buffer(" + std::to_string(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex)) + ")]]";
+		vertexBufferDefinitions += ", device uchar* vertexBuffer" + std::to_string(bufferIndex) + " [[buffer(" + std::to_string(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex)) + ")]]";
+		vertexBuffers += ", vertexBuffer" + std::to_string(bufferIndex);
 	}
 	inputFetchDefinition += "return in;\n";
 	inputFetchDefinition += "}\n";

@@ -20,6 +20,7 @@
 #include "Common/precompiled.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Metal/MTLDevice.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -27,6 +28,63 @@
 extern bool hasValidFramebufferAttached;
 
 float supportBufferData[512 * 4];
+
+void SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
+{
+    switch (shaderType)
+    {
+    case METAL_SHADER_TYPE_VERTEX:
+        renderCommandEncoder->setVertexBuffer(buffer, offset, index);
+        break;
+    case METAL_SHADER_TYPE_OBJECT:
+        renderCommandEncoder->setObjectBuffer(buffer, offset, index);
+        break;
+    case METAL_SHADER_TYPE_MESH:
+        renderCommandEncoder->setMeshBuffer(buffer, offset, index);
+        break;
+    case METAL_SHADER_TYPE_FRAGMENT:
+        renderCommandEncoder->setFragmentBuffer(buffer, offset, index);
+        break;
+    }
+}
+
+void SetTexture(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Texture* texture, uint32 index)
+{
+    switch (shaderType)
+    {
+    case METAL_SHADER_TYPE_VERTEX:
+        renderCommandEncoder->setVertexTexture(texture, index);
+        break;
+    case METAL_SHADER_TYPE_OBJECT:
+        renderCommandEncoder->setObjectTexture(texture, index);
+        break;
+    case METAL_SHADER_TYPE_MESH:
+        renderCommandEncoder->setMeshTexture(texture, index);
+        break;
+    case METAL_SHADER_TYPE_FRAGMENT:
+        renderCommandEncoder->setFragmentTexture(texture, index);
+        break;
+    }
+}
+
+void SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index)
+{
+    switch (shaderType)
+    {
+    case METAL_SHADER_TYPE_VERTEX:
+        renderCommandEncoder->setVertexSamplerState(samplerState, index);
+        break;
+    case METAL_SHADER_TYPE_OBJECT:
+        renderCommandEncoder->setObjectSamplerState(samplerState, index);
+        break;
+    case METAL_SHADER_TYPE_MESH:
+        renderCommandEncoder->setMeshSamplerState(samplerState, index);
+        break;
+    case METAL_SHADER_TYPE_FRAGMENT:
+        renderCommandEncoder->setFragmentSamplerState(samplerState, index);
+        break;
+    }
+}
 
 MetalRenderer::MetalRenderer()
 {
@@ -654,7 +712,6 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 	    m_memoryManager->UntrackVertexBuffer(bufferIndex);
 	}
 
-	buffer.needsRebind = true;
 	buffer.offset = offset;
 	buffer.size = size;
 	buffer.restrideInfo = {};
@@ -664,7 +721,7 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    m_state.m_uniformBufferOffsets[GetMtlShaderType(shaderType)][bufferIndex] = offset;
+    m_state.m_uniformBufferOffsets[GetMtlGeneralShaderType(shaderType)][bufferIndex] = offset;
 }
 
 RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
@@ -957,16 +1014,19 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride);
 
             // Bind
-            if (vertexBufferRange.needsRebind)
+            if (true)
             {
-                renderCommandEncoder->setVertexBuffer(restridedBuffer.buffer, restridedBuffer.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-                vertexBufferRange.needsRebind = false;
+                SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, (geometryShader != nullptr)),restridedBuffer.buffer, restridedBuffer.offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
             }
         }
     }
 
 	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
+	MTL::RenderPipelineState* renderPipelineState;
+	if (geometryShader)
+	    renderPipelineState = m_pipelineCache->GetMeshPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew, hostIndexType);
+	else
+        renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
 	if (renderPipelineState != encoderState.m_renderPipelineState)
    	{
         renderCommandEncoder->setRenderPipelineState(renderPipelineState);
@@ -978,18 +1038,51 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteStreamout_PrepareDrawcall(count, instanceCount);
 
 	// Uniform buffers, textures and samplers
-	BindStageResources(renderCommandEncoder, vertexShader);
-	BindStageResources(renderCommandEncoder, pixelShader);
+	BindStageResources(renderCommandEncoder, vertexShader, (geometryShader != nullptr));
+	if (geometryShader)
+	    BindStageResources(renderCommandEncoder, geometryShader, (geometryShader != nullptr));
+	BindStageResources(renderCommandEncoder, pixelShader, (geometryShader != nullptr));
 
 	// Draw
+	MTL::Buffer* indexBuffer = nullptr;
 	if (hostIndexType != INDEX_TYPE::NONE)
+	    indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
+	if (geometryShader)
 	{
-	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
-		MTL::Buffer* indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
-		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, indexBufferOffset, instanceCount, baseVertex, baseInstance);
-	} else
+	    // TODO: don't hardcode the index
+	    if (indexBuffer)
+		    renderCommandEncoder->setObjectBuffer(indexBuffer, indexBufferOffset, 20);
+
+		uint32 verticesPerPrimitive = 0;
+		switch (primitiveMode)
+        {
+        case LattePrimitiveMode::POINTS:
+            verticesPerPrimitive = 1;
+            break;
+        case LattePrimitiveMode::LINES:
+            verticesPerPrimitive = 2;
+            break;
+        case LattePrimitiveMode::TRIANGLES:
+            verticesPerPrimitive = 3;
+            break;
+        default:
+            throw std::runtime_error("Invalid primitive mode");
+            break;
+        }
+
+		renderCommandEncoder->drawMeshThreadgroups(MTL::Size(count / verticesPerPrimitive, 1, 1), MTL::Size(verticesPerPrimitive, 1, 1), MTL::Size(1, 1, 1));
+	}
+	else
 	{
-		renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
+        if (indexBuffer)
+       	{
+       	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
+      		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, indexBufferOffset, instanceCount, baseVertex, baseInstance);
+       	}
+       	else
+       	{
+      		renderCommandEncoder->drawPrimitives(mtlPrimitiveType, baseVertex, count, instanceCount, baseInstance);
+       	}
 	}
 
 	LatteStreamout_FinishDrawcall(false);
@@ -1080,7 +1173,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::
 }
 
 // Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
-MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecreate, bool rebindStateIfNewEncoder)
+MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecreate)
 {
     // Check if we need to begin a new render pass
     if (m_commandEncoder)
@@ -1133,12 +1226,6 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
     m_encoderType = MetalEncoderType::Render;
 
     ResetEncoderState();
-
-    if (rebindStateIfNewEncoder)
-    {
-        // Rebind all the render state
-        RebindRenderState(renderCommandEncoder);
-    }
 
     return renderCommandEncoder;
 }
@@ -1253,9 +1340,9 @@ bool MetalRenderer::AcquireNextDrawable(bool mainWindow)
     return true;
 }
 
-void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader)
+void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader)
 {
-    auto mtlShaderType = GetMtlShaderType(shader->shaderType);
+    auto mtlShaderType = GetMtlShaderType(shader->shaderType, usesGeometryShader);
 
     sint32 textureCount = shader->resourceMapping.getTextureCount();
 	for (int i = 0; i < textureCount; ++i)
@@ -1295,88 +1382,21 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 		    // TODO: don't bind if already bound
             if (textureDim == Latte::E_DIM::DIM_1D)
-           	{
-          		switch (shader->shaderType)
-               	{
-               	case LatteConst::ShaderType::Vertex:
-               	{
-              		renderCommandEncoder->setVertexTexture(m_nullTexture1D, binding);
-              		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-              		break;
-               	}
-               	case LatteConst::ShaderType::Pixel:
-               	{
-               	    renderCommandEncoder->setFragmentTexture(m_nullTexture1D, binding);
-                    renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-              		break;
-               	}
-               	default:
-              		UNREACHABLE;
-               	}
-           	}
+                SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture1D, binding);
            	else
-           	{
-          		switch (shader->shaderType)
-               	{
-               	case LatteConst::ShaderType::Vertex:
-               	{
-              		renderCommandEncoder->setVertexTexture(m_nullTexture2D, binding);
-              		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-              		break;
-               	}
-               	case LatteConst::ShaderType::Pixel:
-               	{
-               	    renderCommandEncoder->setFragmentTexture(m_nullTexture2D, binding);
-                    renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-              		break;
-               	}
-               	default:
-              		UNREACHABLE;
-               	}
-           	}
+                SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture2D, binding);
+            SetSamplerState(renderCommandEncoder, mtlShaderType, m_nearestSampler, binding);
             continue;
 		}
 
 		if (textureDim == Latte::E_DIM::DIM_1D && (textureView->dim != Latte::E_DIM::DIM_1D))
 		{
-		    switch (shader->shaderType)
-           	{
-           	case LatteConst::ShaderType::Vertex:
-           	{
-          		renderCommandEncoder->setVertexTexture(m_nullTexture1D, binding);
-          		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-          		break;
-           	}
-           	case LatteConst::ShaderType::Pixel:
-           	{
-           	    renderCommandEncoder->setFragmentTexture(m_nullTexture1D, binding);
-                renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-          		break;
-           	}
-           	default:
-          		UNREACHABLE;
-           	}
+		    SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture1D, binding);
 			continue;
 		}
 		else if (textureDim == Latte::E_DIM::DIM_2D && (textureView->dim != Latte::E_DIM::DIM_2D && textureView->dim != Latte::E_DIM::DIM_2D_MSAA))
 		{
-		    switch (shader->shaderType)
-           	{
-           	case LatteConst::ShaderType::Vertex:
-           	{
-          		renderCommandEncoder->setVertexTexture(m_nullTexture2D, binding);
-          		renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-          		break;
-           	}
-           	case LatteConst::ShaderType::Pixel:
-           	{
-           	    renderCommandEncoder->setFragmentTexture(m_nullTexture2D, binding);
-                renderCommandEncoder->setVertexSamplerState(m_nearestSampler, binding);
-          		break;
-           	}
-           	default:
-          		UNREACHABLE;
-           	}
+		    SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture2D, binding);
 			continue;
 		}
 
@@ -1399,21 +1419,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
         {
             boundSampler = sampler;
 
- 			switch (shader->shaderType)
- 			{
- 			case LatteConst::ShaderType::Vertex:
- 			{
-				renderCommandEncoder->setVertexSamplerState(sampler, binding);
-				break;
- 			}
- 			case LatteConst::ShaderType::Pixel:
- 			{
- 			    renderCommandEncoder->setFragmentSamplerState(sampler, binding);
-				break;
- 			}
- 			default:
-				UNREACHABLE;
- 			}
+ 			SetSamplerState(renderCommandEncoder, mtlShaderType, sampler, binding);
         }
 
 		// get texture register word 0
@@ -1425,21 +1431,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		boundTexture = {textureView, word4};
 
 		MTL::Texture* mtlTexture = textureView->GetSwizzledView(word4);
-		switch (shader->shaderType)
-		{
-		case LatteConst::ShaderType::Vertex:
-		{
-			renderCommandEncoder->setVertexTexture(mtlTexture, binding);
-			break;
-		}
-		case LatteConst::ShaderType::Pixel:
-		{
-		    renderCommandEncoder->setFragmentTexture(mtlTexture, binding);
-			break;
-		}
-		default:
-			UNREACHABLE;
-		}
+		SetTexture(renderCommandEncoder, mtlShaderType, mtlTexture, binding);
 	}
 
 	// Support buffer
@@ -1531,23 +1523,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		if (!HasUnifiedMemory())
 		    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
 
-		switch (shader->shaderType)
-		{
-		case LatteConst::ShaderType::Vertex:
-		{
-			renderCommandEncoder->setVertexBuffer(buffer, supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
-			//renderCommandEncoder->setVertexBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
-			break;
-		}
-		case LatteConst::ShaderType::Pixel:
-		{
-		    renderCommandEncoder->setFragmentBuffer(buffer, supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
-			//renderCommandEncoder->setFragmentBytes(supportBufferData, sizeof(supportBufferData), MTL_SUPPORT_BUFFER_BINDING);
-			break;
-		}
-		default:
-			UNREACHABLE;
-		}
+		SetBuffer(renderCommandEncoder, mtlShaderType, buffer, supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
 	}
 
 	// Uniform buffers
@@ -1562,7 +1538,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     			continue;
     		}
 
-    		size_t offset = m_state.m_uniformBufferOffsets[mtlShaderType][i];
+    		size_t offset = m_state.m_uniformBufferOffsets[GetMtlGeneralShaderType(shader->shaderType)][i];
     		if (offset == INVALID_OFFSET)
                 continue;
 
@@ -1573,54 +1549,15 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
             boundOffset = offset;
 
             // TODO: only set the offset if already bound
- 			switch (shader->shaderType)
- 			{
- 			case LatteConst::ShaderType::Vertex:
- 			{
-				renderCommandEncoder->setVertexBuffer(m_memoryManager->GetBufferCache(), offset, binding);
-				break;
- 			}
- 			case LatteConst::ShaderType::Pixel:
- 			{
- 			    renderCommandEncoder->setFragmentBuffer(m_memoryManager->GetBufferCache(), offset, binding);
-				break;
- 			}
- 			default:
-				UNREACHABLE;
- 			}
+            SetBuffer(renderCommandEncoder, mtlShaderType, m_memoryManager->GetBufferCache(), offset, binding);
 		}
 	}
 
 	// Storage buffer
 	if (shader->resourceMapping.tfStorageBindingPoint >= 0)
 	{
-	    switch (shader->shaderType)
-        {
-        case LatteConst::ShaderType::Vertex:
-        {
- 			renderCommandEncoder->setVertexBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
- 			break;
-        }
-        case LatteConst::ShaderType::Pixel:
-        {
-            renderCommandEncoder->setFragmentBuffer(m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
-            break;
-        }
-        default:
-            UNREACHABLE;
-        }
+        SetBuffer(renderCommandEncoder, mtlShaderType, m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
         m_state.m_encoderState.m_uniformBufferOffsets[mtlShaderType][shader->resourceMapping.tfStorageBindingPoint] = INVALID_OFFSET;
-	}
-}
-
-void MetalRenderer::RebindRenderState(MTL::RenderCommandEncoder* renderCommandEncoder)
-{
-    // Vertex buffers
-	for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
-	{
-	    auto& vertexBufferRange = m_state.m_vertexBuffers[i];
-	    if (vertexBufferRange.offset != INVALID_OFFSET)
-            vertexBufferRange.needsRebind = true;
 	}
 }
 

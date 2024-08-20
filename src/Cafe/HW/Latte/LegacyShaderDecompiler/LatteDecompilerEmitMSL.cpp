@@ -2822,7 +2822,7 @@ static void _emitGSReadInputVFetchCode(LatteDecompilerShaderContext* shaderConte
 
 	src->add(" = ");
 	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, shaderContext->typeTracker.defaultDataType);
-	src->add("(in[");
+	src->add("(objectPayload.vertexOut[");
 	if (texInstruction->textureFetch.srcSel[0] >= 4)
 		cemu_assert_unimplemented();
 	if (texInstruction->textureFetch.srcSel[1] >= 4)
@@ -3871,7 +3871,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
 	LatteDecompiler::emitInputs(shaderContext);
 	src->add(") {" _CRLF);
-	if (shaderContext->options->usesGeometryShader)
+	if (shaderContext->options->usesGeometryShader && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
 	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
 		{
@@ -3884,10 +3884,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     		// Output is defined as object payload
     		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
 		}
-		else
+		else if (shader->shaderType == LatteConst::ShaderType::Geometry)
 		{
-		    // Input is defined as object payload
-			src->add("object_data VertexOut* in = objectPayload.vertexOut;" _CRLF);
 		    src->add("GeometryOut out;" _CRLF);
 			// The index of the current vertex that is being emitted
 			src->add("uint vertexIndex = 0;" _CRLF);
@@ -4093,9 +4091,9 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			{
 				// import from geometry shader
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{} = asy_type<int4>(passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = as_type<int4>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-					src->addFmt("{} = passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else
 					cemu_assert_unimplemented();
 			}
@@ -4137,7 +4135,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
 
-	if (shaderContext->options->usesGeometryShader)
+	if (shaderContext->options->usesGeometryShader && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
     	if (shader->shaderType == LatteConst::ShaderType::Vertex)
     	{

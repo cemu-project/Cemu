@@ -4,6 +4,7 @@
 
 #include "HW/Latte/ISA/LatteReg.h"
 #include "HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 class MetalPipelineCache
 {
@@ -15,7 +16,9 @@ public:
     MetalPipelineCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
     ~MetalPipelineCache();
 
-    MTL::RenderPipelineState* GetPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr);
+    MTL::RenderPipelineState* GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr);
+
+    MTL::RenderPipelineState* GetMeshPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr, Renderer::INDEX_TYPE hostIndexType);
 
 private:
     class MetalRenderer* m_mtlr;
@@ -25,11 +28,7 @@ private:
     NS::URL* m_binaryArchiveURL;
     MTL::BinaryArchive* m_binaryArchive;
 
-    uint64 CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr);
+    uint64 CalculateRenderPipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr);
 
     void TryLoadBinaryArchive();
-
-    void LoadBinary(MTL::RenderPipelineDescriptor* desc);
-
-    void SaveBinary(MTL::RenderPipelineDescriptor* desc);
 };
