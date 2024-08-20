@@ -2822,14 +2822,14 @@ static void _emitGSReadInputVFetchCode(LatteDecompilerShaderContext* shaderConte
 
 	src->add(" = ");
 	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, shaderContext->typeTracker.defaultDataType);
-	src->add("(v2g[");
+	src->add("(objectPayload[");
 	if (texInstruction->textureFetch.srcSel[0] >= 4)
 		cemu_assert_unimplemented();
 	if (texInstruction->textureFetch.srcSel[1] >= 4)
 		cemu_assert_unimplemented();
 	// todo: Index type
 	src->add("0");
-	src->addFmt("].passV2GParameter{}.", texInstruction->textureFetch.offset/16);
+	src->addFmt("].passParameterSem{}.", texInstruction->textureFetch.offset/16);
 
 
 	for(sint32 f=0; f<4; f++)
@@ -3316,7 +3316,7 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 			cemu_assert_unimplemented();
 		for (sint32 burstIndex = 0; burstIndex < (sint32)(cfInstruction->exportBurstCount + 1); burstIndex++)
 		{
-			src->addFmt("v2g.passV2GParameter{}.", (cfInstruction->exportArrayBase) / 4 + burstIndex);
+			src->addFmt("out.passParameterSem{}.", (cfInstruction->exportArrayBase) / 4 + burstIndex);
 			_emitXYZWByMask(src, cfInstruction->memWriteCompMask);
 			src->addFmt(" = ");
 			_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_SIGNED_INT, burstIndex);
@@ -3842,8 +3842,20 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
-	    functionType = "vertex";
-	    outputTypeName = "VertexOut";
+	    if (shaderContext->options->usesGeometryShader)
+		{
+		    // Defined just-in-time
+			// Will also modify vid in case of an indexed draw
+		    src->add("ObjectIn fetchInput(VERTEX_BUFFER_DEFINITIONS, thread uint& vid);" _CRLF);
+
+			functionType = "[[object, max_total_threads_per_threadgroup(MAX_THREADS_PER_THREADGROUP), max_total_threadgroups_per_mesh_grid(1)]]";
+			outputTypeName = "void";
+		}
+		else
+		{
+    	    functionType = "vertex";
+    	    outputTypeName = "VertexOut";
+		}
 		break;
 	case LatteConst::ShaderType::Pixel:
 	    functionType = "fragment";
@@ -3854,7 +3866,21 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
 	LatteDecompiler::emitInputs(shaderContext);
 	src->add(") {" _CRLF);
-	src->addFmt("{} out;" _CRLF, outputTypeName);
+	if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader)
+	{
+	    // Calculate the imaginary vertex id
+	    src->add("uint vid = tig * PRIMITIVE_VERTEX_COUNT + tid;" _CRLF);
+		// TODO: don't hardcode the instance index
+		src->add("uint iid = 0;" _CRLF);
+		// Fetch the input
+		src->add("ObjectIn in = fetchInput(VERTEX_BUFFERS, vid);" _CRLF);
+		// Output is defined as object payload
+		src->add("object_payload ObjectPayload& out = objectPayload[tid];" _CRLF);
+	}
+	else
+	{
+	    src->addFmt("{} out;" _CRLF, outputTypeName);
+	}
 	// variable definition
 	if (shaderContext->typeTracker.useArrayGPRs == false)
 	{
@@ -4094,13 +4120,17 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
-	// HACK: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
+	// TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
 	if (shader->shaderType == LatteConst::ShaderType::Vertex)
-	{
-	    // TODO: check this
-	    // MoltenVK does this
 		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+
+	if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader)
+	{
+	    src->add("if (tid == 0) {" _CRLF);
+        src->add("meshGridProperties.set_threadgroups_per_grid(uint3(1, 1, 1));" _CRLF);
+		src->add("}" _CRLF);
 	}
+
 	// return
 	src->add("return out;" _CRLF);
 	// end of shader main

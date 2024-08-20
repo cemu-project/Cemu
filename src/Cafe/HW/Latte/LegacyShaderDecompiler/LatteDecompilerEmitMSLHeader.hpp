@@ -158,7 +158,10 @@ namespace LatteDecompiler
 
 		if (decompilerContext->shader->shaderType == LatteConst::ShaderType::Vertex)
 		{
-		    src->add("struct VertexIn {" _CRLF);
+		    if (decompilerContext->options->usesGeometryShader)
+		        src->add("struct ObjectIn {" _CRLF);
+			else
+		        src->add("struct VertexIn {" _CRLF);
 			// attribute inputs
 			for (uint32 i = 0; i < LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS; i++)
 			{
@@ -166,7 +169,10 @@ namespace LatteDecompiler
 				{
 					cemu_assert_debug(decompilerContext->output->resourceMappingVK.attributeMapping[i] >= 0);
 
-					src->addFmt("uint4 attrDataSem{} [[attribute({})]];" _CRLF, i, (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]);
+					src->addFmt("uint4 attrDataSem{}", i);
+					if (!decompilerContext->options->usesGeometryShader)
+					    src->addFmt(" [[attribute({})]]", (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]);
+					src->add(";" _CRLF);
 				}
 			}
 			src->add("};" _CRLF _CRLF);
@@ -177,11 +183,14 @@ namespace LatteDecompiler
 	{
 		auto* src = shaderContext->shaderSource;
 
-		src->add("struct VertexOut {" _CRLF);
+		if (shaderContext->options->usesGeometryShader)
+		    src->add("struct ObjectPayload {" _CRLF);
+		else
+		    src->add("struct VertexOut {" _CRLF);
 
 		src->add("float4 position [[position]];" _CRLF);
 		if (shaderContext->analyzer.outputPointSize)
-		    src->add("float pointSize[[point_size]];" _CRLF);
+		    src->add("float pointSize [[point_size]];" _CRLF);
 
 		LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
 		auto parameterMask = shaderContext->shader->outputParameterMask;
@@ -206,11 +215,14 @@ namespace LatteDecompiler
 				continue; // no ps input
 
 			src->addFmt("float4 passParameterSem{}", psInputTable->import[psInputIndex].semanticId);
-			src->addFmt(" [[user(locn{})]]", psInputIndex);
-			if (psInputTable->import[psInputIndex].isFlat)
-				src->add(" [[flat]]");
-			if (psInputTable->import[psInputIndex].isNoPerspective)
-				src->add(" [[center_no_perspective]]");
+			if (!shaderContext->options->usesGeometryShader)
+			{
+    			src->addFmt(" [[user(locn{})]]", psInputIndex);
+    			if (psInputTable->import[psInputIndex].isFlat)
+    				src->add(" [[flat]]");
+    			if (psInputTable->import[psInputIndex].isNoPerspective)
+    				src->add(" [[center_no_perspective]]");
+			}
 			src->addFmt(";" _CRLF);
 		}
 
@@ -369,26 +381,38 @@ namespace LatteDecompiler
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-            src->add("VertexIn");
+		    if (!decompilerContext->options->usesGeometryShader)
+                src->add("VertexIn in [[stage_in]], ");
             break;
         case LatteConst::ShaderType::Pixel:
-            src->add("FragmentIn");
+            src->add("FragmentIn in [[stage_in]], ");
+            break;
+        default:
             break;
 		}
 
-		src->add(" in [[stage_in]], constant SupportBuffer& supportBuffer [[buffer(30)]]");
+		src->add("constant SupportBuffer& supportBuffer [[buffer(30)]]");
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-            src->add(", uint vid [[vertex_id]]");
-            src->add(", uint iid [[instance_id]]");
-
-			// streamout buffer (transform feedback)
-			if (decompilerContext->analyzer.hasStreamoutEnable && decompilerContext->analyzer.hasStreamoutWrite)
+		    if (decompilerContext->options->usesGeometryShader)
 			{
-				src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingVK.tfStorageBindingPoint);
+			    src->add(", object_data ObjectPayload* objectPayload [[payload]]");
+			    src->add(", mesh_grid_properties meshGridProperties");
+				src->add(", uint tig [[threadgroup_position_in_grid]]");
+				src->add(", uint tid [[thread_index_in_threadgroup]]");
 			}
+			else
+			{
+                src->add(", uint vid [[vertex_id]]");
+                src->add(", uint iid [[instance_id]]");
 
+    			// streamout buffer (transform feedback)
+    			if (decompilerContext->analyzer.hasStreamoutEnable && decompilerContext->analyzer.hasStreamoutWrite)
+    			{
+    				src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingVK.tfStorageBindingPoint);
+    			}
+			}
             break;
         case LatteConst::ShaderType::Pixel:
             src->add(", bool frontFacing [[front_facing]]");
