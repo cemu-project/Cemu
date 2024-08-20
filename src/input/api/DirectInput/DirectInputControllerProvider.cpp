@@ -19,7 +19,7 @@ DirectInputControllerProvider::DirectInputControllerProvider()
 		
 
 	const auto r = DirectInput8Create(GetModuleHandle(nullptr), DIRECTINPUT_VERSION, IID_IDirectInput8, (void**)&m_dinput8, nullptr);
-	if (FAILED(r) || !m_dinput8)
+	if (FAILED(r))
 	{
 		const auto error = GetLastError();
 		//FreeLibrary(m_module);
@@ -29,9 +29,6 @@ DirectInputControllerProvider::DirectInputControllerProvider()
 
 DirectInputControllerProvider::~DirectInputControllerProvider()
 {
-	if (m_dinput8)
-		m_dinput8->Release();
-	
 	/*if (m_module)
 		FreeLibrary(m_module);
 	*/

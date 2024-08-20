@@ -45,6 +45,7 @@
 #include <objidl.h>
 #include <shlguid.h>
 #include <shlobj.h>
+#include <wrl/client.h>
 #endif
 
 // public events
@@ -1630,8 +1631,8 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		}
 	}
 
-	IShellLinkW* shellLink;
-	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
+	Microsoft::WRL::ComPtr<IShellLinkW> shellLink;
+	HRESULT hres = CoCreateInstance(__uuidof(ShellLink), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&shellLink));
 	if (SUCCEEDED(hres))
 	{
 		const auto description = wxString::Format("Play %s on Cemu", titleName);
@@ -1647,15 +1648,13 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		else
 			shellLink->SetIconLocation(exePath.wstring().c_str(), 0);
 
-		IPersistFile* shellLinkFile;
+		Microsoft::WRL::ComPtr<IPersistFile> shellLinkFile;
 		// save the shortcut
-		hres = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shellLinkFile));
+		hres = shellLink.As(&shellLinkFile);
 		if (SUCCEEDED(hres))
 		{
 			hres = shellLinkFile->Save(outputPath.wc_str(), TRUE);
-			shellLinkFile->Release();	
 		}
-		shellLink->Release();
 	}
 	if (!SUCCEEDED(hres)) {
 		auto errorMsg = formatWxString(_("Failed to save shortcut to {}"), outputPath);
