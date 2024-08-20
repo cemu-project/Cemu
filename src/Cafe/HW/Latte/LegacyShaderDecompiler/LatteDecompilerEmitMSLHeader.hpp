@@ -303,7 +303,7 @@ namespace LatteDecompiler
     				src->addFmt("int4 passParameterSem{};" _CRLF, f);
     			src->add("};" _CRLF _CRLF);
                 src->add("struct ObjectPayload {" _CRLF);
-                src->add("VertexOut vertexOut[PRIMITIVE_VERTEX_COUNT];" _CRLF);
+                src->add("VertexOut vertexOut[VERTICES_PER_PRIMITIVE];" _CRLF);
                 src->add("};" _CRLF _CRLF);
     		}
     		if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -325,8 +325,10 @@ namespace LatteDecompiler
     			}
                 src->add("};" _CRLF _CRLF);
 
+                const uint32 MAX_PRIMITIVE_COUNT = 8;
+
                 // Define the mesh shader output type
-                src->add("using MeshType = mesh<GeometryOut, void, MAX_PRIMITIVE_COUNT * PRIMITIVE_VERTEX_COUNT, MAX_PRIMITIVE_COUNT, topology::PRIMITIVE_TYPE>;" _CRLF);
+                src->addFmt("using MeshType = mesh<GeometryOut, void, {} * VERTICES_PER_PRIMITIVE, {}, topology::PRIMITIVE_TYPE>;" _CRLF, MAX_PRIMITIVE_COUNT, MAX_PRIMITIVE_COUNT);
     		}
 		}
 	}
