@@ -290,7 +290,6 @@ namespace LatteDecompiler
             if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
     		{
                 src->add("struct VertexOut {" _CRLF);
-                src->add("float4 position [[position]];" _CRLF);
     			uint32 ringParameterCountVS2GS = 0;
     			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
     			{

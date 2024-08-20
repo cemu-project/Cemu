@@ -2822,13 +2822,12 @@ static void _emitGSReadInputVFetchCode(LatteDecompilerShaderContext* shaderConte
 
 	src->add(" = ");
 	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, shaderContext->typeTracker.defaultDataType);
-	src->add("(objectPayload[");
+	src->add("(in[");
 	if (texInstruction->textureFetch.srcSel[0] >= 4)
 		cemu_assert_unimplemented();
 	if (texInstruction->textureFetch.srcSel[1] >= 4)
 		cemu_assert_unimplemented();
-	// todo: Index type
-	src->add("0");
+	src->add("vertexIndex");
 	src->addFmt("].passParameterSem{}.", texInstruction->textureFetch.offset/16);
 
 
@@ -3588,9 +3587,10 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 		// write point size
 		if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
-		// emit vertex
-		src->add("mesh.set_vertex(out);" _CRLF);
-		src->add("mesh.set_index(tid, tid);" _CRLF);
+		// Emit vertex (if the vertex index matches thread id)
+		src->add("mesh.set_vertex(vertexIndex, out);" _CRLF);
+		src->add("mesh.set_index(vertexIndex, vertexIndex);" _CRLF);
+		src->add("vertexIndex++;" _CRLF);
 		// increment transform feedback pointer
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
@@ -3859,7 +3859,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		}
 		break;
 	case LatteConst::ShaderType::Geometry:
-        functionType = "[[mesh, max_total_threads_per_threadgroup(MAX_THREADS_PER_THREADGROUP)]]";
+        functionType = "[[mesh, max_total_threads_per_threadgroup(1)]]";
         outputTypeName = "void";
         break;
 	case LatteConst::ShaderType::Pixel:
@@ -3886,7 +3886,11 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		}
 		else
 		{
+		    // Input is defined as object payload
+			src->add("object_data VertexOut* in = objectPayload.vertexOut;" _CRLF);
 		    src->add("GeometryOut out;" _CRLF);
+			// The index of the current vertex that is being emitted
+			src->add("uint vertexIndex = 0;" _CRLF);
 		}
 	}
 	else
@@ -4132,20 +4136,29 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
-	// TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
-	if (shader->shaderType == LatteConst::ShaderType::Vertex)
-		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 
-	if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader)
+	if (shaderContext->options->usesGeometryShader)
 	{
-	    src->add("if (tid == 0) {" _CRLF);
-        src->add("meshGridProperties.set_threadgroups_per_grid(uint3(1, 1, 1));" _CRLF);
-		src->add("}" _CRLF);
+    	if (shader->shaderType == LatteConst::ShaderType::Vertex)
+    	{
+    	    src->add("if (tid == 0) {" _CRLF);
+            src->add("meshGridProperties.set_threadgroups_per_grid(uint3(1, 1, 1));" _CRLF);
+    		src->add("}" _CRLF);
+    	}
+	}
+	else
+	{
+	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
+    	{
+           	// TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
+           	if (shader->shaderType == LatteConst::ShaderType::Vertex)
+          		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+        }
+
+        // Return
+        src->add("return out;" _CRLF);
 	}
 
-	// return
-	if (!shaderContext->options->usesGeometryShader)
-	    src->add("return out;" _CRLF);
 	// end of shader main
 	src->add("}" _CRLF);
 	src->shrink_to_fit();
