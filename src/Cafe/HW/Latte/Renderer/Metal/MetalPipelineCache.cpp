@@ -276,7 +276,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFe
 	auto mtlMeshShader = static_cast<RendererShaderMtl*>(geometryShader->shader);
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
 	mtlObjectShader->CompileObjectFunction(lcr, fetchShader, vertexShader, hostIndexType);
-	mtlMeshShader->CompileMeshFunction(lcr, fetchShader);
 	mtlPixelShader->CompileFragmentFunction(activeFBO);
 
 	// Render pipeline state

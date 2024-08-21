@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common/precompiled.h"
 #include "HW/Latte/Core/LatteConst.h"
 namespace LatteDecompiler
 {
@@ -307,7 +308,7 @@ namespace LatteDecompiler
     				src->addFmt("int4 passParameterSem{};" _CRLF, f);
     			src->add("};" _CRLF _CRLF);
                 src->add("struct ObjectPayload {" _CRLF);
-                src->add("VertexOut vertexOut[VERTICES_PER_PRIMITIVE];" _CRLF);
+                src->add("VertexOut vertexOut[VERTICES_PER_VERTEX_PRIMITIVE];" _CRLF);
                 src->add("};" _CRLF _CRLF);
     		}
     		if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -329,10 +330,10 @@ namespace LatteDecompiler
     			}
                 src->add("};" _CRLF _CRLF);
 
-                const uint32 MAX_PRIMITIVE_COUNT = 8;
+                const uint32 MAX_VERTEX_COUNT = 32;
 
                 // Define the mesh shader output type
-                src->addFmt("using MeshType = mesh<GeometryOut, void, {} * VERTICES_PER_PRIMITIVE, {}, topology::PRIMITIVE_TYPE>;" _CRLF, MAX_PRIMITIVE_COUNT, MAX_PRIMITIVE_COUNT);
+                src->addFmt("using MeshType = mesh<GeometryOut, void, {}, GET_PRIMITIVE_COUNT({}), topology::MTL_PRIMITIVE_TYPE>;" _CRLF, MAX_VERTEX_COUNT, MAX_VERTEX_COUNT);
     		}
 		}
 	}
@@ -343,15 +344,46 @@ namespace LatteDecompiler
 
         if (decompilerContext->options->usesGeometryShader && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
         {
-            src->add("#if PRIMITIVE_TYPE == point" _CRLF);
-           	src->add("#define VERTICES_PER_PRIMITIVE 1" _CRLF);
-            src->add("#elif PRIMITIVE_TYPE == line" _CRLF);
-           	src->add("#define VERTICES_PER_PRIMITIVE 2" _CRLF);
-            src->add("#elif PRIMITIVE_TYPE == triangle" _CRLF);
-           	src->add("#define VERTICES_PER_PRIMITIVE 3" _CRLF);
-            src->add("#else" _CRLF);
-            src->add("#error unsupported primitive type" _CRLF);
-           	src->add("#endif" _CRLF);
+            // TODO: make vsOutPrimType parth of the shader hash
+            LattePrimitiveMode vsOutPrimType = static_cast<LattePrimitiveMode>(decompilerContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]);
+            uint32 gsOutPrimType = decompilerContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE];
+
+            switch (vsOutPrimType)
+            {
+            case LattePrimitiveMode::POINTS:
+                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 1" _CRLF);
+                break;
+            case LattePrimitiveMode::LINES:
+                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 2" _CRLF);
+                break;
+            case LattePrimitiveMode::TRIANGLES:
+                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 3" _CRLF);
+                break;
+            default:
+                cemu_assert_suspicious();
+                break;
+            }
+            if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
+            {
+                switch (gsOutPrimType)
+                {
+                case 0: // Point
+                    src->add("#define MTL_PRIMITIVE_TYPE point" _CRLF);
+                   	src->add("#define GET_PRIMITIVE_COUNT(vertexCount) (vertexCount / 1)" _CRLF);
+                    break;
+                case 1: // Line strip
+                    src->add("#define MTL_PRIMITIVE_TYPE line" _CRLF);
+                   	src->add("#define GET_PRIMITIVE_COUNT(vertexCount) (vertexCount - 1)" _CRLF);
+                    break;
+                case 2: // Triangle strip
+                    src->add("#define MTL_PRIMITIVE_TYPE triangle" _CRLF);
+                   	src->add("#define GET_PRIMITIVE_COUNT(vertexCount) (vertexCount - 2)" _CRLF);
+                    break;
+                default:
+                    cemu_assert_suspicious();
+                    break;
+                }
+            }
         }
 
 		const bool dump_shaders_enabled = ActiveSettings::DumpShadersEnabled();

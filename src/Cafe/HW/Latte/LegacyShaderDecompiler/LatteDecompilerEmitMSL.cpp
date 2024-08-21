@@ -3589,7 +3589,6 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 		// Emit vertex (if the vertex index matches thread id)
 		src->add("mesh.set_vertex(vertexIndex, out);" _CRLF);
-		src->add("mesh.set_index(vertexIndex, vertexIndex);" _CRLF);
 		src->add("vertexIndex++;" _CRLF);
 		// increment transform feedback pointer
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
@@ -3849,7 +3848,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			// Will also modify vid in case of an indexed draw
 		    src->add("VertexIn fetchInput(thread uint& vid VERTEX_BUFFER_DEFINITIONS);" _CRLF);
 
-			functionType = "[[object, max_total_threads_per_threadgroup(VERTICES_PER_PRIMITIVE), max_total_threadgroups_per_mesh_grid(1)]]";
+			functionType = "[[object, max_total_threads_per_threadgroup(VERTICES_PER_VERTEX_PRIMITIVE), max_total_threadgroups_per_mesh_grid(1)]]";
 			outputTypeName = "void";
 		}
 		else
@@ -3876,7 +3875,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
 		{
     	    // Calculate the imaginary vertex id
-    	    src->add("uint vid = tig * VERTICES_PER_PRIMITIVE + tid;" _CRLF);
+    	    src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
     		// TODO: don't hardcode the instance index
     		src->add("uint iid = 0;" _CRLF);
     		// Fetch the input
@@ -4145,7 +4144,27 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     	}
         else if (shader->shaderType == LatteConst::ShaderType::Geometry)
         {
-            src->add("mesh.set_primitive_count(vertexIndex / VERTICES_PER_PRIMITIVE);" _CRLF);
+            src->add("mesh.set_primitive_count(GET_PRIMITIVE_COUNT(vertexIndex));" _CRLF);
+
+            // Set indices
+            if (shaderContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE] == 1) // Line strip
+            {
+                src->add("for (uint8_t i = 0; i < GET_PRIMITIVE_COUNT(vertexIndex) * 2; i++) {" _CRLF);
+                src->add("mesh.set_index(i, (i 2 3) + i % 2);" _CRLF);
+                src->add("}" _CRLF);
+            }
+            else if (shaderContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE] == 2) // Triangle strip
+            {
+                src->add("for (uint8_t i = 0; i < GET_PRIMITIVE_COUNT(vertexIndex) * 3; i++) {" _CRLF);
+                src->add("mesh.set_index(i, (i / 3) + i % 3);" _CRLF);
+                src->add("}" _CRLF);
+            }
+            else
+            {
+                src->add("for (uint8_t i = 0; i < vertexIndex; i++) {" _CRLF);
+                src->add("mesh.set_index(i, i);" _CRLF);
+                src->add("}" _CRLF);
+            }
         }
 	}
 	else

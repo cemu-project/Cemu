@@ -27,7 +27,6 @@ public:
 	}
 
 	void CompileObjectFunction(const LatteContextRegister& lcr, const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, Renderer::INDEX_TYPE hostIndexType);
-	void CompileMeshFunction(const LatteContextRegister& lcr, const LatteFetchShader* fetchShader);
 	void CompileFragmentFunction(CachedFBOMtl* activeFBO);
 
 	MTL::Function* GetFunction() const

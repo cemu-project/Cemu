@@ -16,8 +16,15 @@ extern std::atomic_int g_compiled_shaders_async;
 RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode)
 	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_mtlr{mtlRenderer}
 {
-    // TODO: don't compile just-in-time
-    m_mslCode = mslCode;
+    if (type == ShaderType::kGeometry)
+    {
+        Compile(mslCode);
+    }
+    else
+    {
+        // TODO: don't compile just-in-time
+        m_mslCode = mslCode;
+    }
 
 	// Count shader compilation
 	g_compiled_shaders_total++;
@@ -34,25 +41,6 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
     cemu_assert_debug(m_type == ShaderType::kVertex);
 
     std::string fullCode;
-
-    // Primitive type
-    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(lcr.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE());
-    fullCode += "#define PRIMITIVE_TYPE ";
-    switch (primitiveMode)
-    {
-    case LattePrimitiveMode::POINTS:
-        fullCode += "point";
-        break;
-    case LattePrimitiveMode::LINES:
-        fullCode += "line";
-        break;
-    case LattePrimitiveMode::TRIANGLES:
-        fullCode += "triangle";
-        break;
-    default:
-        break;
-    }
-    fullCode += "\n";
 
     // Vertex buffers
     std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
@@ -82,6 +70,10 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
     for (auto& bufferGroup : fetchShader->bufferGroups)
 	{
         std::optional<LatteConst::VertexFetchType2> fetchType;
+
+		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
+		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
        	for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
        	{
@@ -149,7 +141,7 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
             inputFetchDefinition += "in.ATTRIBUTE_NAME" + std::to_string(semanticId) + " = ";
             inputFetchDefinition += "uint4(*(device " + formatName + "*)";
             inputFetchDefinition += "(vertexBuffer" + std::to_string(attr.attributeBufferIndex);
-            inputFetchDefinition += " + vid + " + std::to_string(attr.offset) + ")";
+            inputFetchDefinition += " + vid * " + std::to_string(bufferStride) + " + " + std::to_string(attr.offset) + ")";
             for (uint8 i = 0; i < (4 - componentCount); i++)
                 inputFetchDefinition += ", 0";
             inputFetchDefinition += ");\n";
@@ -165,10 +157,6 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
       		}
        	}
 
-		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
-		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
 		vertexBufferDefinitions += ", device uchar* vertexBuffer" + std::to_string(bufferIndex) + " [[buffer(" + std::to_string(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex)) + ")]]";
 		vertexBuffers += ", vertexBuffer" + std::to_string(bufferIndex);
 	}
@@ -180,35 +168,6 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
     fullCode += m_mslCode;
     fullCode += inputFetchDefinition;
 
-    Compile(fullCode);
-}
-
-void RendererShaderMtl::CompileMeshFunction(const LatteContextRegister& lcr, const LatteFetchShader* fetchShader)
-{
-    cemu_assert_debug(m_type == ShaderType::kGeometry);
-
-    std::string fullCode;
-
-    // Primitive type
-    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(lcr.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE());
-    fullCode += "#define PRIMITIVE_TYPE ";
-    switch (primitiveMode)
-    {
-    case LattePrimitiveMode::POINTS:
-        fullCode += "point";
-        break;
-    case LattePrimitiveMode::LINES:
-        fullCode += "line";
-        break;
-    case LattePrimitiveMode::TRIANGLES:
-        fullCode += "triangle";
-        break;
-    default:
-        break;
-    }
-    fullCode += "\n";
-
-    fullCode += m_mslCode;
     Compile(fullCode);
 }
 

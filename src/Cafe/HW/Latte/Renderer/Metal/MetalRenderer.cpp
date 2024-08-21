@@ -1013,7 +1013,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             // Restride
             if (geometryShader)
             {
-                // Object shaders don't need restriding, since the attribute are fetched in the shader
+                // Object shaders don't need restriding, since the attributes are fetched in the shader
                 buffer = m_memoryManager->GetBufferCache();
                 offset = m_state.m_vertexBuffers[i].offset;
             }
