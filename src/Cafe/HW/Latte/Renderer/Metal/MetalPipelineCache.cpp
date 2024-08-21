@@ -44,7 +44,7 @@ static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const Lat
 		// make sure PS has matching input
 		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
 			continue;
-		gsSrc.append(fmt::format("passParameterSem{}Out = gen4thVertex{}(objectPayload.vertexOut[0].passParameterSem{}, objectPayload.vertexOut[1].passParameterSem{}, objectPayload.vertexOut[2].passParameterSem{});\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
+		gsSrc.append(fmt::format("out.passParameterSem{} = gen4thVertex{}(objectPayload.vertexOut[0].passParameterSem{}, objectPayload.vertexOut[1].passParameterSem{}, objectPayload.vertexOut[2].passParameterSem{});\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
 	}
 	gsSrc.append(fmt::format("out.position = gen4thVertex{}(objectPayload.vertexOut[0].position, objectPayload.vertexOut[1].position, objectPayload.vertexOut[2].position);\r\n", variant));
 	gsSrc.append(fmt::format("mesh.set_vertex(3, out);\r\n"));
@@ -60,6 +60,12 @@ static void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, const LatteD
 		else
 			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
 	}
+	gsSrc.append(fmt::format("mesh.set_index(0, {});\r\n", pList[0]));
+	gsSrc.append(fmt::format("mesh.set_index(1, {});\r\n", pList[1]));
+	gsSrc.append(fmt::format("mesh.set_index(2, {});\r\n", pList[2]));
+	gsSrc.append(fmt::format("mesh.set_index(3, {});\r\n", pList[1]));
+	gsSrc.append(fmt::format("mesh.set_index(4, {});\r\n", pList[2]));
+	gsSrc.append(fmt::format("mesh.set_index(5, {});\r\n", pList[3]));
 }
 
 static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer, const LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
@@ -167,12 +173,6 @@ static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer
 	gsSrc.append("}\r\n");
 
 	gsSrc.append("mesh.set_primitive_count(2);\r\n");
-	gsSrc.append("mesh.set_index(0, 0);\r\n");
-	gsSrc.append("mesh.set_index(1, 1);\r\n");
-	gsSrc.append("mesh.set_index(2, 2);\r\n");
-	gsSrc.append("mesh.set_index(3, 1);\r\n");
-	gsSrc.append("mesh.set_index(4, 2);\r\n");
-	gsSrc.append("mesh.set_index(5, 3);\r\n");
 
 	gsSrc.append("}\r\n");
 
