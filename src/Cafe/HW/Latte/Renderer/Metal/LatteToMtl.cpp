@@ -29,7 +29,7 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM, {MTL::PixelFormatRGBA16Snorm, MetalDataType::FLOAT, 8}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}},
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB, {MTL::PixelFormatRGBA8Unorm_sRGB, MetalDataType::FLOAT, 4}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB, {MTL::PixelFormatRGB10A2Unorm, MetalDataType::FLOAT, 4}}, // TODO: sRGB?
 	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM, {MTL::PixelFormatBGR10A2Unorm, MetalDataType::FLOAT, 4}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R16_UNORM, {MTL::PixelFormatR16Unorm, MetalDataType::FLOAT, 2}},

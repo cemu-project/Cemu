@@ -127,6 +127,7 @@ struct MetalState
     bool m_usesSRGB = false;
 
     bool m_skipDrawSequence = false;
+    bool m_isFirstDrawInRenderPass = true;
 
     class CachedFBOMtl* m_activeFBO = nullptr;
     // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change'
@@ -385,6 +386,7 @@ public:
 
     bool AcquireNextDrawable(bool mainWindow);
 
+    bool CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader);
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader);
 
     void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);

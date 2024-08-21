@@ -18,6 +18,7 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Common/precompiled.h"
+#include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Metal/MTLDevice.hpp"
 #include "Metal/MTLRenderCommandEncoder.hpp"
@@ -816,6 +817,28 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	auto& encoderState = m_state.m_encoderState;
 
+    // Shaders
+    LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+    LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
+    LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+    if (!vertexShader)
+    {
+        debug_printf("no vertex function, skipping draw\n");
+        return;
+    }
+    const auto fetchShader = LatteSHRC_GetActiveFetchShader();
+
+	// Check if we need to end the render pass
+	// Fragment shader is most likely to require a render pass flush, so check for it first
+	bool endRenderPass = CheckIfRenderPassNeedsFlush(pixelShader);
+	if (!endRenderPass)
+	    endRenderPass = CheckIfRenderPassNeedsFlush(vertexShader);
+	if (!endRenderPass && geometryShader)
+	    endRenderPass = CheckIfRenderPassNeedsFlush(geometryShader);
+
+	if (endRenderPass)
+	    EndEncoding();
+
 	// Render pass
 	auto renderCommandEncoder = GetRenderCommandEncoder();
 
@@ -824,23 +847,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
-	// Shaders
-	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
-	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
-	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-	if (!vertexShader)
-	{
-        debug_printf("no vertex function, skipping draw\n");
-	    return;
-	}
-	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
-
-	bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+    bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
 	// Depth stencil state
-	// TODO: implement this somehow
-	//auto depthControl = LatteGPUState.contextNew.DB_DEPTH_CONTROL;
-
+	// TODO
 	// Disable depth write when there is no depth attachment
 	//if (!m_state.m_lastUsedFBO->depthBuffer.texture)
 	//    depthControl.set_Z_WRITE_ENABLE(false);
@@ -1103,6 +1113,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
        	}
 	}
 
+	m_state.m_isFirstDrawInRenderPass = false;
+
 	LatteStreamout_FinishDrawcall(false);
 
 	LatteGPUState.drawCallCounter++;
@@ -1235,6 +1247,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
     // Update state
     m_state.m_lastUsedFBO = m_state.m_activeFBO;
+    m_state.m_isFirstDrawInRenderPass = true;
 
     auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO->GetRenderPassDescriptor());
 #ifdef CEMU_DEBUG_ASSERT
@@ -1356,6 +1369,53 @@ bool MetalRenderer::AcquireNextDrawable(bool mainWindow)
     }
 
     return true;
+}
+
+bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
+{
+    sint32 textureCount = shader->resourceMapping.getTextureCount();
+	for (int i = 0; i < textureCount; ++i)
+	{
+		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
+		auto hostTextureUnit = relative_textureUnit;
+		auto textureDim = shader->textureUnitDim[relative_textureUnit];
+		auto texUnitRegIndex = hostTextureUnit * 7;
+		switch (shader->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+			hostTextureUnit += LATTE_CEMU_VS_TEX_UNIT_BASE;
+			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS;
+			break;
+		case LatteConst::ShaderType::Pixel:
+			hostTextureUnit += LATTE_CEMU_PS_TEX_UNIT_BASE;
+			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS;
+			break;
+		case LatteConst::ShaderType::Geometry:
+			hostTextureUnit += LATTE_CEMU_GS_TEX_UNIT_BASE;
+			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
+			break;
+		default:
+			UNREACHABLE;
+		}
+
+		auto textureView = m_state.m_textures[hostTextureUnit];
+		if (!textureView)
+            continue;
+
+		LatteTexture* baseTexture = textureView->baseTexture;
+		if (!m_state.m_isFirstDrawInRenderPass)
+		{
+		    // If the texture is also used in the current render pass, we need to end the render pass to "flush" the texture
+			for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+			{
+			    auto colorTarget = m_state.m_activeFBO->colorBuffer[i].texture;
+				if (colorTarget && colorTarget->baseTexture == baseTexture)
+				    return true;
+			}
+		}
+	}
+
+	return false;
 }
 
 void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader)
