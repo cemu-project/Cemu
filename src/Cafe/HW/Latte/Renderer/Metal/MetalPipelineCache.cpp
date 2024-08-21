@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Foundation/NSObject.hpp"
+#include "HW/Latte/Core/LatteShader.h"
 #include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "HW/Latte/Renderer/Metal/RendererShaderMtl.h"
@@ -9,9 +10,176 @@
 
 #include "HW/Latte/Core/FetchShader.h"
 #include "HW/Latte/ISA/RegDefines.h"
-#include "Metal/MTLDevice.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
 #include "config/ActiveSettings.h"
+
+static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
+{
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (uint32 i = 0; i < 32; i++)
+	{
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		// make sure PS has matching input
+		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+			continue;
+		gsSrc.append(fmt::format("out.passParameterSem{} = objectPayload.vertexOut[{}].passParameterSem{};\r\n", vsSemanticId, vIdx, vsSemanticId));
+	}
+	gsSrc.append(fmt::format("out.position = objectPayload.vertexOut[{}].position;\r\n", vIdx));
+	gsSrc.append(fmt::format("mesh.set_vertex({}, out);\r\n", vIdx));
+}
+
+static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
+{
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (uint32 i = 0; i < 32; i++)
+	{
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		// make sure PS has matching input
+		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+			continue;
+		gsSrc.append(fmt::format("passParameterSem{}Out = gen4thVertex{}(objectPayload.vertexOut[0].passParameterSem{}, objectPayload.vertexOut[1].passParameterSem{}, objectPayload.vertexOut[2].passParameterSem{});\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
+	}
+	gsSrc.append(fmt::format("out.position = gen4thVertex{}(objectPayload.vertexOut[0].position, objectPayload.vertexOut[1].position, objectPayload.vertexOut[2].position);\r\n", variant));
+	gsSrc.append(fmt::format("mesh.set_vertex(3, out);\r\n"));
+}
+
+static void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
+{
+	sint32 pList[4] = { p0, p1, p2, p3 };
+	for (sint32 i = 0; i < 4; i++)
+	{
+		if (pList[i] == 3)
+			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant, latteRegister);
+		else
+			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
+	}
+}
+
+static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer, const LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
+{
+	std::string gsSrc;
+	gsSrc.append("#include <metal_stdlib>\r\n");
+	gsSrc.append("using namespace metal;\r\n");
+
+	LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
+
+	// inputs & outputs
+	std::string vertexOutDefinition = "struct VertexOut {\r\n";
+	vertexOutDefinition += "float4 position;\r\n";
+	std::string geometryOutDefinition = "struct GeometryOut {\r\n";
+	geometryOutDefinition += "float4 position [[position]];\r\n";
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (sint32 f = 0; f < 2; f++)
+	{
+		for (uint32 i = 0; i < 32; i++)
+		{
+			if ((parameterMask & (1 << i)) == 0)
+				continue;
+			sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+			if (vsSemanticId < 0)
+				continue;
+			auto psImport = psInputTable->getPSImportBySemanticId(vsSemanticId);
+			if (psImport == nullptr)
+				continue;
+
+			if (f == 0)
+			{
+				vertexOutDefinition += fmt::format("float4 passParameterSem{};\r\n", vsSemanticId);
+			}
+			else
+			{
+				geometryOutDefinition += fmt::format("float4 passParameterSem{}", vsSemanticId);
+
+    			geometryOutDefinition += fmt::format(" [[user(locn{})]]", psInputTable->getPSImportLocationBySemanticId(vsSemanticId));
+    			if (psImport->isFlat)
+    				geometryOutDefinition += " [[flat]]";
+    			if (psImport->isNoPerspective)
+    				geometryOutDefinition += " [[center_no_perspective]]";
+                geometryOutDefinition += ";\r\n";
+			}
+		}
+	}
+	vertexOutDefinition += "};\r\n";
+	geometryOutDefinition += "};\r\n";
+
+	gsSrc.append(vertexOutDefinition);
+	gsSrc.append(geometryOutDefinition);
+
+	gsSrc.append("struct ObjectPayload {\r\n");
+	gsSrc.append("VertexOut vertexOut[3];\r\n");
+	gsSrc.append("};\r\n");
+
+	// gen function
+	gsSrc.append("float4 gen4thVertexA(float4 a, float4 b, float4 c)\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("return b - (c - a);\r\n");
+	gsSrc.append("}\r\n");
+
+	gsSrc.append("float4 gen4thVertexB(float4 a, float4 b, float4 c)\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("return c - (b - a);\r\n");
+	gsSrc.append("}\r\n");
+
+	gsSrc.append("float4 gen4thVertexC(float4 a, float4 b, float4 c)\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("return c + (b - a);\r\n");
+	gsSrc.append("}\r\n");
+
+	// main
+	gsSrc.append("using MeshType = mesh<GeometryOut, void, 4, 2, topology::triangle>;\r\n");
+	gsSrc.append("[[mesh, max_total_threads_per_threadgroup(1)]]\r\n");
+	gsSrc.append("void main0(MeshType mesh, const object_data ObjectPayload& objectPayload [[payload]])\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("GeometryOut out;\r\n");
+
+	// there are two possible winding orders that need different triangle generation:
+	// 0 1
+	// 2 3
+	// and
+	// 0 1
+	// 3 2
+	// all others are just symmetries of these cases
+
+	// we can determine the case by comparing the distance 0<->1 and 0<->2
+
+	gsSrc.append("float dist0_1 = length(objectPayload.vertexOut[1].position.xy - objectPayload.vertexOut[0].position.xy);\r\n");
+	gsSrc.append("float dist0_2 = length(objectPayload.vertexOut[2].position.xy - objectPayload.vertexOut[0].position.xy);\r\n");
+	gsSrc.append("float dist1_2 = length(objectPayload.vertexOut[2].position.xy - objectPayload.vertexOut[1].position.xy);\r\n");
+
+	// emit vertices
+	gsSrc.append("if(dist0_1 > dist0_2 && dist0_1 > dist1_2)\r\n");
+	gsSrc.append("{\r\n");
+	// p0 to p1 is diagonal
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 2, 1, 0, 3, "A", latteRegister);
+	gsSrc.append("} else if ( dist0_2 > dist0_1 && dist0_2 > dist1_2 ) {\r\n");
+	// p0 to p2 is diagonal
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 1, 2, 0, 3, "B", latteRegister);
+	gsSrc.append("} else {\r\n");
+	// p1 to p2 is diagonal
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 0, 1, 2, 3, "C", latteRegister);
+	gsSrc.append("}\r\n");
+
+	gsSrc.append("mesh.set_primitive_count(2);\r\n");
+	gsSrc.append("mesh.set_index(0, 0);\r\n");
+	gsSrc.append("mesh.set_index(1, 1);\r\n");
+	gsSrc.append("mesh.set_index(2, 2);\r\n");
+	gsSrc.append("mesh.set_index(3, 1);\r\n");
+	gsSrc.append("mesh.set_index(4, 2);\r\n");
+	gsSrc.append("mesh.set_index(5, 3);\r\n");
+
+	gsSrc.append("}\r\n");
+
+	auto mtlShader = new RendererShaderMtl(metalRenderer, RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
+
+	return mtlShader;
+}
 
 #define INVALID_TITLE_ID 0xFFFFFFFFFFFFFFFF
 
@@ -273,7 +441,16 @@ MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFe
         return pipeline;
 
 	auto mtlObjectShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
-	auto mtlMeshShader = static_cast<RendererShaderMtl*>(geometryShader->shader);
+	RendererShaderMtl* mtlMeshShader;
+	if (geometryShader)
+	{
+        mtlMeshShader = static_cast<RendererShaderMtl*>(geometryShader->shader);
+	}
+    else
+    {
+        // If there is no geometry shader, it means that we are emulating rects
+        mtlMeshShader = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
+    }
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
 	mtlObjectShader->CompileObjectFunction(lcr, fetchShader, vertexShader, hostIndexType);
 	mtlPixelShader->CompileFragmentFunction(activeFBO);

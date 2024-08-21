@@ -3821,20 +3821,22 @@ static void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* sh
 
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader)
 {
+    bool isRectVertexShader = (static_cast<LattePrimitiveMode>(shaderContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
+
 	StringBuf* src = new StringBuf(1024*1024*12); // reserve 12MB for generated source (we resize-to-fit at the end)
 	shaderContext->shaderSource = src;
 
 	// debug info
 	src->addFmt("// shader {:016x}" _CRLF, shaderContext->shaderBaseHash);
 #ifdef CEMU_DEBUG_ASSERT
-	src->addFmt("// usesIntegerValues: {}" _CRLF, shaderContext->analyzer.usesIntegerValues?"true":"false");
+	src->addFmt("// usesIntegerValues: {}" _CRLF, shaderContext->analyzer.usesIntegerValues ? "true" : "false");
 	src->addFmt(_CRLF);
 #endif
     // include metal standard library
     src->add("#include <metal_stdlib>" _CRLF);
     src->add("using namespace metal;" _CRLF);
 	// header part (definitions for inputs and outputs)
-	LatteDecompiler::emitHeader(shaderContext);
+	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
 	const char* functionType = "";
@@ -3842,7 +3844,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
-	    if (shaderContext->options->usesGeometryShader)
+	    if (shaderContext->options->usesGeometryShader || isRectVertexShader)
 		{
 		    // Defined just-in-time
 			// Will also modify vid in case of an indexed draw
@@ -3868,9 +3870,9 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 	// start of main
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
-	LatteDecompiler::emitInputs(shaderContext);
+	LatteDecompiler::emitInputs(shaderContext, isRectVertexShader);
 	src->add(") {" _CRLF);
-	if (shaderContext->options->usesGeometryShader && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
+	if ((shaderContext->options->usesGeometryShader || isRectVertexShader) && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
 	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
 		{
@@ -4086,7 +4088,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 				continue;
 			}
 
-			if (shaderContext->options->usesGeometryShader)
+			// TODO: is the if statement even needed?
+			if (shaderContext->options->usesGeometryShader || isRectVertexShader)
 			{
 				// import from geometry shader
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
@@ -4130,11 +4133,11 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	// vertex shader should write renderstate point size at the end if required but not modified by shader
 	if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 	{
-		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
+		if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
 
-	if (shaderContext->options->usesGeometryShader && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
+	if ((shaderContext->options->usesGeometryShader || isRectVertexShader) && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
     	if (shader->shaderType == LatteConst::ShaderType::Vertex)
     	{
@@ -4167,18 +4170,14 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
             }
         }
 	}
-	else
-	{
-	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
-    	{
-           	// TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
-           	if (shader->shaderType == LatteConst::ShaderType::Vertex)
-          		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
-        }
 
-        // Return
+    // TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
+	if ((shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader) || shader->shaderType == LatteConst::ShaderType::Geometry)
+		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+
+	// Return
+	if (!(shaderContext->options->usesGeometryShader || isRectVertexShader) || shader->shaderType == LatteConst::ShaderType::Pixel)
         src->add("return out;" _CRLF);
-	}
 
 	// end of shader main
 	src->add("}" _CRLF);

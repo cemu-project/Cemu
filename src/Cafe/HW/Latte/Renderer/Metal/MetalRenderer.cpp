@@ -819,6 +819,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Render pass
 	auto renderCommandEncoder = GetRenderCommandEncoder();
 
+    // Primitive type
+    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
+    auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
+    bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
+
 	// Shaders
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
@@ -829,6 +834,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    return;
 	}
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
+
+	bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
 	// Depth stencil state
 	// TODO: implement this somehow
@@ -865,11 +872,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 			encoderState.m_stencilRefBack = stencilRefBack;
 		}
 	}
-
-    // Primitive type
-    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
-    auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
-    bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
 	// Blend color
 	float* blendColorConstant = (float*)LatteGPUState.contextRegister + Latte::REGADDR::CB_BLEND_RED;
@@ -1011,7 +1013,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             size_t offset;
 
             // Restride
-            if (geometryShader)
+            if (usesGeometryShader)
             {
                 // Object shaders don't need restriding, since the attributes are fetched in the shader
                 buffer = m_memoryManager->GetBufferCache();
@@ -1031,14 +1033,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             // Bind
             if (true)
             {
-                SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, (geometryShader != nullptr)), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+                SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
             }
         }
     }
 
 	// Render pipeline state
 	MTL::RenderPipelineState* renderPipelineState;
-	if (geometryShader)
+	if (usesGeometryShader)
 	    renderPipelineState = m_pipelineCache->GetMeshPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew, hostIndexType);
 	else
         renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
@@ -1053,16 +1055,16 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteStreamout_PrepareDrawcall(count, instanceCount);
 
 	// Uniform buffers, textures and samplers
-	BindStageResources(renderCommandEncoder, vertexShader, (geometryShader != nullptr));
+	BindStageResources(renderCommandEncoder, vertexShader, usesGeometryShader);
 	if (geometryShader)
-	    BindStageResources(renderCommandEncoder, geometryShader, (geometryShader != nullptr));
-	BindStageResources(renderCommandEncoder, pixelShader, (geometryShader != nullptr));
+	    BindStageResources(renderCommandEncoder, geometryShader, usesGeometryShader);
+	BindStageResources(renderCommandEncoder, pixelShader, usesGeometryShader);
 
 	// Draw
 	MTL::Buffer* indexBuffer = nullptr;
 	if (hostIndexType != INDEX_TYPE::NONE)
 	    indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
-	if (geometryShader)
+	if (usesGeometryShader)
 	{
 	    // TODO: don't hardcode the index
 	    if (indexBuffer)
@@ -1078,10 +1080,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             verticesPerPrimitive = 2;
             break;
         case LattePrimitiveMode::TRIANGLES:
+        case LattePrimitiveMode::RECTS:
             verticesPerPrimitive = 3;
             break;
         default:
-            throw std::runtime_error("Invalid primitive mode");
+            debug_printf("invalid primitive mode %u\n", (uint32)primitiveMode);
             break;
         }
 

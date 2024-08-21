@@ -96,7 +96,7 @@ namespace LatteDecompiler
 			uniformCurrentOffset += 8;
 		}
 		// define verticesPerInstance + streamoutBufferBaseX
-		if ((shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
+		if ((shader->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 			(shader->shaderType == LatteConst::ShaderType::Geometry))
 		{
 			src->add("int verticesPerInstance;" _CRLF);
@@ -182,7 +182,7 @@ namespace LatteDecompiler
 		src->addFmt("{}", attributeNames);
 	}
 
-	static void _emitVSOutputs(LatteDecompilerShaderContext* shaderContext)
+	static void _emitVSOutputs(LatteDecompilerShaderContext* shaderContext, bool isRectVertexShader)
 	{
 		auto* src = shaderContext->shaderSource;
 
@@ -214,15 +214,25 @@ namespace LatteDecompiler
 				continue; // no ps input
 
 			src->addFmt("float4 passParameterSem{}", psInputTable->import[psInputIndex].semanticId);
- 			src->addFmt(" [[user(locn{})]]", psInputIndex);
- 			if (psInputTable->import[psInputIndex].isFlat)
-				src->add(" [[flat]]");
- 			if (psInputTable->import[psInputIndex].isNoPerspective)
-				src->add(" [[center_no_perspective]]");
+			if (!isRectVertexShader)
+			{
+     			src->addFmt(" [[user(locn{})]]", psInputIndex);
+     			if (psInputTable->import[psInputIndex].isFlat)
+    				src->add(" [[flat]]");
+     			if (psInputTable->import[psInputIndex].isNoPerspective)
+    				src->add(" [[center_no_perspective]]");
+			}
 			src->addFmt(";" _CRLF);
 		}
 
 		src->add("};" _CRLF _CRLF);
+
+		if (isRectVertexShader)
+		{
+		    src->add("struct ObjectPayload {" _CRLF);
+            src->add("VertexOut vertexOut[VERTICES_PER_VERTEX_PRIMITIVE];" _CRLF);
+            src->add("};" _CRLF _CRLF);
+		}
 	}
 
 	static void _emitPSInputs(LatteDecompilerShaderContext* shaderContext)
@@ -251,7 +261,7 @@ namespace LatteDecompiler
 		src->add("};" _CRLF _CRLF);
 	}
 
-	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext)
+	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
 	{
 		auto src = decompilerContext->shaderSource;
 
@@ -288,7 +298,7 @@ namespace LatteDecompiler
 		if (!decompilerContext->options->usesGeometryShader)
 		{
     		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
-    			_emitVSOutputs(decompilerContext);
+    			_emitVSOutputs(decompilerContext, isRectVertexShader);
 		}
 		else
 		{
@@ -338,11 +348,11 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitHeader(LatteDecompilerShaderContext* decompilerContext)
+	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
 	{
 	    auto src = decompilerContext->shaderSource;
 
-        if (decompilerContext->options->usesGeometryShader && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
+        if ((decompilerContext->options->usesGeometryShader || isRectVertexShader) && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
         {
             // TODO: make vsOutPrimType parth of the shader hash
             LattePrimitiveMode vsOutPrimType = static_cast<LattePrimitiveMode>(decompilerContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]);
@@ -357,6 +367,9 @@ namespace LatteDecompiler
                 src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 2" _CRLF);
                 break;
             case LattePrimitiveMode::TRIANGLES:
+                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 3" _CRLF);
+                break;
+            case LattePrimitiveMode::RECTS:
                 src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 3" _CRLF);
                 break;
             default:
@@ -394,7 +407,7 @@ namespace LatteDecompiler
 		// uniform buffers
 		_emitUniformBuffers(decompilerContext);
 		// inputs and outputs
-		_emitInputsAndOutputs(decompilerContext);
+		_emitInputsAndOutputs(decompilerContext, isRectVertexShader);
 
 		if (dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// end of shader inputs/outputs" _CRLF);
@@ -467,14 +480,14 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitInputs(LatteDecompilerShaderContext* decompilerContext)
+	static void emitInputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
 	{
 	    auto src = decompilerContext->shaderSource;
 
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-		    if (!decompilerContext->options->usesGeometryShader)
+		    if (!(decompilerContext->options->usesGeometryShader || isRectVertexShader))
                 src->add("VertexIn in [[stage_in]], ");
             break;
         case LatteConst::ShaderType::Pixel:
@@ -488,7 +501,7 @@ namespace LatteDecompiler
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-		    if (decompilerContext->options->usesGeometryShader)
+		    if (decompilerContext->options->usesGeometryShader || isRectVertexShader)
 			{
 			    src->add(", object_data ObjectPayload& objectPayload [[payload]]");
 			    src->add(", mesh_grid_properties meshGridProperties");
@@ -505,7 +518,6 @@ namespace LatteDecompiler
         case LatteConst::ShaderType::Geometry:
             src->add(", MeshType mesh");
             src->add(", const object_data ObjectPayload& objectPayload [[payload]]");
-            src->add(", uint tid [[thread_index_in_threadgroup]]");
             break;
         case LatteConst::ShaderType::Pixel:
             src->add(", bool frontFacing [[front_facing]]");
