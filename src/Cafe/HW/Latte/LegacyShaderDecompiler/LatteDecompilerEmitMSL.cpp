@@ -2429,27 +2429,29 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 				src->addFmt("+ float2(1.0)/float2(tex{}.get_width(), tex{}.get_height())/512.0", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
 		}
 		// lod or lod bias parameter
-		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
+		// 1D textures don't support lod
+		if (texDim != Latte::E_DIM::DIM_1D && texDim != Latte::E_DIM::DIM_1D_ARRAY)
 		{
-			src->add(",");
-			if (texOpcode == GPU7_TEX_INST_SAMPLE_LB)
-			{
-				src->addFmt("bias({})", _FormatFloatAsConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
-			}
-			else
-			{
-			    // TODO: is this correct?
-				src->add("level(");
-				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
-				src->add(")");
-			}
+    		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
+    		{
+    		    src->add(", ");
+    			if (texOpcode == GPU7_TEX_INST_SAMPLE_LB)
+    			{
+    				src->addFmt("bias({})", _FormatFloatAsConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
+    			}
+    			else
+    			{
+    			    // TODO: is this correct?
+    				src->add("level(");
+    				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
+    				src->add(")");
+    			}
+    		}
+    		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
+    		{
+    			src->add(", level(0.0)");
+    		}
 		}
-		// TODO: uncomment?
-		//else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
-		//{
-		//    // TODO: correct?
-		//	src->add(", level(0.0)");
-		//}
 	}
 	// gradient parameters
 	if (texOpcode == GPU7_TEX_INST_SAMPLE_G)
