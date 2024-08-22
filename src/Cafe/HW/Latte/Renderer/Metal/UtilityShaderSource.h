@@ -3,7 +3,14 @@
 #define __STRINGIFY(x) #x
 #define _STRINGIFY(x) __STRINGIFY(x)
 
-constexpr const char* utilityShaderSource = _STRINGIFY((
+constexpr const char* utilityShaderSource = R"V0G0N(
+#include <metal_stdlib>
+using namespace metal;
+
+#define GET_BUFFER_BINDING(index) (28 + index)
+#define GET_TEXTURE_BINDING(index) (29 + index)
+#define GET_SAMPLER_BINDING(index) (14 + index)\n
+
 constant float2 positions[] = {float2(-1.0, -3.0), float2(-1.0, 1.0), float2(3.0, 1.0)};
 
 struct VertexOut {
@@ -48,4 +55,4 @@ vertex void vertexRestrideBuffer(uint vid [[vertex_id]], device uint8_t* src [[b
         dst[vid * params.newStride + i] = src[vid * params.oldStride + i];
     }
 }
-));
+)V0G0N";

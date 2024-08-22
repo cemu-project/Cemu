@@ -17,11 +17,8 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
-#include "Common/precompiled.h"
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "Metal/MTLDevice.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -98,15 +95,9 @@ MetalRenderer::MetalRenderer()
 
     // Utility shader library
 
-    // Process the source first
-    std::string processedUtilityShaderSource = utilityShaderSource;
-    processedUtilityShaderSource.pop_back();
-    processedUtilityShaderSource.erase(processedUtilityShaderSource.begin());
-    processedUtilityShaderSource = "#include <metal_stdlib>\nusing namespace metal;\n#define GET_BUFFER_BINDING(index) (27 + index)\n#define GET_TEXTURE_BINDING(index) (29 + index)\n#define GET_SAMPLER_BINDING(index) (14 + index)\n" + processedUtilityShaderSource;
-
     // Create the library
     NS::Error* error = nullptr;
-	MTL::Library* utilityLibrary = m_device->newLibrary(ToNSString(processedUtilityShaderSource.c_str()), nullptr, &error);
+	MTL::Library* utilityLibrary = m_device->newLibrary(ToNSString(utilityShaderSource), nullptr, &error);
 	if (error)
     {
         debug_printf("failed to create utility library (error: %s)\n", error->localizedDescription()->utf8String());
