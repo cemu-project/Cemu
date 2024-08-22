@@ -498,6 +498,18 @@ namespace LatteDecompiler
 		}
 	}
 
+	void _initTextureBindingPointsMTL(LatteDecompilerShaderContext* decompilerContext)
+	{
+		// for Vulkan we use consecutive indices
+		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
+		{
+			if (!decompilerContext->output->textureUnitMask[i])
+				continue;
+			decompilerContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] = decompilerContext->currentTextureBindingPointMTL;
+			decompilerContext->currentTextureBindingPointMTL++;
+		}
+	}
+
 	void _initHasUniformVarBlock(LatteDecompilerShaderContext* decompilerContext)
 	{
 		decompilerContext->hasUniformVarBlock = false;
@@ -552,14 +564,13 @@ namespace LatteDecompiler
 			}
 		}
 		// assign binding point to uniform var block
-		decompilerContext->output->resourceMappingGL.uniformVarsBufferBindingPoint = -1; // OpenGL currently doesnt use a uniform block
 		if (decompilerContext->hasUniformVarBlock)
 		{
 			decompilerContext->output->resourceMappingVK.uniformVarsBufferBindingPoint = decompilerContext->currentBindingPointVK;
 			decompilerContext->currentBindingPointVK++;
+			decompilerContext->output->resourceMappingMTL.uniformVarsBufferBindingPoint = decompilerContext->currentBufferBindingPointMTL;
+			decompilerContext->currentBufferBindingPointMTL++;
 		}
-		else
-			decompilerContext->output->resourceMappingVK.uniformVarsBufferBindingPoint = -1;
 		// assign binding points to uniform buffers
 		if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
 		{
@@ -578,6 +589,8 @@ namespace LatteDecompiler
 
 				decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] = decompilerContext->currentBindingPointVK;
 				decompilerContext->currentBindingPointVK++;
+				decompilerContext->output->resourceMappingMTL.uniformBuffersBindingPoint[i] = decompilerContext->currentBufferBindingPointMTL;
+				decompilerContext->currentBufferBindingPointMTL++;
 			}
 			// for OpenGL we use the relative buffer index
 			for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
@@ -599,6 +612,8 @@ namespace LatteDecompiler
 		{
 			decompilerContext->output->resourceMappingVK.tfStorageBindingPoint = decompilerContext->currentBindingPointVK;
 			decompilerContext->currentBindingPointVK++;
+			decompilerContext->output->resourceMappingMTL.tfStorageBindingPoint = decompilerContext->currentBufferBindingPointMTL;
+			decompilerContext->currentBufferBindingPointMTL++;
 		}
 	}
 
@@ -615,6 +630,7 @@ namespace LatteDecompiler
 			{
 				decompilerContext->output->resourceMappingGL.attributeMapping[i] = bindingIndex;
 				decompilerContext->output->resourceMappingVK.attributeMapping[i] = bindingIndex;
+				decompilerContext->output->resourceMappingMTL.attributeMapping[i] = bindingIndex;
 				bindingIndex++;
 			}
 		}
@@ -1000,6 +1016,8 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		shaderContext->output->resourceMappingVK.setIndex = 2;
 	LatteDecompiler::_initTextureBindingPointsGL(shaderContext);
 	LatteDecompiler::_initTextureBindingPointsVK(shaderContext);
+	LatteDecompiler::_initTextureBindingPointsMTL(shaderContext);
 	LatteDecompiler::_initUniformBindingPoints(shaderContext);
 	LatteDecompiler::_initAttributeBindingPoints(shaderContext);
+	shaderContext->output->resourceMappingMTL.indexBufferBinding = shaderContext->currentBufferBindingPointMTL++;
 }

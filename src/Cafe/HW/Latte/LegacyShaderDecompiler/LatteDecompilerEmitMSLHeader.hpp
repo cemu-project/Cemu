@@ -129,7 +129,7 @@ namespace LatteDecompiler
 				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 
-				cemu_assert_debug(decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] >= 0);
+				cemu_assert_debug(decompilerContext->output->resourceMappingMTL.uniformBuffersBindingPoint[i] >= 0);
 
 				shaderSrc->addFmt("struct UBuff{} {{" _CRLF, i);
 				shaderSrc->addFmt("float4 d[{}];" _CRLF, decompilerContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(decompilerContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE));
@@ -167,13 +167,13 @@ namespace LatteDecompiler
 			{
 				if (decompilerContext->analyzer.inputAttributSemanticMask[i])
 				{
-					cemu_assert_debug(decompilerContext->output->resourceMappingVK.attributeMapping[i] >= 0);
+					cemu_assert_debug(decompilerContext->output->resourceMappingMTL.attributeMapping[i] >= 0);
 
 					src->addFmt("uint4 attrDataSem{}", i);
 					if (decompilerContext->options->usesGeometryShader)
-					    attributeNames += "#define ATTRIBUTE_NAME" + std::to_string((sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]) + " attrDataSem" + std::to_string(i) + "\n";
+					    attributeNames += "#define ATTRIBUTE_NAME" + std::to_string((sint32)decompilerContext->output->resourceMappingMTL.attributeMapping[i]) + " attrDataSem" + std::to_string(i) + "\n";
 					else
-					    src->addFmt(" [[attribute({})]]", (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i]);
+					    src->addFmt(" [[attribute({})]]", (sint32)decompilerContext->output->resourceMappingMTL.attributeMapping[i]);
 					src->add(";" _CRLF);
 				}
 			}
@@ -424,9 +424,9 @@ namespace LatteDecompiler
 				if (!decompilerContext->analyzer.uniformBufferAccessTracker[i].HasAccess())
 					continue;
 
-				cemu_assert_debug(decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] >= 0);
+				cemu_assert_debug(decompilerContext->output->resourceMappingMTL.uniformBuffersBindingPoint[i] >= 0);
 
-				src->addFmt(", constant UBuff{}& ubuff{} [[buffer({})]]", i, i, (sint32)decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i]);
+				src->addFmt(", constant UBuff{}& ubuff{} [[buffer({})]]", i, i, (sint32)decompilerContext->output->resourceMappingMTL.uniformBuffersBindingPoint[i]);
 			}
 		}
 	}
@@ -472,8 +472,8 @@ namespace LatteDecompiler
 				cemu_assert_unimplemented();
 			}
 
-			uint32 binding = shaderContext->output->resourceMappingVK.textureUnitToBindingPoint[i];
-			//uint32 textureBinding = shaderContext->output->resourceMappingVK.textureUnitToBindingPoint[i] % 31;
+			uint32 binding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i];
+			//uint32 textureBinding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] % 31;
 			//uint32 samplerBinding = textureBinding % 16;
 			src->addFmt(" tex{} [[texture({})]]", i, binding);
 			src->addFmt(", sampler samplr{} [[sampler({})]]", i, binding);
@@ -487,48 +487,41 @@ namespace LatteDecompiler
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-		    if (!(decompilerContext->options->usesGeometryShader || isRectVertexShader))
-                src->add("VertexIn in [[stage_in]], ");
-            break;
-        case LatteConst::ShaderType::Pixel:
-            src->add("FragmentIn in [[stage_in]], ");
-            break;
-        default:
-            break;
-		}
-
-		src->add("constant SupportBuffer& supportBuffer [[buffer(30)]]");
-		switch (decompilerContext->shaderType)
-		{
-		case LatteConst::ShaderType::Vertex:
 		    if (decompilerContext->options->usesGeometryShader || isRectVertexShader)
 			{
-			    src->add(", object_data ObjectPayload& objectPayload [[payload]]");
-			    src->add(", mesh_grid_properties meshGridProperties");
-				src->add(", uint tig [[threadgroup_position_in_grid]]");
-				src->add(", uint tid [[thread_index_in_threadgroup]]");
-				src->add(" VERTEX_BUFFER_DEFINITIONS");
+                src->add("object_data ObjectPayload& objectPayload [[payload]]");
+                src->add(", mesh_grid_properties meshGridProperties");
+                src->add(", uint tig [[threadgroup_position_in_grid]]");
+                src->add(", uint tid [[thread_index_in_threadgroup]]");
+                src->add(" VERTEX_BUFFER_DEFINITIONS");
 			}
 			else
 			{
+                src->add("VertexIn in [[stage_in]]");
                 src->add(", uint vid [[vertex_id]]");
                 src->add(", uint iid [[instance_id]]");
 			}
             break;
         case LatteConst::ShaderType::Geometry:
-            src->add(", MeshType mesh");
+            src->add("MeshType mesh");
             src->add(", const object_data ObjectPayload& objectPayload [[payload]]");
             break;
         case LatteConst::ShaderType::Pixel:
+            src->add("FragmentIn in [[stage_in]]");
             src->add(", bool frontFacing [[front_facing]]");
             break;
+        default:
+            break;
 		}
+
+		if (decompilerContext->output->resourceMappingMTL.uniformVarsBufferBindingPoint >= 0)
+		    src->addFmt(", constant SupportBuffer& supportBuffer [[buffer({})]]", decompilerContext->output->resourceMappingMTL.uniformVarsBufferBindingPoint);
 
         // streamout buffer (transform feedback)
         if ((decompilerContext->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
         {
             if (decompilerContext->analyzer.hasStreamoutEnable && decompilerContext->analyzer.hasStreamoutWrite)
-                src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingVK.tfStorageBindingPoint);
+                src->addFmt(", device int* sb [[buffer({})]]" _CRLF, decompilerContext->output->resourceMappingMTL.tfStorageBindingPoint);
         }
 
 		// uniform buffers

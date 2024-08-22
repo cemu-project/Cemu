@@ -23,8 +23,6 @@ struct MetalPixelFormatSupport
 #define MAX_MTL_BUFFERS 31
 // Buffer index 30 is reserved for the support buffer, buffer indices 27-29 are reserved for the helper shaders
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 5)
-// TODO: don't harcdode the support buffer binding
-#define MTL_SUPPORT_BUFFER_BINDING 30
 
 #define MAX_MTL_TEXTURES 31
 #define MAX_MTL_SAMPLERS 16

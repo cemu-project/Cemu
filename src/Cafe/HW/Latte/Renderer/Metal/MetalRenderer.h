@@ -8,6 +8,7 @@
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Metal/MTLResource.hpp"
+#include "Metal/MTLSampler.hpp"
 
 struct MetalBufferAllocation
 {
@@ -103,11 +104,11 @@ struct MetalEncoderState
    	uint32 m_depthSlope = 0;
    	uint32 m_depthClamp = 0;
     struct {
-        class LatteTextureViewMtl* m_textureView = nullptr;
-        uint32 m_word4 = INVALID_UINT32;
-    } m_textures[METAL_SHADER_TYPE_TOTAL][MAX_MTL_TEXTURES];
+        MTL::Buffer* m_buffer;
+        size_t m_offset;
+    } m_buffers[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
+    MTL::Texture* m_textures[METAL_SHADER_TYPE_TOTAL][MAX_MTL_TEXTURES];
     MTL::SamplerState* m_samplers[METAL_SHADER_TYPE_TOTAL][MAX_MTL_SAMPLERS];
-    size_t m_uniformBufferOffsets[METAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 };
 
 struct MetalStreamoutState
@@ -360,12 +361,12 @@ public:
 
         for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
         {
+            for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
+                m_state.m_encoderState.m_buffers[i][j] = {nullptr};
             for (uint32 j = 0; j < MAX_MTL_TEXTURES; j++)
-                m_state.m_encoderState.m_textures[i][j] = {nullptr};
+                m_state.m_encoderState.m_textures[i][j] = nullptr;
             for (uint32 j = 0; j < MAX_MTL_SAMPLERS; j++)
                 m_state.m_encoderState.m_samplers[i][j] = nullptr;
-            for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
-                m_state.m_encoderState.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;
         }
     }
 
@@ -373,6 +374,10 @@ public:
     {
         return m_state.m_encoderState;
     }
+
+    void SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index);
+    void SetTexture(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Texture* texture, uint32 index);
+    void SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index);
 
 	MTL::CommandBuffer* GetCommandBuffer();
 	bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer);

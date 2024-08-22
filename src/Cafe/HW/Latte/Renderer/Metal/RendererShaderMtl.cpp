@@ -46,7 +46,9 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
     std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
     std::string vertexBuffers = "#define VERTEX_BUFFERS ";
     std::string inputFetchDefinition = "VertexIn fetchInput(thread uint& vid VERTEX_BUFFER_DEFINITIONS) {\n";
-    if (hostIndexType != Renderer::INDEX_TYPE::NONE)
+
+	// Index buffer
+	if (hostIndexType != Renderer::INDEX_TYPE::NONE)
     {
         vertexBufferDefinitions += ", device ";
         switch (hostIndexType)
@@ -61,11 +63,12 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
             cemu_assert_suspicious();
             break;
         }
-        // TODO: don't hardcode the index
-        vertexBufferDefinitions += "* indexBuffer [[buffer(20)]]";
+
+        vertexBufferDefinitions += fmt::format("* indexBuffer [[buffer({})]]", vertexShader->resourceMapping.indexBufferBinding);
         vertexBuffers += ", indexBuffer";
         inputFetchDefinition += "vid = indexBuffer[vid];\n";
     }
+
     inputFetchDefinition += "VertexIn in;\n";
     for (auto& bufferGroup : fetchShader->bufferGroups)
 	{
@@ -138,10 +141,10 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
             }
 
             // Fetch the attribute
-            inputFetchDefinition += "in.ATTRIBUTE_NAME" + std::to_string(semanticId) + " = ";
-            inputFetchDefinition += "uint4(*(device " + formatName + "*)";
-            inputFetchDefinition += "(vertexBuffer" + std::to_string(attr.attributeBufferIndex);
-            inputFetchDefinition += " + vid * " + std::to_string(bufferStride) + " + " + std::to_string(attr.offset) + ")";
+            inputFetchDefinition += fmt::format("in.ATTRIBUTE_NAME{} = ", semanticId);
+            inputFetchDefinition += fmt::format("uint4(*(device {}*)", formatName);
+            inputFetchDefinition += fmt::format("(vertexBuffer{}", attr.attributeBufferIndex);
+            inputFetchDefinition += fmt::format(" + vid * {} + {})", bufferStride, attr.offset);
             for (uint8 i = 0; i < (4 - componentCount); i++)
                 inputFetchDefinition += ", 0";
             inputFetchDefinition += ");\n";
@@ -157,9 +160,10 @@ void RendererShaderMtl::CompileObjectFunction(const LatteContextRegister& lcr, c
       		}
        	}
 
-		vertexBufferDefinitions += ", device uchar* vertexBuffer" + std::to_string(bufferIndex) + " [[buffer(" + std::to_string(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex)) + ")]]";
-		vertexBuffers += ", vertexBuffer" + std::to_string(bufferIndex);
+		vertexBufferDefinitions += fmt::format(", device uchar* vertexBuffer{} [[buffer({})]]", bufferIndex, GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
+		vertexBuffers += fmt::format(", vertexBuffer{}", bufferIndex);
 	}
+
 	inputFetchDefinition += "return in;\n";
 	inputFetchDefinition += "}\n";
 

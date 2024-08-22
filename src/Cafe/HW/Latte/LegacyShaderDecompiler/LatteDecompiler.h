@@ -57,12 +57,14 @@ struct LatteDecompilerShaderResourceMapping
 	// texture
 	sint8 textureUnitToBindingPoint[LATTE_NUM_MAX_TEX_UNITS];
 	// uniform buffer
-	sint8 uniformVarsBufferBindingPoint{}; // special block for uniform registers/remapped array/custom variables
+	sint8 uniformVarsBufferBindingPoint{-1}; // special block for uniform registers/remapped array/custom variables
 	sint8 uniformBuffersBindingPoint[LATTE_NUM_MAX_UNIFORM_BUFFERS];
 	// shader storage buffer for transform feedback (if alternative mode is used)
 	sint8 tfStorageBindingPoint{-1};
 	// attributes (vertex shader only)
 	sint8 attributeMapping[LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS];
+	// Metal exclusive
+	sint8 indexBufferBinding{-1};
 
 	sint32 getTextureCount()
 	{
@@ -288,6 +290,7 @@ struct LatteDecompilerOutput_t
 	// mapping and binding information
 	LatteDecompilerShaderResourceMapping resourceMappingGL;
 	LatteDecompilerShaderResourceMapping resourceMappingVK;
+	LatteDecompilerShaderResourceMapping resourceMappingMTL;
 };
 
 struct LatteDecompilerSubroutineInfo;

@@ -30,63 +30,6 @@ extern bool hasValidFramebufferAttached;
 
 float supportBufferData[512 * 4];
 
-void SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
-{
-    switch (shaderType)
-    {
-    case METAL_SHADER_TYPE_VERTEX:
-        renderCommandEncoder->setVertexBuffer(buffer, offset, index);
-        break;
-    case METAL_SHADER_TYPE_OBJECT:
-        renderCommandEncoder->setObjectBuffer(buffer, offset, index);
-        break;
-    case METAL_SHADER_TYPE_MESH:
-        renderCommandEncoder->setMeshBuffer(buffer, offset, index);
-        break;
-    case METAL_SHADER_TYPE_FRAGMENT:
-        renderCommandEncoder->setFragmentBuffer(buffer, offset, index);
-        break;
-    }
-}
-
-void SetTexture(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Texture* texture, uint32 index)
-{
-    switch (shaderType)
-    {
-    case METAL_SHADER_TYPE_VERTEX:
-        renderCommandEncoder->setVertexTexture(texture, index);
-        break;
-    case METAL_SHADER_TYPE_OBJECT:
-        renderCommandEncoder->setObjectTexture(texture, index);
-        break;
-    case METAL_SHADER_TYPE_MESH:
-        renderCommandEncoder->setMeshTexture(texture, index);
-        break;
-    case METAL_SHADER_TYPE_FRAGMENT:
-        renderCommandEncoder->setFragmentTexture(texture, index);
-        break;
-    }
-}
-
-void SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index)
-{
-    switch (shaderType)
-    {
-    case METAL_SHADER_TYPE_VERTEX:
-        renderCommandEncoder->setVertexSamplerState(samplerState, index);
-        break;
-    case METAL_SHADER_TYPE_OBJECT:
-        renderCommandEncoder->setObjectSamplerState(samplerState, index);
-        break;
-    case METAL_SHADER_TYPE_MESH:
-        renderCommandEncoder->setMeshSamplerState(samplerState, index);
-        break;
-    case METAL_SHADER_TYPE_FRAGMENT:
-        renderCommandEncoder->setFragmentSamplerState(samplerState, index);
-        break;
-    }
-}
-
 MetalRenderer::MetalRenderer()
 {
     m_device = MTL::CreateSystemDefaultDevice();
@@ -646,8 +589,6 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 		return;
 	}
 
-	MTL::Texture* textures[] = {srcTextureMtl->GetTexture(), dstTextureMtl->GetTexture()};
-
 	struct CopyParams
 	{
 	    uint32 width;
@@ -664,11 +605,10 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 		renderCommandEncoder->setRenderPipelineState(m_copyTextureToTexturePipeline->GetRenderPipelineState());
 		m_state.m_encoderState.m_renderPipelineState = m_copyTextureToTexturePipeline->GetRenderPipelineState();
 
-		renderCommandEncoder->setVertexTextures(textures, NS::Range(GET_HELPER_TEXTURE_BINDING(0), 2));
-		m_state.m_encoderState.m_textures[METAL_SHADER_TYPE_VERTEX][GET_HELPER_TEXTURE_BINDING(0)] = {(LatteTextureViewMtl*)textures[0]};
-		m_state.m_encoderState.m_textures[METAL_SHADER_TYPE_VERTEX][GET_HELPER_TEXTURE_BINDING(1)] = {(LatteTextureViewMtl*)textures[1]};
+		SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, srcTextureMtl->GetTexture(), GET_HELPER_TEXTURE_BINDING(0));
+		SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, dstTextureMtl->GetTexture(), GET_HELPER_TEXTURE_BINDING(1));
 		renderCommandEncoder->setVertexBytes(&params, sizeof(params), GET_HELPER_BUFFER_BINDING(0));
-		m_state.m_encoderState.m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = INVALID_OFFSET;
+		m_state.m_encoderState.m_buffers[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = {nullptr};
 
 		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 	}
@@ -1041,10 +981,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             }
 
             // Bind
-            if (true)
-            {
-                SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
-            }
+            SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
         }
     }
 
@@ -1076,9 +1013,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
 	if (usesGeometryShader)
 	{
-	    // TODO: don't hardcode the index
 	    if (indexBuffer)
-		    renderCommandEncoder->setObjectBuffer(indexBuffer, indexBufferOffset, 20);
+		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexBuffer, indexBufferOffset, vertexShader->resourceMapping.indexBufferBinding);
 
 		uint32 verticesPerPrimitive = 0;
 		switch (primitiveMode)
@@ -1152,6 +1088,83 @@ void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offse
     auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(bufferIndex);
     if (!HasUnifiedMemory())
         buffer->didModifyRange(NS::Range(offset, size));
+}
+
+void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
+{
+    auto& boundBuffer = m_state.m_encoderState.m_buffers[shaderType][index];
+    if (buffer == boundBuffer.m_buffer && offset == boundBuffer.m_offset)
+        return;
+
+    // TODO: only set the offset if only offset changed
+
+    boundBuffer = {buffer, offset};
+
+    switch (shaderType)
+    {
+    case METAL_SHADER_TYPE_VERTEX:
+        renderCommandEncoder->setVertexBuffer(buffer, offset, index);
+        break;
+    case METAL_SHADER_TYPE_OBJECT:
+        renderCommandEncoder->setObjectBuffer(buffer, offset, index);
+        break;
+    case METAL_SHADER_TYPE_MESH:
+        renderCommandEncoder->setMeshBuffer(buffer, offset, index);
+        break;
+    case METAL_SHADER_TYPE_FRAGMENT:
+        renderCommandEncoder->setFragmentBuffer(buffer, offset, index);
+        break;
+    }
+}
+
+void MetalRenderer::SetTexture(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Texture* texture, uint32 index)
+{
+    auto& boundTexture = m_state.m_encoderState.m_textures[shaderType][index];
+    if (texture == boundTexture)
+        return;
+
+    boundTexture = texture;
+
+    switch (shaderType)
+    {
+    case METAL_SHADER_TYPE_VERTEX:
+        renderCommandEncoder->setVertexTexture(texture, index);
+        break;
+    case METAL_SHADER_TYPE_OBJECT:
+        renderCommandEncoder->setObjectTexture(texture, index);
+        break;
+    case METAL_SHADER_TYPE_MESH:
+        renderCommandEncoder->setMeshTexture(texture, index);
+        break;
+    case METAL_SHADER_TYPE_FRAGMENT:
+        renderCommandEncoder->setFragmentTexture(texture, index);
+        break;
+    }
+}
+
+void MetalRenderer::SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index)
+{
+    auto& boundSamplerState = m_state.m_encoderState.m_samplers[shaderType][index];
+    if (samplerState == boundSamplerState)
+        return;
+
+    boundSamplerState = samplerState;
+
+    switch (shaderType)
+    {
+    case METAL_SHADER_TYPE_VERTEX:
+        renderCommandEncoder->setVertexSamplerState(samplerState, index);
+        break;
+    case METAL_SHADER_TYPE_OBJECT:
+        renderCommandEncoder->setObjectSamplerState(samplerState, index);
+        break;
+    case METAL_SHADER_TYPE_MESH:
+        renderCommandEncoder->setMeshSamplerState(samplerState, index);
+        break;
+    case METAL_SHADER_TYPE_FRAGMENT:
+        renderCommandEncoder->setFragmentSamplerState(samplerState, index);
+        break;
+    }
 }
 
 MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
@@ -1447,8 +1460,8 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 			UNREACHABLE;
 		}
 
-		// TODO: uncomment
-		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;//shader->resourceMapping.textureUnitToBindingPoint[hostTextureUnit];
+		// TODO: correct?
+		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;
 		if (binding >= MAX_MTL_TEXTURES)
 		{
 		    debug_printf("invalid texture binding %u\n", binding);
@@ -1491,23 +1504,11 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 		    sampler = m_nearestSampler;
 		}
-
-        auto& boundSampler = m_state.m_encoderState.m_samplers[mtlShaderType][binding];
-        if (sampler != boundSampler)
-        {
-            boundSampler = sampler;
-
- 			SetSamplerState(renderCommandEncoder, mtlShaderType, sampler, binding);
-        }
+        SetSamplerState(renderCommandEncoder, mtlShaderType, sampler, binding);
 
 		// get texture register word 0
 		uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];
 		auto& boundTexture = m_state.m_encoderState.m_textures[mtlShaderType][binding];
-		if (textureView == boundTexture.m_textureView && word4 == boundTexture.m_word4)
-		    continue;
-
-		boundTexture = {textureView, word4};
-
 		MTL::Texture* mtlTexture = textureView->GetSwizzledView(word4);
 		SetTexture(renderCommandEncoder, mtlShaderType, mtlTexture, binding);
 	}
@@ -1601,7 +1602,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		if (!HasUnifiedMemory())
 		    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
 
-		SetBuffer(renderCommandEncoder, mtlShaderType, buffer, supportBuffer.offset, MTL_SUPPORT_BUFFER_BINDING);
+		SetBuffer(renderCommandEncoder, mtlShaderType, buffer, supportBuffer.offset, shader->resourceMapping.uniformVarsBufferBindingPoint);
 	}
 
 	// Uniform buffers
@@ -1620,13 +1621,6 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     		if (offset == INVALID_OFFSET)
                 continue;
 
-            auto& boundOffset = m_state.m_encoderState.m_uniformBufferOffsets[mtlShaderType][binding];
-            if (offset == boundOffset)
-                continue;
-
-            boundOffset = offset;
-
-            // TODO: only set the offset if already bound
             SetBuffer(renderCommandEncoder, mtlShaderType, m_memoryManager->GetBufferCache(), offset, binding);
 		}
 	}
@@ -1635,7 +1629,6 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 	if (shader->resourceMapping.tfStorageBindingPoint >= 0)
 	{
         SetBuffer(renderCommandEncoder, mtlShaderType, m_xfbRingBuffer, 0, shader->resourceMapping.tfStorageBindingPoint);
-        m_state.m_encoderState.m_uniformBufferOffsets[mtlShaderType][shader->resourceMapping.tfStorageBindingPoint] = INVALID_OFFSET;
 	}
 }
 
