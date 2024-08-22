@@ -2822,14 +2822,13 @@ static void _emitGSReadInputVFetchCode(LatteDecompilerShaderContext* shaderConte
 
 	src->add(" = ");
 	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, shaderContext->typeTracker.defaultDataType);
-	src->add("(v2g[");
+	src->add("(objectPayload.vertexOut[");
 	if (texInstruction->textureFetch.srcSel[0] >= 4)
 		cemu_assert_unimplemented();
 	if (texInstruction->textureFetch.srcSel[1] >= 4)
 		cemu_assert_unimplemented();
-	// todo: Index type
-	src->add("0");
-	src->addFmt("].passV2GParameter{}.", texInstruction->textureFetch.offset/16);
+	src->add("vertexIndex");
+	src->addFmt("].passParameterSem{}.", texInstruction->textureFetch.offset/16);
 
 
 	for(sint32 f=0; f<4; f++)
@@ -3316,7 +3315,7 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 			cemu_assert_unimplemented();
 		for (sint32 burstIndex = 0; burstIndex < (sint32)(cfInstruction->exportBurstCount + 1); burstIndex++)
 		{
-			src->addFmt("v2g.passV2GParameter{}.", (cfInstruction->exportArrayBase) / 4 + burstIndex);
+			src->addFmt("out.passParameterSem{}.", (cfInstruction->exportArrayBase) / 4 + burstIndex);
 			_emitXYZWByMask(src, cfInstruction->memWriteCompMask);
 			src->addFmt(" = ");
 			_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_SIGNED_INT, burstIndex);
@@ -3355,7 +3354,7 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 			}
 			else if (parameterExportType == 2 && parameterExportBase < 16)
 			{
-				src->addFmt("passG2PParameter{}.", parameterExportBase);
+				src->addFmt("out.passParameterSem{}.", parameterExportBase);
 				_emitXYZWByMask(src, cfInstruction->memWriteCompMask);
 				src->addFmt(" = ");
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, burstIndex);
@@ -3587,9 +3586,10 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 			src->addFmt("if( {} == true ) {{" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
 		// write point size
 		if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
-			src->add("gl_PointSize = supportBuffer.pointSize;" _CRLF);
-		// emit vertex
-		src->add("EmitVertex();" _CRLF);
+			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
+		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+		src->add("mesh.set_vertex(vertexIndex, out);" _CRLF);
+		src->add("vertexIndex++;" _CRLF);
 		// increment transform feedback pointer
 		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
 		{
@@ -3821,20 +3821,22 @@ static void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* sh
 
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader)
 {
+    bool isRectVertexShader = (static_cast<LattePrimitiveMode>(shaderContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
+
 	StringBuf* src = new StringBuf(1024*1024*12); // reserve 12MB for generated source (we resize-to-fit at the end)
 	shaderContext->shaderSource = src;
 
 	// debug info
 	src->addFmt("// shader {:016x}" _CRLF, shaderContext->shaderBaseHash);
 #ifdef CEMU_DEBUG_ASSERT
-	src->addFmt("// usesIntegerValues: {}" _CRLF, shaderContext->analyzer.usesIntegerValues?"true":"false");
+	src->addFmt("// usesIntegerValues: {}" _CRLF, shaderContext->analyzer.usesIntegerValues ? "true" : "false");
 	src->addFmt(_CRLF);
 #endif
     // include metal standard library
     src->add("#include <metal_stdlib>" _CRLF);
     src->add("using namespace metal;" _CRLF);
 	// header part (definitions for inputs and outputs)
-	LatteDecompiler::emitHeader(shaderContext);
+	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
 	const char* functionType = "";
@@ -3842,9 +3844,25 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
-	    functionType = "vertex";
-	    outputTypeName = "VertexOut";
+	    if (shaderContext->options->usesGeometryShader || isRectVertexShader)
+		{
+		    // Defined just-in-time
+			// Will also modify vid in case of an indexed draw
+		    src->add("VertexIn fetchInput(thread uint& vid VERTEX_BUFFER_DEFINITIONS);" _CRLF);
+
+			functionType = "[[object, max_total_threads_per_threadgroup(VERTICES_PER_VERTEX_PRIMITIVE), max_total_threadgroups_per_mesh_grid(1)]]";
+			outputTypeName = "void";
+		}
+		else
+		{
+    	    functionType = "vertex";
+    	    outputTypeName = "VertexOut";
+		}
 		break;
+	case LatteConst::ShaderType::Geometry:
+        functionType = "[[mesh, max_total_threads_per_threadgroup(1)]]";
+        outputTypeName = "void";
+        break;
 	case LatteConst::ShaderType::Pixel:
 	    functionType = "fragment";
 	    outputTypeName = "FragmentOut";
@@ -3852,9 +3870,32 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 	// start of main
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
-	LatteDecompiler::emitInputs(shaderContext);
+	LatteDecompiler::emitInputs(shaderContext, isRectVertexShader);
 	src->add(") {" _CRLF);
-	src->addFmt("{} out;" _CRLF, outputTypeName);
+	if ((shaderContext->options->usesGeometryShader || isRectVertexShader) && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
+	{
+	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
+		{
+    	    // Calculate the imaginary vertex id
+    	    src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
+    		// TODO: don't hardcode the instance index
+    		src->add("uint iid = 0;" _CRLF);
+    		// Fetch the input
+    		src->add("VertexIn in = fetchInput(vid VERTEX_BUFFERS);" _CRLF);
+    		// Output is defined as object payload
+    		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
+		}
+		else if (shader->shaderType == LatteConst::ShaderType::Geometry)
+		{
+		    src->add("GeometryOut out;" _CRLF);
+			// The index of the current vertex that is being emitted
+			src->add("uint vertexIndex = 0;" _CRLF);
+		}
+	}
+	else
+	{
+	    src->addFmt("{} out;" _CRLF, outputTypeName);
+	}
 	// variable definition
 	if (shaderContext->typeTracker.useArrayGPRs == false)
 	{
@@ -4047,13 +4088,14 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 				continue;
 			}
 
-			if (shaderContext->options->usesGeometryShader)
+			// TODO: is the if statement even needed?
+			if (shaderContext->options->usesGeometryShader || isRectVertexShader)
 			{
 				// import from geometry shader
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{} = asy_type<int4>(passG2PParameter{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = as_type<int4>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-					src->addFmt("{} = passG2PParameter{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else
 					cemu_assert_unimplemented();
 			}
@@ -4091,18 +4133,52 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	// vertex shader should write renderstate point size at the end if required but not modified by shader
 	if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 	{
-		if (shader->shaderType == LatteConst::ShaderType::Vertex && shaderContext->options->usesGeometryShader == false)
+		if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
-	// HACK: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
-	if (shader->shaderType == LatteConst::ShaderType::Vertex)
+
+	if ((shaderContext->options->usesGeometryShader || isRectVertexShader) && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
-	    // TODO: check this
-	    // MoltenVK does this
-		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+    	if (shader->shaderType == LatteConst::ShaderType::Vertex)
+    	{
+    	    src->add("if (tid == 0) {" _CRLF);
+            src->add("meshGridProperties.set_threadgroups_per_grid(uint3(1, 1, 1));" _CRLF);
+    		src->add("}" _CRLF);
+    	}
+        else if (shader->shaderType == LatteConst::ShaderType::Geometry)
+        {
+            src->add("mesh.set_primitive_count(GET_PRIMITIVE_COUNT(vertexIndex));" _CRLF);
+
+            // Set indices
+            if (shaderContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE] == 1) // Line strip
+            {
+                src->add("for (uint8_t i = 0; i < GET_PRIMITIVE_COUNT(vertexIndex) * 2; i++) {" _CRLF);
+                src->add("mesh.set_index(i, (i 2 3) + i % 2);" _CRLF);
+                src->add("}" _CRLF);
+            }
+            else if (shaderContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE] == 2) // Triangle strip
+            {
+                src->add("for (uint8_t i = 0; i < GET_PRIMITIVE_COUNT(vertexIndex) * 3; i++) {" _CRLF);
+                src->add("mesh.set_index(i, (i / 3) + i % 3);" _CRLF);
+                src->add("}" _CRLF);
+            }
+            else
+            {
+                src->add("for (uint8_t i = 0; i < vertexIndex; i++) {" _CRLF);
+                src->add("mesh.set_index(i, i);" _CRLF);
+                src->add("}" _CRLF);
+            }
+        }
 	}
-	// return
-	src->add("return out;" _CRLF);
+
+    // TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
+	if ((shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader) || shader->shaderType == LatteConst::ShaderType::Geometry)
+		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+
+	// Return
+	if (!(shaderContext->options->usesGeometryShader || isRectVertexShader) || shader->shaderType == LatteConst::ShaderType::Pixel)
+        src->add("return out;" _CRLF);
+
 	// end of shader main
 	src->add("}" _CRLF);
 	src->shrink_to_fit();

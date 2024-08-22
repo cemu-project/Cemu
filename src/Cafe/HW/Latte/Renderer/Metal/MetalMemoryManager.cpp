@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 #include "Common/precompiled.h"
+#include "HW/Latte/Renderer/Metal/MetalRenderer.h"
 
 MetalVertexBufferCache::~MetalVertexBufferCache()
 {
@@ -42,11 +43,8 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             renderCommandEncoder->setRenderPipelineState(m_restrideBufferPipeline->GetRenderPipelineState());
             m_mtlr->GetEncoderState().m_renderPipelineState = m_restrideBufferPipeline->GetRenderPipelineState();
 
-            MTL::Buffer* buffers[] = {bufferCache, buffer};
-            size_t offsets[] = {vertexBufferRange.offset, restrideInfo.allocation.offset};
-            renderCommandEncoder->setVertexBuffers(buffers, offsets, NS::Range(GET_HELPER_BUFFER_BINDING(0), 2));
-            m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = INVALID_OFFSET;
-            m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(1)] = INVALID_OFFSET;
+            m_mtlr->SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, bufferCache, vertexBufferRange.offset, GET_HELPER_BUFFER_BINDING(0));
+            m_mtlr->SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, buffer, restrideInfo.allocation.offset, GET_HELPER_BUFFER_BINDING(1));
 
             struct
             {
@@ -54,16 +52,7 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
                 uint32 newStride;
             } strideData = {static_cast<uint32>(stride), static_cast<uint32>(newStride)};
             renderCommandEncoder->setVertexBytes(&strideData, sizeof(strideData), GET_HELPER_BUFFER_BINDING(2));
-            m_mtlr->GetEncoderState().m_uniformBufferOffsets[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(2)] = INVALID_OFFSET;
-
-            // TODO: remove
-            uint32 vertexCount = vertexBufferRange.size / stride;
-            if (vertexCount * strideData.oldStride > buffers[0]->length() - offsets[0]) {
-                throw std::runtime_error("Source buffer overflow (" + std::to_string(vertexCount) + " * " + std::to_string(strideData.oldStride) + " > " + std::to_string(buffers[0]->length()) + " - " + std::to_string(offsets[0]) + ")");
-            }
-            if (vertexCount * strideData.newStride > buffers[1]->length() - offsets[1]) {
-                throw std::runtime_error("Destination buffer overflow (" + std::to_string(vertexCount) + " * " + std::to_string(strideData.newStride) + " > " + std::to_string(buffers[1]->length()) + " - " + std::to_string(offsets[1]) + ")");
-            }
+            m_mtlr->GetEncoderState().m_buffers[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(2)] = {nullptr};
 
             renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangleStrip, NS::UInteger(0), vertexBufferRange.size / stride);
 

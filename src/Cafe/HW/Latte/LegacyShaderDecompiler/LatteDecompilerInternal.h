@@ -260,6 +260,8 @@ struct LatteDecompilerShaderContext
 	// emitter
 	bool hasUniformVarBlock;
 	sint32 currentBindingPointVK{};
+	sint32 currentBufferBindingPointMTL{};
+	sint32 currentTextureBindingPointMTL{};
 	struct ALUClauseTemporariesState* aluPVPSState{nullptr};
 	// misc
 	std::vector<LatteDecompilerSubroutineInfo> list_subroutines;

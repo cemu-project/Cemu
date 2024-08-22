@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Foundation/NSObject.hpp"
+#include "HW/Latte/Core/LatteShader.h"
 #include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "HW/Latte/Renderer/Metal/RendererShaderMtl.h"
@@ -11,12 +12,243 @@
 #include "HW/Latte/ISA/RegDefines.h"
 #include "config/ActiveSettings.h"
 
+static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
+{
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (uint32 i = 0; i < 32; i++)
+	{
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		// make sure PS has matching input
+		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+			continue;
+		gsSrc.append(fmt::format("out.passParameterSem{} = objectPayload.vertexOut[{}].passParameterSem{};\r\n", vsSemanticId, vIdx, vsSemanticId));
+	}
+	gsSrc.append(fmt::format("out.position = objectPayload.vertexOut[{}].position;\r\n", vIdx));
+	gsSrc.append(fmt::format("mesh.set_vertex({}, out);\r\n", vIdx));
+}
+
+static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
+{
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (uint32 i = 0; i < 32; i++)
+	{
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		// make sure PS has matching input
+		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+			continue;
+		gsSrc.append(fmt::format("out.passParameterSem{} = gen4thVertex{}(objectPayload.vertexOut[0].passParameterSem{}, objectPayload.vertexOut[1].passParameterSem{}, objectPayload.vertexOut[2].passParameterSem{});\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
+	}
+	gsSrc.append(fmt::format("out.position = gen4thVertex{}(objectPayload.vertexOut[0].position, objectPayload.vertexOut[1].position, objectPayload.vertexOut[2].position);\r\n", variant));
+	gsSrc.append(fmt::format("mesh.set_vertex(3, out);\r\n"));
+}
+
+static void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
+{
+	sint32 pList[4] = { p0, p1, p2, p3 };
+	for (sint32 i = 0; i < 4; i++)
+	{
+		if (pList[i] == 3)
+			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant, latteRegister);
+		else
+			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
+	}
+	gsSrc.append(fmt::format("mesh.set_index(0, {});\r\n", pList[0]));
+	gsSrc.append(fmt::format("mesh.set_index(1, {});\r\n", pList[1]));
+	gsSrc.append(fmt::format("mesh.set_index(2, {});\r\n", pList[2]));
+	gsSrc.append(fmt::format("mesh.set_index(3, {});\r\n", pList[1]));
+	gsSrc.append(fmt::format("mesh.set_index(4, {});\r\n", pList[2]));
+	gsSrc.append(fmt::format("mesh.set_index(5, {});\r\n", pList[3]));
+}
+
+static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer, const LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
+{
+	std::string gsSrc;
+	gsSrc.append("#include <metal_stdlib>\r\n");
+	gsSrc.append("using namespace metal;\r\n");
+
+	LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
+
+	// inputs & outputs
+	std::string vertexOutDefinition = "struct VertexOut {\r\n";
+	vertexOutDefinition += "float4 position;\r\n";
+	std::string geometryOutDefinition = "struct GeometryOut {\r\n";
+	geometryOutDefinition += "float4 position [[position]];\r\n";
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (sint32 f = 0; f < 2; f++)
+	{
+		for (uint32 i = 0; i < 32; i++)
+		{
+			if ((parameterMask & (1 << i)) == 0)
+				continue;
+			sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+			if (vsSemanticId < 0)
+				continue;
+			auto psImport = psInputTable->getPSImportBySemanticId(vsSemanticId);
+			if (psImport == nullptr)
+				continue;
+
+			if (f == 0)
+			{
+				vertexOutDefinition += fmt::format("float4 passParameterSem{};\r\n", vsSemanticId);
+			}
+			else
+			{
+				geometryOutDefinition += fmt::format("float4 passParameterSem{}", vsSemanticId);
+
+    			geometryOutDefinition += fmt::format(" [[user(locn{})]]", psInputTable->getPSImportLocationBySemanticId(vsSemanticId));
+    			if (psImport->isFlat)
+    				geometryOutDefinition += " [[flat]]";
+    			if (psImport->isNoPerspective)
+    				geometryOutDefinition += " [[center_no_perspective]]";
+                geometryOutDefinition += ";\r\n";
+			}
+		}
+	}
+	vertexOutDefinition += "};\r\n";
+	geometryOutDefinition += "};\r\n";
+
+	gsSrc.append(vertexOutDefinition);
+	gsSrc.append(geometryOutDefinition);
+
+	gsSrc.append("struct ObjectPayload {\r\n");
+	gsSrc.append("VertexOut vertexOut[3];\r\n");
+	gsSrc.append("};\r\n");
+
+	// gen function
+	gsSrc.append("float4 gen4thVertexA(float4 a, float4 b, float4 c)\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("return b - (c - a);\r\n");
+	gsSrc.append("}\r\n");
+
+	gsSrc.append("float4 gen4thVertexB(float4 a, float4 b, float4 c)\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("return c - (b - a);\r\n");
+	gsSrc.append("}\r\n");
+
+	gsSrc.append("float4 gen4thVertexC(float4 a, float4 b, float4 c)\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("return c + (b - a);\r\n");
+	gsSrc.append("}\r\n");
+
+	// main
+	gsSrc.append("using MeshType = mesh<GeometryOut, void, 4, 2, topology::triangle>;\r\n");
+	gsSrc.append("[[mesh, max_total_threads_per_threadgroup(1)]]\r\n");
+	gsSrc.append("void main0(MeshType mesh, const object_data ObjectPayload& objectPayload [[payload]])\r\n");
+	gsSrc.append("{\r\n");
+	gsSrc.append("GeometryOut out;\r\n");
+
+	// there are two possible winding orders that need different triangle generation:
+	// 0 1
+	// 2 3
+	// and
+	// 0 1
+	// 3 2
+	// all others are just symmetries of these cases
+
+	// we can determine the case by comparing the distance 0<->1 and 0<->2
+
+	gsSrc.append("float dist0_1 = length(objectPayload.vertexOut[1].position.xy - objectPayload.vertexOut[0].position.xy);\r\n");
+	gsSrc.append("float dist0_2 = length(objectPayload.vertexOut[2].position.xy - objectPayload.vertexOut[0].position.xy);\r\n");
+	gsSrc.append("float dist1_2 = length(objectPayload.vertexOut[2].position.xy - objectPayload.vertexOut[1].position.xy);\r\n");
+
+	// emit vertices
+	gsSrc.append("if(dist0_1 > dist0_2 && dist0_1 > dist1_2)\r\n");
+	gsSrc.append("{\r\n");
+	// p0 to p1 is diagonal
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 2, 1, 0, 3, "A", latteRegister);
+	gsSrc.append("} else if ( dist0_2 > dist0_1 && dist0_2 > dist1_2 ) {\r\n");
+	// p0 to p2 is diagonal
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 1, 2, 0, 3, "B", latteRegister);
+	gsSrc.append("} else {\r\n");
+	// p1 to p2 is diagonal
+	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 0, 1, 2, 3, "C", latteRegister);
+	gsSrc.append("}\r\n");
+
+	gsSrc.append("mesh.set_primitive_count(2);\r\n");
+
+	gsSrc.append("}\r\n");
+
+	auto mtlShader = new RendererShaderMtl(metalRenderer, RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
+
+	return mtlShader;
+}
+
 #define INVALID_TITLE_ID 0xFFFFFFFFFFFFFFFF
 
 uint64 s_cacheTitleId = INVALID_TITLE_ID;
 
 extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
+
+template<typename T>
+void SetFragmentState(T* desc, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+{
+    // Color attachments
+	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
+	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
+	uint32 renderTargetMask = lcr.CB_TARGET_MASK.get_MASK();
+	for (uint8 i = 0; i < 8; i++)
+	{
+	    const auto& colorBuffer = activeFBO->colorBuffer[i];
+		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
+		if (!texture)
+		{
+		    continue;
+		}
+		auto colorAttachment = desc->colorAttachments()->object(i);
+		colorAttachment->setPixelFormat(texture->GetRGBAView()->pixelFormat());
+		colorAttachment->setWriteMask(GetMtlColorWriteMask((renderTargetMask >> (i * 4)) & 0xF));
+
+		// Blending
+		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
+		// Only float data type is blendable
+		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).dataType == MetalDataType::FLOAT)
+		{
+       		colorAttachment->setBlendingEnabled(true);
+
+       		const auto& blendControlReg = lcr.CB_BLENDN_CONTROL[i];
+
+       		auto rgbBlendOp = GetMtlBlendOp(blendControlReg.get_COLOR_COMB_FCN());
+       		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());
+       		auto dstRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_DSTBLEND());
+
+       		colorAttachment->setRgbBlendOperation(rgbBlendOp);
+       		colorAttachment->setSourceRGBBlendFactor(srcRgbBlendFactor);
+       		colorAttachment->setDestinationRGBBlendFactor(dstRgbBlendFactor);
+       		if (blendControlReg.get_SEPARATE_ALPHA_BLEND())
+       		{
+       			colorAttachment->setAlphaBlendOperation(GetMtlBlendOp(blendControlReg.get_ALPHA_COMB_FCN()));
+         		    colorAttachment->setSourceAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()));
+         		    colorAttachment->setDestinationAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
+       		}
+       		else
+       		{
+           		colorAttachment->setAlphaBlendOperation(rgbBlendOp);
+           		colorAttachment->setSourceAlphaBlendFactor(srcRgbBlendFactor);
+           		colorAttachment->setDestinationAlphaBlendFactor(dstRgbBlendFactor);
+       		}
+		}
+	}
+
+	// Depth stencil attachment
+	if (activeFBO->depthBuffer.texture)
+	{
+	    auto texture = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
+           desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
+           if (activeFBO->depthBuffer.hasStencil)
+           {
+               desc->setStencilAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
+           }
+	}
+}
 
 void MetalPipelineCache::ShaderCacheLoading_begin(uint64 cacheTitleId)
 {
@@ -53,9 +285,9 @@ MetalPipelineCache::~MetalPipelineCache()
     m_binaryArchiveURL->release();
 }
 
-MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
 {
-    uint64 stateHash = CalculatePipelineHash(fetchShader, vertexShader, pixelShader, activeFBO, lcr);
+    uint64 stateHash = CalculateRenderPipelineHash(fetchShader, vertexShader, pixelShader, activeFBO, lcr);
     auto& pipeline = m_pipelineCache[stateHash];
     if (pipeline)
         return pipeline;
@@ -92,7 +324,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 		bufferStride = Align(bufferStride, 4);
 
 		// HACK
@@ -117,6 +349,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 
 	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
+	mtlVertexShader->CompileVertexFunction();
 	mtlPixelShader->CompileFragmentFunction(activeFBO);
 
 	// Render pipeline state
@@ -126,65 +359,18 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	// TODO: don't always set the vertex descriptor?
 	desc->setVertexDescriptor(vertexDescriptor);
 
-	// Color attachments
-	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = LatteGPUState.contextNew.CB_COLOR_CONTROL;
-	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
-	uint32 renderTargetMask = LatteGPUState.contextNew.CB_TARGET_MASK.get_MASK();
-	for (uint8 i = 0; i < 8; i++)
-	{
-	    const auto& colorBuffer = activeFBO->colorBuffer[i];
-		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
-		if (!texture)
-		{
-		    continue;
-		}
-		auto colorAttachment = desc->colorAttachments()->object(i);
-		colorAttachment->setPixelFormat(texture->GetRGBAView()->pixelFormat());
-		colorAttachment->setWriteMask(GetMtlColorWriteMask((renderTargetMask >> (i * 4)) & 0xF));
+	SetFragmentState(desc, activeFBO, lcr);
 
-		// Blending
-		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
-		// Only float data type is blendable
-		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).dataType == MetalDataType::FLOAT)
-		{
-    		colorAttachment->setBlendingEnabled(true);
+	TryLoadBinaryArchive();
 
-    		const auto& blendControlReg = LatteGPUState.contextNew.CB_BLENDN_CONTROL[i];
-
-    		auto rgbBlendOp = GetMtlBlendOp(blendControlReg.get_COLOR_COMB_FCN());
-    		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());
-    		auto dstRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_DSTBLEND());
-
-    		colorAttachment->setRgbBlendOperation(rgbBlendOp);
-    		colorAttachment->setSourceRGBBlendFactor(srcRgbBlendFactor);
-    		colorAttachment->setDestinationRGBBlendFactor(dstRgbBlendFactor);
-    		if (blendControlReg.get_SEPARATE_ALPHA_BLEND())
-    		{
-    			colorAttachment->setAlphaBlendOperation(GetMtlBlendOp(blendControlReg.get_ALPHA_COMB_FCN()));
-      		    colorAttachment->setSourceAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()));
-      		    colorAttachment->setDestinationAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
-    		}
-    		else
-    		{
-        		colorAttachment->setAlphaBlendOperation(rgbBlendOp);
-        		colorAttachment->setSourceAlphaBlendFactor(srcRgbBlendFactor);
-        		colorAttachment->setDestinationAlphaBlendFactor(dstRgbBlendFactor);
-    		}
-		}
-	}
-
-	// Depth stencil attachment
-	if (activeFBO->depthBuffer.texture)
-	{
-	    auto texture = static_cast<LatteTextureViewMtl*>(activeFBO->depthBuffer.texture);
-        desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-        if (activeFBO->depthBuffer.hasStencil)
-        {
-            desc->setStencilAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-        }
-	}
-
-	LoadBinary(desc);
+	// Load binary
+    if (m_binaryArchive)
+    {
+        NS::Object* binArchives[] = {m_binaryArchive};
+        auto binaryArchives = NS::Array::alloc()->init(binArchives, 1);
+        desc->setBinaryArchives(binaryArchives);
+        binaryArchives->release();
+    }
 
     NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
@@ -210,10 +396,21 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 		{
 		    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
 			error->release();
+			return nullptr;
 		}
 		else
 		{
-		    SaveBinary(desc);
+		    // Save binary
+			if (m_binaryArchive)
+			{
+                NS::Error* error = nullptr;
+                m_binaryArchive->addRenderPipelineFunctions(desc, &error);
+                if (error)
+                {
+                    debug_printf("error saving render pipeline functions: %s\n", error->localizedDescription()->utf8String());
+                    error->release();
+                }
+			}
 		}
 
 		//newPipelineCount++;
@@ -229,7 +426,65 @@ MTL::RenderPipelineState* MetalPipelineCache::GetPipelineState(const LatteFetchS
 	return pipeline;
 }
 
-uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr, Renderer::INDEX_TYPE hostIndexType)
+{
+    uint64 stateHash = CalculateRenderPipelineHash(fetchShader, vertexShader, pixelShader, activeFBO, lcr);
+
+	stateHash += lcr.GetRawView()[mmVGT_PRIMITIVE_TYPE];
+	stateHash = std::rotl<uint64>(stateHash, 7);
+
+	stateHash += (uint8)hostIndexType;
+	stateHash = std::rotl<uint64>(stateHash, 7); // TODO: 7?s
+
+    auto& pipeline = m_pipelineCache[stateHash];
+    if (pipeline)
+        return pipeline;
+
+	auto mtlObjectShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
+	RendererShaderMtl* mtlMeshShader;
+	if (geometryShader)
+	{
+        mtlMeshShader = static_cast<RendererShaderMtl*>(geometryShader->shader);
+	}
+    else
+    {
+        // If there is no geometry shader, it means that we are emulating rects
+        mtlMeshShader = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
+    }
+	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
+	mtlObjectShader->CompileObjectFunction(lcr, fetchShader, vertexShader, hostIndexType);
+	mtlPixelShader->CompileFragmentFunction(activeFBO);
+
+	// Render pipeline state
+	MTL::MeshRenderPipelineDescriptor* desc = MTL::MeshRenderPipelineDescriptor::alloc()->init();
+	desc->setObjectFunction(mtlObjectShader->GetFunction());
+	desc->setMeshFunction(mtlMeshShader->GetFunction());
+	desc->setFragmentFunction(mtlPixelShader->GetFunction());
+
+	SetFragmentState(desc, activeFBO, lcr);
+
+	TryLoadBinaryArchive();
+
+	// Load binary
+    // TODO: no binary archives? :(
+
+    NS::Error* error = nullptr;
+#ifdef CEMU_DEBUG_ASSERT
+    desc->setLabel(GetLabel("Mesh pipeline state", desc));
+#endif
+	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
+	if (error)
+	{
+    	debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
+        error->release();
+        return nullptr;
+	}
+	desc->release();
+
+	return pipeline;
+}
+
+uint64 MetalPipelineCache::CalculateRenderPipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
 {
     // Hash
     uint64 stateHash = 0;
@@ -258,9 +513,6 @@ uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchSh
 	}
 
 	stateHash += fetchShader->getVkPipelineHashFragment();
-	stateHash = std::rotl<uint64>(stateHash, 7);
-
-	stateHash += lcr.GetRawView()[mmVGT_PRIMITIVE_TYPE];
 	stateHash = std::rotl<uint64>(stateHash, 7);
 
 	stateHash += lcr.GetRawView()[mmVGT_STRMOUT_EN];
@@ -338,31 +590,4 @@ void MetalPipelineCache::TryLoadBinaryArchive()
         }
     }
     desc->release();
-}
-
-void MetalPipelineCache::LoadBinary(MTL::RenderPipelineDescriptor* desc)
-{
-    TryLoadBinaryArchive();
-
-    if (!m_binaryArchive)
-        return;
-
-    NS::Object* binArchives[] = {m_binaryArchive};
-    auto binaryArchives = NS::Array::alloc()->init(binArchives, 1);
-    desc->setBinaryArchives(binaryArchives);
-    binaryArchives->release();
-}
-
-void MetalPipelineCache::SaveBinary(MTL::RenderPipelineDescriptor* desc)
-{
-    if (!m_binaryArchive)
-        return;
-
-    NS::Error* error = nullptr;
-    m_binaryArchive->addRenderPipelineFunctions(desc, &error);
-    if (error)
-    {
-        debug_printf("error saving render pipeline functions: %s\n", error->localizedDescription()->utf8String());
-        error->release();
-    }
 }
