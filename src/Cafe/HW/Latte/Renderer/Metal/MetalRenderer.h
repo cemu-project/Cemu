@@ -375,6 +375,16 @@ public:
         return m_state.m_encoderState;
     }
 
+    void RequestSoonCommit()
+    {
+        m_commitTreshold = m_recordedDrawcalls + 8;
+    }
+
+    void RequestCommitOnIdle()
+    {
+        m_commitOnIdle = true;
+    }
+
     void SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index);
     void SetTexture(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Texture* texture, uint32 index);
     void SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index);
@@ -471,10 +481,13 @@ private:
 
 	// Active objects
 	std::vector<MetalCommandBuffer> m_commandBuffers;
-    uint32 m_recordedDrawcalls = 0;
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 	CA::MetalDrawable* m_drawable = nullptr;
+
+	uint32 m_commitTreshold = 0;
+    uint32 m_recordedDrawcalls = 0;
+    bool m_commitOnIdle = false;
 
 	// State
 	MetalState m_state;

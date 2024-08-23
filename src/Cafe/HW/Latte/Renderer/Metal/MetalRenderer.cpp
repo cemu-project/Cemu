@@ -21,7 +21,7 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "gui/guiWrapper.h"
 
-#define COMMIT_TRESHOLD 256
+#define DEFAULT_COMMIT_TRESHOLD 256
 
 extern bool hasValidFramebufferAttached;
 
@@ -297,8 +297,7 @@ bool MetalRenderer::BeginFrame(bool mainWindow)
 
 void MetalRenderer::Flush(bool waitIdle)
 {
-    // TODO: commit if commit on idle is requested
-    if (m_recordedDrawcalls > 0)
+    if (m_commitOnIdle || m_recordedDrawcalls > 0)
         CommitCommandBuffer();
     if (waitIdle)
     {
@@ -309,8 +308,8 @@ void MetalRenderer::Flush(bool waitIdle)
 
 void MetalRenderer::NotifyLatteCommandProcessorIdle()
 {
-    // TODO: commit if commit on idle is requested
-    //CommitCommandBuffer();
+    if (m_commitOnIdle)
+        CommitCommandBuffer();
 }
 
 void MetalRenderer::AppendOverlayDebugInfo()
@@ -1056,7 +1055,7 @@ void MetalRenderer::draw_endSequence()
 	bool hasReadback = LatteTextureReadback_Update();
 	m_recordedDrawcalls++;
 	// The number of draw calls needs to twice as big, since we are interrupting the render pass
-	if (m_recordedDrawcalls >= COMMIT_TRESHOLD * 2 || hasReadback)
+	if (m_recordedDrawcalls >= m_commitTreshold * 2 || hasReadback)
 	{
 		CommitCommandBuffer();
 
@@ -1321,14 +1320,16 @@ void MetalRenderer::EndEncoding()
         m_encoderType = MetalEncoderType::None;
 
         // Commit the command buffer if enough draw calls have been recorded
-        if (m_recordedDrawcalls >= COMMIT_TRESHOLD)
+        if (m_recordedDrawcalls >= m_commitTreshold)
             CommitCommandBuffer();
     }
 }
 
 void MetalRenderer::CommitCommandBuffer()
 {
+    m_commitTreshold = DEFAULT_COMMIT_TRESHOLD;
     m_recordedDrawcalls = 0;
+    m_commitOnIdle = false;
 
     if (m_commandBuffers.size() != 0)
     {
