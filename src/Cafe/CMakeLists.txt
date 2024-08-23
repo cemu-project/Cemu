@@ -542,6 +542,8 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/MetalCppImpl.cpp
             HW/Latte/Renderer/Metal/MetalLayer.mm
             HW/Latte/Renderer/Metal/MetalLayer.h
+            HW/Latte/Renderer/Metal/MetalLayerHandle.cpp
+            HW/Latte/Renderer/Metal/MetalLayerHandle.h
             HW/Latte/Renderer/Metal/LatteToMtl.cpp
             HW/Latte/Renderer/Metal/LatteToMtl.h
             HW/Latte/Renderer/Metal/LatteTextureMtl.cpp

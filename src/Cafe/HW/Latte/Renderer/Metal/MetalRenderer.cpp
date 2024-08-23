@@ -1,5 +1,4 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalLayer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
@@ -19,6 +18,7 @@
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "gui/guiWrapper.h"
 
 #define COMMIT_TRESHOLD 256
@@ -174,20 +174,14 @@ MetalRenderer::~MetalRenderer()
     m_device->release();
 }
 
-// TODO: don't ignore "mainWindow" argument
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 {
-    const auto& windowInfo = gui_getWindowInfo().window_main;
-
-    m_metalLayer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle, m_layerScaleX, m_layerScaleY);
-    m_metalLayer->setDevice(m_device);
-    m_metalLayer->setDrawableSize(CGSize{(float)size.x * m_layerScaleX, (float)size.y * m_layerScaleY});
+    GetLayer(mainWindow) = MetalLayerHandle(m_device, size);
 }
 
-// TODO: don't ignore "mainWindow" argument
 void MetalRenderer::ResizeLayer(const Vector2i& size, bool mainWindow)
 {
-    m_metalLayer->setDrawableSize(CGSize{(float)size.x * m_layerScaleX, (float)size.y * m_layerScaleY});
+    GetLayer(mainWindow).Resize(size);
 }
 
 void MetalRenderer::Initialize()
@@ -222,7 +216,7 @@ void MetalRenderer::ClearColorbuffer(bool padView)
     if (!AcquireNextDrawable(!padView))
         return;
 
-    ClearColorTextureInternal(m_drawable->texture(), 0, 0, 0.0f, 0.0f, 0.0f, 0.0f);
+    ClearColorTextureInternal(GetLayer(!padView).GetDrawable()->texture(), 0, 0, 0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 void MetalRenderer::DrawEmptyFrame(bool mainWindow)
@@ -234,17 +228,10 @@ void MetalRenderer::DrawEmptyFrame(bool mainWindow)
 
 void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
-
-    if (m_drawable)
-    {
-        auto commandBuffer = GetCommandBuffer();
-        commandBuffer->presentDrawable(m_drawable);
-    }
-    else
-    {
-        debug_printf("skipped present!\n");
-    }
-    m_drawable = nullptr;
+    if (swapTV)
+        SwapBuffer(true);
+    if (swapDRC)
+        SwapBuffer(false);
 
     // Release all the command buffers
     CommitCommandBuffer();
@@ -269,7 +256,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     // Create render pass
     MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
     auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
-    colorAttachment->setTexture(m_drawable->texture());
+    colorAttachment->setTexture(GetLayer(!padView).GetDrawable()->texture());
     // TODO: shouldn't it be LoadActionLoad when not clearing?
     colorAttachment->setLoadAction(clearBackground ? MTL::LoadActionClear : MTL::LoadActionDontCare);
     colorAttachment->setStoreAction(MTL::StoreActionStore);
@@ -1351,27 +1338,16 @@ void MetalRenderer::CommitCommandBuffer()
 
 bool MetalRenderer::AcquireNextDrawable(bool mainWindow)
 {
+    auto& layer = GetLayer(mainWindow);
+
     const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
     if (latteBufferUsesSRGB != m_state.m_usesSRGB)
     {
-        m_metalLayer->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatRGBA8Unorm_sRGB : MTL::PixelFormatRGBA8Unorm);
+        layer.GetLayer()->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatRGBA8Unorm_sRGB : MTL::PixelFormatRGBA8Unorm);
         m_state.m_usesSRGB = latteBufferUsesSRGB;
     }
 
-    if (m_drawable)
-    {
-        // TODO: should this be true?
-        return true;
-    }
-
-    m_drawable = m_metalLayer->nextDrawable();
-    if (!m_drawable)
-    {
-        debug_printf("failed to acquire next drawable\n");
-        return false;
-    }
-
-    return true;
+    return layer.AcquireDrawable();
 }
 
 bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
@@ -1638,4 +1614,21 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
     EndEncoding();
+}
+
+
+
+void MetalRenderer::SwapBuffer(bool mainWindow)
+{
+    auto& layer = GetLayer(mainWindow);
+
+    if (layer.GetDrawable())
+    {
+        auto commandBuffer = GetCommandBuffer();
+        layer.PresentDrawable(commandBuffer);
+    }
+    else
+    {
+        debug_printf("skipped present!\n");
+    }
 }

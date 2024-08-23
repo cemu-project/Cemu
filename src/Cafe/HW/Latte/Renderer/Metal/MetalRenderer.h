@@ -1,14 +1,8 @@
 #pragma once
 
-#include <Foundation/Foundation.hpp>
-#include <QuartzCore/QuartzCore.hpp>
-#include <Metal/Metal.hpp>
-
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
-#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "Metal/MTLResource.hpp"
-#include "Metal/MTLSampler.hpp"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 
 struct MetalBufferAllocation
 {
@@ -428,8 +422,8 @@ public:
     }
 
 private:
-	CA::MetalLayer* m_metalLayer;
-	float m_layerScaleX, m_layerScaleY;
+	MetalLayerHandle m_mainLayer;
+	MetalLayerHandle m_padLayer;
 
 	// Metal objects
 	MTL::Device* m_device;
@@ -473,10 +467,16 @@ private:
 	std::vector<MetalCommandBuffer> m_commandBuffers;
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
-	CA::MetalDrawable* m_drawable = nullptr;
 
     uint32 m_recordedDrawcalls = 0;
 
 	// State
 	MetalState m_state;
+
+	MetalLayerHandle& GetLayer(bool mainWindow)
+	{
+	    return (mainWindow ? m_mainLayer : m_padLayer);
+	}
+
+	void SwapBuffer(bool mainWindow);
 };
