@@ -25,8 +25,6 @@ void LatteTextureReadbackInfoMtl::StartTransfer()
 	blitCommandEncoder->copyFromTexture(baseTexture->GetTexture(), 0, 0, MTL::Origin{0, 0, 0}, MTL::Size{(uint32)baseTexture->width, (uint32)baseTexture->height, 1}, m_mtlr->GetTextureReadbackBuffer(), m_bufferOffset, bytesPerRow, bytesPerImage);
 
 	m_commandBuffer = m_mtlr->GetCurrentCommandBuffer();
-	m_mtlr->RequestSoonCommit();
-	m_mtlr->RequestCommitOnIdle();
 }
 
 bool LatteTextureReadbackInfoMtl::IsFinished()
