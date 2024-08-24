@@ -20,6 +20,9 @@ public:
 
     MTL::RenderPipelineState* GetMeshPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr, Renderer::INDEX_TYPE hostIndexType);
 
+    // Debug
+    size_t GetPipelineCacheSize() const { return m_pipelineCache.size(); }
+
 private:
     class MetalRenderer* m_mtlr;
 

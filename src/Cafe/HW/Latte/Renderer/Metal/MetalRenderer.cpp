@@ -395,7 +395,13 @@ void MetalRenderer::DeleteFontTextures()
 
 void MetalRenderer::AppendOverlayDebugInfo()
 {
-    // TODO: implement
+    ImGui::Text("--- Metal info ---");
+    ImGui::Text("Render pipeline states  %zu", m_pipelineCache->GetPipelineCacheSize());
+    ImGui::Text("Buffer allocator memory %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
+
+    ImGui::Text("--- Metal info (per frame) ---");
+    ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
+    ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
 }
 
 // TODO: halfZ
@@ -1725,6 +1731,9 @@ void MetalRenderer::SwapBuffer(bool mainWindow)
     {
         debug_printf("skipped present!\n");
     }
+
+    // Debug
+    m_performanceMonitor.ResetPerFrameData();
 }
 
 void MetalRenderer::EnsureImGuiBackend()

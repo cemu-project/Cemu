@@ -567,6 +567,7 @@ if(ENABLE_METAL)
             HW/Latte/Renderer/Metal/MetalSamplerCache.h
             HW/Latte/Renderer/Metal/MetalHybridComputePipeline.cpp
             HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h
+            HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h
             HW/Latte/Renderer/Metal/UtilityShaderSource.h
         )
 

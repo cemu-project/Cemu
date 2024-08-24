@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 
 struct MetalBufferAllocation
 {
@@ -312,6 +313,8 @@ public:
 	}
 
 	// Helpers
+	MetalPerformanceMonitor& GetPerformanceMonitor() { return m_performanceMonitor; }
+
 	MTL::CommandBuffer* GetCurrentCommandBuffer()
     {
         cemu_assert_debug(m_commandBuffers.size() != 0);
@@ -406,6 +409,8 @@ public:
 private:
 	MetalLayerHandle m_mainLayer;
 	MetalLayerHandle m_padLayer;
+
+	MetalPerformanceMonitor m_performanceMonitor;
 
 	// Metal objects
 	MTL::Device* m_device;

@@ -93,6 +93,9 @@ public:
             m_freeBufferRanges.push_back(range);
         }
 
+        // Debug
+        m_mtlr->GetPerformanceMonitor().m_bufferAllocatorMemory += m_allocationSize;
+
         // Increase the allocation size for the next buffer
         if (m_allocationSize < 128 * 1024 * 1024)
             m_allocationSize *= 2;
