@@ -206,9 +206,7 @@ void MetalRenderer::Shutdown()
 // TODO: what should this do?
 bool MetalRenderer::IsPadWindowActive()
 {
-    //debug_printf("MetalRenderer::IsPadWindowActive not implemented\n");
-
-    return false;
+    return (GetLayer(false).GetDrawable() != nullptr);
 }
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
