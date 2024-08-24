@@ -16,6 +16,8 @@ MetalLayerHandle::~MetalLayerHandle()
 {
     if (m_layer)
         m_layer->release();
+    if (m_renderPassDescriptor)
+        m_renderPassDescriptor->release();
 }
 
 void MetalLayerHandle::Resize(const Vector2i& size)
@@ -35,7 +37,25 @@ bool MetalLayerHandle::AcquireDrawable()
         return false;
     }
 
+    if (m_renderPassDescriptor)
+    {
+        m_renderPassDescriptor->release();
+        m_renderPassDescriptor = nullptr;
+    }
+
     return true;
+}
+
+void MetalLayerHandle::CreateRenderPassDescriptor(bool clear)
+{
+    if (m_renderPassDescriptor)
+        m_renderPassDescriptor->release();
+
+    m_renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    auto colorAttachment = m_renderPassDescriptor->colorAttachments()->object(0);
+    colorAttachment->setTexture(m_drawable->texture());
+    colorAttachment->setLoadAction(clear ? MTL::LoadActionClear : MTL::LoadActionLoad);
+    colorAttachment->setStoreAction(MTL::StoreActionStore);
 }
 
 void MetalLayerHandle::PresentDrawable(MTL::CommandBuffer* commandBuffer)

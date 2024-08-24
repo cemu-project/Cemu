@@ -228,29 +228,11 @@ public:
 	void NotifyLatteCommandProcessorIdle() override; // called when command processor has no more commands available or when stalled
 
 	// imgui
-	bool ImguiBegin(bool mainWindow) override {
-	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
-
-		return false;
-	};
-
-	void ImguiEnd() override {
-	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
-	};
-
-	ImTextureID GenerateTexture(const std::vector<uint8>& data, const Vector2i& size) override {
-	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
-
-	    return nullptr;
-	};
-
-	void DeleteTexture(ImTextureID id) override {
-	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
-	};
-
-	void DeleteFontTextures() override {
-	    cemuLog_log(LogType::MetalLogging, "Imgui is not yet supported on Metal");
-	};
+	bool ImguiBegin(bool mainWindow) override;
+	void ImguiEnd() override;
+	ImTextureID GenerateTexture(const std::vector<uint8>& data, const Vector2i& size) override;
+	void DeleteTexture(ImTextureID id) override;
+	void DeleteFontTextures() override;
 
 	bool UseTFViaSSBO() const override { return true; }
 	void AppendOverlayDebugInfo() override;
@@ -383,7 +365,7 @@ public:
     void EndEncoding();
     void CommitCommandBuffer();
 
-    bool AcquireNextDrawable(bool mainWindow);
+    bool AcquireDrawable(bool mainWindow);
 
     bool CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader);
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader);
@@ -479,4 +461,6 @@ private:
 	}
 
 	void SwapBuffer(bool mainWindow);
+
+	void EnsureImGuiBackend();
 };

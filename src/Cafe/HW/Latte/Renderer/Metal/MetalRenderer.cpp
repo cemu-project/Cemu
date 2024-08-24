@@ -19,7 +19,12 @@
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
-#include "gui/guiWrapper.h"
+#include "HW/Latte/Renderer/Renderer.h"
+#include "imgui.h"
+
+#define IMGUI_IMPL_METAL_CPP
+#include "imgui/imgui_extension.h"
+#include "imgui/imgui_impl_metal.h"
 
 #define COMMIT_TRESHOLD 256
 
@@ -191,6 +196,8 @@ void MetalRenderer::Initialize()
 
 void MetalRenderer::Shutdown()
 {
+    // TODO: should shutdown both layers
+    ImGui_ImplMetal_Shutdown();
     Renderer::Shutdown();
     CommitCommandBuffer();
 }
@@ -205,7 +212,7 @@ bool MetalRenderer::IsPadWindowActive()
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 {
-    usageInMB = m_device->currentAllocatedSize();
+    usageInMB = m_device->currentAllocatedSize() / 1024 / 1024;
     totalInMB = usageInMB;
 
     return true;
@@ -213,7 +220,7 @@ bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 
 void MetalRenderer::ClearColorbuffer(bool padView)
 {
-    if (!AcquireNextDrawable(!padView))
+    if (!AcquireDrawable(!padView))
         return;
 
     ClearColorTextureInternal(GetLayer(!padView).GetDrawable()->texture(), 0, 0, 0.0f, 0.0f, 0.0f, 0.0f);
@@ -248,21 +255,16 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
 {
-    if (!AcquireNextDrawable(!padView))
+    if (!AcquireDrawable(!padView))
         return;
 
     MTL::Texture* presentTexture = static_cast<LatteTextureViewMtl*>(texView)->GetRGBAView();
 
     // Create render pass
-    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
-    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
-    colorAttachment->setTexture(GetLayer(!padView).GetDrawable()->texture());
-    // TODO: shouldn't it be LoadActionLoad when not clearing?
-    colorAttachment->setLoadAction(clearBackground ? MTL::LoadActionClear : MTL::LoadActionDontCare);
-    colorAttachment->setStoreAction(MTL::StoreActionStore);
+    auto& layer = GetLayer(!padView);
+    layer.CreateRenderPassDescriptor(clearBackground);
 
-    auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
-    renderPassDescriptor->release();
+    auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(layer.GetRenderPassDescriptor());
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
@@ -279,14 +281,14 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
 bool MetalRenderer::BeginFrame(bool mainWindow)
 {
-    return AcquireNextDrawable(mainWindow);
+    return AcquireDrawable(mainWindow);
 }
 
 void MetalRenderer::Flush(bool waitIdle)
 {
     if (m_recordedDrawcalls > 0)
         CommitCommandBuffer();
-    if (waitIdle)
+    if (waitIdle && m_commandBuffers.size() != 0)
     {
         // TODO: shouldn't we wait for all command buffers?
         WaitForCommandBufferCompletion(GetCurrentCommandBuffer());
@@ -299,9 +301,101 @@ void MetalRenderer::NotifyLatteCommandProcessorIdle()
     //    CommitCommandBuffer();
 }
 
+bool MetalRenderer::ImguiBegin(bool mainWindow)
+{
+    EnsureImGuiBackend();
+
+    if (!Renderer::ImguiBegin(mainWindow))
+		return false;
+
+	if (!AcquireDrawable(mainWindow))
+		return false;
+
+	auto& layer = GetLayer(mainWindow);
+	if (!layer.GetRenderPassDescriptor())
+	    layer.CreateRenderPassDescriptor(true); // TODO: should we clear?
+
+	ImGui_ImplMetal_CreateFontsTexture(m_device);
+	ImGui_ImplMetal_NewFrame(layer.GetRenderPassDescriptor());
+	ImGui_UpdateWindowInformation(mainWindow);
+	ImGui::NewFrame();
+
+	if (m_encoderType != MetalEncoderType::Render)
+	    GetTemporaryRenderCommandEncoder(layer.GetRenderPassDescriptor());
+
+	return true;
+}
+
+void MetalRenderer::ImguiEnd()
+{
+    EnsureImGuiBackend();
+
+    if (m_encoderType != MetalEncoderType::Render)
+    {
+        debug_printf("no render command encoder, cannot draw ImGui\n");
+        return;
+    }
+
+    ImGui::Render();
+	ImGui_ImplMetal_RenderDrawData(ImGui::GetDrawData(), GetCurrentCommandBuffer(), (MTL::RenderCommandEncoder*)m_commandEncoder);
+	//ImGui::EndFrame();
+
+	EndEncoding();
+}
+
+ImTextureID MetalRenderer::GenerateTexture(const std::vector<uint8>& data, const Vector2i& size)
+{
+    try
+	{
+		std::vector <uint8> tmp(size.x * size.y * 4);
+		for (size_t i = 0; i < data.size() / 3; ++i)
+		{
+			tmp[(i * 4) + 0] = data[(i * 3) + 0];
+			tmp[(i * 4) + 1] = data[(i * 3) + 1];
+			tmp[(i * 4) + 2] = data[(i * 3) + 2];
+			tmp[(i * 4) + 3] = 0xFF;
+		}
+
+		MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
+		desc->setTextureType(MTL::TextureType2D);
+		desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+		desc->setWidth(size.x);
+		desc->setHeight(size.y);
+		desc->setStorageMode(MTL::StorageModeShared);
+		desc->setUsage(MTL::TextureUsageShaderRead);
+
+		MTL::Texture* texture = m_device->newTexture(desc);
+		desc->release();
+
+		// TODO: do a GPU copy?
+		texture->replaceRegion(MTL::Region(0, 0, size.x, size.y), 0, 0, tmp.data(), size.x * 4, 0);
+
+		return (ImTextureID)texture;
+	}
+	catch (const std::exception& ex)
+	{
+		cemuLog_log(LogType::Force, "can't generate imgui texture: {}", ex.what());
+		return nullptr;
+	}
+}
+
+void MetalRenderer::DeleteTexture(ImTextureID id)
+{
+    EnsureImGuiBackend();
+
+    ((MTL::Texture*)id)->release();
+}
+
+void MetalRenderer::DeleteFontTextures()
+{
+    EnsureImGuiBackend();
+
+    ImGui_ImplMetal_DestroyFontsTexture();
+}
+
 void MetalRenderer::AppendOverlayDebugInfo()
 {
-    debug_printf("MetalRenderer::AppendOverlayDebugInfo not implemented\n");
+    // TODO: implement
 }
 
 // TODO: halfZ
@@ -1336,7 +1430,7 @@ void MetalRenderer::CommitCommandBuffer()
     }
 }
 
-bool MetalRenderer::AcquireNextDrawable(bool mainWindow)
+bool MetalRenderer::AcquireDrawable(bool mainWindow)
 {
     auto& layer = GetLayer(mainWindow);
 
@@ -1616,11 +1710,11 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
     EndEncoding();
 }
 
-
-
 void MetalRenderer::SwapBuffer(bool mainWindow)
 {
     auto& layer = GetLayer(mainWindow);
+    if (!layer.AcquireDrawable())
+        return;
 
     if (layer.GetDrawable())
     {
@@ -1630,5 +1724,14 @@ void MetalRenderer::SwapBuffer(bool mainWindow)
     else
     {
         debug_printf("skipped present!\n");
+    }
+}
+
+void MetalRenderer::EnsureImGuiBackend()
+{
+    if (!ImGui::GetIO().BackendRendererUserData)
+    {
+        ImGui_ImplMetal_Init(m_device);
+        //ImGui_ImplMetal_CreateFontsTexture(m_device);
     }
 }
