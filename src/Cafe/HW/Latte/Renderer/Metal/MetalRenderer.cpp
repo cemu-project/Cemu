@@ -40,6 +40,7 @@ MetalRenderer::MetalRenderer()
     // Feature support
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
     // Resources
@@ -213,7 +214,8 @@ bool MetalRenderer::IsPadWindowActive()
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 {
     usageInMB = m_device->currentAllocatedSize() / 1024 / 1024;
-    totalInMB = usageInMB;
+    // TODO: get the total VRAM size? Though would be pretty useless on Apple Silicon
+    totalInMB = m_recommendedMaxVRAMUsage / 1024 / 1024;
 
     return true;
 }

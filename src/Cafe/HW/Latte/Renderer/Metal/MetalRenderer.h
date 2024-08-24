@@ -414,6 +414,7 @@ private:
 	// Feature support
 	bool m_hasUnifiedMemory;
 	bool m_isAppleGPU;
+	uint32 m_recommendedMaxVRAMUsage;
 	MetalPixelFormatSupport m_pixelFormatSupport;
 
 	// Managers and caches
