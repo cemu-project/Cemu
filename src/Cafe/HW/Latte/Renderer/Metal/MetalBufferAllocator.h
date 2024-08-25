@@ -39,7 +39,7 @@ public:
     MetalBufferAllocation GetBufferAllocation(size_t size)
     {
         // Align the size
-        size = Align(size, 16);
+        size = Align(size, 128);
 
         // First, try to find a free range
         for (uint32 i = 0; i < m_freeBufferRanges.size(); i++)

@@ -126,7 +126,7 @@ MetalRenderer::MetalRenderer()
     presentFragmentFunction->release();
 
     error = nullptr;
-    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
 #ifdef CEMU_DEBUG_ASSERT
     renderPipelineDescriptor->setLabel(GetLabel("Present pipeline linear", renderPipelineDescriptor));
 #endif
@@ -138,7 +138,7 @@ MetalRenderer::MetalRenderer()
     }
 
     error = nullptr;
-    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm_sRGB);
 #ifdef CEMU_DEBUG_ASSERT
     renderPipelineDescriptor->setLabel(GetLabel("Present pipeline sRGB", renderPipelineDescriptor));
 #endif
@@ -185,7 +185,9 @@ MetalRenderer::~MetalRenderer()
 
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 {
-    GetLayer(mainWindow) = MetalLayerHandle(m_device, size);
+    auto& layer = GetLayer(mainWindow);
+    layer = MetalLayerHandle(m_device, size);
+    layer.GetLayer()->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
 }
 
 void MetalRenderer::ResizeLayer(const Vector2i& size, bool mainWindow)
@@ -381,7 +383,7 @@ ImTextureID MetalRenderer::GenerateTexture(const std::vector<uint8>& data, const
 		desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
 		desc->setWidth(size.x);
 		desc->setHeight(size.y);
-		desc->setStorageMode(MTL::StorageModeShared);
+		desc->setStorageMode(m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModeManaged);
 		desc->setUsage(MTL::TextureUsageShaderRead);
 
 		MTL::Texture* texture = m_device->newTexture(desc);
@@ -507,11 +509,14 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
         auto blitCommandEncoder = GetBlitCommandEncoder();
 
         // Allocate a temporary buffer
-        auto allocation = m_memoryManager->GetTemporaryBufferAllocator().GetBufferAllocation(compressedImageSize);
-        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(allocation.bufferIndex);
+        // HACK: use the persistent buffer allocator so as to avoid any issues
+        auto& bufferAllocator = m_memoryManager->GetBufferAllocator();
+        auto allocation = bufferAllocator.GetBufferAllocation(compressedImageSize);
+        auto buffer = bufferAllocator.GetBuffer(allocation.bufferIndex);
 
         // Copy the data to the temporary buffer
         memcpy(allocation.data, pixelData, compressedImageSize);
+        buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
 
         // Copy the data from the temporary buffer to the texture
         blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
@@ -1474,7 +1479,7 @@ bool MetalRenderer::AcquireDrawable(bool mainWindow)
     const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
     if (latteBufferUsesSRGB != m_state.m_usesSRGB)
     {
-        layer.GetLayer()->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatRGBA8Unorm_sRGB : MTL::PixelFormatRGBA8Unorm);
+        layer.GetLayer()->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatBGRA8Unorm_sRGB : MTL::PixelFormatBGRA8Unorm);
         m_state.m_usesSRGB = latteBufferUsesSRGB;
     }
 
