@@ -311,12 +311,8 @@ void ImGui_ImplMetal_RenderDrawData(ImDrawData* drawData, id<MTLCommandBuffer> c
 
 bool ImGui_ImplMetal_CreateFontsTexture(id<MTLDevice> device)
 {
-    // HACK: check if the font atlas has been built already
-    ImGuiIO& io = ImGui::GetIO();
-    if (io.Fonts->IsBuilt())
-        return true;
-
     ImGui_ImplMetal_Data* bd = ImGui_ImplMetal_GetBackendData();
+    ImGuiIO& io = ImGui::GetIO();
 
     // We are retrieving and uploading the font atlas as a 4-channels RGBA texture here.
     // In theory we could call GetTexDataAsAlpha8() and upload a 1-channel texture to save on memory access bandwidth.

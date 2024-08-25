@@ -20,6 +20,7 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLRenderPass.hpp"
 #include "imgui.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -237,8 +238,8 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
     if (swapTV)
         SwapBuffer(true);
-    if (swapDRC)
-        SwapBuffer(false);
+    //if (swapDRC)
+    //    SwapBuffer(false);
 
     // Release all the command buffers
     CommitCommandBuffer();
@@ -262,9 +263,15 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
 
     // Create render pass
     auto& layer = GetLayer(!padView);
-    layer.CreateRenderPassDescriptor(clearBackground);
 
-    auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(layer.GetRenderPassDescriptor());
+    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    colorAttachment->setTexture(layer.GetDrawable()->texture());
+    colorAttachment->setLoadAction(clearBackground ? MTL::LoadActionClear : MTL::LoadActionLoad);
+    colorAttachment->setStoreAction(MTL::StoreActionStore);
+
+    auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
+    renderPassDescriptor->release();
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
@@ -303,25 +310,36 @@ void MetalRenderer::NotifyLatteCommandProcessorIdle()
 
 bool MetalRenderer::ImguiBegin(bool mainWindow)
 {
-    EnsureImGuiBackend();
-
     if (!Renderer::ImguiBegin(mainWindow))
 		return false;
 
 	if (!AcquireDrawable(mainWindow))
 		return false;
 
-	auto& layer = GetLayer(mainWindow);
-	if (!layer.GetRenderPassDescriptor())
-	    layer.CreateRenderPassDescriptor(true); // TODO: should we clear?
+	EnsureImGuiBackend();
 
-	ImGui_ImplMetal_CreateFontsTexture(m_device);
-	ImGui_ImplMetal_NewFrame(layer.GetRenderPassDescriptor());
+	// Check if the font texture needs to be built
+	ImGuiIO& io = ImGui::GetIO();
+    if (!io.Fonts->IsBuilt())
+        ImGui_ImplMetal_CreateFontsTexture(m_device);
+
+	auto& layer = GetLayer(mainWindow);
+
+	// Render pass descriptor
+	MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    colorAttachment->setTexture(layer.GetDrawable()->texture());
+    colorAttachment->setLoadAction(MTL::LoadActionLoad);
+    colorAttachment->setStoreAction(MTL::StoreActionStore);
+
+    // New frame
+	ImGui_ImplMetal_NewFrame(renderPassDescriptor);
 	ImGui_UpdateWindowInformation(mainWindow);
 	ImGui::NewFrame();
 
 	if (m_encoderType != MetalEncoderType::Render)
-	    GetTemporaryRenderCommandEncoder(layer.GetRenderPassDescriptor());
+	    GetTemporaryRenderCommandEncoder(renderPassDescriptor);
+	renderPassDescriptor->release();
 
 	return true;
 }
@@ -401,7 +419,7 @@ void MetalRenderer::AppendOverlayDebugInfo()
 
     ImGui::Text("--- Metal info (per frame) ---");
     ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
-    ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Render passes           %u",  m_performanceMonitor.m_renderPasses);
 }
 
 // TODO: halfZ
@@ -1289,6 +1307,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::
     m_commandEncoder = renderCommandEncoder;
     m_encoderType = MetalEncoderType::Render;
 
+    // Debug
+    m_performanceMonitor.m_renderPasses++;
+
     return renderCommandEncoder;
 }
 
@@ -1347,6 +1368,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
     m_encoderType = MetalEncoderType::Render;
 
     ResetEncoderState();
+
+    // Debug
+    m_performanceMonitor.m_renderPasses++;
 
     return renderCommandEncoder;
 }
