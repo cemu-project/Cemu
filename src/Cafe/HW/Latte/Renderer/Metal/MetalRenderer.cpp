@@ -20,6 +20,7 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLDevice.hpp"
 #include "Metal/MTLRenderPass.hpp"
 #include "imgui.h"
 
@@ -39,8 +40,9 @@ MetalRenderer::MetalRenderer()
     m_commandQueue = m_device->newCommandQueue();
 
     // Feature support
-    m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_hasUnifiedMemory = m_device->hasUnifiedMemory();
+    m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
@@ -413,13 +415,18 @@ void MetalRenderer::DeleteFontTextures()
 
 void MetalRenderer::AppendOverlayDebugInfo()
 {
+    ImGui::Text("--- GPU info ---");
+    ImGui::Text("Is Apple GPU            %s", (m_isAppleGPU ? "yes" : "no"));
+    ImGui::Text("Has unified memory      %s", (m_hasUnifiedMemory ? "yes" : "no"));
+    ImGui::Text("Supports Metal3         %s", (m_supportsMetal3 ? "yes" : "no"));
+
     ImGui::Text("--- Metal info ---");
     ImGui::Text("Render pipeline states  %zu", m_pipelineCache->GetPipelineCacheSize());
     ImGui::Text("Buffer allocator memory %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
     ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
-    ImGui::Text("Render passes           %u",  m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
 }
 
 // TODO: halfZ

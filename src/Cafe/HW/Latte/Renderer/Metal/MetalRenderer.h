@@ -376,14 +376,19 @@ public:
     void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);
 
     // Getters
+    bool IsAppleGPU() const
+    {
+        return m_isAppleGPU;
+    }
+
     bool HasUnifiedMemory() const
     {
         return m_hasUnifiedMemory;
     }
 
-    bool IsAppleGPU() const
+    bool SupportsMetal3() const
     {
-        return m_isAppleGPU;
+        return m_supportsMetal3;
     }
 
     const MetalPixelFormatSupport& GetPixelFormatSupport() const
@@ -417,8 +422,9 @@ private:
 	MTL::CommandQueue* m_commandQueue;
 
 	// Feature support
-	bool m_hasUnifiedMemory;
 	bool m_isAppleGPU;
+	bool m_hasUnifiedMemory;
+	bool m_supportsMetal3;
 	uint32 m_recommendedMaxVRAMUsage;
 	MetalPixelFormatSupport m_pixelFormatSupport;
 
