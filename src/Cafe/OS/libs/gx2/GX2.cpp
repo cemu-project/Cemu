@@ -332,43 +332,39 @@ uint64 Latte_GetTime()
 
 void _GX2SubmitToTCL()
 {
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-		// do nothing if called from non-main GX2 core
-		if (GX2::sGX2MainCoreIndex != coreIndex)
-		{
-			cemuLog_logDebug(LogType::Force, "_GX2SubmitToTCL() called on non-main GX2 core");
-			return;
-		}
-		if (data.displayListStart[coreIndex] != MPTR_NULL)
-			return; // quit if in display list
-		_GX2LastFlushPtr[coreIndex] = (data.writeGatherPtrGxBuffer[coreIndex]);
-		// update last submitted CB timestamp
-		uint64 commandBufferTimestamp = Latte_GetTime();
-		LatteGPUState.lastSubmittedCommandBufferTimestamp.store(commandBufferTimestamp);
-		cemuLog_log(LogType::GX2, "Submitting GX2 command buffer with timestamp {:016x}", commandBufferTimestamp);
-		// submit HLE packet to write retirement timestamp
-		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
-		gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp >> 32ULL));
-		gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp & 0xFFFFFFFFULL));
-	});
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
+	// do nothing if called from non-main GX2 core
+	if (GX2::sGX2MainCoreIndex != coreIndex)
+	{
+		cemuLog_logDebug(LogType::Force, "_GX2SubmitToTCL() called on non-main GX2 core");
+		return;
+	}
+	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
+		return; // quit if in display list
+	_GX2LastFlushPtr[coreIndex] = (gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex]);
+	// update last submitted CB timestamp
+	uint64 commandBufferTimestamp = Latte_GetTime();
+	LatteGPUState.lastSubmittedCommandBufferTimestamp.store(commandBufferTimestamp);
+	cemuLog_log(LogType::GX2, "Submitting GX2 command buffer with timestamp {:016x}", commandBufferTimestamp);
+	// submit HLE packet to write retirement timestamp
+	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
+	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp>>32ULL));
+	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp&0xFFFFFFFFULL));
 }
 
 uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
 {
-	return gx2WriteGatherPipe.accessDataRet<uint32>([&](GX2WriteGatherPipeStateData& data) {
-		uint32 unflushedBytes = 0;
-		if (_GX2LastFlushPtr[coreIndex] != NULL)
-		{
-			if (_GX2LastFlushPtr[coreIndex] > data.writeGatherPtrGxBuffer[coreIndex])
-				unflushedBytes = (uint32)(data.writeGatherPtrGxBuffer[coreIndex] - data.gxRingBuffer + 4); // this isn't 100% correct since we ignore the bytes between the last flush address and the start of the wrap around
-			else
-				unflushedBytes = (uint32)(data.writeGatherPtrGxBuffer[coreIndex] - _GX2LastFlushPtr[coreIndex]);
-		}
+	uint32 unflushedBytes = 0;
+	if (_GX2LastFlushPtr[coreIndex] != NULL)
+	{
+		if (_GX2LastFlushPtr[coreIndex] > gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex])
+			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer + 4); // this isn't 100% correct since we ignore the bytes between the last flush address and the start of the wrap around
 		else
-			unflushedBytes = (uint32)(data.writeGatherPtrGxBuffer[coreIndex] - data.gxRingBuffer);
-		return unflushedBytes;
-	});
+			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - _GX2LastFlushPtr[coreIndex]);
+	}
+	else
+		unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer);
+	return unflushedBytes;
 }
 
 /*
@@ -377,17 +373,15 @@ uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
  */
 void GX2ReserveCmdSpace(uint32 reservedFreeSpaceInU32)
 {
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		uint32 coreIndex = coreinit::OSGetCoreId();
-		// if we are in a display list then do nothing
-		if (data.displayListStart[coreIndex] != MPTR_NULL)
-			return;
-		uint32 unflushedBytes = _GX2GetUnflushedBytes(coreIndex);
-		if (unflushedBytes >= 0x1000)
-		{
-			_GX2SubmitToTCL();
-		}
-	});
+	uint32 coreIndex = coreinit::OSGetCoreId();
+	// if we are in a display list then do nothing
+	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
+		return;
+	uint32 unflushedBytes = _GX2GetUnflushedBytes(coreIndex);
+	if( unflushedBytes >= 0x1000 )
+	{
+		_GX2SubmitToTCL();
+	}
 }
 
 void gx2_load()

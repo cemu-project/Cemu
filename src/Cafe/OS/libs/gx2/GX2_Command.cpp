@@ -12,39 +12,33 @@
 
 extern uint8* gxRingBufferReadPtr;
 
-GX2WriteGatherPipeState gx2WriteGatherPipe = { };
+GX2WriteGatherPipeState gx2WriteGatherPipe = { 0 };
 
 void gx2WriteGather_submitU32AsBE(uint32 v)
 {
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-		if (data.writeGatherPtrWrite[coreIndex] == NULL)
-			return;
-		*(uint32*)(*data.writeGatherPtrWrite[coreIndex]) = _swapEndianU32(v);
-		(*data.writeGatherPtrWrite[coreIndex]) += 4;
-	});
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
+		return;
+	*(uint32*)(gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load()) = _swapEndianU32(v);
+	*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] += 4;
 }
 
 void gx2WriteGather_submitU32AsLE(uint32 v)
 {
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-		if (data.writeGatherPtrWrite[coreIndex] == NULL)
-			return;
-		*(uint32*)(*data.writeGatherPtrWrite[coreIndex]) = v;
-		(*data.writeGatherPtrWrite[coreIndex]) += 4;
-	});
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
+		return;
+	*(uint32*)(gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load()) = v;
+	*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] += 4;
 }
 
 void gx2WriteGather_submitU32AsLEArray(uint32* v, uint32 numValues)
 {
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-		if (data.writeGatherPtrWrite[coreIndex] == NULL)
-			return;
-		memcpy_dwords((*data.writeGatherPtrWrite[coreIndex]), v, numValues);
-		(*data.writeGatherPtrWrite[coreIndex]) += 4 * numValues;
-	});
+	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == NULL)
+		return;
+	memcpy_dwords(gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load(), v, numValues);
+	*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] += 4 * numValues;
 }
 
 namespace GX2
@@ -60,156 +54,136 @@ namespace GX2
 
 	void GX2Init_writeGather() // init write gather, make current core 
 	{
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			if (data.gxRingBuffer == NULL)
-				data.gxRingBuffer = (uint8*)malloc(GX2_COMMAND_RING_BUFFER_SIZE);
-			if (gx2WriteGatherCurrentMainCoreIndex == sGX2MainCoreIndex)
-				return; // write gather already configured for same core
-			for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
+		if (gx2WriteGatherPipe.gxRingBuffer == NULL)
+			gx2WriteGatherPipe.gxRingBuffer = (uint8*)malloc(GX2_COMMAND_RING_BUFFER_SIZE);
+		if (gx2WriteGatherCurrentMainCoreIndex == sGX2MainCoreIndex)
+			return; // write gather already configured for same core
+		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
+		{
+			if (i == sGX2MainCoreIndex)
 			{
-				if (i == sGX2MainCoreIndex)
-				{
-					data.writeGatherPtrGxBuffer[i] = data.gxRingBuffer;
-					data.writeGatherPtrWrite[i] = &data.writeGatherPtrGxBuffer[i];
-				}
-				else
-				{
-					data.writeGatherPtrGxBuffer[i] = NULL;
-					data.writeGatherPtrWrite[i] = NULL;
-				}
-				data.displayListStart[i] = MPTR_NULL;
-				data.writeGatherPtrDisplayList[i] = NULL;
-				data.displayListMaxSize[i] = 0;
+				gx2WriteGatherPipe.writeGatherPtrGxBuffer[i] = gx2WriteGatherPipe.gxRingBuffer;
+				gx2WriteGatherPipe.writeGatherPtrWrite[i] = &gx2WriteGatherPipe.writeGatherPtrGxBuffer[i];
 			}
-			gx2WriteGatherCurrentMainCoreIndex = sGX2MainCoreIndex;
-			gx2WriteGatherInited = true;
-		});
+			else
+			{
+				gx2WriteGatherPipe.writeGatherPtrGxBuffer[i] = NULL;
+				gx2WriteGatherPipe.writeGatherPtrWrite[i] = NULL;
+			}
+			gx2WriteGatherPipe.displayListStart[i] = MPTR_NULL;
+			gx2WriteGatherPipe.writeGatherPtrDisplayList[i] = NULL;
+			gx2WriteGatherPipe.displayListMaxSize[i] = 0;
+		}
+		gx2WriteGatherCurrentMainCoreIndex = sGX2MainCoreIndex;
+		gx2WriteGatherInited = true;
 	}
 
 	void GX2WriteGather_beginDisplayList(PPCInterpreter_t* hCPU, MPTR buffer, uint32 maxSize)
 	{
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			uint32 coreIndex = PPCInterpreter_getCoreIndex(hCPU);
-			data.displayListStart[coreIndex] = buffer;
-			data.displayListMaxSize[coreIndex] = maxSize;
-			// set new write gather ptr
-			data.writeGatherPtrDisplayList[coreIndex] = memory_getPointerFromVirtualOffset(data.displayListStart[coreIndex]);
-			data.writeGatherPtrWrite[coreIndex] = &data.writeGatherPtrDisplayList[coreIndex];
-		});
+		uint32 coreIndex = PPCInterpreter_getCoreIndex(hCPU);
+		gx2WriteGatherPipe.displayListStart[coreIndex] = buffer;
+		gx2WriteGatherPipe.displayListMaxSize[coreIndex] = maxSize;
+		// set new write gather ptr
+		gx2WriteGatherPipe.writeGatherPtrDisplayList[coreIndex] = memory_getPointerFromVirtualOffset(gx2WriteGatherPipe.displayListStart[coreIndex]);
+		gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] = &gx2WriteGatherPipe.writeGatherPtrDisplayList[coreIndex];
 	}
 
 	uint32 GX2WriteGather_getDisplayListWriteDistance(sint32 coreIndex)
 	{
-		return gx2WriteGatherPipe.accessDataRet<uint32>([&](GX2WriteGatherPipeStateData& data) {
-			return (uint32)(*data.writeGatherPtrWrite[coreIndex] - memory_getPointerFromVirtualOffset(data.displayListStart[coreIndex]));
-		});
+		return (uint32)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] - memory_getPointerFromVirtualOffset(gx2WriteGatherPipe.displayListStart[coreIndex]));
 	}
 
 	uint32 GX2WriteGather_getFifoWriteDistance(uint32 coreIndex)
 	{
-		return gx2WriteGatherPipe.accessDataRet<uint32>([&](GX2WriteGatherPipeStateData& data) {
-			uint32 writeDistance = (uint32)(data.writeGatherPtrGxBuffer[coreIndex] - data.gxRingBuffer);
-			return writeDistance;
-		});
+		uint32 writeDistance = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer);
+		return writeDistance;
 	}
 
 	uint32 GX2WriteGather_endDisplayList(PPCInterpreter_t* hCPU, MPTR buffer)
 	{
-		return gx2WriteGatherPipe.accessDataRet<uint32>([&](GX2WriteGatherPipeStateData& data) {
-			uint32 coreIndex = PPCInterpreter_getCoreIndex(hCPU);
-			if (data.displayListStart[coreIndex] != MPTR_NULL)
+		uint32 coreIndex = PPCInterpreter_getCoreIndex(hCPU);
+		if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
+		{
+			uint32 currentWriteSize = GX2WriteGather_getDisplayListWriteDistance(coreIndex);
+			// pad to 32 byte
+			if (gx2WriteGatherPipe.displayListMaxSize[coreIndex] >= ((gx2WriteGatherPipe.displayListMaxSize[coreIndex] + 0x1F) & ~0x1F))
 			{
-				uint32 currentWriteSize = GX2WriteGather_getDisplayListWriteDistance(coreIndex);
-				// pad to 32 byte
-				if (data.displayListMaxSize[coreIndex] >= ((data.displayListMaxSize[coreIndex] + 0x1F) & ~0x1F))
+				while ((currentWriteSize & 0x1F) != 0)
 				{
-					while ((currentWriteSize & 0x1F) != 0)
-					{
-						gx2WriteGather_submitU32AsBE(pm4HeaderType2Filler());
-						currentWriteSize += 4;
-					}
+					gx2WriteGather_submitU32AsBE(pm4HeaderType2Filler());
+					currentWriteSize += 4;
 				}
-				// get size of written data
-				currentWriteSize = GX2WriteGather_getDisplayListWriteDistance(coreIndex);
-				// disable current display list and restore write gather ptr
-				data.displayListStart[coreIndex] = MPTR_NULL;
-				if (sGX2MainCoreIndex == coreIndex)
-					data.writeGatherPtrWrite[coreIndex] = &data.writeGatherPtrGxBuffer[coreIndex];
-				else
-					data.writeGatherPtrWrite[coreIndex] = NULL;
-				// return size of (written) display list
-				return currentWriteSize;
 			}
+			// get size of written data
+			currentWriteSize = GX2WriteGather_getDisplayListWriteDistance(coreIndex);
+			// disable current display list and restore write gather ptr
+			gx2WriteGatherPipe.displayListStart[coreIndex] = MPTR_NULL;
+			if (sGX2MainCoreIndex == coreIndex)
+				gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] = &gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex];
 			else
-			{
-				// no active display list
-				// return a size of 0
-				return 0u;
-			}
-		});
+				*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] = NULL;
+			// return size of (written) display list
+			return currentWriteSize;
+		}
+		else
+		{
+			// no active display list
+			// return a size of 0
+			return 0;
+		}
 	}
 
 	bool GX2GetCurrentDisplayList(betype<MPTR>* displayListAddr, uint32be* displayListSize)
 	{
-		return gx2WriteGatherPipe.accessDataRet<bool>([&](GX2WriteGatherPipeStateData& data) {
-			uint32 coreIndex = coreinit::OSGetCoreId();
-			if (data.displayListStart[coreIndex] == MPTR_NULL)
-				return false;
+		uint32 coreIndex = coreinit::OSGetCoreId();
+		if (gx2WriteGatherPipe.displayListStart[coreIndex] == MPTR_NULL)
+			return false;
 
-			if (displayListAddr)
-				*displayListAddr = data.displayListStart[coreIndex];
-			if (displayListSize)
-				*displayListSize = data.displayListMaxSize[coreIndex];
+		if (displayListAddr)
+			*displayListAddr = gx2WriteGatherPipe.displayListStart[coreIndex];
+		if (displayListSize)
+			*displayListSize = gx2WriteGatherPipe.displayListMaxSize[coreIndex];
 
-			return true;
-		});
+		return true;
 	}
 
 	bool GX2GetDisplayListWriteStatus()
 	{
-		return gx2WriteGatherPipe.accessDataRet<bool>([&](GX2WriteGatherPipeStateData& data) {
-			// returns true if we are writing to a display list
-			uint32 coreIndex = coreinit::OSGetCoreId();
-			return data.displayListStart[coreIndex] != MPTR_NULL;
-		});
+		// returns true if we are writing to a display list
+		uint32 coreIndex = coreinit::OSGetCoreId();
+		return gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL;
 	}
 
 	bool GX2WriteGather_isDisplayListActive()
 	{
-		return gx2WriteGatherPipe.accessDataRet<bool>([&](GX2WriteGatherPipeStateData& data) {
-			uint32 coreIndex = coreinit::OSGetCoreId();
-			if (data.displayListStart[coreIndex] != MPTR_NULL)
-				return true;
-			return false;
-		});
+		uint32 coreIndex = coreinit::OSGetCoreId();
+		if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
+			return true;
+		return false;
 	}
 
 	uint32 GX2WriteGather_getReadWriteDistance()
 	{
-		return gx2WriteGatherPipe.accessDataRet<bool>([&](GX2WriteGatherPipeStateData& data) {
-			uint32 coreIndex = sGX2MainCoreIndex;
-			uint32 writeDistance = (uint32)(data.writeGatherPtrGxBuffer[coreIndex] + GX2_COMMAND_RING_BUFFER_SIZE - gxRingBufferReadPtr);
-			writeDistance %= GX2_COMMAND_RING_BUFFER_SIZE;
-			return writeDistance;
-		});
+		uint32 coreIndex = sGX2MainCoreIndex;
+		uint32 writeDistance = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] + GX2_COMMAND_RING_BUFFER_SIZE - gxRingBufferReadPtr);
+		writeDistance %= GX2_COMMAND_RING_BUFFER_SIZE;
+		return writeDistance;
 	}
 
 	void GX2WriteGather_checkAndInsertWrapAroundMark()
 	{
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			uint32 coreIndex = coreinit::OSGetCoreId();
-			if (coreIndex != sGX2MainCoreIndex) // only if main gx2 core
-				return;
-			if (data.displayListStart[coreIndex] != MPTR_NULL)
-				return;
-			uint32 writeDistance = GX2WriteGather_getFifoWriteDistance(coreIndex);
-			if (writeDistance >= (GX2_COMMAND_RING_BUFFER_SIZE * 3 / 5))
-			{
-				gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_FIFO_WRAP_AROUND, 1));
-				gx2WriteGather_submitU32AsBE(0); // empty word since we can't send commands with zero data words
-				data.writeGatherPtrGxBuffer[coreIndex] = data.gxRingBuffer;
-			}
-		});
+		uint32 coreIndex = coreinit::OSGetCoreId();
+		if (coreIndex != sGX2MainCoreIndex) // only if main gx2 core
+			return;
+		if (gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL)
+			return;
+		uint32 writeDistance = GX2WriteGather_getFifoWriteDistance(coreIndex);
+		if (writeDistance >= (GX2_COMMAND_RING_BUFFER_SIZE * 3 / 5))
+		{
+			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_FIFO_WRAP_AROUND, 1));
+			gx2WriteGather_submitU32AsBE(0); // empty word since we can't send commands with zero data words
+			gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] = gx2WriteGatherPipe.gxRingBuffer;
+		}
 	}
 
 	void GX2BeginDisplayList(MEMPTR<void> displayListAddr, uint32 size)
@@ -243,25 +217,23 @@ namespace GX2
 
 	void GX2DirectCallDisplayList(void* addr, uint32 size)
 	{
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			// this API submits to TCL directly and bypasses write-gatherer
-			// its basically a way to manually submit a command buffer to the GPU
-			// as such it also affects the submission and retire timestamps
+		// this API submits to TCL directly and bypasses write-gatherer
+		// its basically a way to manually submit a command buffer to the GPU
+		// as such it also affects the submission and retire timestamps
 
-			uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-			cemu_assert_debug(coreIndex == sGX2MainCoreIndex);
-			coreIndex = sGX2MainCoreIndex; // always submit to main queue which is owned by GX2 main core (TCLSubmitToRing does not need this workaround)
+		uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
+		cemu_assert_debug(coreIndex == sGX2MainCoreIndex);
+		coreIndex = sGX2MainCoreIndex; // always submit to main queue which is owned by GX2 main core (TCLSubmitToRing does not need this workaround)
 
-			uint32be* cmdStream = (uint32be*)(data.writeGatherPtrGxBuffer[coreIndex]);
-			cmdStream[0] = pm4HeaderType3(IT_INDIRECT_BUFFER_PRIV, 3);
-			cmdStream[1] = memory_virtualToPhysical(MEMPTR<void>(addr).GetMPTR());
-			cmdStream[2] = 0;
-			cmdStream[3] = size / 4;
-			data.writeGatherPtrGxBuffer[coreIndex] += 16;
+		uint32be* cmdStream = (uint32be*)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex].load());
+		cmdStream[0] = pm4HeaderType3(IT_INDIRECT_BUFFER_PRIV, 3);
+		cmdStream[1] = memory_virtualToPhysical(MEMPTR<void>(addr).GetMPTR());
+		cmdStream[2] = 0;
+		cmdStream[3] = size / 4;
+		gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] += 16;
 
-			// update submission timestamp and retired timestamp
-			_GX2SubmitToTCL();
-		});
+		// update submission timestamp and retired timestamp
+		_GX2SubmitToTCL();
 	}
 
 	void GX2CopyDisplayList(MEMPTR<uint32be*> addr, uint32 size)

@@ -206,9 +206,7 @@ int Latte_ThreadEntry()
 		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 	}
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		gxRingBufferReadPtr = data.gxRingBuffer;
-	});
+	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
 	LatteCP_ProcessRingbuffer();
 	cemu_assert_debug(false); // should never reach
 	return 0;

@@ -153,10 +153,8 @@ uint32 LatteCP_readU32Deprc()
 	// no display list active
 	while (true)
 	{
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			gxRingBufferWritePtr = data.writeGatherPtrGxBuffer[GX2::sGX2MainCoreIndex];
-			readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		});
+		gxRingBufferWritePtr = gx2WriteGatherPipe.writeGatherPtrGxBuffer[GX2::sGX2MainCoreIndex];
+		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
 		if (readDistance != 0)
 			break;
 
@@ -169,9 +167,7 @@ uint32 LatteCP_readU32Deprc()
 		}
 		LatteThread_HandleOSScreen(); // check if new frame was presented via OSScreen API
 
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		});
+		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
 		if (readDistance != 0)
 			break;
 		if (Latte_GetStopSignal())
@@ -202,10 +198,8 @@ void LatteCP_waitForNWords(uint32 numWords)
 	// no display list active
 	while (true)
 	{
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			gxRingBufferWritePtr = data.writeGatherPtrGxBuffer[GX2::sGX2MainCoreIndex];
-			readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		});
+		gxRingBufferWritePtr = gx2WriteGatherPipe.writeGatherPtrGxBuffer[GX2::sGX2MainCoreIndex];
+		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
 		if (readDistance < 0)
 			return; // wrap around means there is at least one full command queued after this
 		if (readDistance >= waitDistance)
@@ -217,9 +211,7 @@ void LatteCP_waitForNWords(uint32 numWords)
 		{
 			_mm_pause();
 		}
-		gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-			readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		});
+		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
 		if (readDistance < 0)
 			return; // wrap around means there is at least one full command queued after this
 		if (readDistance >= waitDistance)
@@ -787,11 +779,8 @@ LatteCMDPtr LatteCP_itHLEFifoWrapAround(LatteCMDPtr cmd, uint32 nWords)
 {
 	cemu_assert_debug(nWords == 1);
 	uint32 unused = LatteReadCMD();
-
-	gx2WriteGatherPipe.accessData([&](GX2WriteGatherPipeStateData& data) {
-		gxRingBufferReadPtr = data.gxRingBuffer;
-		cmd = (LatteCMDPtr)gxRingBufferReadPtr;
-	});
+	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
+	cmd = (LatteCMDPtr)gxRingBufferReadPtr;
 	return cmd;
 }
 
