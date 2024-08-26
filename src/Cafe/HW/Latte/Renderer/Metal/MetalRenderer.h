@@ -143,8 +143,11 @@ struct MetalState
 struct MetalCommandBuffer
 {
     MTL::CommandBuffer* m_commandBuffer;
+    uint32 m_id;
     bool m_commited = false;
 };
+
+constexpr uint32 INVALID_COMMAND_BUFFER_ID = std::numeric_limits<uint32>::max();
 
 enum class MetalEncoderType
 {
@@ -416,6 +419,8 @@ private:
 	MetalLayerHandle m_padLayer;
 
 	MetalPerformanceMonitor m_performanceMonitor;
+
+	uint32 m_commandBufferID = 0;
 
 	// Metal objects
 	MTL::Device* m_device;

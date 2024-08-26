@@ -247,12 +247,16 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
     // Release all the command buffers
     CommitCommandBuffer();
+    // TODO: should this be released here?
     for (uint32 i = 0; i < m_commandBuffers.size(); i++)
         m_commandBuffers[i].m_commandBuffer->release();
     m_commandBuffers.clear();
 
     // Release frame persistent buffers
     m_memoryManager->GetFramePersistentBufferAllocator().ResetAllocations();
+
+    // Unlock all temporary buffers
+    m_memoryManager->GetTemporaryBufferAllocator().UnlockAllBuffers();
 }
 
 // TODO: use `shader` for drawing
@@ -515,7 +519,7 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
 
         // Copy the data to the temporary buffer
         memcpy(allocation.data, pixelData, compressedImageSize);
-        buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
+        //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
 
         // Copy the data from the temporary buffer to the texture
         blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
@@ -1116,7 +1120,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Draw
 	MTL::Buffer* indexBuffer = nullptr;
 	if (hostIndexType != INDEX_TYPE::NONE)
-	    indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
+	{
+	    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+	    indexBuffer = bufferAllocator.GetBuffer(indexBufferIndex);
+
+		// We have already retrieved the buffer, no need for it to be locked anymore
+		bufferAllocator.UnlockBuffer(indexBufferIndex);
+	}
 	if (usesGeometryShader)
 	{
 	    if (indexBuffer)
@@ -1182,20 +1192,27 @@ void MetalRenderer::draw_endSequence()
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
 {
-    auto allocation = m_memoryManager->GetTemporaryBufferAllocator().GetBufferAllocation(size);
+    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+    auto allocation = bufferAllocator.GetBufferAllocation(size);
 	offset = allocation.offset;
 	bufferIndex = allocation.bufferIndex;
+
+	// Lock the buffer so that it doesn't get released
+	bufferAllocator.LockBuffer(allocation.bufferIndex);
 
 	return allocation.data;
 }
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size)
 {
+    // Do nothing
+    /*
     if (!HasUnifiedMemory())
     {
-        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(bufferIndex);
+        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBufferOutsideOfCommandBuffer(bufferIndex);
         buffer->didModifyRange(NS::Range(offset, size));
     }
+    */
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1284,10 +1301,13 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
         //m_commandQueue->insertDebugCaptureBoundary();
 
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
-		m_commandBuffers.push_back({mtlCommandBuffer});
+		MetalCommandBuffer commandBuffer = {mtlCommandBuffer, m_commandBufferID};
+		m_commandBuffers.push_back(commandBuffer);
+
+		m_commandBufferID = (m_commandBufferID + 1) % 65536;
 
 		// Notify memory manager about the new command buffer
-        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
+        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(commandBuffer.m_id);
 
 		return mtlCommandBuffer;
 	}
@@ -1461,11 +1481,13 @@ void MetalRenderer::CommitCommandBuffer()
         if (!commandBuffer.m_commited)
         {
             commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
-                m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
+                m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_id);
             });
 
             commandBuffer.m_commandBuffer->commit();
             commandBuffer.m_commited = true;
+
+            m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(INVALID_COMMAND_BUFFER_ID);
 
             // Debug
             //m_commandQueue->insertDebugCaptureBoundary();
@@ -1702,8 +1724,8 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		auto supportBuffer = bufferAllocator.GetBufferAllocation(size);
 		memcpy(supportBuffer.data, supportBufferData, size);
 		auto buffer = bufferAllocator.GetBuffer(supportBuffer.bufferIndex);
-		if (!HasUnifiedMemory())
-		    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
+		//if (!HasUnifiedMemory())
+		//    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
 
 		SetBuffer(renderCommandEncoder, mtlShaderType, buffer, supportBuffer.offset, shader->resourceMapping.uniformVarsBufferBindingPoint);
 	}

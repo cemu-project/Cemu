@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Common/precompiled.h"
 #include "Metal/MTLResource.hpp"
 
 struct MetalBufferRange
@@ -146,20 +147,86 @@ typedef MetalBufferAllocator<MetalBuffer> MetalDefaultBufferAllocator;
 struct MetalSyncedBuffer
 {
     MTL::Buffer* m_buffer;
-    std::vector<MTL::CommandBuffer*> m_commandBuffers;
+    std::vector<uint32> m_commandBuffers;
+    uint32 m_lock = 0;
+
+    bool IsLocked() const
+    {
+        return (m_lock != 0);
+    }
 };
+
+//constexpr uint16 MAX_COMMAND_BUFFER_FRAMES = 1024;
 
 class MetalTemporaryBufferAllocator : public MetalBufferAllocator<MetalSyncedBuffer>
 {
 public:
     MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer, MTL::ResourceStorageModeShared) {}
 
-    void SetActiveCommandBuffer(MTL::CommandBuffer* commandBuffer)
+    void LockBuffer(uint32 bufferIndex)
     {
-        m_activeCommandBuffer = commandBuffer;
+        m_buffers[bufferIndex].m_lock++;
     }
 
-    void CommandBufferFinished(MTL::CommandBuffer* commandBuffer)
+    void UnlockBuffer(uint32 bufferIndex)
+    {
+        auto& buffer = m_buffers[bufferIndex];
+
+        buffer.m_lock--;
+
+        // TODO: is this really necessary?
+        // Release the buffer if it wasn't released due to the lock
+        if (!buffer.IsLocked() && buffer.m_commandBuffers.empty())
+            m_freeBufferRanges.push_back({bufferIndex, 0, buffer.m_buffer->length()});
+    }
+
+    void UnlockAllBuffers()
+    {
+        for (uint32_t i = 0; i < m_buffers.size(); i++)
+        {
+            auto& buffer = m_buffers[i];
+
+            if (buffer.m_lock != 0)
+            {
+                if (buffer.m_commandBuffers.empty())
+                    m_freeBufferRanges.push_back({i, 0, buffer.m_buffer->length()});
+
+                buffer.m_lock = 0;
+            }
+        }
+
+        /*
+        auto it = m_commandBuffersFrames.begin();
+        while (it != m_commandBuffersFrames.end())
+        {
+            it->second++;
+
+            if (it->second > MAX_COMMAND_BUFFER_FRAMES)
+            {
+                debug_printf("command buffer %u remained unfinished for more than %u frames\n", it->first, MAX_COMMAND_BUFFER_FRAMES);
+
+                // Pretend like the command buffer has finished
+                CommandBufferFinished(it->first, false);
+
+                it = m_commandBuffersFrames.erase(it);
+            }
+            else
+            {
+                it++;
+            }
+        }
+        */
+    }
+
+    void SetActiveCommandBuffer(uint32 commandBuffer)
+    {
+        m_activeCommandBuffer = commandBuffer;
+
+        //if (commandBuffer != INVALID_COMMAND_BUFFER_ID)
+        //    m_commandBuffersFrames[commandBuffer] = 0;
+    }
+
+    void CommandBufferFinished(uint32 commandBuffer/*, bool erase = true*/)
     {
         for (uint32_t i = 0; i < m_buffers.size(); i++)
         {
@@ -170,18 +237,21 @@ public:
                 {
                     if (buffer.m_commandBuffers.size() == 1)
                     {
-                        // First remove any free ranges that use this buffer
-                        for (uint32 k = 0; k < m_freeBufferRanges.size(); k++)
+                        if (!buffer.IsLocked())
                         {
-                            if (m_freeBufferRanges[k].bufferIndex == i)
+                            // First remove any free ranges that use this buffer
+                            for (uint32 k = 0; k < m_freeBufferRanges.size(); k++)
                             {
-                                m_freeBufferRanges.erase(m_freeBufferRanges.begin() + k);
-                                k--;
+                                if (m_freeBufferRanges[k].bufferIndex == i)
+                                {
+                                    m_freeBufferRanges.erase(m_freeBufferRanges.begin() + k);
+                                    k--;
+                                }
                             }
-                        }
 
-                        // All command buffers using it have finished execution, we can use it again
-                        m_freeBufferRanges.push_back({i, 0, buffer.m_buffer->length()});
+                            // All command buffers using it have finished execution, we can use it again
+                            m_freeBufferRanges.push_back({i, 0, buffer.m_buffer->length()});
+                        }
 
                         buffer.m_commandBuffers.clear();
                     }
@@ -193,18 +263,28 @@ public:
                 }
             }
         }
+
+        //if (erase)
+        //    m_commandBuffersFrames.erase(commandBuffer);
     }
 
-    // TODO: should this be here? It's just to ensure safety
     MTL::Buffer* GetBuffer(uint32 bufferIndex)
     {
+        cemu_assert_debug(m_activeCommandBuffer != INVALID_COMMAND_BUFFER_ID);
+
         auto& buffer = m_buffers[bufferIndex];
-        if (buffer.m_commandBuffers.back() != m_activeCommandBuffer)
+        if (buffer.m_commandBuffers.empty() || buffer.m_commandBuffers.back() != m_activeCommandBuffer)
             buffer.m_commandBuffers.push_back(m_activeCommandBuffer);
 
         return buffer.m_buffer;
     }
 
+    MTL::Buffer* GetBufferOutsideOfCommandBuffer(uint32 bufferIndex)
+    {
+        return m_buffers[bufferIndex].m_buffer;
+    }
+
+    /*
     MetalBufferAllocation GetBufferAllocation(size_t size)
     {
         // TODO: remove this
@@ -219,7 +299,10 @@ public:
 
         return allocation;
     }
+    */
 
 private:
-    MTL::CommandBuffer* m_activeCommandBuffer = nullptr;
+    uint32 m_activeCommandBuffer = INVALID_COMMAND_BUFFER_ID;
+
+    //std::map<uint32, uint16> m_commandBuffersFrames;
 };
