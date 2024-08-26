@@ -5,6 +5,7 @@
 #include "AndroidAudio.h"
 #include "AndroidEmulatedController.h"
 #include "AndroidFilesystemCallbacks.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "CafeSystemUtils.h"
@@ -18,9 +19,10 @@
 #include "input/api/Android/AndroidController.h"
 #include "input/api/Android/AndroidControllerProvider.h"
 
-int mainEmulatorHLE();
+void CemuCommonInit();
 
-class EmulationState {
+class EmulationState
+{
 	GameIconLoader m_gameIconLoader;
 	GameTitleLoader m_gameTitleLoader;
 	std::unordered_map<int64_t, GraphicPackPtr> m_graphicPacks;
@@ -37,19 +39,22 @@ class EmulationState {
   public:
 	void initializeEmulation()
 	{
+		g_config.SetFilename(ActiveSettings::GetConfigPath("settings.xml").generic_wstring());
 		g_config.Load();
 		FilesystemAndroid::setFilesystemCallbacks(std::make_shared<AndroidFilesystemCallbacks>());
 		NetworkConfig::LoadOnce();
 		InputManager::instance().load();
 		InitializeGlobalVulkan();
 		createCemuDirectories();
-		mainEmulatorHLE();
+		LatteOverlay_init();
+		CemuCommonInit();
 		fillGraphicPacks();
 	}
 
 	void initializeActiveSettings(const fs::path& dataPath, const fs::path& cachePath)
 	{
-		ActiveSettings::LoadOnce({}, dataPath, dataPath, cachePath, dataPath);
+		std::set<fs::path> failedWriteAccess;
+		ActiveSettings::SetPaths(false, {}, dataPath, dataPath, cachePath, dataPath, failedWriteAccess);
 	}
 
 	void clearSurface(bool isMainCanvas)

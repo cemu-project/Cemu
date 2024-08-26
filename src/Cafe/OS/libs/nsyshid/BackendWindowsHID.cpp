@@ -67,13 +67,6 @@ namespace nsyshid::backend::windows
 												device->m_productId);
 								}
 							}
-							else
-							{
-								cemuLog_log(LogType::Force,
-											"nsyshid::BackendWindowsHID: device not on whitelist: {:04x}:{:04x}",
-											device->m_vendorId,
-											device->m_productId);
-							}
 						}
 						CloseHandle(hHIDDevice);
 					}
@@ -125,14 +118,12 @@ namespace nsyshid::backend::windows
 		}
 		if (maxPacketInputLength <= 0 || maxPacketInputLength >= 0xF000)
 		{
-			cemuLog_log(LogType::Force, "HID: Input packet length not available or out of range (length = {})",
-						maxPacketInputLength);
+			cemuLog_logDebug(LogType::Force, "HID: Input packet length not available or out of range (length = {})", maxPacketInputLength);
 			maxPacketInputLength = 0x20;
 		}
 		if (maxPacketOutputLength <= 0 || maxPacketOutputLength >= 0xF000)
 		{
-			cemuLog_log(LogType::Force, "HID: Output packet length not available or out of range (length = {})",
-						maxPacketOutputLength);
+			cemuLog_logDebug(LogType::Force, "HID: Output packet length not available or out of range (length = {})", maxPacketOutputLength);
 			maxPacketOutputLength = 0x20;
 		}
 

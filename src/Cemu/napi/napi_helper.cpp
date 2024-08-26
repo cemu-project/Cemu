@@ -107,6 +107,7 @@ CurlRequestHelper::CurlRequestHelper()
 
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 2);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	if(GetConfig().proxy_server.GetValue() != "")
 	{
@@ -263,6 +264,7 @@ CurlSOAPHelper::CurlSOAPHelper(NetworkService service)
 	m_curl = curl_easy_init();
 	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, __curlWriteCallback);
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	// SSL
 	if (!IsNetworkServiceSSLDisabled(service))

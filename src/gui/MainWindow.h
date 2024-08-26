@@ -107,7 +107,6 @@ public:
 	void OnAccountSelect(wxCommandEvent& event);
 	void OnConsoleLanguage(wxCommandEvent& event);
 	void OnHelpAbout(wxCommandEvent& event);
-	void OnHelpGettingStarted(wxCommandEvent& event);
 	void OnHelpUpdate(wxCommandEvent& event);
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
@@ -154,7 +153,6 @@ private:
 	void RecreateMenu();
 	void UpdateChildWindowTitleRunningState();
 	static wxString GetInitialWindowTitle();
-	void ShowGettingStartedDialog();
 
 	bool InstallUpdate(const fs::path& metaFilePath);
 

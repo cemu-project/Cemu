@@ -3,7 +3,6 @@
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 
-#include "PermanentConfig.h"
 #include "ActiveSettings.h"
 
 XMLCemuConfig_t g_config(L"settings.xml");
@@ -13,23 +12,6 @@ void CemuConfig::SetMLCPath(fs::path path, bool save)
 	mlc_path.SetValue(_pathToUtf8(path));
 	if(save)
 		g_config.Save();
-
-	// if custom mlc path has been selected, store it in permanent config
-	if (path != ActiveSettings::GetDefaultMLCPath())
-	{
-		try
-		{
-			auto pconfig = PermanentConfig::Load();
-			pconfig.custom_mlc_path = _pathToUtf8(path);
-			pconfig.Store();
-		}
-		catch (const PSDisabledException&) {}
-		catch (const std::exception& ex)
-		{
-			cemuLog_log(LogType::Force, "can't store custom mlc path in permanent storage: {}", ex.what());
-		}
-	}
-
 	Account::RefreshAccounts();
 }
 
@@ -360,6 +342,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");
 	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
+	emulated_usb_devices.emulate_infinity_base = usbdevices.get("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base);
 }
 
 void CemuConfig::Save(XMLConfigParser& parser)
@@ -557,6 +540,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	// emulated usb devices
 	auto usbdevices = config.set("EmulatedUsbDevices");
 	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
+	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 }
 
 GameEntry* CemuConfig::GetGameEntryByTitleId(uint64 titleId)

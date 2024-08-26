@@ -15,13 +15,18 @@ public:
 
 	std::vector<const wxLanguageInfo*> GetLanguages() const;
 
-	static void CreateDefaultFiles(bool first_start = false);
-	static bool TrySelectMLCPath(fs::path path);
-	static bool SelectMLCPath(wxWindow* parent = nullptr);
+	static bool CheckMLCPath(const fs::path& mlc);
+	static bool CreateDefaultMLCFiles(const fs::path& mlc);
+	static void CreateDefaultCemuFiles();
 
+	static void InitializeNewMLCOrFail(fs::path mlc);
+	static void InitializeExistingMLCOrFail(fs::path mlc);
 private:
+	void LocalizeUI(wxLanguage languageToUse);
+
+	void DeterminePaths(std::set<fs::path>& failedWriteAccess);
+
 	void ActivateApp(wxActivateEvent& event);
-	void LocalizeUI();
 	static std::vector<const wxLanguageInfo*> GetAvailableTranslationLanguages(wxTranslations* translationsMgr);
 
 	MainWindow* m_mainFrame = nullptr;

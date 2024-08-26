@@ -57,7 +57,7 @@ At Step 3 in [Build Cemu using cmake and clang](#build-cemu-using-cmake-and-clan
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Fedora and derivatives:
-`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel llvm nasm ninja-build perl-core systemd-devel zlib-devel`
+`sudo dnf install clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel llvm nasm ninja-build perl-core systemd-devel zlib-devel zlib-static`
 
 ### Build Cemu
 

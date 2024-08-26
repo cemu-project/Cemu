@@ -11,7 +11,7 @@ struct RedirectEntry
 
 FSAFileTree<RedirectEntry> redirectTree;
 
-void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority)
+void fscDeviceRedirect_add(std::string_view virtualSourcePath, size_t fileSize, const fs::path& targetFilePath, sint32 priority)
 {
 	// check if source already has a redirection
 	RedirectEntry* existingEntry;
@@ -24,7 +24,7 @@ void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& t
 		delete existingEntry;
 	}
 	RedirectEntry* entry = new RedirectEntry(targetFilePath, priority);
-	redirectTree.addFile(virtualSourcePath, entry);
+	redirectTree.addFile(virtualSourcePath, fileSize, entry);
 }
 
 class fscDeviceTypeRedirect : public fscDeviceC
@@ -32,8 +32,15 @@ class fscDeviceTypeRedirect : public fscDeviceC
 	FSCVirtualFile* fscDeviceOpenByPath(std::string_view path, FSC_ACCESS_FLAG accessFlags, void* ctx, sint32* fscStatus) override
 	{
 		RedirectEntry* redirectionEntry;
-		if (redirectTree.getFile(path, redirectionEntry))
+
+		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_FILE) && redirectTree.getFile(path, redirectionEntry))
 			return FSCVirtualFile_Host::OpenFile(redirectionEntry->dstPath, accessFlags, *fscStatus);
+
+		FSCVirtualFile* dirIterator;
+
+		if (HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::OPEN_DIR) && redirectTree.getDirectory(path, dirIterator))
+			return dirIterator;
+
 		return nullptr;
 	}
 

@@ -8,10 +8,6 @@ add_library(CemuConfig
     LaunchSettings.h
     NetworkSettings.cpp
     NetworkSettings.h
-    PermanentConfig.cpp
-    PermanentConfig.h
-    PermanentStorage.cpp
-    PermanentStorage.h
     XMLConfig.h
 )
 

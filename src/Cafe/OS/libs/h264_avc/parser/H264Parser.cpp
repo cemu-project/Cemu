@@ -319,6 +319,17 @@ bool parseNAL_pic_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264Par
 	return true;
 }
 
+bool h264Parser_ParseSPS(uint8* data, uint32 length, h264State_seq_parameter_set_t& sps)
+{
+	h264ParserState_t parserState;
+	RBSPInputBitstream nalStream(data, length);
+	bool r = parseNAL_seq_parameter_set_rbsp(&parserState, nullptr, nalStream);
+	if(!r || !parserState.hasSPS)
+		return false;
+	sps = parserState.sps;
+	return true;
+}
+
 void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps, const h264State_pic_parameter_set_t& pps, RBSPInputBitstream& nalStream, nal_slice_header_t* sliceHeader)
 {
 	if (!sliceHeader->slice_type.isSliceTypeI() && !sliceHeader->slice_type.isSliceTypeSI())
@@ -688,9 +699,8 @@ void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_se
 	else if (sps.pic_order_cnt_type == 2)
 	{
 		// display order matches decode order
-
 		uint32 prevFrameNum = h264ParserState->picture_order.prevFrameNum;
-		;
+
 		uint32 FrameNumOffset;
 		if (sliceHeader->IdrPicFlag)
 		{
@@ -706,9 +716,6 @@ void _calculateFrameOrder(h264ParserState_t* h264ParserState, const h264State_se
 				FrameNumOffset = prevFrameNumOffset + sps.getMaxFrameNum();
 			else
 				FrameNumOffset = prevFrameNumOffset;
-
-
-
 		}
 
 		uint32 tempPicOrderCnt;

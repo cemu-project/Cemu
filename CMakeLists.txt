@@ -16,6 +16,24 @@ if (EXPERIMENTAL_VERSION)
 endif()
 
 if (ENABLE_VCPKG)
+	# check if vcpkg is shallow and unshallow it if necessary
+	execute_process(
+	COMMAND git rev-parse --is-shallow-repository
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/vcpkg
+	OUTPUT_VARIABLE is_vcpkg_shallow
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+	
+	if(is_vcpkg_shallow STREQUAL "true")
+		message(STATUS "vcpkg is shallow. Unshallowing it now...")
+		execute_process(
+			COMMAND git fetch --unshallow
+			WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/dependencies/vcpkg"
+			RESULT_VARIABLE result
+			OUTPUT_VARIABLE output
+		)
+	endif()
+
 
 	if(UNIX AND NOT APPLE AND NOT VCPKG_TARGET_ANDROID)
 		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_linux")

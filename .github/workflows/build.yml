@@ -24,11 +24,6 @@ jobs:
         submodules: "recursive"
         fetch-depth: 0
 
-    - name: "Fetch full history for vcpkg submodule"
-      run: |
-        cd dependencies/vcpkg
-        git fetch --unshallow
-
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
@@ -133,11 +128,6 @@ jobs:
       with:
         submodules: "recursive"
 
-    - name: "Fetch full history for vcpkg submodule"
-      run: |
-        cd dependencies/vcpkg
-        git fetch --unshallow
-        
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
@@ -212,11 +202,6 @@ jobs:
       with:
         submodules: "recursive"
         
-    - name: "Fetch full history for vcpkg submodule"
-      run: |
-        cd dependencies/vcpkg
-        git fetch --unshallow
-        
     - name: Setup release mode parameters (for deploy)
       if: ${{ inputs.deploymode == 'release' }}
       run: |
@@ -239,7 +224,17 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install llvm@15 ninja nasm molten-vk automake libtool
+        brew install llvm@15 ninja nasm automake libtool
+        brew install cmake ninja
+
+    - name: "Build and install molten-vk"
+      run: |
+        git clone https://github.com/KhronosGroup/MoltenVK.git
+        cd MoltenVK
+        git checkout bf097edc74ec3b6dfafdcd5a38d3ce14b11952d6
+        ./fetchDependencies --macos
+        make macos
+        make install
 
     - name: "Setup cmake"
       uses: jwlawson/actions-setup-cmake@v2

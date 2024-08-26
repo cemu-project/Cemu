@@ -38,9 +38,9 @@ namespace nsyshid
 		bool m_IsOpened;
 	};
 
-	constexpr uint16 BLOCK_COUNT = 0x40;
-	constexpr uint16 BLOCK_SIZE = 0x10;
-	constexpr uint16 FIGURE_SIZE = BLOCK_COUNT * BLOCK_SIZE;
+	constexpr uint16 SKY_BLOCK_COUNT = 0x40;
+	constexpr uint16 SKY_BLOCK_SIZE = 0x10;
+	constexpr uint16 SKY_FIGURE_SIZE = SKY_BLOCK_COUNT * SKY_BLOCK_SIZE;
 	constexpr uint8 MAX_SKYLANDERS = 16;
 
 	class SkylanderUSB {
@@ -50,7 +50,7 @@ namespace nsyshid
 			std::unique_ptr<FileStream> skyFile;
 			uint8 status = 0;
 			std::queue<uint8> queuedStatus;
-			std::array<uint8, BLOCK_COUNT * BLOCK_SIZE> data{};
+			std::array<uint8, SKY_FIGURE_SIZE> data{};
 			uint32 lastId = 0;
 			void Save();
 

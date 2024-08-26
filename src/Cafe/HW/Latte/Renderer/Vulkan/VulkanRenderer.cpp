@@ -7,6 +7,7 @@
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
 
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 
@@ -2228,6 +2229,8 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 	else
 	{
 		formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		if(format == (Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT | Latte::E_GX2SURFFMT::FMT_BIT_SRGB)) // Seen in Sonic Transformed level Starry Speedway. SRGB should just be ignored for native float formats?
+			format = Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT;
 		switch (format)
 		{
 			// RGBA formats
@@ -2469,6 +2472,11 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			// used by Color Splash and Resident Evil
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
+		case Latte::E_GX2SURFFMT::R32_X8_FLOAT:
+			// seen in Disney Infinity 3.0
+			formatInfoOut->vkImageFormat = VK_FORMAT_R32_SFLOAT;
+			formatInfoOut->decoder = TextureDecoder_NullData64::getInstance();
+			break;
 		default:
 			cemuLog_log(LogType::Force, "Unsupported color texture format {:04x}", (uint32)format);
 			cemu_assert_debug(false);
