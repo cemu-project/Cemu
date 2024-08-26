@@ -2,18 +2,19 @@ cmake_minimum_required(VERSION 3.21.1)
 
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
-set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
-if (EXPERIMENTAL_VERSION)
-	add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
-	execute_process(
-			COMMAND git log --format=%h -1
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-			OUTPUT_VARIABLE GIT_HASH
-			OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
-	add_definitions(-DEMULATOR_HASH=${GIT_HASH})
-endif()
+# used by CI script to set version:
+set(EMULATOR_VERSION_MAJOR "0" CACHE STRING "")
+set(EMULATOR_VERSION_MINOR "0" CACHE STRING "")
+set(EMULATOR_VERSION_PATCH "0" CACHE STRING "")
+
+execute_process(
+		COMMAND git log --format=%h -1
+		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+		OUTPUT_VARIABLE GIT_HASH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+add_definitions(-DEMULATOR_HASH=${GIT_HASH})
 
 if (ENABLE_VCPKG)
 	# check if vcpkg is shallow and unshallow it if necessary
@@ -61,6 +62,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions($<$<CONFIG:Debug>:CEMU_DEBUG_ASSERT>) # if build type is debug, set CEMU_DEBUG_ASSERT
+
+add_definitions(-DEMULATOR_VERSION_MAJOR=${EMULATOR_VERSION_MAJOR})
+add_definitions(-DEMULATOR_VERSION_MINOR=${EMULATOR_VERSION_MINOR})
+add_definitions(-DEMULATOR_VERSION_PATCH=${EMULATOR_VERSION_PATCH})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

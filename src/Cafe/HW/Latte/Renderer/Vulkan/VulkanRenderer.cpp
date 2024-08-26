@@ -125,7 +125,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	VkApplicationInfo app_info{};
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = EMULATOR_NAME;
-	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH);
 	app_info.pEngineName = EMULATOR_NAME;
 	app_info.engineVersion = app_info.applicationVersion;
 	app_info.apiVersion = apiVersion;
@@ -339,7 +339,7 @@ VulkanRenderer::VulkanRenderer()
 	VkApplicationInfo app_info{};
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = EMULATOR_NAME;
-	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH);
 	app_info.pEngineName = EMULATOR_NAME;
 	app_info.engineVersion = app_info.applicationVersion;
 	app_info.apiVersion = apiVersion;

@@ -1,20 +1,83 @@
 name: Deploy experimental release
 on: 
   workflow_dispatch:
+    inputs:
+      changelog0:
+        description: 'Enter the changelog lines for this release. Each line is a feature / bullet point. Do not use dash.'
+        required: true
+        type: string
+      changelog1:
+        description: 'Feature 2'
+        required: false
+        type: string
+      changelog2:
+        description: 'Feature 3'
+        required: false
+        type: string
+      changelog3:
+        description: 'Feature 4'
+        required: false
+        type: string
+      changelog4:
+        description: 'Feature 5'
+        required: false
+        type: string
+      changelog5:
+        description: 'Feature 6'
+        required: false
+        type: string
+      changelog6:
+        description: 'Feature 7'
+        required: false
+        type: string
+      changelog7:
+        description: 'Feature 8'
+        required: false
+        type: string
+      changelog8:
+        description: 'Feature 9'
+        required: false
+        type: string
+      changelog9:
+        description: 'Feature 10'
+        required: false
+        type: string
 
 jobs:
+  calculate-version:
+    name: Calculate Version
+    uses: ./.github/workflows/determine_release_version.yml
   call-release-build:
     uses: ./.github/workflows/build.yml
+    needs: calculate-version
     with:
-      deploymode: release
-      experimentalversion: ${{ github.run_number }}
+      next_version_major: ${{ needs.calculate-version.outputs.next_version_major }}
+      next_version_minor: ${{ needs.calculate-version.outputs.next_version_minor }}
   deploy:
     name: Deploy experimental release
     runs-on: ubuntu-22.04
-    needs: call-release-build
+    needs: [call-release-build, calculate-version]
     steps:
-      - uses: actions/checkout@v3
- 
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        id: generate_changelog
+        run: |
+          CHANGELOG=""
+          if [ -n "${{ github.event.inputs.changelog0 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog0 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog1 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog1 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog2 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog2 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog3 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog3 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog4 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog4 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog5 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog5 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog6 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog6 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog7 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog7 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog8 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog8 }}\n"; fi
+          if [ -n "${{ github.event.inputs.changelog9 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog9 }}\n"; fi
+          echo -e "$CHANGELOG"
+          echo "RELEASE_BODY=$CHANGELOG" >> $GITHUB_ENV
       - uses: actions/download-artifact@v4
         with:
           name: cemu-bin-linux-x64
@@ -40,15 +103,13 @@ jobs:
           mkdir upload
           sudo apt install zip
           
-      - name: Get version
+      - name: Set version dependent vars
         run: |
-          echo "Experimental version: ${{ github.run_number }}"
-          ls
-          gcc -o getversion .github/getversion.cpp
-          ./getversion
-          echo "Cemu CI version: $(./getversion)"
-          echo "CEMU_FOLDER_NAME=Cemu_$(./getversion)-${{ github.run_number }}" >> $GITHUB_ENV
-          echo "CEMU_VERSION=$(./getversion)-${{ github.run_number }}" >> $GITHUB_ENV
+          echo "Version: ${{ needs.calculate-version.outputs.next_version }}"
+          echo "CEMU_FOLDER_NAME=Cemu_${{ needs.calculate-version.outputs.next_version }}"
+          echo "CEMU_VERSION=${{ needs.calculate-version.outputs.next_version }}"
+          echo "CEMU_FOLDER_NAME=Cemu_${{ needs.calculate-version.outputs.next_version }}" >> $GITHUB_ENV
+          echo "CEMU_VERSION=${{ needs.calculate-version.outputs.next_version }}" >> $GITHUB_ENV
 
       - name: Create release from windows-bin
         run: |
@@ -83,4 +144,8 @@ jobs:
           wget -O ghr.tar.gz https://github.com/tcnksm/ghr/releases/download/v0.15.0/ghr_v0.15.0_linux_amd64.tar.gz
           tar xvzf ghr.tar.gz; rm ghr.tar.gz
           echo "[INFO] Release tag: v${{ env.CEMU_VERSION }}"
-          ghr_v0.15.0_linux_amd64/ghr -prerelease -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }} (Experimental)" -b "Cemu experimental release" "v${{ env.CEMU_VERSION }}" ./upload
+          CHANGELOG_UNESCAPED=$(printf "%s\n" "${{ env.RELEASE_BODY }}" | sed 's/\\n/\n/g')          
+          RELEASE_BODY=$(printf "%s\n%s" \
+            "**Changelog:**" \
+            "$CHANGELOG_UNESCAPED")
+          ghr_v0.15.0_linux_amd64/ghr -draft -t ${{ secrets.GITHUB_TOKEN }} -n "Cemu ${{ env.CEMU_VERSION }}" -b "$RELEASE_BODY" "v${{ env.CEMU_VERSION }}" ./upload

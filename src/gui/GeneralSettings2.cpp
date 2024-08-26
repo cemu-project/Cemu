@@ -141,54 +141,87 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			second_row->SetFlexibleDirection(wxBOTH);
 			second_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
+			sint32 checkboxCount = 0;
+			auto CountRowElement = [&]()
+			{
+				checkboxCount++;
+				if(checkboxCount != 2)
+					return;
+				second_row->AddSpacer(10);
+				checkboxCount = 0;
+			};
+
+			auto InsertEmptyRow = [&]()
+			{
+				while(checkboxCount != 0)
+					CountRowElement();
+				second_row->AddSpacer(10);
+				second_row->AddSpacer(10);
+				second_row->AddSpacer(10);
+			};
+
 			const int topflag = wxALIGN_CENTER_VERTICAL | wxALL;
 			m_save_window_position_size = new wxCheckBox(box, wxID_ANY, _("Remember main window position"));
 			m_save_window_position_size->SetToolTip(_("Restores the last known window position and size when starting Cemu"));
 			second_row->Add(m_save_window_position_size, 0, topflag, 5);
-			second_row->AddSpacer(10);
+			CountRowElement();
+			//second_row->AddSpacer(10);
 			m_save_padwindow_position_size = new wxCheckBox(box, wxID_ANY, _("Remember pad window position"));
 			m_save_padwindow_position_size->SetToolTip(_("Restores the last known pad window position and size when opening it"));
 			second_row->Add(m_save_padwindow_position_size, 0, topflag, 5);
+			CountRowElement();
 
 			const int botflag = wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM;
 			m_discord_presence = new wxCheckBox(box, wxID_ANY, _("Discord Presence"));
 			m_discord_presence->SetToolTip(_("Enables the Discord Rich Presence feature\nYou will also need to enable it in the Discord settings itself!"));
 			second_row->Add(m_discord_presence, 0, botflag, 5);
+			CountRowElement();
 #ifndef ENABLE_DISCORD_RPC
 			m_discord_presence->Disable();
 #endif
-			second_row->AddSpacer(10);
+			//second_row->AddSpacer(10);
 			m_fullscreen_menubar = new wxCheckBox(box, wxID_ANY, _("Fullscreen menu bar"));
 			m_fullscreen_menubar->SetToolTip(_("Displays the menu bar when Cemu is running in fullscreen mode and the mouse cursor is moved to the top"));
 			second_row->Add(m_fullscreen_menubar, 0, botflag, 5);
+			CountRowElement();
 
-			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
-			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
-			second_row->Add(m_auto_update, 0, botflag, 5);
-#if BOOST_OS_LINUX 
-			if (!std::getenv("APPIMAGE")) {
-				m_auto_update->Disable();
-			} 
-#endif	
-			second_row->AddSpacer(10);
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
 			second_row->Add(m_save_screenshot, 0, botflag, 5);
+			CountRowElement();
 
 			m_disable_screensaver = new wxCheckBox(box, wxID_ANY, _("Disable screen saver"));
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
+			CountRowElement();
 
 			// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
 			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
 			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
 			second_row->Add(m_feral_gamemode, 0, botflag, 5);
+			CountRowElement();
 #endif
 
 			// temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
 			m_disable_screensaver->Enable(false);
+#endif
+
+			// InsertEmptyRow();
+
+			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
+			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
+			second_row->Add(m_auto_update, 0, botflag, 5);
+			CountRowElement();
+
+			m_receive_untested_releases = new wxCheckBox(box, wxID_ANY, _("Receive untested updates"));
+			m_receive_untested_releases->SetToolTip(_("When checking for updates, include brand new and untested releases. These may contain bugs!"));
+			second_row->Add(m_receive_untested_releases, 0, botflag, 5);
+#if BOOST_OS_LINUX
+			if (!std::getenv("APPIMAGE")) {
+				m_auto_update->Disable();
+			}
 #endif
 
 			box_sizer->Add(second_row, 0, wxEXPAND, 5);
@@ -1536,6 +1569,7 @@ void GeneralSettings2::ApplyConfig()
 	m_fullscreen_menubar->SetValue(config.fullscreen_menubar);
 
 	m_auto_update->SetValue(config.check_update);
+	m_receive_untested_releases->SetValue(config.receive_untested_updates);
 	m_save_screenshot->SetValue(config.save_screenshot);
 
 	m_disable_screensaver->SetValue(config.disable_screensaver);
