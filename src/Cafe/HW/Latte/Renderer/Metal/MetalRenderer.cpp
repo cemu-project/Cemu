@@ -248,8 +248,8 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     // Release all the command buffers
     CommitCommandBuffer();
     // TODO: should this be released here?
-    for (uint32 i = 0; i < m_commandBuffers.size(); i++)
-        m_commandBuffers[i].m_commandBuffer->release();
+    //for (uint32 i = 0; i < m_commandBuffers.size(); i++)
+    //    m_commandBuffers[i].m_commandBuffer->release();
     m_commandBuffers.clear();
 
     // Release frame persistent buffers
@@ -257,6 +257,9 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
     // Unlock all temporary buffers
     m_memoryManager->GetTemporaryBufferAllocator().UnlockAllBuffers();
+
+    // Check for completed command buffers
+    m_memoryManager->GetTemporaryBufferAllocator().CheckForCompletedCommandBuffers();
 }
 
 // TODO: use `shader` for drawing
@@ -1301,13 +1304,10 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
         //m_commandQueue->insertDebugCaptureBoundary();
 
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
-		MetalCommandBuffer commandBuffer = {mtlCommandBuffer, m_commandBufferID};
-		m_commandBuffers.push_back(commandBuffer);
-
-		m_commandBufferID = (m_commandBufferID + 1) % 65536;
+		m_commandBuffers.push_back({mtlCommandBuffer});
 
 		// Notify memory manager about the new command buffer
-        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(commandBuffer.m_id);
+        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
 
 		return mtlCommandBuffer;
 	}
@@ -1480,14 +1480,15 @@ void MetalRenderer::CommitCommandBuffer()
         auto& commandBuffer = m_commandBuffers.back();
         if (!commandBuffer.m_commited)
         {
-            commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
-                m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_id);
-            });
+            // Handled differently, since it seems like Metal doesn't always call the completion handler
+            //commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
+            //    m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
+            //});
 
             commandBuffer.m_commandBuffer->commit();
             commandBuffer.m_commited = true;
 
-            m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(INVALID_COMMAND_BUFFER_ID);
+            m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
 
             // Debug
             //m_commandQueue->insertDebugCaptureBoundary();
