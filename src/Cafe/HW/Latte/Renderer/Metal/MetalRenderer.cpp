@@ -509,8 +509,7 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
         auto blitCommandEncoder = GetBlitCommandEncoder();
 
         // Allocate a temporary buffer
-        // HACK: use the persistent buffer allocator so as to avoid any issues
-        auto& bufferAllocator = m_memoryManager->GetBufferAllocator();
+        auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
         auto allocation = bufferAllocator.GetBufferAllocation(compressedImageSize);
         auto buffer = bufferAllocator.GetBuffer(allocation.bufferIndex);
 
@@ -1192,9 +1191,11 @@ void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, u
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(bufferIndex);
     if (!HasUnifiedMemory())
+    {
+        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(bufferIndex);
         buffer->didModifyRange(NS::Range(offset, size));
+    }
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1459,7 +1460,7 @@ void MetalRenderer::CommitCommandBuffer()
         auto& commandBuffer = m_commandBuffers.back();
         if (!commandBuffer.m_commited)
         {
-            commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer* cmd) {
+            commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
                 m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
             });
 

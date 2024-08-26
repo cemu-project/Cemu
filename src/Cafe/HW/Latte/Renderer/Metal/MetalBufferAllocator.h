@@ -152,7 +152,7 @@ struct MetalSyncedBuffer
 class MetalTemporaryBufferAllocator : public MetalBufferAllocator<MetalSyncedBuffer>
 {
 public:
-    MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer, metalRenderer->GetOptimalBufferStorageMode()) {}
+    MetalTemporaryBufferAllocator(class MetalRenderer* metalRenderer) : MetalBufferAllocator<MetalSyncedBuffer>(metalRenderer, MTL::ResourceStorageModeShared) {}
 
     void SetActiveCommandBuffer(MTL::CommandBuffer* commandBuffer)
     {
@@ -170,6 +170,16 @@ public:
                 {
                     if (buffer.m_commandBuffers.size() == 1)
                     {
+                        // First remove any free ranges that use this buffer
+                        for (uint32 k = 0; k < m_freeBufferRanges.size(); k++)
+                        {
+                            if (m_freeBufferRanges[k].bufferIndex == i)
+                            {
+                                m_freeBufferRanges.erase(m_freeBufferRanges.begin() + k);
+                                k--;
+                            }
+                        }
+
                         // All command buffers using it have finished execution, we can use it again
                         m_freeBufferRanges.push_back({i, 0, buffer.m_buffer->length()});
 
