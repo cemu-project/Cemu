@@ -17,6 +17,7 @@
 .idea/
 
 build/
+build_arm
 cmake-build-*/
 out/
 .cache/
