@@ -17,7 +17,7 @@
     </fragment>
     <fragment
         android:id="@+id/graphicPacksRootFragment"
-        android:name="info.cemu.Cemu.settings.graphicpacks.GraphicPacksFragment"
+        android:name="info.cemu.Cemu.settings.graphicpacks.GraphicPacksRootFragment"
         android:label="@string/graphic_packs">
         <action
             android:id="@+id/action_graphicPacksRootFragment_to_graphicPacksFragment"
