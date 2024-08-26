@@ -246,9 +246,17 @@ bool PPCRecompilerAArch64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction
 	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_DCBZ)
 	{
-		cemu_assert_suspicious();
-		// TODO: Implement this
-		return false;
+		auto memBaseReg = XReg(MEMORY_BASE_REG_ID);
+		auto tempReg32 = WReg(TEMP_REGISTER_ID);
+		auto tempReg64 = XReg(TEMP_REGISTER_ID);
+		auto tempVReg = VReg(TEMP_VECTOR_REGISTER_ID);
+		auto tempQReg = QReg(TEMP_VECTOR_REGISTER_ID);
+		aarch64GenContext->movi(tempVReg.d2, 0);
+		aarch64GenContext->add(tempReg32, regA, regR);
+		aarch64GenContext->and_(tempReg32, tempReg32, ~0x1f);
+		aarch64GenContext->add(tempReg64, tempReg64, memBaseReg);
+		aarch64GenContext->stp(tempQReg, tempQReg, AdrNoOfs(tempReg64));
+		return true;
 	}
 	else
 	{
