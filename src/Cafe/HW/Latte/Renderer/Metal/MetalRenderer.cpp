@@ -242,12 +242,12 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
     if (swapTV)
         SwapBuffer(true);
-    //if (swapDRC)
-    //    SwapBuffer(false);
+    if (swapDRC)
+        SwapBuffer(false);
 
     // Release all the command buffers
     CommitCommandBuffer();
-    // TODO: should this be released here?
+    // TODO: release
     //for (uint32 i = 0; i < m_commandBuffers.size(); i++)
     //    m_commandBuffers[i].m_commandBuffer->release();
     m_commandBuffers.clear();
