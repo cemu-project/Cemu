@@ -1114,6 +1114,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    renderPipelineState = m_pipelineCache->GetMeshPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew, hostIndexType);
 	else
         renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, LatteGPUState.contextNew);
+
+    // HACK
+    if (!renderPipelineState)
+    {
+        debug_printf("invalid render pipeline state, skipping draw\n");
+        return;
+    }
+
 	if (renderPipelineState != encoderState.m_renderPipelineState)
    	{
         renderCommandEncoder->setRenderPipelineState(renderPipelineState);
