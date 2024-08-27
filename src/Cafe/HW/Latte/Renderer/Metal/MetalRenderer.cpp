@@ -126,7 +126,7 @@ MetalRenderer::MetalRenderer()
     presentFragmentFunction->release();
 
     error = nullptr;
-    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
 #ifdef CEMU_DEBUG_ASSERT
     renderPipelineDescriptor->setLabel(GetLabel("Present pipeline linear", renderPipelineDescriptor));
 #endif
@@ -138,7 +138,7 @@ MetalRenderer::MetalRenderer()
     }
 
     error = nullptr;
-    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatRGBA8Unorm_sRGB);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatBGRA8Unorm_sRGB);
 #ifdef CEMU_DEBUG_ASSERT
     renderPipelineDescriptor->setLabel(GetLabel("Present pipeline sRGB", renderPipelineDescriptor));
 #endif
@@ -185,7 +185,9 @@ MetalRenderer::~MetalRenderer()
 
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 {
-    GetLayer(mainWindow) = MetalLayerHandle(m_device, size);
+    auto& layer = GetLayer(mainWindow);
+    layer = MetalLayerHandle(m_device, size);
+    layer.GetLayer()->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
 }
 
 void MetalRenderer::ResizeLayer(const Vector2i& size, bool mainWindow)
@@ -240,17 +242,24 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 {
     if (swapTV)
         SwapBuffer(true);
-    //if (swapDRC)
-    //    SwapBuffer(false);
+    if (swapDRC)
+        SwapBuffer(false);
 
     // Release all the command buffers
     CommitCommandBuffer();
-    for (uint32 i = 0; i < m_commandBuffers.size(); i++)
-        m_commandBuffers[i].m_commandBuffer->release();
+    // TODO: release
+    //for (uint32 i = 0; i < m_commandBuffers.size(); i++)
+    //    m_commandBuffers[i].m_commandBuffer->release();
     m_commandBuffers.clear();
 
     // Release frame persistent buffers
     m_memoryManager->GetFramePersistentBufferAllocator().ResetAllocations();
+
+    // Unlock all temporary buffers
+    m_memoryManager->GetTemporaryBufferAllocator().UnlockAllBuffers();
+
+    // Check for completed command buffers
+    m_memoryManager->GetTemporaryBufferAllocator().CheckForCompletedCommandBuffers();
 }
 
 // TODO: use `shader` for drawing
@@ -381,7 +390,7 @@ ImTextureID MetalRenderer::GenerateTexture(const std::vector<uint8>& data, const
 		desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
 		desc->setWidth(size.x);
 		desc->setHeight(size.y);
-		desc->setStorageMode(MTL::StorageModeShared);
+		desc->setStorageMode(m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModeManaged);
 		desc->setUsage(MTL::TextureUsageShaderRead);
 
 		MTL::Texture* texture = m_device->newTexture(desc);
@@ -507,11 +516,13 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
         auto blitCommandEncoder = GetBlitCommandEncoder();
 
         // Allocate a temporary buffer
-        auto allocation = m_memoryManager->GetTemporaryBufferAllocator().GetBufferAllocation(compressedImageSize);
-        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(allocation.bufferIndex);
+        auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+        auto allocation = bufferAllocator.GetBufferAllocation(compressedImageSize);
+        auto buffer = bufferAllocator.GetBuffer(allocation.bufferIndex);
 
         // Copy the data to the temporary buffer
         memcpy(allocation.data, pixelData, compressedImageSize);
+        //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
 
         // Copy the data from the temporary buffer to the texture
         blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
@@ -936,10 +947,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	uint32 cullBack = polygonControlReg.get_CULL_BACK();
 	uint32 polyOffsetFrontEnable = polygonControlReg.get_OFFSET_FRONT_ENABLED();
 
-	// TODO
-	//cemu_assert_debug(LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() == LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE()); // near or far clipping can be disabled individually
-	//bool zClipEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE() == false;
-
 	if (polyOffsetFrontEnable)
 	{
     	uint32 frontScaleU32 = LatteGPUState.contextNew.PA_SU_POLY_OFFSET_FRONT_SCALE.getRawValue();
@@ -971,6 +978,16 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 			encoderState.m_depthSlope = 0;
 			encoderState.m_depthClamp = 0;
 		}
+	}
+
+	// Depth clip mode
+	cemu_assert_debug(LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_NEAR_DISABLE() == LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE()); // near or far clipping can be disabled individually
+	bool zClipEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_ZCLIP_FAR_DISABLE() == false;
+
+	if (zClipEnable != encoderState.m_depthClipEnable)
+	{
+	    renderCommandEncoder->setDepthClipMode(zClipEnable ? MTL::DepthClipModeClip : MTL::DepthClipModeClamp);
+        encoderState.m_depthClipEnable = zClipEnable;
 	}
 
 	// todo - how does culling behave with rects?
@@ -1112,7 +1129,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Draw
 	MTL::Buffer* indexBuffer = nullptr;
 	if (hostIndexType != INDEX_TYPE::NONE)
-	    indexBuffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(indexBufferIndex);
+	{
+	    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+	    indexBuffer = bufferAllocator.GetBuffer(indexBufferIndex);
+
+		// We have already retrieved the buffer, no need for it to be locked anymore
+		bufferAllocator.UnlockBuffer(indexBufferIndex);
+	}
 	if (usesGeometryShader)
 	{
 	    if (indexBuffer)
@@ -1178,18 +1201,27 @@ void MetalRenderer::draw_endSequence()
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
 {
-    auto allocation = m_memoryManager->GetTemporaryBufferAllocator().GetBufferAllocation(size);
+    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+    auto allocation = bufferAllocator.GetBufferAllocation(size);
 	offset = allocation.offset;
 	bufferIndex = allocation.bufferIndex;
+
+	// Lock the buffer so that it doesn't get released
+	bufferAllocator.LockBuffer(allocation.bufferIndex);
 
 	return allocation.data;
 }
 
 void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size)
 {
-    auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBuffer(bufferIndex);
+    // Do nothing
+    /*
     if (!HasUnifiedMemory())
+    {
+        auto buffer = m_memoryManager->GetTemporaryBufferAllocator().GetBufferOutsideOfCommandBuffer(bufferIndex);
         buffer->didModifyRange(NS::Range(offset, size));
+    }
+    */
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1454,12 +1486,15 @@ void MetalRenderer::CommitCommandBuffer()
         auto& commandBuffer = m_commandBuffers.back();
         if (!commandBuffer.m_commited)
         {
-            commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer* cmd) {
-                m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
-            });
+            // Handled differently, since it seems like Metal doesn't always call the completion handler
+            //commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
+            //    m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
+            //});
 
             commandBuffer.m_commandBuffer->commit();
             commandBuffer.m_commited = true;
+
+            m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
 
             // Debug
             //m_commandQueue->insertDebugCaptureBoundary();
@@ -1474,7 +1509,7 @@ bool MetalRenderer::AcquireDrawable(bool mainWindow)
     const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
     if (latteBufferUsesSRGB != m_state.m_usesSRGB)
     {
-        layer.GetLayer()->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatRGBA8Unorm_sRGB : MTL::PixelFormatRGBA8Unorm);
+        layer.GetLayer()->setPixelFormat(latteBufferUsesSRGB ? MTL::PixelFormatBGRA8Unorm_sRGB : MTL::PixelFormatBGRA8Unorm);
         m_state.m_usesSRGB = latteBufferUsesSRGB;
     }
 
@@ -1696,8 +1731,8 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		auto supportBuffer = bufferAllocator.GetBufferAllocation(size);
 		memcpy(supportBuffer.data, supportBufferData, size);
 		auto buffer = bufferAllocator.GetBuffer(supportBuffer.bufferIndex);
-		if (!HasUnifiedMemory())
-		    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
+		//if (!HasUnifiedMemory())
+		//    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
 
 		SetBuffer(renderCommandEncoder, mtlShaderType, buffer, supportBuffer.offset, shader->resourceMapping.uniformVarsBufferBindingPoint);
 	}

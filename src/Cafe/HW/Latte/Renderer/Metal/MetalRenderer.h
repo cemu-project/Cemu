@@ -98,6 +98,7 @@ struct MetalEncoderState
     uint32 m_depthBias = 0;
    	uint32 m_depthSlope = 0;
    	uint32 m_depthClamp = 0;
+    bool m_depthClipEnable = true;
     struct {
         MTL::Buffer* m_buffer;
         size_t m_offset;
