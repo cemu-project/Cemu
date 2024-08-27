@@ -20,6 +20,7 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLCommandBuffer.hpp"
 #include "Metal/MTLDevice.hpp"
 #include "Metal/MTLRenderPass.hpp"
 #include "imgui.h"
@@ -306,10 +307,13 @@ void MetalRenderer::Flush(bool waitIdle)
 {
     if (m_recordedDrawcalls > 0)
         CommitCommandBuffer();
-    if (waitIdle && m_commandBuffers.size() != 0)
+    if (waitIdle)
     {
-        // TODO: shouldn't we wait for all command buffers?
-        WaitForCommandBufferCompletion(GetCurrentCommandBuffer());
+        for (auto commandBuffer : m_commandBuffers)
+        {
+            if (commandBuffer.m_commited)
+                WaitForCommandBufferCompletion(commandBuffer.m_commandBuffer);
+        }
     }
 }
 
@@ -1325,7 +1329,8 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 
 bool MetalRenderer::CommandBufferCompleted(MTL::CommandBuffer* commandBuffer)
 {
-    return commandBuffer->status() == MTL::CommandBufferStatusCompleted;
+    auto status = commandBuffer->status();
+    return (status == MTL::CommandBufferStatusCompleted || status == MTL::CommandBufferStatusError);
 }
 
 void MetalRenderer::WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer)
