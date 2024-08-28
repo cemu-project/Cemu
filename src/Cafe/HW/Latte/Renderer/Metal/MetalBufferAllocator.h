@@ -15,7 +15,13 @@ template<typename BufferT>
 class MetalBufferAllocator
 {
 public:
-    MetalBufferAllocator(class MetalRenderer* metalRenderer, MTL::ResourceOptions storageMode) : m_mtlr{metalRenderer}, m_storageMode{storageMode} {}
+    MetalBufferAllocator(class MetalRenderer* metalRenderer, MTL::ResourceOptions storageMode) : m_mtlr{metalRenderer} {
+        m_isCPUAccessible = (storageMode == MTL::ResourceStorageModeShared) || (storageMode == MTL::ResourceStorageModeManaged);
+
+        m_options = storageMode;
+        if (m_isCPUAccessible)
+            m_options |= MTL::ResourceCPUCacheModeWriteCombined;
+    }
 
     ~MetalBufferAllocator()
     {
@@ -54,7 +60,7 @@ public:
                 allocation.bufferIndex = range.bufferIndex;
                 allocation.offset = range.offset;
                 allocation.size = size;
-                allocation.data = (uint8*)buffer.m_buffer->contents() + range.offset;
+                allocation.data = (m_isCPUAccessible ? (uint8*)buffer.m_buffer->contents() + range.offset : nullptr);
 
                 range.offset += size;
                 range.size -= size;
@@ -70,7 +76,7 @@ public:
 
         // If no free range was found, allocate a new buffer
         m_allocationSize = std::max(m_allocationSize, size);
-        MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, m_storageMode | MTL::ResourceCPUCacheModeWriteCombined);
+        MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(m_allocationSize, m_options);
     #ifdef CEMU_DEBUG_ASSERT
         buffer->setLabel(GetLabel("Buffer from buffer allocator", buffer));
     #endif
@@ -79,7 +85,7 @@ public:
         allocation.bufferIndex = m_buffers.size();
         allocation.offset = 0;
         allocation.size = size;
-        allocation.data = buffer->contents();
+        allocation.data = (m_isCPUAccessible ? buffer->contents() : nullptr);
 
         m_buffers.push_back({buffer});
 
@@ -129,7 +135,8 @@ public:
 
 protected:
     class MetalRenderer* m_mtlr;
-    MTL::ResourceOptions m_storageMode;
+    bool m_isCPUAccessible;
+    MTL::ResourceOptions m_options;
 
     size_t m_allocationSize = 8 * 1024 * 1024;
 

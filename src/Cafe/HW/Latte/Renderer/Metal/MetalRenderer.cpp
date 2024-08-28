@@ -41,7 +41,7 @@ MetalRenderer::MetalRenderer()
     m_commandQueue = m_device->newCommandQueue();
 
     // Feature support
-    m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_isAppleGPU = false;//m_device->supportsFamily(MTL::GPUFamilyApple1);
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
@@ -511,7 +511,7 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->GetFormat(), textureMtl->IsDepth(), width);
     // No need to set bytesPerImage for 3D textures, since we always load just one slice
     //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->IsDepth(), height, bytesPerRow);
-    if (IsAppleGPU())
+    if (m_isAppleGPU)
     {
         textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
     }
@@ -674,7 +674,7 @@ LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
 {
-    GetCommandBuffer();
+    return;
 
     // scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
@@ -907,10 +907,12 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
 	// Depth stencil state
-	// TODO
+
 	// Disable depth write when there is no depth attachment
-	//if (!m_state.m_lastUsedFBO->depthBuffer.texture)
-	//    depthControl.set_Z_WRITE_ENABLE(false);
+	auto& depthControl = LatteGPUState.contextNew.DB_DEPTH_CONTROL;
+	bool depthWriteEnable = depthControl.get_Z_WRITE_ENABLE();
+	if (!m_state.m_lastUsedFBO->depthBuffer.texture)
+	    depthControl.set_Z_WRITE_ENABLE(false);
 
 	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
 	if (depthStencilState != encoderState.m_depthStencilState)
@@ -918,6 +920,9 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    renderCommandEncoder->setDepthStencilState(depthStencilState);
 		encoderState.m_depthStencilState = depthStencilState;
 	}
+
+	// Restore the original depth write state
+	depthControl.set_Z_WRITE_ENABLE(depthWriteEnable);
 
 	// Stencil reference
 	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
