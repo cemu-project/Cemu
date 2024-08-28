@@ -31,17 +31,19 @@ fragment float4 fragmentPresent(VertexOut in [[stage_in]], texture2d<float> tex 
     return tex.sample(samplr, in.texCoord);
 }
 
+/*
 vertex void vertexCopyTextureToTexture(uint vid [[vertex_id]], texture2d<float, access::read> src [[texture(GET_TEXTURE_BINDING(0))]], texture2d<float, access::write> dst [[texture(GET_TEXTURE_BINDING(1))]], constant uint32_t& width [[buffer(GET_BUFFER_BINDING(0))]]) {
     uint2 coord = uint2(vid % width, vid / width);
     return dst.write(float4(src.read(coord).r, 0.0, 0.0, 0.0), coord);
 }
+*/
 
 struct RestrideParams {
     uint oldStride;
     uint newStride;
 };
 
-/* TODO: use uint32? Since that would require less iterations */
+// TODO: use uint32? Since that would require less iterations
 vertex void vertexRestrideBuffer(uint vid [[vertex_id]], device uint8_t* src [[buffer(GET_BUFFER_BINDING(0))]], device uint8_t* dst [[buffer(GET_BUFFER_BINDING(1))]], constant RestrideParams& params [[buffer(GET_BUFFER_BINDING(2))]]) {
     for (uint32_t i = 0; i < params.oldStride; i++) {
         dst[vid * params.newStride + i] = src[vid * params.oldStride + i];

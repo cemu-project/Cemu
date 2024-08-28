@@ -10,6 +10,7 @@ MetalLayerHandle::MetalLayerHandle(MTL::Device* device, const Vector2i& size)
     m_layer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle, m_layerScaleX, m_layerScaleY);
     m_layer->setDevice(device);
     m_layer->setDrawableSize(CGSize{(float)size.x * m_layerScaleX, (float)size.y * m_layerScaleY});
+    m_layer->setFramebufferOnly(true);
 }
 
 MetalLayerHandle::~MetalLayerHandle()

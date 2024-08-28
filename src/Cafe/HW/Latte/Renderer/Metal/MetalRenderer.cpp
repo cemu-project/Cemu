@@ -159,7 +159,7 @@ MetalRenderer::MetalRenderer()
     auto copyTextureToColorPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
 
     // Hybrid pipelines
-    m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
+    //m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
     m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
 
@@ -168,7 +168,7 @@ MetalRenderer::MetalRenderer()
 
 MetalRenderer::~MetalRenderer()
 {
-    delete m_copyTextureToTexturePipeline;
+    //delete m_copyTextureToTexturePipeline;
     delete m_restrideBufferPipeline;
 
     m_presentPipelineLinear->release();
@@ -686,9 +686,12 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
-	sint32 sourceEffectiveWidth, sourceEffectiveHeight;
-	sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
+	//sint32 sourceEffectiveWidth, sourceEffectiveHeight;
+	//sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 
+    texture_copyImageSubData(sourceTexture, srcMip, 0, 0, srcSlice, destinationTexture, dstMip, 0, 0, dstSlice, effectiveCopyWidth, effectiveCopyHeight, 0);
+
+    /*
 	sint32 texSrcMip = srcMip;
 	sint32 texSrcSlice = srcSlice;
 	sint32 texDstMip = dstMip;
@@ -729,8 +732,6 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	}
 	else
 	{
-	    // TODO: uncomment
-	    /*
 	    bool copyingToWholeRegion = ((effectiveCopyWidth == dstTextureMtl->GetMipWidth(dstMip) && effectiveCopyHeight == dstTextureMtl->GetMipHeight(dstMip)));
 
 	    auto renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
@@ -753,10 +754,10 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 
 		EndEncoding();
-		*/
 
 		debug_printf("surface copy with no render command encoder, skipping copy\n");
 	}
+	*/
 }
 
 void MetalRenderer::bufferCache_init(const sint32 bufferSize)
