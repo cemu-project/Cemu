@@ -264,10 +264,7 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     m_memoryManager->GetFramePersistentBufferAllocator().ResetAllocations();
 
     // Unlock all temporary buffers
-    m_memoryManager->GetTemporaryBufferAllocator().UnlockAllBuffers();
-
-    // Check for completed command buffers
-    m_memoryManager->GetTemporaryBufferAllocator().CheckForCompletedCommandBuffers();
+    m_memoryManager->GetTemporaryBufferAllocator().EndFrame();
 }
 
 // TODO: use `shader` for drawing
@@ -504,7 +501,7 @@ void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIn
     }
 }
 
-// TODO: do a GPU blit even on unified memory? That would mean we could use private storage mode for all textures
+// TODO: do a cpu copy on Apple Silicon?
 void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, sint32 height, sint32 depth, void* pixelData, sint32 sliceIndex, sint32 mipIndex, uint32 compressedImageSize)
 {
     auto textureMtl = (LatteTextureMtl*)hostTexture;
