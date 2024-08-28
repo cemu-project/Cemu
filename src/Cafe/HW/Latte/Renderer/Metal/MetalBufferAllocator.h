@@ -10,7 +10,8 @@ struct MetalBufferRange
     size_t size;
 };
 
-constexpr size_t BASE_ALLOCATION_SIZE = 8 * 1024 * 1024;
+constexpr size_t BASE_ALLOCATION_SIZE = 8 * 1024 * 1024; // 8 MB
+constexpr size_t MAX_ALLOCATION_SIZE = 64 * 1024 * 1024; // 64 MB
 
 template<typename BufferT>
 class MetalBufferAllocator
@@ -85,6 +86,7 @@ public:
 
         // If no free range was found, allocate a new buffer
         size_t allocationSize = BASE_ALLOCATION_SIZE * (1u << m_buffers.size());
+        allocationSize = std::min(allocationSize, MAX_ALLOCATION_SIZE); // Limit the allocation size
         allocationSize = std::max(allocationSize, size);
         MTL::Buffer* mtlBuffer = m_mtlr->GetDevice()->newBuffer(allocationSize, m_options);
     #ifdef CEMU_DEBUG_ASSERT
