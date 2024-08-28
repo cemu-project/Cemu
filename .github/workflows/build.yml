@@ -176,7 +176,7 @@ jobs:
         path: ./bin/Cemu.exe
 
   build-macos:
-    runs-on: macos-12
+    runs-on: macos-14
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v4
@@ -198,17 +198,14 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install llvm@15 ninja nasm automake libtool
-        brew install cmake ninja
+        brew install ninja nasm automake libtool
 
-    - name: "Build and install molten-vk"
+    - name: "Install molten-vk"
       run: |
-        git clone https://github.com/KhronosGroup/MoltenVK.git
-        cd MoltenVK
-        git checkout bf097edc74ec3b6dfafdcd5a38d3ce14b11952d6
-        ./fetchDependencies --macos
-        make macos
-        make install
+        curl -L -O https://github.com/KhronosGroup/MoltenVK/releases/download/v1.2.9/MoltenVK-macos.tar
+        tar xf MoltenVK-macos.tar
+        sudo mkdir -p /usr/local/lib
+        sudo cp MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib /usr/local/lib
 
     - name: "Setup cmake"
       uses: jwlawson/actions-setup-cmake@v2
@@ -239,9 +236,8 @@ jobs:
         cd build
         cmake .. ${{ env.BUILD_FLAGS }} \
         -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
+        -DCMAKE_OSX_ARCHITECTURES=x86_64 \
         -DMACOS_BUNDLE=ON \
-        -DCMAKE_C_COMPILER=/usr/local/opt/llvm@15/bin/clang \
-        -DCMAKE_CXX_COMPILER=/usr/local/opt/llvm@15/bin/clang++ \
         -G Ninja
         
     - name: "Build Cemu"
