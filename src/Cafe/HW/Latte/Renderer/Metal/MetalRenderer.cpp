@@ -45,7 +45,7 @@ MetalRenderer::MetalRenderer()
     m_commandQueue = m_device->newCommandQueue();
 
     // Feature support
-    m_isAppleGPU = false;//m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
@@ -519,26 +519,26 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->GetFormat(), textureMtl->IsDepth(), width);
     // No need to set bytesPerImage for 3D textures, since we always load just one slice
     //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->IsDepth(), height, bytesPerRow);
-    if (m_isAppleGPU)
-    {
-        textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
-    }
-    else
-    {
-        auto blitCommandEncoder = GetBlitCommandEncoder();
+    //if (m_isAppleGPU)
+    //{
+    //    textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);
+    //}
+    //else
+    //{
+    auto blitCommandEncoder = GetBlitCommandEncoder();
 
-        // Allocate a temporary buffer
-        auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-        auto allocation = bufferAllocator.GetBufferAllocation(compressedImageSize);
-        auto buffer = bufferAllocator.GetBuffer(allocation.bufferIndex);
+    // Allocate a temporary buffer
+    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
+    auto allocation = bufferAllocator.GetBufferAllocation(compressedImageSize);
+    auto buffer = bufferAllocator.GetBuffer(allocation.bufferIndex);
 
-        // Copy the data to the temporary buffer
-        memcpy(allocation.data, pixelData, compressedImageSize);
-        //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
+    // Copy the data to the temporary buffer
+    memcpy(allocation.data, pixelData, compressedImageSize);
+    //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
 
-        // Copy the data from the temporary buffer to the texture
-        blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
-    }
+    // Copy the data from the temporary buffer to the texture
+    blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
+    //}
 }
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)

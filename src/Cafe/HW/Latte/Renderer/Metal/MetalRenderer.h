@@ -397,10 +397,10 @@ public:
         return m_pixelFormatSupport;
     }
 
-    MTL::StorageMode GetOptimalTextureStorageMode() const
-    {
-        return (m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModePrivate);
-    }
+    //MTL::StorageMode GetOptimalTextureStorageMode() const
+    //{
+    //    return (m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModePrivate);
+    //}
 
     MTL::ResourceOptions GetOptimalBufferStorageMode() const
     {
