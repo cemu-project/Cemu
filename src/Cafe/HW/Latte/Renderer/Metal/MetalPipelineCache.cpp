@@ -350,6 +350,12 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
 	mtlVertexShader->CompileVertexFunction();
+	// HACK
+	if (!mtlVertexShader->GetFunction())
+	{
+	    debug_printf("no vertex function, skipping draw\n");
+		return nullptr;
+	}
 	mtlPixelShader->CompileFragmentFunction(activeFBO);
 
 	// Render pipeline state

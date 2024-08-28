@@ -218,12 +218,20 @@ void RendererShaderMtl::Compile(const std::string& mslCode)
     if (m_function)
         m_function->release();
 
+    // HACK
+    if (m_hasError)
+        return;
+
     NS::Error* error = nullptr;
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), nullptr, &error);
 	if (error)
     {
         printf("failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
         error->release();
+
+        // HACK
+        m_hasError = true;
+
         return;
     }
     m_function = library->newFunction(ToNSString("main0"));

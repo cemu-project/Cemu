@@ -63,5 +63,8 @@ private:
 	std::vector<uint8> m_binary;
 	std::string m_mslCode;
 
+	// HACK
+	bool m_hasError = false;
+
 	void Compile(const std::string& mslCode);
 };
