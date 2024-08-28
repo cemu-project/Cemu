@@ -16,6 +16,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
+#include "Foundation/NSTypes.hpp"
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
@@ -23,7 +24,9 @@
 #include "Metal/MTLCommandBuffer.hpp"
 #include "Metal/MTLDevice.hpp"
 #include "Metal/MTLRenderPass.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "imgui.h"
+#include <cstddef>
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -117,13 +120,13 @@ MetalRenderer::MetalRenderer()
     }
 
     // Present pipeline
-    MTL::Function* presentVertexFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
+    MTL::Function* fullscreenVertexFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
     MTL::Function* presentFragmentFunction = utilityLibrary->newFunction(ToNSString("fragmentPresent"));
 
     MTL::RenderPipelineDescriptor* renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-    renderPipelineDescriptor->setVertexFunction(presentVertexFunction);
+    renderPipelineDescriptor->setVertexFunction(fullscreenVertexFunction);
     renderPipelineDescriptor->setFragmentFunction(presentFragmentFunction);
-    presentVertexFunction->release();
+    fullscreenVertexFunction->release();
     presentFragmentFunction->release();
 
     error = nullptr;
@@ -151,9 +154,12 @@ MetalRenderer::MetalRenderer()
         error->release();
     }
 
+    // Copy texture pipelines
+    auto copyTextureToColorPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+
     // Hybrid pipelines
-    m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture", "kernelCopyTextureToTexture");
-    m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer", "kernelRestrideBuffer");
+    m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
+    m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
 
     m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);
@@ -674,8 +680,6 @@ LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView
 
 void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
 {
-    return;
-
     // scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
@@ -688,32 +692,24 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	sint32 texDstMip = dstMip;
 	sint32 texDstSlice = dstSlice;
 
-	LatteTextureMtl* srcTextureMtl = static_cast<LatteTextureMtl*>(sourceTexture);
-	LatteTextureMtl* dstTextureMtl = static_cast<LatteTextureMtl*>(destinationTexture);
+	// Create texture views
+	LatteTextureViewMtl* srcTextureMtl = static_cast<LatteTextureViewMtl*>(sourceTexture->GetOrCreateView(srcMip, 1, srcSlice, 1));
+	LatteTextureViewMtl* dstTextureMtl = static_cast<LatteTextureViewMtl*>(destinationTexture->GetOrCreateView(dstMip, 1, dstSlice, 1));
 
 	// check if texture rescale ratios match
 	// todo - if not, we have to use drawcall based copying
-	if (!LatteTexture_doesEffectiveRescaleRatioMatch(srcTextureMtl, texSrcMip, dstTextureMtl, texDstMip))
+	if (!LatteTexture_doesEffectiveRescaleRatioMatch(sourceTexture, texSrcMip, destinationTexture, texDstMip))
 	{
 		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceWithFormatConversion(): Mismatching dimensions");
 		return;
 	}
 
 	// check if bpp size matches
-	if (srcTextureMtl->GetBPP() != dstTextureMtl->GetBPP())
+	if (sourceTexture->GetBPP() != destinationTexture->GetBPP())
 	{
 		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceWithFormatConversion(): Mismatching BPP");
 		return;
 	}
-
-	struct CopyParams
-	{
-	    uint32 width;
-		uint32 srcMip;
-		uint32 srcSlice;
-		uint32 dstMip;
-		uint32 dstSlice;
-	} params{(uint32)effectiveCopyWidth, (uint32)texSrcMip, (uint32)texSrcSlice, (uint32)texDstMip, (uint32)texDstSlice};
 
 	if (m_encoderType == MetalEncoderType::Render)
 	{
@@ -722,17 +718,42 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 		renderCommandEncoder->setRenderPipelineState(m_copyTextureToTexturePipeline->GetRenderPipelineState());
 		m_state.m_encoderState.m_renderPipelineState = m_copyTextureToTexturePipeline->GetRenderPipelineState();
 
-		SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, srcTextureMtl->GetTexture(), GET_HELPER_TEXTURE_BINDING(0));
-		SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, dstTextureMtl->GetTexture(), GET_HELPER_TEXTURE_BINDING(1));
-		renderCommandEncoder->setVertexBytes(&params, sizeof(params), GET_HELPER_BUFFER_BINDING(0));
+		SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, srcTextureMtl->GetRGBAView(), GET_HELPER_TEXTURE_BINDING(0));
+		SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, dstTextureMtl->GetRGBAView(), GET_HELPER_TEXTURE_BINDING(1));
+		renderCommandEncoder->setVertexBytes(&effectiveCopyWidth, sizeof(effectiveCopyWidth), GET_HELPER_BUFFER_BINDING(0));
 		m_state.m_encoderState.m_buffers[METAL_SHADER_TYPE_VERTEX][GET_HELPER_BUFFER_BINDING(0)] = {nullptr};
 
 		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
 	}
 	else
 	{
-	    // TODO: do the copy in a compute shader
-		debug_printf("surfaceCopy_copySurfaceWithFormatConversion: no active render command encoder, skipping copy\n");
+	    // TODO: uncomment
+	    /*
+	    bool copyingToWholeRegion = ((effectiveCopyWidth == dstTextureMtl->GetMipWidth(dstMip) && effectiveCopyHeight == dstTextureMtl->GetMipHeight(dstMip)));
+
+	    auto renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+		auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+		colorAttachment->setTexture(dstTextureMtl->GetTexture());
+		// We don't care about previous contents if we are about to overwrite the whole region
+		colorAttachment->setLoadAction(copyingToWholeRegion ? MTL::LoadActionDontCare : MTL::LoadActionLoad);
+		colorAttachment->setStoreAction(MTL::StoreActionStore);
+		colorAttachment->setSlice(dstSlice);
+		colorAttachment->setLevel(dstMip);
+
+		auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
+
+		auto pipeline = (srcTextureMtl->IsDepth() ? m_copyTextureToColorPipeline : m_copyTextureToDepthPipeline);
+		renderCommandEncoder->setRenderPipelineState(pipeline);
+
+		renderCommandEncoder->setFragmentTexture(srcTextureMtl->GetTexture(), GET_HELPER_TEXTURE_BINDING(0));
+		renderCommandEncoder->setFragmentBytes(&effectiveCopyWidth, offsetof(effectiveCopyWidth), GET_HELPER_BUFFER_BINDING(0));
+
+		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+
+		EndEncoding();
+		*/
+
+		debug_printf("surface copy with no render command encoder, skipping copy\n");
 	}
 }
 

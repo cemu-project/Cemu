@@ -31,17 +31,9 @@ fragment float4 fragmentPresent(VertexOut in [[stage_in]], texture2d<float> tex 
     return tex.sample(samplr, in.texCoord);
 }
 
-struct CopyParams {
-    uint width;
-    uint srcMip;
-    uint srcSlice;
-    uint dstMip;
-    uint dstSlice;
-};
-
-vertex void vertexCopyTextureToTexture(uint vid [[vertex_id]], texture2d_array<float, access::read> src [[texture(GET_TEXTURE_BINDING(0))]], texture2d_array<float, access::write> dst [[texture(GET_TEXTURE_BINDING(1))]], constant CopyParams& params [[buffer(GET_BUFFER_BINDING(0))]]) {
-    uint2 coord = uint2(vid % params.width, vid / params.width);
-    return dst.write(float4(src.read(coord, params.srcSlice, params.srcMip).r, 0.0, 0.0, 0.0), coord, params.dstSlice, params.dstMip);
+vertex void vertexCopyTextureToTexture(uint vid [[vertex_id]], texture2d<float, access::read> src [[texture(GET_TEXTURE_BINDING(0))]], texture2d<float, access::write> dst [[texture(GET_TEXTURE_BINDING(1))]], constant uint32_t& width [[buffer(GET_BUFFER_BINDING(0))]]) {
+    uint2 coord = uint2(vid % width, vid / width);
+    return dst.write(float4(src.read(coord).r, 0.0, 0.0, 0.0), coord);
 }
 
 struct RestrideParams {

@@ -1,6 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 
-MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlRenderer, MTL::Library* library, const char* vertexFunctionName, const char* kernelFunctionName)
+MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlRenderer, MTL::Library* library, const std::string& vertexFunctionName/*, const std::string& kernelFunctionName*/)
 {
     // Render pipeline state
     MTL::Function* vertexFunction = library->newFunction(ToNSString(vertexFunctionName));
@@ -20,12 +20,10 @@ MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlR
     }
 
     // Compute pipeline state
-    // TODO
 }
 
 MetalHybridComputePipeline::~MetalHybridComputePipeline()
 {
     m_renderPipelineState->release();
-    // TODO: uncomment
     //m_computePipelineState->release();
 }
