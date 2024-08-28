@@ -16,6 +16,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
+#include "Common/precompiled.h"
 #include "Foundation/NSTypes.hpp"
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
@@ -311,14 +312,15 @@ bool MetalRenderer::BeginFrame(bool mainWindow)
 
 void MetalRenderer::Flush(bool waitIdle)
 {
-    if (m_recordedDrawcalls > 0)
+    if (m_recordedDrawcalls > 0 || waitIdle)
         CommitCommandBuffer();
     if (waitIdle)
     {
         for (auto commandBuffer : m_commandBuffers)
         {
-            if (commandBuffer.m_commited)
-                WaitForCommandBufferCompletion(commandBuffer.m_commandBuffer);
+            cemu_assert_debug(commandBuffer.m_commited);
+
+            WaitForCommandBufferCompletion(commandBuffer.m_commandBuffer);
         }
     }
 }
