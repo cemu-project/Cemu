@@ -2186,7 +2186,6 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	}
 
 	auto texDim = shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex];
-	bool isCompare = shaderContext->shader->textureUsesDepthCompare[texInstruction->textureFetch.textureIndex];
 
 	char tempBuffer0[32];
 	char tempBuffer1[32];
@@ -2246,6 +2245,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			src->add(" = (");
 	}
 
+	bool isCompare = shaderContext->shader->textureUsesDepthCompare[texInstruction->textureFetch.textureIndex];
+	bool isGather = (texOpcode == GPU7_TEX_INST_FETCH4);
+
 	bool unnormalizationHandled = false;
 	bool useTexelCoordinates = false;
 
@@ -2267,7 +2269,6 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	if ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) ||
 	    texOpcode == GPU7_TEX_INST_LD)
 	{
-		// texture is likely a RECT
 		if (hasOffset)
 			cemu_assert_unimplemented();
 		src->add("read(");
@@ -2276,7 +2277,10 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	}
 	else
 	{
-        src->add("sample");
+	    if (isGather)
+			src->add("gather");
+		else
+            src->add("sample");
 	    if (isCompare)
 			src->add("_compare");
 		src->addFmt("(samplr{}, ", texInstruction->textureFetch.textureIndex);
@@ -2531,7 +2535,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
      			if( texInstruction->dstSel[f] < 4 )
      			{
     				uint8 elemIndex = texInstruction->dstSel[f];
-    				if (texOpcode == GPU7_TEX_INST_FETCH4)
+    				if (isGather)
     				{
         				// 's textureGather() and GPU7's FETCH4 instruction have a different order of elements
         				// xyzw: top-left, top-right, bottom-right, bottom-left
