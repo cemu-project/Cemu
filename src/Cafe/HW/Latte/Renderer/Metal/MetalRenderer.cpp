@@ -161,7 +161,8 @@ MetalRenderer::MetalRenderer()
     auto copyTextureToColorPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
 
     // Hybrid pipelines
-    m_copyBufferToBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
+    if (m_isAppleGPU)
+        m_copyBufferToBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
     //m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
     m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
@@ -171,7 +172,8 @@ MetalRenderer::MetalRenderer()
 
 MetalRenderer::~MetalRenderer()
 {
-    delete m_copyBufferToBufferPipeline;
+    if (m_isAppleGPU)
+        delete m_copyBufferToBufferPipeline;
     //delete m_copyTextureToTexturePipeline;
     delete m_restrideBufferPipeline;
 
@@ -778,7 +780,8 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    if (m_encoderType == MetalEncoderType::Render)
+    // Do the copy in a vertex shader on Apple GPUs
+    if (m_isAppleGPU && m_encoderType == MetalEncoderType::Render)
     {
         auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
 
