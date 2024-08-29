@@ -328,7 +328,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-		bufferStride = Align(bufferStride, 4);
 
 		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
 		if (bufferStride == 0)
@@ -353,6 +352,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
     			cemu_assert(false);
     		}
 		}
+		bufferStride = Align(bufferStride, 4);
 		layout->setStride(bufferStride);
 	}
 
