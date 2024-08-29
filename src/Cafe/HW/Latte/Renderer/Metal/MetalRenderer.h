@@ -440,6 +440,7 @@ private:
 	MTL::RenderPipelineState* m_presentPipelineSRGB;
 
 	// Hybrid pipelines
+	class MetalHybridComputePipeline* m_copyBufferToBufferPipeline;
 	//class MetalHybridComputePipeline* m_copyTextureToTexturePipeline;
 	class MetalHybridComputePipeline* m_restrideBufferPipeline;
 

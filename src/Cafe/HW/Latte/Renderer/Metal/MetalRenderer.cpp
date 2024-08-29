@@ -24,6 +24,7 @@
 #include "HW/Latte/Renderer/Renderer.h"
 #include "Metal/MTLCommandBuffer.hpp"
 #include "Metal/MTLDevice.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 #include "Metal/MTLRenderPass.hpp"
 #include "Metal/MTLRenderPipeline.hpp"
 #include "imgui.h"
@@ -95,7 +96,8 @@ MetalRenderer::MetalRenderer()
 #endif
 
     // Transform feedback
-    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize() * 32, MTL::ResourceStorageModePrivate);
+    // HACK: using just LatteStreamout_GetRingBufferSize will cause page faults
+    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize() * 4, MTL::ResourceStorageModePrivate);
 #ifdef CEMU_DEBUG_ASSERT
     m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
 #endif
@@ -159,6 +161,7 @@ MetalRenderer::MetalRenderer()
     auto copyTextureToColorPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
 
     // Hybrid pipelines
+    m_copyBufferToBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
     //m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
     m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
@@ -168,6 +171,7 @@ MetalRenderer::MetalRenderer()
 
 MetalRenderer::~MetalRenderer()
 {
+    delete m_copyBufferToBufferPipeline;
     //delete m_copyTextureToTexturePipeline;
     delete m_restrideBufferPipeline;
 
@@ -774,9 +778,30 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    auto blitCommandEncoder = GetBlitCommandEncoder();
+    if (m_encoderType == MetalEncoderType::Render)
+    {
+        auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
 
-    blitCommandEncoder->copyFromBuffer(m_xfbRingBuffer, srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size);
+		MTL::Resource* barrierBuffers[] = {m_xfbRingBuffer};
+        renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex | MTL::RenderStageFragment | MTL::RenderStageObject | MTL::RenderStageMesh, MTL::RenderStageVertex);
+
+		renderCommandEncoder->setRenderPipelineState(m_copyBufferToBufferPipeline->GetRenderPipelineState());
+		m_state.m_encoderState.m_renderPipelineState = m_copyBufferToBufferPipeline->GetRenderPipelineState();
+
+		SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, m_xfbRingBuffer, srcOffset, GET_HELPER_BUFFER_BINDING(0));
+		SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, m_memoryManager->GetBufferCache(), dstOffset, GET_HELPER_BUFFER_BINDING(1));
+
+		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), NS::UInteger(size));
+
+		barrierBuffers[0] = m_memoryManager->GetBufferCache();
+        renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex | MTL::RenderStageFragment | MTL::RenderStageObject | MTL::RenderStageMesh);
+    }
+    else
+    {
+        auto blitCommandEncoder = GetBlitCommandEncoder();
+
+        blitCommandEncoder->copyFromBuffer(m_xfbRingBuffer, srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size);
+    }
 }
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)

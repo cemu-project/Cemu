@@ -31,6 +31,10 @@ fragment float4 fragmentPresent(VertexOut in [[stage_in]], texture2d<float> tex 
     return tex.sample(samplr, in.texCoord);
 }
 
+vertex void vertexCopyBufferToBuffer(uint vid [[vertex_id]], device uint8_t* src [[buffer(GET_BUFFER_BINDING(0))]], device uint8_t* dst [[buffer(GET_BUFFER_BINDING(1))]]) {
+    dst[vid] = src[vid];
+}
+
 /*
 vertex void vertexCopyTextureToTexture(uint vid [[vertex_id]], texture2d<float, access::read> src [[texture(GET_TEXTURE_BINDING(0))]], texture2d<float, access::write> dst [[texture(GET_TEXTURE_BINDING(1))]], constant uint32_t& width [[buffer(GET_BUFFER_BINDING(0))]]) {
     uint2 coord = uint2(vid % width, vid / width);
