@@ -22,11 +22,6 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLCommandBuffer.hpp"
-#include "Metal/MTLDevice.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "Metal/MTLRenderPass.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
 #include "imgui.h"
 #include <cstddef>
 
@@ -780,31 +775,7 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    // Do the copy in a vertex shader on Apple GPUs
-    if (m_isAppleGPU && m_encoderType == MetalEncoderType::Render)
-    {
-        auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
-
-		MTL::Resource* barrierBuffers[] = {m_xfbRingBuffer};
-        renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex | MTL::RenderStageFragment | MTL::RenderStageObject | MTL::RenderStageMesh, MTL::RenderStageVertex);
-
-		renderCommandEncoder->setRenderPipelineState(m_copyBufferToBufferPipeline->GetRenderPipelineState());
-		m_state.m_encoderState.m_renderPipelineState = m_copyBufferToBufferPipeline->GetRenderPipelineState();
-
-		SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, m_xfbRingBuffer, srcOffset, GET_HELPER_BUFFER_BINDING(0));
-		SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, m_memoryManager->GetBufferCache(), dstOffset, GET_HELPER_BUFFER_BINDING(1));
-
-		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), NS::UInteger(size));
-
-		barrierBuffers[0] = m_memoryManager->GetBufferCache();
-        renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex | MTL::RenderStageFragment | MTL::RenderStageObject | MTL::RenderStageMesh);
-    }
-    else
-    {
-        auto blitCommandEncoder = GetBlitCommandEncoder();
-
-        blitCommandEncoder->copyFromBuffer(m_xfbRingBuffer, srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size);
-    }
+    CopyBufferToBuffer(m_xfbRingBuffer, srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size);
 }
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
@@ -945,15 +916,28 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	if (endRenderPass)
 	    EndEncoding();
 
-	// Render pass
-	auto renderCommandEncoder = GetRenderCommandEncoder();
-
     // Primitive type
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
     auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
     bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+
+	// Index buffer
+	Renderer::INDEX_TYPE hostIndexType;
+	uint32 hostIndexCount;
+	uint32 indexMin = 0;
+	uint32 indexMax = 0;
+	uint32 indexBufferOffset = 0;
+	uint32 indexBufferIndex = 0;
+	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
+
+	// synchronize vertex and uniform cache and update buffer bindings
+	// We need to call this before getting the render command encoder, since it can cause buffer copies
+	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+
+	// Render pass
+	auto renderCommandEncoder = GetRenderCommandEncoder();
 
 	// Depth stencil state
 
@@ -1119,18 +1103,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     }
 
 	// Resources
-
-	// Index buffer
-	Renderer::INDEX_TYPE hostIndexType;
-	uint32 hostIndexCount;
-	uint32 indexMin = 0;
-	uint32 indexMax = 0;
-	uint32 indexBufferOffset = 0;
-	uint32 indexBufferIndex = 0;
-	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
-
-	// synchronize vertex and uniform cache and update buffer bindings
-	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
 
 	// Vertex buffers
     for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
@@ -1849,6 +1821,37 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
     EndEncoding();
+}
+
+void MetalRenderer::CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::Buffer* dst, uint32 dstOffset, uint32 size)
+{
+    // Do the copy in a vertex shader on Apple GPUs
+    if (m_isAppleGPU && m_encoderType == MetalEncoderType::Render)
+    {
+        auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
+
+		MTL::Resource* barrierBuffers[] = {src};
+		// TODO: let the caller choose the stages
+        renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex | MTL::RenderStageFragment | MTL::RenderStageObject | MTL::RenderStageMesh, MTL::RenderStageVertex);
+
+		renderCommandEncoder->setRenderPipelineState(m_copyBufferToBufferPipeline->GetRenderPipelineState());
+		m_state.m_encoderState.m_renderPipelineState = m_copyBufferToBufferPipeline->GetRenderPipelineState();
+
+		SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, src, srcOffset, GET_HELPER_BUFFER_BINDING(0));
+		SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_VERTEX, dst, dstOffset, GET_HELPER_BUFFER_BINDING(1));
+
+		renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypePoint, NS::UInteger(0), NS::UInteger(size));
+
+		barrierBuffers[0] = dst;
+		// TODO: let the caller choose the stages
+        renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex | MTL::RenderStageFragment | MTL::RenderStageObject | MTL::RenderStageMesh);
+    }
+    else
+    {
+        auto blitCommandEncoder = GetBlitCommandEncoder();
+
+        blitCommandEncoder->copyFromBuffer(src, srcOffset, dst, dstOffset, size);
+    }
 }
 
 void MetalRenderer::SwapBuffer(bool mainWindow)

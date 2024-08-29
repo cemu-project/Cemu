@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 #include "Common/precompiled.h"
 #include "HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Metal/MTLResource.hpp"
 
 MetalVertexBufferCache::~MetalVertexBufferCache()
 {
@@ -115,13 +116,9 @@ void* MetalMemoryManager::GetTextureUploadBuffer(size_t size)
 
 void MetalMemoryManager::InitBufferCache(size_t size)
 {
-    if (m_bufferCache)
-    {
-        debug_printf("MetalMemoryManager::InitBufferCache: buffer cache already initialized\n");
-        return;
-    }
+    cemu_assert_debug(!m_bufferCache);
 
-    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, m_mtlr->GetOptimalBufferStorageMode() | MTL::ResourceCPUCacheModeWriteCombined);
+    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModePrivate);
 #ifdef CEMU_DEBUG_ASSERT
     m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
 #endif
@@ -129,20 +126,23 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 
 void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, size_t size)
 {
-    if (!m_bufferCache)
-    {
-        debug_printf("MetalMemoryManager::UploadToBufferCache: buffer cache not initialized\n");
-        return;
-    }
+    cemu_assert_debug(m_bufferCache);
+    cemu_assert_debug((offset + size) <= m_bufferCache->length());
 
-    if ((offset + size) > m_bufferCache->length())
-    {
-        debug_printf("MetalMemoryManager::UploadToBufferCache: out of bounds access (offset: %zu, size: %zu, buffer size: %zu)\n", offset, size, m_bufferCache->length());
-    }
+    auto allocation = m_tempBufferAllocator.GetBufferAllocation(size);
+    auto buffer = m_tempBufferAllocator.GetBufferOutsideOfCommandBuffer(allocation.bufferIndex);
+    memcpy((uint8*)buffer->contents() + allocation.offset, data, size);
 
-    memcpy((uint8*)m_bufferCache->contents() + offset, data, size);
-    if (!m_mtlr->HasUnifiedMemory())
-        m_bufferCache->didModifyRange(NS::Range(offset, size));
+    // Lock the buffer to make sure it's not deallocated before the copy is done
+    m_tempBufferAllocator.LockBuffer(allocation.bufferIndex);
+
+    m_mtlr->CopyBufferToBuffer(buffer, allocation.offset, m_bufferCache, offset, size);
+
+    // Make sure the buffer has the right command buffer
+    m_tempBufferAllocator.GetBuffer(allocation.bufferIndex); // TODO: make a helper function for this
+
+    // We can now safely unlock the buffer
+    m_tempBufferAllocator.UnlockBuffer(allocation.bufferIndex);
 
     // Notify vertex buffer cache about the change
     m_vertexBufferCache.MemoryRangeChanged(offset, size);
@@ -150,11 +150,7 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
 void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size)
 {
-    if (!m_bufferCache)
-    {
-        debug_printf("MetalMemoryManager::CopyBufferCache: buffer cache not initialized\n");
-        return;
-    }
+    cemu_assert_debug(m_bufferCache);
 
-    memcpy((uint8*)m_bufferCache->contents() + dstOffset, (uint8*)m_bufferCache->contents() + srcOffset, size);
+    m_mtlr->CopyBufferToBuffer(m_bufferCache, srcOffset, m_bufferCache, dstOffset, size);
 }
