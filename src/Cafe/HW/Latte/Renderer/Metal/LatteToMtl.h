@@ -42,6 +42,8 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode);
 
 MTL::VertexFormat GetMtlVertexFormat(uint8 format);
 
+uint32 GetMtlVertexFormatSize(uint8 format);
+
 MTL::IndexType GetMtlIndexType(Renderer::INDEX_TYPE indexType);
 
 MTL::BlendOperation GetMtlBlendOp(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC combineFunc);

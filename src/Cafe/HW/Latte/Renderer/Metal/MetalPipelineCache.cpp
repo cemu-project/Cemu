@@ -298,6 +298,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 	{
 		std::optional<LatteConst::VertexFetchType2> fetchType;
 
+		uint32 minBufferStride = 0;
 		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
 		{
 			auto& attr = bufferGroup.attrib[j];
@@ -310,6 +311,8 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 			attribute->setOffset(attr.offset);
 			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
 			attribute->setFormat(GetMtlVertexFormat(attr.format));
+
+			minBufferStride = std::max(minBufferStride, attr.offset + GetMtlVertexFormatSize(attr.format));
 
 			if (fetchType.has_value())
 				cemu_assert_debug(fetchType == attr.fetchType);
@@ -327,24 +330,30 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 		bufferStride = Align(bufferStride, 4);
 
-		// HACK
+		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
 		if (bufferStride == 0)
 		{
-		    debug_printf("vertex buffer %u has a vertex stride of 0 bytes, using 4 bytes instead\n", bufferIndex);
-			bufferStride = 4;
-		}
+		    // Buffer stride cannot be zero, let's use the minimum stride
+			bufferStride = minBufferStride;
+		    debug_printf("vertex buffer %u has a vertex stride of 0 bytes, using %u bytes instead\n", bufferIndex, bufferStride);
 
-		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
-		layout->setStride(bufferStride);
-		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
-			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
-		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
-			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
+			// Additionally, constant vertex function must be used
+			layout->setStepFunction(MTL::VertexStepFunctionConstant);
+			layout->setStepRate(0);
+		}
 		else
 		{
-		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
-			cemu_assert(false);
+    		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
+    			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
+    		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
+    			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
+    		else
+    		{
+    		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
+    			cemu_assert(false);
+    		}
 		}
+		layout->setStride(bufferStride);
 	}
 
 	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);

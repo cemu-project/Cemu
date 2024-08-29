@@ -368,6 +368,57 @@ MTL::VertexFormat GetMtlVertexFormat(uint8 format)
 	}
 }
 
+uint32 GetMtlVertexFormatSize(uint8 format)
+{
+    switch (format)
+	{
+	case FMT_32_32_32_32_FLOAT:
+		return 16;
+	case FMT_32_32_32_FLOAT:
+		return 12;
+	case FMT_32_32_FLOAT:
+		return 8;
+	case FMT_32_FLOAT:
+		return 4;
+	case FMT_8_8_8_8:
+		return 4;
+	case FMT_8_8_8:
+		return 3;
+	case FMT_8_8:
+		return 2;
+	case FMT_8:
+		return 1;
+	case FMT_32_32_32_32:
+		return 16;
+	case FMT_32_32_32:
+		return 12;
+	case FMT_32_32:
+		return 8;
+	case FMT_32:
+		return 4;
+	case FMT_16_16_16_16:
+		return 8;
+	case FMT_16_16_16:
+		return 6;
+	case FMT_16_16:
+		return 4;
+	case FMT_16:
+		return 2;
+	case FMT_16_16_16_16_FLOAT:
+		return 8;
+	case FMT_16_16_16_FLOAT:
+		return 6;
+	case FMT_16_16_FLOAT:
+		return 4;
+	case FMT_16_FLOAT:
+		return 2;
+	case FMT_2_10_10_10:
+		return 4;
+	default:
+		return 0;
+	}
+}
+
 MTL::IndexType GetMtlIndexType(Renderer::INDEX_TYPE indexType)
 {
     switch (indexType)
