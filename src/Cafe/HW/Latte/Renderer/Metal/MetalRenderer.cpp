@@ -16,14 +16,11 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
-#include "Common/precompiled.h"
-#include "Foundation/NSTypes.hpp"
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
 #include "imgui.h"
-#include <cstddef>
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -195,8 +192,13 @@ MetalRenderer::~MetalRenderer()
 void MetalRenderer::InitializeLayer(const Vector2i& size, bool mainWindow)
 {
     auto& layer = GetLayer(mainWindow);
-    layer = MetalLayerHandle(m_device, size);
+    layer = MetalLayerHandle(m_device, size, mainWindow);
     layer.GetLayer()->setPixelFormat(MTL::PixelFormatBGRA8Unorm);
+}
+
+void MetalRenderer::ShutdownLayer(bool mainWindow)
+{
+    GetLayer(mainWindow) = MetalLayerHandle();
 }
 
 void MetalRenderer::ResizeLayer(const Vector2i& size, bool mainWindow)
@@ -217,16 +219,14 @@ void MetalRenderer::Shutdown()
     CommitCommandBuffer();
 }
 
-// TODO: what should this do?
 bool MetalRenderer::IsPadWindowActive()
 {
-    return (GetLayer(false).GetDrawable() != nullptr);
+    return (GetLayer(false).GetLayer() != nullptr);
 }
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 {
     usageInMB = m_device->currentAllocatedSize() / 1024 / 1024;
-    // TODO: get the total VRAM size? Though would be pretty useless on Apple Silicon
     totalInMB = m_recommendedMaxVRAMUsage / 1024 / 1024;
 
     return true;
@@ -266,6 +266,9 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
     // Unlock all temporary buffers
     m_memoryManager->GetTemporaryBufferAllocator().EndFrame();
+
+    // Debug
+    m_performanceMonitor.ResetPerFrameData();
 }
 
 // TODO: use `shader` for drawing
@@ -1546,6 +1549,8 @@ void MetalRenderer::CommitCommandBuffer()
 bool MetalRenderer::AcquireDrawable(bool mainWindow)
 {
     auto& layer = GetLayer(mainWindow);
+    if (!layer.GetLayer())
+        return false;
 
     const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
     if (latteBufferUsesSRGB != m_state.m_usesSRGB)
@@ -1856,22 +1861,11 @@ void MetalRenderer::CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::
 
 void MetalRenderer::SwapBuffer(bool mainWindow)
 {
-    auto& layer = GetLayer(mainWindow);
-    if (!layer.AcquireDrawable())
+    if (!AcquireDrawable(mainWindow))
         return;
 
-    if (layer.GetDrawable())
-    {
-        auto commandBuffer = GetCommandBuffer();
-        layer.PresentDrawable(commandBuffer);
-    }
-    else
-    {
-        debug_printf("skipped present!\n");
-    }
-
-    // Debug
-    m_performanceMonitor.ResetPerFrameData();
+    auto commandBuffer = GetCommandBuffer();
+    GetLayer(mainWindow).PresentDrawable(commandBuffer);
 }
 
 void MetalRenderer::EnsureImGuiBackend()

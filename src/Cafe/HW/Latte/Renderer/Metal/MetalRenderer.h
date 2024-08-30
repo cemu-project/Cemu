@@ -204,6 +204,7 @@ public:
     }
 
 	void InitializeLayer(const Vector2i& size, bool mainWindow);
+	void ShutdownLayer(bool mainWindow);
 	void ResizeLayer(const Vector2i& size, bool mainWindow);
 
 	void Initialize() override;

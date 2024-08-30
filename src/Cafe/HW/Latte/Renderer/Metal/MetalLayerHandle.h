@@ -9,7 +9,7 @@ class MetalLayerHandle
 {
 public:
     MetalLayerHandle() = default;
-    MetalLayerHandle(MTL::Device* device, const Vector2i& size);
+    MetalLayerHandle(MTL::Device* device, const Vector2i& size, bool mainWindow);
 
     ~MetalLayerHandle();
 

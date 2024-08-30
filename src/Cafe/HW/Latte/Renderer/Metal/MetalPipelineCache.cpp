@@ -334,7 +334,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 		{
 		    // Buffer stride cannot be zero, let's use the minimum stride
 			bufferStride = minBufferStride;
-		    debug_printf("vertex buffer %u has a vertex stride of 0 bytes, using %u bytes instead\n", bufferIndex, bufferStride);
 
 			// Additionally, constant vertex function must be used
 			layout->setStepFunction(MTL::VertexStepFunctionConstant);

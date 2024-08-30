@@ -39,13 +39,9 @@ MetalCanvas::~MetalCanvas()
 	Unbind(wxEVT_PAINT, &MetalCanvas::OnPaint, this);
 	Unbind(wxEVT_SIZE, &MetalCanvas::OnResize, this);
 
-	if(!m_is_main_window)
-	{
-	    // TODO
-		//MetalRenderer* vkr = (MetalRenderer*)g_renderer.get();
-		//if(vkr)
-		//	vkr->StopUsingPadAndWait();
-	}
+	MetalRenderer* mtlr = (MetalRenderer*)g_renderer.get();
+	if (mtlr)
+		mtlr->ShutdownLayer(m_is_main_window);
 }
 
 void MetalCanvas::OnPaint(wxPaintEvent& event)
@@ -62,5 +58,5 @@ void MetalCanvas::OnResize(wxSizeEvent& event)
 	RefreshRect(refreshRect, false);
 
 	auto metal_renderer = MetalRenderer::GetInstance();
-	metal_renderer->InitializeLayer({size.x, size.y}, m_is_main_window);
+	metal_renderer->ResizeLayer({size.x, size.y}, m_is_main_window);
 }

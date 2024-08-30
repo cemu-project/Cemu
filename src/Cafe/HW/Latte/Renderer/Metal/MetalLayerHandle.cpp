@@ -3,9 +3,9 @@
 
 #include "gui/guiWrapper.h"
 
-MetalLayerHandle::MetalLayerHandle(MTL::Device* device, const Vector2i& size)
+MetalLayerHandle::MetalLayerHandle(MTL::Device* device, const Vector2i& size, bool mainWindow)
 {
-    const auto& windowInfo = gui_getWindowInfo().window_main;
+    const auto& windowInfo = (mainWindow ? gui_getWindowInfo().window_main : gui_getWindowInfo().window_pad);
 
     m_layer = (CA::MetalLayer*)CreateMetalLayer(windowInfo.handle, m_layerScaleX, m_layerScaleY);
     m_layer->setDevice(device);
@@ -32,7 +32,7 @@ bool MetalLayerHandle::AcquireDrawable()
     m_drawable = m_layer->nextDrawable();
     if (!m_drawable)
     {
-        debug_printf("failed to acquire next drawable\n");
+        debug_printf("layer %p failed to acquire next drawable\n", this);
         return false;
     }
 
