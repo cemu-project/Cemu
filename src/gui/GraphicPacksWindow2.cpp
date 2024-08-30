@@ -458,10 +458,10 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 
 				m_shown_graphic_pack = gp;
 
-				m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 10);
+				m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 20);
 				m_graphic_pack_name->GetGrandParent()->Layout();
 
-				m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
+				m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 20);
 				m_graphic_pack_description->GetGrandParent()->Layout();
 
 				m_right_panel->FitInside();
