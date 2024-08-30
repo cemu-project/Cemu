@@ -167,7 +167,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
 		{
 			// seen in Minecraft Wii U Edition
-			src->addFmt("attrDecoder.xyzw = as_type<uint>(float4(in.attrDataSem{}.wzyx)/255.0);" _CRLF, attributeInputIndex);
+			src->addFmt("attrDecoder.xyzw = as_type<uint4>(float4(in.attrDataSem{}.wzyx)/255.0);" _CRLF, attributeInputIndex);
 		}
 		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned != 0 )
 		{
@@ -190,7 +190,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 		else if (attrib->format == FMT_8_8_8_8 && attrib->nfa == 2 && attrib->isSigned == 0)
 		{
 			// seen in Ben 10 Omniverse
-			src->addFmt("attrDecoder.xyzw = as_type<uint>(float4(in.attrDataSem{}.wzyx));" _CRLF, attributeInputIndex);
+			src->addFmt("attrDecoder.xyzw = as_type<uint4>(float4(in.attrDataSem{}.wzyx));" _CRLF, attributeInputIndex);
 		}
 		else
 		{
