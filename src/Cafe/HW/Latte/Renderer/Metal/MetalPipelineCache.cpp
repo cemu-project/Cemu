@@ -251,11 +251,11 @@ void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFB
 	if (lastUsedFBO->depthBuffer.texture)
 	{
 	    auto texture = static_cast<LatteTextureViewMtl*>(lastUsedFBO->depthBuffer.texture);
-           desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-           if (lastUsedFBO->depthBuffer.hasStencil)
-           {
-               desc->setStencilAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-           }
+        desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
+        if (lastUsedFBO->depthBuffer.hasStencil)
+        {
+            desc->setStencilAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
+        }
 	}
 }
 

@@ -950,7 +950,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Disable depth write when there is no depth attachment
 	auto& depthControl = LatteGPUState.contextNew.DB_DEPTH_CONTROL;
 	bool depthWriteEnable = depthControl.get_Z_WRITE_ENABLE();
-	if (!m_state.m_lastUsedFBO->depthBuffer.texture)
+	if (!m_state.m_activeFBO->depthBuffer.texture)
 	    depthControl.set_Z_WRITE_ENABLE(false);
 
 	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
