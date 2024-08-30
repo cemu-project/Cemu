@@ -139,7 +139,7 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
     // Lock the buffer to make sure it's not deallocated before the copy is done
     m_tempBufferAllocator.LockBuffer(allocation.bufferIndex);
 
-    m_mtlr->CopyBufferToBuffer(buffer, allocation.offset, m_bufferCache, offset, size);
+    m_mtlr->CopyBufferToBuffer(buffer, allocation.offset, m_bufferCache, offset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);
 
     // Make sure the buffer has the right command buffer
     m_tempBufferAllocator.GetBuffer(allocation.bufferIndex); // TODO: make a helper function for this
@@ -155,5 +155,5 @@ void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, siz
 {
     cemu_assert_debug(m_bufferCache);
 
-    m_mtlr->CopyBufferToBuffer(m_bufferCache, srcOffset, m_bufferCache, dstOffset, size);
+    m_mtlr->CopyBufferToBuffer(m_bufferCache, srcOffset, m_bufferCache, dstOffset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);
 }

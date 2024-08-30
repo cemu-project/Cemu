@@ -60,3 +60,5 @@ inline NS::String* GetLabel(const std::string& label, const void* identifier)
 {
     return ToNSString(label + " (" + std::to_string(reinterpret_cast<uintptr_t>(identifier)) + ")");
 }
+
+constexpr MTL::RenderStages ALL_MTL_RENDER_STAGES = MTL::RenderStageVertex | MTL::RenderStageObject | MTL::RenderStageMesh | MTL::RenderStageFragment;
