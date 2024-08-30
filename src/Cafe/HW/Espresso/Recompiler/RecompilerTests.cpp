@@ -78,8 +78,20 @@ bool fp_equal(T a, T b)
 	return epsilonDiff(a, b) <= std::numeric_limits<T>::epsilon();
 }
 
+void assertUninitializedMemory(size_t ignoreIndexStart = 0, size_t bytesCount = 0)
+{
+	for (size_t i = 0; i < test_memory_base_size; i++)
+	{
+		if (ignoreIndexStart <= i && i < ignoreIndexStart + bytesCount)
+			continue;
+		uint8 memValue = memory_base[i];
+		cemu_assert_debug(memValue == 0);
+	}
+}
+
 // using emit_inst_fn = std::function<IMLInstruction&()>;
-class emit_inst {
+class emit_inst
+{
 	ppcImlGenContext_t* m_imlGenContext;
 
   public:
@@ -183,8 +195,12 @@ void r_r_s32_tests(setup_and_verify_fn setupAndVerify)
 				emitInst().make_r_name(regR64, PPCREC_NAME_R0 + 2);
 				emitInst().make_r_r_s32(operation, regR32, regA32, immS32);
 				emitInst().make_name_r(PPCREC_NAME_R0, regR64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regA64);
 			},
-			verifyFn);
+			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[1] == regAValue);
+				verifyFn(hCPU);
+			});
 	};
 
 	runTest(
@@ -256,9 +272,9 @@ void r_r_s32_carry_tests(setup_and_verify_fn setupAndVerify)
 {
 	using setup_data = std::tuple<sint32, uint32, uint32>;
 	auto runTest = [&](uint32 operation, verify_fn verifyFn, std::function<setup_data()> data) {
+		auto [regAValue, immS32, regCarryValue] = data();
 		setupAndVerify(
 			[&](emit_inst_fn emitInst, PPCInterpreter_t& hCPU) {
-				auto [regAValue, immS32, regCarryValue] = data();
 				IMLReg regR64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 0);
 				IMLReg regR32 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, 0);
 				IMLReg regA64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 1);
@@ -270,10 +286,14 @@ void r_r_s32_carry_tests(setup_and_verify_fn setupAndVerify)
 				emitInst().make_r_name(regA64, PPCREC_NAME_R0);
 				emitInst().make_r_name(regCarry64, PPCREC_NAME_R0 + 1);
 				emitInst().make_r_r_s32_carry(operation, regR32, regA32, immS32, regCarry32);
+				emitInst().make_name_r(PPCREC_NAME_R0, regA64);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 2, regR64);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 3, regCarry64);
 			},
-			verifyFn);
+			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regAValue);
+				verifyFn(hCPU);
+			});
 	};
 
 	runTest(
@@ -483,6 +503,7 @@ void r_name_tests(setup_and_verify_fn setupAndVerify)
 						   name == PPCREC_NAME_XER_SO ||
 						   (name >= PPCREC_NAME_CR && name <= PPCREC_NAME_CR_LAST);
 		uint32 value = distrib_uint32(gen);
+		std::cout << value << std::endl;
 		setupAndVerify(
 			[&](emit_inst_fn emitInst, PPCInterpreter_t& hCPU) {
 				IMLReg reg64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 0);
@@ -517,9 +538,13 @@ void r_r_tests(setup_and_verify_fn setupAndVerify)
 				hCPU.gpr[0] = regAValue;
 				emitInst().make_r_name(regA64, PPCREC_NAME_R0);
 				emitInst().make_r_r(operation, regR32, regA32);
+				emitInst().make_name_r(PPCREC_NAME_R0, regA64);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regR64);
 			},
-			verifyFn);
+			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regAValue);
+				verifyFn(hCPU);
+			});
 	};
 	uint32 testValue = distrib_uint32(gen);
 
@@ -588,8 +613,14 @@ void r_r_r_tests(setup_and_verify_fn setupAndVerify)
 				emitInst().make_r_name(regB64, PPCREC_NAME_R0 + 2);
 				emitInst().make_r_r_r(operation, regR32, regA32, regB32);
 				emitInst().make_name_r(PPCREC_NAME_R0, regR64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regA64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 2, regB64);
 			},
-			verifyFn);
+			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[1] == regAValue);
+				cemu_assert_debug(hCPU.gpr[2] == regBValue);
+				verifyFn(hCPU);
+			});
 	};
 	runTest(
 		PPCREC_IML_OP_ADD,
@@ -685,9 +716,9 @@ void r_r_r_carry_tests(setup_and_verify_fn setupAndVerify)
 {
 	using setup_data = std::tuple<uint32, uint32, uint32>;
 	auto runTest = [&](uint32 operation, verify_fn verifyFn, std::function<setup_data()> data) {
+		auto [regAValue, regBValue, regCarryValue] = data();
 		setupAndVerify(
 			[&](emit_inst_fn emitInst, PPCInterpreter_t& hCPU) {
-				auto [regAValue, regBValue, regCarryValue] = data();
 				IMLReg regR64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 0);
 				IMLReg regR32 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, 0);
 				IMLReg regA64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 1);
@@ -703,10 +734,16 @@ void r_r_r_carry_tests(setup_and_verify_fn setupAndVerify)
 				emitInst().make_r_name(regB64, PPCREC_NAME_R0 + 1);
 				emitInst().make_r_name(regCarry64, PPCREC_NAME_R0 + 2);
 				emitInst().make_r_r_r_carry(operation, regR32, regA32, regB32, regCarry32);
-				emitInst().make_name_r(PPCREC_NAME_R0 + 3, regR64);
+				emitInst().make_name_r(PPCREC_NAME_R0, regA64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regB64);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 4, regCarry64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 3, regR64);
 			},
-			verifyFn);
+			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regAValue);
+				cemu_assert_debug(hCPU.gpr[1] == regBValue);
+				verifyFn(hCPU);
+			});
 	};
 
 	runTest(
@@ -799,14 +836,18 @@ void compare_and_compare_s32_tests(setup_and_verify_fn setupAndVerify)
 					hCPU.gpr[1] = regBValue;
 					emitInst().make_r_name(regB64, PPCREC_NAME_R0 + 1);
 					emitInst().make_compare(regA32, regB32, regR32, cond);
+					emitInst().make_name_r(PPCREC_NAME_R0 + 1, regB64);
 				}
 				else
 				{
 					emitInst().make_compare_s32(regA32, regBValue, regR32, cond);
 				}
+				emitInst().make_name_r(PPCREC_NAME_R0, regA64);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 2, regR64);
 			},
 			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regAValue);
+				cemu_assert_debug(hCPU.gpr[1] == regBValue);
 				cemu_assert_debug(hCPU.gpr[2] == expectedValue);
 			});
 	};
@@ -838,6 +879,7 @@ sint32 extendSign(uint32 val)
 {
 	return (sint32)val;
 }
+
 template<typename T>
 	requires is_mem_value<T>
 void assertLoadMemValue(T value, bool signExtend, bool switchEndian, uint32 actualValue)
@@ -893,8 +935,10 @@ void load_tests(setup_and_verify_fn setupAndVerify)
 				emitInst().make_r_name(regMem64, PPCREC_NAME_R0);
 				emitInst().make_r_memory(regD32, regMem32, immS32, copyWidth, signExtend, switchEndian);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regD64);
+				emitInst().make_name_r(PPCREC_NAME_R0, regMem64);
 			},
 			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regMemValue);
 				uint32 actualValue = hCPU.gpr[1];
 				if (std::holds_alternative<uint32>(memoryValue))
 					assertLoadMemValue(std::get<uint32>(memoryValue), signExtend, switchEndian, actualValue);
@@ -972,9 +1016,13 @@ void load_indexed_tests(setup_and_verify_fn setupAndVerify)
 				imlInstruction.op_storeLoad.copyWidth = copyWidth;
 				imlInstruction.op_storeLoad.flags2.swapEndian = switchEndian;
 				imlInstruction.op_storeLoad.flags2.signExtend = signExtend;
+				emitInst().make_name_r(PPCREC_NAME_R0, regMem64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regMem64_2);
 				emitInst().make_name_r(PPCREC_NAME_R0 + 2, regD64);
 			},
 			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] = regMemValue);
+				cemu_assert_debug(hCPU.gpr[1] = regMem2Value);
 				uint32 actualValue = hCPU.gpr[2];
 				if (std::holds_alternative<uint32>(memoryValue))
 					assertLoadMemValue(std::get<uint32>(memoryValue), signExtend, switchEndian, actualValue);
@@ -1024,42 +1072,47 @@ void store_tests(setup_and_verify_fn setupAndVerify)
 	auto runTest = [&](test_data_t data) {
 		auto [immS32, regMemValue, switchEndian, memoryValue] = data;
 		uint32 memoryIndex = immS32 + regMemValue;
+		uint32 copyWidth;
+		uint32 sourceMemoryValue;
+		if (std::holds_alternative<uint32>(memoryValue))
+		{
+			copyWidth = 32;
+			sourceMemoryValue = std::get<uint32>(memoryValue);
+		}
+		else if (std::holds_alternative<uint16>(memoryValue))
+		{
+			copyWidth = 16;
+			sourceMemoryValue = std::get<uint16>(memoryValue);
+		}
+		else
+		{
+			copyWidth = 8;
+			sourceMemoryValue = std::get<uint8>(memoryValue);
+		}
 		setupAndVerify(
 			[&](emit_inst_fn emitInst, PPCInterpreter_t& hCPU) {
 				IMLReg regS64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 0);
 				IMLReg regS32 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, 0);
 				IMLReg regMem64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 1);
 				IMLReg regMem32 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, 1);
-				uint32 copyWidth;
-				uint32 sourceMemoryValue;
-				if (std::holds_alternative<uint32>(memoryValue))
-				{
-					copyWidth = 32;
-					sourceMemoryValue = std::get<uint32>(memoryValue);
-				}
-				else if (std::holds_alternative<uint16>(memoryValue))
-				{
-					copyWidth = 16;
-					sourceMemoryValue = std::get<uint16>(memoryValue);
-				}
-				else
-				{
-					copyWidth = 8;
-					sourceMemoryValue = std::get<uint8>(memoryValue);
-				}
 				hCPU.gpr[0] = regMemValue;
 				hCPU.gpr[1] = sourceMemoryValue;
 				emitInst().make_r_name(regMem64, PPCREC_NAME_R0);
 				emitInst().make_r_name(regS64, PPCREC_NAME_R0 + 1);
 				emitInst().make_memory_r(regS32, regMem32, immS32, copyWidth, switchEndian);
+				emitInst().make_name_r(PPCREC_NAME_R0, regMem64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regS64);
 			},
 			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regMemValue);
+				cemu_assert_debug(hCPU.gpr[1] == sourceMemoryValue);
 				if (std::holds_alternative<uint32>(memoryValue))
 					assertStoreMemValue(std::get<uint32>(memoryValue), switchEndian, memoryIndex);
 				else if (std::holds_alternative<uint16>(memoryValue))
 					assertStoreMemValue(std::get<uint16>(memoryValue), switchEndian, memoryIndex);
 				else
 					assertStoreMemValue(std::get<uint8>(memoryValue), switchEndian, memoryIndex);
+				assertUninitializedMemory(memoryIndex, copyWidth / 8);
 			});
 	};
 
@@ -1086,6 +1139,23 @@ void store_indexed_tests(setup_and_verify_fn setupAndVerify)
 	using test_case_t = std::tuple<sint32, uint32, uint32, std::variant<uint32, uint16, uint8>>;
 	auto runTest = [&](test_data_t data) {
 		auto [immS32, regMemValue, regMem2Value, switchEndian, memoryValue] = data;
+		uint32 copyWidth;
+		uint32 sourceMemoryValue;
+		if (std::holds_alternative<uint32>(memoryValue))
+		{
+			copyWidth = 32;
+			sourceMemoryValue = std::get<uint32>(memoryValue);
+		}
+		else if (std::holds_alternative<uint16>(memoryValue))
+		{
+			copyWidth = 16;
+			sourceMemoryValue = std::get<uint16>(memoryValue);
+		}
+		else
+		{
+			copyWidth = 8;
+			sourceMemoryValue = std::get<uint8>(memoryValue);
+		}
 		uint32 memoryIndex = immS32 + regMemValue + regMem2Value;
 		setupAndVerify(
 			[&](emit_inst_fn emitInst, PPCInterpreter_t& hCPU) {
@@ -1096,23 +1166,6 @@ void store_indexed_tests(setup_and_verify_fn setupAndVerify)
 				IMLReg regMem2_64 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I64, 0, 2);
 				IMLReg regMem2_32 = IMLReg(IMLRegFormat::I64, IMLRegFormat::I32, 0, 2);
 
-				uint32 copyWidth;
-				uint32 sourceMemoryValue;
-				if (std::holds_alternative<uint32>(memoryValue))
-				{
-					copyWidth = 32;
-					sourceMemoryValue = std::get<uint32>(memoryValue);
-				}
-				else if (std::holds_alternative<uint16>(memoryValue))
-				{
-					copyWidth = 16;
-					sourceMemoryValue = std::get<uint16>(memoryValue);
-				}
-				else
-				{
-					copyWidth = 8;
-					sourceMemoryValue = std::get<uint8>(memoryValue);
-				}
 				hCPU.gpr[0] = regMemValue;
 				hCPU.gpr[1] = regMem2Value;
 				hCPU.gpr[2] = sourceMemoryValue;
@@ -1129,14 +1182,21 @@ void store_indexed_tests(setup_and_verify_fn setupAndVerify)
 				imlInstruction.op_storeLoad.copyWidth = copyWidth;
 				imlInstruction.op_storeLoad.flags2.swapEndian = switchEndian;
 				imlInstruction.op_storeLoad.flags2.signExtend = false;
+				emitInst().make_name_r(PPCREC_NAME_R0 + 0, regMem64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regMem2_64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 2, regS64);
 			},
 			[&](PPCInterpreter_t& hCPU) {
+				cemu_assert_debug(hCPU.gpr[0] == regMemValue);
+				cemu_assert_debug(hCPU.gpr[1] == regMem2Value);
+				cemu_assert_debug(hCPU.gpr[2] == sourceMemoryValue);
 				if (std::holds_alternative<uint32>(memoryValue))
 					assertStoreMemValue(std::get<uint32>(memoryValue), switchEndian, memoryIndex);
 				else if (std::holds_alternative<uint16>(memoryValue))
 					assertStoreMemValue(std::get<uint16>(memoryValue), switchEndian, memoryIndex);
 				else
 					assertStoreMemValue(std::get<uint8>(memoryValue), switchEndian, memoryIndex);
+				assertUninitializedMemory(memoryIndex, copyWidth / 8);
 			});
 	};
 
@@ -1181,13 +1241,19 @@ void atomic_cmp_store_tests(setup_and_verify_fn setupAndVerify)
 				emitInst().make_r_name(regCompareValue64, PPCREC_NAME_R0 + 1);
 				emitInst().make_r_name(regWriteValue64, PPCREC_NAME_R0 + 2);
 				emitInst().make_atomic_cmp_store(regEA32, regCompareValue32, regWriteValue32, regSuccessOutput32);
-				emitInst().make_name_r(PPCREC_NAME_R0 + 3, regSuccessOutput64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 0, regSuccessOutput64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 1, regCompareValue64);
+				emitInst().make_name_r(PPCREC_NAME_R0 + 2, regWriteValue64);
 			},
 			[&](PPCInterpreter_t& hCPU) {
-				bool shouldUpdate = memoryValue == compareValue;
-				cemu_assert_debug(hCPU.gpr[3] == shouldUpdate);
-				if (shouldUpdate)
-					cemu_assert_debug(getMemoryValue<uint32>(memoryIndex) == writeValue);
+				cemu_assert_debug(hCPU.gpr[1] == compareValue);
+				cemu_assert_debug(hCPU.gpr[2] == writeValue);
+				bool isEqual = memoryValue == compareValue;
+				cemu_assert_debug(hCPU.gpr[0] == isEqual);
+				auto memValue = getMemoryValue<uint32>(memoryIndex);
+				uint32 assertValue = memoryValue == compareValue ? writeValue : memoryValue;
+				cemu_assert_debug(getMemoryValue<uint32>(memoryIndex) == assertValue);
+				assertUninitializedMemory(memoryIndex, 32 / 4);
 			});
 	};
 	std::initializer_list<setup_data_t> testData = {
@@ -1398,7 +1464,11 @@ void fpr_load_tests(setup_and_verify_fn setupAndVerify)
 				if (mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
 				{
 					if (data.notExpanded)
+					{
 						cemu_assert_debug(output.f32_s[0] == data.fprData.f32_s[0]);
+						cemu_assert_debug(output.ui32_s[1] == 0);
+						cemu_assert_debug(output.ui64_d[1] == 0);
+					}
 					else
 					{
 						cemu_assert_debug(output.f64_d[0] == (double)data.fprData.f32_s[0]);
@@ -1825,6 +1895,41 @@ union fpr_data_be_t
 	};
 };
 
+auto clampS16 = [](auto x) -> sint32 {
+	if (x >= std::numeric_limits<sint32>::max() || x <= std::numeric_limits<sint32>::min())
+		x = std::numeric_limits<sint32>::min();
+	if (x <= -32768)
+		return -32768;
+	if (x >= 32767)
+		return 32767;
+	return (sint16)x;
+};
+auto clampU16 = [](auto x) -> uint16 {
+	if (x >= std::numeric_limits<sint32>::max() || x <= std::numeric_limits<sint32>::min())
+		x = std::numeric_limits<sint32>::min();
+	if (x <= 0)
+		return 0;
+	if (x >= 0xFFFF)
+		return 0xFFFF;
+	return (uint16)x;
+};
+auto clampS8 = [](auto x) -> sint8 {
+	if (x >= std::numeric_limits<sint32>::max() || x <= std::numeric_limits<sint32>::min())
+		x = std::numeric_limits<sint32>::min();
+	if (x <= -128)
+		return -128;
+	if (x >= 127)
+		return 127;
+	return (sint8)x;
+};
+auto clampU8 = [](auto x) -> uint8 {
+	if (x <= 0)
+		return 0;
+	if (x >= 255)
+		return 255;
+	return (uint8)x;
+};
+
 void fpr_store_tests(setup_and_verify_fn setupAndVerify)
 {
 	struct test_data_fpr_load
@@ -1883,57 +1988,27 @@ void fpr_store_tests(setup_and_verify_fn setupAndVerify)
 			[&](PPCInterpreter_t&) {
 				uint32 index = data.memoryRegValue + data.memoryIndexRegvalue.value_or(0) + data.immS32;
 				auto memData = *reinterpret_cast<fpr_data_be_t*>(memory_base + index);
+				size_t storeSize = 0;
 				if (data.mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0)
 				{
+					storeSize = 32;
 					if (data.notExpanded)
-						cemu_assert_debug(fp_equal(memData.s<float>(0), data.dataRegValue.f32_s[0]));
+						cemu_assert_debug(memData.s<float>(0) == data.dataRegValue.f32_s[0]);
 					else
 						cemu_assert_debug(fp_equal(memData.s<float>(0), (float)data.dataRegValue.f64_d[0]));
 				}
 				else if (data.mode == PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0)
 				{
+					storeSize = 64;
 					cemu_assert_debug(fp_equal(memData.d<double>(0), data.dataRegValue.f64_d[0]));
 				}
 				else if (data.mode == PPCREC_FPR_ST_MODE_UI32_FROM_PS0)
 				{
+					storeSize = 32;
 					cemu_assert_debug(memData.s<uint32>(0) == data.dataRegValue.ui32_s[0]);
 				}
 				else
 				{
-					auto clampS16 = [](auto x) -> sint32 {
-						if (x >= std::numeric_limits<sint32>::max() || x <= std::numeric_limits<sint32>::min())
-							x = std::numeric_limits<sint32>::min();
-						if (x <= -32768)
-							return -32768;
-						if (x >= 32767)
-							return 32767;
-						return (sint16)x;
-					};
-					auto clampU16 = [](auto x) -> uint16 {
-						if (x >= std::numeric_limits<sint32>::max() || x <= std::numeric_limits<sint32>::min())
-							x = std::numeric_limits<sint32>::min();
-						if (x <= 0)
-							return 0;
-						if (x >= 0xFFFF)
-							return 0xFFFF;
-						return (uint16)x;
-					};
-					auto clampS8 = [](auto x) -> sint8 {
-						if (x >= std::numeric_limits<sint32>::max() || x <= std::numeric_limits<sint32>::min())
-							x = std::numeric_limits<sint32>::min();
-						if (x <= -128)
-							return -128;
-						if (x >= 127)
-							return 127;
-						return (sint8)x;
-					};
-					auto clampU8 = [](auto x) -> uint8 {
-						if (x <= 0)
-							return 0;
-						if (x >= 255)
-							return 255;
-						return (uint8)x;
-					};
 					uint8 mode = data.mode;
 					if (data.mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1 ||
 						data.mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0)
@@ -1974,38 +2049,46 @@ void fpr_store_tests(setup_and_verify_fn setupAndVerify)
 					}
 					if (mode == PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0_PS1)
 					{
+						storeSize = 64;
 						cemu_assert_debug(fp_equal(memData.s<float>(0), (float)data.dataRegValue.f64_d[0]));
 						cemu_assert_debug(fp_equal(memData.s<float>(1), (float)data.dataRegValue.f64_d[1]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0)
 					{
+						storeSize = 32;
 						cemu_assert_debug(fp_equal(memData.s<float>(0), (float)data.dataRegValue.f64_d[0]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_S8_PS0)
 					{
+						storeSize = 8;
 						cemu_assert_debug(memData.b<sint8>(0) == clampS8(data.dataRegValue.f64_d[0]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_S8_PS0_PS1)
 					{
+						storeSize = 16;
 						cemu_assert_debug(memData.b<sint8>(0) == clampS8(data.dataRegValue.f64_d[0]));
 						cemu_assert_debug(memData.b<sint8>(1) == clampS8(data.dataRegValue.f64_d[1]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_U8_PS0)
 					{
+						storeSize = 8;
 						cemu_assert_debug(memData.b<uint8>(0) == clampU8(data.dataRegValue.f64_d[0]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_U8_PS0_PS1)
 					{
+						storeSize = 16;
 						cemu_assert_debug(memData.b<uint8>(0) == clampU8(data.dataRegValue.f64_d[0]));
 						cemu_assert_debug(memData.b<uint8>(1) == clampU8(data.dataRegValue.f64_d[1]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_S16_PS0)
 					{
+						storeSize = 16;
 						auto val = memData.h<sint16>(0);
 						cemu_assert_debug(memData.h<sint16>(0) == clampS16(data.dataRegValue.f64_d[0]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1)
 					{
+						storeSize = 32;
 						auto val1 = memData.h<sint16>(0);
 						auto val2 = memData.h<sint16>(1);
 						cemu_assert_debug(memData.h<sint16>(0) == clampS16(data.dataRegValue.f64_d[0]));
@@ -2013,14 +2096,17 @@ void fpr_store_tests(setup_and_verify_fn setupAndVerify)
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_U16_PS0)
 					{
+						storeSize = 16;
 						cemu_assert_debug(memData.h<uint16>(0) == clampU16(data.dataRegValue.f64_d[0]));
 					}
 					else if (mode == PPCREC_FPR_ST_MODE_PSQ_U16_PS0_PS1)
 					{
+						storeSize = 32;
 						cemu_assert_debug(memData.h<uint16>(0) == clampU16(data.dataRegValue.f64_d[0]));
 						cemu_assert_debug(memData.h<uint16>(1) == clampU16(data.dataRegValue.f64_d[1]));
 					}
 				}
+				assertUninitializedMemory(index, storeSize / 8);
 			});
 	};
 	// non-indexed double
@@ -2983,7 +3069,7 @@ void runRecompilerTests()
 		fpr_compare_tests,
 	};
 	setup_and_verify_fn setupAndVerifiyFn = [](setup_fn setupFn, verify_fn verifyFn) {
-		ppcImlGenContext_t ppcImlGenContext = {0};
+		ppcImlGenContext_t ppcImlGenContext = {};
 		PPCInterpreter_t hCPU;
 		std::fill(memory_base, memory_base + test_memory_base_size, 0);
 		ppcImlGenContext.currentOutputSegment = ppcImlGenContext.NewSegment();
