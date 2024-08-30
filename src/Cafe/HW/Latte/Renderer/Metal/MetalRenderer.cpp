@@ -449,6 +449,8 @@ void MetalRenderer::AppendOverlayDebugInfo()
     ImGui::Text("--- Metal info (per frame) ---");
     ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
     ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Vertex buffer restrides %u", m_performanceMonitor.m_vertexBufferRestrides);
+    ImGui::Text("Triangle fans           %u", m_performanceMonitor.m_triangleFans);
 }
 
 // TODO: halfZ
@@ -1220,6 +1222,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	m_state.m_isFirstDrawInRenderPass = false;
 
 	LatteStreamout_FinishDrawcall(false);
+
+	// Debug
+	if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN)
+	    m_performanceMonitor.m_triangleFans++;
 
 	LatteGPUState.drawCallCounter++;
 }

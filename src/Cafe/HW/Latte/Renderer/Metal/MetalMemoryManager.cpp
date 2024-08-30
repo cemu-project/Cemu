@@ -60,6 +60,9 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             // TODO: do the barriers in one call?
             MTL::Resource* barrierBuffers[] = {buffer};
             renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
+
+            // Debug
+            m_mtlr->GetPerformanceMonitor().m_vertexBufferRestrides++;
         }
         else
         {

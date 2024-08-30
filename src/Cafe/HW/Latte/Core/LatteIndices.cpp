@@ -287,7 +287,6 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 template<typename T>
 void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
-    debug_printf("TRIANGLE FAN UNPACK %u\n", rand());
 	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
 	// TODO: check this
@@ -308,7 +307,6 @@ void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* 
 template<typename T>
 void LatteIndices_generateAutoTriangleFanIndices(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
-    debug_printf("TRIANGLE FAN AUTO %u\n", rand());
 	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
 	for (sint32 i = 0; i < count; i++)
@@ -699,7 +697,6 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 			cemu_assert_debug(false);
 		outputCount = count + 1;
 	}
-	/*
 	else if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN && g_renderer->GetType() == RendererAPI::Metal)
 	{
         if (indexType == LatteIndexType::AUTO)
@@ -723,7 +720,6 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
     		cemu_assert_debug(false);
     	outputCount = count;
 	}
-	*/
 	else
 	{
 		if (indexType == LatteIndexType::U16_BE)
