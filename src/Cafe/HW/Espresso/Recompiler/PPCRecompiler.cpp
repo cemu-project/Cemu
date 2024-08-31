@@ -44,6 +44,10 @@ void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 
 PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
 
+#if defined(__aarch64__)
+std::list<std::unique_ptr<CodeContext>> s_aarch64CodeCtxs;
+#endif
+
 bool ppcRecompilerEnabled = false;
 // this function does never block and can fail if the recompiler lock cannot be acquired immediately
 void PPCRecompiler_visitAddressNoBlock(uint32 enterAddress)
@@ -230,11 +234,12 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 #elif defined(__aarch64__)
-	bool aarch64GenerationSuccess = PPCRecompiler_generateAArch64Code(ppcRecFunc, &ppcImlGenContext);
-	if (aarch64GenerationSuccess == false)
+	auto aarch64CodeCtx = PPCRecompiler_generateAArch64Code(ppcRecFunc, &ppcImlGenContext);
+	if (aarch64CodeCtx == nullptr)
 	{
 		return nullptr;
 	}
+	s_aarch64CodeCtxs.push_back(std::move(aarch64CodeCtx));
 #endif
 
 	// collect list of PPC-->x64 entry points
@@ -680,7 +685,7 @@ void PPCRecompiler_init()
 #if defined(ARCH_X86_64)
 	PPCRecompilerX64Gen_generateRecompilerInterfaceFunctions();
 #else
-    PPCRecompilerAArch64Gen_generateRecompilerInterfaceFunctions();
+	PPCRecompilerAArch64Gen_generateRecompilerInterfaceFunctions();
 #endif
     PPCRecompiler_allocateRange(0, 0x1000); // the first entry is used for fallback to interpreter
     PPCRecompiler_allocateRange(mmuRange_TRAMPOLINE_AREA.getBase(), mmuRange_TRAMPOLINE_AREA.getSize());
@@ -761,4 +766,7 @@ void PPCRecompiler_Shutdown()
         // mark as unmapped
         ppcRecompiler_reservedBlockMask[i] = false;
     }
+#if defined(__aarch64__)
+	s_aarch64CodeCtxs.clear();
+#endif
 }

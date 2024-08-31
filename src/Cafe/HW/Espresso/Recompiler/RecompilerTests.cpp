@@ -3080,7 +3080,8 @@ void runRecompilerTests()
 #if defined(ARCH_X86_64)
 		bool successful = PPCRecompiler_generateX64Code(&ppcRecFunc, &ppcImlGenContext);
 #elif defined(__aarch64__)
-		bool successful = PPCRecompiler_generateAArch64Code(&ppcRecFunc, &ppcImlGenContext);
+		auto aarch64CodeCtx = PPCRecompiler_generateAArch64Code(&ppcRecFunc, &ppcImlGenContext);
+		bool successful = aarch64CodeCtx != nullptr;
 #endif
 		cemu_assert_debug(successful);
 		if (!successful)

@@ -62,7 +62,7 @@ fres_nan_or_inf:
     add     sp, sp, #48
     ret
 
-fres_lookup :
+fres_lookup:
     stp     x2, x3, [sp, #16]
     stp     x4, x5, [sp, #32]
     ubfx    x2, x0, #47, #5
