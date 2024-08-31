@@ -64,8 +64,8 @@ public class AudioSettingsFragment extends Fragment {
         genericRecyclerViewAdapter.addRecyclerViewItem(tvVolumeSlider);
 
         CheckboxRecyclerViewItem padDeviceCheckbox = new CheckboxRecyclerViewItem(getString(R.string.gamepad),
-                getString(R.string.gamepad_audio_description), NativeLibrary.getAudioDeviceEnabled(true),
-                checked -> NativeLibrary.setAudioDeviceEnabled(checked, true));
+                getString(R.string.gamepad_audio_description), NativeLibrary.getAudioDeviceEnabled(false),
+                checked -> NativeLibrary.setAudioDeviceEnabled(checked, false));
         genericRecyclerViewAdapter.addRecyclerViewItem(padDeviceCheckbox);
 
         var gamepadChannelsChoices = List.of(new SelectionAdapter.ChoiceItem<>(t -> t.setText(channelsToResourceNameId(NativeLibrary.AUDIO_CHANNELS_STEREO)), NativeLibrary.AUDIO_CHANNELS_STEREO));
