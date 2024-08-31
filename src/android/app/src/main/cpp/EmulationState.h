@@ -35,6 +35,15 @@ class EmulationState
 			m_graphicPacks[reinterpret_cast<int64_t>(graphicPack.get())] = graphicPack;
 		}
 	}
+	void onTouchEvent(sint32 x, sint32 y, bool isPad, std::optional<bool> status = {})
+	{
+		auto& instance = InputManager::instance();
+		auto& touchInfo = isPad ? instance.m_pad_mouse : instance.m_main_mouse;
+		std::scoped_lock lock(touchInfo.m_mutex);
+		touchInfo.position = {x, y};
+		if (status.has_value())
+			touchInfo.left_down = touchInfo.left_down_toggle = status.value();
+	}
 
   public:
 	void initializeEmulation()
@@ -305,5 +314,17 @@ class EmulationState
 			it.try_emplace("_disabled", "false");
 		}
 		g_config.Save();
+	}
+	void onTouchMove(sint32 x, sint32 y, bool isPad)
+	{
+		onTouchEvent(x, y, isPad);
+	}
+	void onTouchUp(sint32 x, sint32 y, bool isPad)
+	{
+		onTouchEvent(x, y, isPad, false);
+	}
+	void onTouchDown(sint32 x, sint32 y, bool isPad)
+	{
+		onTouchEvent(x, y, isPad, true);
 	}
 };

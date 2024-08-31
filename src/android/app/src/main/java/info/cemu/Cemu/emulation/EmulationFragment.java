@@ -1,8 +1,9 @@
 package info.cemu.Cemu.emulation;
 
-import android.content.Context;
+import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -19,6 +20,7 @@ import info.cemu.Cemu.inputoverlay.InputOverlaySettingsProvider;
 import info.cemu.Cemu.inputoverlay.InputOverlaySurfaceView;
 import info.cemu.Cemu.NativeLibrary;
 
+@SuppressLint("ClickableViewAccessibility")
 public class EmulationFragment extends Fragment implements SurfaceHolder.Callback {
     private final long gameTitleId;
     private boolean isGameRunning;
@@ -36,6 +38,41 @@ public class EmulationFragment extends Fragment implements SurfaceHolder.Callbac
         super.onCreate(savedInstanceState);
         var inputOverlaySettingsProvider = new InputOverlaySettingsProvider(requireContext());
         overlaySettings = inputOverlaySettingsProvider.getOverlaySettings();
+    }
+
+    static private class OnSurfaceTouchListener implements View.OnTouchListener {
+        int currentPointerId = -1;
+        final boolean isPad;
+
+        public OnSurfaceTouchListener(boolean isPad) {
+            this.isPad = isPad;
+        }
+
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+            int pointerIndex = event.getActionIndex();
+            int pointerId = event.getPointerId(pointerIndex);
+            if (currentPointerId != -1 && pointerId != currentPointerId) {
+                return false;
+            }
+            int x = (int) event.getX(pointerIndex);
+            int y = (int) event.getY(pointerIndex);
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                    NativeLibrary.onTouchDown(x, y, isPad);
+                    return true;
+                }
+                case MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                    NativeLibrary.onTouchUp(x, y, isPad);
+                    return true;
+                }
+                case MotionEvent.ACTION_MOVE -> {
+                    NativeLibrary.onTouchMove(x, y, isPad);
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 
     @Override
@@ -73,6 +110,7 @@ public class EmulationFragment extends Fragment implements SurfaceHolder.Callbac
         }
         SurfaceView mainCanvas = binding.mainCanvas;
         mainCanvas.getHolder().addCallback(this);
+        mainCanvas.setOnTouchListener(new OnSurfaceTouchListener(false));
         return binding.getRoot();
     }
 

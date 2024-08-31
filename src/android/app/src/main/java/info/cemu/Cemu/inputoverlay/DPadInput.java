@@ -224,7 +224,8 @@ public class DPadInput extends Input {
                 int pointerId = event.getPointerId(pointerIndex);
                 if (isInside(x, y)) {
                     currentPointerId = pointerId;
-                    nextState = DpadState.NONE;
+                    double angle = Math.atan2(y - centreY, x - centreX);
+                    nextState = getStateByAngle(angle);
                 }
             }
             case MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {

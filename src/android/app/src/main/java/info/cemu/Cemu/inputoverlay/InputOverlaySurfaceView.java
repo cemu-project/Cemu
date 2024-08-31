@@ -564,6 +564,6 @@ public class InputOverlaySurfaceView extends SurfaceView implements View.OnTouch
             invalidate();
         }
 
-        return true;
+        return touchEventProcessed;
     }
 }

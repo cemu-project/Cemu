@@ -375,4 +375,10 @@ public class NativeLibrary {
     public static native boolean isOverlayDebugEnabled();
 
     public static native void setOverlayDebugEnabled(boolean enabled);
+
+    public static native void onTouchDown(int x, int y, boolean isPad);
+
+    public static native void onTouchMove(int x, int y, boolean isPad);
+
+    public static native void onTouchUp(int x, int y, boolean isPad);
 }

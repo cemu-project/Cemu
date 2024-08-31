@@ -517,3 +517,21 @@ Java_info_cemu_Cemu_NativeLibrary_setOverlayDebugEnabled([[maybe_unused]] JNIEnv
 	g_config.data().overlay.debug = enabled;
 	g_config.Save();
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onTouchDown([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
+{
+	s_emulationState.onTouchDown(x, y, isPad);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onTouchUp([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
+{
+	s_emulationState.onTouchUp(x, y, isPad);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onTouchMove([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
+{
+	s_emulationState.onTouchMove(x, y, isPad);
+}
