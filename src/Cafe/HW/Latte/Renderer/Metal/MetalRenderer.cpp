@@ -450,6 +450,7 @@ void MetalRenderer::AppendOverlayDebugInfo()
     ImGui::Text("--- Metal info (per frame) ---");
     ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
     ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Clears                  %u", m_performanceMonitor.m_clears);
     ImGui::Text("Vertex buffer restrides %u", m_performanceMonitor.m_vertexBufferRestrides);
     ImGui::Text("Triangle fans           %u", m_performanceMonitor.m_triangleFans);
 }
@@ -581,6 +582,9 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
     EndEncoding();
+
+    // Debug
+    m_performanceMonitor.m_clears++;
 }
 
 LatteTexture* MetalRenderer::texture_createTextureEx(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -1840,6 +1844,9 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
     EndEncoding();
+
+    // Debug
+    m_performanceMonitor.m_clears++;
 }
 
 void MetalRenderer::CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::Buffer* dst, uint32 dstOffset, uint32 size, MTL::RenderStages after, MTL::RenderStages before)
