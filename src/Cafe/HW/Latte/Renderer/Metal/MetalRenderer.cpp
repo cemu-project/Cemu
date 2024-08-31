@@ -833,6 +833,8 @@ void MetalRenderer::draw_beginSequence()
 {
     m_state.m_skipDrawSequence = false;
 
+    bool streamoutEnable = LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] != 0;
+
     // update shader state
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
@@ -855,7 +857,7 @@ void MetalRenderer::draw_beginSequence()
 			return; // no render target
 		}
 
-		if (!hasValidFramebufferAttached)
+		if (!hasValidFramebufferAttached && !streamoutEnable)
 		{
 			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
 			m_state.m_skipDrawSequence = true;
@@ -881,8 +883,16 @@ void MetalRenderer::draw_beginSequence()
 	if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
 		rasterizerEnable = true;
 
-	if (!rasterizerEnable == false)
+	if (!rasterizerEnable && !streamoutEnable)
 		m_state.m_skipDrawSequence = true;
+
+	// Both faces are culled
+	// TODO: can we really skip the draw?
+	const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
+	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
+	uint32 cullBack = polygonControlReg.get_CULL_BACK();
+	if (cullFront && cullBack)
+	    m_state.m_skipDrawSequence = true;
 
 	// TODO: is this even needed?
 	if (!m_state.m_activeFBO)
@@ -891,12 +901,11 @@ void MetalRenderer::draw_beginSequence()
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
 {
-    // TODO: uncomment
-    //if (m_state.m_skipDrawSequence)
-	//{
-	//  LatteGPUState.drawCallCounter++;
-	//	return;
-	//}
+    if (m_state.m_skipDrawSequence)
+	{
+	    LatteGPUState.drawCallCounter++;
+		return;
+	}
 
 	auto& encoderState = m_state.m_encoderState;
 
@@ -904,9 +913,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
     LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+    // TODO: is this even needed? Also, should go to draw_beginSequence
     if (!vertexShader)
     {
-        debug_printf("no vertex function, skipping draw\n");
+        printf("no vertex function, skipping draw\n");
         return;
     }
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
@@ -1051,9 +1061,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 
 	// Cull mode
-	if (cullFront && cullBack)
-		return; // We can just skip the draw (TODO: can we?)
-
     MTL::CullMode cullMode;
    	if (cullFront)
   		cullMode = MTL::CullModeFront;
@@ -1152,7 +1159,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     // HACK
     if (!renderPipelineState)
     {
-        debug_printf("invalid render pipeline state, skipping draw\n");
+        printf("invalid render pipeline state, skipping draw\n");
         return;
     }
 
