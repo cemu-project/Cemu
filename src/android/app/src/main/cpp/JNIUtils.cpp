@@ -53,6 +53,17 @@ jobject JNIUtils::createArrayList(JNIEnv* env, const std::vector<jobject>& objec
 	return arrayList;
 }
 
+jobject JNIUtils::createJavaLongArrayList(JNIEnv* env, const std::vector<uint64_t>& values)
+{
+	jclass longClass = env->FindClass("java/lang/Long");
+	jmethodID valueOf = env->GetStaticMethodID(longClass, "valueOf", "(J)Ljava/lang/Long;");
+	std::vector<jobject> valuesJava;
+	for (auto&& value : values)
+		valuesJava.push_back(env->CallStaticObjectMethod(longClass, valueOf, static_cast<jlong>(value)));
+	env->DeleteLocalRef(longClass);
+	return JNIUtils::createArrayList(env, valuesJava);
+}
+
 jobject JNIUtils::createJavaStringArrayList(JNIEnv* env, const std::vector<std::wstring>& strings)
 {
 	jclass arrayListClass = env->FindClass("java/util/ArrayList");

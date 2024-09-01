@@ -163,4 +163,5 @@
     <string name="edit_inputs">Edit inputs</string>
     <string name="show_pad">Show pad</string>
     <string name="replace_tv_with_pad">Replace TV with PAD</string>
+    <string name="installed_games_title">Installed games</string>
 </resources>

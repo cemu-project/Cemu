@@ -1,6 +1,5 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools">
+    xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <item
         android:id="@+id/action_graphic_packs_search"
@@ -15,4 +14,10 @@
         android:icon="@drawable/ic_download"
         android:title="@string/download_graphic_packs_title"
         app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/show_installed_games_only"
+        android:checkable="true"
+        android:checked="true"
+        android:title="@string/installed_games_title" />
 </menu>

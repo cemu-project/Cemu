@@ -13,7 +13,8 @@ namespace JNIUtils
 
 	jobject createJavaStringArrayList(JNIEnv* env, const std::vector<std::wstring>& stringList);
 
-	class ScopedJNIENV {
+	class ScopedJNIENV
+	{
 	  public:
 		ScopedJNIENV()
 		{
@@ -51,7 +52,8 @@ namespace JNIUtils
 		bool m_threadWasAttached = false;
 	};
 
-	class Scopedjobject {
+	class Scopedjobject
+	{
 	  public:
 		Scopedjobject() = default;
 
@@ -103,7 +105,8 @@ namespace JNIUtils
 		jobject m_jobject = nullptr;
 	};
 
-	class Scopedjclass {
+	class Scopedjclass
+	{
 	  public:
 		Scopedjclass() = default;
 
@@ -155,4 +158,5 @@ namespace JNIUtils
 
 	Scopedjobject getEnumValue(JNIEnv* env, const std::string& enumClassName, const std::string& enumName);
 	jobject createArrayList(JNIEnv* env, const std::vector<jobject>& objects);
+	jobject createJavaLongArrayList(JNIEnv* env, const std::vector<uint64_t>& values);
 } // namespace JNIUtils

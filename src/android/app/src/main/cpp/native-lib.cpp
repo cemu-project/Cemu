@@ -6,6 +6,8 @@
 
 EmulationState s_emulationState;
 
+static_assert(sizeof(TitleId) == sizeof(jlong));
+
 extern "C" [[maybe_unused]] JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM* vm, [[maybe_unused]] void* reserved)
 {
 	JNIUtils::g_jvm = vm;
@@ -27,7 +29,7 @@ Java_info_cemu_Cemu_NativeLibrary_setSurfaceSize([[maybe_unused]] JNIEnv* env, [
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_startGame([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong title_id)
 {
-	s_emulationState.startGame(*reinterpret_cast<TitleId*>(&title_id));
+	s_emulationState.startGame(static_cast<TitleId>(title_id));
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
@@ -50,7 +52,7 @@ Java_info_cemu_Cemu_NativeLibrary_setGameIconLoadedCallback(JNIEnv* env, [[maybe
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_requestGameIcon([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong title_id)
 {
-	s_emulationState.requestGameIcon(*reinterpret_cast<TitleId*>(&title_id));
+	s_emulationState.requestGameIcon(static_cast<TitleId>(title_id));
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
@@ -297,10 +299,10 @@ Java_info_cemu_Cemu_NativeLibrary_refreshGraphicPacks([[maybe_unused]] JNIEnv* e
 }
 
 extern "C" JNIEXPORT jobject JNICALL
-Java_info_cemu_Cemu_NativeLibrary_getGraphicPackIdsAndVirtualPaths(JNIEnv* env, [[maybe_unused]] jclass clazz)
+Java_info_cemu_Cemu_NativeLibrary_getGraphicPackBasicInfos(JNIEnv* env, [[maybe_unused]] jclass clazz)
 {
-	auto graphicPackInfoClass = env->FindClass("info/cemu/Cemu/NativeLibrary$GraphicPackIdAndVirtualPath");
-	auto graphicPackInfoCtorId = env->GetMethodID(graphicPackInfoClass, "<init>", "(JLjava/lang/String;)V");
+	auto graphicPackInfoClass = env->FindClass("info/cemu/Cemu/NativeLibrary$GraphicPackBasicInfo");
+	auto graphicPackInfoCtorId = env->GetMethodID(graphicPackInfoClass, "<init>", "(JLjava/lang/String;Ljava/util/ArrayList;)V");
 
 	auto graphicPacks = s_emulationState.getGraphicPacks();
 	std::vector<jobject> graphicPackInfoJObjects;
@@ -308,7 +310,8 @@ Java_info_cemu_Cemu_NativeLibrary_getGraphicPackIdsAndVirtualPaths(JNIEnv* env, 
 	{
 		jstring virtualPath = env->NewStringUTF(graphicPack.second->GetVirtualPath().c_str());
 		jlong id = graphicPack.first;
-		jobject jGraphicPack = env->NewObject(graphicPackInfoClass, graphicPackInfoCtorId, id, virtualPath);
+		jobject titleIds = JNIUtils::createJavaLongArrayList(env, graphicPack.second->GetTitleIds());
+		jobject jGraphicPack = env->NewObject(graphicPackInfoClass, graphicPackInfoCtorId, id, virtualPath, titleIds);
 		graphicPackInfoJObjects.push_back(jGraphicPack);
 	}
 	return JNIUtils::createArrayList(env, graphicPackInfoJObjects);
@@ -588,4 +591,10 @@ extern "C" JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_onTouchMove([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isTV)
 {
 	s_emulationState.onTouchMove(x, y, isTV);
+}
+
+extern "C" JNIEXPORT jobject JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getInstalledGamesTitleIds(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return JNIUtils::createJavaLongArrayList(env, CafeTitleList::GetAllTitleIds());
 }

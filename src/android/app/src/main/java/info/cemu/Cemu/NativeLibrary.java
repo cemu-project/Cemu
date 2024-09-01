@@ -241,10 +241,12 @@ public class NativeLibrary {
 
     public static native int getAudioDeviceVolume(boolean tv);
 
-    public record GraphicPackIdAndVirtualPath(long id, String virtualPath) {
+    public record GraphicPackBasicInfo(long id, String virtualPath, ArrayList<Long> titleIds) {
     }
 
-    public static native ArrayList<GraphicPackIdAndVirtualPath> getGraphicPackIdsAndVirtualPaths();
+    public static native ArrayList<Long> getInstalledGamesTitleIds();
+
+    public static native ArrayList<GraphicPackBasicInfo> getGraphicPackBasicInfos();
 
     public static class GraphicPackPreset {
         private final long graphicPackId;

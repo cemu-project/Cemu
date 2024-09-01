@@ -15,7 +15,7 @@ class AndroidGameTitleLoadedCallback : public GameTitleLoadedCallback {
 	{
 		JNIUtils::ScopedJNIENV env;
 		jstring name = env->NewStringUTF(game.name.c_str());
-		jlong titleId = *reinterpret_cast<const jlong*>(&game.titleId);
+		jlong titleId = static_cast<const jlong>(game.titleId);
 		env->CallVoidMethod(*m_gameTitleLoadedCallbackObj, m_onGameTitleLoadedMID, titleId, name);
 		env->DeleteLocalRef(name);
 	}

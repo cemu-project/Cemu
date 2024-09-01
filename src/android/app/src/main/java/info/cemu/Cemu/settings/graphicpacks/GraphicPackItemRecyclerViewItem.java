@@ -34,11 +34,13 @@ public class GraphicPackItemRecyclerViewItem implements RecyclerViewItem {
     }
 
     private final String text;
+    public final boolean hasInstalledTitleId;
     private final GraphicPackItemType graphicPackItemType;
     private final OnClickCallback onClickCallback;
 
-    public GraphicPackItemRecyclerViewItem(String text, GraphicPackItemType graphicPackItemType, OnClickCallback onClickCallback) {
+    public GraphicPackItemRecyclerViewItem(String text, boolean hasInstalledTitleId, GraphicPackItemType graphicPackItemType, OnClickCallback onClickCallback) {
         this.text = text;
+        this.hasInstalledTitleId = hasInstalledTitleId;
         this.graphicPackItemType = graphicPackItemType;
         this.onClickCallback = onClickCallback;
     }

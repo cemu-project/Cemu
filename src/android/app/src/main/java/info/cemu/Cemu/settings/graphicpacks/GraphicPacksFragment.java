@@ -63,6 +63,7 @@ public class GraphicPacksFragment extends Fragment {
                     ? GraphicPackItemRecyclerViewItem.GraphicPackItemType.SECTION
                     : GraphicPackItemRecyclerViewItem.GraphicPackItemType.GRAPHIC_PACK;
             GraphicPackItemRecyclerViewItem graphicPackItemRecyclerViewItem = new GraphicPackItemRecyclerViewItem(node.name,
+                    node.hasTitleIdInstalled(),
                     graphicPackItemType,
                     () -> {
                         graphicPackCurrentViewModel.setGraphicPackNode(node);
