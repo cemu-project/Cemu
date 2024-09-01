@@ -50,10 +50,9 @@ struct IMLRegisterAllocatorContext
 
 };
 
-uint32 recRACurrentIterationIndex = 0;
-
 uint32 PPCRecRA_getNextIterationIndex()
 {
+	static uint32 recRACurrentIterationIndex = 0;
 	recRACurrentIterationIndex++;
 	return recRACurrentIterationIndex;
 }
@@ -120,7 +119,7 @@ void PPCRecRA_identifyLoop(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* iml
 
 #define SUBRANGE_LIST_SIZE	(128)
 
-sint32 PPCRecRA_countInstructionsUntilNextUse(raLivenessSubrange_t* subrange, sint32 startIndex)
+sint32 PPCRecRA_countInstructionsUntilNextUse(raLivenessRange* subrange, sint32 startIndex)
 {
 	for (sint32 i = 0; i < subrange->list_locations.size(); i++)
 	{
@@ -135,12 +134,12 @@ sint32 PPCRecRA_countInstructionsUntilNextLocalPhysRegisterUse(IMLSegment* imlSe
 {
 	sint32 minDistance = INT_MAX;
 	// next
-	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while(subrangeItr)
 	{
-		if (subrangeItr->range->physicalRegister != physRegister)
+		if (subrangeItr->GetPhysicalRegister() != physRegister)
 		{
-			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 			continue;
 		}
 		if (startIndex >= subrangeItr->start.index && startIndex < subrangeItr->end.index)
@@ -149,7 +148,7 @@ sint32 PPCRecRA_countInstructionsUntilNextLocalPhysRegisterUse(IMLSegment* imlSe
 		{
 			minDistance = std::min(minDistance, (subrangeItr->start.index - startIndex));
 		}
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 	return minDistance;
 }
@@ -175,7 +174,7 @@ struct IMLRALivenessTimeline
 	}
 
 	// manually add an active range
-	void AddActiveRange(raLivenessSubrange_t* subrange)
+	void AddActiveRange(raLivenessRange* subrange)
 	{
 		activeRanges.emplace_back(subrange);
 	}
@@ -187,7 +186,7 @@ struct IMLRALivenessTimeline
 		size_t count = activeRanges.size();
 		for (size_t f = 0; f < count; f++)
 		{
-			raLivenessSubrange_t* liverange = activeRanges[f];
+			raLivenessRange* liverange = activeRanges[f];
 			if (liverange->end.index <= instructionIndex)
 			{
 #ifdef CEMU_DEBUG_ASSERT
@@ -205,18 +204,18 @@ struct IMLRALivenessTimeline
 			activeRanges.resize(count);
 	}
 
-	std::span<raLivenessSubrange_t*> GetExpiredRanges()
+	std::span<raLivenessRange*> GetExpiredRanges()
 	{
 		return { expiredRanges.data(), expiredRanges.size() };
 	}
 
-	boost::container::small_vector<raLivenessSubrange_t*, 64> activeRanges;
+	boost::container::small_vector<raLivenessRange*, 64> activeRanges;
 
 private:
-	boost::container::small_vector<raLivenessSubrange_t*, 16> expiredRanges;
+	boost::container::small_vector<raLivenessRange*, 16> expiredRanges;
 };
 
-bool IsRangeOverlapping(raLivenessSubrange_t* rangeA, raLivenessSubrange_t* rangeB)
+bool IsRangeOverlapping(raLivenessRange* rangeA, raLivenessRange* rangeB)
 {
 	if (rangeA->start.index < rangeB->end.index && rangeA->end.index > rangeB->start.index)
 		return true;
@@ -228,39 +227,40 @@ bool IsRangeOverlapping(raLivenessSubrange_t* rangeA, raLivenessSubrange_t* rang
 }
 
 // mark occupied registers by any overlapping range as unavailable in physRegSet
-void PPCRecRA_MaskOverlappingPhysRegForGlobalRange(raLivenessRange_t* range, IMLPhysRegisterSet& physRegSet)
+void PPCRecRA_MaskOverlappingPhysRegForGlobalRange(raLivenessRange* range2, IMLPhysRegisterSet& physRegSet)
 {
-	for (auto& subrange : range->list_subranges)
+	auto clusterRanges = range2->GetAllSubrangesInCluster();
+	for (auto& subrange : clusterRanges)
 	{
 		IMLSegment* imlSegment = subrange->imlSegment;
-		raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+		raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 		while(subrangeItr)
 		{
 			if (subrange == subrangeItr)
 			{
 				// next
-				subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+				subrangeItr = subrangeItr->link_allSegmentRanges.next;
 				continue;
 			}
 			if(IsRangeOverlapping(subrange, subrangeItr))
 			{
-				if (subrangeItr->range->physicalRegister >= 0)
-					physRegSet.SetReserved(subrangeItr->range->physicalRegister);
+				if (subrangeItr->GetPhysicalRegister() >= 0)
+					physRegSet.SetReserved(subrangeItr->GetPhysicalRegister());
 			}
 			// next
-			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 		}
 	}
 }
 
-bool _livenessRangeStartCompare(raLivenessSubrange_t* lhs, raLivenessSubrange_t* rhs) { return lhs->start.index < rhs->start.index; }
+bool _livenessRangeStartCompare(raLivenessRange* lhs, raLivenessRange* rhs) { return lhs->start.index < rhs->start.index; }
 
 void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 {
-	raLivenessSubrange_t* subrangeList[4096+1];
+	raLivenessRange* subrangeList[4096+1];
 	sint32 count = 0;
 	// disassemble linked list
-	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while (subrangeItr)
 	{
 		if (count >= 4096)
@@ -268,7 +268,7 @@ void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 		subrangeList[count] = subrangeItr;
 		count++;
 		// next
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 	if (count == 0)
 	{
@@ -280,12 +280,12 @@ void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 	// reassemble linked list
 	subrangeList[count] = nullptr;
 	imlSegment->raInfo.linkedList_allSubranges = subrangeList[0];
-	subrangeList[0]->link_segmentSubrangesGPR.prev = nullptr;
-	subrangeList[0]->link_segmentSubrangesGPR.next = subrangeList[1];
+	subrangeList[0]->link_allSegmentRanges.prev = nullptr;
+	subrangeList[0]->link_allSegmentRanges.next = subrangeList[1];
 	for (sint32 i = 1; i < count; i++)
 	{
-		subrangeList[i]->link_segmentSubrangesGPR.prev = subrangeList[i - 1];
-		subrangeList[i]->link_segmentSubrangesGPR.next = subrangeList[i + 1];
+		subrangeList[i]->link_allSegmentRanges.prev = subrangeList[i - 1];
+		subrangeList[i]->link_allSegmentRanges.next = subrangeList[i + 1];
 	}
 	// validate list
 #ifdef CEMU_DEBUG_ASSERT
@@ -299,40 +299,40 @@ void _sortSegmentAllSubrangesLinkedList(IMLSegment* imlSegment)
 			assert_dbg();
 		currentStartIndex = subrangeItr->start.index;
 		// next
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 	if (count != count2)
 		assert_dbg();
 #endif
 }
 
-std::unordered_map<IMLRegID, raLivenessSubrange_t*>& IMLRA_GetSubrangeMap(IMLSegment* imlSegment)
+std::unordered_map<IMLRegID, raLivenessRange*>& IMLRA_GetSubrangeMap(IMLSegment* imlSegment)
 {
-	return imlSegment->raInfo.linkedList_perVirtualGPR2;
+	return imlSegment->raInfo.linkedList_perVirtualRegister;
 }
 
-raLivenessSubrange_t* IMLRA_GetSubrange(IMLSegment* imlSegment, IMLRegID regId)
+raLivenessRange* IMLRA_GetSubrange(IMLSegment* imlSegment, IMLRegID regId)
 {
-	auto it = imlSegment->raInfo.linkedList_perVirtualGPR2.find(regId);
-	if (it == imlSegment->raInfo.linkedList_perVirtualGPR2.end())
+	auto it = imlSegment->raInfo.linkedList_perVirtualRegister.find(regId);
+	if (it == imlSegment->raInfo.linkedList_perVirtualRegister.end())
 		return nullptr;
 	return it->second;
 }
 
-raLivenessSubrange_t* _GetSubrangeByInstructionIndexAndVirtualReg(IMLSegment* imlSegment, IMLReg regToSearch, sint32 instructionIndex)
+raLivenessRange* _GetSubrangeByInstructionIndexAndVirtualReg(IMLSegment* imlSegment, IMLReg regToSearch, sint32 instructionIndex)
 {
 	uint32 regId = regToSearch.GetRegID();
-	raLivenessSubrange_t* subrangeItr = IMLRA_GetSubrange(imlSegment, regId);
+	raLivenessRange* subrangeItr = IMLRA_GetSubrange(imlSegment, regId);
 	while (subrangeItr)
 	{
 		if (subrangeItr->start.index <= instructionIndex && subrangeItr->end.index > instructionIndex)
 			return subrangeItr;
-		subrangeItr = subrangeItr->link_sameVirtualRegisterGPR.next;
+		subrangeItr = subrangeItr->link_sameVirtualRegister.next;
 	}
 	return nullptr;
 }
 
-void IMLRA_IsolateRangeOnInstruction(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, raLivenessSubrange_t* subrange, sint32 instructionIndex)
+void IMLRA_IsolateRangeOnInstruction(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, raLivenessRange* subrange, sint32 instructionIndex)
 {
 	DEBUG_BREAK;
 }
@@ -381,42 +381,42 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 	_sortSegmentAllSubrangesLinkedList(imlSegment);
 
 	IMLRALivenessTimeline livenessTimeline;
-	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while(subrangeItr)
 	{
 		sint32 currentIndex = subrangeItr->start.index;
 		PPCRecRA_debugValidateSubrange(subrangeItr);
 		livenessTimeline.ExpireRanges(std::min<sint32>(currentIndex, RA_INTER_RANGE_END-1)); // expire up to currentIndex (inclusive), but exclude infinite ranges
 		// if subrange already has register assigned then add it to the active list and continue
-		if (subrangeItr->range->physicalRegister >= 0)
+		if (subrangeItr->GetPhysicalRegister() >= 0)
 		{
 			// verify if register is actually available
 #ifdef CEMU_DEBUG_ASSERT
 			for (auto& liverangeItr : livenessTimeline.activeRanges)
 			{
 				// check for register mismatch
-				cemu_assert_debug(liverangeItr->range->physicalRegister != subrangeItr->range->physicalRegister);
+				cemu_assert_debug(liverangeItr->GetPhysicalRegister() != subrangeItr->GetPhysicalRegister());
 			}
 #endif
 			livenessTimeline.AddActiveRange(subrangeItr);
-			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 			continue;
 		}
 		// find free register for current subrangeItr and segment
-		IMLRegFormat regBaseFormat = ctx.GetBaseFormatByRegId(subrangeItr->range->virtualRegister);
+		IMLRegFormat regBaseFormat = ctx.GetBaseFormatByRegId(subrangeItr->GetVirtualRegister());
 		IMLPhysRegisterSet physRegSet = ctx.raParam->GetPhysRegPool(regBaseFormat);
 		cemu_assert_debug(physRegSet.HasAnyAvailable()); // register uses type with no valid pool
 		for (auto& liverangeItr : livenessTimeline.activeRanges)
 		{
-			cemu_assert_debug(liverangeItr->range->physicalRegister >= 0);
-			physRegSet.SetReserved(liverangeItr->range->physicalRegister);
+			cemu_assert_debug(liverangeItr->GetPhysicalRegister() >= 0);
+			physRegSet.SetReserved(liverangeItr->GetPhysicalRegister());
 		}
 		// check intersections with other ranges and determine allowed registers
 		IMLPhysRegisterSet localAvailableRegsMask = physRegSet; // mask of registers that are currently not used (does not include range checks in other segments)
 		if(physRegSet.HasAnyAvailable())
 		{
 			// check globally in all segments
-			PPCRecRA_MaskOverlappingPhysRegForGlobalRange(subrangeItr->range, physRegSet);
+			PPCRecRA_MaskOverlappingPhysRegForGlobalRange(subrangeItr, physRegSet);
 		}
 		if (!physRegSet.HasAnyAvailable())
 		{
@@ -427,7 +427,7 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 				struct
 				{
 					sint32 distance;
-					raLivenessSubrange_t* largestHoleSubrange;
+					raLivenessRange* largestHoleSubrange;
 					sint32 cost; // additional cost of choosing this candidate
 				}localRangeHoleCutting;
 				// split current range (this is generally only a good choice when the current range is long but rarely used)
@@ -440,7 +440,7 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 				// explode a inter-segment range (prefer ranges that are not read/written in this segment)
 				struct
 				{
-					raLivenessRange_t* range;
+					raLivenessRange* range;
 					sint32 cost;
 					sint32 distance; // size of hole
 					// note: If we explode a range, we still have to check the size of the hole that becomes available, if too small then we need to add cost of splitting local subrange
@@ -540,7 +540,7 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 					if( distance < 2)
 						continue;
 					sint32 cost;
-					cost = PPCRecRARange_estimateAdditionalCostAfterRangeExplode(candidate->range);
+					cost = PPCRecRARange_estimateCostAfterRangeExplode(candidate);
 					// if the hole is not large enough, add cost of splitting current subrange
 					if (distance < requiredSize)
 					{
@@ -553,7 +553,7 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 					{
 						spillStrategies.explodeRange.cost = cost;
 						spillStrategies.explodeRange.distance = distance;
-						spillStrategies.explodeRange.range = candidate->range;
+						spillStrategies.explodeRange.range = candidate;
 					}
 				}
 				// choose strategy
@@ -581,7 +581,7 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 				else if (subrangeItr->start.index == RA_INTER_RANGE_START)
 				{
 					// alternative strategy if we have no other choice: explode current range
-					PPCRecRA_explodeRange(ppcImlGenContext, subrangeItr->range);
+					PPCRecRA_explodeRange(ppcImlGenContext, subrangeItr);
 				}
 				else
 					assert_dbg();
@@ -603,27 +603,27 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 					if (candidate->end.index != RA_INTER_RANGE_END)
 						continue;
 					// only select candidates that clash with current subrange
-					if (candidate->range->physicalRegister < 0 && candidate != subrangeItr)
+					if (candidate->GetPhysicalRegister() < 0 && candidate != subrangeItr)
 						continue;
 					
 					sint32 cost;
-					cost = PPCRecRARange_estimateAdditionalCostAfterRangeExplode(candidate->range);
+					cost = PPCRecRARange_estimateCostAfterRangeExplode(candidate);
 					// compare with current best candidate for this strategy
 					if (cost < spillStrategies.explodeRange.cost)
 					{
 						spillStrategies.explodeRange.cost = cost;
 						spillStrategies.explodeRange.distance = INT_MAX;
-						spillStrategies.explodeRange.range = candidate->range;
+						spillStrategies.explodeRange.range = candidate;
 					}
 				}
 				// add current range as a candidate too
 				sint32 ownCost;
-				ownCost = PPCRecRARange_estimateAdditionalCostAfterRangeExplode(subrangeItr->range);
+				ownCost = PPCRecRARange_estimateCostAfterRangeExplode(subrangeItr);
 				if (ownCost < spillStrategies.explodeRange.cost)
 				{
 					spillStrategies.explodeRange.cost = ownCost;
 					spillStrategies.explodeRange.distance = INT_MAX;
-					spillStrategies.explodeRange.range = subrangeItr->range;
+					spillStrategies.explodeRange.range = subrangeItr;
 				}
 				if (spillStrategies.explodeRange.cost == INT_MAX)
 					assert_dbg(); // should not happen
@@ -632,10 +632,11 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 			return false;
 		}
 		// assign register to range
-		subrangeItr->range->physicalRegister = physRegSet.GetFirstAvailableReg();
+		//subrangeItr->SetPhysicalRegister(physRegSet.GetFirstAvailableReg());
+		subrangeItr->SetPhysicalRegisterForCluster(physRegSet.GetFirstAvailableReg());
 		livenessTimeline.AddActiveRange(subrangeItr);
 		// next
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;	
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 	return true;
 }
@@ -673,137 +674,30 @@ void IMLRA_AssignRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenContext_t*
 	}
 }
 
-struct subrangeEndingInfo_t
-{
-	//boost::container::small_vector<raLivenessSubrange_t*, 32> subrangeList2;
-	raLivenessSubrange_t* subrangeList[SUBRANGE_LIST_SIZE];
-	sint32 subrangeCount;
-
-	bool hasUndefinedEndings;
-};
-
-void _findSubrangeWriteEndings(raLivenessSubrange_t* subrange, uint32 iterationIndex, sint32 depth, subrangeEndingInfo_t* info)
-{
-	if (depth >= 30)
-	{
-		info->hasUndefinedEndings = true;
-		return;
-	}
-	if (subrange->lastIterationIndex == iterationIndex)
-		return; // already processed
-	subrange->lastIterationIndex = iterationIndex;
-	if (subrange->hasStoreDelayed)
-		return; // no need to traverse this subrange
-	IMLSegment* imlSegment = subrange->imlSegment;
-	if (subrange->end.index != RA_INTER_RANGE_END)
-	{
-		// ending segment
-		if (info->subrangeCount >= SUBRANGE_LIST_SIZE)
-		{
-			info->hasUndefinedEndings = true;
-			return;
-		}
-		else
-		{
-			info->subrangeList[info->subrangeCount] = subrange;
-			info->subrangeCount++;
-		}
-		return;
-	}
-
-	// traverse next subranges in flow
-	if (imlSegment->nextSegmentBranchNotTaken)
-	{
-		if (subrange->subrangeBranchNotTaken == nullptr)
-		{
-			info->hasUndefinedEndings = true;
-		}
-		else
-		{
-			_findSubrangeWriteEndings(subrange->subrangeBranchNotTaken, iterationIndex, depth + 1, info);
-		}
-	}
-	if (imlSegment->nextSegmentBranchTaken)
-	{
-		if (subrange->subrangeBranchTaken == nullptr)
-		{
-			info->hasUndefinedEndings = true;
-		}
-		else
-		{
-			_findSubrangeWriteEndings(subrange->subrangeBranchTaken, iterationIndex, depth + 1, info);
-		}
-	}
-}
-
-void _analyzeRangeDataFlow(raLivenessSubrange_t* subrange)
-{
-	if (subrange->end.index != RA_INTER_RANGE_END)
-		return;
-	// analyze data flow across segments (if this segment has writes)
-	if (subrange->hasStore)
-	{
-		subrangeEndingInfo_t writeEndingInfo;
-		writeEndingInfo.subrangeCount = 0;
-		writeEndingInfo.hasUndefinedEndings = false;
-		_findSubrangeWriteEndings(subrange, PPCRecRA_getNextIterationIndex(), 0, &writeEndingInfo);
-		if (writeEndingInfo.hasUndefinedEndings == false)
-		{
-			// get cost of delaying store into endings
-			sint32 delayStoreCost = 0;
-			bool alreadyStoredInAllEndings = true;
-			for (sint32 i = 0; i < writeEndingInfo.subrangeCount; i++)
-			{
-				raLivenessSubrange_t* subrangeItr = writeEndingInfo.subrangeList[i];
-				if( subrangeItr->hasStore )
-					continue; // this ending already stores, no extra cost
-				alreadyStoredInAllEndings = false;
-				sint32 storeCost = PPCRecRARange_getReadWriteCost(subrangeItr->imlSegment);
-				delayStoreCost = std::max(storeCost, delayStoreCost);
-			}
-			if (alreadyStoredInAllEndings)
-			{
-				subrange->hasStore = false;
-				subrange->hasStoreDelayed = true;
-			}
-			else if (delayStoreCost <= PPCRecRARange_getReadWriteCost(subrange->imlSegment))
-			{
-				subrange->hasStore = false;
-				subrange->hasStoreDelayed = true;
-				for (sint32 i = 0; i < writeEndingInfo.subrangeCount; i++)
-				{
-					raLivenessSubrange_t* subrangeItr = writeEndingInfo.subrangeList[i];
-					subrangeItr->hasStore = true;
-				}
-			}
-		}
-	}
-}
-
 inline IMLReg _MakeNativeReg(IMLRegFormat baseFormat, IMLRegID regId)
 {
 	return IMLReg(baseFormat, baseFormat, 0, regId);
 }
 
-void PPCRecRA_insertGPRLoadInstructions(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment, sint32 insertIndex, std::span<raLivenessSubrange_t*> loadList)
+void PPCRecRA_insertGPRLoadInstructions(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment, sint32 insertIndex, std::span<raLivenessRange*> loadList)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, loadList.size());
 	for (sint32 i = 0; i < loadList.size(); i++)
 	{
-		IMLRegFormat baseFormat = ctx.regIdToBaseFormat[loadList[i]->range->virtualRegister];
+		IMLRegFormat baseFormat = ctx.regIdToBaseFormat[loadList[i]->GetVirtualRegister()];
 		cemu_assert_debug(baseFormat != IMLRegFormat::INVALID_FORMAT);
-		imlSegment->imlList[insertIndex + i].make_r_name(_MakeNativeReg(baseFormat, loadList[i]->range->physicalRegister), loadList[i]->range->name);
+		imlSegment->imlList[insertIndex + i].make_r_name(_MakeNativeReg(baseFormat, loadList[i]->GetPhysicalRegister()), loadList[i]->GetName());
 	}
 }
 
-void PPCRecRA_insertGPRStoreInstructions(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment, sint32 insertIndex, std::span<raLivenessSubrange_t*> storeList)
+void PPCRecRA_insertGPRStoreInstructions(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment, sint32 insertIndex, std::span<raLivenessRange*> storeList)
 {
 	PPCRecompiler_pushBackIMLInstructions(imlSegment, insertIndex, storeList.size());
 	for (size_t i = 0; i < storeList.size(); i++)
 	{
-		IMLRegFormat baseFormat = ctx.regIdToBaseFormat[storeList[i]->range->virtualRegister];
+		IMLRegFormat baseFormat = ctx.regIdToBaseFormat[storeList[i]->GetVirtualRegister()];
 		cemu_assert_debug(baseFormat != IMLRegFormat::INVALID_FORMAT);
-		imlSegment->imlList[insertIndex + i].make_name_r(storeList[i]->range->name, _MakeNativeReg(baseFormat, storeList[i]->range->physicalRegister));
+		imlSegment->imlList[insertIndex + i].make_name_r(storeList[i]->GetName(), _MakeNativeReg(baseFormat, storeList[i]->GetPhysicalRegister()));
 	}
 }
 
@@ -814,7 +708,7 @@ void IMLRA_GenerateSegmentMoveInstructions(IMLRegisterAllocatorContext& ctx, IML
 	sint32 index = 0;
 	sint32 suffixInstructionCount = imlSegment->HasSuffixInstruction() ? 1 : 0;
 	// load register ranges that are supplied from previous segments
-	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while(subrangeItr)
 	{
 		if (subrangeItr->start.index == RA_INTER_RANGE_START)
@@ -827,12 +721,12 @@ void IMLRA_GenerateSegmentMoveInstructions(IMLRegisterAllocatorContext& ctx, IML
 				assert_dbg();
 			}
 			// update translation table
-			cemu_assert_debug(!virtId2PhysRegIdMap.contains(subrangeItr->range->virtualRegister));
+			cemu_assert_debug(!virtId2PhysRegIdMap.contains(subrangeItr->GetVirtualRegister()));
 #endif
-			virtId2PhysRegIdMap.try_emplace(subrangeItr->range->virtualRegister, subrangeItr->range->physicalRegister);
+			virtId2PhysRegIdMap.try_emplace(subrangeItr->GetVirtualRegister(), subrangeItr->GetPhysicalRegister());
 		}
 		// next
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 	// process instructions
 	while(index < imlSegment->imlList.size() + 1)
@@ -842,7 +736,7 @@ void IMLRA_GenerateSegmentMoveInstructions(IMLRegisterAllocatorContext& ctx, IML
 		for (auto& expiredRange : livenessTimeline.GetExpiredRanges())
 		{
 			// update translation table
-			virtId2PhysRegIdMap.erase(expiredRange->range->virtualRegister);
+			virtId2PhysRegIdMap.erase(expiredRange->GetVirtualRegister());
 			// store GPR if required
 			// special care has to be taken to execute any stores before the suffix instruction since trailing instructions may not get executed
 			if (expiredRange->hasStore)
@@ -874,9 +768,9 @@ void IMLRA_GenerateSegmentMoveInstructions(IMLRegisterAllocatorContext& ctx, IML
 					subrangeItr->start.index--;
 				}
 				// update translation table
-				virtId2PhysRegIdMap.insert_or_assign(subrangeItr->range->virtualRegister, subrangeItr->range->physicalRegister);
+				virtId2PhysRegIdMap.insert_or_assign(subrangeItr->GetVirtualRegister(), subrangeItr->GetPhysicalRegister());
 			}
-			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 		}
 		// rewrite registers
 		if (index < imlSegment->imlList.size())
@@ -885,12 +779,12 @@ void IMLRA_GenerateSegmentMoveInstructions(IMLRegisterAllocatorContext& ctx, IML
 		index++;
 	}
 	// expire infinite subranges (subranges which cross the segment border)
-	std::vector<raLivenessSubrange_t*> loadStoreList;
+	std::vector<raLivenessRange*> loadStoreList;
 	livenessTimeline.ExpireRanges(RA_INTER_RANGE_END);
 	for (auto liverange : livenessTimeline.GetExpiredRanges())
 	{
 		// update translation table
-		virtId2PhysRegIdMap.erase(liverange->range->virtualRegister);
+		virtId2PhysRegIdMap.erase(liverange->GetVirtualRegister());
 		// store GPR
 		if (liverange->hasStore)
 			loadStoreList.emplace_back(liverange);
@@ -910,10 +804,10 @@ void IMLRA_GenerateSegmentMoveInstructions(IMLRegisterAllocatorContext& ctx, IML
 			if (subrangeItr->_noLoad == false)
 				loadStoreList.emplace_back(subrangeItr);
 			// update translation table
-			virtId2PhysRegIdMap.try_emplace(subrangeItr->range->virtualRegister, subrangeItr->range->physicalRegister);
+			virtId2PhysRegIdMap.try_emplace(subrangeItr->GetVirtualRegister(), subrangeItr->GetPhysicalRegister());
 		}
 		// next
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 	if (!loadStoreList.empty())
 		PPCRecRA_insertGPRLoadInstructions(ctx, imlSegment, imlSegment->imlList.size() - suffixInstructionCount, loadStoreList);
@@ -1026,7 +920,7 @@ void IMLRA_CalculateLivenessRanges(IMLRegisterAllocatorContext& ctx)
 	}
 }
 
-raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment, sint32 vGPR, raLivenessRange_t* range)
+raLivenessRange* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment, IMLRegID vGPR, IMLName name)
 {
 	IMLRARegAbstractLiveness* abstractRange = _GetAbstractRange(ctx, imlSegment, vGPR);
 	if (!abstractRange)
@@ -1034,7 +928,7 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext
 	if (abstractRange->isProcessed)
 	{
 		// return already existing segment
-		raLivenessSubrange_t* existingRange = IMLRA_GetSubrange(imlSegment, vGPR);
+		raLivenessRange* existingRange = IMLRA_GetSubrange(imlSegment, vGPR);
 		cemu_assert_debug(existingRange);
 		return existingRange;
 	}
@@ -1043,7 +937,7 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext
 #ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug(IMLRA_GetSubrange(imlSegment, vGPR) == nullptr);
 #endif
-	raLivenessSubrange_t* subrange = PPCRecRA_createSubrange(ctx.deprGenContext, range, imlSegment, abstractRange->usageStart, abstractRange->usageEnd);
+	raLivenessRange* subrange = PPCRecRA_createSubrange(ctx.deprGenContext, imlSegment, vGPR, name, abstractRange->usageStart, abstractRange->usageEnd);
 	// traverse forward
 	if (abstractRange->usageEnd == RA_INTER_RANGE_END)
 	{
@@ -1052,7 +946,8 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext
 			IMLRARegAbstractLiveness* branchTakenRange = _GetAbstractRange(ctx, imlSegment->nextSegmentBranchTaken, vGPR);
 			if (branchTakenRange && branchTakenRange->usageStart == RA_INTER_RANGE_START)
 			{
-				subrange->subrangeBranchTaken = PPCRecRA_convertToMappedRanges(ctx, imlSegment->nextSegmentBranchTaken, vGPR, range);
+				subrange->subrangeBranchTaken = PPCRecRA_convertToMappedRanges(ctx, imlSegment->nextSegmentBranchTaken, vGPR, name);
+				subrange->subrangeBranchTaken->previousRanges.push_back(subrange);
 				cemu_assert_debug(subrange->subrangeBranchTaken->start.index == RA_INTER_RANGE_START);
 			}
 		}
@@ -1061,7 +956,8 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext
 			IMLRARegAbstractLiveness* branchNotTakenRange = _GetAbstractRange(ctx, imlSegment->nextSegmentBranchNotTaken, vGPR);
 			if (branchNotTakenRange && branchNotTakenRange->usageStart == RA_INTER_RANGE_START)
 			{
-				subrange->subrangeBranchNotTaken = PPCRecRA_convertToMappedRanges(ctx, imlSegment->nextSegmentBranchNotTaken, vGPR, range);
+				subrange->subrangeBranchNotTaken = PPCRecRA_convertToMappedRanges(ctx, imlSegment->nextSegmentBranchNotTaken, vGPR, name);
+				subrange->subrangeBranchNotTaken->previousRanges.push_back(subrange);
 				cemu_assert_debug(subrange->subrangeBranchNotTaken->start.index == RA_INTER_RANGE_START);
 			}
 		}
@@ -1075,7 +971,7 @@ raLivenessSubrange_t* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext
 			if(!prevRange)
 				continue;
 			if (prevRange->usageEnd == RA_INTER_RANGE_END)
-				PPCRecRA_convertToMappedRanges(ctx, it, vGPR, range);
+				PPCRecRA_convertToMappedRanges(ctx, it, vGPR, name);
 		}
 	}
 	// for subranges which exit the segment at the end there is a hard requirement that they cover the suffix instruction
@@ -1100,13 +996,12 @@ void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IML
 		if(it.second.isProcessed)
 			continue;
 		IMLRegID regId = it.first;
-		raLivenessRange_t* range = PPCRecRA_createRangeBase(ctx.deprGenContext, regId, ctx.raParam->regIdToName.find(regId)->second);
-		PPCRecRA_convertToMappedRanges(ctx, imlSegment, regId, range);
+		PPCRecRA_convertToMappedRanges(ctx, imlSegment, regId, ctx.raParam->regIdToName.find(regId)->second);
 	}
 	// fill created ranges with read/write location indices
 	// note that at this point there is only one range per register per segment
 	// and the algorithm below relies on this
-	const std::unordered_map<IMLRegID, raLivenessSubrange_t*>& regToSubrange = IMLRA_GetSubrangeMap(imlSegment);
+	const std::unordered_map<IMLRegID, raLivenessRange*>& regToSubrange = IMLRA_GetSubrangeMap(imlSegment);
 	size_t index = 0;
 	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
@@ -1114,7 +1009,7 @@ void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IML
 		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
 		gprTracking.ForEachAccessedGPR([&](IMLReg gprReg, bool isWritten) {
 			IMLRegID gprId = gprReg.GetRegID();
-			raLivenessSubrange_t* subrange = regToSubrange.find(gprId)->second;
+			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
 			PPCRecRA_updateOrAddSubrangeLocation(subrange, index, !isWritten, isWritten);
 #ifdef CEMU_DEBUG_ASSERT
 		if ((sint32)index < subrange->start.index)
@@ -1351,7 +1246,7 @@ void IMLRA_ProcessFlowAndCalculateLivenessRanges(IMLRegisterAllocatorContext& ct
 		IMLRA_ConvertAbstractToLivenessRanges(ctx, segIt);
 }
 
-void PPCRecRA_analyzeSubrangeDataDependencyV2(raLivenessSubrange_t* subrange)
+void PPCRecRA_analyzeSubrangeDataDependencyV2(raLivenessRange* subrange)
 {
 	bool isRead = false;
 	bool isWritten = false;
@@ -1376,23 +1271,135 @@ void PPCRecRA_analyzeSubrangeDataDependencyV2(raLivenessSubrange_t* subrange)
 		subrange->_noLoad = true;
 }
 
-void IMLRA_AnalyzeRangeDataFlow(ppcImlGenContext_t* ppcImlGenContext)
+
+struct subrangeEndingInfo_t
 {
-	// this function is called after _assignRegisters(), which means that all ranges are already final and wont change anymore
-	// first do a per-subrange pass
-	for (auto& range : ppcImlGenContext->raInfo.list_ranges)
+	//boost::container::small_vector<raLivenessSubrange_t*, 32> subrangeList2;
+	raLivenessRange* subrangeList[SUBRANGE_LIST_SIZE];
+	sint32 subrangeCount;
+
+	bool hasUndefinedEndings;
+};
+
+void _findSubrangeWriteEndings(raLivenessRange* subrange, uint32 iterationIndex, sint32 depth, subrangeEndingInfo_t* info)
+{
+	if (depth >= 30)
 	{
-		for (auto& subrange : range->list_subranges)
+		info->hasUndefinedEndings = true;
+		return;
+	}
+	if (subrange->lastIterationIndex == iterationIndex)
+		return; // already processed
+	subrange->lastIterationIndex = iterationIndex;
+	if (subrange->hasStoreDelayed)
+		return; // no need to traverse this subrange
+	IMLSegment* imlSegment = subrange->imlSegment;
+	if (subrange->end.index != RA_INTER_RANGE_END)
+	{
+		// ending segment
+		if (info->subrangeCount >= SUBRANGE_LIST_SIZE)
 		{
-			PPCRecRA_analyzeSubrangeDataDependencyV2(subrange);
+			info->hasUndefinedEndings = true;
+			return;
+		}
+		else
+		{
+			info->subrangeList[info->subrangeCount] = subrange;
+			info->subrangeCount++;
+		}
+		return;
+	}
+
+	// traverse next subranges in flow
+	if (imlSegment->nextSegmentBranchNotTaken)
+	{
+		if (subrange->subrangeBranchNotTaken == nullptr)
+		{
+			info->hasUndefinedEndings = true;
+		}
+		else
+		{
+			_findSubrangeWriteEndings(subrange->subrangeBranchNotTaken, iterationIndex, depth + 1, info);
 		}
 	}
-	// then do a second pass where we scan along subrange flow
-	for (auto& range : ppcImlGenContext->raInfo.list_ranges)
+	if (imlSegment->nextSegmentBranchTaken)
 	{
-		for (auto& subrange : range->list_subranges) // todo - traversing this backwards should be faster and yield better results due to the nature of the algorithm
+		if (subrange->subrangeBranchTaken == nullptr)
+		{
+			info->hasUndefinedEndings = true;
+		}
+		else
+		{
+			_findSubrangeWriteEndings(subrange->subrangeBranchTaken, iterationIndex, depth + 1, info);
+		}
+	}
+}
+
+static void _analyzeRangeDataFlow(raLivenessRange* subrange)
+{
+	if (subrange->end.index != RA_INTER_RANGE_END)
+		return;
+	// analyze data flow across segments (if this segment has writes)
+	if (subrange->hasStore)
+	{
+		subrangeEndingInfo_t writeEndingInfo;
+		writeEndingInfo.subrangeCount = 0;
+		writeEndingInfo.hasUndefinedEndings = false;
+		_findSubrangeWriteEndings(subrange, PPCRecRA_getNextIterationIndex(), 0, &writeEndingInfo);
+		if (writeEndingInfo.hasUndefinedEndings == false)
+		{
+			// get cost of delaying store into endings
+			sint32 delayStoreCost = 0;
+			bool alreadyStoredInAllEndings = true;
+			for (sint32 i = 0; i < writeEndingInfo.subrangeCount; i++)
+			{
+				raLivenessRange* subrangeItr = writeEndingInfo.subrangeList[i];
+				if( subrangeItr->hasStore )
+					continue; // this ending already stores, no extra cost
+				alreadyStoredInAllEndings = false;
+				sint32 storeCost = PPCRecRARange_getReadWriteCost(subrangeItr->imlSegment);
+				delayStoreCost = std::max(storeCost, delayStoreCost);
+			}
+			if (alreadyStoredInAllEndings)
+			{
+				subrange->hasStore = false;
+				subrange->hasStoreDelayed = true;
+			}
+			else if (delayStoreCost <= PPCRecRARange_getReadWriteCost(subrange->imlSegment))
+			{
+				subrange->hasStore = false;
+				subrange->hasStoreDelayed = true;
+				for (sint32 i = 0; i < writeEndingInfo.subrangeCount; i++)
+				{
+					raLivenessRange* subrangeItr = writeEndingInfo.subrangeList[i];
+					subrangeItr->hasStore = true;
+				}
+			}
+		}
+	}
+}
+
+void IMLRA_AnalyzeRangeDataFlow(ppcImlGenContext_t* ppcImlGenContext)
+{
+	// this function is called after _assignRegisters(), which means that all liveness ranges are already final and must not be changed anymore
+	// in the first pass we track read/write dependencies
+	for(auto& seg : ppcImlGenContext->segmentList2)
+	{
+		raLivenessRange* subrange = seg->raInfo.linkedList_allSubranges;
+		while(subrange)
+		{
+			PPCRecRA_analyzeSubrangeDataDependencyV2(subrange);
+			subrange = subrange->link_allSegmentRanges.next;
+		}
+	}
+	// then we do a second pass where we scan along subrange flow
+	for(auto& seg : ppcImlGenContext->segmentList2)
+	{
+		raLivenessRange* subrange = seg->raInfo.linkedList_allSubranges;
+		while(subrange)
 		{
 			_analyzeRangeDataFlow(subrange);
+			subrange = subrange->link_allSegmentRanges.next;
 		}
 	}
 }
@@ -1406,8 +1413,6 @@ void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext
 	IMLRA_ReshapeForRegisterAllocation(ppcImlGenContext);
 
 	ppcImlGenContext->UpdateSegmentIndices(); // update momentaryIndex of each segment
-
-	ppcImlGenContext->raInfo.list_ranges = std::vector<raLivenessRange_t*>();
 
 	ctx.perSegmentAbstractRanges.resize(ppcImlGenContext->segmentList2.size());
 

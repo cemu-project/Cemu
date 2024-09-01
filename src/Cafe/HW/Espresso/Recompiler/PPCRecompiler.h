@@ -54,11 +54,6 @@ struct ppcImlGenContext_t
 	std::vector<IMLSegment*> segmentList2;
 	// code generation control
 	bool hasFPUInstruction; // if true, PPCEnter macro will create FP_UNAVAIL checks -> Not needed in user mode
-	// register allocator info
-	struct  
-	{
-		std::vector<raLivenessRange_t*> list_ranges;
-	}raInfo;
 	// analysis info
 	struct  
 	{

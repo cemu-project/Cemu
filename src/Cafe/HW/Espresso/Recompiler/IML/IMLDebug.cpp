@@ -94,23 +94,12 @@ void IMLDebug_PrintLivenessRangeInfo(StringBuf& currentLineText, IMLSegment* iml
 		debug_printf(" ");
 		index++;
 	}
-	raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while (subrangeItr)
 	{
 		if (offset == subrangeItr->start.index)
 		{
-			if (false)//subrange->isDirtied && i == subrange->becomesDirtyAtIndex.index)
-			{
-				debug_printf("*%-2d", subrangeItr->range->virtualRegister);
-			}
-			else
-			{
-				debug_printf("|%-2d", subrangeItr->range->virtualRegister);
-			}
-		}
-		else if (false)//subrange->isDirtied && i == subrange->becomesDirtyAtIndex.index )
-		{
-			debug_printf("*  ");
+			debug_printf("|%-2d", subrangeItr->GetVirtualRegister());
 		}
 		else if (offset >= subrangeItr->start.index && offset < subrangeItr->end.index)
 		{
@@ -122,7 +111,7 @@ void IMLDebug_PrintLivenessRangeInfo(StringBuf& currentLineText, IMLSegment* iml
 		}
 		index += 3;
 		// next
-		subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
 }
 
@@ -501,19 +490,19 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 	if (printLivenessRangeInfo)
 	{
 		debug_printf("Ranges-VirtReg                                                        ");
-		raLivenessSubrange_t* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
+		raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 		while (subrangeItr)
 		{
-			debug_printf("v%-2d", subrangeItr->range->virtualRegister);
-			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+			debug_printf("v%-2d", subrangeItr->GetVirtualRegister());
+			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 		}
 		debug_printf("\n");
 		debug_printf("Ranges-PhysReg                                                        ");
 		subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 		while (subrangeItr)
 		{
-			debug_printf("p%-2d", subrangeItr->range->physicalRegister);
-			subrangeItr = subrangeItr->link_segmentSubrangesGPR.next;
+			debug_printf("p%-2d", subrangeItr->GetPhysicalRegister());
+			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 		}
 		debug_printf("\n");
 	}

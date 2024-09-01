@@ -1,6 +1,8 @@
 #pragma once
 #include "IMLInstruction.h"
 
+#include <boost/container/small_vector.hpp>
+
 struct IMLSegmentPoint
 {
 	sint32 index;
@@ -9,63 +11,14 @@ struct IMLSegmentPoint
 	IMLSegmentPoint* prev;
 };
 
-struct raLivenessLocation_t
-{
-	sint32 index;
-	bool isRead;
-	bool isWrite;
-
-	raLivenessLocation_t() = default;
-
-	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
-		: index(index), isRead(isRead), isWrite(isWrite) {};
-};
-
-struct raLivenessSubrangeLink_t
-{
-	struct raLivenessSubrange_t* prev;
-	struct raLivenessSubrange_t* next;
-};
-
-struct raLivenessSubrange_t
-{
-	struct raLivenessRange_t* range;
-	IMLSegment* imlSegment;
-	IMLSegmentPoint start;
-	IMLSegmentPoint end;
-	// dirty state tracking
-	bool _noLoad;
-	bool hasStore;
-	bool hasStoreDelayed;
-	// next
-	raLivenessSubrange_t* subrangeBranchTaken;
-	raLivenessSubrange_t* subrangeBranchNotTaken;
-	// processing
-	uint32 lastIterationIndex;
-	// instruction locations
-	std::vector<raLivenessLocation_t> list_locations;
-	// linked list (subranges with same GPR virtual register)
-	raLivenessSubrangeLink_t link_sameVirtualRegisterGPR;
-	// linked list (all subranges for this segment)
-	raLivenessSubrangeLink_t link_segmentSubrangesGPR;
-};
-
-struct raLivenessRange_t
-{
-	IMLRegID virtualRegister;
-	sint32 physicalRegister;
-	IMLName name;
-	std::vector<raLivenessSubrange_t*> list_subranges;
-};
-
 struct PPCSegmentRegisterAllocatorInfo_t
 {
 	// used during loop detection
 	bool isPartOfProcessedLoop{}; 
 	sint32 lastIterationIndex{};
 	// linked lists
-	raLivenessSubrange_t* linkedList_allSubranges{};
-	std::unordered_map<IMLRegID, raLivenessSubrange_t*> linkedList_perVirtualGPR2;
+	struct raLivenessRange* linkedList_allSubranges{};
+	std::unordered_map<IMLRegID, struct raLivenessRange*> linkedList_perVirtualRegister;
 };
 
 struct IMLSegment

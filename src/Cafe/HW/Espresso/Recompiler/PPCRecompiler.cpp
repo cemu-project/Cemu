@@ -16,6 +16,7 @@
 #include "IML/IML.h"
 #include "IML/IMLRegisterAllocator.h"
 #include "BackendX64/BackendX64.h"
+#include "util/highresolutiontimer/HighResolutionTimer.h"
 
 struct PPCInvalidationRange
 {
@@ -157,6 +158,9 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	ppcRecFunc->ppcAddress = range.startAddress;
 	ppcRecFunc->ppcSize = range.length;
 
+	BenchmarkTimer bt;
+	bt.Start();
+
 	// generate intermediate code
 	ppcImlGenContext_t ppcImlGenContext = { 0 };
 	ppcImlGenContext.debug_entryPPCAddress = range.startAddress;
@@ -240,9 +244,18 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		entryPointsOut.emplace_back(ppcEnterOffset, x64Offset);
 	}
 
+	bt.Stop();
+
 	//cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {} Entrypoints: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size(), entryPointsOut.size());
 
-	cemuLog_logDebug(LogType::Force, "[Recompiler] PPC 0x{:08x} -> x64: 0x{:x}", (uint32)ppcRecFunc->ppcAddress, (uint64)(uintptr_t)ppcRecFunc->x86Code);
+	uint32 codeHash = 0;
+	for (uint32 i = 0; i < ppcRecFunc->x86Size; i++)
+	{
+		codeHash = _rotr(codeHash, 3);
+		codeHash += ((uint8*)ppcRecFunc->x86Code)[i];
+	}
+
+	//cemuLog_log(LogType::Force, "[Recompiler] PPC 0x{:08x} -> x64: 0x{:x} Took {:.4}ms | Size {:04x} CodeHash {:08x}", (uint32)ppcRecFunc->ppcAddress, (uint64)(uintptr_t)ppcRecFunc->x86Code, bt.GetElapsedMilliseconds(), ppcRecFunc->x86Size, codeHash);
 
 	return ppcRecFunc;
 }
