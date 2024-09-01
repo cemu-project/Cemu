@@ -518,6 +518,58 @@ Java_info_cemu_Cemu_NativeLibrary_setOverlayDebugEnabled([[maybe_unused]] JNIEnv
 	g_config.Save();
 }
 
+extern "C" JNIEXPORT jint JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getNotificationsPosition([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return static_cast<jint>(g_config.data().notification.position);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setNotificationsPosition([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint position)
+{
+	g_config.data().notification.position = static_cast<ScreenPosition>(position);
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isNotificationControllerProfilesEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().notification.controller_profiles;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setNotificationControllerProfilesEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().notification.controller_profiles = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isNotificationShaderCompilerEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().notification.shader_compiling;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setNotificationShaderCompilerEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().notification.shader_compiling = enabled;
+	g_config.Save();
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_info_cemu_Cemu_NativeLibrary_isNotificationFriendListEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return g_config.data().notification.friends;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setNotificationFriendListEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean enabled)
+{
+	g_config.data().notification.friends = enabled;
+	g_config.Save();
+}
+
 extern "C" JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_onTouchDown([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
 {

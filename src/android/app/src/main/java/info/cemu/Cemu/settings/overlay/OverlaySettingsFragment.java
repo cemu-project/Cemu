@@ -15,6 +15,7 @@ import info.cemu.Cemu.R;
 import info.cemu.Cemu.databinding.GenericRecyclerViewLayoutBinding;
 import info.cemu.Cemu.guibasecomponents.CheckboxRecyclerViewItem;
 import info.cemu.Cemu.guibasecomponents.GenericRecyclerViewAdapter;
+import info.cemu.Cemu.guibasecomponents.HeaderRecyclerViewItem;
 import info.cemu.Cemu.guibasecomponents.SelectionAdapter;
 import info.cemu.Cemu.guibasecomponents.SingleSelectionRecyclerViewItem;
 import info.cemu.Cemu.NativeLibrary;
@@ -59,39 +60,67 @@ public class OverlaySettingsFragment extends Fragment {
                 .map(position -> new SelectionAdapter.ChoiceItem<>(t -> t.setText(overlayScreenPositionToResourceNameId(position)), position))
                 .collect(Collectors.toList());
         int overlayPosition = NativeLibrary.getOverlayPosition();
-        SelectionAdapter<Integer> tvChannelsSelectionAdapter = new SelectionAdapter<>(overlayPositionChoices, overlayPosition);
-        SingleSelectionRecyclerViewItem<Integer> tvChannelsModeSelection = new SingleSelectionRecyclerViewItem<>(getString(R.string.overlay_position),
-                getString(overlayScreenPositionToResourceNameId(overlayPosition)), tvChannelsSelectionAdapter,
+
+        genericRecyclerViewAdapter.addRecyclerViewItem(new HeaderRecyclerViewItem(R.string.overlay));
+        SelectionAdapter<Integer> overlayPositionSelectionAdapter = new SelectionAdapter<>(overlayPositionChoices, overlayPosition);
+        SingleSelectionRecyclerViewItem<Integer> overlayPositionSelection = new SingleSelectionRecyclerViewItem<>(getString(R.string.overlay_position),
+                getString(overlayScreenPositionToResourceNameId(overlayPosition)), overlayPositionSelectionAdapter,
                 (position, selectionRecyclerViewItem) -> {
                     NativeLibrary.setOverlayPosition(position);
                     selectionRecyclerViewItem.setDescription(getString(overlayScreenPositionToResourceNameId(position)));
                 });
-        genericRecyclerViewAdapter.addRecyclerViewItem(tvChannelsModeSelection);
+        genericRecyclerViewAdapter.addRecyclerViewItem(overlayPositionSelection);
 
-        CheckboxRecyclerViewItem overlayFps = new CheckboxRecyclerViewItem(getString(R.string.fps_label),
-                getString(R.string.fps_description), NativeLibrary.isOverlayFPSEnabled(),
+        CheckboxRecyclerViewItem overlayFps = new CheckboxRecyclerViewItem(getString(R.string.fps),
+                getString(R.string.fps_overlay_description), NativeLibrary.isOverlayFPSEnabled(),
                 NativeLibrary::setOverlayFPSEnabled);
         genericRecyclerViewAdapter.addRecyclerViewItem(overlayFps);
 
-        CheckboxRecyclerViewItem drawCallsCheckbox = new CheckboxRecyclerViewItem(getString(R.string.draw_calls_per_frame_label),
-                getString(R.string.draw_calls_per_frame_label_desription), NativeLibrary.isOverlayDrawCallsPerFrameEnabled(),
+        CheckboxRecyclerViewItem drawCallsCheckbox = new CheckboxRecyclerViewItem(getString(R.string.draw_calls_per_frame),
+                getString(R.string.draw_calls_per_frame_overlay_description), NativeLibrary.isOverlayDrawCallsPerFrameEnabled(),
                 NativeLibrary::setOverlayDrawCallsPerFrameEnabled);
         genericRecyclerViewAdapter.addRecyclerViewItem(drawCallsCheckbox);
 
-        CheckboxRecyclerViewItem cpuUsageCheckbox = new CheckboxRecyclerViewItem(getString(R.string.cpu_usage_label),
-                getString(R.string.cpu_usage_description), NativeLibrary.isOverlayCPUUsageEnabled(),
+        CheckboxRecyclerViewItem cpuUsageCheckbox = new CheckboxRecyclerViewItem(getString(R.string.cpu_usage),
+                getString(R.string.cpu_usage_overlay_description), NativeLibrary.isOverlayCPUUsageEnabled(),
                 NativeLibrary::setOverlayCPUUsageEnabled);
         genericRecyclerViewAdapter.addRecyclerViewItem(cpuUsageCheckbox);
 
-        CheckboxRecyclerViewItem ramUsageCheckbox = new CheckboxRecyclerViewItem(getString(R.string.ram_usage_label),
-                getString(R.string.ram_usage_description), NativeLibrary.isOverlayRAMUsageEnabled(),
+        CheckboxRecyclerViewItem ramUsageCheckbox = new CheckboxRecyclerViewItem(getString(R.string.ram_usage),
+                getString(R.string.ram_usage_overlay_description), NativeLibrary.isOverlayRAMUsageEnabled(),
                 NativeLibrary::setOverlayRAMUsageEnabled);
         genericRecyclerViewAdapter.addRecyclerViewItem(ramUsageCheckbox);
 
-        CheckboxRecyclerViewItem vramUsageCheckbox = new CheckboxRecyclerViewItem(getString(R.string.vram_usage_label),
-                getString(R.string.vram_usage_description), NativeLibrary.isOverlayVRAMUsageEnabled(),
-                NativeLibrary::setOverlayVRAMUsageEnabled);
-        genericRecyclerViewAdapter.addRecyclerViewItem(vramUsageCheckbox);
+        CheckboxRecyclerViewItem debugCheckbox = new CheckboxRecyclerViewItem(getString(R.string.debug),
+                getString(R.string.debug_overlay_description), NativeLibrary.isOverlayDebugEnabled(),
+                NativeLibrary::setOverlayDebugEnabled);
+        genericRecyclerViewAdapter.addRecyclerViewItem(debugCheckbox);
+
+        genericRecyclerViewAdapter.addRecyclerViewItem(new HeaderRecyclerViewItem(R.string.notifications));
+        int notificationsPosition = NativeLibrary.getNotificationsPosition();
+        SelectionAdapter<Integer> notificationsPositionSelectionAdapter = new SelectionAdapter<>(overlayPositionChoices, notificationsPosition);
+        SingleSelectionRecyclerViewItem<Integer> notificationsPositionSelection = new SingleSelectionRecyclerViewItem<>(getString(R.string.overlay_position),
+                getString(overlayScreenPositionToResourceNameId(notificationsPosition)), notificationsPositionSelectionAdapter,
+                (position, selectionRecyclerViewItem) -> {
+                    NativeLibrary.setNotificationsPosition(position);
+                    selectionRecyclerViewItem.setDescription(getString(overlayScreenPositionToResourceNameId(position)));
+                });
+        genericRecyclerViewAdapter.addRecyclerViewItem(notificationsPositionSelection);
+
+        CheckboxRecyclerViewItem controllerProfiles = new CheckboxRecyclerViewItem(getString(R.string.controller_profiles),
+                getString(R.string.controller_profiles_notification_description), NativeLibrary.isNotificationControllerProfilesEnabled(),
+                NativeLibrary::setNotificationControllerProfilesEnabled);
+        genericRecyclerViewAdapter.addRecyclerViewItem(controllerProfiles);
+
+        CheckboxRecyclerViewItem shaderCompiler = new CheckboxRecyclerViewItem(getString(R.string.shader_compiler),
+                getString(R.string.shader_compiler_notification_description), NativeLibrary.isNotificationShaderCompilerEnabled(),
+                NativeLibrary::setNotificationShaderCompilerEnabled);
+        genericRecyclerViewAdapter.addRecyclerViewItem(shaderCompiler);
+
+        CheckboxRecyclerViewItem friendList = new CheckboxRecyclerViewItem(getString(R.string.friend_list),
+                getString(R.string.friend_list_notification_description), NativeLibrary.isNotificationFriendListEnabled(),
+                NativeLibrary::setNotificationFriendListEnabled);
+        genericRecyclerViewAdapter.addRecyclerViewItem(friendList);
 
         binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 

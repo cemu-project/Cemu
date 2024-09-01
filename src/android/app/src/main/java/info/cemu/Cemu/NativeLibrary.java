@@ -279,7 +279,7 @@ public class NativeLibrary {
 
         public void setActivePreset(String activePreset) {
             if (presets.stream().noneMatch(s -> s.equals(activePreset)))
-                throw new IllegalArgumentException  ("Trying to set an invalid preset: " + activePreset);
+                throw new IllegalArgumentException("Trying to set an invalid preset: " + activePreset);
             setGraphicPackActivePreset(graphicPackId, category, activePreset);
             this.activePreset = activePreset;
         }
@@ -368,13 +368,25 @@ public class NativeLibrary {
 
     public static native void setOverlayRAMUsageEnabled(boolean enabled);
 
-    public static native boolean isOverlayVRAMUsageEnabled();
-
-    public static native void setOverlayVRAMUsageEnabled(boolean enabled);
-
     public static native boolean isOverlayDebugEnabled();
 
     public static native void setOverlayDebugEnabled(boolean enabled);
+
+    public static native int getNotificationsPosition();
+
+    public static native void setNotificationsPosition(int position);
+
+    public static native boolean isNotificationControllerProfilesEnabled();
+
+    public static native void setNotificationControllerProfilesEnabled(boolean enabled);
+
+    public static native boolean isNotificationShaderCompilerEnabled();
+
+    public static native void setNotificationShaderCompilerEnabled(boolean enabled);
+
+    public static native boolean isNotificationFriendListEnabled();
+
+    public static native void setNotificationFriendListEnabled(boolean enabled);
 
     public static native void onTouchDown(int x, int y, boolean isPad);
 
