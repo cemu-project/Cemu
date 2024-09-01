@@ -36,7 +36,7 @@ public abstract class Input {
         configure();
     }
 
-    private static final float MIN_WIDTH_HEIGHT = 200;
+    private static final float MIN_WIDTH_HEIGHT = 100;
 
     public void resize(int diffX, int diffY, int maxWidth, int maxHeight) {
         var rect = settings.getRect();
