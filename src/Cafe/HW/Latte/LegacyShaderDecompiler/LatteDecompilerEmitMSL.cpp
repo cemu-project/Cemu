@@ -2246,6 +2246,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	}
 
 	bool isCompare = shaderContext->shader->textureUsesDepthCompare[texInstruction->textureFetch.textureIndex];
+	bool emulateCompare = (isCompare && !IsValidDepthTextureType(texDim));
 	bool isGather = (texOpcode == GPU7_TEX_INST_FETCH4);
 
 	bool unnormalizationHandled = false;
@@ -2265,25 +2266,40 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		return;
 	}
 
-	src->addFmt("tex{}.", texInstruction->textureFetch.textureIndex);
-	if ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) ||
-	    texOpcode == GPU7_TEX_INST_LD)
+	if (emulateCompare)
 	{
-		if (hasOffset)
-			cemu_assert_unimplemented();
-		src->add("read(");
-		unnormalizationHandled = true;
-		useTexelCoordinates = true;
+        cemu_assert_debug(!isGather);
+
+		src->add("sampleCompareEmulate(");
+	}
+
+	src->addFmt("tex{}", texInstruction->textureFetch.textureIndex);
+	if (!emulateCompare)
+	{
+	    src->add(".");
+    	if ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) ||
+    	    texOpcode == GPU7_TEX_INST_LD)
+    	{
+    		if (hasOffset)
+    			cemu_assert_unimplemented();
+    		src->add("read(");
+    		unnormalizationHandled = true;
+    		useTexelCoordinates = true;
+    	}
+    	else
+    	{
+    	    if (isGather)
+    			src->add("gather");
+    		else
+                src->add("sample");
+    	    if (isCompare)
+    			src->add("_compare");
+    		src->addFmt("(samplr{}, ", texInstruction->textureFetch.textureIndex);
+    	}
 	}
 	else
 	{
-	    if (isGather)
-			src->add("gather");
-		else
-            src->add("sample");
-	    if (isCompare)
-			src->add("_compare");
-		src->addFmt("(samplr{}, ", texInstruction->textureFetch.textureIndex);
+	    src->addFmt(", samplr{}, ", texInstruction->textureFetch.textureIndex);
 	}
 
 	// for textureGather() add shift (todo: depends on rounding mode set in sampler registers?)
@@ -3718,6 +3734,19 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 		"return v;\r\n"
 		"}\r\n");
 	}
+
+	// Sample compare emulate
+	// TODO: only add when needed
+
+	// TODO: lod_options overload
+	// TODO: when the sampler has linear min mag filter, use gather and filter manually
+	// TODO: offset?
+	fCStr_shaderSource->add(""
+	"template<typename TextureT, typename CoordT>\r\n"
+	"float sampleCompareEmulate(TextureT tex, sampler samplr, CoordT coord, float compareValue) {\r\n"
+	    "return compareValue < tex.sample(samplr, coord).x ? 1.0 : 0.0;\r\n"
+	"}\r\n"
+	);
 
 	// clamp
 	fCStr_shaderSource->add(""

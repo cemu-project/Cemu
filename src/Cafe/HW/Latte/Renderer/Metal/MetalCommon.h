@@ -3,6 +3,8 @@
 #include <Foundation/Foundation.hpp>
 #include <Metal/Metal.hpp>
 
+#include "Cafe/HW/Latte/Core/LatteConst.h"
+
 struct MetalPixelFormatSupport
 {
 	bool m_supportsR8Unorm_sRGB;
@@ -62,3 +64,8 @@ inline NS::String* GetLabel(const std::string& label, const void* identifier)
 }
 
 constexpr MTL::RenderStages ALL_MTL_RENDER_STAGES = MTL::RenderStageVertex | MTL::RenderStageObject | MTL::RenderStageMesh | MTL::RenderStageFragment;
+
+inline bool IsValidDepthTextureType(Latte::E_DIM dim)
+{
+    return (dim == Latte::E_DIM::DIM_2D || dim == Latte::E_DIM::DIM_2D_MSAA || dim == Latte::E_DIM::DIM_2D_ARRAY || dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA || dim == Latte::E_DIM::DIM_CUBEMAP);
+}

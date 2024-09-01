@@ -1,7 +1,8 @@
 #pragma once
 
 #include "Common/precompiled.h"
-#include "HW/Latte/Core/LatteConst.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+
 namespace LatteDecompiler
 {
 	static void _emitUniformVariables(LatteDecompilerShaderContext* decompilerContext)
@@ -442,7 +443,8 @@ namespace LatteDecompiler
 
 			src->add(", ");
 
-			if (shaderContext->shader->textureUsesDepthCompare[i])
+			// Only 2D and 2D array textures can be used with comparison samplers
+			if (shaderContext->shader->textureUsesDepthCompare[i] && IsValidDepthTextureType(shaderContext->shader->textureUnitDim[i]))
 			    src->add("depth");
 			else
                 src->add("texture");
