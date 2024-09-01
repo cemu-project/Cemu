@@ -20,8 +20,6 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "imgui.h"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -1065,6 +1063,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 
 	// Cull mode
+
+	// Handled in draw_beginSequence
+	if (cullFront && cullBack)
+	    cemu_assert_suspicious();
+
     MTL::CullMode cullMode;
    	if (cullFront)
   		cullMode = MTL::CullModeFront;

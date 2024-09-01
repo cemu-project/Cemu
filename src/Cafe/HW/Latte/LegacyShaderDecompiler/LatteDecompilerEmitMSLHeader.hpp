@@ -155,7 +155,7 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void _emitAttributes(LatteDecompilerShaderContext* decompilerContext)
+	static void _emitAttributes(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
 	{
 		auto src = decompilerContext->shaderSource;
 		std::string attributeNames;
@@ -171,7 +171,7 @@ namespace LatteDecompiler
 					cemu_assert_debug(decompilerContext->output->resourceMappingMTL.attributeMapping[i] >= 0);
 
 					src->addFmt("uint4 attrDataSem{}", i);
-					if (decompilerContext->options->usesGeometryShader)
+					if (decompilerContext->options->usesGeometryShader || isRectVertexShader)
 					    attributeNames += "#define ATTRIBUTE_NAME" + std::to_string((sint32)decompilerContext->output->resourceMappingMTL.attributeMapping[i]) + " attrDataSem" + std::to_string(i) + "\n";
 					else
 					    src->addFmt(" [[attribute({})]]", (sint32)decompilerContext->output->resourceMappingMTL.attributeMapping[i]);
@@ -268,7 +268,7 @@ namespace LatteDecompiler
 
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
 		{
-		    _emitAttributes(decompilerContext);
+		    _emitAttributes(decompilerContext, isRectVertexShader);
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
 		{
