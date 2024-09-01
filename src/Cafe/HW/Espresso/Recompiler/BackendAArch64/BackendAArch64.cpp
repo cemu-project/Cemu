@@ -714,7 +714,7 @@ bool AArch64GenContext_t::macro(IMLInstruction* imlInstruction)
 		uint32 cycleCount = imlInstruction->op_macro.param;
 		AdrImm adrCycles = AdrImm(hCPU, offsetof(PPCInterpreter_t, remainingCycles));
 		ldr(tempWReg, adrCycles);
-		sub(tempWReg, tempWReg, cycleCount);
+		sub_imm(tempWReg, tempWReg, cycleCount, temp2WReg);
 		str(tempWReg, adrCycles);
 		return true;
 	}
