@@ -6,10 +6,18 @@
     android:layout_height="match_parent"
     tools:context=".emulation.EmulationFragment">
 
-    <SurfaceView
-        android:id="@+id/main_canvas"
+    <LinearLayout
+        android:id="@+id/canvases_layout"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:orientation="horizontal">
+
+        <SurfaceView
+            android:id="@+id/main_canvas"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1" />
+    </LinearLayout>
 
     <info.cemu.Cemu.inputoverlay.InputOverlaySurfaceView
         android:id="@+id/input_overlay"
@@ -17,7 +25,41 @@
         android:layout_height="match_parent" />
 
     <Button
-        android:id="@+id/inputModeButton"
+        android:id="@+id/finish_edit_inputs_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="@string/input_finish_edit_label"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/edit_inputs_layout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_margin="8dp"
+        android:visibility="gone">
+
+        <Button
+            android:id="@+id/move_inputs_button"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:contentDescription="@string/move_inputs_description"
+            app:icon="@drawable/ic_move" />
+
+        <Button
+            android:id="@+id/resize_inputs_button"
+            style="?attr/materialIconButtonFilledStyle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/resize_inputs_description"
+            app:icon="@drawable/ic_resize" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/emulation_settings_button"
         style="?attr/materialIconButtonStyle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

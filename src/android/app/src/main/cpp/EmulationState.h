@@ -35,10 +35,10 @@ class EmulationState
 			m_graphicPacks[reinterpret_cast<int64_t>(graphicPack.get())] = graphicPack;
 		}
 	}
-	void onTouchEvent(sint32 x, sint32 y, bool isPad, std::optional<bool> status = {})
+	void onTouchEvent(sint32 x, sint32 y, bool isTV, std::optional<bool> status = {})
 	{
 		auto& instance = InputManager::instance();
-		auto& touchInfo = isPad ? instance.m_pad_mouse : instance.m_main_mouse;
+		auto& touchInfo = isTV ? instance.m_main_mouse : instance.m_pad_mouse;
 		std::scoped_lock lock(touchInfo.m_mutex);
 		touchInfo.position = {x, y};
 		if (status.has_value())
@@ -68,6 +68,12 @@ class EmulationState
 
 	void clearSurface(bool isMainCanvas)
 	{
+		if (!isMainCanvas)
+		{
+			auto renderer = static_cast<VulkanRenderer*>(g_renderer.get());
+			if (renderer)
+				renderer->StopUsingPadAndWait();
+		}
 	}
 
 	void notifySurfaceChanged(bool isMainCanvas)
@@ -76,16 +82,20 @@ class EmulationState
 
 	void setSurface(JNIEnv* env, jobject surface, bool isMainCanvas)
 	{
+		cemu_assert_debug(surface != nullptr);
 		auto& windowHandleInfo = isMainCanvas ? GuiSystem::getWindowInfo().canvas_main : GuiSystem::getWindowInfo().canvas_pad;
 		if (windowHandleInfo.surface)
 		{
 			ANativeWindow_release(static_cast<ANativeWindow*>(windowHandleInfo.surface));
 			windowHandleInfo.surface = nullptr;
 		}
-		if (surface)
-			windowHandleInfo.surface = ANativeWindow_fromSurface(env, surface);
+		windowHandleInfo.surface = ANativeWindow_fromSurface(env, surface);
+		int width, height;
 		if (isMainCanvas)
-			GuiSystem::getWindowInfo().window_main.surface = windowHandleInfo.surface;
+			GuiSystem::getWindowPhysSize(width, height);
+		else
+			GuiSystem::getPadWindowPhysSize(width, height);
+		VulkanRenderer::GetInstance()->InitializeSurface({width, height}, isMainCanvas);
 	}
 
 	void setSurfaceSize(int width, int height, bool isMainCanvas)
@@ -178,20 +188,19 @@ class EmulationState
 		else
 			androidEmulatedController.setDisabled();
 	}
-	void initializeRenderer()
+
+	void initializeRenderer(JNIEnv* env, jobject testSurface)
 	{
+		cemu_assert_debug(testSurface != nullptr);
+		// TODO: cleanup surface
+		GuiSystem::getWindowInfo().window_main.surface = ANativeWindow_fromSurface(env, testSurface);
 		g_renderer = std::make_unique<VulkanRenderer>();
 	}
-	void initializeRenderSurface(bool isMainCanvas)
+	void setReplaceTVWithPadView(bool showDRC)
 	{
-		int width, height;
-		if (isMainCanvas)
-			GuiSystem::getWindowPhysSize(width, height);
-		else
-			GuiSystem::getPadWindowPhysSize(width, height);
-		VulkanRenderer::GetInstance()->InitializeSurface({width, height}, isMainCanvas);
+		// Emulate pressing the TAB key for showing DRC instead of TV
+		GuiSystem::getWindowInfo().set_keystate(GuiSystem::PlatformKeyCodes::TAB, showDRC);
 	}
-
 	void setDPI(float dpi)
 	{
 		auto& windowInfo = GuiSystem::getWindowInfo();
@@ -256,6 +265,7 @@ class EmulationState
 
 	void startGame(TitleId titleId)
 	{
+		GuiSystem::getWindowInfo().set_keystates_up();
 		initializeAudioDevices();
 		CafeSystemUtils::startGame(titleId);
 	}
@@ -315,16 +325,16 @@ class EmulationState
 		}
 		g_config.Save();
 	}
-	void onTouchMove(sint32 x, sint32 y, bool isPad)
+	void onTouchMove(sint32 x, sint32 y, bool isTV)
 	{
-		onTouchEvent(x, y, isPad);
+		onTouchEvent(x, y, isTV);
 	}
-	void onTouchUp(sint32 x, sint32 y, bool isPad)
+	void onTouchUp(sint32 x, sint32 y, bool isTV)
 	{
-		onTouchEvent(x, y, isPad, false);
+		onTouchEvent(x, y, isTV, false);
 	}
-	void onTouchDown(sint32 x, sint32 y, bool isPad)
+	void onTouchDown(sint32 x, sint32 y, bool isTV)
 	{
-		onTouchEvent(x, y, isPad, true);
+		onTouchEvent(x, y, isTV, true);
 	}
 };

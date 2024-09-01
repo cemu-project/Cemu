@@ -72,15 +72,11 @@ Java_info_cemu_Cemu_NativeLibrary_initializeEmulation([[maybe_unused]] JNIEnv* e
 	s_emulationState.initializeEmulation();
 }
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_initializerRenderer([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz)
+Java_info_cemu_Cemu_NativeLibrary_initializerRenderer(JNIEnv* env, [[maybe_unused]] jclass clazz, jobject testSurface)
 {
-	s_emulationState.initializeRenderer();
+	s_emulationState.initializeRenderer(env, testSurface);
 }
-extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_initializeRendererSurface([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean is_main_canvas)
-{
-	s_emulationState.initializeRenderSurface(is_main_canvas);
-}
+
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_setDPI([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jfloat dpi)
 {
@@ -571,19 +567,25 @@ Java_info_cemu_Cemu_NativeLibrary_setNotificationFriendListEnabled([[maybe_unuse
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_onTouchDown([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
+Java_info_cemu_Cemu_NativeLibrary_setReplaceTVWithPadView([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean swapped)
 {
-	s_emulationState.onTouchDown(x, y, isPad);
+	s_emulationState.setReplaceTVWithPadView(swapped);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_onTouchUp([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
+Java_info_cemu_Cemu_NativeLibrary_onTouchDown([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isTV)
 {
-	s_emulationState.onTouchUp(x, y, isPad);
+	s_emulationState.onTouchDown(x, y, isTV);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_onTouchMove([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isPad)
+Java_info_cemu_Cemu_NativeLibrary_onTouchUp([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isTV)
 {
-	s_emulationState.onTouchMove(x, y, isPad);
+	s_emulationState.onTouchUp(x, y, isTV);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onTouchMove([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jint x, jint y, jboolean isTV)
+{
+	s_emulationState.onTouchMove(x, y, isTV);
 }

@@ -20,11 +20,11 @@ public class NativeLibrary {
 
     public static native void setSurfaceSize(int width, int height, boolean isMainCanvas);
 
-    public static native void initializerRenderer();
-
-    public static native void initializeRendererSurface(boolean isMainCanvas);
+    public static native void initializerRenderer(Surface surface);
 
     public static native void startGame(long titleId);
+
+    public static native void setReplaceTVWithPadView(boolean swapped);
 
     public static native void recreateRenderSurface(boolean isMainCanvas);
 
@@ -388,9 +388,9 @@ public class NativeLibrary {
 
     public static native void setNotificationFriendListEnabled(boolean enabled);
 
-    public static native void onTouchDown(int x, int y, boolean isPad);
+    public static native void onTouchDown(int x, int y, boolean isTV);
 
-    public static native void onTouchMove(int x, int y, boolean isPad);
+    public static native void onTouchMove(int x, int y, boolean isTV);
 
-    public static native void onTouchUp(int x, int y, boolean isPad);
+    public static native void onTouchUp(int x, int y, boolean isTV);
 }

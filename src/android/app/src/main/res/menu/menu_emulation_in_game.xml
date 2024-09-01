@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/replace_tv_with_pad"
+        android:checkable="true"
+        android:title="@string/replace_tv_with_pad" />
+    <item
+        android:id="@+id/show_pad"
+        android:checkable="true"
+        android:title="@string/show_pad" />
+    <item
+        android:id="@+id/edit_inputs"
+        android:title="@string/edit_inputs" />
+    <item
+        android:id="@+id/reset_inputs"
+        android:title="@string/reset_overlay_inputs" />
+</menu>

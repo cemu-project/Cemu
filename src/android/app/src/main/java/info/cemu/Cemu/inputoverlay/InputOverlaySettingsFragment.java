@@ -91,14 +91,6 @@ public class InputOverlaySettingsFragment extends Fragment {
                 });
         genericRecyclerViewAdapter.addRecyclerViewItem(controllerSelection);
 
-        genericRecyclerViewAdapter.addRecyclerViewItem(
-                new ButtonRecyclerViewItem(
-                        getString(R.string.configure_inputs_label),
-                        getString(R.string.configure_inputs_description),
-                        () -> startActivity(new Intent(requireActivity(), InputOverlayConfigureActivity.class))
-                )
-        );
-
         binding.recyclerView.setAdapter(genericRecyclerViewAdapter);
 
         return binding.getRoot();
