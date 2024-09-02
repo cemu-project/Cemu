@@ -21,7 +21,7 @@ CameraManager::~CameraManager()
 	Cap_releaseContext(m_ctx);
 }
 
-void CameraManager::SetDevice(uint deviceNo)
+void CameraManager::SetDevice(unsigned deviceNo)
 {
 	std::scoped_lock lock(m_mutex);
 	if (m_device == deviceNo)

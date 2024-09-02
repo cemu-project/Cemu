@@ -8,8 +8,8 @@ class CameraManager : public Singleton<CameraManager>
 	CapContext m_ctx;
 	std::optional<CapDeviceID> m_device;
 	std::optional<CapStream> m_stream;
-	std::vector<uint8_t> m_rgbBuffer;
-	std::vector<uint8_t> m_nv12Buffer;
+	std::vector<uint8> m_rgbBuffer;
+	std::vector<uint8> m_nv12Buffer;
 	int m_refCount;
 	std::thread m_captureThread;
 	std::atomic_bool m_capturing;
@@ -19,7 +19,7 @@ class CameraManager : public Singleton<CameraManager>
 	CameraManager();
 	~CameraManager();
 
-	void SetDevice(uint deviceNo);
+	void SetDevice(unsigned deviceNo);
 
 	bool Open(bool weak);
 	void Close();

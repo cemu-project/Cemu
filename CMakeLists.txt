@@ -223,6 +223,7 @@ endif()
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
 
 add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL SYSTEM)
+set_property(TARGET openpnp-capture PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 find_package(ZArchive)
 if (NOT ZArchive_FOUND)
