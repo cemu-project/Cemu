@@ -114,8 +114,7 @@ namespace camera
 			: m_capCtx(Cap_createContext()),
 			  m_capNv12Buffer(surfaceBufferSize),
 			  m_frameRate(30),
-			  m_callbackPtr(callbackPtr),
-			  m_alarm(OSAllocFromSystem(sizeof(coreinit::OSAlarm_t), 64))
+			  m_callbackPtr(callbackPtr)
 		{
 			if (callbackPtr.IsNull() || frameRate != CAMFps::_15 && frameRate != CAMFps::_30)
 				throw CAMError::InvalidArg;
@@ -129,8 +128,7 @@ namespace camera
 		{
 			m_capWorker.request_stop();
 			m_capWorker.join();
-			coreinit::OSCancelAlarm(m_alarm);
-			OSFreeToSystem(m_alarm.GetMPTR());
+			coreinit::OSCancelAlarm(g_cameraAlarm.GetPtr());
 			Cap_releaseContext(m_capCtx);
 		}
 
@@ -224,7 +222,6 @@ namespace camera
 		uint32 m_frameRate;
 		MEMPTR<void> m_callbackPtr;
 		RingBuffer<MEMPTR<CAMTargetSurface>, 20> m_targetSurfaceQueue{};
-		MEMPTR<coreinit::OSAlarm_t> m_alarm;
 		bool m_opened = false;
 	};
 	std::optional<CAMInstance> g_camInstance;
