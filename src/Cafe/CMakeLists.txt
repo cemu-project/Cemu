@@ -257,6 +257,8 @@ add_library(CemuCafe
   OS/libs/avm/avm.h
   OS/libs/camera/camera.cpp
   OS/libs/camera/camera.h
+  OS/libs/camera/Rgb2Nv12.h
+  OS/libs/camera/Rgb2Nv12.cpp
   OS/libs/coreinit/coreinit_Alarm.cpp
   OS/libs/coreinit/coreinit_Alarm.h
   OS/libs/coreinit/coreinit_Atomic.cpp
@@ -554,6 +556,7 @@ target_link_libraries(CemuCafe PRIVATE
 	ZArchive::zarchive
 	ZLIB::ZLIB
 	zstd::zstd
+    openpnp-capture
 )
 
 if (ENABLE_WAYLAND)
