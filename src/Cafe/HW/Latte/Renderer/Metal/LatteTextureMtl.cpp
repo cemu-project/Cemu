@@ -76,9 +76,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	auto pixelFormat = GetMtlPixelFormat(format, isDepth, m_mtlr->GetPixelFormatSupport());
 	desc->setPixelFormat(pixelFormat);
 
-	// HACK: even though the textures are never written to from a shader, we still need to use `ShaderWrite` usage to prevent pink lines over the screen
-	MTL::TextureUsage usage = MTL::TextureUsageShaderRead | MTL::TextureUsageShaderWrite;
-	// TODO: add more conditions
+	MTL::TextureUsage usage = MTL::TextureUsageShaderRead;
 	if (!Latte::IsCompressedFormat(format))
 	{
 		usage |= MTL::TextureUsageRenderTarget;
