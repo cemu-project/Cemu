@@ -1210,6 +1210,14 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 
 	timeval tv = { 0 };
 
+	if (timeOut == NULL)
+	{
+		// return immediately
+		cemuLog_log(LogType::Socket, "select returned immediately because of null timeout");
+		osLib_returnFromFunction(hCPU, 0);
+		return;
+	}
+
 	uint64 msTimeout = (_swapEndianU32(timeOut->tv_usec) / 1000) + (_swapEndianU32(timeOut->tv_sec) * 1000);
 	uint32 startTime = GetTickCount();
 	while (true)
