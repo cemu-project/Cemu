@@ -22,6 +22,8 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 		effectiveBaseHeight = overwriteInfo.height;
 		effectiveBaseDepth = overwriteInfo.depth;
 	}
+	effectiveBaseWidth = std::max(1, effectiveBaseWidth);
+	effectiveBaseHeight = std::max(1, effectiveBaseHeight);
 	effectiveBaseDepth = std::max(1, effectiveBaseDepth);
 
 	desc->setWidth(effectiveBaseWidth);

@@ -61,14 +61,14 @@ MetalRenderer::MetalRenderer()
     // Null resources
     MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
     textureDescriptor->setTextureType(MTL::TextureType1D);
-    textureDescriptor->setWidth(4);
+    textureDescriptor->setWidth(1);
     m_nullTexture1D = m_device->newTexture(textureDescriptor);
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture1D->setLabel(GetLabel("Null texture 1D", m_nullTexture1D));
 #endif
 
     textureDescriptor->setTextureType(MTL::TextureType2D);
-    textureDescriptor->setHeight(4);
+    textureDescriptor->setHeight(1);
     m_nullTexture2D = m_device->newTexture(textureDescriptor);
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture2D->setLabel(GetLabel("Null texture 2D", m_nullTexture2D));
