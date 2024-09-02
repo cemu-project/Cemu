@@ -967,3 +967,9 @@ void InputManager::update_thread()
 		std::this_thread::yield();
 	}
 }
+
+MotionSample InputManager::get_device_motion_sample() const
+{
+	std::shared_lock lock(m_device_motion.m_mutex);
+	return m_device_motion.m_motion_sample;
+}

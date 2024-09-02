@@ -598,3 +598,15 @@ Java_info_cemu_Cemu_NativeLibrary_getInstalledGamesTitleIds(JNIEnv* env, [[maybe
 {
 	return JNIUtils::createJavaLongArrayList(env, CafeTitleList::GetAllTitleIds());
 }
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_onMotion([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong timestamp, jfloat gyroX, jfloat gyroY, jfloat gyroZ, jfloat accelX, jfloat accelY, jfloat accelZ)
+{
+	s_emulationState.onMotion(timestamp, gyroX, gyroY, gyroZ, accelX, accelY, accelZ);
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_setMotionEnabled([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jboolean motionEnabled)
+{
+	s_emulationState.setMotionEnabled(motionEnabled);
+}

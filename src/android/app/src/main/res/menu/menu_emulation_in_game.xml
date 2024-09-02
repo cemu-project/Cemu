@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
+        android:id="@+id/enable_motion"
+        android:checkable="true"
+        android:title="@string/enable_motion" />
+    <item
         android:id="@+id/replace_tv_with_pad"
         android:checkable="true"
         android:title="@string/replace_tv_with_pad" />

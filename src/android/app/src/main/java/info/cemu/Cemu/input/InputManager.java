@@ -44,6 +44,8 @@ public class InputManager {
         return (event.getSource() & InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK && event.getAction() == MotionEvent.ACTION_MOVE;
     }
 
+    private static final float MIN_ABS_AXIS_VALUE = 0.33f;
+
     public boolean mapMotionEventToMappingId(int controllerIndex, int mappingId, MotionEvent event) {
         if (isMotionEventFromJoystick(event)) {
             InputDevice device = event.getDevice();
@@ -63,7 +65,6 @@ public class InputManager {
                     maxAbsAxisValue = Math.abs(axisValue);
                 }
             }
-            float MIN_ABS_AXIS_VALUE = 0.33f;
             if (maxAbsAxisValue > MIN_ABS_AXIS_VALUE) {
                 NativeLibrary.setControllerMapping(device.getDescriptor(), device.getName(), controllerIndex, mappingId, maxAxis);
                 return true;

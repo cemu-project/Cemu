@@ -1,6 +1,7 @@
 package info.cemu.Cemu.emulation;
 
 import android.annotation.SuppressLint;
+import android.content.res.Configuration;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -23,12 +24,12 @@ import androidx.fragment.app.Fragment;
 import info.cemu.Cemu.NativeLibrary;
 import info.cemu.Cemu.R;
 import info.cemu.Cemu.databinding.FragmentEmulationBinding;
+import info.cemu.Cemu.input.SensorManager;
 import info.cemu.Cemu.inputoverlay.InputOverlaySettingsProvider;
 import info.cemu.Cemu.inputoverlay.InputOverlaySurfaceView;
 
 @SuppressLint("ClickableViewAccessibility")
 public class EmulationFragment extends Fragment implements PopupMenu.OnMenuItemClickListener {
-
     static private class OnSurfaceTouchListener implements View.OnTouchListener {
         int currentPointerId = -1;
         final boolean isTV;
@@ -99,8 +100,10 @@ public class EmulationFragment extends Fragment implements PopupMenu.OnMenuItemC
     private Surface testSurface;
     private Toast toast;
     private FragmentEmulationBinding binding;
+    private boolean isMotionEnabled;
     private PopupMenu settingsMenu;
     private InputOverlaySurfaceView inputOverlaySurfaceView;
+    private SensorManager sensorManager;
 
     public EmulationFragment(long gameTitleId) {
         this.gameTitleId = gameTitleId;
@@ -112,14 +115,39 @@ public class EmulationFragment extends Fragment implements PopupMenu.OnMenuItemC
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         var inputOverlaySettingsProvider = new InputOverlaySettingsProvider(requireContext());
+        if (sensorManager == null)
+            sensorManager = new SensorManager(requireContext());
+        sensorManager.setIsLandscape(getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE);
         overlaySettings = inputOverlaySettingsProvider.getOverlaySettings();
         testSurfaceTexture = new SurfaceTexture(0);
         testSurface = new Surface(testSurfaceTexture);
     }
 
     @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (sensorManager != null)
+            sensorManager.setIsLandscape(newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        sensorManager.pauseListening();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (isMotionEnabled)
+            sensorManager.startListening();
+    }
+
+    @Override
     public void onDestroy() {
         super.onDestroy();
+        if (sensorManager != null)
+            sensorManager.pauseListening();
         if (testSurface != null) testSurface.release();
         if (testSurfaceTexture != null) testSurfaceTexture.release();
     }
@@ -181,6 +209,14 @@ public class EmulationFragment extends Fragment implements PopupMenu.OnMenuItemC
         if (itemId == R.id.reset_inputs) {
             inputOverlaySurfaceView.resetInputs();
             return true;
+        }
+        if (itemId == R.id.enable_motion) {
+            isMotionEnabled = !item.isChecked();
+            if (isMotionEnabled)
+                sensorManager.startListening();
+            else
+                sensorManager.pauseListening();
+            item.setChecked(isMotionEnabled);
         }
         return false;
     }

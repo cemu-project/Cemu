@@ -37,7 +37,7 @@ public class InputOverlaySettingsProvider {
 
     private final SharedPreferences sharedPreferences;
 
-    private static final int defaultAlpha = 64;
+    private static final int DEFAULT_ALPHA = 64;
 
     public InputOverlaySettingsProvider(Context context) {
         this.sharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE);
@@ -90,7 +90,7 @@ public class InputOverlaySettingsProvider {
     }
 
     private int getAlpha() {
-        return sharedPreferences.getInt("alpha", defaultAlpha);
+        return sharedPreferences.getInt("alpha", DEFAULT_ALPHA);
     }
 
     private Optional<Rect> getRectangle(Input input) {

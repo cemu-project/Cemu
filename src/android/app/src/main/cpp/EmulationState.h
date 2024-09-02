@@ -44,6 +44,8 @@ class EmulationState
 		if (status.has_value())
 			touchInfo.left_down = touchInfo.left_down_toggle = status.value();
 	}
+	WiiUMotionHandler m_wiiUMotionHandler{};
+	long m_lastMotionTimestamp;
 
   public:
 	void initializeEmulation()
@@ -53,6 +55,7 @@ class EmulationState
 		FilesystemAndroid::setFilesystemCallbacks(std::make_shared<AndroidFilesystemCallbacks>());
 		NetworkConfig::LoadOnce();
 		InputManager::instance().load();
+		auto& instance = InputManager::instance();
 		InitializeGlobalVulkan();
 		createCemuDirectories();
 		LatteOverlay_init();
@@ -336,5 +339,20 @@ class EmulationState
 	void onTouchDown(sint32 x, sint32 y, bool isTV)
 	{
 		onTouchEvent(x, y, isTV, true);
+	}
+	void onMotion(long timestamp, float gyroX, float gyroY, float gyroZ, float accelX, float accelY, float accelZ)
+	{
+		float deltaTime = (timestamp - m_lastMotionTimestamp) * 1e-9f;
+		m_wiiUMotionHandler.processMotionSample(deltaTime, gyroX, gyroY, gyroZ, accelX * 0.098066f, -accelY * 0.098066f, -accelZ * 0.098066f);
+		m_lastMotionTimestamp = timestamp;
+		auto& deviceMotion = InputManager::instance().m_device_motion;
+		std::scoped_lock lock{deviceMotion.m_mutex};
+		deviceMotion.m_motion_sample = m_wiiUMotionHandler.getMotionSample();
+	}
+	void setMotionEnabled(bool enabled)
+	{
+		auto& deviceMotion = InputManager::instance().m_device_motion;
+		std::scoped_lock lock{deviceMotion.m_mutex};
+		deviceMotion.m_device_motion_enabled = enabled;
 	}
 };

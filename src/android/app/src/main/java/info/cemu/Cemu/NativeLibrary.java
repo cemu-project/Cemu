@@ -395,4 +395,8 @@ public class NativeLibrary {
     public static native void onTouchMove(int x, int y, boolean isTV);
 
     public static native void onTouchUp(int x, int y, boolean isTV);
+
+    public static native void onMotion(long timestamp, float gyroX, float gyroY, float gyroZ, float accelX, float accelY, float accelZ);
+
+    public static native void setMotionEnabled(boolean motionEnabled);
 }

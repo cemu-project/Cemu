@@ -98,6 +98,14 @@ public:
 	std::optional<glm::ivec2> get_right_down_mouse_info(bool* is_pad);
 
 	std::atomic<float> m_mouse_wheel;
+	struct DeviceMotion
+	{
+		mutable std::shared_mutex m_mutex;
+		MotionSample m_motion_sample;
+		bool m_device_motion_enabled;
+	} m_device_motion{};
+
+	MotionSample get_device_motion_sample() const;
 
 private:
 	void update_thread();
