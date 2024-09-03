@@ -916,7 +916,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
     // TODO: is this even needed? Also, should go to draw_beginSequence
-    if (!vertexShader)
+    if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
     {
         printf("no vertex function, skipping draw\n");
         return;
@@ -1200,6 +1200,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	{
 	    if (indexBuffer)
 		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexBuffer, indexBufferOffset, vertexShader->resourceMapping.indexBufferBinding);
+		renderCommandEncoder->setObjectBytes(&hostIndexType, sizeof(hostIndexType), vertexShader->resourceMapping.indexTypeBinding);
+		encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.indexTypeBinding] = {nullptr};
 
 		uint32 verticesPerPrimitive = 0;
 		switch (primitiveMode)

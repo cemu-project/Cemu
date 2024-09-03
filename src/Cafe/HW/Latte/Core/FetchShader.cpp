@@ -8,6 +8,7 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/ISA/LatteInstructions.h"
+#include "HW/Latte/Renderer/Renderer.h"
 #include "util/containers/LookupTableL3.h"
 #include "util/helpers/fspinlock.h"
 #include <openssl/sha.h> /* SHA1_DIGEST_LENGTH */
@@ -107,6 +108,14 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 			key += (uint64)(attrib->offset & 3);
 			key = std::rotl<uint64>(key, 2);
 		}
+
+		// TODO: also check if geometry shader is used
+		if (g_renderer->GetType() == RendererAPI::Metal)
+		{
+		    key += (uint64)group.attributeBufferIndex;
+			key = std::rotl<uint64>(key, 5);
+			// TODO: hash the stride as well
+		}
 	}
 	// todo - also hash invalid buffer groups?
 	fetchShader->key = key;
@@ -161,7 +170,7 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	auto nfa = instr->getField_NUM_FORMAT_ALL();
 	bool isSigned = instr->getField_FORMAT_COMP_ALL() == LatteClauseInstruction_VTX::FORMAT_COMP::COMP_SIGNED;
 	auto endianSwap = instr->getField_ENDIAN_SWAP();
-	
+
 	// get buffer
 	cemu_assert_debug(bufferId >= 0xA0 && bufferId < 0xB0);
 	uint32 bufferIndex = (bufferId - 0xA0);
@@ -316,7 +325,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	//			{0x00000002, 0x01800c00, 0x00000000, 0x8a000000, 0x2c00a001, 0x2c151000, 0x000a0000, ...} // size 0x50
 	//          {0x00000002, 0x01801000, 0x00000000, 0x8a000000, 0x1c00a001, 0x280d1000, 0x00090000, ...} // size 0x60
 	//			{0x00000002, 0x01801c00, 0x00000000, 0x8a000000, 0x1c00a001, 0x280d1000, 0x00090000, ...} // size 0x90
-	
+
 	// our new implementation:
 	//			{0x00000002, 0x01800400, 0x00000000, 0x8a000000, 0x0000a001, 0x2c151000, 0x00020000, ...}
 
@@ -411,7 +420,7 @@ LatteFetchShader::~LatteFetchShader()
 	UnregisterInCache();
 }
 
-struct FetchShaderLookupInfo 
+struct FetchShaderLookupInfo
 {
 	LatteFetchShader* fetchShader;
 	uint32 programSize;

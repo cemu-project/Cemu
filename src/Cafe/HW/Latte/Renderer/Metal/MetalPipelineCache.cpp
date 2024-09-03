@@ -366,13 +366,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 
 	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
-	mtlVertexShader->CompileVertexFunction();
-	// HACK
-	if (!mtlVertexShader->GetFunction())
-	{
-	    debug_printf("no vertex function, skipping draw\n");
-		return nullptr;
-	}
 	mtlPixelShader->CompileFragmentFunction(lastUsedFBO);
 
 	// Render pipeline state
@@ -475,7 +468,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFe
         mtlMeshShader = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
     }
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
-	mtlObjectShader->CompileObjectFunction(lcr, fetchShader, vertexShader, hostIndexType);
 	mtlPixelShader->CompileFragmentFunction(lastUsedFBO);
 
 	// Render pipeline state
