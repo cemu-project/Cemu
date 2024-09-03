@@ -3857,8 +3857,6 @@ static void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* sh
 
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader)
 {
-    LatteShaderSHRC_UpdateFetchShader();
-    auto fetchShader = LatteSHRC_GetActiveFetchShader();
     bool isRectVertexShader = (static_cast<LattePrimitiveMode>(shaderContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
 
 	StringBuf* src = new StringBuf(1024*1024*12); // reserve 12MB for generated source (we resize-to-fit at the end)
@@ -3899,7 +3897,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
             inputFetchDefinition += "vid = ((device uint*)indexBuffer)[vid]; // UInt\n";
 
             inputFetchDefinition += "VertexIn in;\n";
-            for (auto& bufferGroup : fetchShader->bufferGroups)
+            for (auto& bufferGroup : shaderContext->fetchShader->bufferGroups)
 			{
                 std::optional<LatteConst::VertexFetchType2> fetchType;
 
