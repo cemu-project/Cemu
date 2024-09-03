@@ -1,5 +1,13 @@
 #include "GameTitleLoader.h"
 
+std::optional<TitleInfo> getFirstTitleInfoByTitleId(TitleId titleId)
+{
+	TitleInfo titleInfo;
+	if (CafeTitleList::GetFirstByTitleId(titleId, titleInfo))
+		return titleInfo;
+	return {};
+}
+
 GameTitleLoader::GameTitleLoader()
 {
 	m_loaderThread = std::thread(&GameTitleLoader::loadGameTitles, this);
@@ -27,11 +35,14 @@ void GameTitleLoader::reloadGameTitles()
 {
 	if (m_callbackIdTitleList.has_value())
 	{
-		CafeTitleList::Refresh();
 		CafeTitleList::UnregisterCallback(m_callbackIdTitleList.value());
 	}
 	m_gameInfos.clear();
-	registerCallback();
+	CafeTitleList::ClearScanPaths();
+	for (auto&& gamePath : g_config.data().game_paths)
+		CafeTitleList::AddScanPath(gamePath);
+	CafeTitleList::Refresh();
+	m_callbackIdTitleList = CafeTitleList::RegisterCallback([](CafeTitleListCallbackEvent* evt, void* ctx) { static_cast<GameTitleLoader*>(ctx)->HandleTitleListCallback(evt); }, this);
 }
 
 GameTitleLoader::~GameTitleLoader()
@@ -57,11 +68,14 @@ void GameTitleLoader::titleRefresh(TitleId titleId)
 		isNewEntry = true;
 		m_gameInfos[baseTitleId] = Game();
 	}
+
 	Game& game = m_gameInfos[baseTitleId];
+	std::optional<TitleInfo> titleInfo = getFirstTitleInfoByTitleId(titleId);
 	game.titleId = baseTitleId;
-	game.name = GetNameByTitleId(baseTitleId);
+	game.name = getNameByTitleId(baseTitleId, titleInfo);
 	game.version = gameInfo.GetVersion();
 	game.region = gameInfo.GetRegion();
+	std::shared_ptr<Image> icon = loadIcon(baseTitleId, titleInfo);
 	if (gameInfo.HasAOC())
 	{
 		game.dlc = gameInfo.GetAOCVersion();
@@ -72,7 +86,7 @@ void GameTitleLoader::titleRefresh(TitleId titleId)
 		if (iosu::pdm::GetStatForGamelist(baseTitleId, playTimeStat))
 			game.secondsPlayed = playTimeStat.numMinutesPlayed * 60;
 		if (m_gameTitleLoadedCallback)
-			m_gameTitleLoadedCallback->onTitleLoaded(game);
+			m_gameTitleLoadedCallback->onTitleLoaded(game, icon);
 	}
 	else
 	{
@@ -84,11 +98,10 @@ void GameTitleLoader::loadGameTitles()
 {
 	while (m_continueLoading)
 	{
-		TitleId titleId = 0;
+		TitleId titleId;
 		{
 			std::unique_lock lock(m_threadMutex);
-			m_condVar.wait(lock, [this] { return (!m_titlesToLoad.empty()) ||
-												 !m_continueLoading; });
+			m_condVar.wait(lock, [this] { return (!m_titlesToLoad.empty()) || !m_continueLoading; });
 			if (!m_continueLoading)
 				return;
 			titleId = m_titlesToLoad.front();
@@ -97,29 +110,43 @@ void GameTitleLoader::loadGameTitles()
 		titleRefresh(titleId);
 	}
 }
-
-std::string GameTitleLoader::GetNameByTitleId(uint64 titleId)
+std::string GameTitleLoader::getNameByTitleId(TitleId titleId, const std::optional<TitleInfo>& titleInfo)
 {
 	auto it = m_name_cache.find(titleId);
 	if (it != m_name_cache.end())
 		return it->second;
-	TitleInfo titleInfo;
-	if (!CafeTitleList::GetFirstByTitleId(titleId, titleInfo))
+	if (!titleInfo.has_value())
 		return "Unknown title";
 	std::string name;
 	if (!GetConfig().GetGameListCustomName(titleId, name))
-		name = titleInfo.GetMetaTitleName();
+		name = titleInfo.value().GetMetaTitleName();
 	m_name_cache.emplace(titleId, name);
 	return name;
 }
 
-void GameTitleLoader::registerCallback()
+std::shared_ptr<Image> GameTitleLoader::loadIcon(TitleId titleId, const std::optional<TitleInfo>& titleInfo)
 {
-	m_callbackIdTitleList = CafeTitleList::RegisterCallback(
-		[](CafeTitleListCallbackEvent* evt, void* ctx) {
-			static_cast<GameTitleLoader*>(ctx)->HandleTitleListCallback(evt);
-		},
-		this);
+	if (auto iconIt = m_iconCache.find(titleId); iconIt != m_iconCache.end())
+		return iconIt->second;
+	std::string tempMountPath = TitleInfo::GetUniqueTempMountingPath();
+	if (!titleInfo.has_value())
+		return {};
+	auto titleInfoValue = titleInfo.value();
+	if (!titleInfoValue.Mount(tempMountPath, "", FSC_PRIORITY_BASE))
+		return {};
+	auto tgaData = fsc_extractFile((tempMountPath + "/meta/iconTex.tga").c_str());
+	if (!tgaData || tgaData->size() <= 16)
+	{
+		cemuLog_log(LogType::Force, "Failed to load icon for title {:016x}", titleId);
+		titleInfoValue.Unmount(tempMountPath);
+		return {};
+	}
+	auto image = std::make_shared<Image>(tgaData.value());
+	titleInfoValue.Unmount(tempMountPath);
+	if (!image->isOk())
+		return {};
+	m_iconCache.emplace(titleId, image);
+	return image;
 }
 
 void GameTitleLoader::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
@@ -128,11 +155,4 @@ void GameTitleLoader::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
 	{
 		queueTitle(evt->titleInfo->GetAppTitleId());
 	}
-}
-
-void GameTitleLoader::addGamePath(const fs::path& path)
-{
-	CafeTitleList::ClearScanPaths();
-	CafeTitleList::AddScanPath(path);
-	CafeTitleList::Refresh();
 }

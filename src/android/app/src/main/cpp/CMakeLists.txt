@@ -4,14 +4,11 @@ add_library(CemuAndroid SHARED
         AndroidEmulatedController.cpp
         AndroidEmulatedController.h
         AndroidFilesystemCallbacks.h
-        AndroidGameIconLoadedCallback.h
         AndroidGameTitleLoadedCallback.h
         CMakeLists.txt
         CafeSystemUtils.cpp
         CafeSystemUtils.h
         EmulationState.h
-        GameIconLoader.cpp
-        GameIconLoader.h
         GameTitleLoader.cpp
         GameTitleLoader.h
         Image.cpp

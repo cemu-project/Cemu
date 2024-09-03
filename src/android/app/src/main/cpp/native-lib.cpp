@@ -1,5 +1,4 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
-#include "AndroidGameIconLoadedCallback.h"
 #include "AndroidGameTitleLoadedCallback.h"
 #include "EmulationState.h"
 #include "JNIUtils.h"
@@ -35,24 +34,15 @@ Java_info_cemu_Cemu_NativeLibrary_startGame([[maybe_unused]] JNIEnv* env, [[mayb
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
 Java_info_cemu_Cemu_NativeLibrary_setGameTitleLoadedCallback(JNIEnv* env, [[maybe_unused]] jclass clazz, jobject game_title_loaded_callback)
 {
+	if (game_title_loaded_callback == nullptr)
+	{
+		s_emulationState.setOnGameTitleLoaded(nullptr);
+		return;
+	}
 	jclass gameTitleLoadedCallbackClass = env->GetObjectClass(game_title_loaded_callback);
-	jmethodID onGameTitleLoadedMID = env->GetMethodID(gameTitleLoadedCallbackClass, "onGameTitleLoaded", "(JLjava/lang/String;)V");
+	jmethodID onGameTitleLoadedMID = env->GetMethodID(gameTitleLoadedCallbackClass, "onGameTitleLoaded", "(JLjava/lang/String;[III)V");
 	env->DeleteLocalRef(gameTitleLoadedCallbackClass);
 	s_emulationState.setOnGameTitleLoaded(std::make_shared<AndroidGameTitleLoadedCallback>(onGameTitleLoadedMID, game_title_loaded_callback));
-}
-
-extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_setGameIconLoadedCallback(JNIEnv* env, [[maybe_unused]] jclass clazz, jobject game_icon_loaded_callback)
-{
-	jclass gameIconLoadedCallbackClass = env->GetObjectClass(game_icon_loaded_callback);
-	jmethodID gameIconLoadedMID = env->GetMethodID(gameIconLoadedCallbackClass, "onGameIconLoaded", "(J[III)V");
-	s_emulationState.setOnGameIconLoaded(std::make_shared<AndroidGameIconLoadedCallback>(gameIconLoadedMID, game_icon_loaded_callback));
-}
-
-extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_requestGameIcon([[maybe_unused]] JNIEnv* env, [[maybe_unused]] jclass clazz, jlong title_id)
-{
-	s_emulationState.requestGameIcon(static_cast<TitleId>(title_id));
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
@@ -97,9 +87,21 @@ Java_info_cemu_Cemu_NativeLibrary_recreateRenderSurface([[maybe_unused]] JNIEnv*
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
-Java_info_cemu_Cemu_NativeLibrary_addGamePath(JNIEnv* env, [[maybe_unused]] jclass clazz, jstring uri)
+Java_info_cemu_Cemu_NativeLibrary_addGamesPath(JNIEnv* env, [[maybe_unused]] jclass clazz, jstring uri)
 {
-	s_emulationState.addGamePath(JNIUtils::JStringToString(env, uri));
+	s_emulationState.addGamesPath(JNIUtils::JStringToString(env, uri));
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT void JNICALL
+Java_info_cemu_Cemu_NativeLibrary_removeGamesPath(JNIEnv* env, [[maybe_unused]] jclass clazz, jstring uri)
+{
+	s_emulationState.removeGamesPath(JNIUtils::JStringToString(env, uri));
+}
+
+extern "C" [[maybe_unused]] JNIEXPORT jobject JNICALL
+Java_info_cemu_Cemu_NativeLibrary_getGamesPaths(JNIEnv* env, [[maybe_unused]] jclass clazz)
+{
+	return JNIUtils::createJavaStringArrayList(env, g_config.data().game_paths);
 }
 
 extern "C" [[maybe_unused]] JNIEXPORT void JNICALL

@@ -3,11 +3,12 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/nav_settings_graph"
-    app:startDestination="@id/optionsFragment">
+    app:startDestination="@id/settingsFragment">
     <fragment
         android:id="@+id/inputSettingsFragment"
         android:name="info.cemu.Cemu.settings.input.InputSettingsFragment"
-        android:label="@string/input_settings">
+        android:label="@string/input_settings"
+        tools:layout="@layout/generic_recycler_view_layout">
         <action
             android:id="@+id/action_inputSettingsFragment_to_controllerInputsFragment"
             app:destination="@id/controllerInputsFragment" />
@@ -18,7 +19,8 @@
     <fragment
         android:id="@+id/graphicPacksRootFragment"
         android:name="info.cemu.Cemu.settings.graphicpacks.GraphicPacksRootFragment"
-        android:label="@string/graphic_packs">
+        android:label="@string/graphic_packs"
+        tools:layout="@layout/generic_recycler_view_layout">
         <action
             android:id="@+id/action_graphicPacksRootFragment_to_graphicPacksFragment"
             app:destination="@id/graphicPacksFragment" />
@@ -26,7 +28,8 @@
     <fragment
         android:id="@+id/graphicPacksFragment"
         android:name="info.cemu.Cemu.settings.graphicpacks.GraphicPacksFragment"
-        android:label="{title}">
+        android:label="{title}"
+        tools:layout="@layout/generic_recycler_view_layout">
         <action
             android:id="@+id/action_graphicPacksFragment_self"
             app:destination="@id/graphicPacksFragment" />
@@ -36,43 +39,56 @@
             app:nullable="true" />
     </fragment>
     <fragment
-        android:id="@+id/optionsFragment"
-        android:name="info.cemu.Cemu.settings.OptionsFragment"
-        android:label="@string/options"
-        tools:layout="@layout/fragment_options">
+        android:id="@+id/settingsFragment"
+        android:name="info.cemu.Cemu.settings.SettingsFragment"
+        android:label="@string/settings"
+        tools:layout="@layout/generic_recycler_view_layout">
         <action
-            android:id="@+id/action_optionsFragment_to_inputSettingsFragment"
+            android:id="@+id/action_settingsFragment_to_inputSettingsFragment"
             app:destination="@id/inputSettingsFragment" />
         <action
-            android:id="@+id/action_optionsFragment_to_graphicSettingsFragment"
+            android:id="@+id/action_settingsFragment_to_graphicSettingsFragment"
             app:destination="@id/graphicsSettingsFragment" />
         <action
-            android:id="@+id/action_optionsFragment_to_audioSettingsFragment"
+            android:id="@+id/action_settingsFragment_to_audioSettingsFragment"
             app:destination="@id/audioSettingsFragment" />
         <action
-            android:id="@+id/action_optionsFragment_to_graphicPacksRootFragment"
+            android:id="@+id/action_settingsFragment_to_graphicPacksRootFragment"
             app:destination="@id/graphicPacksRootFragment" />
         <action
-            android:id="@+id/action_optionsFragment_to_overlaySettingsFragment"
+            android:id="@+id/action_settingsFragment_to_overlaySettingsFragment"
             app:destination="@id/overlaySettingsFragment" />
+        <action
+            android:id="@+id/action_settingsFragment_to_gamePathsFragment"
+            app:destination="@id/gamePathsFragment" />
     </fragment>
     <fragment
         android:id="@+id/controllerInputsFragment"
-        android:name="info.cemu.Cemu.settings.input.ControllerInputsFragment" />
+        android:name="info.cemu.Cemu.settings.input.ControllerInputsFragment"
+        tools:layout="@layout/generic_recycler_view_layout" />
     <fragment
         android:id="@+id/graphicsSettingsFragment"
         android:name="info.cemu.Cemu.settings.graphics.GraphicsSettingsFragment"
-        android:label="@string/graphics_settings" />
+        android:label="@string/graphics_settings"
+        tools:layout="@layout/generic_recycler_view_layout" />
     <fragment
         android:id="@+id/audioSettingsFragment"
         android:name="info.cemu.Cemu.settings.audio.AudioSettingsFragment"
-        android:label="@string/audio_settings" />
+        android:label="@string/audio_settings"
+        tools:layout="@layout/generic_recycler_view_layout" />
     <fragment
         android:id="@+id/overlaySettingsFragment"
         android:name="info.cemu.Cemu.settings.overlay.OverlaySettingsFragment"
-        android:label="@string/overlay_settings" />
+        android:label="@string/overlay_settings"
+        tools:layout="@layout/generic_recycler_view_layout" />
     <fragment
         android:id="@+id/inputOverlaySettingsFragment"
         android:name="info.cemu.Cemu.inputoverlay.InputOverlaySettingsFragment"
-        android:label="@string/input_overlay_settings" />
+        android:label="@string/input_overlay_settings"
+        tools:layout="@layout/generic_recycler_view_layout" />
+    <fragment
+        android:id="@+id/gamePathsFragment"
+        android:name="info.cemu.Cemu.settings.gamespath.GamePathsFragment"
+        android:label="@string/game_paths_settings"
+        tools:layout="@layout/generic_recycler_view_layout" />
 </navigation>

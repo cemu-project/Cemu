@@ -28,20 +28,11 @@ public class NativeLibrary {
 
     public static native void recreateRenderSurface(boolean isMainCanvas);
 
-
     public interface GameTitleLoadedCallback {
-        void onGameTitleLoaded(long titleId, String title);
+        void onGameTitleLoaded(long titleId, String title, int[] colors, int width, int height);
     }
 
     public static native void setGameTitleLoadedCallback(GameTitleLoadedCallback gameTitleLoadedCallback);
-
-    public interface GameIconLoadedCallback {
-        void onGameIconLoaded(long titleId, int[] colors, int width, int height);
-    }
-
-    public static native void setGameIconLoadedCallback(GameIconLoadedCallback gameIconLoadedCallback);
-
-    public static native void requestGameIcon(long titleId);
 
     public static native void reloadGameTitles();
 
@@ -49,7 +40,11 @@ public class NativeLibrary {
 
     public static native void initializeEmulation();
 
-    public static native void addGamePath(String uri);
+    public static native void addGamesPath(String uri);
+
+    public static native void removeGamesPath(String uri);
+
+    public static native ArrayList<String> getGamesPaths();
 
     public static native void onNativeKey(String deviceDescriptor, String deviceName, int key, boolean isPressed);
 

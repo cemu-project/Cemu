@@ -65,9 +65,8 @@
     <string name="right_axis">Right Axis</string>
     <string name="extra">Extra</string>
     <string name="nunchuck">Nunchuck</string>
-    <string name="games_folder_description">Add the games path to scan for games displayed in the game list</string>
+    <string name="games_folder_description">Add a game path to scan for games displayed in the game list</string>
     <string name="games_folder_empty">No games folder selected</string>
-    <string name="games_folder_label">Set games folder</string>
     <string name="options">Options</string>
     <string name="emulated_controller_selection_description">Selected controller: %1s</string>
     <string name="async_shader_compile">Async shader compile</string>
@@ -165,4 +164,8 @@
     <string name="replace_tv_with_pad">Replace TV with PAD</string>
     <string name="installed_games_title">Installed games</string>
     <string name="enable_motion">Enable motion</string>
+    <string name="add_game_path">Add game path</string>
+    <string name="remove_game_path">Remove game path</string>
+    <string name="game_paths_settings">Game paths</string>
+    <string name="game_path_already_added">Game path already added</string>
 </resources>

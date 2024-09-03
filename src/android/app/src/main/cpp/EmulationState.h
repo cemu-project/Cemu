@@ -11,7 +11,6 @@
 #include "CafeSystemUtils.h"
 #include "Cafe/CafeSystem.h"
 #include "Cemu/GuiSystem/GuiSystem.h"
-#include "GameIconLoader.h"
 #include "GameTitleLoader.h"
 #include "Utils.h"
 #include "input/ControllerFactory.h"
@@ -23,7 +22,6 @@ void CemuCommonInit();
 
 class EmulationState
 {
-	GameIconLoader m_gameIconLoader;
 	GameTitleLoader m_gameTitleLoader;
 	std::unordered_map<int64_t, GraphicPackPtr> m_graphicPacks;
 	void fillGraphicPacks()
@@ -241,24 +239,28 @@ class EmulationState
 		m_gameTitleLoader.setOnTitleLoaded(onGameTitleLoaded);
 	}
 
-	const Image& getGameIcon(TitleId titleId)
+	void addGamesPath(const std::string& gamePath)
 	{
-		return m_gameIconLoader.getGameIcon(titleId);
+		auto& gamePaths = g_config.data().game_paths;
+		if (std::any_of(gamePaths.begin(), gamePaths.end(), [&](auto path) { return path == gamePath; }))
+			return;
+		gamePaths.push_back(gamePath);
+		g_config.Save();
+		CafeTitleList::ClearScanPaths();
+		for (auto& it : gamePaths)
+			CafeTitleList::AddScanPath(it);
+		CafeTitleList::Refresh();
 	}
 
-	void setOnGameIconLoaded(const std::shared_ptr<class GameIconLoadedCallback>& onGameIconLoaded)
+	void removeGamesPath(const std::string& gamePath)
 	{
-		m_gameIconLoader.setOnIconLoaded(onGameIconLoaded);
-	}
-
-	void addGamePath(const fs::path& gamePath)
-	{
-		m_gameTitleLoader.addGamePath(gamePath);
-	}
-
-	void requestGameIcon(TitleId titleId)
-	{
-		m_gameIconLoader.requestIcon(titleId);
+		auto& gamePaths = g_config.data().game_paths;
+		std::erase_if(gamePaths, [&](auto path) { return path == gamePath; });
+		g_config.Save();
+		CafeTitleList::ClearScanPaths();
+		for (auto& it : gamePaths)
+			CafeTitleList::AddScanPath(it);
+		CafeTitleList::Refresh();
 	}
 
 	void reloadGameTitles()

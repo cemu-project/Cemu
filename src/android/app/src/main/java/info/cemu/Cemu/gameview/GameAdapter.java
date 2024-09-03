@@ -1,67 +1,56 @@
 package info.cemu.Cemu.gameview;
 
-import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Filter;
-import android.widget.Filterable;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.recyclerview.widget.DiffUtil;
+import androidx.recyclerview.widget.ListAdapter;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import info.cemu.Cemu.R;
 
-public class GameAdapter extends RecyclerView.Adapter<GameAdapter.ViewHolder> implements Filterable {
-    private final Map<Long, Game> gameInfoMap;
-    private final List<Long> gameTitleIds;
-    private List<Long> filteredGameTitleIds;
+public class GameAdapter extends ListAdapter<Game, GameAdapter.ViewHolder> {
     private final GameTitleClickAction gameTitleClickAction;
+    private List<Game> orignalGameList;
+    private String filterText;
+    public static final DiffUtil.ItemCallback<Game> DIFF_CALLBACK = new DiffUtil.ItemCallback<>() {
+        @Override
+        public boolean areItemsTheSame(@NonNull Game oldItem, @NonNull Game newItem) {
+            return oldItem.titleId.equals(newItem.titleId);
+        }
 
-    @Override
-    public Filter getFilter() {
-        return new Filter() {
-            @Override
-            protected FilterResults performFiltering(CharSequence charSequence) {
-                String gameTitle = charSequence.toString();
-                if (gameTitle.isEmpty())
-                    filteredGameTitleIds = gameTitleIds;
-                else
-                    filteredGameTitleIds = gameTitleIds.stream()
-                            .filter(titleId -> gameInfoMap.get(titleId).title.toLowerCase().contains(gameTitle.toLowerCase()))
-                            .collect(Collectors.toList());
-                FilterResults filterResults = new FilterResults();
-                filterResults.values = filteredGameTitleIds;
-                return filterResults;
-            }
-
-            @Override
-            protected void publishResults(CharSequence charSequence, FilterResults filterResults) {
-                filteredGameTitleIds = (List<Long>) filterResults.values;
-                notifyDataSetChanged();
-            }
-        };
-    }
-
+        @Override
+        public boolean areContentsTheSame(@NonNull Game oldItem, @NonNull Game newItem) {
+            return oldItem.titleId.equals(newItem.titleId);
+        }
+    };
 
     public interface GameTitleClickAction {
         void action(long titleId);
     }
 
     public GameAdapter(GameTitleClickAction gameTitleClickAction) {
-        super();
+        super(DIFF_CALLBACK);
         this.gameTitleClickAction = gameTitleClickAction;
-        gameTitleIds = new ArrayList<>();
-        filteredGameTitleIds = new ArrayList<>();
-        gameInfoMap = new HashMap<>();
+    }
+
+    @Override
+    public void submitList(@Nullable List<Game> list) {
+        orignalGameList = list;
+        if (filterText == null || filterText.isBlank() || orignalGameList == null) {
+            super.submitList(orignalGameList);
+            return;
+        }
+        super.submitList(orignalGameList.stream().filter(g -> g.title.toLowerCase(Locale.US).contains(this.filterText)).collect(Collectors.toList()));
     }
 
     @NonNull
@@ -73,7 +62,7 @@ public class GameAdapter extends RecyclerView.Adapter<GameAdapter.ViewHolder> im
 
     @Override
     public void onBindViewHolder(@NonNull GameAdapter.ViewHolder holder, int position) {
-        Game game = gameInfoMap.get(filteredGameTitleIds.get(position));
+        Game game = getItem(position);
         if (game != null) {
             holder.icon.setImageBitmap(game.getIcon());
             holder.text.setText(game.getTitle());
@@ -84,31 +73,16 @@ public class GameAdapter extends RecyclerView.Adapter<GameAdapter.ViewHolder> im
         }
     }
 
-    @Override
-    public int getItemCount() {
-        return filteredGameTitleIds.size();
-    }
-
-    void clear() {
-        notifyDataSetChanged();
-        gameInfoMap.clear();
-        gameTitleIds.clear();
-        filteredGameTitleIds.clear();
-    }
-
-    void addGameInfo(long titleId, String title) {
-        gameTitleIds.add(titleId);
-        gameInfoMap.put(titleId, new Game(titleId, title));
-        filteredGameTitleIds = gameTitleIds;
-        notifyDataSetChanged();
-    }
-
-    void setGameIcon(long titleId, Bitmap icon) {
-        Game game = gameInfoMap.get(titleId);
-        if (game != null) {
-            game.setIconData(icon);
-            notifyDataSetChanged();
+    public void setFilterText(String filterText) {
+        if (filterText != null) {
+            filterText = filterText.toLowerCase(Locale.US);
         }
+        this.filterText = filterText;
+        if (filterText == null || filterText.isBlank() || orignalGameList == null) {
+            super.submitList(orignalGameList);
+            return;
+        }
+        super.submitList(orignalGameList.stream().filter(g -> g.title.toLowerCase(Locale.US).contains(this.filterText)).collect(Collectors.toList()));
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

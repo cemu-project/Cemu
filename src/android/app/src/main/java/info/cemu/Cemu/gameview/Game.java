@@ -7,12 +7,9 @@ public class Game {
     String title;
     Bitmap icon;
 
-    public Game(Long titleId, String title) {
+    public Game(Long titleId, String title, Bitmap icon) {
         this.titleId = titleId;
         this.title = title;
-    }
-
-    public void setIconData(Bitmap icon) {
         this.icon = icon;
     }
 
