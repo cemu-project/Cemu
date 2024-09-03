@@ -107,12 +107,12 @@ namespace camera
 
 	class CAMInstance
 	{
-		constexpr static auto surfaceBufferSize = g_pitch * g_height * 3 / 2;
+		constexpr static auto nv12BufferSize = g_pitch * g_height * 3 / 2;
 
 	  public:
 		CAMInstance(CAMFps frameRate, MEMPTR<void> callbackPtr)
 			: m_capCtx(Cap_createContext()),
-			  m_capNv12Buffer(surfaceBufferSize),
+			  m_capNv12Buffer(new uint8_t[nv12BufferSize]),
 			  m_frameRate(30),
 			  m_callbackPtr(callbackPtr)
 		{
@@ -134,11 +134,13 @@ namespace camera
 
 		void OnAlarm()
 		{
-			std::scoped_lock captureLock(m_capMutex);
 			const auto surface = m_targetSurfaceQueue.Pop();
 			if (surface.IsNull())
 				return;
-			std::memcpy(surface->surfacePtr.GetPtr(), m_capNv12Buffer.data(), m_capNv12Buffer.size());
+			{
+				std::scoped_lock lock(m_callbackMutex);
+				std::memcpy(surface->surfacePtr.GetPtr(), m_capNv12Buffer.get(), nv12BufferSize);
+			}
 			g_cameraEventData->type = CAMEventType::Decode;
 			g_cameraEventData->buffer = surface->surfacePtr;
 			g_cameraEventData->channel = 0;
@@ -149,8 +151,9 @@ namespace camera
 		void Worker(std::stop_token stopToken, CapFormatID formatId)
 		{
 			SetThreadName("CAMWorker");
-			auto stream = Cap_openStream(m_capCtx, m_capDeviceId, formatId);
-			std::vector<uint8> m_capBuffer(g_width * g_height * 3);
+			const auto stream = Cap_openStream(m_capCtx, m_capDeviceId, formatId);
+			constexpr static auto rgbBufferSize = g_width * g_height * 3;
+			auto rgbBuffer = std::make_unique<uint8[]>(rgbBufferSize);
 			while (!stopToken.stop_requested())
 			{
 				if (!m_opened)
@@ -159,16 +162,15 @@ namespace camera
 					std::this_thread::yield();
 					continue;
 				}
-				std::scoped_lock lock(m_capMutex);
-				Cap_captureFrame(m_capCtx, stream, m_capBuffer.data(), m_capBuffer.size());
-				Rgb2Nv12(m_capBuffer.data(), g_width, g_height, m_capNv12Buffer.data(), g_pitch);
+				Cap_captureFrame(m_capCtx, stream, rgbBuffer.get(), rgbBufferSize);
+				std::scoped_lock lock(m_callbackMutex);
+				Rgb2Nv12(rgbBuffer.get(), g_width, g_height, m_capNv12Buffer.get(), g_pitch);
 			}
 			Cap_closeStream(m_capCtx, stream);
 		}
 
 		CAMError Open()
 		{
-			std::scoped_lock lock(m_capMutex);
 			if (m_opened)
 				return CAMError::DeviceInUse;
 			const auto formatCount = Cap_getNumFormats(m_capCtx, m_capDeviceId);
@@ -196,33 +198,31 @@ namespace camera
 
 		CAMError Close()
 		{
-			std::scoped_lock lock(m_capMutex);
 			m_opened = false;
 			return CAMError::Success;
 		}
 
 		CAMError SubmitTargetSurface(MEMPTR<CAMTargetSurface> surface)
 		{
-			cemu_assert(surface->surfaceSize >= surfaceBufferSize);
+			cemu_assert(surface->surfaceSize >= nv12BufferSize);
 			if (!m_opened)
 				return CAMError::NotReady;
 			if (!m_targetSurfaceQueue.Push(surface))
 				return CAMError::SurfaceQueueFull;
-			std::cout << "Surface submitted" << std::endl;
+			cemuLog_logDebug(LogType::Force, "camera: surface submitted");
 			return CAMError::Success;
 		}
 
 	  private:
 		CapContext m_capCtx;
 		CapDeviceID m_capDeviceId = 0;
-		std::vector<uint8> m_capNv12Buffer;
-		std::mutex m_capMutex{};
+		std::unique_ptr<uint8[]> m_capNv12Buffer;
 		std::jthread m_capWorker;
-
+		std::mutex m_callbackMutex{};
 		uint32 m_frameRate;
 		MEMPTR<void> m_callbackPtr;
 		RingBuffer<MEMPTR<CAMTargetSurface>, 20> m_targetSurfaceQueue{};
-		bool m_opened = false;
+		std::atomic_bool m_opened = false;
 	};
 	std::optional<CAMInstance> g_camInstance;
 
