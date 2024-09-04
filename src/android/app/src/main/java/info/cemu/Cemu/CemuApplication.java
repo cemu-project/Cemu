@@ -7,12 +7,18 @@ import info.cemu.Cemu.NativeLibrary;
 import info.cemu.Cemu.utils.FileUtil;
 
 public class CemuApplication extends Application {
+    private static CemuApplication application;
+
+    public static CemuApplication getApplication() {
+        return application;
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
+        application = this;
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         NativeLibrary.setDPI(displayMetrics.density);
-        FileUtil.setCemuApplication(this);
         NativeLibrary.initializeActiveSettings(getExternalFilesDir(null).getAbsoluteFile().toString(), getExternalFilesDir(null).getAbsoluteFile().toString());
         NativeLibrary.initializeEmulation();
     }
