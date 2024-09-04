@@ -1,7 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Foundation/NSObject.hpp"
 #include "HW/Latte/Core/LatteShader.h"
 #include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
@@ -10,7 +9,6 @@
 
 #include "HW/Latte/Core/FetchShader.h"
 #include "HW/Latte/ISA/RegDefines.h"
-#include "Metal/MTLRenderPipeline.hpp"
 #include "config/ActiveSettings.h"
 
 static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
