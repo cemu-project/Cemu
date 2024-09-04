@@ -364,7 +364,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 
 	auto mtlVertexShader = static_cast<RendererShaderMtl*>(vertexShader->shader);
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
-	mtlPixelShader->CompileFragmentFunction(lastUsedFBO);
 
 	// Render pipeline state
 	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
@@ -466,7 +465,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFe
         mtlMeshShader = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
     }
 	auto mtlPixelShader = static_cast<RendererShaderMtl*>(pixelShader->shader);
-	mtlPixelShader->CompileFragmentFunction(lastUsedFBO);
 
 	// Render pipeline state
 	MTL::MeshRenderPipelineDescriptor* desc = MTL::MeshRenderPipelineDescriptor::alloc()->init();

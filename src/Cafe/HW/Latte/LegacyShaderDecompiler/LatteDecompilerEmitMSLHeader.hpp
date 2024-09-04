@@ -281,9 +281,9 @@ namespace LatteDecompiler
             {
                	if ((decompilerContext->shader->pixelColorOutputMask & (1 << i)) != 0)
                	{
-                    src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(i));
-              		src->addFmt("{} passPixelColor{} [[color({})]];" _CRLF, GetColorAttachmentTypeStr(i), i, i);
-                    src->add("#endif" _CRLF);
+                    //src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(i));
+              		src->addFmt("float4 passPixelColor{} [[color({})]];" _CRLF/*, GetColorAttachmentTypeStr(i)*/, i, i);
+                    //src->add("#endif" _CRLF);
                	}
             }
 

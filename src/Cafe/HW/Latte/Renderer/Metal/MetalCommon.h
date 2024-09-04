@@ -41,10 +41,10 @@ inline size_t Align(size_t size, size_t alignment)
     return (size + alignment - 1) & ~(alignment - 1);
 }
 
-inline std::string GetColorAttachmentTypeStr(uint32 index)
-{
-    return "COLOR_ATTACHMENT" + std::to_string(index) + "_TYPE";
-}
+//inline std::string GetColorAttachmentTypeStr(uint32 index)
+//{
+//    return "COLOR_ATTACHMENT" + std::to_string(index) + "_TYPE";
+//}
 
 // Cast from const char* to NS::String*
 inline NS::String* ToNSString(const char* str)

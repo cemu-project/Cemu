@@ -16,16 +16,16 @@ extern std::atomic_int g_compiled_shaders_async;
 RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode)
 	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_mtlr{mtlRenderer}
 {
-    // TODO: don't compile fragment function just-in-time
-    if (type != ShaderType::kFragment)
+    NS::Error* error = nullptr;
+	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), nullptr, &error);
+	if (error)
     {
-        Compile(mslCode);
+        printf("failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
+        error->release();
+        return;
     }
-    else
-    {
-        // TODO: don't compile just-in-time
-        m_mslCode = mslCode;
-    }
+    m_function = library->newFunction(ToNSString("main0"));
+    library->release();
 
 	// Count shader compilation
 	g_compiled_shaders_total++;
@@ -35,67 +35,4 @@ RendererShaderMtl::~RendererShaderMtl()
 {
     if (m_function)
         m_function->release();
-}
-
-void RendererShaderMtl::CompileFragmentFunction(CachedFBOMtl* activeFBO)
-{
-    cemu_assert_debug(m_type == ShaderType::kFragment);
-
-    std::string fullCode;
-
-    // Define color attachment data types
-    for (uint8 i = 0; i < 8; i++)
-	{
-	    const auto& colorBuffer = activeFBO->colorBuffer[i];
-		if (!colorBuffer.texture)
-		{
-		    continue;
-		}
-		auto dataType = GetMtlPixelFormatInfo(colorBuffer.texture->format, false).dataType;
-		fullCode += "#define " + GetColorAttachmentTypeStr(i) + " ";
-		switch (dataType)
-		{
-		case MetalDataType::INT:
-		    fullCode += "int4";
-			break;
-		case MetalDataType::UINT:
-		    fullCode += "uint4";
-			break;
-		case MetalDataType::FLOAT:
-		    fullCode += "float4";
-			break;
-		default:
-		    cemu_assert_suspicious();
-			break;
-		}
-		fullCode += "\n";
-	}
-
-    fullCode += m_mslCode;
-    Compile(fullCode);
-}
-
-void RendererShaderMtl::Compile(const std::string& mslCode)
-{
-    if (m_function)
-        m_function->release();
-
-    // HACK
-    if (m_hasError)
-        return;
-
-    NS::Error* error = nullptr;
-	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), nullptr, &error);
-	if (error)
-    {
-        printf("failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
-        error->release();
-
-        // HACK
-        m_hasError = true;
-
-        return;
-    }
-    m_function = library->newFunction(ToNSString("main0"));
-    library->release();
 }

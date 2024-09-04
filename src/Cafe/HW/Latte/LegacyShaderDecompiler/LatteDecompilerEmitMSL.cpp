@@ -3215,11 +3215,11 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 					src->add(") == false) discard_fragment();" _CRLF);
 				}
 				// pixel color output
-				src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(pixelColorOutputIndex));
-				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetColorAttachmentTypeStr(pixelColorOutputIndex));
+				//src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(pixelColorOutputIndex));
+				src->addFmt("out.passPixelColor{} = as_type<float4>(", pixelColorOutputIndex/*, GetColorAttachmentTypeStr(pixelColorOutputIndex)*/);
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
 				src->add(");" _CRLF);
-				src->add("#endif" _CRLF);
+				//src->add("#endif" _CRLF);
 
 				if( cfInstruction->exportArrayBase+i >= 8 )
 					cemu_assert_unimplemented();
@@ -3883,12 +3883,12 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	    if (shaderContext->options->usesGeometryShader || isRectVertexShader)
 		{
 		    // TODO: clean this up
-			// Will modify vid in case of an indexed draw
+			// fetchVertex will modify vid in case of an indexed draw
 
 			// Vertex buffers
             std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
             std::string vertexBuffers = "#define VERTEX_BUFFERS ";
-            std::string inputFetchDefinition = "VertexIn fetchInput(thread uint& vid, device uint* indexBuffer, uint indexType VERTEX_BUFFER_DEFINITIONS) {\n";
+            std::string inputFetchDefinition = "VertexIn fetchVertex(thread uint& vid, device uint* indexBuffer, uint indexType VERTEX_BUFFER_DEFINITIONS) {\n";
 
 			// Index buffer
             inputFetchDefinition += "if (indexType == 1) // UShort\n";
@@ -4033,7 +4033,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     		// TODO: don't hardcode the instance index
     		src->add("uint iid = 0;" _CRLF);
     		// Fetch the input
-    		src->add("VertexIn in = fetchInput(vid, indexBuffer, indexType VERTEX_BUFFERS);" _CRLF);
+    		src->add("VertexIn in = fetchVertex(vid, indexBuffer, indexType VERTEX_BUFFERS);" _CRLF);
     		// Output is defined as object payload
     		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
 		}
