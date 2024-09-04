@@ -24,16 +24,21 @@ jobs:
           java-version: "17"
           distribution: "temurin"
 
-      - name: Build Cemu for Android
+      - name: Create store file
         env:
           ANDROID_STORE_FILE_BASE64: ${{ secrets.ANDROID_STORE_FILE_BASE64 }}
           ANDROID_KEY_STORE_PASSWORD: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        if: "${{ env.ANDROID_STORE_FILE_BASE64 != '' }}"
         run: |
           cd ./src/android
           base64 --decode <<< "${ANDROID_STORE_FILE_BASE64}" > store.jks
           ANDROID_STORE_FILE=$(pwd)/store.jks
           echo -e "keyStorePassword=$ANDROID_KEY_STORE_PASSWORD\nkeyAlias=$ANDROID_KEY_ALIAS\nstoreFile=$ANDROID_STORE_FILE\n" > keystore.properties
+
+      - name: Build Cemu for Android
+        run: |
+          cd ./src/android
           ./gradlew assembleRelease
 
       - name: Upload artifact
