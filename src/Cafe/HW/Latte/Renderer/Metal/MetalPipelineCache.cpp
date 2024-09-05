@@ -1,14 +1,14 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "HW/Latte/Core/LatteShader.h"
-#include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
-#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "HW/Latte/Renderer/Metal/RendererShaderMtl.h"
-#include "HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 
-#include "HW/Latte/Core/FetchShader.h"
-#include "HW/Latte/ISA/RegDefines.h"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
+#include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "config/ActiveSettings.h"
 
 static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
@@ -409,7 +409,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 		{
 		    debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
 			error->release();
-			return nullptr;
 		}
 		else
 		{
@@ -484,13 +483,12 @@ MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFe
     desc->setLabel(GetLabel("Mesh pipeline state", desc));
 #endif
 	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
+	desc->release();
 	if (error)
 	{
     	debug_printf("error creating render pipeline state: %s\n", error->localizedDescription()->utf8String());
         error->release();
-        return nullptr;
 	}
-	desc->release();
 
 	return pipeline;
 }

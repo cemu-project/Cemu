@@ -3216,7 +3216,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				}
 				// pixel color output
 				//src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(pixelColorOutputIndex));
-				src->addFmt("out.passPixelColor{} = as_type<float4>(", pixelColorOutputIndex/*, GetColorAttachmentTypeStr(pixelColorOutputIndex)*/);
+				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetColorBufferDataTypeStr(pixelColorOutputIndex, *shaderContext->contextRegistersNew)/*, GetColorAttachmentTypeStr(pixelColorOutputIndex)*/);
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
 				src->add(");" _CRLF);
 				//src->add("#endif" _CRLF);

@@ -32,6 +32,23 @@ const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, boo
 
 MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport);
 
+inline const char* GetColorBufferDataTypeStr(const uint32 index, const LatteContextRegister& lcr)
+{
+    auto format = LatteMRT::GetColorBufferFormat(index, lcr);
+    auto dataType = GetMtlPixelFormatInfo(format, false).dataType;
+	switch (dataType)
+	{
+	case MetalDataType::INT:
+	    return "int4";
+	case MetalDataType::UINT:
+	    return "uint4";
+	case MetalDataType::FLOAT:
+	    return "float4";
+	default:
+	    return "unknown";
+	}
+}
+
 size_t GetMtlTextureBytesPerRow(Latte::E_GX2SURFFMT format, bool isDepth, uint32 width);
 
 size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint32 height, size_t bytesPerRow);

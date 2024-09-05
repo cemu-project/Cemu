@@ -84,18 +84,16 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
 
 const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth)
 {
+    if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+    {
+        return {MTL::PixelFormatInvalid, MetalDataType::NONE, 0};
+    }
+
     MetalPixelFormatInfo formatInfo;
     if (isDepth)
         formatInfo = MTL_DEPTH_FORMAT_TABLE[format];
     else
         formatInfo = MTL_COLOR_FORMAT_TABLE[format];
-
-    // Depth24Unorm_Stencil8 is not supported on Apple sillicon
-    // TODO: query if format is available instead
-    if (formatInfo.pixelFormat == MTL::PixelFormatDepth24Unorm_Stencil8)
-    {
-        formatInfo.pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
-    }
 
     if (formatInfo.pixelFormat == MTL::PixelFormatInvalid)
     {
