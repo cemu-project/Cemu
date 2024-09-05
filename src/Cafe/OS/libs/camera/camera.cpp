@@ -158,13 +158,16 @@ namespace camera
 			{
 				if (!m_opened)
 				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(2));
+					std::this_thread::sleep_for(std::chrono::milliseconds(20));
 					std::this_thread::yield();
 					continue;
 				}
-				Cap_captureFrame(m_capCtx, stream, rgbBuffer.get(), rgbBufferSize);
-				std::scoped_lock lock(m_callbackMutex);
-				Rgb2Nv12(rgbBuffer.get(), g_width, g_height, m_capNv12Buffer.get(), g_pitch);
+				auto res = Cap_captureFrame(m_capCtx, stream, rgbBuffer.get(), rgbBufferSize);
+				if (res == CAPRESULT_OK)
+				{
+					std::scoped_lock lock(m_callbackMutex);
+					Rgb2Nv12(rgbBuffer.get(), g_width, g_height, m_capNv12Buffer.get(), g_pitch);
+				}
 			}
 			Cap_closeStream(m_capCtx, stream);
 		}
@@ -209,7 +212,7 @@ namespace camera
 				return CAMError::NotReady;
 			if (!m_targetSurfaceQueue.Push(surface))
 				return CAMError::SurfaceQueueFull;
-			cemuLog_logDebug(LogType::Force, "camera: surface submitted");
+			cemuLog_logDebug(LogType::Force, "camera: surface {} submitted", surface->surfacePtr);
 			return CAMError::Success;
 		}
 
