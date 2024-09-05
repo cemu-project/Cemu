@@ -509,13 +509,13 @@ struct scope_exit
 	~scope_exit() { if (f_) f_(); }
 };
 
-// helper function to cast raw pointers to std::atomic
-// this is technically not legal but works on most platforms as long as alignment restrictions are met and the implementation of atomic doesnt come with additional members
-
+// helper function to convert raw pointers to std::atomic_ref
+// this is only legal as long as alignment restrictions are met
 template<typename T>
-std::atomic<T>* _rawPtrToAtomic(T* ptr)
+std::atomic_ref<T> rawPtrToAtomicRef(T* ptr)
 {
-    return reinterpret_cast<std::atomic<T>*>(ptr);
+	cemu_assert_debug(reinterpret_cast<std::uintptr_t>(ptr) % std::atomic_ref<T>::required_alignment);
+    return std::atomic_ref<T>(*ptr);
 }
 
 #if defined(__GNUC__)

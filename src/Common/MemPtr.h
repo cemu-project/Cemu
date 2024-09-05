@@ -77,8 +77,8 @@ class MEMPTR : MEMPTRBase
 	{
 		MEMPTR<T> mp_compare = comparePtr;
 		MEMPTR<T> mp_new = newPtr;
-		auto* thisValueAtomic = reinterpret_cast<std::atomic<uint32be>*>(&m_value);
-		return thisValueAtomic->compare_exchange_strong(mp_compare.m_value, mp_new.m_value);
+		std::atomic_ref thisValueAtomic(m_value);
+		return thisValueAtomic.compare_exchange_strong(mp_compare.m_value, mp_new.m_value);
 	}
 
 	explicit constexpr operator bool() const noexcept

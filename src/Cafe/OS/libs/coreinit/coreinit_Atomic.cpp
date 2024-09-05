@@ -6,40 +6,44 @@ namespace coreinit
 {
 	/* 32bit atomic operations */
 
-	uint32 OSSwapAtomic(std::atomic<uint32be>* mem, uint32 newValue)
+	uint32 OSSwapAtomic(uint32be* mem, uint32 newValue)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint32be _newValue = newValue;
-		uint32be previousValue = mem->exchange(_newValue);
+		uint32be previousValue = ref.exchange(_newValue);
 		return previousValue;
 	}
 
-	bool OSCompareAndSwapAtomic(std::atomic<uint32be>* mem, uint32 compareValue, uint32 swapValue)
+	bool OSCompareAndSwapAtomic(uint32be* mem, uint32 compareValue, uint32 swapValue)
 	{
 		// seen in GTA3 homebrew port
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint32be _compareValue = compareValue;
 		uint32be _swapValue = swapValue;
-		return mem->compare_exchange_strong(_compareValue, _swapValue);
+		return ref.compare_exchange_strong(_compareValue, _swapValue);
 	}
 
-	bool OSCompareAndSwapAtomicEx(std::atomic<uint32be>* mem, uint32 compareValue, uint32 swapValue, uint32be* previousValue)
+	bool OSCompareAndSwapAtomicEx(uint32be* mem, uint32 compareValue, uint32 swapValue, uint32be* previousValue)
 	{
 		// seen in GTA3 homebrew port
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint32be _compareValue = compareValue;
 		uint32be _swapValue = swapValue;
-		bool r = mem->compare_exchange_strong(_compareValue, _swapValue);
+		bool r = ref.compare_exchange_strong(_compareValue, _swapValue);
 		*previousValue = _compareValue;
 		return r;
 	}
 
-	uint32 OSAddAtomic(std::atomic<uint32be>* mem, uint32 adder)
+	uint32 OSAddAtomic(uint32be* mem, uint32 adder)
 	{
         // used by SDL Wii U port
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint32be knownValue;
 		while (true)
 		{
-			knownValue = mem->load();
+			knownValue = ref.load();
 			uint32be newValue = knownValue + adder;
-			if (mem->compare_exchange_strong(knownValue, newValue))
+			if (ref.compare_exchange_strong(knownValue, newValue))
 				break;
 		}
 		return knownValue;
@@ -47,74 +51,80 @@ namespace coreinit
 
 	/* 64bit atomic operations */
 
-	uint64 OSSwapAtomic64(std::atomic<uint64be>* mem, uint64 newValue)
+	uint64 OSSwapAtomic64(uint64be* mem, uint64 newValue)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint64be _newValue = newValue;
-		uint64be previousValue = mem->exchange(_newValue);
+		uint64be previousValue = ref.exchange(_newValue);
 		return previousValue;
 	}
 
-	uint64 OSSetAtomic64(std::atomic<uint64be>* mem, uint64 newValue)
+	uint64 OSSetAtomic64(uint64be* mem, uint64 newValue)
 	{
 		return OSSwapAtomic64(mem, newValue);
 	}
 
-	uint64 OSGetAtomic64(std::atomic<uint64be>* mem)
+	uint64 OSGetAtomic64(uint64be* mem)
 	{
-		return mem->load();
+		return rawPtrToAtomicRef(mem).load();
 	}
 
-	uint64 OSAddAtomic64(std::atomic<uint64be>* mem, uint64 adder)
+	uint64 OSAddAtomic64(uint64be* mem, uint64 adder)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint64be knownValue;
 		while (true)
 		{
-			knownValue = mem->load();
+			knownValue = ref.load();
 			uint64be newValue = knownValue + adder;
-			if (mem->compare_exchange_strong(knownValue, newValue))
+			if (ref.compare_exchange_strong(knownValue, newValue))
 				break;
 		}
 		return knownValue;
 	}
 
-	uint64 OSAndAtomic64(std::atomic<uint64be>* mem, uint64 val)
+	uint64 OSAndAtomic64(uint64be* mem, uint64 val)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint64be knownValue;
 		while (true)
 		{
-			knownValue = mem->load();
+			knownValue = ref.load();
 			uint64be newValue = knownValue & val;
-			if (mem->compare_exchange_strong(knownValue, newValue))
+			if (ref.compare_exchange_strong(knownValue, newValue))
 				break;
 		}
 		return knownValue;
 	}
 
-	uint64 OSOrAtomic64(std::atomic<uint64be>* mem, uint64 val)
+	uint64 OSOrAtomic64(uint64be* mem, uint64 val)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint64be knownValue;
 		while (true)
 		{
-			knownValue = mem->load();
+			knownValue = ref.load();
 			uint64be newValue = knownValue | val;
-			if (mem->compare_exchange_strong(knownValue, newValue))
+			if (ref.compare_exchange_strong(knownValue, newValue))
 				break;
 		}
 		return knownValue;
 	}
 
-	bool OSCompareAndSwapAtomic64(std::atomic<uint64be>* mem, uint64 compareValue, uint64 swapValue)
+	bool OSCompareAndSwapAtomic64(uint64be* mem, uint64 compareValue, uint64 swapValue)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint64be _compareValue = compareValue;
 		uint64be _swapValue = swapValue;
-		return mem->compare_exchange_strong(_compareValue, _swapValue);
+		return ref.compare_exchange_strong(_compareValue, _swapValue);
 	}
 
-	bool OSCompareAndSwapAtomicEx64(std::atomic<uint64be>* mem, uint64 compareValue, uint64 swapValue, uint64be* previousValue)
+	bool OSCompareAndSwapAtomicEx64(uint64be* mem, uint64 compareValue, uint64 swapValue, uint64be* previousValue)
 	{
+		const auto ref = rawPtrToAtomicRef(mem);
 		uint64be _compareValue = compareValue;
 		uint64be _swapValue = swapValue;
-		bool r = mem->compare_exchange_strong(_compareValue, _swapValue);
+		bool r = ref.compare_exchange_strong(_compareValue, _swapValue);
 		*previousValue = _compareValue;
 		return r;
 	}

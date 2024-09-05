@@ -583,13 +583,12 @@ LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 	uint32 semaphoreControl = LatteReadCMD();
 	uint8 SEM_SIGNAL = (semaphoreControl >> 29) & 7;
 
-	std::atomic<uint64le>* semaphoreData = _rawPtrToAtomic((uint64le*)memory_getPointerFromPhysicalOffset(semaphorePhysicalAddress));
-	static_assert(sizeof(std::atomic<uint64le>) == sizeof(uint64le));
+	auto semaphoreData = rawPtrToAtomicRef(reinterpret_cast<uint64le*>(memory_getPointerFromPhysicalOffset(semaphorePhysicalAddress)));
 
 	if (SEM_SIGNAL == 6)
 	{
 		// signal
-		semaphoreData->fetch_add(1);
+		semaphoreData.fetch_add(1);
 	}
 	else if(SEM_SIGNAL == 7)
 	{
@@ -597,7 +596,7 @@ LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 		size_t loopCount = 0;
 		while (true)
 		{
-			uint64le oldVal = semaphoreData->load();
+			uint64le oldVal = semaphoreData.load();
 			if (oldVal == 0)
 			{
 				loopCount++;
@@ -605,7 +604,7 @@ LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 					std::this_thread::yield();
 				continue;
 			}
-			if (semaphoreData->compare_exchange_strong(oldVal, oldVal - 1))
+			if (semaphoreData.compare_exchange_strong(oldVal, oldVal - 1))
 				break;
 		}
 	}
