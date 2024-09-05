@@ -394,16 +394,10 @@ void vectorRemoveByIndex(std::vector<T>& vec, const size_t index)
     vec.erase(vec.begin() + index);
 }
 
-template<typename T1, typename T2>
-int match_any_of(T1 value, T2 compareTo)
+template<typename T1, typename... Types>
+bool match_any_of(T1&& value, Types&&... others)
 {
-    return value == compareTo;
-}
-
-template<typename T1, typename T2, typename... Types>
-bool match_any_of(T1 value, T2 compareTo, Types&&... others)
-{
-    return value == compareTo || match_any_of(value, others...);
+    return ((value == others) || ...);
 }
 
 // we cache the frequency in a static variable
