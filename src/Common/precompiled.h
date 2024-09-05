@@ -501,13 +501,6 @@ bool future_is_ready(std::future<T>& f)
 #endif
 }
 
-// replace with std::scope_exit once available
-struct scope_exit
-{
-	std::function<void()> f_;
-	explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
-	~scope_exit() { if (f_) f_(); }
-};
 
 // helper function to convert raw pointers to std::atomic_ref
 // this is only legal as long as alignment restrictions are met
@@ -578,13 +571,34 @@ struct fmt::formatter<betype<T>> : fmt::formatter<T>
 	}
 };
 
-// useful C++23 stuff that isn't yet widely supported
-
-// std::to_underlying
+// useful future C++ stuff
 namespace stdx
 {
+	// std::to_underlying
     template <typename EnumT, typename = std::enable_if_t < std::is_enum<EnumT>{} >>
         constexpr std::underlying_type_t<EnumT> to_underlying(EnumT e) noexcept {
         return static_cast<std::underlying_type_t<EnumT>>(e);
     };
+
+	// std::scope_exit
+	template <typename Fn>
+	class scope_exit
+	{
+		Fn m_func;
+		bool m_released = false;
+	public:
+		explicit scope_exit(Fn&& f) noexcept
+			: m_func(std::move(f))
+		{}
+		~scope_exit()
+		{
+			if (!m_released) m_func();
+		}
+		scope_exit(scope_exit&& other) noexcept
+			: m_func(std::move(other.m_func)), m_released(std::exchange(other.m_released, false))
+		{}
+		scope_exit(const scope_exit&) = delete;
+		scope_exit& operator=(scope_exit) = delete;
+		void release() { m_released = true;}
+	};
 }
