@@ -6,6 +6,7 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 //#include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Common/precompiled.h"
 
 struct Uvec2 {
     uint32 x;
@@ -32,10 +33,14 @@ const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, boo
 
 MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport);
 
-inline const char* GetColorBufferDataTypeStr(const uint32 index, const LatteContextRegister& lcr)
+inline MetalDataType GetColorBufferDataType(const uint32 index, const LatteContextRegister& lcr)
 {
     auto format = LatteMRT::GetColorBufferFormat(index, lcr);
-    auto dataType = GetMtlPixelFormatInfo(format, false).dataType;
+    return GetMtlPixelFormatInfo(format, false).dataType;
+}
+
+inline const char* GetDataTypeStr(MetalDataType dataType)
+{
 	switch (dataType)
 	{
 	case MetalDataType::INT:
@@ -45,7 +50,8 @@ inline const char* GetColorBufferDataTypeStr(const uint32 index, const LatteCont
 	case MetalDataType::FLOAT:
 	    return "float4";
 	default:
-	    return "unknown";
+	    cemu_assert_suspicious();
+		return "";
 	}
 }
 

@@ -3215,11 +3215,13 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 					src->add(") == false) discard_fragment();" _CRLF);
 				}
 				// pixel color output
-				//src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(pixelColorOutputIndex));
-				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetColorBufferDataTypeStr(pixelColorOutputIndex, *shaderContext->contextRegistersNew)/*, GetColorAttachmentTypeStr(pixelColorOutputIndex)*/);
-				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
-				src->add(");" _CRLF);
-				//src->add("#endif" _CRLF);
+				auto dataType = GetColorBufferDataType(pixelColorOutputIndex, *shaderContext->contextRegistersNew);
+				if (dataType != MetalDataType::NONE)
+				{
+    				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetDataTypeStr(dataType));
+    				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
+    				src->add(");" _CRLF);
+				}
 
 				if( cfInstruction->exportArrayBase+i >= 8 )
 					cemu_assert_unimplemented();

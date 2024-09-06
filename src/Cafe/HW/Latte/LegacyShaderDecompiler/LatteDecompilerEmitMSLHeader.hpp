@@ -281,9 +281,11 @@ namespace LatteDecompiler
             {
                	if ((decompilerContext->shader->pixelColorOutputMask & (1 << i)) != 0)
                	{
-                    //src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(i));
-              		src->addFmt("{} passPixelColor{} [[color({})]];" _CRLF, GetColorBufferDataTypeStr(i, *decompilerContext->contextRegistersNew)/*, GetColorAttachmentTypeStr(i)*/, i, i);
-                    //src->add("#endif" _CRLF);
+                    auto dataType = GetColorBufferDataType(i, *decompilerContext->contextRegistersNew);
+                    if (dataType != MetalDataType::NONE)
+                    {
+              		    src->addFmt("{} passPixelColor{} [[color({})]];" _CRLF, GetDataTypeStr(dataType), i, i);
+                    }
                	}
             }
 
