@@ -18,7 +18,7 @@ struct MetalPixelFormatSupport
         m_supportsR8Unorm_sRGB = device->supportsFamily(MTL::GPUFamilyApple1);
         m_supportsRG8Unorm_sRGB = device->supportsFamily(MTL::GPUFamilyApple1);
         m_supportsPacked16BitFormats = device->supportsFamily(MTL::GPUFamilyApple1);
-        m_supportsDepth24Unorm_Stencil8 = device->supportsFamily(MTL::GPUFamilyMac2);
+        m_supportsDepth24Unorm_Stencil8 = device->depth24Stencil8PixelFormatSupported();
 	}
 };
 
