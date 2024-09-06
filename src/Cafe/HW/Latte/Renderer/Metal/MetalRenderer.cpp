@@ -859,6 +859,7 @@ void MetalRenderer::draw_beginSequence()
 			return; // no render target
 		}
 
+		// TODO: not checking for !streamoutEnable fixes Super Smash Bros. for Wii U, investigate why
 		if (!hasValidFramebufferAttached && !streamoutEnable)
 		{
 			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
