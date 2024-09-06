@@ -281,9 +281,11 @@ namespace LatteDecompiler
             {
                	if ((decompilerContext->shader->pixelColorOutputMask & (1 << i)) != 0)
                	{
-                    src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(i));
-              		src->addFmt("{} passPixelColor{} [[color({})]];" _CRLF, GetColorAttachmentTypeStr(i), i, i);
-                    src->add("#endif" _CRLF);
+                    auto dataType = GetColorBufferDataType(i, *decompilerContext->contextRegistersNew);
+                    if (dataType != MetalDataType::NONE)
+                    {
+              		    src->addFmt("{} passPixelColor{} [[color({})]];" _CRLF, GetDataTypeStr(dataType), i, i);
+                    }
                	}
             }
 
@@ -495,6 +497,10 @@ namespace LatteDecompiler
                 src->add(", mesh_grid_properties meshGridProperties");
                 src->add(", uint tig [[threadgroup_position_in_grid]]");
                 src->add(", uint tid [[thread_index_in_threadgroup]]");
+                // TODO: inly include index buffer if needed
+                src->addFmt(", device uint* indexBuffer [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexBufferBinding);
+                // TODO: use uchar?
+                src->addFmt(", constant uint& indexType [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexTypeBinding);
                 src->add(" VERTEX_BUFFER_DEFINITIONS");
 			}
 			else

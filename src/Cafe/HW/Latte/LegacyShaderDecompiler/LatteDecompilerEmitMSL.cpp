@@ -11,6 +11,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/StringBuf.h"
 
@@ -3214,11 +3215,13 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 					src->add(") == false) discard_fragment();" _CRLF);
 				}
 				// pixel color output
-				src->addFmt("#ifdef {}" _CRLF, GetColorAttachmentTypeStr(pixelColorOutputIndex));
-				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetColorAttachmentTypeStr(pixelColorOutputIndex));
-				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
-				src->add(");" _CRLF);
-				src->add("#endif" _CRLF);
+				auto dataType = GetColorBufferDataType(pixelColorOutputIndex, *shaderContext->contextRegistersNew);
+				if (dataType != MetalDataType::NONE)
+				{
+    				src->addFmt("out.passPixelColor{} = as_type<{}>(", pixelColorOutputIndex, GetDataTypeStr(dataType));
+    				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
+    				src->add(");" _CRLF);
+				}
 
 				if( cfInstruction->exportArrayBase+i >= 8 )
 					cemu_assert_unimplemented();
@@ -3881,9 +3884,125 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	case LatteConst::ShaderType::Vertex:
 	    if (shaderContext->options->usesGeometryShader || isRectVertexShader)
 		{
-		    // Defined just-in-time
-			// Will also modify vid in case of an indexed draw
-		    src->add("VertexIn fetchInput(thread uint& vid VERTEX_BUFFER_DEFINITIONS);" _CRLF);
+		    // TODO: clean this up
+			// fetchVertex will modify vid in case of an indexed draw
+
+			// Vertex buffers
+            std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
+            std::string vertexBuffers = "#define VERTEX_BUFFERS ";
+            std::string inputFetchDefinition = "VertexIn fetchVertex(thread uint& vid, device uint* indexBuffer, uint indexType VERTEX_BUFFER_DEFINITIONS) {\n";
+
+			// Index buffer
+            inputFetchDefinition += "if (indexType == 1) // UShort\n";
+            inputFetchDefinition += "vid = ((device ushort*)indexBuffer)[vid];\n";
+            inputFetchDefinition += "else if (indexType == 2)\n";
+            inputFetchDefinition += "vid = ((device uint*)indexBuffer)[vid]; // UInt\n";
+
+            inputFetchDefinition += "VertexIn in;\n";
+            for (auto& bufferGroup : shaderContext->fetchShader->bufferGroups)
+			{
+                std::optional<LatteConst::VertexFetchType2> fetchType;
+
+				uint32 bufferIndex = bufferGroup.attributeBufferIndex;
+				uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+				uint32 bufferStride = (shaderContext->contextRegisters[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+               	for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
+               	{
+              		auto& attr = bufferGroup.attrib[j];
+
+              		uint32 semanticId = shaderContext->output->resourceMappingMTL.attributeMapping[attr.semanticId];
+              		if (semanticId == (uint32)-1)
+             			continue; // attribute not used?
+
+                    std::string formatName;
+                    uint8 componentCount = 0;
+                    switch (GetMtlVertexFormat(attr.format))
+                    {
+                    case MTL::VertexFormatUChar:
+                        formatName = "uchar";
+                        componentCount = 1;
+                        break;
+                    case MTL::VertexFormatUChar2:
+                        formatName = "uchar2";
+                        componentCount = 2;
+                        break;
+                    case MTL::VertexFormatUChar3:
+                        formatName = "uchar3";
+                        componentCount = 3;
+                        break;
+                    case MTL::VertexFormatUChar4:
+                        formatName = "uchar4";
+                        componentCount = 4;
+                        break;
+                    case MTL::VertexFormatUShort:
+                        formatName = "ushort";
+                        componentCount = 1;
+                        break;
+                    case MTL::VertexFormatUShort2:
+                        formatName = "ushort2";
+                        componentCount = 2;
+                        break;
+                    case MTL::VertexFormatUShort3:
+                        formatName = "ushort3";
+                        componentCount = 3;
+                        break;
+                    case MTL::VertexFormatUShort4:
+                        formatName = "ushort4";
+                        componentCount = 4;
+                        break;
+                    case MTL::VertexFormatUInt:
+                        formatName = "uint";
+                        componentCount = 1;
+                        break;
+                    case MTL::VertexFormatUInt2:
+                        formatName = "uint2";
+                        componentCount = 2;
+                        break;
+                    case MTL::VertexFormatUInt3:
+                        formatName = "uint3";
+                        componentCount = 3;
+                        break;
+                    case MTL::VertexFormatUInt4:
+                        formatName = "uint4";
+                        componentCount = 4;
+                        break;
+                    }
+
+                    // Fetch the attribute
+                    inputFetchDefinition += fmt::format("in.ATTRIBUTE_NAME{} = ", semanticId);
+                    inputFetchDefinition += fmt::format("uint4(*(device {}*)", formatName);
+                    inputFetchDefinition += fmt::format("(vertexBuffer{}", attr.attributeBufferIndex);
+                    inputFetchDefinition += fmt::format(" + vid * {} + {})", bufferStride, attr.offset);
+                    for (uint8 i = 0; i < (4 - componentCount); i++)
+                        inputFetchDefinition += ", 0";
+                    inputFetchDefinition += ");\n";
+
+              		if (fetchType.has_value())
+             			cemu_assert_debug(fetchType == attr.fetchType);
+              		else
+             			fetchType = attr.fetchType;
+
+              		if (attr.fetchType == LatteConst::INSTANCE_DATA)
+              		{
+             			cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
+              		}
+               	}
+
+                // TODO: fetch type
+
+				vertexBufferDefinitions += fmt::format(", device uchar* vertexBuffer{} [[buffer({})]]", bufferIndex, GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
+				vertexBuffers += fmt::format(", vertexBuffer{}", bufferIndex);
+			}
+
+			inputFetchDefinition += "return in;\n";
+			inputFetchDefinition += "}\n";
+
+			src->add(vertexBufferDefinitions.c_str());
+			src->add("\n");
+			src->add(vertexBuffers.c_str());
+			src->add("\n");
+			src->add(inputFetchDefinition.c_str());
 
 			functionType = "[[object, max_total_threads_per_threadgroup(VERTICES_PER_VERTEX_PRIMITIVE), max_total_threadgroups_per_mesh_grid(1)]]";
 			outputTypeName = "void";
@@ -3916,7 +4035,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     		// TODO: don't hardcode the instance index
     		src->add("uint iid = 0;" _CRLF);
     		// Fetch the input
-    		src->add("VertexIn in = fetchInput(vid VERTEX_BUFFERS);" _CRLF);
+    		src->add("VertexIn in = fetchVertex(vid, indexBuffer, indexType VERTEX_BUFFERS);" _CRLF);
     		// Output is defined as object payload
     		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
 		}

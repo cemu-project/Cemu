@@ -146,6 +146,23 @@ void LatteFetchShader::CalculateFetchShaderVkHash()
 	this->vkPipelineHashFragment = h;
 }
 
+void LatteFetchShader::CalculateFetchShaderMtlObjectShaderHash(uint32* contextRegister)
+{uint64 key = 0;
+	for (sint32 g = 0; g < bufferGroups.size(); g++)
+	{
+	    LatteParsedFetchShaderBufferGroup_t& group = bufferGroups[g];
+		uint32 bufferIndex = group.attributeBufferIndex;
+		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+		uint32 bufferStride = (contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+	    key += (uint64)bufferIndex;
+		key = std::rotl<uint64>(key, 5);
+        key += (uint64)bufferStride;
+		key = std::rotl<uint64>(key, 5);
+	}
+	mtlShaderHashObject = key;
+}
+
 void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* parsedFetchShader, uint32* contextRegister, const LatteClauseInstruction_VTX* instr)
 {
 	uint32 semanticId = instr->getFieldSEM_SEMANTIC_ID(); // location (attribute index inside shader)
@@ -161,7 +178,7 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	auto nfa = instr->getField_NUM_FORMAT_ALL();
 	bool isSigned = instr->getField_FORMAT_COMP_ALL() == LatteClauseInstruction_VTX::FORMAT_COMP::COMP_SIGNED;
 	auto endianSwap = instr->getField_ENDIAN_SWAP();
-	
+
 	// get buffer
 	cemu_assert_debug(bufferId >= 0xA0 && bufferId < 0xB0);
 	uint32 bufferIndex = (bufferId - 0xA0);
@@ -316,7 +333,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	//			{0x00000002, 0x01800c00, 0x00000000, 0x8a000000, 0x2c00a001, 0x2c151000, 0x000a0000, ...} // size 0x50
 	//          {0x00000002, 0x01801000, 0x00000000, 0x8a000000, 0x1c00a001, 0x280d1000, 0x00090000, ...} // size 0x60
 	//			{0x00000002, 0x01801c00, 0x00000000, 0x8a000000, 0x1c00a001, 0x280d1000, 0x00090000, ...} // size 0x90
-	
+
 	// our new implementation:
 	//			{0x00000002, 0x01800400, 0x00000000, 0x8a000000, 0x0000a001, 0x2c151000, 0x00020000, ...}
 
@@ -328,6 +345,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 		// these only make sense when vertex shader does not call FS?
 		LatteShader_calculateFSKey(newFetchShader);
 		newFetchShader->CalculateFetchShaderVkHash();
+		newFetchShader->CalculateFetchShaderMtlObjectShaderHash(contextRegister);
 		return newFetchShader;
 	}
 
@@ -387,6 +405,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	}
 	LatteShader_calculateFSKey(newFetchShader);
 	newFetchShader->CalculateFetchShaderVkHash();
+	newFetchShader->CalculateFetchShaderMtlObjectShaderHash(contextRegister);
 
 	// register in cache
 	// its possible that during multi-threaded shader cache loading, two identical (same hash) fetch shaders get created simultaneously
@@ -411,7 +430,7 @@ LatteFetchShader::~LatteFetchShader()
 	UnregisterInCache();
 }
 
-struct FetchShaderLookupInfo 
+struct FetchShaderLookupInfo
 {
 	LatteFetchShader* fetchShader;
 	uint32 programSize;

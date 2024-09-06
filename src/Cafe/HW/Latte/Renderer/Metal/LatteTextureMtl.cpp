@@ -78,6 +78,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	auto pixelFormat = GetMtlPixelFormat(format, isDepth, m_mtlr->GetPixelFormatSupport());
 	desc->setPixelFormat(pixelFormat);
 
+	// TODO: using MTL::TextureUsageShaderWrite as well fixes Mario Tennis: Ultra Smash, investigate why
 	MTL::TextureUsage usage = MTL::TextureUsageShaderRead;
 	if (!Latte::IsCompressedFormat(format))
 	{

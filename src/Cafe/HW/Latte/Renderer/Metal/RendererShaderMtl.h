@@ -21,14 +21,6 @@ public:
 	RendererShaderMtl(class MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode);
 	virtual ~RendererShaderMtl();
 
-	void CompileVertexFunction()
-	{
-	    Compile(m_mslCode);
-	}
-
-	void CompileObjectFunction(const LatteContextRegister& lcr, const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, Renderer::INDEX_TYPE hostIndexType);
-	void CompileFragmentFunction(CachedFBOMtl* activeFBO);
-
 	MTL::Function* GetFunction() const
 	{
 	    return m_function;
@@ -59,12 +51,6 @@ private:
     class MetalRenderer* m_mtlr;
 
 	MTL::Function* m_function = nullptr;
-
-	std::vector<uint8> m_binary;
-	std::string m_mslCode;
-
-	// HACK
-	bool m_hasError = false;
 
 	void Compile(const std::string& mslCode);
 };

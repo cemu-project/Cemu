@@ -1,4 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
+#include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLDepthStencil.hpp"
 #include "Metal/MTLPixelFormat.hpp"
@@ -84,23 +85,16 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
 
 const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth)
 {
+    if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+    {
+        return {MTL::PixelFormatInvalid, MetalDataType::NONE, 0};
+    }
+
     MetalPixelFormatInfo formatInfo;
     if (isDepth)
         formatInfo = MTL_DEPTH_FORMAT_TABLE[format];
     else
         formatInfo = MTL_COLOR_FORMAT_TABLE[format];
-
-    // Depth24Unorm_Stencil8 is not supported on Apple sillicon
-    // TODO: query if format is available instead
-    if (formatInfo.pixelFormat == MTL::PixelFormatDepth24Unorm_Stencil8)
-    {
-        formatInfo.pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
-    }
-
-    if (formatInfo.pixelFormat == MTL::PixelFormatInvalid)
-    {
-        printf("invalid pixel format: %u\n", (uint32)format);
-    }
 
     return formatInfo;
 }
@@ -108,30 +102,33 @@ const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, boo
 MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport)
 {
     auto pixelFormat = GetMtlPixelFormatInfo(format, isDepth).pixelFormat;
+    if (pixelFormat == MTL::PixelFormatInvalid)
+        cemuLog_logDebug(LogType::Force, "invalid pixel format {}\n", pixelFormat);
 
-    if (!pixelFormatSupport.m_supportsR8Unorm_sRGB && pixelFormat == MTL::PixelFormatR8Unorm_sRGB)
-        pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
-
-    if (!pixelFormatSupport.m_supportsRG8Unorm_sRGB && pixelFormat == MTL::PixelFormatRG8Unorm_sRGB)
-        pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
-
-    if (!pixelFormatSupport.m_supportsPacked16BitFormats)
+    switch (pixelFormat)
     {
-        switch (pixelFormat)
-        {
-        case MTL::PixelFormatB5G6R5Unorm:
-        case MTL::PixelFormatA1BGR5Unorm:
-        case MTL::PixelFormatABGR4Unorm:
-        case MTL::PixelFormatBGR5A1Unorm:
-            pixelFormat = MTL::PixelFormatRGBA8Unorm;
-            break;
-        default:
-            break;
-        }
+    case MTL::PixelFormatR8Unorm_sRGB:
+        if (!pixelFormatSupport.m_supportsR8Unorm_sRGB)
+            return MTL::PixelFormatRGBA8Unorm_sRGB;
+        break;
+    case MTL::PixelFormatRG8Unorm_sRGB:
+        if (!pixelFormatSupport.m_supportsRG8Unorm_sRGB)
+            return MTL::PixelFormatRGBA8Unorm_sRGB;
+        break;
+    case MTL::PixelFormatB5G6R5Unorm:
+    case MTL::PixelFormatA1BGR5Unorm:
+    case MTL::PixelFormatABGR4Unorm:
+    case MTL::PixelFormatBGR5A1Unorm:
+        if (!pixelFormatSupport.m_supportsPacked16BitFormats)
+            return MTL::PixelFormatRGBA8Unorm;
+        break;
+    case MTL::PixelFormatDepth24Unorm_Stencil8:
+        if (!pixelFormatSupport.m_supportsDepth24Unorm_Stencil8)
+            return MTL::PixelFormatDepth32Float_Stencil8;
+        break;
+    default:
+        break;
     }
-
-    if (!pixelFormatSupport.m_supportsDepth24Unorm_Stencil8 && pixelFormat == MTL::PixelFormatDepth24Unorm_Stencil8)
-        pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
 
     return pixelFormat;
 }

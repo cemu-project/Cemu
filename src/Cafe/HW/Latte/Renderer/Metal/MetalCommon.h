@@ -18,7 +18,7 @@ struct MetalPixelFormatSupport
         m_supportsR8Unorm_sRGB = device->supportsFamily(MTL::GPUFamilyApple1);
         m_supportsRG8Unorm_sRGB = device->supportsFamily(MTL::GPUFamilyApple1);
         m_supportsPacked16BitFormats = device->supportsFamily(MTL::GPUFamilyApple1);
-        m_supportsDepth24Unorm_Stencil8 = device->supportsFamily(MTL::GPUFamilyMac2);
+        m_supportsDepth24Unorm_Stencil8 = device->depth24Stencil8PixelFormatSupported();
 	}
 };
 
@@ -41,10 +41,10 @@ inline size_t Align(size_t size, size_t alignment)
     return (size + alignment - 1) & ~(alignment - 1);
 }
 
-inline std::string GetColorAttachmentTypeStr(uint32 index)
-{
-    return "COLOR_ATTACHMENT" + std::to_string(index) + "_TYPE";
-}
+//inline std::string GetColorAttachmentTypeStr(uint32 index)
+//{
+//    return "COLOR_ATTACHMENT" + std::to_string(index) + "_TYPE";
+//}
 
 // Cast from const char* to NS::String*
 inline NS::String* ToNSString(const char* str)
