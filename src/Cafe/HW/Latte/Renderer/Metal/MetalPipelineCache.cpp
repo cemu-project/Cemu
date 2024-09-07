@@ -309,7 +309,7 @@ MetalPipelineCache::~MetalPipelineCache()
     m_binaryArchive->serializeToURL(m_binaryArchiveURL, &error);
     if (error)
     {
-        cemuLog_log(LogType::Force, "failed to serialize binary archive: {}", error->localizedDescription()->utf8String());
+        cemuLog_log(LogType::Force, "error serializing binary archive: {}", error->localizedDescription()->utf8String());
         error->release();
     }
     m_binaryArchive->release();
@@ -587,8 +587,28 @@ void MetalPipelineCache::TryLoadBinaryArchive()
     if (m_binaryArchive || s_cacheTitleId == INVALID_TITLE_ID)
         return;
 
+    // GPU name
+    const char* deviceName1 = m_mtlr->GetDevice()->name()->utf8String();
+    std::string deviceName;
+    deviceName.assign(deviceName1);
+
+    // Replace spaces with underscores
+    for (auto& c : deviceName)
+    {
+        if (c == ' ')
+            c = '_';
+    }
+
+    // OS version
+    auto osVersion = NS::ProcessInfo::processInfo()->operatingSystemVersion();
+
+    // Precompiled binaries cannot be shared between different devices or OS versions
     const std::string cacheFilename = fmt::format("{:016x}_mtl_pipelines.bin", s_cacheTitleId);
-	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename);
+	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}/{}-{}-{}/{}", deviceName, osVersion.majorVersion, osVersion.minorVersion, osVersion.patchVersion, cacheFilename);
+
+	// Create the directory if it doesn't exist
+	std::filesystem::create_directories(cachePath.parent_path());
+
     m_binaryArchiveURL = NS::URL::fileURLWithPath(ToNSString((const char*)cachePath.generic_u8string().c_str()));
 
     MTL::BinaryArchiveDescriptor* desc = MTL::BinaryArchiveDescriptor::alloc()->init();
