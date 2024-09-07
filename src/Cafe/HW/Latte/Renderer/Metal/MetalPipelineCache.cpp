@@ -192,15 +192,15 @@ template<typename T>
 void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
 {
 	// Rasterization
-	bool rasterizationEnabled = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+	bool rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
 
 	// HACK
 	// TODO: include this in the hash?
-	if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+	if (!lcr.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
 		rasterizationEnabled = true;
 
 	// Culling both front and back faces effectively disables rasterization
-	const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
+	const auto& polygonControlReg = lcr.PA_SU_SC_MODE_CNTL;
 	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
 	uint32 cullBack = polygonControlReg.get_CULL_BACK();
 	if (cullFront && cullBack)
