@@ -206,13 +206,14 @@ void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFB
 	if (cullFront && cullBack)
 	    rasterizationEnabled = false;
 
-	desc->setRasterizationEnabled(rasterizationEnabled);
-
-	if (rasterizationEnabled)
+	if (!rasterizationEnabled)
 	{
-	    auto pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
-		desc->setFragmentFunction(pixelShaderMtl->GetFunction());
+	    desc->setRasterizationEnabled(false);
+		return;
 	}
+
+    auto pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
+	desc->setFragmentFunction(pixelShaderMtl->GetFunction());
 
     // Color attachments
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
