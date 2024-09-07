@@ -262,7 +262,7 @@ namespace LatteDecompiler
 		src->add("};" _CRLF _CRLF);
 	}
 
-	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
+	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool rasterizationEnabled)
 	{
 		auto src = decompilerContext->shaderSource;
 
@@ -300,7 +300,7 @@ namespace LatteDecompiler
 
 		if (!decompilerContext->options->usesGeometryShader)
 		{
-    		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
+    		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && rasterizationEnabled)
     			_emitVSOutputs(decompilerContext, isRectVertexShader);
 		}
 		else
@@ -351,7 +351,7 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
+	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool rasterizationEnabled)
 	{
 	    auto src = decompilerContext->shaderSource;
 
@@ -410,7 +410,7 @@ namespace LatteDecompiler
 		// uniform buffers
 		_emitUniformBuffers(decompilerContext);
 		// inputs and outputs
-		_emitInputsAndOutputs(decompilerContext, isRectVertexShader);
+		_emitInputsAndOutputs(decompilerContext, isRectVertexShader, rasterizationEnabled);
 
 		if (dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// end of shader inputs/outputs" _CRLF);

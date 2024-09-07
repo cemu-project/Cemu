@@ -501,8 +501,27 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	uint64 vsHash2 = 0;
 	_calculateShaderProgramHash(vsProgramCode, vertexShaderSize, &hashCacheVS, &vsHash1, &vsHash2);
 	uint64 vsHash = vsHash1 + vsHash2 + _activeFetchShader->key + _activePSImportTable.key + (usesGeometryShader ? 0x1111ULL : 0ULL);
-	if (g_renderer->GetType() == RendererAPI::Metal && usesGeometryShader)
-	    vsHash += _activeFetchShader->mtlShaderHashObject;
+	if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+	    if (usesGeometryShader)
+	        vsHash += _activeFetchShader->mtlShaderHashObject;
+
+		// Rasterization
+		bool rasterizationEnabled = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+
+		// HACK
+		if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+			rasterizationEnabled = true;
+
+		const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
+		uint32 cullFront = polygonControlReg.get_CULL_FRONT();
+		uint32 cullBack = polygonControlReg.get_CULL_BACK();
+		if (cullFront && cullBack)
+		    rasterizationEnabled = false;
+
+		if (rasterizationEnabled)
+		    vsHash += 51ULL;
+	}
 
 	uint32 tmp = LatteGPUState.contextNew.PA_CL_VTE_CNTL.getRawValue() ^ 0x43F;
 	vsHash += tmp;

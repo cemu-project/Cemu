@@ -20,6 +20,8 @@
 
 #define _CRLF	"\r\n"
 
+static bool rasterizationEnabled;
+
 void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext, StringBuf* src, LatteParsedFetchShaderAttribute_t* attrib);
 
 /*
@@ -3108,6 +3110,9 @@ static void _emitExportGPRReadCode(LatteDecompilerShaderContext* shaderContext, 
 
 static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDecompilerCFInstruction* cfInstruction)
 {
+    if (!rasterizationEnabled)
+        return;
+
 	StringBuf* src = shaderContext->shaderSource;
 	src->add("// export" _CRLF);
 	if(shaderContext->shaderType == LatteConst::ShaderType::Vertex )
@@ -3331,6 +3336,9 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 		}
 		return;
 	}
+
+	if (!rasterizationEnabled)
+	    return;
 
 	if (shaderContext->shaderType == LatteConst::ShaderType::Vertex)
 	{
@@ -3861,6 +3869,23 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 {
     bool isRectVertexShader = (static_cast<LattePrimitiveMode>(shaderContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
 
+    // Rasterization
+    rasterizationEnabled = true;
+    if (shader->shaderType == LatteConst::ShaderType::Vertex)
+    {
+        rasterizationEnabled = !shaderContext->contextRegistersNew->PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+
+    	// HACK
+    	if (!shaderContext->contextRegistersNew->PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+    		rasterizationEnabled = true;
+
+    	const auto& polygonControlReg = shaderContext->contextRegistersNew->PA_SU_SC_MODE_CNTL;
+    	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
+    	uint32 cullBack = polygonControlReg.get_CULL_BACK();
+    	if (cullFront && cullBack)
+    	    rasterizationEnabled = false;
+    }
+
 	StringBuf* src = new StringBuf(1024*1024*12); // reserve 12MB for generated source (we resize-to-fit at the end)
 	shaderContext->shaderSource = src;
 
@@ -3874,7 +3899,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     src->add("#include <metal_stdlib>" _CRLF);
     src->add("using namespace metal;" _CRLF);
 	// header part (definitions for inputs and outputs)
-	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader);
+	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader, rasterizationEnabled);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
 	const char* functionType = "";
@@ -4010,7 +4035,10 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		else
 		{
     	    functionType = "vertex";
-    	    outputTypeName = "VertexOut";
+            if (rasterizationEnabled)
+       	        outputTypeName = "VertexOut";
+            else
+                outputTypeName = "void";
 		}
 		break;
 	case LatteConst::ShaderType::Geometry:
@@ -4048,7 +4076,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 	else
 	{
-	    src->addFmt("{} out;" _CRLF, outputTypeName);
+	    if (rasterizationEnabled)
+	        src->addFmt("{} out;" _CRLF, outputTypeName);
 	}
 	// variable definition
 	if (shaderContext->typeTracker.useArrayGPRs == false)
@@ -4285,9 +4314,9 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	//if(shader->shaderType == LatteConst::ShaderType::Geometry)
 	//	src->add("EndPrimitive();" _CRLF);
 	// vertex shader should write renderstate point size at the end if required but not modified by shader
-	if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
+	if (shaderContext->analyzer.outputPointSize && !shaderContext->analyzer.writesPointSize)
 	{
-		if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
+		if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader && rasterizationEnabled)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
 
@@ -4325,13 +4354,15 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
         }
 	}
 
-    // TODO: this should be handled outside of the shader, because clipping currently wouldn't work (or would it?)
-	if ((shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader) || shader->shaderType == LatteConst::ShaderType::Geometry)
-		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+    if (rasterizationEnabled)
+    {
+    	if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
+    		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 
-	// Return
-	if (!(shaderContext->options->usesGeometryShader || isRectVertexShader) || shader->shaderType == LatteConst::ShaderType::Pixel)
-        src->add("return out;" _CRLF);
+    	// Return
+    	if (!(shaderContext->options->usesGeometryShader || isRectVertexShader) || shader->shaderType == LatteConst::ShaderType::Pixel)
+            src->add("return out;" _CRLF);
+    }
 
 	// end of shader main
 	src->add("}" _CRLF);

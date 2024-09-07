@@ -879,7 +879,7 @@ void MetalRenderer::draw_beginSequence()
 	LatteRenderTarget_updateScissorBox();
 
 	// check for conditions which would turn the drawcalls into no-ops
-	bool rasterizerEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL() == false;
+	bool rasterizerEnable = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
 
 	// GX2SetSpecialState(0, true) enables DX_RASTERIZATION_KILL, but still expects depth writes to happen? -> Research which stages are disabled by DX_RASTERIZATION_KILL exactly
 	// for now we use a workaround:
@@ -888,18 +888,6 @@ void MetalRenderer::draw_beginSequence()
 
 	if (!rasterizerEnable && !streamoutEnable)
 		m_state.m_skipDrawSequence = true;
-
-	// Both faces are culled
-	// TODO: can we really skip the draw?
-	const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
-	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-	uint32 cullBack = polygonControlReg.get_CULL_BACK();
-	if (cullFront && cullBack)
-	    m_state.m_skipDrawSequence = true;
-
-	// TODO: is this even needed?
-	if (!m_state.m_activeFBO)
-	    m_state.m_skipDrawSequence = true;
 }
 
 void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
@@ -1065,23 +1053,23 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Cull mode
 
-	// Handled in draw_beginSequence
-	if (cullFront && cullBack)
-	    cemu_assert_suspicious();
+	// Cull front and back is handled by disabling rasterization
+	if (!(cullFront && cullBack))
+	{
+        MTL::CullMode cullMode;
+       	if (cullFront)
+      		cullMode = MTL::CullModeFront;
+       	else if (cullBack)
+      		cullMode = MTL::CullModeBack;
+       	else
+      		cullMode = MTL::CullModeNone;
 
-    MTL::CullMode cullMode;
-   	if (cullFront)
-  		cullMode = MTL::CullModeFront;
-   	else if (cullBack)
-  		cullMode = MTL::CullModeBack;
-   	else
-  		cullMode = MTL::CullModeNone;
-
-    if (cullMode != encoderState.m_cullMode)
-   	{
-   	    renderCommandEncoder->setCullMode(cullMode);
-  		encoderState.m_cullMode = cullMode;
-   	}
+        if (cullMode != encoderState.m_cullMode)
+       	{
+       	    renderCommandEncoder->setCullMode(cullMode);
+      		encoderState.m_cullMode = cullMode;
+       	}
+	}
 
 	// Front face
 	MTL::Winding frontFaceWinding;
@@ -1164,12 +1152,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	else
         renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, m_state.m_activeFBO, LatteGPUState.contextNew);
 
-    // HACK
     if (!renderPipelineState)
-    {
-        printf("invalid render pipeline state, skipping draw\n");
         return;
-    }
 
 	if (renderPipelineState != encoderState.m_renderPipelineState)
    	{
