@@ -932,6 +932,7 @@ void GeneralSettings2::StoreConfig()
 	config.fullscreen_menubar = m_fullscreen_menubar->IsChecked();
 	config.check_update = m_auto_update->IsChecked();
 	config.save_screenshot = m_save_screenshot->IsChecked();
+	config.receive_untested_updates = m_receive_untested_releases->IsChecked();
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     config.feral_gamemode = m_feral_gamemode->IsChecked();
 #endif
