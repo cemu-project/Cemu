@@ -9,7 +9,7 @@ on:
 jobs:
   build: android
 
-    runs-on: android-latest
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
