@@ -9,10 +9,10 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: android
 
     steps:
-      - name: Checkout repo
+      - name: Cemu
         uses: actions/checkout@v3
         with:
           submodules: "recursive"
