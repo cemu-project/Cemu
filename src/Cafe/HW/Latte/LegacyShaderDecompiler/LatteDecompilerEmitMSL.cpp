@@ -3920,8 +3920,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			// Index buffer
             inputFetchDefinition += "if (indexType == 1) // UShort\n";
             inputFetchDefinition += "vid = ((device ushort*)indexBuffer)[vid];\n";
-            inputFetchDefinition += "else if (indexType == 2)\n";
-            inputFetchDefinition += "vid = ((device uint*)indexBuffer)[vid]; // UInt\n";
+            inputFetchDefinition += "else if (indexType == 2) // UInt\n";
+            inputFetchDefinition += "vid = ((device uint*)indexBuffer)[vid];\n";
 
             inputFetchDefinition += "VertexIn in;\n";
             for (auto& bufferGroup : shaderContext->fetchShader->bufferGroups)
@@ -4060,8 +4060,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 		{
     	    // Calculate the imaginary vertex id
     	    src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
-    		// TODO: don't hardcode the instance index
-    		src->add("uint iid = 0;" _CRLF);
+    		src->add("uint iid = vid / verticesPerInstance;" _CRLF);
+            src->add("vid %= verticesPerInstance;" _CRLF);
     		// Fetch the input
     		src->add("VertexIn in = fetchVertex(vid, indexBuffer, indexType VERTEX_BUFFERS);" _CRLF);
     		// Output is defined as object payload

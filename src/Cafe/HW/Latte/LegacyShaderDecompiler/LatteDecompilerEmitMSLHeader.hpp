@@ -497,8 +497,11 @@ namespace LatteDecompiler
                 src->add(", mesh_grid_properties meshGridProperties");
                 src->add(", uint tig [[threadgroup_position_in_grid]]");
                 src->add(", uint tid [[thread_index_in_threadgroup]]");
+                // TODO: put into the support buffer?
+                src->addFmt(", constant uint& verticesPerInstance [[buffer({})]]", decompilerContext->output->resourceMappingMTL.verticesPerInstanceBinding);
                 // TODO: inly include index buffer if needed
                 src->addFmt(", device uint* indexBuffer [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexBufferBinding);
+                // TODO: put into the support buffer?
                 // TODO: use uchar?
                 src->addFmt(", constant uint& indexType [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexTypeBinding);
                 src->add(" VERTEX_BUFFER_DEFINITIONS");

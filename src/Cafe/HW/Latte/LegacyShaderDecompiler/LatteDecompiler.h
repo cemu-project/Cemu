@@ -64,6 +64,7 @@ struct LatteDecompilerShaderResourceMapping
 	// attributes (vertex shader only)
 	sint8 attributeMapping[LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS];
 	// Metal exclusive
+	sint8 verticesPerInstanceBinding{-1};
 	sint8 indexBufferBinding{-1};
 	sint8 indexTypeBinding{-1};
 

@@ -1183,10 +1183,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 	if (usesGeometryShader)
 	{
+		uint32 verticesPerInstance = count / instanceCount;
+        // TODO: make a helper function for this
+        renderCommandEncoder->setObjectBytes(&verticesPerInstance, sizeof(verticesPerInstance), vertexShader->resourceMapping.verticesPerInstanceBinding);
+        encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.verticesPerInstanceBinding] = {nullptr};
 	    if (indexBuffer)
 		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexBuffer, indexBufferOffset, vertexShader->resourceMapping.indexBufferBinding);
 		renderCommandEncoder->setObjectBytes(&hostIndexType, sizeof(hostIndexType), vertexShader->resourceMapping.indexTypeBinding);
-		encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.indexTypeBinding] = {nullptr};
+        encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.indexTypeBinding] = {nullptr};
 
 		uint32 verticesPerPrimitive = 0;
 		switch (primitiveMode)
@@ -1206,7 +1210,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             break;
         }
 
-		renderCommandEncoder->drawMeshThreadgroups(MTL::Size(count / verticesPerPrimitive, 1, 1), MTL::Size(verticesPerPrimitive, 1, 1), MTL::Size(1, 1, 1));
+		renderCommandEncoder->drawMeshThreadgroups(MTL::Size(count * instanceCount / verticesPerPrimitive, 1, 1), MTL::Size(verticesPerPrimitive, 1, 1), MTL::Size(1, 1, 1));
 	}
 	else
 	{
