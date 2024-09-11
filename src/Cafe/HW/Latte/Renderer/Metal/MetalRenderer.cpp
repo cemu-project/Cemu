@@ -1187,9 +1187,12 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         // TODO: make a helper function for this
         renderCommandEncoder->setObjectBytes(&verticesPerInstance, sizeof(verticesPerInstance), vertexShader->resourceMapping.verticesPerInstanceBinding);
         encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.verticesPerInstanceBinding] = {nullptr};
+
 	    if (indexBuffer)
 		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexBuffer, indexBufferOffset, vertexShader->resourceMapping.indexBufferBinding);
-		renderCommandEncoder->setObjectBytes(&hostIndexType, sizeof(hostIndexType), vertexShader->resourceMapping.indexTypeBinding);
+
+		uint8 hostIndexTypeU8 = (uint8)hostIndexType;
+		renderCommandEncoder->setObjectBytes(&hostIndexTypeU8, sizeof(hostIndexTypeU8), vertexShader->resourceMapping.indexTypeBinding);
         encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.indexTypeBinding] = {nullptr};
 
 		uint32 verticesPerPrimitive = 0;

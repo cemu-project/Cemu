@@ -490,8 +490,7 @@ namespace LatteDecompiler
                 // TODO: inly include index buffer if needed
                 src->addFmt(", device uint* indexBuffer [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexBufferBinding);
                 // TODO: put into the support buffer?
-                // TODO: use uchar?
-                src->addFmt(", constant uint& indexType [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexTypeBinding);
+                src->addFmt(", constant uchar& indexType [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexTypeBinding);
                 src->add(" VERTEX_BUFFER_DEFINITIONS");
 			}
 			else

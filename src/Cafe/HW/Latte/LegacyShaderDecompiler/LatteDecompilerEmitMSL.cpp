@@ -3901,7 +3901,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			// Vertex buffers
             std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
             std::string vertexBuffers = "#define VERTEX_BUFFERS ";
-            std::string inputFetchDefinition = "VertexIn fetchVertex(thread uint& vid, device uint* indexBuffer, uint indexType VERTEX_BUFFER_DEFINITIONS) {\n";
+            std::string inputFetchDefinition = "VertexIn fetchVertex(thread uint& vid, device uint* indexBuffer, uchar indexType VERTEX_BUFFER_DEFINITIONS) {\n";
 
 			// Index buffer
             inputFetchDefinition += "if (indexType == 1) // UShort\n";
