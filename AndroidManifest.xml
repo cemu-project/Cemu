@@ -1,0 +1,124 @@
+<manifest
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	android:versionCode="1"
+	android:versionName="1.0"
+	android:compileSdkVersion="34"
+	android:compileSdkVersionCodename="14"
+	package="info.cemu.Cemu"
+	platformBuildVersionCode="34"
+	platformBuildVersionName="14">
+	<application
+		android:theme="(reference) @0x7f120219"
+		android:label="(reference) @0x7f110022"
+		android:icon="(reference) @0x7f0e0000"
+		android:name="info.cemu.Cemu.CemuApplication"
+		android:allowBackup="true"
+		android:supportsRtl="true"
+		android:extractNativeLibs="false"
+		android:fullBackupContent="(reference) @0x7f140000"
+		android:roundIcon="(reference) @0x7f0e0002"
+		android:appCategory="0"
+		android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+		android:dataExtractionRules="(reference) @0x7f140001">
+		<receiver
+			android:name="androidx.profileinstaller.ProfileInstallReceiver"
+			android:permission="android.permission.DUMP"
+			android:enabled="true"
+			android:exported="true"
+			android:directBootAware="false">
+			<intent-filter>
+				<action
+					android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION"/>
+			</intent-filter>
+			<intent-filter>
+				<action
+					android:name="androidx.profileinstaller.action.SAVE_PROFILE"/>
+			</intent-filter>
+			<intent-filter>
+				<action
+					android:name="androidx.profileinstaller.action.SKIP_FILE"/>
+			</intent-filter>
+			<intent-filter>
+				<action
+					android:name="androidx.profileinstaller.action.INSTALL_PROFILE"/>
+			</intent-filter>
+		</receiver>
+		<uses-library
+			android:name="androidx.window.sidecar"
+			android:required="false"/>
+		<uses-library
+			android:name="androidx.window.extensions"
+			android:required="false"/>
+		<provider
+			android:name="androidx.startup.InitializationProvider"
+			android:exported="false"
+			android:authorities="info.cemu.Cemu.androidx-startup">
+			<meta-data
+				android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+				android:value="androidx.startup"/>
+			<meta-data
+				android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+				android:value="androidx.startup"/>
+			<meta-data
+				android:name="androidx.emoji2.text.EmojiCompatInitializer"
+				android:value="androidx.startup"/>
+		</provider>
+		<activity
+			android:theme="(reference) @0x7f120219"
+			android:name="info.cemu.Cemu.MainActivity"
+			android:exported="true">
+			<intent-filter>
+				<category
+					android:name="android.intent.category.LAUNCHER"/>
+				<action
+					android:name="android.intent.action.MAIN"/>
+			</intent-filter>
+		</activity>
+		<activity
+			android:name="info.cemu.Cemu.settings.SettingsActivity"
+			android:exported="false"
+			android:parentActivityName="info.cemu.Cemu.MainActivity"/>
+		<activity
+			android:name="info.cemu.Cemu.emulation.EmulationActivity"
+			android:launchMode="1"
+			android:screenOrientation="11"
+			android:configChanges="480"
+			android:parentActivityName="info.cemu.Cemu.MainActivity"/>
+	</application>
+	<uses-permission
+		android:name="info.cemu.Cemu.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"/>
+	<permission
+		android:name="info.cemu.Cemu.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+		android:protectionLevel="2"/>
+	<uses-permission
+		android:name="android.permission.VIBRATE"/>
+	<uses-permission
+		android:name="android.permission.INTERNET"/>
+	<uses-sdk
+		android:minSdkVersion="30"
+		android:targetSdkVersion="34"/>
+<provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.filesprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/nnf_provider_paths"/>
+        </provider>
+
+        <provider
+            android:name=".features.DocumentProvider"
+            android:authorities="${applicationId}.user"
+            android:grantUriPermissions="true"
+            android:exported="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS"
+            android:enabled="@bool/enableDocumentProvider">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+
+    </application>
+
+</manifest>
