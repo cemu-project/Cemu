@@ -9,7 +9,7 @@ on:
 jobs:
   build: android
 
-    runs-on: android
+    runs-on: android-latest
 
     steps:
     - uses: actions/checkout@v4
