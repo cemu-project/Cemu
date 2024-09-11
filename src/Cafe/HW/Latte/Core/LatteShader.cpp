@@ -504,23 +504,27 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
 	    if (usesGeometryShader)
+		{
 	        vsHash += _activeFetchShader->mtlShaderHashObject;
+		}
+		else
+		{
+    		// Rasterization
+    		bool rasterizationEnabled = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
 
-		// Rasterization
-		bool rasterizationEnabled = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+    		// HACK
+    		if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+    			rasterizationEnabled = true;
 
-		// HACK
-		if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-			rasterizationEnabled = true;
+    		const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
+    		uint32 cullFront = polygonControlReg.get_CULL_FRONT();
+    		uint32 cullBack = polygonControlReg.get_CULL_BACK();
+    		if (cullFront && cullBack)
+    		    rasterizationEnabled = false;
 
-		const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
-		uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-		uint32 cullBack = polygonControlReg.get_CULL_BACK();
-		if (cullFront && cullBack)
-		    rasterizationEnabled = false;
-
-		if (rasterizationEnabled)
-		    vsHash += 51ULL;
+    		if (rasterizationEnabled)
+    		    vsHash += 51ULL;
+		}
 	}
 
 	uint32 tmp = LatteGPUState.contextNew.PA_CL_VTE_CNTL.getRawValue() ^ 0x43F;

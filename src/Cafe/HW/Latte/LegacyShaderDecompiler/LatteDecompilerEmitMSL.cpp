@@ -3871,7 +3871,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 
     // Rasterization
     rasterizationEnabled = true;
-    if (shader->shaderType == LatteConst::ShaderType::Vertex)
+    if (shader->shaderType == LatteConst::ShaderType::Vertex && !(shaderContext->options->usesGeometryShader || isRectVertexShader))
     {
         rasterizationEnabled = !shaderContext->contextRegistersNew->PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
 
