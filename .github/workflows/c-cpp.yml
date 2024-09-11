@@ -9,11 +9,11 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: android
 
     steps:
     - uses: actions/checkout@v4
-    - name: configure
+    - name: cemu
       run: ./configure
     - name: make
       run: make
