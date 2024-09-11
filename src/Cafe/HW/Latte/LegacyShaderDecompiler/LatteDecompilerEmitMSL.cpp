@@ -631,14 +631,7 @@ static void _emitUniformAccessCode(LatteDecompilerShaderContext* shaderContext, 
 		}
 		cemu_assert_debug(remappedUniformEntry);
 		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, requiredType);
-		if(shaderContext->shader->shaderType == LatteConst::ShaderType::Vertex )
-			src->addFmt("supportBuffer.remappedVS[{}]", remappedUniformEntry->mappedIndex);
-		else if(shaderContext->shader->shaderType == LatteConst::ShaderType::Pixel )
-			src->addFmt("supportBuffer.remappedPS[{}]", remappedUniformEntry->mappedIndex);
-		else if(shaderContext->shader->shaderType == LatteConst::ShaderType::Geometry )
-			src->addFmt("supportBuffer.remappedGS[{}]", remappedUniformEntry->mappedIndex);
-		else
-			debugBreakpoint();
+		src->addFmt("supportBuffer.remapped[{}]", remappedUniformEntry->mappedIndex);
 		_appendChannelAccess(src, aluInstruction->sourceOperand[operandIndex].chan);
 		_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, requiredType);
 	}
@@ -646,14 +639,7 @@ static void _emitUniformAccessCode(LatteDecompilerShaderContext* shaderContext, 
 	{
 		// uniform registers are accessed with unpredictable (dynamic) offset
 		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, requiredType);
-		if(shaderContext->shader->shaderType == LatteConst::ShaderType::Vertex )
-			src->add("supportBuffer.uniformRegisterVS[");
-		else if (shaderContext->shader->shaderType == LatteConst::ShaderType::Pixel)
-			src->add("supportBuffer.uniformRegisterPS[");
-		else if(shaderContext->shader->shaderType == LatteConst::ShaderType::Geometry )
-			src->add("supportBuffer.uniformRegisterGS[");
-		else
-			debugBreakpoint();
+		src->add("supportBuffer.uniformRegister[");
 		_emitUniformAccessIndexCode(shaderContext, aluInstruction, operandIndex);
 		src->add("]");
 

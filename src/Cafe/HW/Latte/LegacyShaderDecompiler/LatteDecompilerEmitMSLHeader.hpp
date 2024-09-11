@@ -20,14 +20,7 @@ namespace LatteDecompiler
 		{
 			// uniform registers or buffers are accessed statically with predictable offsets
 			// this allows us to remap the used entries into a more compact array
-			if (shaderType == LatteConst::ShaderType::Vertex)
-				src->addFmt("int4 remappedVS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
-			else if (shaderType == LatteConst::ShaderType::Pixel)
-				src->addFmt("int4 remappedPS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
-			else if (shaderType == LatteConst::ShaderType::Geometry)
-				src->addFmt("int4 remappedGS[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
-			else
-				debugBreakpoint();
+			src->addFmt("int4 remapped[{}];" _CRLF, (sint32)shader->list_remappedUniformEntries.size());
 			uniformOffsets.offset_remapped = uniformCurrentOffset;
 			uniformCurrentOffset += 16 * shader->list_remappedUniformEntries.size();
 		}
@@ -35,12 +28,7 @@ namespace LatteDecompiler
 		{
 			uint32 cfileSize = decompilerContext->analyzer.uniformRegisterAccessTracker.DetermineSize(decompilerContext->shaderBaseHash, 256);
 			// full or partial uniform register file has to be present
-			if (shaderType == LatteConst::ShaderType::Vertex)
-				src->addFmt("int4 uniformRegisterVS[{}];" _CRLF, cfileSize);
-			else if (shaderType == LatteConst::ShaderType::Pixel)
-				src->addFmt("int4 uniformRegisterPS[{}];" _CRLF, cfileSize);
-			else if (shaderType == LatteConst::ShaderType::Geometry)
-				src->addFmt("int4 uniformRegisterGS[{}];" _CRLF, cfileSize);
+			src->addFmt("int4 uniformRegister[{}];" _CRLF, cfileSize);
 			uniformOffsets.offset_uniformRegister = uniformCurrentOffset;
 			uniformOffsets.count_uniformRegister = cfileSize;
 			uniformCurrentOffset += 16 * cfileSize;
