@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalSamplerCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalQuery.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/UtilityShaderSource.h"
@@ -1280,6 +1281,24 @@ void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offse
         buffer->didModifyRange(NS::Range(offset, size));
     }
     */
+}
+
+LatteQueryObject* MetalRenderer::occlusionQuery_create() {
+    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_create: Occlusion queries are not yet supported on Metal");
+
+	return new LatteQueryObjectMtl(this);
+}
+
+void MetalRenderer::occlusionQuery_destroy(LatteQueryObject* queryObj) {
+    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_destroy: occlusion queries are not yet supported on Metal");
+}
+
+void MetalRenderer::occlusionQuery_flush() {
+    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_flush: occlusion queries are not yet supported on Metal");
+}
+
+void MetalRenderer::occlusionQuery_updateState() {
+    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_updateState: occlusion queries are not yet supported on Metal");
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)

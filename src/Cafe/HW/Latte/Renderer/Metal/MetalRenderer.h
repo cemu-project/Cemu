@@ -155,32 +155,6 @@ enum class MetalEncoderType
     Blit,
 };
 
-// HACK: Dummy occlusion query object for Metal
-class LatteQueryObjectMtl : public LatteQueryObject
-{
-public:
-	LatteQueryObjectMtl(class MetalRenderer* mtlRenderer) : m_mtlr{mtlRenderer} {}
-
-	bool getResult(uint64& numSamplesPassed) override
-	{
-	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::getResult: occlusion queries are not yet supported on Metal");
-        return true;
-	}
-
-	void begin() override
-	{
-	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::begin: occlusion queries are not yet supported on Metal");
-	}
-
-	void end() override
-	{
-	    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::end: occlusion queries are not yet supported on Metal");
-	}
-
-private:
-	class MetalRenderer* m_mtlr;
-};
-
 class MetalRenderer : public Renderer
 {
 public:
@@ -296,23 +270,10 @@ public:
 	void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	// occlusion queries
-	LatteQueryObject* occlusionQuery_create() override {
-	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_create: Occlusion queries are not yet supported on Metal");
-
-		return new LatteQueryObjectMtl(this);
-	}
-
-	void occlusionQuery_destroy(LatteQueryObject* queryObj) override {
-	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_destroy: occlusion queries are not yet supported on Metal");
-	}
-
-	void occlusionQuery_flush() override {
-	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_flush: occlusion queries are not yet supported on Metal");
-	}
-
-	void occlusionQuery_updateState() override {
-	    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_updateState: occlusion queries are not yet supported on Metal");
-	}
+	LatteQueryObject* occlusionQuery_create() override;
+	void occlusionQuery_destroy(LatteQueryObject* queryObj) override;
+	void occlusionQuery_flush() override;
+	void occlusionQuery_updateState() override;
 
 	// Helpers
 	MetalPerformanceMonitor& GetPerformanceMonitor() { return m_performanceMonitor; }
