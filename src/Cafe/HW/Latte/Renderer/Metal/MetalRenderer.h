@@ -323,8 +323,6 @@ public:
     void SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index);
 
 	MTL::CommandBuffer* GetCommandBuffer();
-	bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer);
-	void WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer);
 	MTL::RenderCommandEncoder* GetTemporaryRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor);
 	MTL::RenderCommandEncoder* GetRenderCommandEncoder(bool forceRecreate = false);
     MTL::ComputeCommandEncoder* GetComputeCommandEncoder();
@@ -397,9 +395,13 @@ public:
 
         uint32 queryIndex = m_occlusionQuery.m_availableIndices.back();
         m_occlusionQuery.m_availableIndices.pop_back();
-        m_occlusionQuery.m_crntCmdBuffIndices.push_back(queryIndex);
 
         return queryIndex;
+    }
+
+    void ReleaseOcclusionQueryIndex(uint32 queryIndex)
+    {
+        m_occlusionQuery.m_availableIndices.push_back(queryIndex);
     }
 
     void SetActiveOcclusionQueryIndex(uint32 queryIndex)
@@ -460,7 +462,6 @@ private:
     	MTL::Buffer* m_resultBuffer;
     	uint64* m_resultsPtr;
     	std::vector<uint32> m_availableIndices;
-    	std::vector<uint32> m_crntCmdBuffIndices;
         uint32 m_activeIndex = INVALID_UINT32;
 	} m_occlusionQuery;
 

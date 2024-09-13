@@ -38,12 +38,12 @@ bool LatteTextureReadbackInfoMtl::IsFinished()
     if (m_mtlr->GetCurrentCommandBuffer() == m_commandBuffer)
         m_mtlr->CommitCommandBuffer();
 
-    return m_mtlr->CommandBufferCompleted(m_commandBuffer);
+    return CommandBufferCompleted(m_commandBuffer);
 }
 
 void LatteTextureReadbackInfoMtl::ForceFinish()
 {
-    m_mtlr->WaitForCommandBufferCompletion(m_commandBuffer);
+    m_commandBuffer->waitUntilCompleted();
 }
 
 uint8* LatteTextureReadbackInfoMtl::GetData()

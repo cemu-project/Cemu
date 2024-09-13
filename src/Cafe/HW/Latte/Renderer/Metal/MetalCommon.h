@@ -69,3 +69,9 @@ inline bool IsValidDepthTextureType(Latte::E_DIM dim)
 {
     return (dim == Latte::E_DIM::DIM_2D || dim == Latte::E_DIM::DIM_2D_MSAA || dim == Latte::E_DIM::DIM_2D_ARRAY || dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA || dim == Latte::E_DIM::DIM_CUBEMAP);
 }
+
+inline bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer)
+{
+    auto status = commandBuffer->status();
+    return (status == MTL::CommandBufferStatusCompleted || status == MTL::CommandBufferStatusError);
+}

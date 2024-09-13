@@ -334,7 +334,7 @@ void MetalRenderer::Flush(bool waitIdle)
         {
             cemu_assert_debug(commandBuffer.m_commited);
 
-            WaitForCommandBufferCompletion(commandBuffer.m_commandBuffer);
+            commandBuffer.m_commandBuffer->waitUntilCompleted();
         }
     }
 }
@@ -1059,7 +1059,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	if (m_occlusionQuery.m_activeIndex != encoderState.m_visibilityResultOffset)
 	{
 	    auto mode = (m_occlusionQuery.m_activeIndex == INVALID_UINT32 ? MTL::VisibilityResultModeDisabled : MTL::VisibilityResultModeCounting);
-	    renderCommandEncoder->setVisibilityResultMode(mode, m_occlusionQuery.m_activeIndex);
+	    renderCommandEncoder->setVisibilityResultMode(mode, m_occlusionQuery.m_activeIndex * sizeof(uint64));
 		encoderState.m_visibilityResultOffset = m_occlusionQuery.m_activeIndex;
 	}
 
@@ -1309,16 +1309,16 @@ LatteQueryObject* MetalRenderer::occlusionQuery_create() {
 }
 
 void MetalRenderer::occlusionQuery_destroy(LatteQueryObject* queryObj) {
-    // TODO: do something?
+    auto queryObjMtl = static_cast<LatteQueryObjectMtl*>(queryObj);
+    delete queryObjMtl;
 }
 
 void MetalRenderer::occlusionQuery_flush() {
     // TODO: implement
-    debug_printf("Occlusion query flush is not implemented\n");
 }
 
 void MetalRenderer::occlusionQuery_updateState() {
-    // TODO
+    // TODO: implement
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1418,17 +1418,6 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 	{
 	    return m_commandBuffers.back().m_commandBuffer;
 	}
-}
-
-bool MetalRenderer::CommandBufferCompleted(MTL::CommandBuffer* commandBuffer)
-{
-    auto status = commandBuffer->status();
-    return (status == MTL::CommandBufferStatusCompleted || status == MTL::CommandBufferStatusError);
-}
-
-void MetalRenderer::WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer)
-{
-    commandBuffer->waitUntilCompleted();
 }
 
 MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor)
@@ -1593,8 +1582,6 @@ void MetalRenderer::CommitCommandBuffer()
             commandBuffer.m_commited = true;
 
             m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
-
-            m_occlusionQuery.m_availableIndices.insert(m_occlusionQuery.m_availableIndices.end(), m_occlusionQuery.m_crntCmdBuffIndices.begin(), m_occlusionQuery.m_crntCmdBuffIndices.end());
 
             // Debug
             //m_commandQueue->insertDebugCaptureBoundary();

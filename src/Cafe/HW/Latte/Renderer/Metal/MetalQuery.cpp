@@ -4,12 +4,19 @@
 
 bool LatteQueryObjectMtl::getResult(uint64& numSamplesPassed)
 {
-    if (!m_mtlr->CommandBufferCompleted(m_commandBuffer))
+    if (!CommandBufferCompleted(m_commandBuffer))
         return false;
 
     numSamplesPassed = m_mtlr->GetOcclusionQueryResultsPtr()[m_queryIndex];
+    printf("Num samples: %llu\n", numSamplesPassed);
 
     return true;
+}
+
+LatteQueryObjectMtl::~LatteQueryObjectMtl()
+{
+    if (m_queryIndex != INVALID_UINT32)
+        m_mtlr->ReleaseOcclusionQueryIndex(m_queryIndex);
 }
 
 void LatteQueryObjectMtl::begin()
@@ -21,5 +28,7 @@ void LatteQueryObjectMtl::begin()
 void LatteQueryObjectMtl::end()
 {
     m_mtlr->SetActiveOcclusionQueryIndex(INVALID_UINT32);
-    // TODO: request soon submit of the command buffer
+    m_commandBuffer = m_mtlr->GetCurrentCommandBuffer();
+    // TODO: request soon submit instead?
+    m_mtlr->CommitCommandBuffer();
 }

@@ -255,7 +255,7 @@ public:
             auto& buffer = m_buffers[i];
             for (uint32_t j = 0; j < buffer.m_data.m_commandBuffers.size(); j++)
             {
-                if (m_mtlr->CommandBufferCompleted(buffer.m_data.m_commandBuffers[j]))
+                if (CommandBufferCompleted(buffer.m_data.m_commandBuffers[j]))
                 {
                     if (buffer.m_data.m_commandBuffers.size() == 1)
                     {
