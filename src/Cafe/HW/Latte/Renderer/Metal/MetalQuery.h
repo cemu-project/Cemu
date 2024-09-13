@@ -19,5 +19,5 @@ private:
 
 	uint32 m_queryIndex = INVALID_UINT32;
 	// TODO: make this a list of command buffers
-	MTL::CommandBuffer* m_commandBuffer;
+	MTL::CommandBuffer* m_commandBuffer = nullptr;
 };

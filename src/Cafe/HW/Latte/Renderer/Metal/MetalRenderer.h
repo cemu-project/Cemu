@@ -279,6 +279,11 @@ public:
 	// Helpers
 	MetalPerformanceMonitor& GetPerformanceMonitor() { return m_performanceMonitor; }
 
+	bool IsCommandBufferActive() const
+	{
+        return (m_commandBuffers.size() != 0);
+    }
+
 	MTL::CommandBuffer* GetCurrentCommandBuffer()
     {
         cemu_assert_debug(m_commandBuffers.size() != 0);
