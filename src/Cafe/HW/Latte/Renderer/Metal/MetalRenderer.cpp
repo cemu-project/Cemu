@@ -27,7 +27,7 @@
 #include "imgui/imgui_extension.h"
 #include "imgui/imgui_impl_metal.h"
 
-#define COMMIT_TRESHOLD 256
+#define DEFAULT_COMMIT_TRESHOLD 256
 #define OCCLUSION_QUERY_POOL_SIZE 1024
 
 extern bool hasValidFramebufferAttached;
@@ -1270,7 +1270,8 @@ void MetalRenderer::draw_endSequence()
 	bool hasReadback = LatteTextureReadback_Update();
 	m_recordedDrawcalls++;
 	// The number of draw calls needs to twice as big, since we are interrupting the render pass
-	if (m_recordedDrawcalls >= COMMIT_TRESHOLD * 2 || hasReadback)
+	// TODO: ucomment?
+	if (m_recordedDrawcalls >= m_commitTreshold * 2/* || hasReadback*/)
 	{
 		CommitCommandBuffer();
 
@@ -1408,6 +1409,9 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
 		m_commandBuffers.push_back({mtlCommandBuffer});
+
+		m_recordedDrawcalls = 0;
+		m_commitTreshold = DEFAULT_COMMIT_TRESHOLD;
 
 		// Notify memory manager about the new command buffer
         m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
@@ -1557,15 +1561,13 @@ void MetalRenderer::EndEncoding()
         m_encoderType = MetalEncoderType::None;
 
         // Commit the command buffer if enough draw calls have been recorded
-        if (m_recordedDrawcalls >= COMMIT_TRESHOLD)
+        if (m_recordedDrawcalls >= m_commitTreshold)
             CommitCommandBuffer();
     }
 }
 
 void MetalRenderer::CommitCommandBuffer()
 {
-    m_recordedDrawcalls = 0;
-
     if (m_commandBuffers.size() != 0)
     {
         EndEncoding();

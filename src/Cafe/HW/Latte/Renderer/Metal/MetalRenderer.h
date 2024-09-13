@@ -291,6 +291,11 @@ public:
         return m_commandBuffers[m_commandBuffers.size() - 1].m_commandBuffer;
     }
 
+    void RequestSoonCommit()
+    {
+        m_commitTreshold = m_recordedDrawcalls + 8;
+    }
+
     MTL::CommandEncoder* GetCommandEncoder()
     {
         return m_commandEncoder;
@@ -475,7 +480,8 @@ private:
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 
-    uint32 m_recordedDrawcalls = 0;
+    uint32 m_recordedDrawcalls;
+    uint32 m_commitTreshold;
 
 	// State
 	MetalState m_state;

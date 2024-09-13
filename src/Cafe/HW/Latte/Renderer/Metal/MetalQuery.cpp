@@ -14,6 +14,7 @@ bool LatteQueryObjectMtl::getResult(uint64& numSamplesPassed)
         return false;
 
     numSamplesPassed = m_mtlr->GetOcclusionQueryResultsPtr()[m_queryIndex];
+
     return true;
 }
 
@@ -35,7 +36,6 @@ void LatteQueryObjectMtl::end()
     if (m_mtlr->IsCommandBufferActive())
     {
         m_commandBuffer = m_mtlr->GetCurrentCommandBuffer();
-        // TODO: request soon submit instead?
-        m_mtlr->CommitCommandBuffer();
+        m_mtlr->RequestSoonCommit();
     }
 }
