@@ -1,9 +1,9 @@
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
-#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "Metal/MTLRenderPass.hpp"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
-void CachedFBOMtl::CreateRenderPass()
+CachedFBOMtl::CachedFBOMtl(class MetalRenderer* metalRenderer, uint64 key) : LatteCachedFBO(key)
 {
 	m_renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
 
@@ -39,6 +39,9 @@ void CachedFBOMtl::CreateRenderPass()
             stencilAttachment->setStoreAction(MTL::StoreActionStore);
 		}
 	}
+
+	// Visibility buffer
+	m_renderPassDescriptor->setVisibilityResultBuffer(metalRenderer->GetOcclusionQueryResultBuffer());
 }
 
 CachedFBOMtl::~CachedFBOMtl()

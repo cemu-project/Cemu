@@ -4,7 +4,6 @@
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 
-// HACK: Dummy occlusion query object
 class LatteQueryObjectMtl : public LatteQueryObject
 {
 public:
@@ -16,4 +15,8 @@ public:
 
 private:
 	class MetalRenderer* m_mtlr;
+
+	uint32 m_queryIndex;
+	MTL::CommandBuffer* m_commandBuffer;
+	uint64 m_acccumulatedSum;
 };

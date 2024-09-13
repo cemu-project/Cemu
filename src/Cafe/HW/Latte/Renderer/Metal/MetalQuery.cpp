@@ -1,17 +1,25 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalQuery.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 
 bool LatteQueryObjectMtl::getResult(uint64& numSamplesPassed)
 {
-    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::getResult: occlusion queries are not yet supported on Metal");
+    if (!m_mtlr->CommandBufferCompleted(m_commandBuffer))
+        return false;
+
+    numSamplesPassed = m_mtlr->GetOcclusionQueryResultsPtr()[m_queryIndex];
+
     return true;
 }
 
 void LatteQueryObjectMtl::begin()
 {
-    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::begin: occlusion queries are not yet supported on Metal");
+    m_queryIndex = m_mtlr->GetAvailableOcclusionQueryIndex();
+    m_mtlr->SetActiveOcclusionQueryIndex(m_queryIndex);
 }
 
 void LatteQueryObjectMtl::end()
 {
-    cemuLog_log(LogType::MetalLogging, "LatteQueryObjectMtl::end: occlusion queries are not yet supported on Metal");
+    m_mtlr->SetActiveOcclusionQueryIndex(INVALID_UINT32);
+    // TODO: request soon submit of the command buffer
 }

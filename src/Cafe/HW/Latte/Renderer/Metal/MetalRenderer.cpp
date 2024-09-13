@@ -21,12 +21,14 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
 #include "imgui/imgui_impl_metal.h"
 
 #define COMMIT_TRESHOLD 256
+#define OCCLUSION_QUERY_POOL_SIZE 1024
 
 extern bool hasValidFramebufferAttached;
 
@@ -93,6 +95,17 @@ MetalRenderer::MetalRenderer()
 #ifdef CEMU_DEBUG_ASSERT
     m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
 #endif
+
+    // Occlusion queries
+    m_occlusionQuery.m_resultBuffer = m_device->newBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), MTL::ResourceStorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+    m_occlusionQuery.m_resultBuffer->setLabel(GetLabel("Occlusion query result buffer", m_occlusionQuery.m_resultBuffer));
+#endif
+    m_occlusionQuery.m_resultsPtr = (uint64*)m_occlusionQuery.m_resultBuffer->contents();
+
+    m_occlusionQuery.m_availableIndices.reserve(OCCLUSION_QUERY_POOL_SIZE);
+    for (uint32 i = 0; i < OCCLUSION_QUERY_POOL_SIZE; i++)
+        m_occlusionQuery.m_availableIndices.push_back(i);
 
     // Initialize state
     for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
@@ -467,7 +480,7 @@ void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, si
 
 LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
 {
-	return new CachedFBOMtl(key);
+	return new CachedFBOMtl(this, key);
 }
 
 void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
@@ -1042,6 +1055,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         encoderState.m_depthClipEnable = zClipEnable;
 	}
 
+	// Visibility result mode
+	if (m_occlusionQuery.m_activeIndex != encoderState.m_visibilityResultOffset)
+	{
+	    auto mode = (m_occlusionQuery.m_activeIndex == INVALID_UINT32 ? MTL::VisibilityResultModeDisabled : MTL::VisibilityResultModeCounting);
+	    renderCommandEncoder->setVisibilityResultMode(mode, m_occlusionQuery.m_activeIndex);
+		encoderState.m_visibilityResultOffset = m_occlusionQuery.m_activeIndex;
+	}
+
 	// todo - how does culling behave with rects?
 	// right now we just assume that their winding is always CW
 	if (isPrimitiveRect)
@@ -1284,21 +1305,20 @@ void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offse
 }
 
 LatteQueryObject* MetalRenderer::occlusionQuery_create() {
-    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_create: Occlusion queries are not yet supported on Metal");
-
 	return new LatteQueryObjectMtl(this);
 }
 
 void MetalRenderer::occlusionQuery_destroy(LatteQueryObject* queryObj) {
-    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_destroy: occlusion queries are not yet supported on Metal");
+    // TODO: do something?
 }
 
 void MetalRenderer::occlusionQuery_flush() {
-    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_flush: occlusion queries are not yet supported on Metal");
+    // TODO: implement
+    debug_printf("Occlusion query flush is not implemented\n");
 }
 
 void MetalRenderer::occlusionQuery_updateState() {
-    cemuLog_log(LogType::MetalLogging, "MetalRenderer::occlusionQuery_updateState: occlusion queries are not yet supported on Metal");
+    // TODO
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1573,6 +1593,8 @@ void MetalRenderer::CommitCommandBuffer()
             commandBuffer.m_commited = true;
 
             m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
+
+            m_occlusionQuery.m_availableIndices.insert(m_occlusionQuery.m_availableIndices.end(), m_occlusionQuery.m_crntCmdBuffIndices.begin(), m_occlusionQuery.m_crntCmdBuffIndices.end());
 
             // Debug
             //m_commandQueue->insertDebugCaptureBoundary();

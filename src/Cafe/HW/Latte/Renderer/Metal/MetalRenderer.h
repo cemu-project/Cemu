@@ -99,6 +99,7 @@ struct MetalEncoderState
    	uint32 m_depthSlope = 0;
    	uint32 m_depthClamp = 0;
     bool m_depthClipEnable = true;
+    uint32 m_visibilityResultOffset = INVALID_UINT32;
     struct {
         MTL::Buffer* m_buffer;
         size_t m_offset;
@@ -376,6 +377,36 @@ public:
         return m_readbackBuffer;
     }
 
+    MTL::Buffer* GetOcclusionQueryResultBuffer() const
+    {
+        return m_occlusionQuery.m_resultBuffer;
+    }
+
+    uint64* GetOcclusionQueryResultsPtr()
+    {
+        return m_occlusionQuery.m_resultsPtr;
+    }
+
+    uint32 GetAvailableOcclusionQueryIndex()
+    {
+        if (m_occlusionQuery.m_availableIndices.empty())
+        {
+            cemuLog_log(LogType::Force, "No occlusion query index available");
+            return 0;
+        }
+
+        uint32 queryIndex = m_occlusionQuery.m_availableIndices.back();
+        m_occlusionQuery.m_availableIndices.pop_back();
+        m_occlusionQuery.m_crntCmdBuffIndices.push_back(queryIndex);
+
+        return queryIndex;
+    }
+
+    void SetActiveOcclusionQueryIndex(uint32 queryIndex)
+    {
+        m_occlusionQuery.m_activeIndex = queryIndex;
+    }
+
 private:
 	MetalLayerHandle m_mainLayer;
 	MetalLayerHandle m_padLayer;
@@ -422,6 +453,16 @@ private:
 
 	// Transform feedback
 	MTL::Buffer* m_xfbRingBuffer;
+
+	// Occlusion queries
+	struct
+	{
+    	MTL::Buffer* m_resultBuffer;
+    	uint64* m_resultsPtr;
+    	std::vector<uint32> m_availableIndices;
+    	std::vector<uint32> m_crntCmdBuffIndices;
+        uint32 m_activeIndex = INVALID_UINT32;
+	} m_occlusionQuery;
 
 	// Active objects
 	std::vector<MetalCommandBuffer> m_commandBuffers;
