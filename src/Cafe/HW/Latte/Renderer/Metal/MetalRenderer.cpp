@@ -267,11 +267,8 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     if (swapDRC)
         SwapBuffer(false);
 
-    // Release all the command buffers
+    // Reset the command buffers (they are released in)
     CommitCommandBuffer();
-    // TODO: release
-    //for (uint32 i = 0; i < m_commandBuffers.size(); i++)
-    //    m_commandBuffers[i].m_commandBuffer->release();
     m_commandBuffers.clear();
 
     // Release frame persistent buffers
@@ -1581,6 +1578,7 @@ void MetalRenderer::CommitCommandBuffer()
             //});
 
             commandBuffer.m_commandBuffer->commit();
+            commandBuffer.m_commandBuffer->release();
             commandBuffer.m_commited = true;
 
             m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);

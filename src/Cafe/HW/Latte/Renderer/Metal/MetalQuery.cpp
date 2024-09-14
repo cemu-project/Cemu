@@ -22,6 +22,9 @@ LatteQueryObjectMtl::~LatteQueryObjectMtl()
 {
     if (m_queryIndex != INVALID_UINT32)
         m_mtlr->ReleaseOcclusionQueryIndex(m_queryIndex);
+
+    if (m_commandBuffer)
+        m_commandBuffer->release();
 }
 
 void LatteQueryObjectMtl::begin()
@@ -35,7 +38,7 @@ void LatteQueryObjectMtl::end()
     m_mtlr->SetActiveOcclusionQueryIndex(INVALID_UINT32);
     if (m_mtlr->IsCommandBufferActive())
     {
-        m_commandBuffer = m_mtlr->GetCurrentCommandBuffer();
+        m_commandBuffer = m_mtlr->GetCurrentCommandBuffer()->retain();
         m_mtlr->RequestSoonCommit();
     }
 }
