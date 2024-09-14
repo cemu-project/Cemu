@@ -83,19 +83,6 @@ MetalRenderer::MetalRenderer()
     m_depthStencilCache = new MetalDepthStencilCache(this);
     m_samplerCache = new MetalSamplerCache(this);
 
-    // Texture readback
-    m_readbackBuffer = m_device->newBuffer(TEXTURE_READBACK_SIZE, MTL::ResourceStorageModeShared);
-#ifdef CEMU_DEBUG_ASSERT
-    m_readbackBuffer->setLabel(GetLabel("Texture readback buffer", m_readbackBuffer));
-#endif
-
-    // Transform feedback
-    // HACK: using just LatteStreamout_GetRingBufferSize will cause page faults
-    m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize() * 4, MTL::ResourceStorageModePrivate);
-#ifdef CEMU_DEBUG_ASSERT
-    m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
-#endif
-
     // Occlusion queries
     m_occlusionQuery.m_resultBuffer = m_device->newBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), MTL::ResourceStorageModeShared);
 #ifdef CEMU_DEBUG_ASSERT
@@ -196,7 +183,13 @@ MetalRenderer::~MetalRenderer()
     m_nearestSampler->release();
     m_linearSampler->release();
 
-    m_readbackBuffer->release();
+    if (m_readbackBuffer)
+        m_readbackBuffer->release();
+
+    if (m_xfbRingBuffer)
+        m_xfbRingBuffer->release();
+
+    m_occlusionQuery.m_resultBuffer->release();
 
     m_commandQueue->release();
     m_device->release();
@@ -794,7 +787,7 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
-    CopyBufferToBuffer(m_xfbRingBuffer, srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size, MTL::RenderStageVertex, ALL_MTL_RENDER_STAGES);
+    CopyBufferToBuffer(GetXfbRingBuffer(), srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size, MTL::RenderStageVertex, ALL_MTL_RENDER_STAGES);
 }
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)

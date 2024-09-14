@@ -248,10 +248,17 @@ public:
     void SetActiveCommandBuffer(MTL::CommandBuffer* commandBuffer)
     {
         m_activeCommandBuffer = commandBuffer;
-        auto result = m_executingCommandBuffers.emplace(std::make_pair(m_activeCommandBuffer, std::vector<uint32>{}));
-        cemu_assert_debug(result.second);
-        m_activeCommandBufferIt = result.first;
-        commandBuffer->retain();
+        if (commandBuffer)
+        {
+            auto result = m_executingCommandBuffers.emplace(std::make_pair(m_activeCommandBuffer, std::vector<uint32>{}));
+            cemu_assert_debug(result.second);
+            m_activeCommandBufferIt = result.first;
+            commandBuffer->retain();
+        }
+        else
+        {
+            m_activeCommandBufferIt = m_executingCommandBuffers.end();
+        }
     }
 
     void CheckForCompletedCommandBuffers(/*MTL::CommandBuffer* commandBuffer, bool erase = true*/)

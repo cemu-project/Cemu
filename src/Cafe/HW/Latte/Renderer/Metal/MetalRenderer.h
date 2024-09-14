@@ -380,9 +380,31 @@ public:
         return (m_hasUnifiedMemory ? MTL::ResourceStorageModeShared : MTL::ResourceStorageModeManaged);
     }
 
-    MTL::Buffer* GetTextureReadbackBuffer() const
+    MTL::Buffer* GetTextureReadbackBuffer()
     {
+        if (!m_readbackBuffer)
+        {
+            m_readbackBuffer = m_device->newBuffer(TEXTURE_READBACK_SIZE, MTL::ResourceStorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+            m_readbackBuffer->setLabel(GetLabel("Texture readback buffer", m_readbackBuffer));
+#endif
+        }
+
         return m_readbackBuffer;
+    }
+
+    MTL::Buffer* GetXfbRingBuffer()
+    {
+        if (!m_xfbRingBuffer)
+        {
+            // HACK: using just LatteStreamout_GetRingBufferSize will cause page faults
+            m_xfbRingBuffer = m_device->newBuffer(LatteStreamout_GetRingBufferSize() * 4, MTL::ResourceStorageModePrivate);
+#ifdef CEMU_DEBUG_ASSERT
+            m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
+#endif
+        }
+
+        return m_xfbRingBuffer;
     }
 
     MTL::Buffer* GetOcclusionQueryResultBuffer() const
@@ -460,11 +482,11 @@ private:
 	MTL::Texture* m_nullTexture2D;
 
 	// Texture readback
-	MTL::Buffer* m_readbackBuffer;
+	MTL::Buffer* m_readbackBuffer = nullptr;
 	uint32 m_readbackBufferWriteOffset = 0;
 
 	// Transform feedback
-	MTL::Buffer* m_xfbRingBuffer;
+	MTL::Buffer* m_xfbRingBuffer = nullptr;
 
 	// Occlusion queries
 	struct
