@@ -260,7 +260,7 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     if (swapDRC)
         SwapBuffer(false);
 
-    // Reset the command buffers (they are released in)
+    // Reset the command buffers (they are released by TemporaryBufferAllocator)
     CommitCommandBuffer();
     m_commandBuffers.clear();
 
