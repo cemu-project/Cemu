@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalSamplerCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalQuery.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Renderer/Metal/UtilityShaderSource.h"
@@ -20,12 +21,14 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLRenderCommandEncoder.hpp"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
 #include "imgui/imgui_impl_metal.h"
 
-#define COMMIT_TRESHOLD 256
+#define DEFAULT_COMMIT_TRESHOLD 256
+#define OCCLUSION_QUERY_POOL_SIZE 1024
 
 extern bool hasValidFramebufferAttached;
 
@@ -92,6 +95,17 @@ MetalRenderer::MetalRenderer()
 #ifdef CEMU_DEBUG_ASSERT
     m_xfbRingBuffer->setLabel(GetLabel("Transform feedback buffer", m_xfbRingBuffer));
 #endif
+
+    // Occlusion queries
+    m_occlusionQuery.m_resultBuffer = m_device->newBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), MTL::ResourceStorageModeShared);
+#ifdef CEMU_DEBUG_ASSERT
+    m_occlusionQuery.m_resultBuffer->setLabel(GetLabel("Occlusion query result buffer", m_occlusionQuery.m_resultBuffer));
+#endif
+    m_occlusionQuery.m_resultsPtr = (uint64*)m_occlusionQuery.m_resultBuffer->contents();
+
+    m_occlusionQuery.m_availableIndices.reserve(OCCLUSION_QUERY_POOL_SIZE);
+    for (uint32 i = 0; i < OCCLUSION_QUERY_POOL_SIZE; i++)
+        m_occlusionQuery.m_availableIndices.push_back(i);
 
     // Initialize state
     for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
@@ -320,7 +334,7 @@ void MetalRenderer::Flush(bool waitIdle)
         {
             cemu_assert_debug(commandBuffer.m_commited);
 
-            WaitForCommandBufferCompletion(commandBuffer.m_commandBuffer);
+            commandBuffer.m_commandBuffer->waitUntilCompleted();
         }
     }
 }
@@ -466,7 +480,7 @@ void MetalRenderer::renderTarget_setScissor(sint32 scissorX, sint32 scissorY, si
 
 LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
 {
-	return new CachedFBOMtl(key);
+	return new CachedFBOMtl(this, key);
 }
 
 void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
@@ -1041,6 +1055,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         encoderState.m_depthClipEnable = zClipEnable;
 	}
 
+	// Visibility result mode
+	if (m_occlusionQuery.m_activeIndex != encoderState.m_visibilityResultOffset)
+	{
+	    auto mode = (m_occlusionQuery.m_activeIndex == INVALID_UINT32 ? MTL::VisibilityResultModeDisabled : MTL::VisibilityResultModeCounting);
+	    renderCommandEncoder->setVisibilityResultMode(mode, m_occlusionQuery.m_activeIndex * sizeof(uint64));
+		encoderState.m_visibilityResultOffset = m_occlusionQuery.m_activeIndex;
+	}
+
 	// todo - how does culling behave with rects?
 	// right now we just assume that their winding is always CW
 	if (isPrimitiveRect)
@@ -1248,7 +1270,8 @@ void MetalRenderer::draw_endSequence()
 	bool hasReadback = LatteTextureReadback_Update();
 	m_recordedDrawcalls++;
 	// The number of draw calls needs to twice as big, since we are interrupting the render pass
-	if (m_recordedDrawcalls >= COMMIT_TRESHOLD * 2 || hasReadback)
+	// TODO: ucomment?
+	if (m_recordedDrawcalls >= m_commitTreshold * 2/* || hasReadback*/)
 	{
 		CommitCommandBuffer();
 
@@ -1280,6 +1303,23 @@ void MetalRenderer::indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offse
         buffer->didModifyRange(NS::Range(offset, size));
     }
     */
+}
+
+LatteQueryObject* MetalRenderer::occlusionQuery_create() {
+	return new LatteQueryObjectMtl(this);
+}
+
+void MetalRenderer::occlusionQuery_destroy(LatteQueryObject* queryObj) {
+    auto queryObjMtl = static_cast<LatteQueryObjectMtl*>(queryObj);
+    delete queryObjMtl;
+}
+
+void MetalRenderer::occlusionQuery_flush() {
+    // TODO: implement
+}
+
+void MetalRenderer::occlusionQuery_updateState() {
+    // TODO: implement
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1370,6 +1410,9 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
 		m_commandBuffers.push_back({mtlCommandBuffer});
 
+		m_recordedDrawcalls = 0;
+		m_commitTreshold = DEFAULT_COMMIT_TRESHOLD;
+
 		// Notify memory manager about the new command buffer
         m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
 
@@ -1379,17 +1422,6 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 	{
 	    return m_commandBuffers.back().m_commandBuffer;
 	}
-}
-
-bool MetalRenderer::CommandBufferCompleted(MTL::CommandBuffer* commandBuffer)
-{
-    auto status = commandBuffer->status();
-    return (status == MTL::CommandBufferStatusCompleted || status == MTL::CommandBufferStatusError);
-}
-
-void MetalRenderer::WaitForCommandBufferCompletion(MTL::CommandBuffer* commandBuffer)
-{
-    commandBuffer->waitUntilCompleted();
 }
 
 MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::RenderPassDescriptor* renderPassDescriptor)
@@ -1529,15 +1561,13 @@ void MetalRenderer::EndEncoding()
         m_encoderType = MetalEncoderType::None;
 
         // Commit the command buffer if enough draw calls have been recorded
-        if (m_recordedDrawcalls >= COMMIT_TRESHOLD)
+        if (m_recordedDrawcalls >= m_commitTreshold)
             CommitCommandBuffer();
     }
 }
 
 void MetalRenderer::CommitCommandBuffer()
 {
-    m_recordedDrawcalls = 0;
-
     if (m_commandBuffers.size() != 0)
     {
         EndEncoding();
