@@ -863,7 +863,6 @@ void MetalRenderer::draw_beginSequence()
 			return; // no render target
 		}
 
-		// TODO: not checking for !streamoutEnable fixes Super Smash Bros. for Wii U, investigate why
 		if (!hasValidFramebufferAttached && !streamoutEnable)
 		{
 			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
@@ -1476,16 +1475,16 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
     auto commandBuffer = GetCommandBuffer();
 
-    // Update state
-    m_state.m_lastUsedFBO = m_state.m_activeFBO;
-    m_state.m_isFirstDrawInRenderPass = true;
-
     auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO->GetRenderPassDescriptor());
 #ifdef CEMU_DEBUG_ASSERT
     renderCommandEncoder->setLabel(GetLabel("Render command encoder", renderCommandEncoder));
 #endif
     m_commandEncoder = renderCommandEncoder;
     m_encoderType = MetalEncoderType::Render;
+
+    // Update state
+    m_state.m_lastUsedFBO = m_state.m_activeFBO;
+    m_state.m_isFirstDrawInRenderPass = true;
 
     ResetEncoderState();
 

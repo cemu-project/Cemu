@@ -380,6 +380,11 @@ public:
         return (m_hasUnifiedMemory ? MTL::ResourceStorageModeShared : MTL::ResourceStorageModeManaged);
     }
 
+    MTL::Texture* GetNullTexture2D() const
+    {
+        return m_nullTexture2D;
+    }
+
     MTL::Buffer* GetTextureReadbackBuffer()
     {
         if (!m_readbackBuffer)

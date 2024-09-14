@@ -10,6 +10,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cemu/Logging/CemuLogging.h"
+#include "HW/Latte/Core/LatteConst.h"
 #include "config/ActiveSettings.h"
 
 static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
@@ -206,20 +207,21 @@ void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFB
 	if (cullFront && cullBack)
 	    rasterizationEnabled = false;
 
-	if (!rasterizationEnabled)
+	auto pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
+
+	if (!rasterizationEnabled || !pixelShaderMtl)
 	{
 	    desc->setRasterizationEnabled(false);
 		return;
 	}
 
-    auto pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
-	desc->setFragmentFunction(pixelShaderMtl->GetFunction());
+    desc->setFragmentFunction(pixelShaderMtl->GetFunction());
 
     // Color attachments
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
 	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
 	uint32 renderTargetMask = lcr.CB_TARGET_MASK.get_MASK();
-	for (uint8 i = 0; i < 8; i++)
+	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
 	{
 	    const auto& colorBuffer = lastUsedFBO->colorBuffer[i];
 		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
