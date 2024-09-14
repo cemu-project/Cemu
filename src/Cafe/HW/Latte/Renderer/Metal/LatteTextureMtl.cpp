@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Common/precompiled.h"
 #include "Metal/MTLResource.hpp"
+#include "Metal/MTLTexture.hpp"
 
 LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -78,8 +79,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	auto pixelFormat = GetMtlPixelFormat(format, isDepth, m_mtlr->GetPixelFormatSupport());
 	desc->setPixelFormat(pixelFormat);
 
-	// TODO: using MTL::TextureUsageShaderWrite as well fixes Mario Tennis: Ultra Smash, investigate why
-	MTL::TextureUsage usage = MTL::TextureUsageShaderRead;
+	MTL::TextureUsage usage = MTL::TextureUsageShaderRead | MTL::TextureUsagePixelFormatView;
 	if (!Latte::IsCompressedFormat(format))
 	{
 		usage |= MTL::TextureUsageRenderTarget;
