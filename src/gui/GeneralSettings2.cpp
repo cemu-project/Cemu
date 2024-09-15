@@ -195,13 +195,8 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
 			CountRowElement();
 
-			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
-			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
-			second_row->Add(m_play_boot_sound, 0, botflag, 5);
-
 			// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-			second_row->AddSpacer(10);
 			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
 			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
 			second_row->Add(m_feral_gamemode, 0, botflag, 5);
@@ -212,8 +207,10 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 #if BOOST_OS_MACOS
 			m_disable_screensaver->Enable(false);
 #endif
-
-			// InsertEmptyRow();
+			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
+			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
+			second_row->Add(m_play_boot_sound, 0, botflag, 5);
+			CountRowElement();
 
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
@@ -941,6 +938,7 @@ void GeneralSettings2::StoreConfig()
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     config.feral_gamemode = m_feral_gamemode->IsChecked();
 #endif
+	config.play_boot_sound = m_play_boot_sound->IsChecked();
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
 	// Toggle while a game is running
 	if (CafeSystem::IsTitleRunning())
@@ -948,7 +946,6 @@ void GeneralSettings2::StoreConfig()
 		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
 
-	config.play_boot_sound = m_play_boot_sound->IsChecked();
 
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
 	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
