@@ -312,7 +312,8 @@ uint32 crc32_calc_slice_by_8(uint32 previousCrc32, const void* data, size_t leng
 				  Crc32Lookup[7][one & 0xFF];
 		}
 		else {
-			cemu_assert(false);
+			static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little,
+						  "Platform byte-order is unsupported");
 		}
 
 		length -= 8;
