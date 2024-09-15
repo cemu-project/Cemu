@@ -128,7 +128,8 @@ namespace coreinit
 
 	// counterpart for queueAndWait
 	// if reschedule is true then scheduler will switch to woken up thread (if it is runnable on the same core)
-	void OSThreadQueueInternal::wakeupEntireWaitQueue(bool reschedule)
+	// sharedPriorityAndAffinityWorkaround is currently a hack/placeholder for some special cases. A proper fix likely involves handling all the nuances of thread effective priority
+	void OSThreadQueueInternal::wakeupEntireWaitQueue(bool reschedule, bool sharedPriorityAndAffinityWorkaround)
 	{
 		cemu_assert_debug(__OSHasSchedulerLock());
 		bool shouldReschedule = false;
@@ -139,7 +140,7 @@ namespace coreinit
 			thread->state = OSThread_t::THREAD_STATE::STATE_READY;
 			thread->currentWaitQueue = nullptr;
 			coreinit::__OSAddReadyThreadToRunQueue(thread);
-			if (reschedule && thread->suspendCounter == 0 && PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
+			if (reschedule && thread->suspendCounter == 0 && PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread, sharedPriorityAndAffinityWorkaround))
 				shouldReschedule = true;
 		}
 		if (shouldReschedule)
@@ -148,7 +149,7 @@ namespace coreinit
 
 	// counterpart for queueAndWait
 	// if reschedule is true then scheduler will switch to woken up thread (if it is runnable on the same core)
-	void OSThreadQueueInternal::wakeupSingleThreadWaitQueue(bool reschedule)
+	void OSThreadQueueInternal::wakeupSingleThreadWaitQueue(bool reschedule, bool sharedPriorityAndAffinityWorkaround)
 	{
 		cemu_assert_debug(__OSHasSchedulerLock());
 		OSThread_t* thread = takeFirstFromQueue(offsetof(OSThread_t, waitQueueLink));
@@ -159,7 +160,7 @@ namespace coreinit
 			thread->state = OSThread_t::THREAD_STATE::STATE_READY;
 			thread->currentWaitQueue = nullptr;
 			coreinit::__OSAddReadyThreadToRunQueue(thread);
-			if (reschedule && thread->suspendCounter == 0 && PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
+			if (reschedule && thread->suspendCounter == 0 && PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread, sharedPriorityAndAffinityWorkaround))
 				shouldReschedule = true;
 		}
 		if (shouldReschedule)

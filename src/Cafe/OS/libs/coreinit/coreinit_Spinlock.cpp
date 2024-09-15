@@ -140,7 +140,7 @@ namespace coreinit
 				// we are in single-core mode and the lock will never be released unless we let other threads resume work
 				// to avoid an infinite loop we have no choice but to yield the thread even it is in an uninterruptible state
 				if( !OSIsInterruptEnabled() )
-					cemuLog_log(LogType::APIErrors, "OSUninterruptibleSpinLock_Acquire(): Lock is occupied which requires a wait but current thread is already in an uninterruptible state (Avoid cascaded OSDisableInterrupts and/or OSUninterruptibleSpinLock)");
+					cemuLog_logOnce(LogType::APIErrors, "OSUninterruptibleSpinLock_Acquire(): Lock is occupied which requires a wait but current thread is already in an uninterruptible state (Avoid cascaded OSDisableInterrupts and/or OSUninterruptibleSpinLock)");
 				while (!spinlock->ownerThread.atomic_compare_exchange(nullptr, currentThread))
 				{
 					OSYieldThread();

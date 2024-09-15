@@ -501,8 +501,6 @@ void debugger_createPPCStateSnapshot(PPCInterpreter_t* hCPU)
 		debuggerState.debugSession.ppcSnapshot.cr[i] = hCPU->cr[i];
 }
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 void debugger_enterTW(PPCInterpreter_t* hCPU)
 {
 	// handle logging points

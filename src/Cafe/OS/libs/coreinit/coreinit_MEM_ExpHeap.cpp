@@ -2,8 +2,6 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM_ExpHeap.h"
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 #define EXP_HEAP_GET_FROM_FREE_BLOCKCHAIN(__blockchain__) (MEMExpHeapHead2*)((uintptr_t)__blockchain__ - offsetof(MEMExpHeapHead2, expHeapHead) - offsetof(MEMExpHeapHead40_t, chainFreeBlocks))
 
 namespace coreinit

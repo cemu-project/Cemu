@@ -121,6 +121,12 @@ public:
 		return *this;
 	}
 
+	betype<T>& operator+=(const T& v) requires std::integral<T>
+	{
+		m_value = SwapEndian(T(value() + v));
+		return *this;
+	}
+
 	betype<T>& operator-=(const betype<T>& v)
 	{
 		m_value = SwapEndian(T(value() - v.value()));
@@ -188,17 +194,36 @@ public:
 		return from_bevalue(T(~m_value));
 	}
 
+	// pre-increment
 	betype<T>& operator++() requires std::integral<T>
 	{
 		m_value = SwapEndian(T(value() + 1));
 		return *this;
 	}
 
+	// post-increment
+	betype<T> operator++(int) requires std::integral<T>
+	{
+		betype<T> tmp(*this);
+		m_value = SwapEndian(T(value() + 1));
+		return tmp;
+	}
+
+	// pre-decrement
 	betype<T>& operator--() requires std::integral<T>
 	{
 		m_value = SwapEndian(T(value() - 1));
 		return *this;
 	}
+
+	// post-decrement
+	betype<T> operator--(int) requires std::integral<T>
+	{
+		betype<T> tmp(*this);
+		m_value = SwapEndian(T(value() - 1));
+		return tmp;
+	}
+
 private:
 	//T m_value{}; // before 1.26.2
 	T m_value;

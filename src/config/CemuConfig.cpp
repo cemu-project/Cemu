@@ -5,7 +5,6 @@
 
 #include <wx/language.h>
 
-#include "PermanentConfig.h"
 #include "ActiveSettings.h"
 
 XMLCemuConfig_t g_config(L"settings.xml");
@@ -15,23 +14,6 @@ void CemuConfig::SetMLCPath(fs::path path, bool save)
 	mlc_path.SetValue(_pathToUtf8(path));
 	if(save)
 		g_config.Save();
-
-	// if custom mlc path has been selected, store it in permanent config
-	if (path != ActiveSettings::GetDefaultMLCPath())
-	{
-		try
-		{
-			auto pconfig = PermanentConfig::Load();
-			pconfig.custom_mlc_path = _pathToUtf8(path);
-			pconfig.Store();
-		}
-		catch (const PSDisabledException&) {}
-		catch (const std::exception& ex)
-		{
-			cemuLog_log(LogType::Force, "can't store custom mlc path in permanent storage: {}", ex.what());
-		}
-	}
-
 	Account::RefreshAccounts();
 }
 
@@ -56,6 +38,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
 	feral_gamemode = parser.get("feral_gamemode", false);
 	check_update = parser.get("check_update", check_update);
+	receive_untested_updates = parser.get("receive_untested_updates", check_update);
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
@@ -359,6 +342,11 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto dsuc = input.get("DSUC");
 	dsu_client.host = dsuc.get_attribute("host", dsu_client.host);
 	dsu_client.port = dsuc.get_attribute("port", dsu_client.port);
+
+	// emulatedusbdevices
+	auto usbdevices = parser.get("EmulatedUsbDevices");
+	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
+	emulated_usb_devices.emulate_infinity_base = usbdevices.get("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base);
 }
 
 void CemuConfig::Save(XMLConfigParser& parser)
@@ -374,6 +362,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("fullscreen_menubar", fullscreen_menubar);
     	config.set<bool>("feral_gamemode", feral_gamemode);
 	config.set<bool>("check_update", check_update);
+	config.set<bool>("receive_untested_updates", receive_untested_updates);
 	config.set<bool>("save_screenshot", save_screenshot);
 	config.set<bool>("vk_warning", did_show_vulkan_warning);
 	config.set<bool>("gp_download", did_show_graphic_pack_download);
@@ -553,6 +542,11 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto dsuc = input.set("DSUC");
 	dsuc.set_attribute("host", dsu_client.host);
 	dsuc.set_attribute("port", dsu_client.port);
+
+	// emulated usb devices
+	auto usbdevices = config.set("EmulatedUsbDevices");
+	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
+	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 }
 
 GameEntry* CemuConfig::GetGameEntryByTitleId(uint64 titleId)

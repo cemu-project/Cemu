@@ -241,6 +241,16 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/32767.0,-1.0));" _CRLF);
 			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/32767.0,-1.0));" _CRLF);
 		}
+		else if( attrib->format == FMT_16_16_16_16 && attrib->nfa == 2 && attrib->isSigned == 1 )
+		{
+			// seen in Rabbids Land
+			_readLittleEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
+			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.z&0x8000) != 0 ) attrDecoder.z |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.w&0x8000) != 0 ) attrDecoder.w |= 0xFFFF0000;" _CRLF);
+			src->add("attrDecoder.xyzw = floatBitsToUint(vec4(ivec4(attrDecoder)));" _CRLF);
+		}
 		else if (attrib->format == FMT_16_16_16_16_FLOAT && attrib->nfa == 2)
 		{
 			// seen in Giana Sisters: Twisted Dreams
@@ -496,3 +506,5 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 		cemu_assert_debug(false);
 	}
 }
+
+

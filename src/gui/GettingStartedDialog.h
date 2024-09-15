@@ -13,9 +13,6 @@ class GettingStartedDialog : public wxDialog
 public:
 	GettingStartedDialog(wxWindow* parent = nullptr);
 
-	[[nodiscard]] bool HasGamePathChanged() const { return m_game_path_changed; }
-	[[nodiscard]] bool HasMLCChanged() const { return m_mlc_changed; }
-
 private:
 	wxPanel* CreatePage1();
 	wxPanel* CreatePage2();
@@ -23,22 +20,29 @@ private:
 	void UpdateWindowSize();
 
 	void OnClose(wxCloseEvent& event);
-	void OnDownloadGPs(wxCommandEvent& event);
+	void OnConfigureGPs(wxCommandEvent& event);
 	void OnInputSettings(wxCommandEvent& event);
-	void OnMLCPathChar(wxKeyEvent& event);
 
 	wxSimplebook* m_notebook;
-	wxCheckBox* m_fullscreen;
-	wxCheckBox* m_separate;
-	wxCheckBox* m_update;
-	wxCheckBox* m_dont_show;
 
-	wxStaticBoxSizer* m_mlc_box_sizer;
-	wxStaticText* m_prev_mlc_warning;
-	wxDirPickerCtrl* m_mlc_folder;
-	wxDirPickerCtrl* m_game_path;
+	struct
+	{
+		// header
+		wxStaticText* staticText11{};
+		wxStaticText* portableModeInfoText{};
 
-	bool m_game_path_changed = false;
-	bool m_mlc_changed = false;
+		// game path box
+		wxStaticBoxSizer* gamePathBoxSizer{};
+		wxStaticText* gamePathText{};
+		wxStaticText* gamePathText2{};
+		wxDirPickerCtrl* gamePathPicker{};
+	}m_page1;
+
+	struct
+	{
+		wxCheckBox* fullscreenCheckbox;
+		wxCheckBox* separateCheckbox;
+		wxCheckBox* updateCheckbox;
+	}m_page2;
 };
 

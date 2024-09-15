@@ -107,6 +107,7 @@ CurlRequestHelper::CurlRequestHelper()
 
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 2);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	if(GetConfig().proxy_server.GetValue() != "")
 	{
@@ -263,6 +264,7 @@ CurlSOAPHelper::CurlSOAPHelper(NetworkService service)
 	m_curl = curl_easy_init();
 	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, __curlWriteCallback);
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	// SSL
 	if (!IsNetworkServiceSSLDisabled(service))
@@ -388,9 +390,8 @@ bool CurlSOAPHelper::submitRequest()
 	headers = curl_slist_append(headers, "Accept-Charset: UTF-8");
 	headers = curl_slist_append(headers, fmt::format("SOAPAction: urn:{}.wsapi.broadon.com/{}", m_serviceType, m_requestMethod).c_str());
 	headers = curl_slist_append(headers, "Accept: */*");
-	headers = curl_slist_append(headers, "User-Agent: EVL NUP 040800 Sep 18 2012 20:20:02");
-
 	curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(m_curl, CURLOPT_USERAGENT, "EVL NUP 040800 Sep 18 2012 20:20:02");
 
 	// send request
 	auto res = curl_easy_perform(m_curl);

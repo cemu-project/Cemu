@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "cbf4a6641528cee6f172328984576f51698de726",
+  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
   "dependencies": [
     "pugixml",
     "zlib",
@@ -44,6 +44,22 @@
       "default-features": false,
       "features": [ "openssl" ]
     },
+    {
+      "name": "dbus",
+      "default-features": false,
+      "platform": "linux"
+    },
+    {
+      "name": "tiff",
+      "default-features": false,
+      "features": ["jpeg", "zip"]
+    },
     "libusb"
+  ],
+  "overrides": [
+    {
+      "name": "sdl2",
+      "version": "2.30.3"
+    }
   ]
 }

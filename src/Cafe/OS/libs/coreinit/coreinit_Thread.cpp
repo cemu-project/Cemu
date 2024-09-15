@@ -758,14 +758,14 @@ namespace coreinit
 	}
 
 	// returns true if thread runs on same core and has higher priority
-	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread)
+	bool __OSCoreShouldSwitchToThread(OSThread_t* currentThread, OSThread_t* newThread, bool sharedPriorityAndAffinityWorkaround)
 	{
 		uint32 coreIndex = OSGetCoreId();
 		if (!newThread->context.hasCoreAffinitySet(coreIndex))
 			return false;
 		// special case: if current and new thread are running only on the same core then reschedule even if priority is equal
 		// this resolves a deadlock in Just Dance 2019 where one thread would always reacquire the same mutex within it's timeslice, blocking another thread on the same core from acquiring it
-		if ((1<<coreIndex) == newThread->context.affinity && currentThread->context.affinity == newThread->context.affinity && currentThread->effectivePriority == newThread->effectivePriority)
+		if (sharedPriorityAndAffinityWorkaround && (1<<coreIndex) == newThread->context.affinity && currentThread->context.affinity == newThread->context.affinity && currentThread->effectivePriority == newThread->effectivePriority)
 			return true;
 		// otherwise reschedule if new thread has higher priority
 		return newThread->effectivePriority < currentThread->effectivePriority;
@@ -791,7 +791,7 @@ namespace coreinit
 			// todo - only set this once?
 			thread->wakeUpTime = PPCInterpreter_getMainCoreCycleCounter();
 			// reschedule if thread has higher priority
-			if (PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread))
+			if (PPCInterpreter_getCurrentInstance() && __OSCoreShouldSwitchToThread(coreinit::OSGetCurrentThread(), thread, false))
 				PPCCore_switchToSchedulerWithLock();
 		}
 		return previousSuspendCount;
@@ -948,7 +948,7 @@ namespace coreinit
 		OSThread_t* currentThread = OSGetCurrentThread();
 		if (currentThread && currentThread != thread)
 		{
-			if (__OSCoreShouldSwitchToThread(currentThread, thread))
+			if (__OSCoreShouldSwitchToThread(currentThread, thread, false))
 				PPCCore_switchToSchedulerWithLock();
 		}
 		__OSUnlockScheduler();
@@ -1607,22 +1607,4 @@ namespace coreinit
 		__OSInitTerminatorThreads();
 
     }
-}
-
-void coreinit_suspendThread(OSThread_t* OSThreadBE, sint32 count)
-{
-	// for legacy source
-	OSThreadBE->suspendCounter += count;
-}
-
-void coreinit_resumeThread(OSThread_t* OSThreadBE, sint32 count)
-{
-	__OSLockScheduler();
-	coreinit::__OSResumeThreadInternal(OSThreadBE, count);
-	__OSUnlockScheduler();
-}
-
-OSThread_t* coreinitThread_getCurrentThreadDepr(PPCInterpreter_t* hCPU)
-{
-	return coreinit::__currentCoreThread[PPCInterpreter_getCoreIndex(hCPU)];
 }

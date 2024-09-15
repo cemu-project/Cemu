@@ -26,5 +26,19 @@ namespace coreinit
 	uint32 OSDriver_Register(uint32 moduleHandle, sint32 priority, OSDriverInterface* driverCallbacks, sint32 driverId, uint32be* outUkn1, uint32be* outUkn2, uint32be* outUkn3);
 	uint32 OSDriver_Deregister(uint32 moduleHandle, sint32 driverId);
 
+	enum class COSReportModule
+	{
+		coreinit = 0,
+	};
+
+	enum class COSReportLevel
+	{
+		Error = 0,
+		Warn = 1,
+		Info = 2
+	};
+
+	sint32 ppc_vprintf(const char* formatStr, char* strOut, sint32 maxLength, ppc_va_list* vargs);
+
 	void miscInit();
 };

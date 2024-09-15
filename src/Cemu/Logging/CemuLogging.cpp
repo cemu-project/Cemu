@@ -36,6 +36,7 @@ struct _LogContext
 const std::map<LogType, std::string> g_logging_window_mapping
 {
 	{LogType::UnsupportedAPI,     "Unsupported API calls"},
+	{LogType::APIErrors, 		  "Invalid API usage"},
 	{LogType::CoreinitLogging,    "Coreinit Logging"},
 	{LogType::CoreinitFile,       "Coreinit File-Access"},
 	{LogType::CoreinitThreadSync, "Coreinit Thread-Synchronization"},
@@ -51,6 +52,8 @@ const std::map<LogType, std::string> g_logging_window_mapping
 	{LogType::Socket,             "Socket"},
 	{LogType::Save,               "Save"},
 	{LogType::H264,               "H264"},
+	{LogType::NFC,                "NFC"},
+	{LogType::NTAG,               "NTAG"},
 	{LogType::Patches,            "Graphic pack patches"},
 	{LogType::TextureCache,       "Texture cache"},
 	{LogType::TextureReadback,    "Texture readback"},

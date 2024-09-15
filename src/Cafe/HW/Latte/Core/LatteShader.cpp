@@ -524,7 +524,7 @@ void LatteSHRC_UpdateGSBaseHash(uint8* geometryShaderPtr, uint32 geometryShaderS
 	// update hash from geometry shader data
 	uint64 gsHash1 = 0;
 	uint64 gsHash2 = 0;
-	_calculateShaderProgramHash((uint32*)geometryShaderPtr, geometryShaderSize, &hashCacheVS, &gsHash1, &gsHash2);
+	_calculateShaderProgramHash((uint32*)geometryShaderPtr, geometryShaderSize, &hashCacheGS, &gsHash1, &gsHash2);
 	// get geometry shader
 	uint64 gsHash = gsHash1 + gsHash2;
 	gsHash += (uint64)_activeVertexShader->ringParameterCount;

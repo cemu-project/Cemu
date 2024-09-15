@@ -450,6 +450,7 @@ private:
 			bool synchronization2 = false; // VK_KHR_synchronization2
 			bool dynamic_rendering = false; // VK_KHR_dynamic_rendering
 			bool shader_float_controls = false; // VK_KHR_shader_float_controls
+			bool present_wait = false; // VK_KHR_present_wait
 		}deviceExtensions;
 
 		struct
@@ -457,7 +458,7 @@ private:
 			bool shaderRoundingModeRTEFloat32{ false };
 		}shaderFloatControls; // from VK_KHR_shader_float_controls
 
-		struct  
+		struct
 		{
 			bool debug_utils = false; // VK_EXT_DEBUG_UTILS
 		}instanceExtensions;
@@ -635,6 +636,7 @@ private:
 
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)
+	size_t m_commandBufferIDOfPrevFrame = 0;
 	std::array<VkFence, kCommandBufferPoolSize> m_cmd_buffer_fences;
 	std::array<VkCommandBuffer, kCommandBufferPoolSize> m_commandBuffers;
 	std::array<VkSemaphore, kCommandBufferPoolSize> m_commandBufferSemaphores;

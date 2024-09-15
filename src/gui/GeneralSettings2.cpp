@@ -32,7 +32,6 @@
 #include <boost/tokenizer.hpp>
 #include "util/helpers/SystemException.h"
 #include "gui/dialogs/CreateAccount/wxCreateAccountDialog.h"
-#include "config/PermanentStorage.h"
 
 #if BOOST_OS_WINDOWS
 #include <VersionHelpers.h>
@@ -142,47 +141,59 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			second_row->SetFlexibleDirection(wxBOTH);
 			second_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
+			sint32 checkboxCount = 0;
+			auto CountRowElement = [&]()
+			{
+				checkboxCount++;
+				if(checkboxCount != 2)
+					return;
+				second_row->AddSpacer(10);
+				checkboxCount = 0;
+			};
+
+			auto InsertEmptyRow = [&]()
+			{
+				while(checkboxCount != 0)
+					CountRowElement();
+				second_row->AddSpacer(10);
+				second_row->AddSpacer(10);
+				second_row->AddSpacer(10);
+			};
+
 			const int topflag = wxALIGN_CENTER_VERTICAL | wxALL;
 			m_save_window_position_size = new wxCheckBox(box, wxID_ANY, _("Remember main window position"));
 			m_save_window_position_size->SetToolTip(_("Restores the last known window position and size when starting Cemu"));
 			second_row->Add(m_save_window_position_size, 0, topflag, 5);
-			second_row->AddSpacer(10);
+			CountRowElement();
+			//second_row->AddSpacer(10);
 			m_save_padwindow_position_size = new wxCheckBox(box, wxID_ANY, _("Remember pad window position"));
 			m_save_padwindow_position_size->SetToolTip(_("Restores the last known pad window position and size when opening it"));
 			second_row->Add(m_save_padwindow_position_size, 0, topflag, 5);
+			CountRowElement();
 
 			const int botflag = wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM;
 			m_discord_presence = new wxCheckBox(box, wxID_ANY, _("Discord Presence"));
 			m_discord_presence->SetToolTip(_("Enables the Discord Rich Presence feature\nYou will also need to enable it in the Discord settings itself!"));
 			second_row->Add(m_discord_presence, 0, botflag, 5);
+			CountRowElement();
 #ifndef ENABLE_DISCORD_RPC
 			m_discord_presence->Disable();
 #endif
-			second_row->AddSpacer(10);
+			//second_row->AddSpacer(10);
 			m_fullscreen_menubar = new wxCheckBox(box, wxID_ANY, _("Fullscreen menu bar"));
 			m_fullscreen_menubar->SetToolTip(_("Displays the menu bar when Cemu is running in fullscreen mode and the mouse cursor is moved to the top"));
 			second_row->Add(m_fullscreen_menubar, 0, botflag, 5);
+			CountRowElement();
 
-			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
-			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
-			second_row->Add(m_auto_update, 0, botflag, 5);
-#if BOOST_OS_LINUX 
-			if (!std::getenv("APPIMAGE")) {
-				m_auto_update->Disable();
-			} 
-#endif	
-			second_row->AddSpacer(10);
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
 			second_row->Add(m_save_screenshot, 0, botflag, 5);
+			CountRowElement();
 
-			m_permanent_storage = new wxCheckBox(box, wxID_ANY, _("Use permanent storage"));
-			m_permanent_storage->SetToolTip(_("Cemu will remember your custom mlc path in %LOCALAPPDATA%/Cemu for new installations."));
-			second_row->Add(m_permanent_storage, 0, botflag, 5);
-			second_row->AddSpacer(10);
 			m_disable_screensaver = new wxCheckBox(box, wxID_ANY, _("Disable screen saver"));
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
 			second_row->Add(m_disable_screensaver, 0, botflag, 5);
+			CountRowElement();
 
 			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
 			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
@@ -194,11 +205,28 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
 			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
 			second_row->Add(m_feral_gamemode, 0, botflag, 5);
+			CountRowElement();
 #endif
 
 			// temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
 			m_disable_screensaver->Enable(false);
+#endif
+
+			// InsertEmptyRow();
+
+			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
+			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
+			second_row->Add(m_auto_update, 0, botflag, 5);
+			CountRowElement();
+
+			m_receive_untested_releases = new wxCheckBox(box, wxID_ANY, _("Receive untested updates"));
+			m_receive_untested_releases->SetToolTip(_("When checking for updates, include brand new and untested releases. These may contain bugs!"));
+			second_row->Add(m_receive_untested_releases, 0, botflag, 5);
+#if BOOST_OS_LINUX
+			if (!std::getenv("APPIMAGE")) {
+				m_auto_update->Disable();
+			}
 #endif
 
 			box_sizer->Add(second_row, 0, wxEXPAND, 5);
@@ -208,23 +236,33 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 	}
 
 	{
-		auto* box = new wxStaticBox(panel, wxID_ANY, _("MLC Path"));
-		auto* box_sizer = new wxStaticBoxSizer(box, wxHORIZONTAL);
+		auto* outerMlcBox = new wxStaticBox(panel, wxID_ANY, _("Custom MLC path"));
 
-		m_mlc_path = new wxTextCtrl(box, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY);
+		auto* box_sizer_mlc = new wxStaticBoxSizer(outerMlcBox, wxVERTICAL);
+		box_sizer_mlc->Add(new wxStaticText(box_sizer_mlc->GetStaticBox(), wxID_ANY, _("You can configure a custom path for the emulated internal Wii U storage (MLC).\nThis is where Cemu stores saves, accounts and other Wii U system files."), wxDefaultPosition, wxDefaultSize, 0), 0, wxALL, 5);
+
+		auto* mlcPathLineSizer = new wxBoxSizer(wxHORIZONTAL);
+
+		m_mlc_path = new wxTextCtrl(outerMlcBox, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY);
 		m_mlc_path->SetMinSize(wxSize(150, -1));
-		m_mlc_path->Bind(wxEVT_CHAR, &GeneralSettings2::OnMLCPathChar, this);
 		m_mlc_path->SetToolTip(_("The mlc directory contains your save games and installed game update/dlc data"));
 
-		box_sizer->Add(m_mlc_path, 1, wxALL | wxEXPAND, 5);
+		mlcPathLineSizer->Add(m_mlc_path, 1, wxALL | wxEXPAND, 5);
 
-		auto* change_path = new wxButton(box, wxID_ANY, "...");
-		change_path->Bind(wxEVT_BUTTON, &GeneralSettings2::OnMLCPathSelect, this);
-		change_path->SetToolTip(_("Select a custom mlc path\nThe mlc path is used to store Wii U related files like save games, game updates and dlc data"));
-		box_sizer->Add(change_path, 0, wxALL, 5);
+		auto* changePath = new wxButton(outerMlcBox, wxID_ANY, "Change");
+		changePath->Bind(wxEVT_BUTTON, &GeneralSettings2::OnMLCPathSelect, this);
+		mlcPathLineSizer->Add(changePath, 0, wxALL, 5);
 		if (LaunchSettings::GetMLCPath().has_value())
-			change_path->Disable();
-		general_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
+			changePath->Disable();
+
+		auto* clearPath = new wxButton(outerMlcBox, wxID_ANY, "Clear custom path");
+		clearPath->Bind(wxEVT_BUTTON, &GeneralSettings2::OnMLCPathClear, this);
+		mlcPathLineSizer->Add(clearPath, 0, wxALL, 5);
+		if (LaunchSettings::GetMLCPath().has_value() || !ActiveSettings::IsCustomMlcPath())
+			clearPath->Disable();
+
+		box_sizer_mlc->Add(mlcPathLineSizer, 0, wxEXPAND, 5);
+		general_panel_sizer->Add(box_sizer_mlc, 0, wxEXPAND | wxALL, 5);
 	}
 
 	{
@@ -899,33 +937,10 @@ void GeneralSettings2::StoreConfig()
 	config.fullscreen_menubar = m_fullscreen_menubar->IsChecked();
 	config.check_update = m_auto_update->IsChecked();
 	config.save_screenshot = m_save_screenshot->IsChecked();
+	config.receive_untested_updates = m_receive_untested_releases->IsChecked();
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     config.feral_gamemode = m_feral_gamemode->IsChecked();
 #endif
-	const bool use_ps = m_permanent_storage->IsChecked();
-	if(use_ps)
-	{
-		config.permanent_storage = use_ps;
-		try
-		{
-			
-			PermanentStorage storage;
-			storage.RemoveStorage();
-		}
-		catch (...) {}
-	}
-	else
-	{	
-		try
-		{
-			// delete permanent storage
-			PermanentStorage storage;
-			storage.RemoveStorage();
-		}
-		catch (...) {}
-		config.permanent_storage = use_ps;
-	}
-
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
 	// Toggle while a game is running
 	if (CafeSystem::IsTitleRunning())
@@ -935,9 +950,6 @@ void GeneralSettings2::StoreConfig()
 
 	config.play_boot_sound = m_play_boot_sound->IsChecked();
 
-	if (!LaunchSettings::GetMLCPath().has_value())
-		config.SetMLCPath(wxHelper::MakeFSPath(m_mlc_path->GetValue()), false);
-	
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
 	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
 	config.window_size = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
@@ -1565,9 +1577,9 @@ void GeneralSettings2::ApplyConfig()
 	m_fullscreen_menubar->SetValue(config.fullscreen_menubar);
 
 	m_auto_update->SetValue(config.check_update);
+	m_receive_untested_releases->SetValue(config.receive_untested_updates);
 	m_save_screenshot->SetValue(config.save_screenshot);
 
-	m_permanent_storage->SetValue(config.permanent_storage);
 	m_disable_screensaver->SetValue(config.disable_screensaver);
 	m_play_boot_sound->SetValue(config.play_boot_sound);
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
@@ -1578,6 +1590,7 @@ void GeneralSettings2::ApplyConfig()
 	m_disable_screensaver->SetValue(false);
 #endif
 
+	m_game_paths->Clear();
 	for (auto& path : config.game_paths)
 	{
 		m_game_paths->Append(to_wxString(path));
@@ -1954,34 +1967,70 @@ void GeneralSettings2::OnAccountServiceChanged(wxCommandEvent& event)
 
 void GeneralSettings2::OnMLCPathSelect(wxCommandEvent& event)
 {
-	if (!CemuApp::SelectMLCPath(this))
+	if(CafeSystem::IsTitleRunning())
+	{
+		wxMessageBox(_("Can't change MLC path while a game is running!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
-	
-	m_mlc_path->SetValue(wxHelper::FromPath(ActiveSettings::GetMlcPath()));
-	m_reload_gamelist = true;
-	m_mlc_modified = true;
+	}
+	// show directory dialog
+	wxDirDialog path_dialog(this, _("Select MLC directory"), wxEmptyString, wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+	if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().empty())
+		return;
+	// check if the choosen MLC path is an already initialized MLC location
+	fs::path newMlc = wxHelper::MakeFSPath(path_dialog.GetPath());
+	if(CemuApp::CheckMLCPath(newMlc))
+	{
+		// ask user if they are sure they want to use this folder and let them know that accounts and saves wont transfer
+		wxString message = _("Note that changing the MLC location will not transfer any accounts or save files. Are you sure you want to change the path?");
+		wxMessageDialog dialog(this, message, _("Warning"), wxYES_NO | wxCENTRE | wxICON_WARNING);
+		if(dialog.ShowModal() == wxID_NO)
+			return;
+		if( !CemuApp::CreateDefaultMLCFiles(newMlc) ) // creating also acts as a check for read+write access
+		{
+			wxMessageBox(_("Failed to create default MLC files in the selected directory. The MLC path has not been changed"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			return;
+		}
+	}
+	else
+	{
+		// ask user if they want to create a new mlc structure at the choosen location
+		wxString message = _("The selected directory does not contain the expected MLC structure. Do you want to create a new MLC structure in this directory?\nNote that changing the MLC location will not transfer any accounts or save files.");
+		wxMessageDialog dialog(this, message, _("Warning"), wxYES_NO | wxCENTRE | wxICON_WARNING);
+		if( !CemuApp::CreateDefaultMLCFiles(newMlc) )
+		{
+			wxMessageBox(_("Failed to create default MLC files in the selected directory. The MLC path has not been changed"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+			return;
+		}
+	}
+	// update MLC path and store any other modified settings
+	GetConfig().SetMLCPath(newMlc);
+	StoreConfig();
+	wxMessageBox(_("Cemu needs to be restarted for the changes to take effect."), _("Information"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
+	// close settings and then cemu
+	wxCloseEvent closeEvent(wxEVT_CLOSE_WINDOW);
+	wxPostEvent(this, closeEvent);
+	wxPostEvent(GetParent(), closeEvent);
 }
 
-void GeneralSettings2::OnMLCPathChar(wxKeyEvent& event)
+void GeneralSettings2::OnMLCPathClear(wxCommandEvent& event)
 {
-	if (LaunchSettings::GetMLCPath().has_value())
-		return;
-
-	if(event.GetKeyCode() == WXK_DELETE || event.GetKeyCode() == WXK_BACK)
+	if(CafeSystem::IsTitleRunning())
 	{
-		fs::path newPath = "";
-		if(!CemuApp::TrySelectMLCPath(newPath))
-		{
-			const auto res = wxMessageBox(_("The default MLC path is inaccessible.\nDo you want to select a different path?"), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR);
-			if (res == wxYES && CemuApp::SelectMLCPath(this))
-				newPath = ActiveSettings::GetMlcPath();
-			else
-				return;
-		}
-		m_mlc_path->SetValue(wxHelper::FromPath(newPath));
-		m_reload_gamelist = true;
-		m_mlc_modified = true;
+		wxMessageBox(_("Can't change MLC path while a game is running!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
+		return;
 	}
+	wxString message = _("Note that changing the MLC location will not transfer any accounts or save files. Are you sure you want to change the path?");
+	wxMessageDialog dialog(this, message, _("Warning"), wxYES_NO | wxCENTRE | wxICON_WARNING);
+	if(dialog.ShowModal() == wxID_NO)
+		return;
+	GetConfig().SetMLCPath("");
+	StoreConfig();
+	g_config.Save();
+	wxMessageBox(_("Cemu needs to be restarted for the changes to take effect."), _("Information"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
+	// close settings and then cemu
+	wxCloseEvent closeEvent(wxEVT_CLOSE_WINDOW);
+	wxPostEvent(this, closeEvent);
+	wxPostEvent(GetParent(), closeEvent);
 }
 
 void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)

@@ -277,7 +277,8 @@ void NexFriends::handleResponse_getAllInformation(nexServiceResponse_t* response
 	}
 	NexFriends* session = (NexFriends*)nexFriends;
 	session->myPreference = nexPrincipalPreference(&response->data);
-	nexComment comment(&response->data);
+	auto comment = nexComment(&response->data);
+	session->myComment = comment;
 	if (response->data.hasReadOutOfBounds())
 		return;
 	// acquire lock on lists
@@ -389,6 +390,28 @@ bool NexFriends::updatePreferencesAsync(nexPrincipalPreference newPreferences, s
 void NexFriends::getMyPreference(nexPrincipalPreference& preference)
 {
 	preference = myPreference;
+}
+
+bool NexFriends::updateCommentAsync(nexComment newComment, std::function<void(RpcErrorCode)> cb)
+{
+	uint8 tempNexBufferArray[1024];
+	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
+	newComment.writeData(&packetBuffer);
+	nexCon->callMethod(
+		NEX_PROTOCOL_FRIENDS_WIIU, 15, &packetBuffer, [this, cb, newComment](nexServiceResponse_t* response) -> void {
+			if (!response->isSuccessful)
+				return cb(NexFriends::ERR_RPC_FAILED);
+			this->myComment = newComment;
+			return cb(NexFriends::ERR_NONE);
+		},
+		true);
+	// TEST
+	return true;
+}
+
+void NexFriends::getMyComment(nexComment& comment)
+{
+	comment = myComment;
 }
 
 bool NexFriends::addProvisionalFriendByPidGuessed(uint32 principalId)

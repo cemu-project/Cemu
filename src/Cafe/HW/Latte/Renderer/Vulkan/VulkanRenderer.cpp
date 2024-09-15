@@ -7,6 +7,7 @@
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
 
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 
@@ -29,6 +30,7 @@
 #include <glslang/Public/ShaderLang.h>
 
 #include <wx/msgdlg.h>
+#include <wx/intl.h> // for localization
 
 #ifndef VK_API_VERSION_MAJOR
 #define VK_API_VERSION_MAJOR(version) (((uint32_t)(version) >> 22) & 0x7FU)
@@ -45,7 +47,9 @@ const  std::vector<const char*> kOptionalDeviceExtensions =
 	VK_EXT_FILTER_CUBIC_EXTENSION_NAME, // not supported by any device yet
 	VK_EXT_EXTERNAL_MEMORY_HOST_EXTENSION_NAME,
 	VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
-	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME
+	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+	VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
+	VK_KHR_PRESENT_ID_EXTENSION_NAME
 };
 
 const std::vector<const char*> kRequiredDeviceExtensions =
@@ -123,7 +127,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	VkApplicationInfo app_info{};
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = EMULATOR_NAME;
-	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH);
 	app_info.pEngineName = EMULATOR_NAME;
 	app_info.engineVersion = app_info.applicationVersion;
 	app_info.apiVersion = apiVersion;
@@ -250,11 +254,23 @@ void VulkanRenderer::GetDeviceFeatures()
 	pcc.pNext = prevStruct;
 	prevStruct = &pcc;
 
+	VkPhysicalDevicePresentIdFeaturesKHR pidf{};
+	pidf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
+	pidf.pNext = prevStruct;
+	prevStruct = &pidf;
+
+	VkPhysicalDevicePresentWaitFeaturesKHR pwf{};
+	pwf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
+	pwf.pNext = prevStruct;
+	prevStruct = &pwf;
+
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	physicalDeviceFeatures2.pNext = prevStruct;
 
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &physicalDeviceFeatures2);
+
+	cemuLog_log(LogType::Force, "Vulkan: present_wait extension: {}", (pwf.presentWait && pidf.presentId) ? "supported" : "unsupported");
 
 	/* Get Vulkan device properties and limits */
 	VkPhysicalDeviceFloatControlsPropertiesKHR pfcp{};
@@ -285,7 +301,7 @@ void VulkanRenderer::GetDeviceFeatures()
 		cemuLog_log(LogType::Force, "VK_EXT_pipeline_creation_cache_control not supported. Cannot use asynchronous shader and pipeline compilation");
 		// if async shader compilation is enabled show warning message
 		if (GetConfig().async_compile)
-			wxMessageBox(_("The currently installed graphics driver does not support the Vulkan extension necessary for asynchronous shader compilation. Asynchronous compilation cannot be used.\n \nRequired extension: VK_EXT_pipeline_creation_cache_control\n\nInstalling the latest graphics driver may solve this error."), _("Information"), wxOK | wxCENTRE);
+			LatteOverlay_pushNotification(_("Async shader compile is enabled but not supported by the graphics driver\nCemu will use synchronous compilation which can cause additional stutter").utf8_string(), 10000);
 	}
 	if (!m_featureControl.deviceExtensions.custom_border_color_without_format)
 	{
@@ -337,7 +353,7 @@ VulkanRenderer::VulkanRenderer()
 	VkApplicationInfo app_info{};
 	app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 	app_info.pApplicationName = EMULATOR_NAME;
-	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	app_info.applicationVersion = VK_MAKE_VERSION(EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH);
 	app_info.pEngineName = EMULATOR_NAME;
 	app_info.engineVersion = app_info.applicationVersion;
 	app_info.apiVersion = apiVersion;
@@ -487,6 +503,24 @@ VulkanRenderer::VulkanRenderer()
 		deviceExtensionFeatures = &customBorderColorFeature;
 		customBorderColorFeature.customBorderColors = VK_TRUE;
 		customBorderColorFeature.customBorderColorWithoutFormat = VK_TRUE;
+	}
+	// enable VK_KHR_present_id
+	VkPhysicalDevicePresentIdFeaturesKHR presentIdFeature{};
+	if(m_featureControl.deviceExtensions.present_wait)
+	{
+		presentIdFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_ID_FEATURES_KHR;
+		presentIdFeature.pNext = deviceExtensionFeatures;
+		deviceExtensionFeatures = &presentIdFeature;
+		presentIdFeature.presentId = VK_TRUE;
+	}
+	// enable VK_KHR_present_wait
+	VkPhysicalDevicePresentWaitFeaturesKHR presentWaitFeature{};
+	if(m_featureControl.deviceExtensions.present_wait)
+	{
+		presentWaitFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENT_WAIT_FEATURES_KHR;
+		presentWaitFeature.pNext = deviceExtensionFeatures;
+		deviceExtensionFeatures = &presentWaitFeature;
+		presentWaitFeature.presentWait = VK_TRUE;
 	}
 
 	std::vector<const char*> used_extensions;
@@ -1045,6 +1079,10 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 		used_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.shader_float_controls)
 		used_extensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+	if (m_featureControl.deviceExtensions.present_wait)
+		used_extensions.emplace_back(VK_KHR_PRESENT_ID_EXTENSION_NAME);
+	if (m_featureControl.deviceExtensions.present_wait)
+		used_extensions.emplace_back(VK_KHR_PRESENT_WAIT_EXTENSION_NAME);
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1142,6 +1180,7 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	info.deviceExtensions.shader_float_controls = isExtensionAvailable(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 	info.deviceExtensions.dynamic_rendering = false; // isExtensionAvailable(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
+	info.deviceExtensions.present_wait = isExtensionAvailable(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && isExtensionAvailable(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 
 	// check for framedebuggers
 	info.debugMarkersSupported = false;
@@ -2198,6 +2237,8 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 	else
 	{
 		formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_COLOR_BIT;
+		if(format == (Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT | Latte::E_GX2SURFFMT::FMT_BIT_SRGB)) // Seen in Sonic Transformed level Starry Speedway. SRGB should just be ignored for native float formats?
+			format = Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT;
 		switch (format)
 		{
 			// RGBA formats
@@ -2439,6 +2480,11 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			// used by Color Splash and Resident Evil
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
+		case Latte::E_GX2SURFFMT::R32_X8_FLOAT:
+			// seen in Disney Infinity 3.0
+			formatInfoOut->vkImageFormat = VK_FORMAT_R32_SFLOAT;
+			formatInfoOut->decoder = TextureDecoder_NullData64::getInstance();
+			break;
 		default:
 			cemuLog_log(LogType::Force, "Unsupported color texture format {:04x}", (uint32)format);
 			cemu_assert_debug(false);
@@ -2686,10 +2732,20 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
 
+	const size_t currentFrameCmdBufferID = GetCurrentCommandBufferId();
+
 	VkSemaphore presentSemaphore = chainInfo.m_presentSemaphores[chainInfo.swapchainImageIndex];
 	SubmitCommandBuffer(presentSemaphore); // submit all command and signal semaphore
 
 	cemu_assert_debug(m_numSubmittedCmdBuffers > 0);
+
+	// wait for the previous frame to finish rendering
+	WaitCommandBufferFinished(m_commandBufferIDOfPrevFrame);
+	m_commandBufferIDOfPrevFrame = currentFrameCmdBufferID;
+
+	chainInfo.WaitAvailableFence();
+
+	VkPresentIdKHR presentId = {};
 
 	VkPresentInfoKHR presentInfo = {};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -2700,6 +2756,24 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	presentInfo.waitSemaphoreCount = 1;
 	presentInfo.pWaitSemaphores = &presentSemaphore;
 
+	// if present_wait is available and enabled, add frame markers to present requests
+	// and limit the number of queued present operations
+	if (m_featureControl.deviceExtensions.present_wait && chainInfo.m_maxQueued > 0)
+	{
+		presentId.sType = VK_STRUCTURE_TYPE_PRESENT_ID_KHR;
+		presentId.swapchainCount = 1;
+		presentId.pPresentIds = &chainInfo.m_presentId;
+
+		presentInfo.pNext = &presentId;
+
+		if(chainInfo.m_queueDepth >= chainInfo.m_maxQueued)
+		{
+			uint64 waitFrameId = chainInfo.m_presentId - chainInfo.m_queueDepth;
+			vkWaitForPresentKHR(m_logicalDevice, chainInfo.m_swapchain, waitFrameId, 40'000'000);
+			chainInfo.m_queueDepth--;
+		}
+	}
+
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
 	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
 	{
@@ -2707,6 +2781,12 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	}
 	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		chainInfo.m_shouldRecreate = true;
+
+	if(result >= 0)
+	{
+		chainInfo.m_queueDepth++;
+		chainInfo.m_presentId++;
+	}
 
 	chainInfo.hasDefinedSwapchainImage = false;
 

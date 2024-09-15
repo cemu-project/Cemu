@@ -212,4 +212,4 @@ bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTarg
 
 // redirect device
 void fscDeviceRedirect_map();
-void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority);
+void fscDeviceRedirect_add(std::string_view virtualSourcePath, size_t fileSize, const fs::path& targetFilePath, sint32 priority);

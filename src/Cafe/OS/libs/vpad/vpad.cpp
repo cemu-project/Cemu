@@ -50,7 +50,6 @@
 
 extern bool isLaunchTypeELF;
 
-bool debugUseDRC = true;
 VPADDir g_vpadGyroDirOverwrite[VPAD_MAX_CONTROLLERS] =
 {
 		{{1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}, {0.0f, 0.0f, 0.1f}},
@@ -240,19 +239,20 @@ namespace vpad
 		status->tpProcessed2.validity = VPAD_TP_VALIDITY_INVALID_XY;
 
 		const auto controller = InputManager::instance().get_vpad_controller(channel);
-		if (!controller || debugUseDRC == false)
+		if (!controller)
 		{
-			// no controller
+			// most games expect the Wii U GamePad to be connected, so even if the user has not set it up we should still return empty samples for channel 0
+			if(channel != 0)
+			{
+				if (error)
+					*error = VPAD_READ_ERR_NO_CONTROLLER;
+				if (length > 0)
+					status->vpadErr = -1;
+				return 0;
+			}
 			if (error)
-				*error = VPAD_READ_ERR_NONE; // VPAD_READ_ERR_NO_DATA; // VPAD_READ_ERR_NO_CONTROLLER;
-
+				*error = VPAD_READ_ERR_NONE;
 			return 1;
-			//osLib_returnFromFunction(hCPU, 1); return;
-		}
-
-		if (channel != 0)
-		{
-			debugBreakpoint();
 		}
 
 		const bool vpadDelayEnabled = ActiveSettings::VPADDelayEnabled();
@@ -274,9 +274,7 @@ namespace vpad
 					// not ready yet
 					if (error)
 						*error = VPAD_READ_ERR_NONE;
-
 					return 0;
-					//osLib_returnFromFunction(hCPU, 0); return;
 				}
 				else if (dif <= ESPRESSO_TIMER_CLOCK)
 				{
