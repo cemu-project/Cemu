@@ -365,11 +365,6 @@ public:
         return m_supportsMetal3;
     }
 
-    const MetalPixelFormatSupport& GetPixelFormatSupport() const
-    {
-        return m_pixelFormatSupport;
-    }
-
     //MTL::StorageMode GetOptimalTextureStorageMode() const
     //{
     //    return (m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModePrivate);

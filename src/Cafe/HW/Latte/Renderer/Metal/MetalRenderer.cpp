@@ -45,6 +45,8 @@ MetalRenderer::MetalRenderer()
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
+    CheckForPixelFormatSupport(m_pixelFormatSupport);
+
     // Resources
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
 #ifdef CEMU_DEBUG_ASSERT

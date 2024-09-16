@@ -29,9 +29,11 @@ struct MetalPixelFormatInfo {
     bool hasStencil = false;
 };
 
+void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support);
+
 const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth);
 
-MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport);
+MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth);
 
 inline MetalDataType GetColorBufferDataType(const uint32 index, const LatteContextRegister& lcr)
 {

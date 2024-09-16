@@ -1,13 +1,11 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Cemu/Logging/CemuLogging.h"
-#include "Common/precompiled.h"
-#include "Metal/MTLDepthStencil.hpp"
+#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Metal/MTLPixelFormat.hpp"
-#include "Metal/MTLRenderCommandEncoder.hpp"
-#include "Metal/MTLRenderPipeline.hpp"
-#include "Metal/MTLSampler.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
+    {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
+
 	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
@@ -48,11 +46,11 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT, {MTL::PixelFormatRGBA16Uint, MetalDataType::UINT, 8}},
 	{Latte::E_GX2SURFFMT::R16_G16_B16_A16_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8}},
 	{Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT, {MTL::PixelFormatRGBA16Float, MetalDataType::FLOAT, 8}},
-	{Latte::E_GX2SURFFMT::R24_X8_UNORM, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 0}}, // TODO
-	{Latte::E_GX2SURFFMT::R24_X8_FLOAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}}, // TODO
+	{Latte::E_GX2SURFFMT::R24_X8_UNORM, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R24_X8_FLOAT, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::X24_G8_UINT, {MTL::PixelFormatRGBA8Uint, MetalDataType::UINT, 4}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R32_X8_FLOAT, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::X32_G8_UINT_X24, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}}, // TODO
+	{Latte::E_GX2SURFFMT::X32_G8_UINT_X24, {MTL::PixelFormatRGBA16Uint, MetalDataType::UINT, 8}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT, {MTL::PixelFormatRG11B10Float, MetalDataType::FLOAT, 4}},
 	{Latte::E_GX2SURFFMT::R32_UINT, {MTL::PixelFormatR32Uint, MetalDataType::UINT, 4}},
 	{Latte::E_GX2SURFFMT::R32_SINT, {MTL::PixelFormatR32Sint, MetalDataType::INT, 4}},
@@ -76,6 +74,8 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 };
 
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
+    {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
+
 	{Latte::E_GX2SURFFMT::D24_S8_UNORM, {MTL::PixelFormatDepth24Unorm_Stencil8, MetalDataType::NONE, 4, {1, 1}, true}},
 	{Latte::E_GX2SURFFMT::D24_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 4, {1, 1}, true}},
 	{Latte::E_GX2SURFFMT::D32_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 5, {1, 1}, true}},
@@ -83,52 +83,73 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::D32_FLOAT, {MTL::PixelFormatDepth32Float, MetalDataType::NONE, 4, {1, 1}}},
 };
 
-const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth)
+void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
 {
-    if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+    // Color formats
+    for (auto& [fmt, formatInfo] : MTL_COLOR_FORMAT_TABLE)
     {
-        return {MTL::PixelFormatInvalid, MetalDataType::NONE, 0};
+        switch (formatInfo.pixelFormat)
+        {
+        case MTL::PixelFormatR8Unorm_sRGB:
+            if (!support.m_supportsR8Unorm_sRGB)
+                formatInfo.pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
+            break;
+        case MTL::PixelFormatRG8Unorm_sRGB:
+            if (!support.m_supportsRG8Unorm_sRGB)
+                formatInfo.pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
+            break;
+        case MTL::PixelFormatB5G6R5Unorm:
+        case MTL::PixelFormatA1BGR5Unorm:
+        case MTL::PixelFormatABGR4Unorm:
+        case MTL::PixelFormatBGR5A1Unorm:
+            if (!support.m_supportsPacked16BitFormats)
+                formatInfo.pixelFormat = MTL::PixelFormatRGBA8Unorm;
+            break;
+        default:
+            break;
+        }
     }
 
-    MetalPixelFormatInfo formatInfo;
-    if (isDepth)
-        formatInfo = MTL_DEPTH_FORMAT_TABLE[format];
-    else
-        formatInfo = MTL_COLOR_FORMAT_TABLE[format];
-
-    return formatInfo;
+    // Depth formats
+    for (auto& [fmt, formatInfo] : MTL_DEPTH_FORMAT_TABLE)
+    {
+        switch (formatInfo.pixelFormat)
+        {
+        case MTL::PixelFormatDepth24Unorm_Stencil8:
+            if (!support.m_supportsDepth24Unorm_Stencil8)
+                formatInfo.pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
+            break;
+        default:
+            break;
+        }
+    }
 }
 
-MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth, const MetalPixelFormatSupport& pixelFormatSupport)
+const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, bool isDepth)
+{
+    if (isDepth)
+    {
+        auto it = MTL_DEPTH_FORMAT_TABLE.find(format);
+        if (it == MTL_DEPTH_FORMAT_TABLE.end())
+            return {MTL::PixelFormatDepth16Unorm, MetalDataType::NONE, 2}; // Fallback
+        else
+            return it->second;
+    }
+    else
+    {
+        auto it = MTL_COLOR_FORMAT_TABLE.find(format);
+        if (it == MTL_COLOR_FORMAT_TABLE.end())
+            return {MTL::PixelFormatR8Unorm, MetalDataType::FLOAT, 1}; // Fallback
+        else
+            return it->second;
+    }
+}
+
+MTL::PixelFormat GetMtlPixelFormat(Latte::E_GX2SURFFMT format, bool isDepth)
 {
     auto pixelFormat = GetMtlPixelFormatInfo(format, isDepth).pixelFormat;
     if (pixelFormat == MTL::PixelFormatInvalid)
-        cemuLog_logDebug(LogType::Force, "invalid pixel format {}\n", pixelFormat);
-
-    switch (pixelFormat)
-    {
-    case MTL::PixelFormatR8Unorm_sRGB:
-        if (!pixelFormatSupport.m_supportsR8Unorm_sRGB)
-            return MTL::PixelFormatRGBA8Unorm_sRGB;
-        break;
-    case MTL::PixelFormatRG8Unorm_sRGB:
-        if (!pixelFormatSupport.m_supportsRG8Unorm_sRGB)
-            return MTL::PixelFormatRGBA8Unorm_sRGB;
-        break;
-    case MTL::PixelFormatB5G6R5Unorm:
-    case MTL::PixelFormatA1BGR5Unorm:
-    case MTL::PixelFormatABGR4Unorm:
-    case MTL::PixelFormatBGR5A1Unorm:
-        if (!pixelFormatSupport.m_supportsPacked16BitFormats)
-            return MTL::PixelFormatRGBA8Unorm;
-        break;
-    case MTL::PixelFormatDepth24Unorm_Stencil8:
-        if (!pixelFormatSupport.m_supportsDepth24Unorm_Stencil8)
-            return MTL::PixelFormatDepth32Float_Stencil8;
-        break;
-    default:
-        break;
-    }
+        cemuLog_log(LogType::Force, "invalid pixel format 0x{:x}, is depth: {}\n", format, isDepth);
 
     return pixelFormat;
 }
