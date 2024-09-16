@@ -502,6 +502,8 @@ bool future_is_ready(std::future<T>& f)
 template<typename T>
 std::atomic<T>* _rawPtrToAtomic(T* ptr)
 {
+	static_assert(sizeof(T) == sizeof(std::atomic<T>));
+	cemu_assert_debug((reinterpret_cast<std::uintptr_t>(ptr) % alignof(std::atomic<T>)) == 0);
     return reinterpret_cast<std::atomic<T>*>(ptr);
 }
 
