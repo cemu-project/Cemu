@@ -21,7 +21,6 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLRenderCommandEncoder.hpp"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -699,7 +698,7 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	//sint32 sourceEffectiveWidth, sourceEffectiveHeight;
 	//sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 
-    texture_copyImageSubData(sourceTexture, srcMip, 0, 0, srcSlice, destinationTexture, dstMip, 0, 0, dstSlice, effectiveCopyWidth, effectiveCopyHeight, 0);
+    texture_copyImageSubData(sourceTexture, srcMip, 0, 0, srcSlice, destinationTexture, dstMip, 0, 0, dstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
 
     /*
 	sint32 texSrcMip = srcMip;
