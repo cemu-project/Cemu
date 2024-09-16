@@ -584,14 +584,14 @@ namespace stdx
 		bool m_released = false;
 	public:
 		explicit scope_exit(Fn&& f) noexcept
-			: m_func(std::move(f))
+			: m_func(std::forward<Fn>(f))
 		{}
 		~scope_exit()
 		{
 			if (!m_released) m_func();
 		}
 		scope_exit(scope_exit&& other) noexcept
-			: m_func(std::move(other.m_func)), m_released(std::exchange(other.m_released, false))
+			: m_func(std::move(other.m_func)), m_released(std::exchange(other.m_released, true))
 		{}
 		scope_exit(const scope_exit&) = delete;
 		scope_exit& operator=(scope_exit) = delete;
