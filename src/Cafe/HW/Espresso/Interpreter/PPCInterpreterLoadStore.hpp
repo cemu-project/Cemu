@@ -60,19 +60,18 @@ static void PPCInterpreter_STWCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 	if (hCPU->reservedMemAddr == ea)
 	{
 		uint32be reservedValue = hCPU->reservedMemValue; // this is the value we expect in memory (if it does not match, STWCX fails)
-		uint32be* wordPtr;
+		std::atomic<uint32be>* wordPtr;		
 		if constexpr(ppcItpCtrl::allowSupervisorMode)
 		{
-			wordPtr = reinterpret_cast<uint32be*>(memory_base + ppcItpCtrl::ppcMem_translateVirtualDataToPhysicalAddr(hCPU, ea));
+			wordPtr = _rawPtrToAtomic((uint32be*)(memory_base + ppcItpCtrl::ppcMem_translateVirtualDataToPhysicalAddr(hCPU, ea)));
 			DSI_EXIT();
 		}
 		else
 		{
-			wordPtr = reinterpret_cast<uint32be*>(memory_getPointerFromVirtualOffset(ea));
+			wordPtr = _rawPtrToAtomic((uint32be*)memory_getPointerFromVirtualOffset(ea));
 		}
-		auto word = rawPtrToAtomicRef(wordPtr);
 		uint32be newValue = hCPU->gpr[rS];
-		if (!word.compare_exchange_strong(reservedValue, newValue))
+		if (!wordPtr->compare_exchange_strong(reservedValue, newValue))
 		{
 			// failed
 			ppc_setCRBit(hCPU, CR_BIT_LT, 0);

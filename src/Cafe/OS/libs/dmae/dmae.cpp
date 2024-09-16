@@ -79,17 +79,17 @@ void dmaeExport_DMAESemaphore(PPCInterpreter_t* hCPU)
 
 	uint32 actionType = hCPU->gpr[4];
 
-	auto semaphore = rawPtrToAtomicRef(reinterpret_cast<uint64le*>(memory_getPointerFromVirtualOffset(hCPU->gpr[3])));
+	std::atomic<uint64le>* semaphore = _rawPtrToAtomic((uint64le*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]));
 
 	if( actionType == 1 )
 	{
 		// Signal Semaphore
-		++semaphore;
+		semaphore->fetch_add(1);
 	}
 	else if (actionType == 0) // wait
 	{
 		cemuLog_logDebug(LogType::Force, "DMAESemaphore: Unsupported wait operation");
-		--semaphore;
+		semaphore->fetch_sub(1);
 	}
 	else
 	{
