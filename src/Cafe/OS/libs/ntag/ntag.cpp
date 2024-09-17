@@ -509,7 +509,7 @@ namespace ntag
 			noftHeader->writeCount = _swapEndianU16(_swapEndianU16(noftHeader->writeCount) + 1);
 		}
 
-		memcpy(decryptedBuffer + 0x20, noftHeader, sizeof(noftHeader));
+		memcpy(decryptedBuffer + 0x20, noftHeader, sizeof(NTAGNoftHeader));
 		memcpy(decryptedBuffer + _swapEndianU16(rwHeader->offset), data, dataSize);
 
 		// Encrypt

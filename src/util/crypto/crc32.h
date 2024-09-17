@@ -1,8 +1,8 @@
 #pragma once
 
-unsigned int crc32_calc(unsigned int c, const void* data, int length);
+uint32 crc32_calc(uint32 c, const void* data, size_t length);
 
-inline unsigned int crc32_calc(const void* data, int length)
+inline uint32 crc32_calc(const void* data, size_t length)
 {
 	return crc32_calc(0, data, length);
 }
