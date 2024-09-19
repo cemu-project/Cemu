@@ -1318,7 +1318,27 @@ void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, M
     if (buffer == boundBuffer.m_buffer && offset == boundBuffer.m_offset)
         return;
 
-    // TODO: only set the offset if only offset changed
+    if (buffer == boundBuffer.m_buffer)
+    {
+        // Just update the offset
+        boundBuffer.m_offset = offset;
+
+        switch (shaderType)
+        {
+        case METAL_SHADER_TYPE_VERTEX:
+            renderCommandEncoder->setVertexBufferOffset(offset, index);
+            break;
+        case METAL_SHADER_TYPE_OBJECT:
+            renderCommandEncoder->setObjectBufferOffset(offset, index);
+            break;
+        case METAL_SHADER_TYPE_MESH:
+            renderCommandEncoder->setMeshBufferOffset(offset, index);
+            break;
+        case METAL_SHADER_TYPE_FRAGMENT:
+            renderCommandEncoder->setFragmentBufferOffset(offset, index);
+            break;
+        }
+    }
 
     boundBuffer = {buffer, offset};
 
@@ -1874,7 +1894,7 @@ void MetalRenderer::CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::
     {
         auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
 
-		MTL::Resource* barrierBuffers[] = {src};
+        MTL::Resource* barrierBuffers[] = {src};
         renderCommandEncoder->memoryBarrier(barrierBuffers, 1, after, after | MTL::RenderStageVertex);
 
 		renderCommandEncoder->setRenderPipelineState(m_copyBufferToBufferPipeline->GetRenderPipelineState());
