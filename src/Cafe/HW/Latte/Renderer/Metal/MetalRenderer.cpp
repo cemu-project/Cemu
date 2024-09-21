@@ -11,7 +11,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalQuery.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
-
 #include "Cafe/HW/Latte/Renderer/Metal/UtilityShaderSource.h"
 
 #include "Cafe/HW/Latte/Core/LatteShader.h"
@@ -21,6 +20,7 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -917,7 +917,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Check if we need to end the render pass
-	if (!m_state.m_isFirstDrawInRenderPass)
+	if (!m_state.m_isFirstDrawInRenderPass && GetConfig().vk_accurate_barriers)
 	{
     	// Fragment shader is most likely to require a render pass flush, so check for it first
     	bool endRenderPass = CheckIfRenderPassNeedsFlush(pixelShader);
