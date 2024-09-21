@@ -28,15 +28,14 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         restrideInfo.allocation = m_bufferAllocator.GetBufferAllocation(newSize);
         buffer = m_bufferAllocator.GetBuffer(restrideInfo.allocation.bufferIndex);
 
-        //uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
-        //uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.bufferOffset;
+        // HACK: the restriding is done on the CPU, since doing it on the GPU was causing over-synchronization
+        uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
+        uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.offset;
 
-        //for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
-    	//{
-    	//	memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
-    	//}
-        //debug_printf("Restrided vertex buffer (old stride: %zu, new stride: %zu, old size: %zu, new size: %zu)\n", stride, newStride, vertexBufferRange.size, newSize);
+        for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
+    		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
 
+        /*
         if (m_mtlr->GetEncoderType() == MetalEncoderType::Render)
         {
             auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_mtlr->GetCommandEncoder());
@@ -60,18 +59,19 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
             // TODO: do the barriers in one call?
             MTL::Resource* barrierBuffers[] = {buffer};
             renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
-
-            // Debug
-            m_mtlr->GetPerformanceMonitor().m_vertexBufferRestrides++;
         }
         else
         {
-            debug_printf("vertex buffer restride needs an active render encoder\n");
+            debug_printf("vertex buffer restride needs an active render command encoder\n");
             cemu_assert_suspicious();
         }
+        */
 
         restrideInfo.memoryInvalidated = false;
         restrideInfo.lastStride = newStride;
+
+        // Debug
+        m_mtlr->GetPerformanceMonitor().m_vertexBufferRestrides++;
     }
     else
     {
@@ -121,7 +121,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 {
     cemu_assert_debug(!m_bufferCache);
 
-    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModePrivate);
+    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModeShared);
 #ifdef CEMU_DEBUG_ASSERT
     m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
 #endif

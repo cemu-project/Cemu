@@ -58,7 +58,7 @@ private:
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModeShared), m_tempBufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator) {}
     ~MetalMemoryManager();
 
     // Pipelines

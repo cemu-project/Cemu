@@ -26,7 +26,7 @@
 #include "imgui/imgui_extension.h"
 #include "imgui/imgui_impl_metal.h"
 
-#define DEFAULT_COMMIT_TRESHOLD 256
+#define DEFAULT_COMMIT_TRESHOLD 196
 #define OCCLUSION_QUERY_POOL_SIZE 1024
 
 extern bool hasValidFramebufferAttached;
@@ -917,15 +917,18 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
 	// Check if we need to end the render pass
-	// Fragment shader is most likely to require a render pass flush, so check for it first
-	bool endRenderPass = CheckIfRenderPassNeedsFlush(pixelShader);
-	if (!endRenderPass)
-	    endRenderPass = CheckIfRenderPassNeedsFlush(vertexShader);
-	if (!endRenderPass && geometryShader)
-	    endRenderPass = CheckIfRenderPassNeedsFlush(geometryShader);
+	if (!m_state.m_isFirstDrawInRenderPass)
+	{
+    	// Fragment shader is most likely to require a render pass flush, so check for it first
+    	bool endRenderPass = CheckIfRenderPassNeedsFlush(pixelShader);
+    	if (!endRenderPass)
+    	    endRenderPass = CheckIfRenderPassNeedsFlush(vertexShader);
+    	if (!endRenderPass && geometryShader)
+    	    endRenderPass = CheckIfRenderPassNeedsFlush(geometryShader);
 
-	if (endRenderPass)
-	    EndEncoding();
+    	if (endRenderPass)
+    	    EndEncoding();
+	}
 
     // Primitive type
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
@@ -1889,7 +1892,9 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
 
 void MetalRenderer::CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::Buffer* dst, uint32 dstOffset, uint32 size, MTL::RenderStages after, MTL::RenderStages before)
 {
+    // TODO: uncomment and fix performance issues
     // Do the copy in a vertex shader on Apple GPUs
+    /*
     if (m_isAppleGPU && m_encoderType == MetalEncoderType::Render)
     {
         auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_commandEncoder);
@@ -1910,10 +1915,11 @@ void MetalRenderer::CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::
     }
     else
     {
+    */
         auto blitCommandEncoder = GetBlitCommandEncoder();
 
         blitCommandEncoder->copyFromBuffer(src, srcOffset, dst, dstOffset, size);
-    }
+    //}
 }
 
 void MetalRenderer::SwapBuffer(bool mainWindow)
