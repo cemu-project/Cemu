@@ -916,8 +916,20 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     }
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
+    bool neverSkipAccurateBarrier = false;
+
+    // "Accurate barriers" is usually enabled globally but since the CPU cost is substantial we allow users to disable it (debug -> 'Accurate barriers' option)
+	// We always force accurate barriers for known problematic shaders
+	if (pixelShader)
+	{
+		if (pixelShader->baseHash == 0x6f6f6e7b9aae57af && pixelShader->auxHash == 0x00078787f9249249) // BotW lava
+			neverSkipAccurateBarrier = true;
+		if (pixelShader->baseHash == 0x4c0bd596e3aef4a6 && pixelShader->auxHash == 0x003c3c3fc9269249) // BotW foam layer for water on the bottom of waterfalls
+			neverSkipAccurateBarrier = true;
+	}
+
 	// Check if we need to end the render pass
-	if (!m_state.m_isFirstDrawInRenderPass && GetConfig().vk_accurate_barriers)
+	if (!m_state.m_isFirstDrawInRenderPass && (GetConfig().vk_accurate_barriers || neverSkipAccurateBarrier))
 	{
     	// Fragment shader is most likely to require a render pass flush, so check for it first
     	bool endRenderPass = CheckIfRenderPassNeedsFlush(pixelShader);
@@ -1323,7 +1335,7 @@ void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, M
 
     if (buffer == boundBuffer.m_buffer)
     {
-        // Just update the offset
+        // Update just the offset
         boundBuffer.m_offset = offset;
 
         switch (shaderType)
@@ -1341,6 +1353,8 @@ void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, M
             renderCommandEncoder->setFragmentBufferOffset(offset, index);
             break;
         }
+
+        return;
     }
 
     boundBuffer = {buffer, offset};
