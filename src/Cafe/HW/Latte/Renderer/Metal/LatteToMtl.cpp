@@ -6,10 +6,10 @@
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
     {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
 
-	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, MetalDataType::FLOAT, 2}},
+	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, MetalDataType::FLOAT, 2}},
+	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, MetalDataType::FLOAT, 2}},
+	{Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM, {MTL::PixelFormatA1BGR5Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R8_UNORM, {MTL::PixelFormatR8Unorm, MetalDataType::FLOAT, 1}},
 	{Latte::E_GX2SURFFMT::R8_SNORM, {MTL::PixelFormatR8Snorm, MetalDataType::FLOAT, 1}},
@@ -25,12 +25,12 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R8_G8_B8_A8_SINT, {MTL::PixelFormatRGBA8Sint, MetalDataType::INT, 4}},
 	{Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB, {MTL::PixelFormatRGBA8Unorm_sRGB, MetalDataType::FLOAT, 4}},
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM, {MTL::PixelFormatRGB10A2Unorm, MetalDataType::FLOAT, 4}},
-	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM, {MTL::PixelFormatRGBA16Snorm, MetalDataType::FLOAT, 8}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM, {MTL::PixelFormatRGBA16Snorm, MetalDataType::FLOAT, 8}},
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}},
-	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8}},
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB, {MTL::PixelFormatRGB10A2Unorm, MetalDataType::FLOAT, 4}}, // TODO: sRGB?
-	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM, {MTL::PixelFormatBGR10A2Unorm, MetalDataType::FLOAT, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM, {MTL::PixelFormatBGR10A2Unorm, MetalDataType::FLOAT, 4}},
+	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}},
 	{Latte::E_GX2SURFFMT::R16_UNORM, {MTL::PixelFormatR16Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R16_SNORM, {MTL::PixelFormatR16Snorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R16_UINT, {MTL::PixelFormatR16Uint, MetalDataType::UINT, 2}},
@@ -172,6 +172,9 @@ size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint
     return CeilDivide(height, formatInfo.blockTexelSize.y) * bytesPerRow;
 }
 
+// TODO: change the decoders when a format is not supported
+// TODO: R10_G10_B10_A2_UINT and R10_G10_B10_A2_SINT
+// TODO: A2_B10_G10_R10_UNORM and A2_B10_G10_R10_UINT
 TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth)
 {
     if (isDepth)
@@ -232,7 +235,7 @@ TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth)
     	case Latte::E_GX2SURFFMT::R8_G8_SNORM:
     		return TextureDecoder_R8_G8::getInstance();
     	case Latte::E_GX2SURFFMT::R4_G4_UNORM:
-    		return TextureDecoder_R4_G4::getInstance();
+    		return TextureDecoder_R4_G4::getInstance(); // TODO: unpack to 8 bits
     	case Latte::E_GX2SURFFMT::R32_FLOAT:
     		return TextureDecoder_R32_FLOAT::getInstance();
     	case Latte::E_GX2SURFFMT::R32_UINT:
@@ -256,11 +259,11 @@ TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth)
     	case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
     		return TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
     	case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
-    		return TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
+    		return TextureDecoder_A1_B5_G5_R5_UNORM::getInstance();
     	case Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT:
     		return TextureDecoder_R11_G11_B10_FLOAT::getInstance();
     	case Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM:
-    		return TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
+    		return TextureDecoder_R4_G4_B4_A4_UNORM::getInstance(); // TODO: ABGR4
     	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM:
     		return TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
     	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM:
@@ -288,9 +291,9 @@ TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth)
     	case Latte::E_GX2SURFFMT::BC5_SNORM:
     		return TextureDecoder_BC5::getInstance();
     	case Latte::E_GX2SURFFMT::R24_X8_UNORM:
-    		return TextureDecoder_R24_X8::getInstance();
+    		return TextureDecoder_R24_X8::getInstance(); // TODO: correct?
     	case Latte::E_GX2SURFFMT::X24_G8_UINT:
-    		return TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
+    		return TextureDecoder_X24_G8_UINT::getInstance(); // todo: correct?
     	default:
     		debug_printf("invalid color texture format %u\n", (uint32)format);
     		cemu_assert_debug(false);
