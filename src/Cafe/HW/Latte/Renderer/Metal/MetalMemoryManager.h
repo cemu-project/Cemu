@@ -42,7 +42,7 @@ public:
         range.offset = INVALID_OFFSET;
     }
 
-    MetalRestridedBufferRange RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride);
+    MetalRestridedBufferRange RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride, std::vector<MTL::Resource*>& barrierBuffers);
 
 private:
     class MetalRenderer* m_mtlr;
@@ -105,9 +105,9 @@ public:
         m_vertexBufferCache.UntrackVertexBuffer(bufferIndex);
     }
 
-    MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride)
+    MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride, std::vector<MTL::Resource*>& barrierBuffers)
     {
-        return m_vertexBufferCache.RestrideBufferIfNeeded(m_bufferCache, bufferIndex, stride);
+        return m_vertexBufferCache.RestrideBufferIfNeeded(m_bufferCache, bufferIndex, stride, barrierBuffers);
     }
 
 private:

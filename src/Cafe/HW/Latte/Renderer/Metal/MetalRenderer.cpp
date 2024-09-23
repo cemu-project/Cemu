@@ -1141,6 +1141,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Resources
 
 	// Vertex buffers
+	std::vector<MTL::Resource*> barrierBuffers;
     for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
     {
         auto& vertexBufferRange = m_state.m_vertexBuffers[i];
@@ -1161,7 +1162,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
                 uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + i * 7;
                 uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
 
-                auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride);
+                auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride, barrierBuffers);
 
                 buffer = restridedBuffer.buffer;
                 offset = restridedBuffer.offset;
@@ -1170,6 +1171,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             // Bind
             SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
         }
+    }
+
+    if (!barrierBuffers.empty())
+    {
+        renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
     }
 
 	// Render pipeline state

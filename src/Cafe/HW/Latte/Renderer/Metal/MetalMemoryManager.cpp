@@ -9,7 +9,7 @@ MetalVertexBufferCache::~MetalVertexBufferCache()
 {
 }
 
-MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride)
+MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride, std::vector<MTL::Resource*>& barrierBuffers)
 {
     auto vertexBufferRange = m_bufferRanges[bufferIndex];
     auto& restrideInfo = *vertexBufferRange.restrideInfo;
@@ -28,14 +28,14 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         restrideInfo.allocation = m_bufferAllocator.GetBufferAllocation(newSize);
         buffer = m_bufferAllocator.GetBuffer(restrideInfo.allocation.bufferIndex);
 
-        // HACK: the restriding is done on the CPU, since doing it on the GPU was causing over-synchronization
+        /*
         uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
         uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.offset;
 
         for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
     		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
+        */
 
-        /*
         if (m_mtlr->GetEncoderType() == MetalEncoderType::Render)
         {
             auto renderCommandEncoder = static_cast<MTL::RenderCommandEncoder*>(m_mtlr->GetCommandEncoder());
@@ -56,16 +56,12 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
 
             renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangleStrip, NS::UInteger(0), vertexBufferRange.size / stride);
 
-            // TODO: do the barriers in one call?
-            MTL::Resource* barrierBuffers[] = {buffer};
-            renderCommandEncoder->memoryBarrier(barrierBuffers, 1, MTL::RenderStageVertex, MTL::RenderStageVertex);
+            vectorAppendUnique(barrierBuffers, static_cast<MTL::Resource*>(buffer));
         }
         else
         {
-            debug_printf("vertex buffer restride needs an active render command encoder\n");
             cemu_assert_suspicious();
         }
-        */
 
         restrideInfo.memoryInvalidated = false;
         restrideInfo.lastStride = newStride;
