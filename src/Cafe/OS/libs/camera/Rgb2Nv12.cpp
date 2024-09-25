@@ -3,8 +3,8 @@
 
 constexpr static glm::mat3x3 coefficientMatrix =
 	{
-		+0.257f, -0.148f, -0.439f,
-		-0.504f, -0.291f, -0.368f,
+		+0.257f, -0.148f, 0.439f,
+		+0.504f, -0.291f, -0.368f,
 		+0.098f, +0.439f, -0.071f};
 
 constexpr static glm::mat4x3 offsetMatrix = {
