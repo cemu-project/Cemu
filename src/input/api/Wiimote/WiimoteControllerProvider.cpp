@@ -16,7 +16,7 @@ WiimoteControllerProvider::WiimoteControllerProvider()
 {
 	m_reader_thread = std::thread(&WiimoteControllerProvider::reader_thread, this);
 	m_writer_thread = std::thread(&WiimoteControllerProvider::writer_thread, this);
-	m_connectionThread = std::jthread(&WiimoteControllerProvider::connectionThread, this);
+	m_connectionThread = std::thread(&WiimoteControllerProvider::connectionThread, this);
 }
 
 WiimoteControllerProvider::~WiimoteControllerProvider()
@@ -26,6 +26,7 @@ WiimoteControllerProvider::~WiimoteControllerProvider()
 		m_running = false;
 		m_writer_thread.join();
 		m_reader_thread.join();
+		m_connectionThread.join();
 	}
 }
 
@@ -143,10 +144,10 @@ WiimoteControllerProvider::WiimoteState WiimoteControllerProvider::get_state(siz
 	return {};
 }
 
-void WiimoteControllerProvider::connectionThread(std::stop_token stopToken)
+void WiimoteControllerProvider::connectionThread()
 {
 	SetThreadName("Wiimote-connect");
-	while (!stopToken.stop_requested())
+	while (m_running.load(std::memory_order_relaxed))
 	{
 		std::vector<WiimoteDevicePtr> devices;
 #if HAS_HIDAPI
