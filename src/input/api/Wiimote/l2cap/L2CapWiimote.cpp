@@ -2,7 +2,6 @@
 #include <bluetooth/l2cap.h>
 
 namespace {
-	// TODO: Get addresses upon user request via PairingDialog
 	std::vector<bdaddr_t> s_address;
 	std::mutex s_addressMutex;
 
@@ -39,10 +38,10 @@ L2CapWiimote::~L2CapWiimote()
 	::close(m_sendFd);
 }
 
-void L2CapWiimote::AddCandidateAddresses(const std::vector<bdaddr_t>& addrs)
+void L2CapWiimote::AddCandidateAddress(bdaddr_t addr)
 {
 	std::scoped_lock lock(s_addressMutex);
-	std::ranges::copy(addrs, std::back_inserter(s_address));
+	s_address.push_back(addr);
 }
 
 std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
@@ -108,7 +107,7 @@ bool L2CapWiimote::write_data(const std::vector<uint8>& data)
 	buffer[0] = 0xA2;
 	std::memcpy(buffer + 1, data.data(), size);
 	const auto outSize = size + 1;
-	return send(m_sendFd, buffer, outSize, 0) != outSize;
+	return send(m_sendFd, buffer, outSize, 0) == outSize;
 }
 
 std::optional<std::vector<uint8>> L2CapWiimote::read_data()
