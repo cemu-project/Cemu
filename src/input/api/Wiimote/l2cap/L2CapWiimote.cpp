@@ -7,8 +7,14 @@ namespace {
 
 	bool AttemptConnect(int& sockFd, const sockaddr_l2& addr)
 	{
+		auto res = connect(sockFd, reinterpret_cast<const sockaddr*>(&addr),
+						   sizeof(sockaddr_l2));
+		if (res == 0)
+			return true;
+		if (res != ECONNREFUSED)
+			return false;
 		return connect(sockFd, reinterpret_cast<const sockaddr*>(&addr),
-					   sizeof(sockaddr_l2)) == 0;
+				sizeof(sockaddr_l2)) == 0;
 	}
 	bool AttemptSetNonBlock(int& sockFd)
 	{
@@ -105,9 +111,11 @@ std::optional<std::vector<uint8>> L2CapWiimote::read_data()
 	uint8 buffer[23];
 	const auto nBytes = recv(m_sendFd, buffer, 23, 0);
 
+	if (nBytes < 0 && errno == EWOULDBLOCK)
+		return std::vector<uint8>{};
 	// All incoming messages must be prefixed with 0xA1
 	if (nBytes < 2 || buffer[0] != 0xA1)
-		return {};
+		return std::nullopt;
 	return std::vector(buffer + 1, buffer + 1 + nBytes - 1);
 }
 
