@@ -5,7 +5,7 @@
 class L2CapWiimote : public WiimoteDevice
 {
   public:
-	L2CapWiimote(int recvFd, int sendFd);
+	L2CapWiimote(int recvFd, int sendFd, bdaddr_t addr);
 	~L2CapWiimote() override;
 
 	bool write_data(const std::vector<uint8>& data) override;
@@ -17,5 +17,6 @@ class L2CapWiimote : public WiimoteDevice
   private:
 	int m_recvFd;
 	int m_sendFd;
+	bdaddr_t m_addr;
 };
 
