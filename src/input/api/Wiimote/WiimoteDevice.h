@@ -10,7 +10,6 @@ public:
 	virtual std::optional<std::vector<uint8_t>> read_data() = 0;
 
 	virtual bool operator==(WiimoteDevice& o) const = 0;
-	bool operator!=(WiimoteDevice& o) const { return *this == o; }
 };
 
 using WiimoteDevicePtr = std::shared_ptr<WiimoteDevice>;
