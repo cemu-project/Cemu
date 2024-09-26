@@ -88,7 +88,7 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 			continue;
 		}
 
-		outDevices.push_back(std::make_unique<L2CapWiimote>(sendFd, recvFd));
+		outDevices.emplace_back(std::make_shared<L2CapWiimote>(sendFd, recvFd));
 	}
 	return outDevices;
 }
