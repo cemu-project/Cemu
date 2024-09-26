@@ -49,12 +49,17 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
 		ssize_t lowestReplaceableIndex = -1;
 		for (ssize_t i = m_wiimotes.size() - 1; i >= 0; --i)
 		{
-			const auto& wiimote = m_wiimotes[i];
-			if (wiimote.device && *wiimote.device == *device)
+			const auto& wiimoteDevice = m_wiimotes[i].device;
+			if (wiimoteDevice)
 			{
-				isDuplicate = true;
-				break;
+				if (*wiimoteDevice == *device)
+				{
+					isDuplicate = true;
+					break;
+				}
+				continue;
 			}
+
 			lowestReplaceableIndex = i;
 		}
 		if (isDuplicate)
