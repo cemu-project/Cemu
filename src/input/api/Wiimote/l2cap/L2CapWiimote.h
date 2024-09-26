@@ -10,7 +10,7 @@ class L2CapWiimote : public WiimoteDevice
 
 	bool write_data(const std::vector<uint8>& data) override;
 	std::optional<std::vector<uint8>> read_data() override;
-	bool operator==(WiimoteDevice& o) const override;
+	bool operator==(const WiimoteDevice& o) const override;
 
 	static void AddCandidateAddress(bdaddr_t addr);
 	static std::vector<WiimoteDevicePtr> get_devices();
