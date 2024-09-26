@@ -102,3 +102,8 @@ endif()
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuInput PRIVATE wx::base wx::core)
 endif()
+
+
+if (UNIX AND NOT APPLE)
+	target_link_libraries(CemuInput PRIVATE bluez::bluez)
+endif ()

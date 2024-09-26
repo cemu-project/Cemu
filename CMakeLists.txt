@@ -178,6 +178,7 @@ if (UNIX AND NOT APPLE)
 		add_compile_definitions(HAS_WAYLAND)
 	endif()
 	find_package(GTK3 REQUIRED)
+	find_package(bluez REQUIRED)
 
 endif()
 
