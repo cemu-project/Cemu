@@ -1,10 +1,11 @@
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
 #include "input/api/Wiimote/NativeWiimoteController.h"
 #include "input/api/Wiimote/WiimoteMessages.h"
-#if HAS_HIDAPI
+
+#ifdef HAS_HIDAPI
 #include "input/api/Wiimote/hidapi/HidapiWiimote.h"
 #endif
-#if BOOST_OS_LINUX
+#ifdef HAS_BLUEZ
 #include "input/api/Wiimote/l2cap/L2CapWiimote.h"
 #endif
 
@@ -150,11 +151,11 @@ void WiimoteControllerProvider::connectionThread()
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		std::vector<WiimoteDevicePtr> devices;
-#if HAS_HIDAPI
+#ifdef HAS_HIDAPI
 		const auto& hidDevices = HidapiWiimote::get_devices();
 		std::ranges::move(hidDevices, std::back_inserter(devices));
 #endif
-#if BOOST_OS_LINUX
+#ifdef HAS_BLUEZ
 		const auto& l2capDevices = L2CapWiimote::get_devices();
 		std::ranges::move(l2capDevices, std::back_inserter(devices));
 #endif
