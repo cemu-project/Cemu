@@ -4,6 +4,10 @@
 
 #include "input/api/Wiimote/hidapi/HidapiWiimote.h"
 
+#if BOOST_OS_LINUX
+#include "input/api/Wiimote/l2cap/L2CapWiimote.h"
+#endif
+
 #include <numbers>
 #include <queue>
 
@@ -45,7 +49,12 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
         return writeable && not_already_connected;
     };
 
-	for (auto& device : WiimoteDevice_t::get_devices())
+	auto devices = HidapiWiimote::get_devices();
+#if BOOST_OS_LINUX
+	const auto& l2capDevices = L2CapWiimote::get_devices();
+	std::ranges::copy(l2capDevices, std::back_inserter(devices));
+#endif
+	for (auto& device : devices)
 	{
         if (!valid_new_device(device))
             continue;
