@@ -47,8 +47,8 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
     return wiimote_devices;
 }
 
-bool HidapiWiimote::operator==(WiimoteDevice& rhs) const  {
-    auto other = dynamic_cast<HidapiWiimote*>(&rhs);
+bool HidapiWiimote::operator==(const WiimoteDevice& rhs) const  {
+    auto other = dynamic_cast<const HidapiWiimote*>(&rhs);
 	if (!other)
 		return false;
 	return m_path == other->m_path;

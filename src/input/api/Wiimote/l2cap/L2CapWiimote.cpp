@@ -112,7 +112,7 @@ std::optional<std::vector<uint8>> L2CapWiimote::read_data()
 }
 
 
-bool L2CapWiimote::operator==(WiimoteDevice& rhs) const
+bool L2CapWiimote::operator==(const WiimoteDevice& rhs) const
 {
 	auto mote = dynamic_cast<const L2CapWiimote*>(&rhs);
 	if (!mote)
