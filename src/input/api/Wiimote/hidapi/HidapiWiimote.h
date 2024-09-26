@@ -19,5 +19,3 @@ private:
     const std::string m_path;
 
 };
-
-using WiimoteDevice_t = HidapiWiimote;
