@@ -5,20 +5,10 @@ namespace {
 	std::vector<bdaddr_t> s_address;
 	std::mutex s_addressMutex;
 
-	bool AttemptConnect(int sockFd, sockaddr_l2 const& addr)
+	bool AttemptConnect(int& sockFd, const sockaddr_l2& addr)
 	{
-		for (auto i = 0; i < 3; ++i)
-		{
-			if (connect(sockFd, reinterpret_cast<sockaddr const*>(&addr),
-						sizeof(sockaddr_l2)) == 0)
-				return true;
-			cemuLog_logDebug(LogType::Force, "Connection attempt {} failed with error {:x}: {} ", i + 1, errno,
-							 std::strerror(errno));
-			if (i == 2)
-				break;
-			std::this_thread::sleep_for(std::chrono::milliseconds(300));
-		}
-		return false;
+		return connect(sockFd, reinterpret_cast<const sockaddr*>(&addr),
+					   sizeof(sockaddr_l2)) == 0;
 	}
 	bool AttemptSetNonBlock(int& sockFd)
 	{
