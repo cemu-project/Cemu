@@ -79,7 +79,7 @@ private:
 	std::thread m_reader_thread, m_writer_thread;
 	std::shared_mutex m_device_mutex;
 
-	std::jthread m_connectionThread;
+	std::thread m_connectionThread;
 	std::vector<WiimoteDevicePtr> m_connectedDevices;
 	std::mutex m_connectedDeviceMutex;
 	struct Wiimote
@@ -104,7 +104,7 @@ private:
 
 	void reader_thread();
 	void writer_thread();
-	void connectionThread(std::stop_token);
+	void connectionThread();
 
 	void calibrate(size_t index);
 	IRMode set_ir_camera(size_t index, bool state);
