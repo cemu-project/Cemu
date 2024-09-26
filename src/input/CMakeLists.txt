@@ -73,6 +73,11 @@ if (ENABLE_WIIMOTE)
 			api/Wiimote/hidapi/HidapiWiimote.cpp
 			api/Wiimote/hidapi/HidapiWiimote.h
 	)
+	if (UNIX AND NOT APPLE)
+		target_sources(CemuInput PRIVATE
+			api/Wiimote/l2cap/L2CapWiimote.cpp
+			api/Wiimote/l2cap/L2CapWiimote.h)
+	endif()
 endif ()
 
 
