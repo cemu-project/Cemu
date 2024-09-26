@@ -955,14 +955,17 @@ void WiimoteControllerProvider::writer_thread()
 		if (index != (size_t)-1 && !data.empty())
 		{
 			auto& wiimote = m_wiimotes[index];
+			if (!wiimote.device)
+				continue;
 			if (wiimote.rumble)
 				data[1] |= 1;
 			if (!wiimote.device->write_data(data))
+			{
 				wiimote.device.reset();
-			if (wiimote.device)
-				wiimote.data_ts = std::chrono::high_resolution_clock::now();
-			else
 				wiimote.rumble = false;
+			}
+			else
+				wiimote.data_ts = std::chrono::high_resolution_clock::now();
 		}
 		device_lock.unlock();
 
