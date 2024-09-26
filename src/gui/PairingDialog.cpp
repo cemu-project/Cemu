@@ -184,7 +184,7 @@ void PairingDialog::WorkerThread()
 		HBLUETOOTH_DEVICE_FIND deviceFind = BluetoothFindFirstDevice(&searchParams, &info);
 		if (deviceFind == nullptr)
 		{
-			UpdateCallback(PairingState::BluetoothFailed);
+			UpdateCallback(PairingState::SearchFailed);
 			return;
 		}
 
