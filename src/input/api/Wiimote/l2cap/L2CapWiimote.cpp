@@ -16,8 +16,8 @@ namespace {
 	}
 }
 
-L2CapWiimote::L2CapWiimote(int recvFd,int sendFd)
-: m_recvFd(recvFd), m_sendFd(sendFd)
+L2CapWiimote::L2CapWiimote(int recvFd,int sendFd, bdaddr_t addr)
+: m_recvFd(recvFd), m_sendFd(sendFd), m_addr(addr)
 {
 
 }
@@ -83,7 +83,7 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 			continue;
 		}
 
-		outDevices.emplace_back(std::make_shared<L2CapWiimote>(sendFd, recvFd));
+		outDevices.emplace_back(std::make_shared<L2CapWiimote>(sendFd, recvFd, addr));
 	}
 	return outDevices;
 }
@@ -117,5 +117,5 @@ bool L2CapWiimote::operator==(const WiimoteDevice& rhs) const
 	auto mote = dynamic_cast<const L2CapWiimote*>(&rhs);
 	if (!mote)
 		return false;
-	return m_recvFd == mote->m_recvFd || m_recvFd == mote->m_sendFd;
+	return bacmp(&m_addr, &mote->m_addr) == 0;
 }
