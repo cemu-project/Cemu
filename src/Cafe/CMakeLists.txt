@@ -534,52 +534,48 @@ if(APPLE)
 endif()
 
 if(ENABLE_METAL)
-    if(APPLE)
-        target_sources(CemuCafe PRIVATE
-            HW/Latte/Renderer/Metal/MetalRenderer.cpp
-            HW/Latte/Renderer/Metal/MetalRenderer.h
-            HW/Latte/Renderer/Metal/MetalCommon.h
-            HW/Latte/Renderer/Metal/MetalCppImpl.cpp
-            HW/Latte/Renderer/Metal/MetalLayer.mm
-            HW/Latte/Renderer/Metal/MetalLayer.h
-            HW/Latte/Renderer/Metal/MetalLayerHandle.cpp
-            HW/Latte/Renderer/Metal/MetalLayerHandle.h
-            HW/Latte/Renderer/Metal/LatteToMtl.cpp
-            HW/Latte/Renderer/Metal/LatteToMtl.h
-            HW/Latte/Renderer/Metal/LatteTextureMtl.cpp
-            HW/Latte/Renderer/Metal/LatteTextureMtl.h
-            HW/Latte/Renderer/Metal/LatteTextureViewMtl.cpp
-            HW/Latte/Renderer/Metal/LatteTextureViewMtl.h
-            HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.cpp
-            HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h
-            HW/Latte/Renderer/Metal/RendererShaderMtl.cpp
-            HW/Latte/Renderer/Metal/RendererShaderMtl.h
-            HW/Latte/Renderer/Metal/CachedFBOMtl.cpp
-            HW/Latte/Renderer/Metal/CachedFBOMtl.h
-            HW/Latte/Renderer/Metal/MetalBufferAllocator.h
-            HW/Latte/Renderer/Metal/MetalMemoryManager.cpp
-            HW/Latte/Renderer/Metal/MetalMemoryManager.h
-            HW/Latte/Renderer/Metal/MetalPipelineCache.cpp
-            HW/Latte/Renderer/Metal/MetalPipelineCache.h
-            HW/Latte/Renderer/Metal/MetalDepthStencilCache.cpp
-            HW/Latte/Renderer/Metal/MetalDepthStencilCache.h
-            HW/Latte/Renderer/Metal/MetalSamplerCache.cpp
-            HW/Latte/Renderer/Metal/MetalSamplerCache.h
-            HW/Latte/Renderer/Metal/MetalHybridComputePipeline.cpp
-            HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h
-            HW/Latte/Renderer/Metal/MetalQuery.cpp
-            HW/Latte/Renderer/Metal/MetalQuery.h
-            HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h
-            HW/Latte/Renderer/Metal/UtilityShaderSource.h
-        )
+    target_sources(CemuCafe PRIVATE
+        HW/Latte/Renderer/Metal/MetalRenderer.cpp
+        HW/Latte/Renderer/Metal/MetalRenderer.h
+        HW/Latte/Renderer/Metal/MetalCommon.h
+        HW/Latte/Renderer/Metal/MetalCppImpl.cpp
+        HW/Latte/Renderer/Metal/MetalLayer.mm
+        HW/Latte/Renderer/Metal/MetalLayer.h
+        HW/Latte/Renderer/Metal/MetalLayerHandle.cpp
+        HW/Latte/Renderer/Metal/MetalLayerHandle.h
+        HW/Latte/Renderer/Metal/LatteToMtl.cpp
+        HW/Latte/Renderer/Metal/LatteToMtl.h
+        HW/Latte/Renderer/Metal/LatteTextureMtl.cpp
+        HW/Latte/Renderer/Metal/LatteTextureMtl.h
+        HW/Latte/Renderer/Metal/LatteTextureViewMtl.cpp
+        HW/Latte/Renderer/Metal/LatteTextureViewMtl.h
+        HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.cpp
+        HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h
+        HW/Latte/Renderer/Metal/RendererShaderMtl.cpp
+        HW/Latte/Renderer/Metal/RendererShaderMtl.h
+        HW/Latte/Renderer/Metal/CachedFBOMtl.cpp
+        HW/Latte/Renderer/Metal/CachedFBOMtl.h
+        HW/Latte/Renderer/Metal/MetalBufferAllocator.h
+        HW/Latte/Renderer/Metal/MetalMemoryManager.cpp
+        HW/Latte/Renderer/Metal/MetalMemoryManager.h
+        HW/Latte/Renderer/Metal/MetalPipelineCache.cpp
+        HW/Latte/Renderer/Metal/MetalPipelineCache.h
+        HW/Latte/Renderer/Metal/MetalDepthStencilCache.cpp
+        HW/Latte/Renderer/Metal/MetalDepthStencilCache.h
+        HW/Latte/Renderer/Metal/MetalSamplerCache.cpp
+        HW/Latte/Renderer/Metal/MetalSamplerCache.h
+        HW/Latte/Renderer/Metal/MetalHybridComputePipeline.cpp
+        HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h
+        HW/Latte/Renderer/Metal/MetalQuery.cpp
+        HW/Latte/Renderer/Metal/MetalQuery.h
+        HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h
+        HW/Latte/Renderer/Metal/UtilityShaderSource.h
+    )
 
-        #target_link_libraries(CemuCafe PRIVATE
-        #    "-framework Metal"
-        #    "-framework QuartzCore"
-        #)
-    else()
-        message(FATAL_ERROR "Metal is only supported on macOS")
-    endif()
+    #target_link_libraries(CemuCafe PRIVATE
+    #    "-framework Metal"
+    #    "-framework QuartzCore"
+    #)
 endif()
 
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

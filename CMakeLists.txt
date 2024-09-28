@@ -103,11 +103,20 @@ if (UNIX AND NOT APPLE)
 	option(ENABLE_FERAL_GAMEMODE "Enables Feral Interactive GameMode Support" ON)
 endif()
 
+if (APPLE)
+    set(ENABLE_METAL_DEFAULT ON)
+else()
+    set(ENABLE_METAL_DEFAULT OFF)
+endif()
+
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
-option(ENABLE_METAL "Enables the Metal backend" ON)
+option(ENABLE_METAL "Enables the Metal backend" $ENABLE_METAL_DEFAULT)
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
+if (ENABLE_METAL AND NOT APPLE)
+    message(FATAL_ERROR "Metal backend is only supported on Apple platforms")
+endif()
 
 # input backends
 if (WIN32)
