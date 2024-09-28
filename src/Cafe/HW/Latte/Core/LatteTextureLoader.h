@@ -764,7 +764,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4G4B4A4_UNORM_To_ABGR4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_ABGR4>
+class TextureDecoder_R4_G4_B4_A4_UNORM_To_ABGR4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_B4_A4_UNORM_To_ABGR4>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override

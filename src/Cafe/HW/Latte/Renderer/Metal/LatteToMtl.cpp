@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Cemu/Logging/CemuLogging.h"
+#include "HW/Latte/Core/LatteTextureLoader.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Metal/MTLPixelFormat.hpp"
 
@@ -122,7 +123,7 @@ void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].textureDecoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].textureDecoder = TextureDecoder_A1_B5_G5_R5_UNORM::getInstance();
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT].textureDecoder = TextureDecoder_R11_G11_B10_FLOAT::getInstance();
-   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].textureDecoder = TextureDecoder_R4G4B4A4_UNORM_To_ABGR4::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].textureDecoder = TextureDecoder_R4_G4_B4_A4_UNORM_To_ABGR4::getInstance();
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM].textureDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM].textureDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB].textureDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
@@ -139,50 +140,46 @@ void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R24_X8_UNORM].textureDecoder = TextureDecoder_R24_X8::getInstance();
    	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::X24_G8_UINT].textureDecoder = TextureDecoder_X24_G8_UINT::getInstance();
 
-    // Depth
-   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].textureDecoder =  TextureDecoder_D24_S8::getInstance();
-   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_FLOAT].textureDecoder =  TextureDecoder_NullData64::getInstance(); // TODO: why?
-   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D32_FLOAT].textureDecoder =  TextureDecoder_R32_FLOAT::getInstance();
-   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D16_UNORM].textureDecoder = TextureDecoder_R16_UNORM::getInstance();
-   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D32_S8_FLOAT].textureDecoder =  TextureDecoder_D32_S8_UINT_X24::getInstance();
-
-    // Color formats
-    for (auto& [fmt, formatInfo] : MTL_COLOR_FORMAT_TABLE)
+    if (!support.m_supportsPacked16BitFormats)
     {
-        switch (formatInfo.pixelFormat)
-        {
-        case MTL::PixelFormatR8Unorm_sRGB:
-            if (!support.m_supportsR8Unorm_sRGB)
-                formatInfo.pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
-            break;
-        case MTL::PixelFormatRG8Unorm_sRGB:
-            if (!support.m_supportsRG8Unorm_sRGB)
-                formatInfo.pixelFormat = MTL::PixelFormatRGBA8Unorm_sRGB;
-            break;
-        case MTL::PixelFormatB5G6R5Unorm:
-        case MTL::PixelFormatA1BGR5Unorm:
-        case MTL::PixelFormatABGR4Unorm:
-        case MTL::PixelFormatBGR5A1Unorm:
-            if (!support.m_supportsPacked16BitFormats)
-                formatInfo.pixelFormat = MTL::PixelFormatRGBA8Unorm;
-            break;
-        default:
-            break;
-        }
+        // B5G6R5Unorm
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].bytesPerBlock = 4;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].textureDecoder = TextureDecoder_R5G6B5_UNORM_To_RGBA8::getInstance();
+
+        // A1BGR5Unorm
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].textureDecoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::getInstance();
+
+        // ABGR4Unorm
+        // TODO: use RG8Unorm
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].bytesPerBlock = 4;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].textureDecoder = TextureDecoder_R4G4_UNORM_To_RGBA8::getInstance();
+
+        // ABGR4Unorm
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].bytesPerBlock = 4;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].textureDecoder = TextureDecoder_R4G4B4A4_UNORM_To_RGBA8::getInstance();
+
+        // BGR5A1Unorm
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].textureDecoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8::getInstance();
     }
 
-    // Depth formats
-    for (auto& [fmt, formatInfo] : MTL_DEPTH_FORMAT_TABLE)
+    // Depth
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].textureDecoder = TextureDecoder_D24_S8::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_FLOAT].textureDecoder = TextureDecoder_NullData64::getInstance(); // TODO: why?
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D32_FLOAT].textureDecoder = TextureDecoder_R32_FLOAT::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D16_UNORM].textureDecoder = TextureDecoder_R16_UNORM::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D32_S8_FLOAT].textureDecoder = TextureDecoder_D32_S8_UINT_X24::getInstance();
+
+    if (!support.m_supportsDepth24Unorm_Stencil8)
     {
-        switch (formatInfo.pixelFormat)
-        {
-        case MTL::PixelFormatDepth24Unorm_Stencil8:
-            if (!support.m_supportsDepth24Unorm_Stencil8)
-                formatInfo.pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
-            break;
-        default:
-            break;
-        }
+        // Depth24Unorm_Stencil8
+        MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
+        // TODO: implement the decoder
+        //MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].textureDecoder = TextureDecoder_D24_S8_To_D32_S8::getInstance();
     }
 }
 
