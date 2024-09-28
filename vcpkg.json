@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
+  "builtin-baseline": "76d153790caf0592fce8fc4484aa6db18c7d00d4",
   "dependencies": [
     "pugixml",
     "zlib",
@@ -12,6 +12,7 @@
     },
     "rapidjson",
     "sdl2",
+    "vulkan-headers",
     "boost-tokenizer",
     "boost-container",
     "boost-program-options",
@@ -60,6 +61,14 @@
     {
       "name": "sdl2",
       "version": "2.30.3"
+    },
+    {
+      "name": "fmt",
+      "version": "10.2.1"
+    },
+    {
+      "name": "openssl",
+      "version": "3.3.0"
     }
   ]
 }
