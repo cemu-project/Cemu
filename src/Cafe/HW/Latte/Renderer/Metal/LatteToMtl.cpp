@@ -6,7 +6,7 @@
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
     {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
 
-	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatRG8Unorm, MetalDataType::FLOAT, 2}},
+	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2}},
@@ -83,8 +83,69 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::D32_FLOAT, {MTL::PixelFormatDepth32Float, MetalDataType::NONE, 4, {1, 1}}},
 };
 
+// TODO: change the decoders when a format is not supported
+// TODO: R10_G10_B10_A2_UINT and R10_G10_B10_A2_SINT
+// TODO: A2_B10_G10_R10_UNORM and A2_B10_G10_R10_UINT
 void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
 {
+    // Texture decoders
+
+    // Color
+    MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT].textureDecoder =  TextureDecoder_R32_G32_B32_A32_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT].textureDecoder = TextureDecoder_R32_G32_B32_A32_UINT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT].textureDecoder = TextureDecoder_R16_G16_B16_A16_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT].textureDecoder = TextureDecoder_R16_G16_B16_A16_UINT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM].textureDecoder = TextureDecoder_R16_G16_B16_A16::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_G16_B16_A16_SNORM].textureDecoder = TextureDecoder_R16_G16_B16_A16::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM].textureDecoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_B8_A8_SNORM].textureDecoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB].textureDecoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_B8_A8_UINT].textureDecoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_B8_A8_SINT].textureDecoder = TextureDecoder_R8_G8_B8_A8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R32_G32_FLOAT].textureDecoder = TextureDecoder_R32_G32_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R32_G32_UINT].textureDecoder = TextureDecoder_R32_G32_UINT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_G16_UNORM].textureDecoder = TextureDecoder_R16_G16::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_G16_FLOAT].textureDecoder = TextureDecoder_R16_G16_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_UNORM].textureDecoder = TextureDecoder_R8_G8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_G8_SNORM].textureDecoder = TextureDecoder_R8_G8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].textureDecoder = TextureDecoder_R4_G4_UNORM_To_RGBA4::getInstance(); // TODO: to ABGR4
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R32_FLOAT].textureDecoder = TextureDecoder_R32_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R32_UINT].textureDecoder = TextureDecoder_R32_UINT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_FLOAT].textureDecoder = TextureDecoder_R16_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_UNORM].textureDecoder = TextureDecoder_R16_UNORM::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_SNORM].textureDecoder = TextureDecoder_R16_SNORM::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R16_UINT].textureDecoder = TextureDecoder_R16_UINT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_UNORM].textureDecoder = TextureDecoder_R8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_SNORM].textureDecoder = TextureDecoder_R8::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R8_UINT].textureDecoder = TextureDecoder_R8_UINT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].textureDecoder = TextureDecoder_R5_G6_B5_swappedRB::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].textureDecoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].textureDecoder = TextureDecoder_A1_B5_G5_R5_UNORM::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT].textureDecoder = TextureDecoder_R11_G11_B10_FLOAT::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].textureDecoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance(); // TODO: ABGR4
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM].textureDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM].textureDecoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB].textureDecoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC1_SRGB].textureDecoder = TextureDecoder_BC1::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC1_UNORM].textureDecoder = TextureDecoder_BC1::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC2_UNORM].textureDecoder = TextureDecoder_BC2::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC2_SRGB].textureDecoder = TextureDecoder_BC2::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC3_UNORM].textureDecoder = TextureDecoder_BC3::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC3_SRGB].textureDecoder = TextureDecoder_BC3::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC4_UNORM].textureDecoder = TextureDecoder_BC4::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC4_SNORM].textureDecoder = TextureDecoder_BC4::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC5_UNORM].textureDecoder = TextureDecoder_BC5::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::BC5_SNORM].textureDecoder = TextureDecoder_BC5::getInstance();
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R24_X8_UNORM].textureDecoder = TextureDecoder_R24_X8::getInstance(); // TODO: correct?
+   	MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::X24_G8_UINT].textureDecoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo: correct?
+
+    // Depth
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].textureDecoder =  TextureDecoder_D24_S8::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_FLOAT].textureDecoder =  TextureDecoder_NullData64::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D32_FLOAT].textureDecoder =  TextureDecoder_R32_FLOAT::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D16_UNORM].textureDecoder = TextureDecoder_R16_UNORM::getInstance();
+   	MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D32_S8_FLOAT].textureDecoder =  TextureDecoder_D32_S8_UINT_X24::getInstance();
+
     // Color formats
     for (auto& [fmt, formatInfo] : MTL_COLOR_FORMAT_TABLE)
     {
@@ -170,136 +231,6 @@ size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint
     const auto& formatInfo = GetMtlPixelFormatInfo(format, isDepth);
 
     return CeilDivide(height, formatInfo.blockTexelSize.y) * bytesPerRow;
-}
-
-// TODO: change the decoders when a format is not supported
-// TODO: R10_G10_B10_A2_UINT and R10_G10_B10_A2_SINT
-// TODO: A2_B10_G10_R10_UNORM and A2_B10_G10_R10_UINT
-TextureDecoder* GetMtlTextureDecoder(Latte::E_GX2SURFFMT format, bool isDepth)
-{
-    if (isDepth)
-    {
-    	switch (format)
-    	{
-    	case Latte::E_GX2SURFFMT::D24_S8_UNORM:
-    		return TextureDecoder_D24_S8::getInstance();
-    	case Latte::E_GX2SURFFMT::D24_S8_FLOAT:
-    		return TextureDecoder_NullData64::getInstance();
-    	case Latte::E_GX2SURFFMT::D32_FLOAT:
-    		return TextureDecoder_R32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::D16_UNORM:
-    		return TextureDecoder_R16_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::D32_S8_FLOAT:
-    		return TextureDecoder_D32_S8_UINT_X24::getInstance();
-     	default:
-    		debug_printf("invalid depth texture format %u\n", (uint32)format);
-    		cemu_assert_debug(false);
-    		return nullptr;
-    	}
-    } else
-    {
-        switch (format)
-        {
-    	case Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT:
-    		return TextureDecoder_R32_G32_B32_A32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT:
-    		return TextureDecoder_R32_G32_B32_A32_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT:
-    		return TextureDecoder_R16_G16_B16_A16_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT:
-    		return TextureDecoder_R16_G16_B16_A16_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM:
-    		return TextureDecoder_R16_G16_B16_A16::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_B16_A16_SNORM:
-    		return TextureDecoder_R16_G16_B16_A16::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_SNORM:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_UINT:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_B8_A8_SINT:
-    		return TextureDecoder_R8_G8_B8_A8::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_G32_FLOAT:
-    		return TextureDecoder_R32_G32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_G32_UINT:
-    		return TextureDecoder_R32_G32_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_UNORM:
-    		return TextureDecoder_R16_G16::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_G16_FLOAT:
-    		return TextureDecoder_R16_G16_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_UNORM:
-    		return TextureDecoder_R8_G8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_G8_SNORM:
-    		return TextureDecoder_R8_G8::getInstance();
-    	case Latte::E_GX2SURFFMT::R4_G4_UNORM:
-    		return TextureDecoder_R4_G4::getInstance(); // TODO: unpack to 8 bits
-    	case Latte::E_GX2SURFFMT::R32_FLOAT:
-    		return TextureDecoder_R32_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R32_UINT:
-    		return TextureDecoder_R32_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_FLOAT:
-    		return TextureDecoder_R16_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_UNORM:
-    		return TextureDecoder_R16_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_SNORM:
-    		return TextureDecoder_R16_SNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R16_UINT:
-    		return TextureDecoder_R16_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_UNORM:
-    		return TextureDecoder_R8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_SNORM:
-    		return TextureDecoder_R8::getInstance();
-    	case Latte::E_GX2SURFFMT::R8_UINT:
-    		return TextureDecoder_R8_UINT::getInstance();
-    	case Latte::E_GX2SURFFMT::R5_G6_B5_UNORM:
-    		return TextureDecoder_R5_G6_B5_swappedRB::getInstance();
-    	case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
-    		return TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
-    	case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
-    		return TextureDecoder_A1_B5_G5_R5_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT:
-    		return TextureDecoder_R11_G11_B10_FLOAT::getInstance();
-    	case Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM:
-    		return TextureDecoder_R4_G4_B4_A4_UNORM::getInstance(); // TODO: ABGR4
-    	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM:
-    		return TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM:
-    		return TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
-    	case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB:
-    		return TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
-    	case Latte::E_GX2SURFFMT::BC1_SRGB:
-    		return TextureDecoder_BC1::getInstance();
-    	case Latte::E_GX2SURFFMT::BC1_UNORM:
-    		return TextureDecoder_BC1::getInstance();
-    	case Latte::E_GX2SURFFMT::BC2_UNORM:
-    		return TextureDecoder_BC2::getInstance();
-    	case Latte::E_GX2SURFFMT::BC2_SRGB:
-    		return TextureDecoder_BC2::getInstance();
-    	case Latte::E_GX2SURFFMT::BC3_UNORM:
-    		return TextureDecoder_BC3::getInstance();
-    	case Latte::E_GX2SURFFMT::BC3_SRGB:
-    		return TextureDecoder_BC3::getInstance();
-    	case Latte::E_GX2SURFFMT::BC4_UNORM:
-    		return TextureDecoder_BC4::getInstance();
-    	case Latte::E_GX2SURFFMT::BC4_SNORM:
-    		return TextureDecoder_BC4::getInstance();
-    	case Latte::E_GX2SURFFMT::BC5_UNORM:
-    		return TextureDecoder_BC5::getInstance();
-    	case Latte::E_GX2SURFFMT::BC5_SNORM:
-    		return TextureDecoder_BC5::getInstance();
-    	case Latte::E_GX2SURFFMT::R24_X8_UNORM:
-    		return TextureDecoder_R24_X8::getInstance(); // TODO: correct?
-    	case Latte::E_GX2SURFFMT::X24_G8_UINT:
-    		return TextureDecoder_X24_G8_UINT::getInstance(); // todo: correct?
-    	default:
-    		debug_printf("invalid color texture format %u\n", (uint32)format);
-    		cemu_assert_debug(false);
-    		return nullptr;
-    	}
-    }
 }
 
 MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode)

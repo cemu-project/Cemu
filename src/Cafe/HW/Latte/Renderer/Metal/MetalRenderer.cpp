@@ -497,7 +497,7 @@ void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
 
 TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height)
 {
-    return GetMtlTextureDecoder(format, isDepth);
+    return GetMtlPixelFormatInfo(format, isDepth).textureDecoder;
 }
 
 void MetalRenderer::texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex)
