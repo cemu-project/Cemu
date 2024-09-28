@@ -632,6 +632,47 @@ public:
 	}
 };
 
+class TextureDecoder_R4_G4_UNORM_To_ABGR4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_ABGR4>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 2;
+	}
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+		{
+			sint32 yc = y;
+			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+			{
+				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
+				sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
+				uint8 v = (*(uint8*)(blockData + 0));
+				uint8 c0 = (v & 0xF);
+				uint8 c1 = (v >> 4) & 0xF;
+				v = (c0 << 4) | c1;
+				*(uint8*)(outputData + pixelOffset + 0) = v;
+				*(uint8*)(outputData + pixelOffset + 1) = 0;
+			}
+		}
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		uint8 v0 = *(blockData + 0);
+		uint8 c0 = (v0 & 0xF);
+		uint8 c1 = (v0 >> 4) & 0xF;
+		c0 = (c0 << 4) | c0;
+		c1 = (c1 << 4) | c1;
+		*(outputPixel + 0) = c0;
+		*(outputPixel + 1) = c1;
+		*(outputPixel + 2) = 0;
+		*(outputPixel + 3) = 255;
+	}
+};
+
 class TextureDecoder_R4G4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_To_RGBA8>
 {
 public:
@@ -723,6 +764,49 @@ public:
 	}
 };
 
+class TextureDecoder_R4G4B4A4_UNORM_To_ABGR4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_ABGR4>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 2;
+	}
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+		{
+			sint32 yc = y;
+			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+			{
+				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
+				sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
+				uint8 v0 = (*(uint8*)(blockData + 0));
+				uint8 v1 = (*(uint8*)(blockData + 1));
+				*(uint8*)(outputData + pixelOffset + 0) = v0; // todo: Verify
+				*(uint8*)(outputData + pixelOffset + 1) = v1; // todo: Verify
+			}
+		}
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		uint8 v0 = *(blockData + 0);
+		uint8 v1 = *(blockData + 1);
+		uint8 c0 = (v0 & 0xF);
+		uint8 c1 = (v0 >> 4) & 0xF;
+		uint8 c2 = (v1 & 0xF);
+		uint8 c3 = (v1 >> 4) & 0xF;
+		c0 = (c0 << 4) | c0;
+		c1 = (c1 << 4) | c1;
+		c2 = (c2 << 4) | c2;
+		c3 = (c3 << 4) | c3;
+		*(outputPixel + 0) = c0;
+		*(outputPixel + 1) = c1;
+		*(outputPixel + 2) = c2;
+		*(outputPixel + 3) = c3;
+	}
+};
 
 class TextureDecoder_R4G4B4A4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_RGBA8>
 {
