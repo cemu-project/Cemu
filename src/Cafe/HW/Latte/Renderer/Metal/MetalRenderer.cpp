@@ -120,6 +120,7 @@ MetalRenderer::MetalRenderer()
     }
 
     // Present pipeline
+    /*
     MTL::Function* fullscreenVertexFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
     MTL::Function* presentFragmentFunction = utilityLibrary->newFunction(ToNSString("fragmentPresent"));
 
@@ -153,6 +154,7 @@ MetalRenderer::MetalRenderer()
         debug_printf("failed to create sRGB present pipeline (error: %s)\n", error->localizedDescription()->utf8String());
         error->release();
     }
+    */
 
     // Copy texture pipelines
     auto copyTextureToColorPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
@@ -174,8 +176,8 @@ MetalRenderer::~MetalRenderer()
     //delete m_copyTextureToTexturePipeline;
     delete m_restrideBufferPipeline;
 
-    m_presentPipelineLinear->release();
-    m_presentPipelineSRGB->release();
+    //m_presentPipelineLinear->release();
+    //m_presentPipelineSRGB->release();
 
     delete m_outputShaderCache;
     delete m_pipelineCache;

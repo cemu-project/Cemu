@@ -467,8 +467,8 @@ private:
 	class MetalSamplerCache* m_samplerCache;
 
 	// Pipelines
-	MTL::RenderPipelineState* m_presentPipelineLinear;
-	MTL::RenderPipelineState* m_presentPipelineSRGB;
+	//MTL::RenderPipelineState* m_presentPipelineLinear;
+	//MTL::RenderPipelineState* m_presentPipelineSRGB;
 
 	// Hybrid pipelines
 	class MetalVoidVertexPipeline* m_copyBufferToBufferPipeline;
