@@ -9,7 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalDepthStencilCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalSamplerCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalQuery.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/UtilityShaderSource.h"
@@ -159,9 +159,9 @@ MetalRenderer::MetalRenderer()
 
     // Hybrid pipelines
     if (m_isAppleGPU)
-        m_copyBufferToBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
-    //m_copyTextureToTexturePipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
-    m_restrideBufferPipeline = new MetalHybridComputePipeline(this, utilityLibrary, "vertexRestrideBuffer");
+        m_copyBufferToBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
+    //m_copyTextureToTexturePipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
+    m_restrideBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
 
     m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);

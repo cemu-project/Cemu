@@ -471,9 +471,9 @@ private:
 	MTL::RenderPipelineState* m_presentPipelineSRGB;
 
 	// Hybrid pipelines
-	class MetalHybridComputePipeline* m_copyBufferToBufferPipeline;
-	//class MetalHybridComputePipeline* m_copyTextureToTexturePipeline;
-	class MetalHybridComputePipeline* m_restrideBufferPipeline;
+	class MetalVoidVertexPipeline* m_copyBufferToBufferPipeline;
+	//class MetalVoidVertexPipeline* m_copyTextureToTexturePipeline;
+	class MetalVoidVertexPipeline* m_restrideBufferPipeline;
 
 	// Resources
 	MTL::SamplerState* m_nearestSampler;

@@ -1,6 +1,6 @@
-#include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
 
-MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlRenderer, MTL::Library* library, const std::string& vertexFunctionName/*, const std::string& kernelFunctionName*/)
+MetalVoidVertexPipeline::MetalVoidVertexPipeline(class MetalRenderer* mtlRenderer, MTL::Library* library, const std::string& vertexFunctionName)
 {
     // Render pipeline state
     MTL::Function* vertexFunction = library->newFunction(ToNSString(vertexFunctionName));
@@ -18,12 +18,9 @@ MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlR
         cemuLog_log(LogType::Force, "error creating hybrid render pipeline state: {}", error->localizedDescription()->utf8String());
         error->release();
     }
-
-    // Compute pipeline state
 }
 
-MetalHybridComputePipeline::~MetalHybridComputePipeline()
+MetalVoidVertexPipeline::~MetalVoidVertexPipeline()
 {
     m_renderPipelineState->release();
-    //m_computePipelineState->release();
 }

@@ -1,6 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalHybridComputePipeline.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
 #include "Common/precompiled.h"
 #include "HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Metal/MTLResource.hpp"
