@@ -934,7 +934,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	{
 		sint32 scaling_filter = downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
 
-		if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
+		if (g_renderer->GetType() == RendererAPI::Vulkan)
 		{
 			// force linear or nearest neighbor filter
 			if(scaling_filter != kLinearFilter && scaling_filter != kNearestNeighborFilter)
@@ -978,8 +978,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 			filter = LatteTextureView::MagFilter::kNearestNeighbor;
 		}
 	}
-	// HACK: comment out the assert
-	//cemu_assert(shader);
+	cemu_assert(shader);
 	g_renderer->DrawBackbufferQuad(textureView, shader, filter==LatteTextureView::MagFilter::kLinear, imageX, imageY, imageWidth, imageHeight, isPadView, clearBackground);
 	g_renderer->HandleScreenshotRequest(textureView, isPadView);
 	if (!g_renderer->ImguiBegin(!isPadView))

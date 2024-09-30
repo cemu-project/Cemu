@@ -310,6 +310,7 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     else if (shader == RendererOutputShader::s_copy_shader_ud) shaderIndex = 3;
     else if (shader == RendererOutputShader::s_bicubic_shader_ud) shaderIndex = 4;
     else if (shader == RendererOutputShader::s_hermit_shader_ud) shaderIndex = 5;
+    printf("Shader index: %u\n", shaderIndex);
 
     uint8 shaderType = shaderIndex % 3;
 
@@ -320,6 +321,17 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     renderCommandEncoder->setRenderPipelineState(renderPipelineState);
     renderCommandEncoder->setFragmentTexture(presentTexture, 0);
     renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), 0);
+
+    // Set uniforms
+    float outputSize[2] = {(float)imageWidth, (float)imageHeight};
+    switch (shaderType)
+    {
+    case 2:
+        renderCommandEncoder->setFragmentBytes(outputSize, sizeof(outputSize), 0);
+        break;
+    default:
+        break;
+    }
 
     renderCommandEncoder->setViewport(MTL::Viewport{(double)imageX, (double)imageY, (double)imageWidth, (double)imageHeight, 0.0, 1.0});
     renderCommandEncoder->setScissorRect(MTL::ScissorRect{(uint32)imageX, (uint32)imageY, (uint32)imageWidth, (uint32)imageHeight});

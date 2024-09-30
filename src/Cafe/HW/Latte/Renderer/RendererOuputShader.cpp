@@ -138,7 +138,8 @@ struct VertexOut {
     float2 uv;
 };
 
-fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[texture(0)]], sampler samplr [[sampler(0)]], constant float2& textureSrcResolution [[buffer(0)]]) {
+fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[texture(0)]], sampler samplr [[sampler(0)]]) {
+    float2 textureSrcResolution = float2(textureSrc.get_width(), textureSrc.get_height());
 	return float4(bcFilter(textureSrc, samplr, in.uv * textureSrcResolution, float2(1.0, 1.0) / textureSrcResolution).rgb, 1.0);
 }
 )";
