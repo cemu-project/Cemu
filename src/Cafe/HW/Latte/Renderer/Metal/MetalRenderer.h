@@ -4,6 +4,7 @@
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 
 struct MetalBufferAllocation
 {
@@ -460,6 +461,7 @@ private:
 
 	// Managers and caches
 	class MetalMemoryManager* m_memoryManager;
+	class MetalOutputShaderCache* m_outputShaderCache;
 	class MetalPipelineCache* m_pipelineCache;
 	class MetalDepthStencilCache* m_depthStencilCache;
 	class MetalSamplerCache* m_samplerCache;

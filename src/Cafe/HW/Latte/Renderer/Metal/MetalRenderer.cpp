@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalDepthStencilCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalSamplerCache.h"
@@ -81,6 +82,7 @@ MetalRenderer::MetalRenderer()
     textureDescriptor->release();
 
     m_memoryManager = new MetalMemoryManager(this);
+    m_outputShaderCache = new MetalOutputShaderCache(this);
     m_pipelineCache = new MetalPipelineCache(this);
     m_depthStencilCache = new MetalDepthStencilCache(this);
     m_samplerCache = new MetalSamplerCache(this);
@@ -174,6 +176,7 @@ MetalRenderer::~MetalRenderer()
     m_presentPipelineLinear->release();
     m_presentPipelineSRGB->release();
 
+    delete m_outputShaderCache;
     delete m_pipelineCache;
     delete m_depthStencilCache;
     delete m_samplerCache;
@@ -276,7 +279,6 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     m_performanceMonitor.ResetPerFrameData();
 }
 
-// TODO: use `shader` for drawing
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)
@@ -299,21 +301,20 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     renderPassDescriptor->release();
 
     // Get a render pipeline
-    auto vertexShaderMtl = static_cast<RendererShaderMtl*>(shader->GetVertexShader())->GetFunction();
-    auto fragmentShaderMtl = static_cast<RendererShaderMtl*>(shader->GetFragmentShader())->GetFunction();
 
-    auto renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
-    renderPipelineDescriptor->setVertexFunction(vertexShaderMtl);
-    renderPipelineDescriptor->setFragmentFunction(fragmentShaderMtl);
-    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_state.m_usesSRGB ? MTL::PixelFormatBGRA8Unorm_sRGB : MTL::PixelFormatBGRA8Unorm);
+    // Find out which shader we are using
+    uint8 shaderIndex = 255;
+    if (shader == RendererOutputShader::s_copy_shader) shaderIndex = 0;
+    else if (shader == RendererOutputShader::s_bicubic_shader) shaderIndex = 1;
+    else if (shader == RendererOutputShader::s_hermit_shader) shaderIndex = 2;
+    else if (shader == RendererOutputShader::s_copy_shader_ud) shaderIndex = 3;
+    else if (shader == RendererOutputShader::s_bicubic_shader_ud) shaderIndex = 4;
+    else if (shader == RendererOutputShader::s_hermit_shader_ud) shaderIndex = 5;
 
-    NS::Error* error = nullptr;
-    auto renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
-    if (error)
-    {
-        printf("AAA: %s\n", error->localizedDescription()->utf8String());
-        error->release();
-    }
+    uint8 shaderType = shaderIndex % 3;
+
+    // Get the render pipeline state
+    auto renderPipelineState = m_outputShaderCache->GetPipeline(shader, shaderIndex, m_state.m_usesSRGB);
 
     // Draw to Metal layer
     renderCommandEncoder->setRenderPipelineState(renderPipelineState);
