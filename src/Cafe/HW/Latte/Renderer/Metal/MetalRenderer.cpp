@@ -20,6 +20,7 @@
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "HW/Latte/Renderer/Renderer.h"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -297,8 +298,25 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
 
+    // Get a render pipeline
+    auto vertexShaderMtl = static_cast<RendererShaderMtl*>(shader->GetVertexShader())->GetFunction();
+    auto fragmentShaderMtl = static_cast<RendererShaderMtl*>(shader->GetFragmentShader())->GetFunction();
+
+    auto renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+    renderPipelineDescriptor->setVertexFunction(vertexShaderMtl);
+    renderPipelineDescriptor->setFragmentFunction(fragmentShaderMtl);
+    renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(m_state.m_usesSRGB ? MTL::PixelFormatBGRA8Unorm_sRGB : MTL::PixelFormatBGRA8Unorm);
+
+    NS::Error* error = nullptr;
+    auto renderPipelineState = m_device->newRenderPipelineState(renderPipelineDescriptor, &error);
+    if (error)
+    {
+        printf("AAA: %s\n", error->localizedDescription()->utf8String());
+        error->release();
+    }
+
     // Draw to Metal layer
-    renderCommandEncoder->setRenderPipelineState(m_state.m_usesSRGB ? m_presentPipelineSRGB : m_presentPipelineLinear);
+    renderCommandEncoder->setRenderPipelineState(renderPipelineState);
     renderCommandEncoder->setFragmentTexture(presentTexture, 0);
     renderCommandEncoder->setFragmentSamplerState((useLinearTexFilter ? m_linearSampler : m_nearestSampler), 0);
 

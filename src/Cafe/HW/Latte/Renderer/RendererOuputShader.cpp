@@ -20,6 +20,19 @@ void main()
 }
 )";
 
+const std::string RendererOutputShader::s_copy_shader_source_mtl =
+R"(#include <metal_stdlib>
+using namespace metal;
+
+struct VertexOut {
+    float2 uv;
+};
+
+fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[texture(0)]], sampler samplr [[sampler(0)]]) {
+	return float4(textureSrc.sample(samplr, in.uv).rgb, 1.0);
+}
+)";
+
 const std::string RendererOutputShader::s_bicubic_shader_source =
 R"(
 #version 420
@@ -77,6 +90,56 @@ vec4 bcFilter(vec2 texcoord, vec2 texscale)
 
 void main(){
 	colorOut0 = vec4(bcFilter(passUV*textureSrcResolution, vec2(1.0,1.0)/textureSrcResolution).rgb,1.0);
+}
+)";
+
+const std::string RendererOutputShader::s_bicubic_shader_source_mtl =
+R"(#include <metal_stdlib>
+using namespace metal;
+
+float4 cubic(float x) {
+	float x2 = x * x;
+	float x3 = x2 * x;
+	float4 w;
+	w.x = -x3 + 3 * x2 - 3 * x + 1;
+	w.y = 3 * x3 - 6 * x2 + 4;
+	w.z = -3 * x3 + 3 * x2 + 3 * x + 1;
+	w.w = x3;
+	return w / 6.0;
+}
+
+float4 bcFilter(texture2d<float> textureSrc, sampler samplr, float2 texcoord, float2 texscale) {
+	float fx = fract(texcoord.x);
+	float fy = fract(texcoord.y);
+	texcoord.x -= fx;
+	texcoord.y -= fy;
+
+	float4 xcubic = cubic(fx);
+	float4 ycubic = cubic(fy);
+
+	float4 c = float4(texcoord.x - 0.5, texcoord.x + 1.5, texcoord.y - 0.5, texcoord.y + 1.5);
+	float4 s = float4(xcubic.x + xcubic.y, xcubic.z + xcubic.w, ycubic.x + ycubic.y, ycubic.z + ycubic.w);
+	float4 offset = c + float4(xcubic.y, xcubic.w, ycubic.y, ycubic.w) / s;
+
+	float4 sample0 = textureSrc.sample(samplr, float2(offset.x, offset.z) * texscale);
+	float4 sample1 = textureSrc.sample(samplr, float2(offset.y, offset.z) * texscale);
+	float4 sample2 = textureSrc.sample(samplr, float2(offset.x, offset.w) * texscale);
+	float4 sample3 = textureSrc.sample(samplr, float2(offset.y, offset.w) * texscale);
+
+	float sx = s.x / (s.x + s.y);
+	float sy = s.z / (s.z + s.w);
+
+	return mix(
+		mix(sample3, sample2, sx),
+		mix(sample1, sample0, sx), sy);
+}
+
+struct VertexOut {
+    float2 uv;
+};
+
+fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[texture(0)]], sampler samplr [[sampler(0)]], constant float2& textureSrcResolution [[buffer(0)]]) {
+	return float4(bcFilter(textureSrc, samplr, in.uv * textureSrcResolution, float2(1.0, 1.0) / textureSrcResolution).rgb, 1.0);
 }
 )";
 
@@ -144,6 +207,70 @@ vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 void main(){
 	vec4 texelSize = vec4( 1.0 / outputResolution.xy, outputResolution.xy);
 	colorOut0 = vec4(BicubicHermiteTexture(passUV, texelSize), 1.0);
+}
+)";
+
+const std::string RendererOutputShader::s_hermite_shader_source_mtl =
+R"(#include <metal_stdlib>
+using namespace metal;
+
+// https://www.shadertoy.com/view/MllSzX
+
+float3 CubicHermite(float3 A, float3 B, float3 C, float3 D, float t) {
+	float t2 = t*t;
+    float t3 = t*t*t;
+    float3 a = -A/2.0 + (3.0*B)/2.0 - (3.0*C)/2.0 + D/2.0;
+    float3 b = A - (5.0*B)/2.0 + 2.0*C - D / 2.0;
+    float3 c = -A/2.0 + C/2.0;
+   	float3 d = B;
+
+    return a*t3 + b*t2 + c*t + d;
+}
+
+
+float3 BicubicHermiteTexture(texture2d<float> textureSrc, sampler samplr, float2 uv, float4 texelSize) {
+	float2 pixel = uv*texelSize.zw + 0.5;
+	float2 frac = fract(pixel);
+    pixel = floor(pixel) / texelSize.zw - float2(texelSize.xy/2.0);
+
+	float4 doubleSize = texelSize*texelSize;
+
+	float3 C00 = textureSrc.sample(samplr, pixel + float2(-texelSize.x ,-texelSize.y)).rgb;
+    float3 C10 = textureSrc.sample(samplr, pixel + float2( 0.0        ,-texelSize.y)).rgb;
+    float3 C20 = textureSrc.sample(samplr, pixel + float2( texelSize.x ,-texelSize.y)).rgb;
+    float3 C30 = textureSrc.sample(samplr, pixel + float2( doubleSize.x,-texelSize.y)).rgb;
+
+    float3 C01 = textureSrc.sample(samplr, pixel + float2(-texelSize.x , 0.0)).rgb;
+    float3 C11 = textureSrc.sample(samplr, pixel + float2( 0.0        , 0.0)).rgb;
+    float3 C21 = textureSrc.sample(samplr, pixel + float2( texelSize.x , 0.0)).rgb;
+    float3 C31 = textureSrc.sample(samplr, pixel + float2( doubleSize.x, 0.0)).rgb;
+
+    float3 C02 = textureSrc.sample(samplr, pixel + float2(-texelSize.x , texelSize.y)).rgb;
+    float3 C12 = textureSrc.sample(samplr, pixel + float2( 0.0        , texelSize.y)).rgb;
+    float3 C22 = textureSrc.sample(samplr, pixel + float2( texelSize.x , texelSize.y)).rgb;
+    float3 C32 = textureSrc.sample(samplr, pixel + float2( doubleSize.x, texelSize.y)).rgb;
+
+    float3 C03 = textureSrc.sample(samplr, pixel + float2(-texelSize.x , doubleSize.y)).rgb;
+    float3 C13 = textureSrc.sample(samplr, pixel + float2( 0.0        , doubleSize.y)).rgb;
+    float3 C23 = textureSrc.sample(samplr, pixel + float2( texelSize.x , doubleSize.y)).rgb;
+    float3 C33 = textureSrc.sample(samplr, pixel + float2( doubleSize.x, doubleSize.y)).rgb;
+
+    float3 CP0X = CubicHermite(C00, C10, C20, C30, frac.x);
+    float3 CP1X = CubicHermite(C01, C11, C21, C31, frac.x);
+    float3 CP2X = CubicHermite(C02, C12, C22, C32, frac.x);
+    float3 CP3X = CubicHermite(C03, C13, C23, C33, frac.x);
+
+    return CubicHermite(CP0X, CP1X, CP2X, CP3X, frac.y);
+}
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[texture(0)]], sampler samplr [[sampler(0)]], constant float2& outputResolution [[buffer(0)]]) {
+	float4 texelSize = float4(1.0 / outputResolution.xy, outputResolution.xy);
+	return float4(BicubicHermiteTexture(textureSrc, samplr, in.uv, texelSize), 1.0);
 }
 )";
 
@@ -341,6 +468,45 @@ void main(){
 )";
 		return vertex_source.str();
 }
+
+std::string RendererOutputShader::GetMetalVertexSource(bool render_upside_down)
+{
+	// vertex shader
+	std::ostringstream vertex_source;
+		vertex_source <<
+			R"(#include <metal_stdlib>
+using namespace metal;
+
+struct VertexOut {
+    float4 position [[position]];
+    float2 uv;
+};
+
+vertex VertexOut main0(ushort vid [[vertex_id]]) {
+	VertexOut out;
+	float2 pos;
+	if (vid == 0) pos = float2(-1.0, -3.0);
+	else if (vid == 1) pos = float2(-1.0, 1.0);
+	else if (vid == 2) pos = float2(3.0, 1.0);
+	out.uv = pos * 0.5 + 0.5;
+	out.uv.y = 1.0 - out.uv.y;
+)";
+
+		if (render_upside_down)
+		{
+			vertex_source <<
+				R"(	pos.y = -pos.y;
+	)";
+		}
+
+		vertex_source <<
+			R"(	out.position = float4(pos, 0.0, 1.0);
+	return out;
+}
+)";
+		return vertex_source.str();
+}
+
 void RendererOutputShader::InitializeStatic()
 {
 	std::string vertex_source, vertex_source_ud;
@@ -372,7 +538,19 @@ void RendererOutputShader::InitializeStatic()
 
 		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
 		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);*/
-	} else {
-	    cemuLog_logDebug(LogType::Force, "Output shader not implemented for Metal");
+	}
+	else
+	{
+		vertex_source = GetMetalVertexSource(false);
+		vertex_source_ud = GetMetalVertexSource(true);
+
+		s_copy_shader = new RendererOutputShader(vertex_source, s_copy_shader_source_mtl);
+		s_copy_shader_ud = new RendererOutputShader(vertex_source_ud, s_copy_shader_source_mtl);
+
+		s_bicubic_shader = new RendererOutputShader(vertex_source, s_bicubic_shader_source_mtl);
+		s_bicubic_shader_ud = new RendererOutputShader(vertex_source_ud, s_bicubic_shader_source_mtl);
+
+		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source_mtl);
+		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source_mtl);
 	}
 }
