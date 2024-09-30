@@ -161,12 +161,12 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			};
 
 			const int topflag = wxALIGN_CENTER_VERTICAL | wxALL;
-			m_save_window_position_size = new wxCheckBox(box, wxID_ANY, _("Remember main window position and size"));
+			m_save_window_position_size = new wxCheckBox(box, wxID_ANY, _("Remember main window position/size"));
 			m_save_window_position_size->SetToolTip(_("Restores the last known window position and size when starting Cemu"));
 			second_row->Add(m_save_window_position_size, 0, topflag, 5);
 			CountRowElement();
 			//second_row->AddSpacer(10);
-			m_save_padwindow_position_size = new wxCheckBox(box, wxID_ANY, _("Remember pad window position and size"));
+			m_save_padwindow_position_size = new wxCheckBox(box, wxID_ANY, _("Remember pad window position/size"));
 			m_save_padwindow_position_size->SetToolTip(_("Restores the last known pad window position and size when opening it"));
 			second_row->Add(m_save_padwindow_position_size, 0, topflag, 5);
 			CountRowElement();
