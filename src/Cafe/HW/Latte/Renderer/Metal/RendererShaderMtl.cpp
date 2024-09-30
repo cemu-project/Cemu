@@ -20,7 +20,7 @@ RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), nullptr, &error);
 	if (error)
     {
-        printf("failed to create library (error: %s) -> source:\n%s\n", error->localizedDescription()->utf8String(), mslCode.c_str());
+        cemuLog_log(LogType::Force, "failed to create library: {}", error->localizedDescription()->utf8String());
         error->release();
         return;
     }

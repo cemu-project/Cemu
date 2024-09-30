@@ -15,7 +15,7 @@ MetalHybridComputePipeline::MetalHybridComputePipeline(class MetalRenderer* mtlR
     vertexFunction->release();
     if (error)
     {
-        printf("error creating hybrid render pipeline state: %s\n", error->localizedDescription()->utf8String());
+        cemuLog_log(LogType::Force, "error creating hybrid render pipeline state: {}", error->localizedDescription()->utf8String());
         error->release();
     }
 

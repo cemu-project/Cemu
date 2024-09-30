@@ -17,6 +17,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
+#include "Cemu/Logging/CemuLogging.h"
 #include "HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
@@ -938,12 +939,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
     LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-    // TODO: is this even needed? Also, should go to draw_beginSequence
-    if (!vertexShader || !static_cast<RendererShaderMtl*>(vertexShader->shader)->GetFunction())
-    {
-        printf("no vertex function, skipping draw\n");
-        return;
-    }
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
     bool neverSkipAccurateBarrier = false;

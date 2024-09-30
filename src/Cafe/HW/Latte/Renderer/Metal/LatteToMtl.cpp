@@ -310,7 +310,7 @@ MTL::VertexFormat GetMtlVertexFormat(uint8 format)
 	case FMT_2_10_10_10:
 		return MTL::VertexFormatUInt; // verified to match OpenGL
 	default:
-		printf("unsupported vertex format %u\n", (uint32)format);
+		cemuLog_log(LogType::Force, "unsupported vertex format {}", (uint32)format);
 		assert_dbg();
 		return MTL::VertexFormatInvalid;
 	}
