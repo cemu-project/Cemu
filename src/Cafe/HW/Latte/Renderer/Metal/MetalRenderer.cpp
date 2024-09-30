@@ -310,7 +310,6 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     else if (shader == RendererOutputShader::s_copy_shader_ud) shaderIndex = 3;
     else if (shader == RendererOutputShader::s_bicubic_shader_ud) shaderIndex = 4;
     else if (shader == RendererOutputShader::s_hermit_shader_ud) shaderIndex = 5;
-    printf("Shader index: %u\n", shaderIndex);
 
     uint8 shaderType = shaderIndex % 3;
 
