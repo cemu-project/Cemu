@@ -117,7 +117,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 {
     cemu_assert_debug(!m_bufferCache);
 
-    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModeShared);
+    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModePrivate);
 #ifdef CEMU_DEBUG_ASSERT
     m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
 #endif
