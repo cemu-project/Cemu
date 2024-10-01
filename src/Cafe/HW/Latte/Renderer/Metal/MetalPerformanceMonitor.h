@@ -8,7 +8,8 @@ public:
     // Per frame data
     uint32 m_renderPasses = 0;
     uint32 m_clears = 0;
-    uint32 m_vertexBufferRestrides = 0;
+    uint32 m_manualVertexFetchDraws = 0;
+    uint32 m_meshDraws = 0;
     uint32 m_triangleFans = 0;
 
     MetalPerformanceMonitor() = default;
@@ -18,7 +19,8 @@ public:
     {
         m_renderPasses = 0;
         m_clears = 0;
-        m_vertexBufferRestrides = 0;
+        m_manualVertexFetchDraws = 0;
+        m_meshDraws = 0;
         m_triangleFans = 0;
     }
 };

@@ -475,20 +475,20 @@ void MetalRenderer::DeleteFontTextures()
 void MetalRenderer::AppendOverlayDebugInfo()
 {
     ImGui::Text("--- GPU info ---");
-    ImGui::Text("Is Apple GPU            %s", (m_isAppleGPU ? "yes" : "no"));
-    ImGui::Text("Has unified memory      %s", (m_hasUnifiedMemory ? "yes" : "no"));
-    ImGui::Text("Supports Metal3         %s", (m_supportsMetal3 ? "yes" : "no"));
+    ImGui::Text("Is Apple GPU              %s", (m_isAppleGPU ? "yes" : "no"));
+    ImGui::Text("Has unified memory        %s", (m_hasUnifiedMemory ? "yes" : "no"));
+    ImGui::Text("Supports Metal3           %s", (m_supportsMetal3 ? "yes" : "no"));
 
     ImGui::Text("--- Metal info ---");
-    ImGui::Text("Render pipeline states  %zu", m_pipelineCache->GetPipelineCacheSize());
-    ImGui::Text("Buffer allocator memory %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
+    ImGui::Text("Render pipeline states    %zu", m_pipelineCache->GetPipelineCacheSize());
+    ImGui::Text("Buffer allocator memory   %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
-    ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
-    ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
-    ImGui::Text("Clears                  %u", m_performanceMonitor.m_clears);
-    ImGui::Text("Vertex buffer restrides %u", m_performanceMonitor.m_vertexBufferRestrides);
-    ImGui::Text("Triangle fans           %u", m_performanceMonitor.m_triangleFans);
+    ImGui::Text("Command buffers           %zu", m_commandBuffers.size());
+    ImGui::Text("Render passes             %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Clears                    %u", m_performanceMonitor.m_clears);
+    ImGui::Text("Manual vertex fetch draws %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
+    ImGui::Text("Triangle fans             %u", m_performanceMonitor.m_triangleFans);
 }
 
 // TODO: halfZ
@@ -975,7 +975,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
     bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
-    //bool fetchVertexManually = (usesGeometryShader || fetchShader->mtlFetchVertexManually);
+    bool fetchVertexManually = (usesGeometryShader || fetchShader->mtlFetchVertexManually);
 
 	// Index buffer
 	Renderer::INDEX_TYPE hostIndexType;
@@ -1299,6 +1299,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteStreamout_FinishDrawcall(false);
 
 	// Debug
+	if (fetchVertexManually)
+	    m_performanceMonitor.m_manualVertexFetchDraws++;
+	if (usesGeometryShader)
+	    m_performanceMonitor.m_meshDraws++;
 	if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN)
 	    m_performanceMonitor.m_triangleFans++;
 
