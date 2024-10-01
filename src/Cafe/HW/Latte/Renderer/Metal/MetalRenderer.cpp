@@ -163,10 +163,10 @@ MetalRenderer::MetalRenderer()
     if (m_isAppleGPU)
         m_copyBufferToBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
     //m_copyTextureToTexturePipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
-    m_restrideBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexRestrideBuffer");
+    //m_restrideBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
 
-    m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);
+    //m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);
 }
 
 MetalRenderer::~MetalRenderer()
@@ -174,7 +174,7 @@ MetalRenderer::~MetalRenderer()
     if (m_isAppleGPU)
         delete m_copyBufferToBufferPipeline;
     //delete m_copyTextureToTexturePipeline;
-    delete m_restrideBufferPipeline;
+    //delete m_restrideBufferPipeline;
 
     //m_presentPipelineLinear->release();
     //m_presentPipelineSRGB->release();
@@ -831,16 +831,16 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 	if (buffer.offset == offset && buffer.size == size)
 		return;
 
-	if (buffer.offset != INVALID_OFFSET)
-	{
-	    m_memoryManager->UntrackVertexBuffer(bufferIndex);
-	}
+	//if (buffer.offset != INVALID_OFFSET)
+	//{
+	//    m_memoryManager->UntrackVertexBuffer(bufferIndex);
+	//}
 
 	buffer.offset = offset;
 	buffer.size = size;
-	buffer.restrideInfo = {};
+	//buffer.restrideInfo = {};
 
-	m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, &buffer.restrideInfo);
+	//m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, &buffer.restrideInfo);
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
@@ -1169,12 +1169,35 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Resources
 
 	// Vertex buffers
-	std::vector<MTL::Resource*> barrierBuffers;
+	//std::vector<MTL::Resource*> barrierBuffers;
     for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
     {
         auto& vertexBufferRange = m_state.m_vertexBuffers[i];
         if (vertexBufferRange.offset != INVALID_OFFSET)
         {
+            /*
+            MTL::Buffer* buffer;
+            size_t offset;
+
+            // Restride
+            if (usesGeometryShader)
+            {
+                // Object shaders don't need restriding, since the attributes are fetched in the shader
+                buffer = m_memoryManager->GetBufferCache();
+                offset = m_state.m_vertexBuffers[i].offset;
+            }
+            else
+            {
+                uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + i * 7;
+                uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+                auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride, barrierBuffers);
+
+                buffer = restridedBuffer.buffer;
+                offset = restridedBuffer.offset;
+            }
+            */
+
             MTL::Buffer* buffer = m_memoryManager->GetBufferCache();
             size_t offset = m_state.m_vertexBuffers[i].offset;
 
@@ -1183,10 +1206,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         }
     }
 
-    if (!barrierBuffers.empty())
-    {
-        renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
-    }
+    //if (!barrierBuffers.empty())
+    //{
+    //    renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
+    //}
 
 	// Render pipeline state
 	MTL::RenderPipelineState* renderPipelineState;

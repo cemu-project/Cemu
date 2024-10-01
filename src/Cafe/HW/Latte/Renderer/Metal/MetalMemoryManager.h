@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalBufferAllocator.h"
-#include "Metal/MTLResource.hpp"
 
+/*
 struct MetalRestridedBufferRange
 {
     MTL::Buffer* buffer;
@@ -54,18 +54,21 @@ private:
 
     void MemoryRangeChanged(size_t offset, size_t size);
 };
+*/
 
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer), m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer)/*, m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator)*/ {}
     ~MetalMemoryManager();
 
     // Pipelines
+    /*
     void SetRestrideBufferPipeline(class MetalVoidVertexPipeline* restrideBufferPipeline)
     {
         m_vertexBufferCache.SetRestrideBufferPipeline(restrideBufferPipeline);
     }
+    */
 
     MetalDefaultBufferAllocator& GetBufferAllocator()
     {
@@ -95,6 +98,7 @@ public:
     void CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size);
 
     // Vertex buffer cache
+    /*
     void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo* restrideInfo)
     {
         m_vertexBufferCache.TrackVertexBuffer(bufferIndex, offset, size, restrideInfo);
@@ -109,6 +113,7 @@ public:
     {
         return m_vertexBufferCache.RestrideBufferIfNeeded(m_bufferCache, bufferIndex, stride, barrierBuffers);
     }
+    */
 
 private:
     class MetalRenderer* m_mtlr;
@@ -118,7 +123,7 @@ private:
     MetalDefaultBufferAllocator m_bufferAllocator;
     MetalDefaultBufferAllocator m_framePersistentBufferAllocator;
     MetalTemporaryBufferAllocator m_tempBufferAllocator;
-    MetalVertexBufferCache m_vertexBufferCache;
+    //MetalVertexBufferCache m_vertexBufferCache;
 
     MTL::Buffer* m_bufferCache = nullptr;
 };
