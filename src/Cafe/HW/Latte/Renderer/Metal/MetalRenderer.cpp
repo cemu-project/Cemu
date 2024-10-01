@@ -18,11 +18,11 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
-#include "HW/Latte/Core/LatteConst.h"
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
-#include "HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLRenderPipeline.hpp"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
+#include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -975,6 +975,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
     bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+    //bool fetchVertexManually = (usesGeometryShader || fetchShader->mtlFetchVertexManually);
 
 	// Index buffer
 	Renderer::INDEX_TYPE hostIndexType;
@@ -1174,26 +1175,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
         auto& vertexBufferRange = m_state.m_vertexBuffers[i];
         if (vertexBufferRange.offset != INVALID_OFFSET)
         {
-            MTL::Buffer* buffer;
-            size_t offset;
-
-            // Restride
-            if (usesGeometryShader)
-            {
-                // Object shaders don't need restriding, since the attributes are fetched in the shader
-                buffer = m_memoryManager->GetBufferCache();
-                offset = m_state.m_vertexBuffers[i].offset;
-            }
-            else
-            {
-                uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + i * 7;
-                uint32 bufferStride = (LatteGPUState.contextNew.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
-                auto restridedBuffer = m_memoryManager->RestrideBufferIfNeeded(i, bufferStride, barrierBuffers);
-
-                buffer = restridedBuffer.buffer;
-                offset = restridedBuffer.offset;
-            }
+            MTL::Buffer* buffer = m_memoryManager->GetBufferCache();
+            size_t offset = m_state.m_vertexBuffers[i].offset;
 
             // Bind
             SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));

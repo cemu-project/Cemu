@@ -47,16 +47,15 @@ struct LatteFetchShader
 	uint64 vkPipelineHashFragment{}; // hash of all fetch shader state that influences the Vulkan graphics pipeline
 
 	// Metal
-	uint64 mtlShaderHashObject{};
+	bool mtlFetchVertexManually{};
 
 	// cache info
 	CacheHash m_cacheHash{};
 	bool m_isRegistered{}; // if true, fetch shader is referenced by cache (RegisterInCache() succeeded)
 
-
 	void CalculateFetchShaderVkHash();
 
-	void CalculateFetchShaderMtlObjectShaderHash(uint32* contextRegister);
+	void CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister);
 
 	uint64 getVkPipelineHashFragment() const { return vkPipelineHashFragment; };
 
