@@ -143,7 +143,7 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void _emitAttributes(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
+	static void _emitAttributes(LatteDecompilerShaderContext* decompilerContext, bool fetchVertexManually)
 	{
 		auto src = decompilerContext->shaderSource;
 		std::string attributeNames;
@@ -159,7 +159,7 @@ namespace LatteDecompiler
 					cemu_assert_debug(decompilerContext->output->resourceMappingMTL.attributeMapping[i] >= 0);
 
 					src->addFmt("uint4 attrDataSem{}", i);
-					if (decompilerContext->options->usesGeometryShader || isRectVertexShader)
+					if (fetchVertexManually)
 					    attributeNames += "#define ATTRIBUTE_NAME" + std::to_string((sint32)decompilerContext->output->resourceMappingMTL.attributeMapping[i]) + " attrDataSem" + std::to_string(i) + "\n";
 					else
 					    src->addFmt(" [[attribute({})]]", (sint32)decompilerContext->output->resourceMappingMTL.attributeMapping[i]);
@@ -250,13 +250,13 @@ namespace LatteDecompiler
 		src->add("};" _CRLF _CRLF);
 	}
 
-	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool rasterizationEnabled)
+	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool fetchVertexManually, bool rasterizationEnabled)
 	{
 		auto src = decompilerContext->shaderSource;
 
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
 		{
-		    _emitAttributes(decompilerContext, isRectVertexShader);
+		    _emitAttributes(decompilerContext, fetchVertexManually);
 		}
 		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
 		{
@@ -339,13 +339,12 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool rasterizationEnabled)
+	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool fetchVertexManually, bool rasterizationEnabled)
 	{
 	    auto src = decompilerContext->shaderSource;
 
         if ((decompilerContext->options->usesGeometryShader || isRectVertexShader) && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
         {
-            // TODO: make vsOutPrimType parth of the shader hash
             LattePrimitiveMode vsOutPrimType = static_cast<LattePrimitiveMode>(decompilerContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]);
             uint32 gsOutPrimType = decompilerContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE];
 
@@ -398,7 +397,7 @@ namespace LatteDecompiler
 		// uniform buffers
 		_emitUniformBuffers(decompilerContext);
 		// inputs and outputs
-		_emitInputsAndOutputs(decompilerContext, isRectVertexShader, rasterizationEnabled);
+		_emitInputsAndOutputs(decompilerContext, isRectVertexShader, fetchVertexManually, rasterizationEnabled);
 
 		if (dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// end of shader inputs/outputs" _CRLF);
@@ -472,7 +471,7 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitInputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
+	static void emitInputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool fetchVertexManually)
 	{
 	    auto src = decompilerContext->shaderSource;
 
@@ -491,14 +490,18 @@ namespace LatteDecompiler
                 src->addFmt(", device uint* indexBuffer [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexBufferBinding);
                 // TODO: put into the support buffer?
                 src->addFmt(", constant uchar& indexType [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexTypeBinding);
-                src->add(" VERTEX_BUFFER_DEFINITIONS");
 			}
 			else
 			{
-                src->add("VertexIn in [[stage_in]]");
-                src->add(", uint vid [[vertex_id]]");
+                src->add("uint vid [[vertex_id]]");
                 src->add(", uint iid [[instance_id]]");
 			}
+
+            if (fetchVertexManually)
+                src->add(" VERTEX_BUFFER_DEFINITIONS");
+			else
+				src->add(", VertexIn in [[stage_in]]");
+
             break;
         case LatteConst::ShaderType::Geometry:
             src->add("MeshType mesh");

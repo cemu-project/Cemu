@@ -18,11 +18,11 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
-#include "HW/Latte/Core/LatteConst.h"
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "HW/Latte/Renderer/Metal/MetalLayerHandle.h"
-#include "HW/Latte/Renderer/Renderer.h"
-#include "Metal/MTLRenderPipeline.hpp"
+#include "Cafe/HW/Latte/Core/FetchShader.h"
+#include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -163,10 +163,10 @@ MetalRenderer::MetalRenderer()
     if (m_isAppleGPU)
         m_copyBufferToBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
     //m_copyTextureToTexturePipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyTextureToTexture");
-    m_restrideBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexRestrideBuffer");
+    //m_restrideBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexRestrideBuffer");
     utilityLibrary->release();
 
-    m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);
+    //m_memoryManager->SetRestrideBufferPipeline(m_restrideBufferPipeline);
 }
 
 MetalRenderer::~MetalRenderer()
@@ -174,7 +174,7 @@ MetalRenderer::~MetalRenderer()
     if (m_isAppleGPU)
         delete m_copyBufferToBufferPipeline;
     //delete m_copyTextureToTexturePipeline;
-    delete m_restrideBufferPipeline;
+    //delete m_restrideBufferPipeline;
 
     //m_presentPipelineLinear->release();
     //m_presentPipelineSRGB->release();
@@ -475,20 +475,20 @@ void MetalRenderer::DeleteFontTextures()
 void MetalRenderer::AppendOverlayDebugInfo()
 {
     ImGui::Text("--- GPU info ---");
-    ImGui::Text("Is Apple GPU            %s", (m_isAppleGPU ? "yes" : "no"));
-    ImGui::Text("Has unified memory      %s", (m_hasUnifiedMemory ? "yes" : "no"));
-    ImGui::Text("Supports Metal3         %s", (m_supportsMetal3 ? "yes" : "no"));
+    ImGui::Text("Is Apple GPU              %s", (m_isAppleGPU ? "yes" : "no"));
+    ImGui::Text("Has unified memory        %s", (m_hasUnifiedMemory ? "yes" : "no"));
+    ImGui::Text("Supports Metal3           %s", (m_supportsMetal3 ? "yes" : "no"));
 
     ImGui::Text("--- Metal info ---");
-    ImGui::Text("Render pipeline states  %zu", m_pipelineCache->GetPipelineCacheSize());
-    ImGui::Text("Buffer allocator memory %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
+    ImGui::Text("Render pipeline states    %zu", m_pipelineCache->GetPipelineCacheSize());
+    ImGui::Text("Buffer allocator memory   %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
-    ImGui::Text("Command buffers         %zu", m_commandBuffers.size());
-    ImGui::Text("Render passes           %u", m_performanceMonitor.m_renderPasses);
-    ImGui::Text("Clears                  %u", m_performanceMonitor.m_clears);
-    ImGui::Text("Vertex buffer restrides %u", m_performanceMonitor.m_vertexBufferRestrides);
-    ImGui::Text("Triangle fans           %u", m_performanceMonitor.m_triangleFans);
+    ImGui::Text("Command buffers           %zu", m_commandBuffers.size());
+    ImGui::Text("Render passes             %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Clears                    %u", m_performanceMonitor.m_clears);
+    ImGui::Text("Manual vertex fetch draws %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
+    ImGui::Text("Triangle fans             %u", m_performanceMonitor.m_triangleFans);
 }
 
 // TODO: halfZ
@@ -831,16 +831,16 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 	if (buffer.offset == offset && buffer.size == size)
 		return;
 
-	if (buffer.offset != INVALID_OFFSET)
-	{
-	    m_memoryManager->UntrackVertexBuffer(bufferIndex);
-	}
+	//if (buffer.offset != INVALID_OFFSET)
+	//{
+	//    m_memoryManager->UntrackVertexBuffer(bufferIndex);
+	//}
 
 	buffer.offset = offset;
 	buffer.size = size;
-	buffer.restrideInfo = {};
+	//buffer.restrideInfo = {};
 
-	m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, &buffer.restrideInfo);
+	//m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, &buffer.restrideInfo);
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
@@ -975,6 +975,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
     bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+    bool fetchVertexManually = (usesGeometryShader || fetchShader->mtlFetchVertexManually);
 
 	// Index buffer
 	Renderer::INDEX_TYPE hostIndexType;
@@ -1168,12 +1169,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Resources
 
 	// Vertex buffers
-	std::vector<MTL::Resource*> barrierBuffers;
+	//std::vector<MTL::Resource*> barrierBuffers;
     for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
     {
         auto& vertexBufferRange = m_state.m_vertexBuffers[i];
         if (vertexBufferRange.offset != INVALID_OFFSET)
         {
+            /*
             MTL::Buffer* buffer;
             size_t offset;
 
@@ -1194,16 +1196,20 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
                 buffer = restridedBuffer.buffer;
                 offset = restridedBuffer.offset;
             }
+            */
+
+            MTL::Buffer* buffer = m_memoryManager->GetBufferCache();
+            size_t offset = m_state.m_vertexBuffers[i].offset;
 
             // Bind
             SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
         }
     }
 
-    if (!barrierBuffers.empty())
-    {
-        renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
-    }
+    //if (!barrierBuffers.empty())
+    //{
+    //    renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
+    //}
 
 	// Render pipeline state
 	MTL::RenderPipelineState* renderPipelineState;
@@ -1293,6 +1299,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	LatteStreamout_FinishDrawcall(false);
 
 	// Debug
+	if (fetchVertexManually)
+	    m_performanceMonitor.m_manualVertexFetchDraws++;
+	if (usesGeometryShader)
+	    m_performanceMonitor.m_meshDraws++;
 	if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN)
 	    m_performanceMonitor.m_triangleFans++;
 

@@ -19,19 +19,21 @@ struct MetalBufferAllocation
     }
 };
 
+/*
 struct MetalRestrideInfo
 {
     bool memoryInvalidated = true;
     size_t lastStride = 0;
     MetalBufferAllocation allocation{};
 };
+*/
 
 struct MetalBoundBuffer
 {
     size_t offset = INVALID_OFFSET;
     size_t size = 0;
     // Memory manager will write restride info to this variable
-    MetalRestrideInfo restrideInfo;
+    //MetalRestrideInfo restrideInfo;
 };
 
 enum MetalGeneralShaderType
@@ -473,7 +475,7 @@ private:
 	// Hybrid pipelines
 	class MetalVoidVertexPipeline* m_copyBufferToBufferPipeline;
 	//class MetalVoidVertexPipeline* m_copyTextureToTexturePipeline;
-	class MetalVoidVertexPipeline* m_restrideBufferPipeline;
+	//class MetalVoidVertexPipeline* m_restrideBufferPipeline;
 
 	// Resources
 	MTL::SamplerState* m_nearestSampler;

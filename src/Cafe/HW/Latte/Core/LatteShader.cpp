@@ -503,11 +503,21 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	uint64 vsHash = vsHash1 + vsHash2 + _activeFetchShader->key + _activePSImportTable.key + (usesGeometryShader ? 0x1111ULL : 0ULL);
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
-	    if (usesGeometryShader)
+	    if (usesGeometryShader || _activeFetchShader->mtlFetchVertexManually)
 		{
-	        vsHash += _activeFetchShader->mtlShaderHashObject;
+    		for (sint32 g = 0; g < _activeFetchShader->bufferGroups.size(); g++)
+            {
+           	    LatteParsedFetchShaderBufferGroup_t& group = _activeFetchShader->bufferGroups[g];
+          		uint32 bufferIndex = group.attributeBufferIndex;
+          		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+          		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+                vsHash += (uint64)bufferStride;
+          		vsHash = std::rotl<uint64>(vsHash, 7);
+            }
 		}
-		else
+
+	    if (!usesGeometryShader)
 		{
     		// Rasterization
     		bool rasterizationEnabled = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
@@ -524,6 +534,10 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 
     		if (rasterizationEnabled)
     		    vsHash += 51ULL;
+
+            // Vertex fetch
+            if (_activeFetchShader->mtlFetchVertexManually)
+                vsHash += 349ULL;
 		}
 	}
 
@@ -531,6 +545,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	vsHash += tmp;
 
 	auto primitiveType = LatteGPUState.contextNew.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
+	// TODO: include always in the hash in case of geometry shader or rect shader
 	if (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS)
 	{
 		vsHash += 13ULL;

@@ -326,76 +326,81 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
     if (pipeline)
         return pipeline;
 
-	// Vertex descriptor
-	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
-	for (auto& bufferGroup : fetchShader->bufferGroups)
-	{
-		std::optional<LatteConst::VertexFetchType2> fetchType;
-
-		uint32 minBufferStride = 0;
-		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
-		{
-			auto& attr = bufferGroup.attrib[j];
-
-			uint32 semanticId = vertexShader->resourceMapping.attributeMapping[attr.semanticId];
-			if (semanticId == (uint32)-1)
-				continue; // attribute not used?
-
-			auto attribute = vertexDescriptor->attributes()->object(semanticId);
-			attribute->setOffset(attr.offset);
-			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
-			attribute->setFormat(GetMtlVertexFormat(attr.format));
-
-			minBufferStride = std::max(minBufferStride, attr.offset + GetMtlVertexFormatSize(attr.format));
-
-			if (fetchType.has_value())
-				cemu_assert_debug(fetchType == attr.fetchType);
-			else
-				fetchType = attr.fetchType;
-
-			if (attr.fetchType == LatteConst::INSTANCE_DATA)
-			{
-				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
-			}
-		}
-
-		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
-		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
-		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
-		if (bufferStride == 0)
-		{
-		    // Buffer stride cannot be zero, let's use the minimum stride
-			bufferStride = minBufferStride;
-
-			// Additionally, constant vertex function must be used
-			layout->setStepFunction(MTL::VertexStepFunctionConstant);
-			layout->setStepRate(0);
-		}
-		else
-		{
-    		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
-    			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
-    		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
-    			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
-    		else
-    		{
-    		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
-    			cemu_assert(false);
-    		}
-		}
-		bufferStride = Align(bufferStride, 4);
-		layout->setStride(bufferStride);
-	}
-
 	auto vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
 
 	// Render pipeline state
 	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
 	desc->setVertexFunction(vertexShaderMtl->GetFunction());
-	// TODO: don't always set the vertex descriptor?
-	desc->setVertexDescriptor(vertexDescriptor);
+
+    // Vertex descriptor
+    if (!fetchShader->mtlFetchVertexManually)
+    {
+    	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+    	for (auto& bufferGroup : fetchShader->bufferGroups)
+    	{
+    		std::optional<LatteConst::VertexFetchType2> fetchType;
+
+    		uint32 minBufferStride = 0;
+    		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
+    		{
+    			auto& attr = bufferGroup.attrib[j];
+
+    			uint32 semanticId = vertexShader->resourceMapping.attributeMapping[attr.semanticId];
+    			if (semanticId == (uint32)-1)
+    				continue; // attribute not used?
+
+    			auto attribute = vertexDescriptor->attributes()->object(semanticId);
+    			attribute->setOffset(attr.offset);
+    			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
+    			attribute->setFormat(GetMtlVertexFormat(attr.format));
+
+    			minBufferStride = std::max(minBufferStride, attr.offset + GetMtlVertexFormatSize(attr.format));
+
+    			if (fetchType.has_value())
+    				cemu_assert_debug(fetchType == attr.fetchType);
+    			else
+    				fetchType = attr.fetchType;
+
+    			if (attr.fetchType == LatteConst::INSTANCE_DATA)
+    			{
+    				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
+    			}
+    		}
+
+    		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
+    		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+    		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+    		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
+    		if (bufferStride == 0)
+    		{
+    		    // Buffer stride cannot be zero, let's use the minimum stride
+    			bufferStride = minBufferStride;
+
+    			// Additionally, constant vertex function must be used
+    			layout->setStepFunction(MTL::VertexStepFunctionConstant);
+    			layout->setStepRate(0);
+    		}
+    		else
+    		{
+      		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
+     			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
+      		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
+     			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
+      		else
+      		{
+      		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
+     			cemu_assert(false);
+      		}
+    		}
+    		bufferStride = Align(bufferStride, 4);
+    		layout->setStride(bufferStride);
+    	}
+
+        // TODO: don't always set the vertex descriptor?
+    	desc->setVertexDescriptor(vertexDescriptor);
+        vertexDescriptor->release();
+    }
 
 	SetFragmentState(desc, lastUsedFBO, activeFBO, pixelShader, lcr);
 
@@ -448,7 +453,6 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 		}
 	}
 	desc->release();
-	vertexDescriptor->release();
 
 	return pipeline;
 }

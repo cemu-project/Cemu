@@ -3854,10 +3854,12 @@ static void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* sh
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader)
 {
     bool isRectVertexShader = (static_cast<LattePrimitiveMode>(shaderContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
+    bool usesGeometryShader = (shaderContext->options->usesGeometryShader || isRectVertexShader);
+    bool fetchVertexManually = (usesGeometryShader || (shaderContext->fetchShader && shaderContext->fetchShader->mtlFetchVertexManually));
 
     // Rasterization
     rasterizationEnabled = true;
-    if (shader->shaderType == LatteConst::ShaderType::Vertex && !(shaderContext->options->usesGeometryShader || isRectVertexShader))
+    if (shader->shaderType == LatteConst::ShaderType::Vertex && !usesGeometryShader)
     {
         rasterizationEnabled = !shaderContext->contextRegistersNew->PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
 
@@ -3885,7 +3887,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     src->add("#include <metal_stdlib>" _CRLF);
     src->add("using namespace metal;" _CRLF);
 	// header part (definitions for inputs and outputs)
-	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader, rasterizationEnabled);
+	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader, fetchVertexManually, rasterizationEnabled);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
 	const char* functionType = "";
@@ -3893,21 +3895,32 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
-	    if (shaderContext->options->usesGeometryShader || isRectVertexShader)
+	    if (fetchVertexManually)
 		{
 		    // TODO: clean this up
-			// fetchVertex will modify vid in case of an indexed draw
+			// fetchVertex will modify vid in case of an object shader and an indexed draw
 
 			// Vertex buffers
             std::string vertexBufferDefinitions = "#define VERTEX_BUFFER_DEFINITIONS ";
             std::string vertexBuffers = "#define VERTEX_BUFFERS ";
-            std::string inputFetchDefinition = "VertexIn fetchVertex(thread uint& vid, device uint* indexBuffer, uchar indexType VERTEX_BUFFER_DEFINITIONS) {\n";
+            std::string inputFetchDefinition = "VertexIn fetchVertex(";
+            if (usesGeometryShader)
+                inputFetchDefinition += "thread uint&";
+            else
+                inputFetchDefinition += "uint";
+            inputFetchDefinition += " vid, uint iid";
+            if (usesGeometryShader)
+                inputFetchDefinition += ", device uint* indexBuffer, uchar indexType";
+            inputFetchDefinition += " VERTEX_BUFFER_DEFINITIONS) {\n";
 
 			// Index buffer
-            inputFetchDefinition += "if (indexType == 1) // UShort\n";
-            inputFetchDefinition += "vid = ((device ushort*)indexBuffer)[vid];\n";
-            inputFetchDefinition += "else if (indexType == 2) // UInt\n";
-            inputFetchDefinition += "vid = ((device uint*)indexBuffer)[vid];\n";
+			if (usesGeometryShader)
+			{
+                inputFetchDefinition += "if (indexType == 1) // UShort\n";
+                inputFetchDefinition += "vid = ((device ushort*)indexBuffer)[vid];\n";
+                inputFetchDefinition += "else if (indexType == 2) // UInt\n";
+                inputFetchDefinition += "vid = ((device uint*)indexBuffer)[vid];\n";
+			}
 
             inputFetchDefinition += "VertexIn in;\n";
             for (auto& bufferGroup : shaderContext->fetchShader->bufferGroups)
@@ -3980,11 +3993,22 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
                         break;
                     }
 
+                    // Get the fetch type
+                    std::string fetchTypeStr;
+                    if (attr.fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
+                        fetchTypeStr = "vid";
+                    else if (attr.fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
+                        fetchTypeStr = "iid";
+                    else if (attr.fetchType == LatteConst::VertexFetchType2::NO_INDEX_OFFSET_DATA)
+                        fetchTypeStr = "0"; // TODO: correct?
+
                     // Fetch the attribute
-                    inputFetchDefinition += fmt::format("in.ATTRIBUTE_NAME{} = ", semanticId);
-                    inputFetchDefinition += fmt::format("uint4(*(device {}*)", formatName);
+                    inputFetchDefinition += fmt::format("in.ATTRIBUTE_NAME{} = uint4(uint", semanticId);
+                    if (componentCount != 1)
+                        inputFetchDefinition += fmt::format("{}", componentCount);
+                    inputFetchDefinition += fmt::format("(*(device {}*)", formatName);
                     inputFetchDefinition += fmt::format("(vertexBuffer{}", attr.attributeBufferIndex);
-                    inputFetchDefinition += fmt::format(" + vid * {} + {})", bufferStride, attr.offset);
+                    inputFetchDefinition += fmt::format(" + {} * {} + {}))", fetchTypeStr, bufferStride, attr.offset);
                     for (uint8 i = 0; i < (4 - componentCount); i++)
                         inputFetchDefinition += ", 0";
                     inputFetchDefinition += ");\n";
@@ -4014,7 +4038,10 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			src->add(vertexBuffers.c_str());
 			src->add("\n");
 			src->add(inputFetchDefinition.c_str());
+		}
 
+		if (usesGeometryShader)
+		{
 			functionType = "[[object, max_total_threads_per_threadgroup(VERTICES_PER_VERTEX_PRIMITIVE), max_total_threadgroups_per_mesh_grid(1)]]";
 			outputTypeName = "void";
 		}
@@ -4038,20 +4065,33 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 	// start of main
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
-	LatteDecompiler::emitInputs(shaderContext, isRectVertexShader);
+	LatteDecompiler::emitInputs(shaderContext, isRectVertexShader, fetchVertexManually);
 	src->add(") {" _CRLF);
-	if ((shaderContext->options->usesGeometryShader || isRectVertexShader) && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
+	if (fetchVertexManually && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
 	    if (shader->shaderType == LatteConst::ShaderType::Vertex)
 		{
-    	    // Calculate the imaginary vertex id
-    	    src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
-    		src->add("uint iid = vid / verticesPerInstance;" _CRLF);
-            src->add("vid %= verticesPerInstance;" _CRLF);
-    		// Fetch the input
-    		src->add("VertexIn in = fetchVertex(vid, indexBuffer, indexType VERTEX_BUFFERS);" _CRLF);
-    		// Output is defined as object payload
-    		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
+            if (usesGeometryShader)
+            {
+           	    // Calculate the imaginary vertex id
+           	    src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
+          		src->add("uint iid = vid / verticesPerInstance;" _CRLF);
+                    src->add("vid %= verticesPerInstance;" _CRLF);
+
+          		// Fetch the input
+          		src->add("VertexIn in = fetchVertex(vid, iid, indexBuffer, indexType VERTEX_BUFFERS);" _CRLF);
+
+          		// Output is defined as object payload
+          		src->add("object_data VertexOut& out = objectPayload.vertexOut[tid];" _CRLF);
+            }
+            else
+            {
+          		// Fetch the input
+          		src->add("VertexIn in = fetchVertex(vid, iid VERTEX_BUFFERS);" _CRLF);
+
+                if (rasterizationEnabled)
+                    src->add("VertexOut out;" _CRLF);
+            }
 		}
 		else if (shader->shaderType == LatteConst::ShaderType::Geometry)
 		{
@@ -4258,11 +4298,11 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			}
 
 			// TODO: is the if statement even needed?
-			if (shaderContext->options->usesGeometryShader || isRectVertexShader)
+			if (usesGeometryShader)
 			{
 				// import from geometry shader
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{} = as_type<int4>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
+					src->addFmt("{} = bitCast<int>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 					src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
 				else
@@ -4306,7 +4346,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
 	}
 
-	if ((shaderContext->options->usesGeometryShader || isRectVertexShader) && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
+	if (usesGeometryShader && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
     	if (shader->shaderType == LatteConst::ShaderType::Vertex)
     	{
@@ -4346,7 +4386,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 
     	// Return
-    	if (!(shaderContext->options->usesGeometryShader || isRectVertexShader) || shader->shaderType == LatteConst::ShaderType::Pixel)
+    	if (!usesGeometryShader || shader->shaderType == LatteConst::ShaderType::Pixel)
             src->add("return out;" _CRLF);
     }
 

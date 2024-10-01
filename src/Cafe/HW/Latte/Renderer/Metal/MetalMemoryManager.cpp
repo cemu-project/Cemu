@@ -2,9 +2,8 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
 #include "Common/precompiled.h"
-#include "HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Metal/MTLResource.hpp"
 
+/*
 MetalVertexBufferCache::~MetalVertexBufferCache()
 {
 }
@@ -28,13 +27,11 @@ MetalRestridedBufferRange MetalVertexBufferCache::RestrideBufferIfNeeded(MTL::Bu
         restrideInfo.allocation = m_bufferAllocator.GetBufferAllocation(newSize);
         buffer = m_bufferAllocator.GetBuffer(restrideInfo.allocation.bufferIndex);
 
-        /*
-        uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
-        uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.offset;
+        //uint8* oldPtr = (uint8*)bufferCache->contents() + vertexBufferRange.offset;
+        //uint8* newPtr = (uint8*)buffer->contents() + restrideInfo.allocation.offset;
 
-        for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
-    		memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
-        */
+        //for (size_t elem = 0; elem < vertexBufferRange.size / stride; elem++)
+    	//	memcpy(newPtr + elem * newStride, oldPtr + elem * stride, stride);
 
         if (m_mtlr->GetEncoderType() == MetalEncoderType::Render)
         {
@@ -94,6 +91,7 @@ void MetalVertexBufferCache::MemoryRangeChanged(size_t offset, size_t size)
         }
     }
 }
+*/
 
 MetalMemoryManager::~MetalMemoryManager()
 {
@@ -144,7 +142,7 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
     m_tempBufferAllocator.UnlockBuffer(allocation.bufferIndex);
 
     // Notify vertex buffer cache about the change
-    m_vertexBufferCache.MemoryRangeChanged(offset, size);
+    //m_vertexBufferCache.MemoryRangeChanged(offset, size);
 }
 
 void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size)
