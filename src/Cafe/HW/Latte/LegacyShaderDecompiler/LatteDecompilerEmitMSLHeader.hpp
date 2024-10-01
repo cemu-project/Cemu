@@ -85,8 +85,7 @@ namespace LatteDecompiler
 			uniformCurrentOffset += 8;
 		}
 		// define verticesPerInstance + streamoutBufferBaseX
-		if ((shader->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
-			(shader->shaderType == LatteConst::ShaderType::Geometry))
+		if (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry)
 		{
 			src->add("int verticesPerInstance;" _CRLF);
 			uniformOffsets.offset_verticesPerInstance = uniformCurrentOffset;
@@ -484,9 +483,7 @@ namespace LatteDecompiler
                 src->add(", mesh_grid_properties meshGridProperties");
                 src->add(", uint tig [[threadgroup_position_in_grid]]");
                 src->add(", uint tid [[thread_index_in_threadgroup]]");
-                // TODO: put into the support buffer?
-                src->addFmt(", constant uint& verticesPerInstance [[buffer({})]]", decompilerContext->output->resourceMappingMTL.verticesPerInstanceBinding);
-                // TODO: inly include index buffer if needed
+                // TODO: only include index buffer if needed
                 src->addFmt(", device uint* indexBuffer [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexBufferBinding);
                 // TODO: put into the support buffer?
                 src->addFmt(", constant uchar& indexType [[buffer({})]]", decompilerContext->output->resourceMappingMTL.indexTypeBinding);

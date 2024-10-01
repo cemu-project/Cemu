@@ -1247,13 +1247,9 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		// We have already retrieved the buffer, no need for it to be locked anymore
 		bufferAllocator.UnlockBuffer(indexBufferIndex);
 	}
+
 	if (usesGeometryShader)
 	{
-		uint32 verticesPerInstance = count / instanceCount;
-        // TODO: make a helper function for this
-        renderCommandEncoder->setObjectBytes(&verticesPerInstance, sizeof(verticesPerInstance), vertexShader->resourceMapping.verticesPerInstanceBinding);
-        encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.verticesPerInstanceBinding] = {nullptr};
-
 	    if (indexBuffer)
 		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexBuffer, indexBufferOffset, vertexShader->resourceMapping.indexBufferBinding);
 
