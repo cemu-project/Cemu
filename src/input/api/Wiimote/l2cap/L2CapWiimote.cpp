@@ -22,6 +22,11 @@ namespace {
 	}
 }
 
+static bool operator==(const bdaddr_t& a, const bdaddr_t& b)
+{
+	return bacmp(&a, &b) == 0;
+}
+
 L2CapWiimote::L2CapWiimote(int recvFd,int sendFd, bdaddr_t addr)
 : m_recvFd(recvFd), m_sendFd(sendFd), m_addr(addr)
 {
@@ -37,7 +42,7 @@ L2CapWiimote::~L2CapWiimote()
 void L2CapWiimote::AddCandidateAddress(bdaddr_t addr)
 {
 	std::scoped_lock lock(s_addressMutex);
-	s_address.push_back(addr);
+	vectorAppendUnique(s_address,addr);
 }
 
 std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
@@ -125,5 +130,5 @@ bool L2CapWiimote::operator==(const WiimoteDevice& rhs) const
 	auto mote = dynamic_cast<const L2CapWiimote*>(&rhs);
 	if (!mote)
 		return false;
-	return bacmp(&m_addr, &mote->m_addr) == 0;
+	return m_addr == mote->m_addr;
 }
