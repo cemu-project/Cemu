@@ -7,8 +7,7 @@
 
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
-#include "HW/Latte/Core/FetchShader.h"
-#include "HW/Latte/ISA/RegDefines.h"
+#include "config/CemuConfig.h"
 
 extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
@@ -16,8 +15,13 @@ extern std::atomic_int g_compiled_shaders_async;
 RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode)
 	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_mtlr{mtlRenderer}
 {
+    MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
+    if (GetConfig().fast_math)
+        options->setFastMathEnabled(true);
+
     NS::Error* error = nullptr;
-	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), nullptr, &error);
+	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(mslCode), options, &error);
+	options->release();
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create library: {} -> {}", error->localizedDescription()->utf8String(), mslCode.c_str());
