@@ -251,8 +251,13 @@ void InfoLog_PrintActiveSettings()
 	if (ActiveSettings::GetGraphicsAPI() == GraphicAPI::kVulkan)
 	{
 		cemuLog_log(LogType::Force, "Async compile: {}", GetConfig().async_compile.GetValue() ? "true" : "false");
+		if (!GetConfig().vk_accurate_barriers.GetValue())
+			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
+	}
+	else if (ActiveSettings::GetGraphicsAPI() == GraphicAPI::kMetal)
+	{
 		cemuLog_log(LogType::Force, "Fast math: {}", GetConfig().fast_math.GetValue() ? "true" : "false");
-		if(!GetConfig().vk_accurate_barriers.GetValue())
+		if (!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
 	cemuLog_log(LogType::Force, "Console language: {}", stdx::to_underlying(config.console_language.GetValue()));
