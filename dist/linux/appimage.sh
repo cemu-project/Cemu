@@ -17,15 +17,15 @@ if [[ ! -e /usr/lib/x86_64-linux-gnu ]]; then
 	sed -i 's#lib\/x86_64-linux-gnu#lib64#g' linuxdeploy-plugin-gtk.sh
 fi
 
-mkdir -p AppDir/usr/bin
-mkdir -p AppDir/usr/share/Cemu
-mkdir -p AppDir/usr/share/applications
-mkdir -p AppDir/usr/share/icons/hicolor/128x128/apps
-mkdir -p AppDir/usr/share/metainfo
-mkdir -p AppDir/usr/lib
+mkdir -p AppDir/usr/bin \
+	AppDir/usr/share/Cemu \
+	AppDir/usr/share/applications \
+	AppDir/usr/share/icons/hicolor/128x128/apps \
+	AppDir/usr/share/metainfo \
+	AppDir/usr/lib
 
-cp dist/linux/info.cemu.Cemu.{desktop,png} AppDir/
-cp dist/linux/info.cemu.Cemu.metainfo.xml AppDir/usr/share/metainfo/info.cemu.Cemu.appdata.xml
+cp dist/linux/info.cemu.Cemu.{desktop,png} AppDir \
+	dist/linux/info.cemu.Cemu.metainfo.xml AppDir/usr/share/metainfo
 
 cp -r bin/* AppDir/usr/share/Cemu
 
