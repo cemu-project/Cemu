@@ -210,7 +210,7 @@ void DirectSoundAPI::SetVolume(sint32 volume)
 bool DirectSoundAPI::NeedAdditionalBlocks() const
 {
 	std::shared_lock lock(m_mutex);
-	return m_buffer.size() < s_audioDelay;
+	return m_buffer.size() < GetAudioDelay();
 }
 
 std::vector<DirectSoundAPI::DeviceDescriptionPtr> DirectSoundAPI::GetDevices()
