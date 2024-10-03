@@ -250,9 +250,11 @@ void PairingDialog::WorkerThread()
 		UpdateCallback(PairingState::SearchFailed);
 		return;
 	}
+	stdx::scope_exit freeInfo([info]() { bt_free(info);});
 
 	//! Open dev to read name
 	const auto hostDesc = hci_open_dev(hostId);
+	stdx::scope_exit freeDev([hostDesc]() { hci_close_dev(hostDesc);});
 	char nameBuffer[HCI_MAX_NAME_LENGTH] = {};
 
 	// Get device name and compare. Would use product and vendor id from SDP, but many third-party Wiimotes don't store them
