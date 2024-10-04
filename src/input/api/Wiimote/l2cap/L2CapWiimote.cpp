@@ -68,8 +68,9 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 		sendAddr.l2_bdaddr = addr;
 
 		if (!AttemptConnect(sendFd, sendAddr) || !AttemptSetNonBlock(sendFd)) {
-			cemuLog_logDebug(LogType::Force,"Failed to connect send socket to '{:02x}': {}",
-							 fmt::join(addr.b, ":"), strerror(errno));
+			const auto& b = addr.b;
+			cemuLog_logDebug(LogType::Force,"Failed to connect send socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
+				b[5], b[4], b[3], b[2], b[1], b[0], strerror(errno));
 			close(sendFd);
 			continue;
 		}
@@ -87,8 +88,9 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 		recvAddr.l2_bdaddr = addr;
 
 		if (!AttemptConnect(recvFd, recvAddr) || !AttemptSetNonBlock(recvFd)) {
-			cemuLog_logDebug(LogType::Force,"Failed to connect recv socket to '{:02x}': {}",
-							 fmt::join(addr.b, ":"), strerror(errno));
+			const auto& b = addr.b;
+			cemuLog_logDebug(LogType::Force,"Failed to connect recv socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
+				b[5], b[4], b[3], b[2], b[1], b[0], strerror(errno));
 			close(sendFd);
 			close(recvFd);
 			continue;
