@@ -258,14 +258,16 @@ void PairingDialog::WorkerThread()
 	char nameBuffer[HCI_MAX_NAME_LENGTH] = {};
 
 	// Get device name and compare. Would use product and vendor id from SDP, but many third-party Wiimotes don't store them
-	auto& addr = info->bdaddr;
+	const auto& addr = info->bdaddr;
 	if (hci_read_remote_name(hostDesc, &addr, HCI_MAX_NAME_LENGTH, nameBuffer,
 							 2000) != 0 || !isWiimoteName(nameBuffer))
 	{
 		UpdateCallback(PairingState::SearchFailed);
 		return;
 	}
-	cemuLog_log(LogType::Force, "Pairing Dialog: Found '{}' with address {:02x}", nameBuffer, fmt::join(addr.b, ":"));
+	const auto& b = addr.b;
+	cemuLog_log(LogType::Force, "Pairing Dialog: Found '{}' with address '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}'",
+		nameBuffer, b[5], b[4], b[3], b[2], b[1], b[0]);
 
 	UpdateCallback(PairingState::Finished);
 	L2CapWiimote::AddCandidateAddress(addr);
