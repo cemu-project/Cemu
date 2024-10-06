@@ -127,6 +127,7 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 6.0f); // Makes the window edges rounded
 #if BOOST_OS_WINDOWS
 	io.ImeWindowHandle = mainWindow ? g_window_info.window_main.hwnd : g_window_info.window_pad.hwnd;
 #else
