@@ -60,7 +60,7 @@ namespace nsyshid
 									std::array<uint8, 32>& replyBuf);
 		void QueryBlock(uint8 index, uint8 page, std::array<uint8, 32>& replyBuf,
 						 uint8 sequence);
-		void WriteBlock(uint8 index, uint8 page, std::span<const uint8, 16> toWriteBuf, std::array<uint8, 32>& replyBuf,
+		void WriteBlock(uint8 index, uint8 page, std::span<const uint8, 4> toWriteBuf, std::array<uint8, 32>& replyBuf,
 						 uint8 sequence);
 		void GetModel(std::span<const uint8, 8> buf, uint8 sequence,
 					   std::array<uint8, 32>& replyBuf);
@@ -76,7 +76,7 @@ namespace nsyshid
 		std::array<DimensionsMini, 7> figures;
 
 	  private:
-		void RandomUID(uint8* uidBuffer);
+		void RandomUID(std::array<uint8, 0x2D * 0x04>& uidBuffer);
 		uint8 GenerateChecksum(const std::array<uint8, 32>& data,
 								int numOfBytes) const;
 		std::array<uint8, 8> Decrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key);

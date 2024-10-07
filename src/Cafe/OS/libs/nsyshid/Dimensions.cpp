@@ -549,13 +549,13 @@ namespace nsyshid
 		case 0xB1: // Seed
 		{
 			// Initialise a random number generator using the seed provided
-			g_dimensionstoypad.GenerateRandomNumber(std::span<const uint8, 8>{buf.data() + 4, 8}, sequence, q_result);
+			g_dimensionstoypad.GenerateRandomNumber(std::span<const uint8, 8>{buf.begin() + 4, 8}, sequence, q_result);
 			break;
 		}
 		case 0xB3: // Challenge
 		{
 			// Get the next number in the sequence based on the RNG from 0xB1 command
-			g_dimensionstoypad.GetChallengeResponse(std::span<const uint8, 8>{buf.data() + 4, 8}, sequence, q_result);
+			g_dimensionstoypad.GetChallengeResponse(std::span<const uint8, 8>{buf.begin() + 4, 8}, sequence, q_result);
 			break;
 		}
 		case 0xC0: // Color
@@ -581,13 +581,13 @@ namespace nsyshid
 		case 0xD3: // Write
 		{
 			// Write 4 bytes to page buf[5] to the figure at index buf[4]
-			g_dimensionstoypad.WriteBlock(buf[4], buf[5], std::span<const uint8, 16>{buf.data() + 6, 16}, q_result, sequence);
+			g_dimensionstoypad.WriteBlock(buf[4], buf[5], std::span<const uint8, 4>{buf.begin() + 6, 4}, q_result, sequence);
 			break;
 		}
 		case 0xD4: // Model
 		{
 			// Get the model id of the figure at index buf[4]
-			g_dimensionstoypad.GetModel(std::span<const uint8, 8>{buf.data() + 4, 8}, sequence, q_result);
+			g_dimensionstoypad.GetModel(std::span<const uint8, 8>{buf.begin() + 4, 8}, sequence, q_result);
 			break;
 		}
 		case 0xD0: // Tag List
@@ -660,7 +660,7 @@ namespace nsyshid
 			return false;
 		}
 		std::array<uint8, 0x2D * 0x04> fileData{};
-		RandomUID(fileData.data());
+		RandomUID(fileData);
 		fileData[7] = id & 0xFF;
 
 		std::array<uint8, 7> uid = {fileData[0], fileData[1], fileData[2], fileData[4], fileData[5], fileData[6], fileData[7]};
@@ -703,9 +703,9 @@ namespace nsyshid
 		// Decrypt payload into an 8 byte array
 		std::array<uint8, 8> value = Decrypt(buf, std::nullopt);
 		// Seed is the first 4 bytes (little endian) of the decrypted payload
-		uint32 seed = uint32(value[3]) << 24 | uint32(value[2]) << 16 | uint32(value[1]) << 8 | uint32(value[0]);
+		uint32 seed = (uint32&)value[0];
 		// Confirmation is the second 4 bytes (big endian) of the decrypted payload
-		uint32 conf = uint32(value[4]) << 24 | uint32(value[5]) << 16 | uint32(value[6]) << 8 | uint32(value[7]);
+		uint32 conf = uint32be::from_bevalue((uint32&)value[4]);
 		// Initialize rng using the seed from decrypted payload
 		InitializeRNG(seed);
 		// Encrypt 8 bytes, first 4 bytes is the decrypted confirmation from payload, 2nd 4 bytes are blank
@@ -725,7 +725,7 @@ namespace nsyshid
 		// Decrypt payload into an 8 byte array
 		std::array<uint8, 8> value = Decrypt(buf, std::nullopt);
 		// Confirmation is the first 4 bytes of the decrypted payload
-		uint32 conf = uint32(value[0]) << 24 | uint32(value[1]) << 16 | uint32(value[2]) << 8 | uint32(value[3]);
+		uint32 conf = uint32be::from_bevalue((uint32&)value[0]);
 		// Generate next random number based on RNG
 		uint32 nextRandom = GetNext();
 		// Encrypt an 8 byte array, first 4 bytes are the next random number (little endian)
@@ -768,8 +768,8 @@ namespace nsyshid
 	std::array<uint8, 8> DimensionsUSB::Decrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key)
 	{
 		// Value to decrypt is separated in to two little endian 32 bit unsigned integers
-		uint32 dataOne = uint32(buf[3]) << 24 | uint32(buf[2]) << 16 | uint32(buf[1]) << 8 | uint32(buf[0]);
-		uint32 dataTwo = uint32(buf[7]) << 24 | uint32(buf[6]) << 16 | uint32(buf[5]) << 8 | uint32(buf[4]);
+		uint32 dataOne = (uint32&)buf[0];
+		uint32 dataTwo = (uint32&)buf[4];
 
 		// Use the key as 4 32 bit little endian unsigned integers
 		uint32 keyOne;
@@ -779,17 +779,17 @@ namespace nsyshid
 
 		if (key)
 		{
-			keyOne = uint32(key.value()[3]) << 24 | uint32(key.value()[2]) << 16 | uint32(key.value()[1]) << 8 | uint32(key.value()[0]);
-			keyTwo = uint32(key.value()[7]) << 24 | uint32(key.value()[6]) << 16 | uint32(key.value()[5]) << 8 | uint32(key.value()[4]);
-			keyThree = uint32(key.value()[11]) << 24 | uint32(key.value()[10]) << 16 | uint32(key.value()[9]) << 8 | uint32(key.value()[8]);
-			keyFour = uint32(key.value()[15]) << 24 | uint32(key.value()[14]) << 16 | uint32(key.value()[13]) << 8 | uint32(key.value()[12]);
+			keyOne = (uint32&)key.value()[0];
+			keyTwo = (uint32&)key.value()[4];
+			keyThree = (uint32&)key.value()[8];
+			keyFour = (uint32&)key.value()[12];
 		}
 		else
 		{
-			keyOne = uint32(COMMAND_KEY[3]) << 24 | uint32(COMMAND_KEY[2]) << 16 | uint32(COMMAND_KEY[1]) << 8 | uint32(COMMAND_KEY[0]);
-			keyTwo = uint32(COMMAND_KEY[7]) << 24 | uint32(COMMAND_KEY[6]) << 16 | uint32(COMMAND_KEY[5]) << 8 | uint32(COMMAND_KEY[4]);
-			keyThree = uint32(COMMAND_KEY[11]) << 24 | uint32(COMMAND_KEY[10]) << 16 | uint32(COMMAND_KEY[9]) << 8 | uint32(COMMAND_KEY[8]);
-			keyFour = uint32(COMMAND_KEY[15]) << 24 | uint32(COMMAND_KEY[14]) << 16 | uint32(COMMAND_KEY[13]) << 8 | uint32(COMMAND_KEY[12]);
+			keyOne = (uint32&)COMMAND_KEY[0];
+			keyTwo = (uint32&)COMMAND_KEY[4];
+			keyThree = (uint32&)COMMAND_KEY[8];
+			keyFour = (uint32&)COMMAND_KEY[12];
 		}
 
 		uint32 sum = 0xC6EF3720;
@@ -813,8 +813,8 @@ namespace nsyshid
 	std::array<uint8, 8> DimensionsUSB::Encrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key)
 	{
 		// Value to encrypt is separated in to two little endian 32 bit unsigned integers
-		uint32 dataOne = uint32(buf[3]) << 24 | uint32(buf[2]) << 16 | uint32(buf[1]) << 8 | uint32(buf[0]);
-		uint32 dataTwo = uint32(buf[7]) << 24 | uint32(buf[6]) << 16 | uint32(buf[5]) << 8 | uint32(buf[4]);
+		uint32 dataOne = (uint32&)buf[0];
+		uint32 dataTwo = (uint32&)buf[4];
 
 		// Use the key as 4 32 bit little endian unsigned integers
 		uint32 keyOne;
@@ -824,17 +824,17 @@ namespace nsyshid
 
 		if (key)
 		{
-			keyOne = uint32(key.value()[3]) << 24 | uint32(key.value()[2]) << 16 | uint32(key.value()[1]) << 8 | uint32(key.value()[0]);
-			keyTwo = uint32(key.value()[7]) << 24 | uint32(key.value()[6]) << 16 | uint32(key.value()[5]) << 8 | uint32(key.value()[4]);
-			keyThree = uint32(key.value()[11]) << 24 | uint32(key.value()[10]) << 16 | uint32(key.value()[9]) << 8 | uint32(key.value()[8]);
-			keyFour = uint32(key.value()[15]) << 24 | uint32(key.value()[14]) << 16 | uint32(key.value()[13]) << 8 | uint32(key.value()[12]);
+			keyOne = (uint32&)key.value()[0];
+			keyTwo = (uint32&)key.value()[4];
+			keyThree = (uint32&)key.value()[8];
+			keyFour = (uint32&)key.value()[12];
 		}
 		else
 		{
-			keyOne = uint32(COMMAND_KEY[3]) << 24 | uint32(COMMAND_KEY[2]) << 16 | uint32(COMMAND_KEY[1]) << 8 | uint32(COMMAND_KEY[0]);
-			keyTwo = uint32(COMMAND_KEY[7]) << 24 | uint32(COMMAND_KEY[6]) << 16 | uint32(COMMAND_KEY[5]) << 8 | uint32(COMMAND_KEY[4]);
-			keyThree = uint32(COMMAND_KEY[11]) << 24 | uint32(COMMAND_KEY[10]) << 16 | uint32(COMMAND_KEY[9]) << 8 | uint32(COMMAND_KEY[8]);
-			keyFour = uint32(COMMAND_KEY[15]) << 24 | uint32(COMMAND_KEY[14]) << 16 | uint32(COMMAND_KEY[13]) << 8 | uint32(COMMAND_KEY[12]);
+			keyOne = (uint32&)COMMAND_KEY[0];
+			keyTwo = (uint32&)COMMAND_KEY[4];
+			keyThree = (uint32&)COMMAND_KEY[8];
+			keyFour = (uint32&)COMMAND_KEY[12];
 		}
 
 		uint32 sum = 0;
@@ -891,7 +891,7 @@ namespace nsyshid
 
 		std::array<uint8, 4> randomized = DimensionsRandomize(toScramble, count);
 
-		return uint32(randomized[0]) << 24 | uint32(randomized[1]) << 16 | uint32(randomized[2]) << 8 | uint32(randomized[3]);
+		return uint32be::from_bevalue((uint32&)randomized[0]);
 	}
 
 	std::array<uint8, 4> DimensionsUSB::PWDGenerate(const std::array<uint8, 0x2D * 0x04>& buf)
@@ -914,7 +914,7 @@ namespace nsyshid
 		{
 			const uint32 v4 = std::rotr(scrambled, 25);
 			const uint32 v5 = std::rotr(scrambled, 10);
-			const uint32 b = uint32(key[(i * 4) + 3]) << 24 | uint32(key[(i * 4) + 2]) << 16 | uint32(key[(i * 4) + 1]) << 8 | uint32(key[(i * 4)]);
+			const uint32 b = (uint32&)key[i * 4];
 			scrambled = b + v4 + v5 - scrambled;
 		}
 		return {uint8(scrambled & 0xFF), uint8(scrambled >> 8 & 0xFF), uint8(scrambled >> 16 & 0xFF), uint8(scrambled >> 24 & 0xFF)};
@@ -924,18 +924,18 @@ namespace nsyshid
 	{
 		const std::array<uint8, 16> figureKey = GenerateFigureKey(buf);
 
-		const std::span<const uint8, 8> modelNumber = std::span<const uint8, 8>{buf.data() + (36 * 4), 8};
+		const std::span<const uint8, 8> modelNumber = std::span<const uint8, 8>{buf.begin() + (36 * 4), 8};
 
 		const std::array<uint8, 8> decrypted = Decrypt(modelNumber, figureKey);
 
-		const uint32 figNum = uint32(decrypted[3]) << 24 | uint32(decrypted[2]) << 16 | uint32(decrypted[1]) << 8 | uint32(decrypted[0]);
+		const uint32 figNum = (uint32&)decrypted[0];
 		// Characters have their model number encrypted in page 36
 		if (figNum < 1000)
 		{
 			return figNum;
 		}
 		// Vehicles/Gadgets have their model number written as little endian in page 36
-		return uint32(modelNumber[3]) << 24 | uint32(modelNumber[2]) << 16 | uint32(modelNumber[1]) << 8 | uint32(modelNumber[0]);
+		return (uint32&)modelNumber[0];
 	}
 
 	DimensionsUSB::DimensionsMini&
@@ -969,7 +969,7 @@ namespace nsyshid
 		replyBuf[20] = GenerateChecksum(replyBuf, 20);
 	}
 
-	void DimensionsUSB::WriteBlock(uint8 index, uint8 page, std::span<const uint8, 16> toWriteBuf,
+	void DimensionsUSB::WriteBlock(uint8 index, uint8 page, std::span<const uint8, 4> toWriteBuf,
 									std::array<uint8, 32>& replyBuf, uint8 sequence)
 	{
 		std::lock_guard lock(m_dimensionsMutex);
@@ -990,7 +990,7 @@ namespace nsyshid
 				// Id is written to page 36
 				if (page == 36)
 				{
-					figure.id = uint32(toWriteBuf[3]) << 24 | uint32(toWriteBuf[2]) << 16 | uint32(toWriteBuf[1]) << 8 | uint32(toWriteBuf[0]);
+					figure.id = (uint32&)toWriteBuf[0];
 				}
 				std::memcpy(figure.data.data() + (page * 4), toWriteBuf.data(), 4);
 				figure.Save();
@@ -1005,7 +1005,7 @@ namespace nsyshid
 		// Decrypt payload to 8 byte array, byte 1 is the index, 4-7 are the confirmation
 		std::array<uint8, 8> value = Decrypt(buf, std::nullopt);
 		uint8 index = value[0];
-		uint32 conf = uint32(value[4]) << 24 | uint32(value[5]) << 16 | uint32(value[6]) << 8 | uint32(value[7]);
+		uint32 conf = uint32be::from_bevalue((uint32&)value[4]);
 		// Response is the figure's id (little endian) followed by the confirmation from payload
 		// Index from game begins at 1 rather than 0, so minus 1 here
 		std::array<uint8, 8> valueToEncrypt = {};
@@ -1025,7 +1025,7 @@ namespace nsyshid
 		replyBuf[12] = GenerateChecksum(replyBuf, 12);
 	}
 
-	void DimensionsUSB::RandomUID(uint8* uid_buffer)
+	void DimensionsUSB::RandomUID(std::array<uint8, 0x2D * 0x04>& uid_buffer)
 	{
 		uid_buffer[0] = 0x04;
 		uid_buffer[6] = 0x80;
