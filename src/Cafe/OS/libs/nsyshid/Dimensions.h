@@ -50,19 +50,19 @@ namespace nsyshid
 			void Save();
 		};
 
-		void SendCommand(uint8* buf, sint32 originalLength);
+		void SendCommand(std::span<const uint8, 32> buf);
 		std::array<uint8, 32> GetStatus();
 
-		void GenerateRandomNumber(uint8* buf, uint8 sequence,
+		void GenerateRandomNumber(std::span<const uint8, 8> buf, uint8 sequence,
 						   std::array<uint8, 32>& replyBuf);
 		void InitializeRNG(uint32 seed);
-		void GetChallengeResponse(uint8* buf, uint8 sequence,
+		void GetChallengeResponse(std::span<const uint8, 8> buf, uint8 sequence,
 									std::array<uint8, 32>& replyBuf);
 		void QueryBlock(uint8 index, uint8 page, std::array<uint8, 32>& replyBuf,
 						 uint8 sequence);
-		void WriteBlock(uint8 index, uint8 page, const uint8* toWriteBuf, std::array<uint8, 32>& replyBuf,
+		void WriteBlock(uint8 index, uint8 page, std::span<const uint8, 16> toWriteBuf, std::array<uint8, 32>& replyBuf,
 						 uint8 sequence);
-		void GetModel(uint8* buf, uint8 sequence,
+		void GetModel(std::span<const uint8, 8> buf, uint8 sequence,
 					   std::array<uint8, 32>& replyBuf);
 
 		bool RemoveFigure(uint8 pad, uint8 index);
@@ -79,8 +79,8 @@ namespace nsyshid
 		void RandomUID(uint8* uidBuffer);
 		uint8 GenerateChecksum(const std::array<uint8, 32>& data,
 								int numOfBytes) const;
-		std::array<uint8, 8> Decrypt(const uint8* buf, std::optional<std::array<uint8, 16>> key);
-		std::array<uint8, 8> Encrypt(const uint8* buf, std::optional<std::array<uint8, 16>> key);
+		std::array<uint8, 8> Decrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key);
+		std::array<uint8, 8> Encrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key);
 		std::array<uint8, 16> GenerateFigureKey(const std::array<uint8, 0x2D * 0x04>& uid);
 		std::array<uint8, 4> PWDGenerate(const std::array<uint8, 0x2D * 0x04>& uid);
 		std::array<uint8, 4> DimensionsRandomize(const std::vector<uint8> key, uint8 count);
