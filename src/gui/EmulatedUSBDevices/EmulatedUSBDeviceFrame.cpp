@@ -168,8 +168,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 	return panel;
 }
 
-wxBoxSizer* EmulatedUSBDeviceFrame::AddSkylanderRow(uint8 rowNumber,
-													wxStaticBox* box)
+wxBoxSizer* EmulatedUSBDeviceFrame::AddSkylanderRow(uint8 rowNumber, wxStaticBox* box)
 {
 	auto* row = new wxBoxSizer(wxHORIZONTAL);
 
@@ -237,10 +236,13 @@ wxBoxSizer* EmulatedUSBDeviceFrame::AddDimensionPanel(uint8 pad, uint8 index, wx
 	auto* panel = new wxBoxSizer(wxVERTICAL);
 
 	auto* combo_row = new wxBoxSizer(wxHORIZONTAL);
-	m_dimension_slots[index] = new wxTextCtrl(box, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize,
-												  wxTE_READONLY);
-	combo_row->Add(m_dimension_slots[index], 1, wxEXPAND | wxALL, 2);
+	m_dimensionSlots[index] = new wxTextCtrl(box, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize,
+											 wxTE_READONLY);
+	combo_row->Add(m_dimensionSlots[index], 1, wxEXPAND | wxALL, 2);
 	auto* move_button = new wxButton(box, wxID_ANY, _("Move"));
+	move_button->Bind(wxEVT_BUTTON, [pad, index, this](wxCommandEvent&) {
+		MoveMinifig(pad, index);
+	});
 
 	combo_row->Add(move_button, 1, wxEXPAND | wxALL, 2);
 
@@ -434,6 +436,80 @@ wxString CreateSkylanderDialog::GetFilePath() const
 	return m_filePath;
 }
 
+void EmulatedUSBDeviceFrame::UpdateSkylanderEdits()
+{
+	for (auto i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
+	{
+		std::string displayString;
+		if (auto sd = m_skySlots[i])
+		{
+			auto [portalSlot, skyId, skyVar] = sd.value();
+			displayString = nsyshid::g_skyportal.FindSkylander(skyId, skyVar);
+		}
+		else
+		{
+			displayString = "None";
+		}
+
+		m_skylanderSlots[i]->ChangeValue(displayString);
+	}
+}
+
+void EmulatedUSBDeviceFrame::LoadFigure(uint8 slot)
+{
+	wxFileDialog openFileDialog(this, _("Open Infinity Figure dump"), "", "",
+								"BIN files (*.bin)|*.bin",
+								wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openFileDialog.ShowModal() != wxID_OK || openFileDialog.GetPath().empty())
+	{
+		wxMessageDialog errorMessage(this, "File Okay Error");
+		errorMessage.ShowModal();
+		return;
+	}
+
+	LoadFigurePath(slot, openFileDialog.GetPath());
+}
+
+void EmulatedUSBDeviceFrame::LoadFigurePath(uint8 slot, wxString path)
+{
+	std::unique_ptr<FileStream> infFile(FileStream::openFile2(_utf8ToPath(path.utf8_string()), true));
+	if (!infFile)
+	{
+		wxMessageDialog errorMessage(this, "File Open Error");
+		errorMessage.ShowModal();
+		return;
+	}
+
+	std::array<uint8, nsyshid::INF_FIGURE_SIZE> fileData;
+	if (infFile->readData(fileData.data(), fileData.size()) != fileData.size())
+	{
+		wxMessageDialog open_error(this, "Failed to read file! File was too small");
+		open_error.ShowModal();
+		return;
+	}
+	ClearFigure(slot);
+
+	uint32 number = nsyshid::g_infinitybase.LoadFigure(fileData, std::move(infFile), slot);
+	m_infinitySlots[slot]->ChangeValue(nsyshid::g_infinitybase.FindFigure(number).second);
+}
+
+void EmulatedUSBDeviceFrame::CreateFigure(uint8 slot)
+{
+	cemuLog_log(LogType::Force, "Create Figure: {}", slot);
+	CreateInfinityFigureDialog create_dlg(this, slot);
+	create_dlg.ShowModal();
+	if (create_dlg.GetReturnCode() == 1)
+	{
+		LoadFigurePath(slot, create_dlg.GetFilePath());
+	}
+}
+
+void EmulatedUSBDeviceFrame::ClearFigure(uint8 slot)
+{
+	m_infinitySlots[slot]->ChangeValue("None");
+	nsyshid::g_infinitybase.RemoveFigure(slot);
+}
+
 CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 slot)
 	: wxDialog(parent, wxID_ANY, _("Infinity Figure Creator"), wxDefaultPosition, wxSize(500, 150))
 {
@@ -530,6 +606,77 @@ wxString CreateInfinityFigureDialog::GetFilePath() const
 	return m_filePath;
 }
 
+void EmulatedUSBDeviceFrame::LoadMinifig(uint8 pad, uint8 index)
+{
+	wxFileDialog openFileDialog(this, _("Load Dimensions Figure"), "", "",
+								"Dimensions files (*.bin)|*.bin",
+								wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+	if (openFileDialog.ShowModal() != wxID_OK || openFileDialog.GetPath().empty())
+		return;
+
+	LoadMinifigPath(openFileDialog.GetPath(), pad, index);
+}
+
+void EmulatedUSBDeviceFrame::LoadMinifigPath(wxString path_name, uint8 pad, uint8 index)
+{
+	std::unique_ptr<FileStream> dim_file(FileStream::openFile2(_utf8ToPath(path_name.utf8_string()), true));
+	if (!dim_file)
+	{
+		wxMessageDialog errorMessage(this, "Failed to open minifig file");
+		errorMessage.ShowModal();
+		return;
+	}
+
+	std::array<uint8, 0x2D * 0x04> file_data;
+
+	if (dim_file->readData(file_data.data(), file_data.size()) != file_data.size())
+	{
+		wxMessageDialog errorMessage(this, "Failed to read minifig file data");
+		errorMessage.ShowModal();
+		return;
+	}
+
+	ClearMinifig(pad, index);
+
+	uint32 id = nsyshid::g_dimensionstoypad.LoadFigure(file_data, std::move(dim_file), pad, index, true);
+	m_dimensionSlots[index]->ChangeValue(nsyshid::g_dimensionstoypad.FindFigure(id));
+	m_dimSlots[index] = id;
+}
+
+void EmulatedUSBDeviceFrame::ClearMinifig(uint8 pad, uint8 index)
+{
+	nsyshid::g_dimensionstoypad.RemoveFigure(pad, index, true, true);
+	m_dimensionSlots[index]->ChangeValue("None");
+	m_dimSlots[index] = std::nullopt;
+}
+
+void EmulatedUSBDeviceFrame::CreateMinifig(uint8 pad, uint8 index)
+{
+	CreateDimensionFigureDialog create_dlg(this);
+	create_dlg.ShowModal();
+	if (create_dlg.GetReturnCode() == 1)
+	{
+		LoadMinifigPath(create_dlg.GetFilePath(), pad, index);
+	}
+}
+
+void EmulatedUSBDeviceFrame::MoveMinifig(uint8 pad, uint8 index)
+{
+	MoveDimensionFigureDialog move_dlg(this, index);
+	move_dlg.ShowModal();
+	if (move_dlg.GetReturnCode() == 1)
+	{
+		nsyshid::g_dimensionstoypad.MoveFigure(move_dlg.GetNewPad(), move_dlg.GetNewIndex(), pad, index);
+		if (index != move_dlg.GetNewIndex())
+		{
+			m_dimSlots[move_dlg.GetNewIndex()] = m_dimSlots[index];
+			m_dimensionSlots[move_dlg.GetNewIndex()]->ChangeValue(m_dimensionSlots[index]->GetValue());
+			m_dimSlots[index] = std::nullopt;
+			m_dimensionSlots[index]->ChangeValue("None");
+		}
+	}
+}
+
 CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Dimensions Figure Creator"), wxDefaultPosition, wxSize(500, 200))
 {
@@ -618,125 +765,64 @@ wxString CreateDimensionFigureDialog::GetFilePath() const
 	return m_filePath;
 }
 
-void EmulatedUSBDeviceFrame::LoadMinifig(uint8 pad, uint8 index)
+MoveDimensionFigureDialog::MoveDimensionFigureDialog(EmulatedUSBDeviceFrame* parent, uint8 currentIndex)
+	: wxDialog(parent, wxID_ANY, _("Dimensions Figure Mover"), wxDefaultPosition, wxSize(700, 300))
 {
-	wxFileDialog openFileDialog(this, _("Load Dimensions Figure"), "", "",
-								"Dimensions files (*.bin)|*.bin",
-								wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (openFileDialog.ShowModal() != wxID_OK || openFileDialog.GetPath().empty())
-		return;
+	auto* sizer = new wxGridSizer(2, 5, 10, 10);
 
-	LoadMinifigPath(openFileDialog.GetPath(), pad, index);
-}
-void EmulatedUSBDeviceFrame::LoadMinifigPath(wxString path_name, uint8 pad, uint8 index)
-{
-	std::unique_ptr<FileStream> dim_file(FileStream::openFile2(_utf8ToPath(path_name.utf8_string()), true));
-	if (!dim_file)
-	{
-		wxMessageDialog errorMessage(this, "Failed to open minifig file");
-		errorMessage.ShowModal();
-		return;
-	}
+	std::array<std::optional<uint32>, 7> ids = parent->GetCurrentMinifigs();
 
-	std::array<uint8, 0x2D * 0x04> file_data;
+	sizer->Add(AddMinifigSlot(2, 0, currentIndex, ids[0]), 1, wxALL, 5);
+	sizer->Add(new wxStaticText(this, wxID_ANY, ""), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(1, 1, currentIndex, ids[1]), 1, wxALL, 5);
+	sizer->Add(new wxStaticText(this, wxID_ANY, ""), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(3, 2, currentIndex, ids[2]), 1, wxALL, 5);
 
-	if (dim_file->readData(file_data.data(), file_data.size()) != file_data.size())
-	{
-		wxMessageDialog errorMessage(this, "Failed to read minifig file data");
-		errorMessage.ShowModal();
-		return;
-	}
+	sizer->Add(AddMinifigSlot(1, 3, currentIndex, ids[3]), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(1, 4, currentIndex, ids[4]), 1, wxALL, 5);
+	sizer->Add(new wxStaticText(this, wxID_ANY, ""), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(3, 5, currentIndex, ids[5]), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(3, 6, currentIndex, ids[6]), 1, wxALL, 5);
 
-	ClearMinifig(pad, index);
-
-	uint32 id = nsyshid::g_dimensionstoypad.LoadFigure(file_data, std::move(dim_file), pad, index);
-	m_dimension_slots[index]->ChangeValue(nsyshid::g_dimensionstoypad.FindFigure(id));
-}
-void EmulatedUSBDeviceFrame::ClearMinifig(uint8 pad, uint8 index)
-{
-	nsyshid::g_dimensionstoypad.RemoveFigure(pad, index);
-	m_dimension_slots[index]->ChangeValue("None");
-}
-void EmulatedUSBDeviceFrame::CreateMinifig(uint8 pad, uint8 index)
-{
-	CreateDimensionFigureDialog create_dlg(this);
-	create_dlg.ShowModal();
-	if (create_dlg.GetReturnCode() == 1)
-	{
-		LoadMinifigPath(create_dlg.GetFilePath(), pad, index);
-	}
+	this->SetSizer(sizer);
+	this->Centre(wxBOTH);
 }
 
-void EmulatedUSBDeviceFrame::LoadFigure(uint8 slot)
+wxBoxSizer* MoveDimensionFigureDialog::AddMinifigSlot(uint8 pad, uint8 index, uint8 currentIndex, std::optional<uint32> currentId)
 {
-	wxFileDialog openFileDialog(this, _("Open Infinity Figure dump"), "", "",
-								"BIN files (*.bin)|*.bin",
-								wxFD_OPEN | wxFD_FILE_MUST_EXIST);
-	if (openFileDialog.ShowModal() != wxID_OK || openFileDialog.GetPath().empty())
-	{
-		wxMessageDialog errorMessage(this, "File Okay Error");
-		errorMessage.ShowModal();
-		return;
-	}
+	auto* panel = new wxBoxSizer(wxVERTICAL);
 
-	LoadFigurePath(slot, openFileDialog.GetPath());
+	auto* label = new wxStaticText(this, wxID_ANY, "None");
+	if (currentId)
+		label->SetLabel(nsyshid::g_dimensionstoypad.FindFigure(currentId.value()));
+
+	auto* moveButton = new wxButton(this, wxID_ANY, _("Move Here"));
+	if (index == currentIndex)
+		moveButton->SetLabelText("Pick up and Place");
+
+	moveButton->Bind(wxEVT_BUTTON, [pad, index, this](wxCommandEvent&) {
+		m_newPad = pad;
+		m_newIndex = index;
+		this->EndModal(1);
+	});
+
+	panel->Add(label, 1, wxALL, 5);
+	panel->Add(moveButton, 1, wxALL, 5);
+
+	return panel;
 }
 
-void EmulatedUSBDeviceFrame::LoadFigurePath(uint8 slot, wxString path)
+uint8 MoveDimensionFigureDialog::GetNewPad() const
 {
-	std::unique_ptr<FileStream> infFile(FileStream::openFile2(_utf8ToPath(path.utf8_string()), true));
-	if (!infFile)
-	{
-		wxMessageDialog errorMessage(this, "File Open Error");
-		errorMessage.ShowModal();
-		return;
-	}
-
-	std::array<uint8, nsyshid::INF_FIGURE_SIZE> fileData;
-	if (infFile->readData(fileData.data(), fileData.size()) != fileData.size())
-	{
-		wxMessageDialog open_error(this, "Failed to read file! File was too small");
-		open_error.ShowModal();
-		return;
-	}
-	ClearFigure(slot);
-
-	uint32 number = nsyshid::g_infinitybase.LoadFigure(fileData, std::move(infFile), slot);
-	m_infinitySlots[slot]->ChangeValue(nsyshid::g_infinitybase.FindFigure(number).second);
+	return m_newPad;
 }
 
-void EmulatedUSBDeviceFrame::CreateFigure(uint8 slot)
+uint8 MoveDimensionFigureDialog::GetNewIndex() const
 {
-	cemuLog_log(LogType::Force, "Create Figure: {}", slot);
-	CreateInfinityFigureDialog create_dlg(this, slot);
-	create_dlg.ShowModal();
-	if (create_dlg.GetReturnCode() == 1)
-	{
-		LoadFigurePath(slot, create_dlg.GetFilePath());
-	}
+	return m_newIndex;
 }
 
-void EmulatedUSBDeviceFrame::ClearFigure(uint8 slot)
+std::array<std::optional<uint32>, 7> EmulatedUSBDeviceFrame::GetCurrentMinifigs()
 {
-	m_infinitySlots[slot]->ChangeValue("None");
-	nsyshid::g_infinitybase.RemoveFigure(slot);
-}
-
-void EmulatedUSBDeviceFrame::UpdateSkylanderEdits()
-{
-	for (auto i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
-	{
-		std::string displayString;
-		if (auto sd = m_skySlots[i])
-		{
-			auto [portalSlot, skyId, skyVar] = sd.value();
-			displayString = nsyshid::g_skyportal.FindSkylander(skyId, skyVar);
-		}
-		else
-		{
-			displayString = "None";
-		}
-
-		m_skylanderSlots[i]->ChangeValue(displayString);
-	}
+	return m_dimSlots;
 }

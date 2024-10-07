@@ -609,9 +609,11 @@ namespace nsyshid
 		m_queries.push(q_result);
 	}
 
-	uint32 DimensionsUSB::LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index)
+	uint32 DimensionsUSB::LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index, bool lock)
 	{
-		std::lock_guard lock(m_dimensionsMutex);
+		if (lock)
+			std::shared_lock lock(m_dimensionsMutex);
+
 		const uint32 id = GetFigureId(buf);
 
 		DimensionsMini& figure = GetFigureByIndex(index);
@@ -625,30 +627,44 @@ namespace nsyshid
 		std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x00, buf[0], buf[1], buf[2], buf[4], buf[5], buf[6], buf[7]};
 		figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
 		m_figureAddedRemovedResponses.push(figureChangeResponse);
+
+		if (lock)
+			std::shared_lock unlock(m_dimensionsMutex);
+
 		return id;
 	}
 
-	bool DimensionsUSB::RemoveFigure(uint8 pad, uint8 index)
+	bool DimensionsUSB::RemoveFigure(uint8 pad, uint8 index, bool save, bool lock)
 	{
-		std::lock_guard lock(m_dimensionsMutex);
 		DimensionsMini& figure = GetFigureByIndex(index);
 		if (figure.index == 255)
 		{
 			return false;
 		}
+
+		if (lock)
+			std::shared_lock lock(m_dimensionsMutex);
+
 		// When a figure is removed from the toypad, respond to the game with the pad they were removed from, their index,
 		// the direction (0x01 in byte 6 for removed) and their UID
 		std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x01,
 													  figure.data[0], figure.data[1], figure.data[2],
 													  figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
-		figure.Save();
-		figure.dimFile.reset();
+		if (save)
+		{
+			figure.Save();
+			figure.dimFile.reset();
+		}
 		figure.index = 255;
 		figure.pad = 255;
 		figure.id = 0;
 		memcpy(&figureChangeResponse[6], figure.data.data(), 7);
 		figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
 		m_figureAddedRemovedResponses.push(figureChangeResponse);
+
+		if (lock)
+			std::shared_lock unlock(m_dimensionsMutex);
+
 		return true;
 	}
 
@@ -697,8 +713,40 @@ namespace nsyshid
 		return true;
 	}
 
+	bool DimensionsUSB::MoveFigure(uint8 pad, uint8 index, uint8 oldPad, uint8 oldIndex)
+	{
+		std::lock_guard lock(m_dimensionsMutex);
+
+		if (oldIndex == index)
+		{
+			// Don't bother removing and loading again, just send response to the game
+			const DimensionsMini& figure = GetFigureByIndex(oldIndex);
+			std::array<uint8, 32> figureRemoveResponse = {0x56, 0x0b, pad, 0x00, figure.index, 0x01, figure.data[0], figure.data[1], figure.data[2], figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
+			figureRemoveResponse[13] = GenerateChecksum(figureRemoveResponse, 13);
+			std::array<uint8, 32> figureAddResponse = {0x56, 0x0b, pad, 0x00, figure.index, 0x00, figure.data[0], figure.data[1], figure.data[2], figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
+			figureAddResponse[13] = GenerateChecksum(figureAddResponse, 13);
+			m_figureAddedRemovedResponses.push(std::move(figureRemoveResponse));
+			m_figureAddedRemovedResponses.push(std::move(figureAddResponse));
+			return true;
+		}
+
+		// When moving figures between spaces on the toypad, remove any figure from the space they are moving to,
+		// then remove them from their current space, then load them to the space they are moving to
+		RemoveFigure(pad, index, true, false);
+
+		DimensionsMini& figure = GetFigureByIndex(oldIndex);
+		const std::array<uint8, 0x2D * 0x04> data = figure.data;
+		std::unique_ptr<FileStream> inFile = std::move(figure.dimFile);
+
+		RemoveFigure(oldPad, oldIndex, false, false);
+
+		LoadFigure(data, std::move(inFile), pad, index, false);
+
+		return true;
+	}
+
 	void DimensionsUSB::GenerateRandomNumber(std::span<const uint8, 8> buf, uint8 sequence,
-									  std::array<uint8, 32>& replyBuf)
+											 std::array<uint8, 32>& replyBuf)
 	{
 		// Decrypt payload into an 8 byte array
 		std::array<uint8, 8> value = Decrypt(buf, std::nullopt);
@@ -720,7 +768,7 @@ namespace nsyshid
 	}
 
 	void DimensionsUSB::GetChallengeResponse(std::span<const uint8, 8> buf, uint8 sequence,
-											   std::array<uint8, 32>& replyBuf)
+											 std::array<uint8, 32>& replyBuf)
 	{
 		// Decrypt payload into an 8 byte array
 		std::array<uint8, 8> value = Decrypt(buf, std::nullopt);
@@ -731,8 +779,8 @@ namespace nsyshid
 		// Encrypt an 8 byte array, first 4 bytes are the next random number (little endian)
 		// followed by the confirmation from the decrypted payload
 		std::array<uint8, 8> valueToEncrypt = {uint8(nextRandom & 0xFF), uint8((nextRandom >> 8) & 0xFF),
-												 uint8((nextRandom >> 16) & 0xFF), uint8((nextRandom >> 24) & 0xFF),
-												 value[0], value[1], value[2], value[3]};
+											   uint8((nextRandom >> 16) & 0xFF), uint8((nextRandom >> 24) & 0xFF),
+											   value[0], value[1], value[2], value[3]};
 		std::array<uint8, 8> encrypted = Encrypt(valueToEncrypt, std::nullopt);
 		replyBuf[0] = 0x55;
 		replyBuf[1] = 0x09;
@@ -941,7 +989,7 @@ namespace nsyshid
 	DimensionsUSB::DimensionsMini&
 	DimensionsUSB::GetFigureByIndex(uint8 index)
 	{
-		return figures[index];
+		return m_figures[index];
 	}
 
 	void DimensionsUSB::QueryBlock(uint8 index, uint8 page,
@@ -970,7 +1018,7 @@ namespace nsyshid
 	}
 
 	void DimensionsUSB::WriteBlock(uint8 index, uint8 page, std::span<const uint8, 4> toWriteBuf,
-									std::array<uint8, 32>& replyBuf, uint8 sequence)
+								   std::array<uint8, 32>& replyBuf, uint8 sequence)
 	{
 		std::lock_guard lock(m_dimensionsMutex);
 
@@ -1000,7 +1048,7 @@ namespace nsyshid
 	}
 
 	void DimensionsUSB::GetModel(std::span<const uint8, 8> buf, uint8 sequence,
-								  std::array<uint8, 32>& replyBuf)
+								 std::array<uint8, 32>& replyBuf)
 	{
 		// Decrypt payload to 8 byte array, byte 1 is the index, 4-7 are the confirmation
 		std::array<uint8, 8> value = Decrypt(buf, std::nullopt);
