@@ -1114,9 +1114,21 @@ namespace nsyshid
 		return s_listMinis;
 	}
 
+	std::map<const uint32, const char*> DimensionsUSB::GetListTokens()
+	{
+		return s_listTokens;
+	}
+
 	std::string DimensionsUSB::FindFigure(uint32 figNum)
 	{
 		for (const auto& it : GetListMinifigs())
+		{
+			if (it.first == figNum)
+			{
+				return it.second;
+			}
+		}
+		for (const auto& it : GetListTokens())
 		{
 			if (it.first == figNum)
 			{
