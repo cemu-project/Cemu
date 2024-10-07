@@ -1,4 +1,4 @@
-#include <mutex>
+#include <shared_mutex>
 
 #include "nsyshid.h"
 #include "Backend.h"
@@ -54,31 +54,32 @@ namespace nsyshid
 		std::array<uint8, 32> GetStatus();
 
 		void GenerateRandomNumber(std::span<const uint8, 8> buf, uint8 sequence,
-						   std::array<uint8, 32>& replyBuf);
+								  std::array<uint8, 32>& replyBuf);
 		void InitializeRNG(uint32 seed);
 		void GetChallengeResponse(std::span<const uint8, 8> buf, uint8 sequence,
-									std::array<uint8, 32>& replyBuf);
+								  std::array<uint8, 32>& replyBuf);
 		void QueryBlock(uint8 index, uint8 page, std::array<uint8, 32>& replyBuf,
-						 uint8 sequence);
+						uint8 sequence);
 		void WriteBlock(uint8 index, uint8 page, std::span<const uint8, 4> toWriteBuf, std::array<uint8, 32>& replyBuf,
-						 uint8 sequence);
+						uint8 sequence);
 		void GetModel(std::span<const uint8, 8> buf, uint8 sequence,
-					   std::array<uint8, 32>& replyBuf);
+					  std::array<uint8, 32>& replyBuf);
 
-		bool RemoveFigure(uint8 pad, uint8 index);
-		uint32 LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index);
+		bool RemoveFigure(uint8 pad, uint8 index, bool save, bool lock);
+		uint32 LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index, bool lock);
 		bool CreateFigure(fs::path pathName, uint32 id);
+		bool MoveFigure(uint8 pad, uint8 index, uint8 oldPad, uint8 oldIndex);
 		static std::map<const uint32, const char*> GetListMinifigs();
 		std::string FindFigure(uint32 figNum);
 
 	  protected:
-		std::mutex m_dimensionsMutex;
-		std::array<DimensionsMini, 7> figures;
+		std::shared_mutex m_dimensionsMutex;
+		std::array<DimensionsMini, 7> m_figures{};
 
 	  private:
 		void RandomUID(std::array<uint8, 0x2D * 0x04>& uidBuffer);
 		uint8 GenerateChecksum(const std::array<uint8, 32>& data,
-								int numOfBytes) const;
+							   int numOfBytes) const;
 		std::array<uint8, 8> Decrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key);
 		std::array<uint8, 8> Encrypt(std::span<const uint8, 8> buf, std::optional<std::array<uint8, 16>> key);
 		std::array<uint8, 16> GenerateFigureKey(const std::array<uint8, 0x2D * 0x04>& uid);
