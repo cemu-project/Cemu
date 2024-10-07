@@ -70,6 +70,7 @@ namespace nsyshid
 		bool CreateFigure(fs::path pathName, uint32 id);
 		bool MoveFigure(uint8 pad, uint8 index, uint8 oldPad, uint8 oldIndex);
 		static std::map<const uint32, const char*> GetListMinifigs();
+		static std::map<const uint32, const char*> GetListTokens();
 		std::string FindFigure(uint32 figNum);
 
 	  protected:
