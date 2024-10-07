@@ -619,7 +619,7 @@ namespace nsyshid
 		figure.id = id;
 		figure.pad = pad;
 		figure.index = index + 1;
-		memcpy(figure.data.data(), buf.data(), buf.size());
+		figure.data = buf;
 		// When a figure is added to the toypad, respond to the game with the pad they were added to, their index,
 		// the direction (0x00 in byte 6 for added) and their UID
 		std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x00, buf[0], buf[1], buf[2], buf[4], buf[5], buf[6], buf[7]};
