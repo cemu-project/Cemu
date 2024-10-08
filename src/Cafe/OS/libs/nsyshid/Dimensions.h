@@ -1,4 +1,4 @@
-#include <shared_mutex>
+#include <mutex>
 
 #include "nsyshid.h"
 #include "Backend.h"
@@ -65,8 +65,10 @@ namespace nsyshid
 		void GetModel(std::span<const uint8, 8> buf, uint8 sequence,
 					  std::array<uint8, 32>& replyBuf);
 
-		bool RemoveFigure(uint8 pad, uint8 index, bool save, bool lock);
-		uint32 LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index, bool lock);
+		bool RemoveFigure(uint8 pad, uint8 index, bool fullRemove);
+		bool TempRemove(uint8 index);
+		bool CancelRemove(uint8 index);
+		uint32 LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index);
 		bool CreateFigure(fs::path pathName, uint32 id);
 		bool MoveFigure(uint8 pad, uint8 index, uint8 oldPad, uint8 oldIndex);
 		static std::map<const uint32, const char*> GetListMinifigs();
@@ -74,7 +76,7 @@ namespace nsyshid
 		std::string FindFigure(uint32 figNum);
 
 	  protected:
-		std::shared_mutex m_dimensionsMutex;
+		std::mutex m_dimensionsMutex;
 		std::array<DimensionsMini, 7> m_figures{};
 
 	  private:
@@ -95,6 +97,8 @@ namespace nsyshid
 		uint32 m_randomB;
 		uint32 m_randomC;
 		uint32 m_randomD;
+
+		bool m_isAwake = false;
 
 		std::queue<std::array<uint8, 32>> m_figureAddedRemovedResponses;
 		std::queue<std::array<uint8, 32>> m_queries;

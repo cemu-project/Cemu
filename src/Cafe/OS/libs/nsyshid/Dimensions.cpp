@@ -508,16 +508,16 @@ namespace nsyshid
 		bool responded = false;
 		do
 		{
-			if (!m_figureAddedRemovedResponses.empty())
-			{
-				response = m_figureAddedRemovedResponses.front();
-				m_figureAddedRemovedResponses.pop();
-				responded = true;
-			}
-			else if (!m_queries.empty())
+			if (!m_queries.empty())
 			{
 				response = m_queries.front();
 				m_queries.pop();
+				responded = true;
+			}
+			else if (!m_figureAddedRemovedResponses.empty() && m_isAwake)
+			{
+				response = m_figureAddedRemovedResponses.front();
+				m_figureAddedRemovedResponses.pop();
 				responded = true;
 			}
 			else
@@ -609,10 +609,9 @@ namespace nsyshid
 		m_queries.push(q_result);
 	}
 
-	uint32 DimensionsUSB::LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index, bool lock)
+	uint32 DimensionsUSB::LoadFigure(const std::array<uint8, 0x2D * 0x04>& buf, std::unique_ptr<FileStream> file, uint8 pad, uint8 index)
 	{
-		if (lock)
-			std::shared_lock lock(m_dimensionsMutex);
+		std::lock_guard lock(m_dimensionsMutex);
 
 		const uint32 id = GetFigureId(buf);
 
@@ -628,42 +627,70 @@ namespace nsyshid
 		figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
 		m_figureAddedRemovedResponses.push(figureChangeResponse);
 
-		if (lock)
-			std::shared_lock unlock(m_dimensionsMutex);
-
 		return id;
 	}
 
-	bool DimensionsUSB::RemoveFigure(uint8 pad, uint8 index, bool save, bool lock)
+	bool DimensionsUSB::RemoveFigure(uint8 pad, uint8 index, bool fullRemove)
 	{
+		std::lock_guard lock(m_dimensionsMutex);
+
 		DimensionsMini& figure = GetFigureByIndex(index);
 		if (figure.index == 255)
-		{
 			return false;
-		}
-
-		if (lock)
-			std::shared_lock lock(m_dimensionsMutex);
 
 		// When a figure is removed from the toypad, respond to the game with the pad they were removed from, their index,
 		// the direction (0x01 in byte 6 for removed) and their UID
-		std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x01,
-													  figure.data[0], figure.data[1], figure.data[2],
-													  figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
-		if (save)
+		if (fullRemove)
 		{
+			std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x01,
+														  figure.data[0], figure.data[1], figure.data[2],
+														  figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
+			figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
+			m_figureAddedRemovedResponses.push(figureChangeResponse);
 			figure.Save();
 			figure.dimFile.reset();
 		}
+
 		figure.index = 255;
 		figure.pad = 255;
 		figure.id = 0;
-		memcpy(&figureChangeResponse[6], figure.data.data(), 7);
+
+		return true;
+	}
+
+	bool DimensionsUSB::TempRemove(uint8 index)
+	{
+		std::lock_guard lock(m_dimensionsMutex);
+
+		DimensionsMini& figure = GetFigureByIndex(index);
+		if (figure.index == 255)
+			return false;
+
+		// Send a response to the game that the figure has been "Picked up" from existing slot,
+		// until either the movement is cancelled, or user chooses a space to move to
+		std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x01,
+													  figure.data[0], figure.data[1], figure.data[2],
+													  figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
+
 		figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
 		m_figureAddedRemovedResponses.push(figureChangeResponse);
+	}
 
-		if (lock)
-			std::shared_lock unlock(m_dimensionsMutex);
+	bool DimensionsUSB::CancelRemove(uint8 index)
+	{
+		std::lock_guard lock(m_dimensionsMutex);
+
+		DimensionsMini& figure = GetFigureByIndex(index);
+		if (figure.index == 255)
+			return false;
+
+		// Cancel the previous movement of the figure
+		std::array<uint8, 32> figureChangeResponse = {0x56, 0x0b, figure.pad, 0x00, figure.index, 0x00,
+													  figure.data[0], figure.data[1], figure.data[2],
+													  figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
+
+		figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
+		m_figureAddedRemovedResponses.push(figureChangeResponse);
 
 		return true;
 	}
@@ -672,12 +699,11 @@ namespace nsyshid
 	{
 		FileStream* dimFile(FileStream::createFile2(pathName));
 		if (!dimFile)
-		{
 			return false;
-		}
+
 		std::array<uint8, 0x2D * 0x04> fileData{};
 		RandomUID(fileData);
-		fileData[7] = id & 0xFF;
+		fileData[3] = id & 0xFF;
 
 		std::array<uint8, 7> uid = {fileData[0], fileData[1], fileData[2], fileData[4], fileData[5], fileData[6], fileData[7]};
 
@@ -715,32 +741,24 @@ namespace nsyshid
 
 	bool DimensionsUSB::MoveFigure(uint8 pad, uint8 index, uint8 oldPad, uint8 oldIndex)
 	{
-		std::lock_guard lock(m_dimensionsMutex);
-
 		if (oldIndex == index)
 		{
 			// Don't bother removing and loading again, just send response to the game
-			const DimensionsMini& figure = GetFigureByIndex(oldIndex);
-			std::array<uint8, 32> figureRemoveResponse = {0x56, 0x0b, pad, 0x00, figure.index, 0x01, figure.data[0], figure.data[1], figure.data[2], figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
-			figureRemoveResponse[13] = GenerateChecksum(figureRemoveResponse, 13);
-			std::array<uint8, 32> figureAddResponse = {0x56, 0x0b, pad, 0x00, figure.index, 0x00, figure.data[0], figure.data[1], figure.data[2], figure.data[4], figure.data[5], figure.data[6], figure.data[7]};
-			figureAddResponse[13] = GenerateChecksum(figureAddResponse, 13);
-			m_figureAddedRemovedResponses.push(std::move(figureRemoveResponse));
-			m_figureAddedRemovedResponses.push(std::move(figureAddResponse));
+			CancelRemove(index);
 			return true;
 		}
 
 		// When moving figures between spaces on the toypad, remove any figure from the space they are moving to,
 		// then remove them from their current space, then load them to the space they are moving to
-		RemoveFigure(pad, index, true, false);
+		RemoveFigure(pad, index, true);
 
 		DimensionsMini& figure = GetFigureByIndex(oldIndex);
 		const std::array<uint8, 0x2D * 0x04> data = figure.data;
 		std::unique_ptr<FileStream> inFile = std::move(figure.dimFile);
 
-		RemoveFigure(oldPad, oldIndex, false, false);
+		RemoveFigure(oldPad, oldIndex, false);
 
-		LoadFigure(data, std::move(inFile), pad, index, false);
+		LoadFigure(data, std::move(inFile), pad, index);
 
 		return true;
 	}
@@ -788,6 +806,9 @@ namespace nsyshid
 		// Copy encrypted value to response data
 		memcpy(&replyBuf[3], encrypted.data(), encrypted.size());
 		replyBuf[11] = GenerateChecksum(replyBuf, 11);
+
+		if (!m_isAwake)
+			m_isAwake = true;
 	}
 
 	void DimensionsUSB::InitializeRNG(uint32 seed)
@@ -1076,7 +1097,7 @@ namespace nsyshid
 	void DimensionsUSB::RandomUID(std::array<uint8, 0x2D * 0x04>& uid_buffer)
 	{
 		uid_buffer[0] = 0x04;
-		uid_buffer[6] = 0x80;
+		uid_buffer[7] = 0x80;
 
 		std::random_device rd;
 		std::mt19937 mt(rd());
@@ -1084,9 +1105,9 @@ namespace nsyshid
 
 		uid_buffer[1] = dist(mt);
 		uid_buffer[2] = dist(mt);
-		uid_buffer[3] = dist(mt);
 		uid_buffer[4] = dist(mt);
 		uid_buffer[5] = dist(mt);
+		uid_buffer[6] = dist(mt);
 	}
 
 	uint8 DimensionsUSB::GenerateChecksum(const std::array<uint8, 32>& data,

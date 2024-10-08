@@ -638,14 +638,14 @@ void EmulatedUSBDeviceFrame::LoadMinifigPath(wxString path_name, uint8 pad, uint
 
 	ClearMinifig(pad, index);
 
-	uint32 id = nsyshid::g_dimensionstoypad.LoadFigure(file_data, std::move(dim_file), pad, index, true);
+	uint32 id = nsyshid::g_dimensionstoypad.LoadFigure(file_data, std::move(dim_file), pad, index);
 	m_dimensionSlots[index]->ChangeValue(nsyshid::g_dimensionstoypad.FindFigure(id));
 	m_dimSlots[index] = id;
 }
 
 void EmulatedUSBDeviceFrame::ClearMinifig(uint8 pad, uint8 index)
 {
-	nsyshid::g_dimensionstoypad.RemoveFigure(pad, index, true, true);
+	nsyshid::g_dimensionstoypad.RemoveFigure(pad, index, true);
 	m_dimensionSlots[index]->ChangeValue("None");
 	m_dimSlots[index] = std::nullopt;
 }
@@ -662,7 +662,11 @@ void EmulatedUSBDeviceFrame::CreateMinifig(uint8 pad, uint8 index)
 
 void EmulatedUSBDeviceFrame::MoveMinifig(uint8 pad, uint8 index)
 {
+	if (!m_dimSlots[index])
+		return;
+
 	MoveDimensionFigureDialog move_dlg(this, index);
+	nsyshid::g_dimensionstoypad.TempRemove(index);
 	move_dlg.ShowModal();
 	if (move_dlg.GetReturnCode() == 1)
 	{
@@ -674,6 +678,10 @@ void EmulatedUSBDeviceFrame::MoveMinifig(uint8 pad, uint8 index)
 			m_dimSlots[index] = std::nullopt;
 			m_dimensionSlots[index]->ChangeValue("None");
 		}
+	}
+	else
+	{
+		nsyshid::g_dimensionstoypad.CancelRemove(index);
 	}
 }
 
@@ -778,8 +786,8 @@ MoveDimensionFigureDialog::MoveDimensionFigureDialog(EmulatedUSBDeviceFrame* par
 	sizer->Add(new wxStaticText(this, wxID_ANY, ""), 1, wxALL, 5);
 	sizer->Add(AddMinifigSlot(3, 2, currentIndex, ids[2]), 1, wxALL, 5);
 
-	sizer->Add(AddMinifigSlot(1, 3, currentIndex, ids[3]), 1, wxALL, 5);
-	sizer->Add(AddMinifigSlot(1, 4, currentIndex, ids[4]), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(2, 3, currentIndex, ids[3]), 1, wxALL, 5);
+	sizer->Add(AddMinifigSlot(2, 4, currentIndex, ids[4]), 1, wxALL, 5);
 	sizer->Add(new wxStaticText(this, wxID_ANY, ""), 1, wxALL, 5);
 	sizer->Add(AddMinifigSlot(3, 5, currentIndex, ids[5]), 1, wxALL, 5);
 	sizer->Add(AddMinifigSlot(3, 6, currentIndex, ids[6]), 1, wxALL, 5);
