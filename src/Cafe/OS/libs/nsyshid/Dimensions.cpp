@@ -516,6 +516,7 @@ namespace nsyshid
 			}
 			else if (!m_figureAddedRemovedResponses.empty() && m_isAwake)
 			{
+				std::lock_guard lock(m_dimensionsMutex);
 				response = m_figureAddedRemovedResponses.front();
 				m_figureAddedRemovedResponses.pop();
 				responded = true;
