@@ -1,8 +1,5 @@
 cmake_minimum_required(VERSION 3.21.1)
 
-# TODO: remove this
-set(CMAKE_CXX_FLAGS_DEBUG "-g")
-
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
 
