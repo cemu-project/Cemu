@@ -111,7 +111,7 @@ endif()
 
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
-option(ENABLE_METAL "Enables the Metal backend" $ENABLE_METAL_DEFAULT)
+option(ENABLE_METAL "Enables the Metal backend" ${ENABLE_METAL_DEFAULT})
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
 if (ENABLE_METAL AND NOT APPLE)
@@ -202,8 +202,7 @@ if (ENABLE_OPENGL)
 	find_package(OpenGL REQUIRED)
 endif()
 
-# TODO: handle this differently?
-if (ENABLE_METAL AND APPLE)
+if (ENABLE_METAL)
     include_directories(${CMAKE_SOURCE_DIR}/dependencies/metal-cpp)
 endif()
 
@@ -232,9 +231,9 @@ if (ENABLE_WXWIDGETS)
 endif()
 
 if (ENABLE_CUBEB)
-	#if (NOT ENABLE_VCPKG)
-	#find_package(cubeb)
-	#endif()
+	if (NOT ENABLE_VCPKG)
+	    find_package(cubeb)
+	endif()
 	if (NOT cubeb_FOUND)
 		option(BUILD_TESTS "" OFF)
 		option(BUILD_TOOLS "" OFF)

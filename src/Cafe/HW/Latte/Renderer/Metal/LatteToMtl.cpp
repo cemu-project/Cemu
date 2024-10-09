@@ -156,7 +156,6 @@ void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].bytesPerBlock = 2;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].textureDecoder = TextureDecoder_R4G4_UNORM_To_RG8::getInstance();
 
-        // ABGR4Unorm
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].bytesPerBlock = 4;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].textureDecoder = TextureDecoder_R4G4B4A4_UNORM_To_RGBA8::getInstance();
