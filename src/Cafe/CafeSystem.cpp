@@ -251,7 +251,14 @@ void InfoLog_PrintActiveSettings()
 	if (ActiveSettings::GetGraphicsAPI() == GraphicAPI::kVulkan)
 	{
 		cemuLog_log(LogType::Force, "Async compile: {}", GetConfig().async_compile.GetValue() ? "true" : "false");
-		if(!GetConfig().vk_accurate_barriers.GetValue())
+		if (!GetConfig().vk_accurate_barriers.GetValue())
+			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
+	}
+	else if (ActiveSettings::GetGraphicsAPI() == GraphicAPI::kMetal)
+	{
+	    cemuLog_log(LogType::Force, "Async compile: {}", GetConfig().async_compile.GetValue() ? "true" : "false");
+		cemuLog_log(LogType::Force, "Fast math: {}", GetConfig().fast_math.GetValue() ? "true" : "false");
+		if (!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
 	cemuLog_log(LogType::Force, "Console language: {}", stdx::to_underlying(config.console_language.GetValue()));
@@ -1013,7 +1020,7 @@ namespace CafeSystem
 	{
 		// starting with Cemu 1.27.0 /vol/storage_mlc01/ is virtualized, meaning that it doesn't point to one singular host os folder anymore
 		// instead it now uses a more complex solution to source titles with various formats (folder, wud, wua) from the game paths and host mlc path
-		
+
 		// todo - mount /vol/storage_mlc01/ with base priority to the host mlc?
 
 		// since mounting titles is an expensive operation we have to avoid mounting all titles at once

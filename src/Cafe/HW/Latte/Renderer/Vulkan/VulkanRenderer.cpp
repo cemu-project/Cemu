@@ -65,7 +65,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 	if (strstr(pCallbackData->pMessage, "consumes input location"))
 		return VK_FALSE; // false means we dont care
 	if (strstr(pCallbackData->pMessage, "blend"))
-		return VK_FALSE; // 
+		return VK_FALSE; //
 
 	// note: Check if previously used location in VK_EXT_debug_report callback is the same as messageIdNumber under the new extension
 	// validation errors which are difficult to fix
@@ -2320,7 +2320,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 				}
 				else {
 					formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
-					formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_To_RGBA4_vk::getInstance();
+					formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_To_ABGR4::getInstance();
 				}
 			}
 			else

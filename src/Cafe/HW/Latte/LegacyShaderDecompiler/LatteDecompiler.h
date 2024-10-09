@@ -36,7 +36,7 @@ typedef struct
 	uint16	mappedIndexOffset; // index in remapped uniform array
 }LatteFastAccessRemappedUniformEntry_buffer_t;
 
-typedef struct  
+typedef struct
 {
 	uint32 texUnit;
 	sint32 uniformLocation;
@@ -57,12 +57,16 @@ struct LatteDecompilerShaderResourceMapping
 	// texture
 	sint8 textureUnitToBindingPoint[LATTE_NUM_MAX_TEX_UNITS];
 	// uniform buffer
-	sint8 uniformVarsBufferBindingPoint{}; // special block for uniform registers/remapped array/custom variables
+	sint8 uniformVarsBufferBindingPoint{-1}; // special block for uniform registers/remapped array/custom variables
 	sint8 uniformBuffersBindingPoint[LATTE_NUM_MAX_UNIFORM_BUFFERS];
 	// shader storage buffer for transform feedback (if alternative mode is used)
 	sint8 tfStorageBindingPoint{-1};
 	// attributes (vertex shader only)
 	sint8 attributeMapping[LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS];
+	// Metal exclusive
+	sint8 verticesPerInstanceBinding{-1};
+	sint8 indexBufferBinding{-1};
+	sint8 indexTypeBinding{-1};
 
 	sint32 getTextureCount()
 	{
@@ -182,6 +186,8 @@ struct LatteDecompilerShader
 
 	// analyzer stage (pixel outputs)
 	uint32 pixelColorOutputMask{ 0 }; // from LSB to MSB, 1 bit per written output. 1 if written (indices of color attachments)
+	// analyzer stage (depth write)
+	bool depthWritten{ false };
 	// analyzer stage (geometry shader parameters/inputs)
 	uint32 ringParameterCount{ 0 };
 	uint32 ringParameterCountFromPrevStage{ 0 }; // used in geometry shader to hold VS ringParameterCount
@@ -198,7 +204,7 @@ struct LatteDecompilerShader
 	// resource mapping (binding points)
 	LatteDecompilerShaderResourceMapping resourceMapping{};
 	// uniforms
-	struct  
+	struct
 	{
 		sint32 loc_remapped; // uf_remappedVS/uf_remappedGS/uf_remappedPS
 		sint32 loc_uniformRegister; // uf_uniformRegisterVS/uf_uniformRegisterGS/uf_uniformRegisterPS
@@ -215,7 +221,7 @@ struct LatteDecompilerShader
 		sint32 uniformRangeSize; // entire size of uniform variable block
 	}uniform{ 0 };
 	// fast access
-	struct _RemappedUniformBufferGroup 
+	struct _RemappedUniformBufferGroup
 	{
 		_RemappedUniformBufferGroup(uint32 _kcacheBankIdOffset) : kcacheBankIdOffset(_kcacheBankIdOffset) {};
 
@@ -255,14 +261,14 @@ struct LatteDecompilerOutputUniformOffsets
 	}
 };
 
-struct LatteDecompilerOptions 
+struct LatteDecompilerOptions
 {
 	bool usesGeometryShader{ false };
 	// floating point math
 	bool strictMul{}; // if true, 0*anything=0 rule is emulated
 	// Vulkan-specific
 	bool useTFViaSSBO{ false };
-	struct  
+	struct
 	{
 		bool hasRoundingModeRTEFloat32{ false };
 	}spirvInstrinsics;
@@ -286,6 +292,7 @@ struct LatteDecompilerOutput_t
 	// mapping and binding information
 	LatteDecompilerShaderResourceMapping resourceMappingGL;
 	LatteDecompilerShaderResourceMapping resourceMappingVK;
+	LatteDecompilerShaderResourceMapping resourceMappingMTL;
 };
 
 struct LatteDecompilerSubroutineInfo;

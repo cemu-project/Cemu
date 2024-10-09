@@ -59,6 +59,7 @@ const std::map<LogType, std::string> g_logging_window_mapping
 	{LogType::TextureReadback,    "Texture readback"},
 	{LogType::OpenGLLogging,      "OpenGL debug output"},
 	{LogType::VulkanValidation,   "Vulkan validation layer"},
+	{LogType::MetalLogging,      "Metal debug output"},
 };
 
 bool cemuLog_advancedPPCLoggingEnabled()
@@ -158,7 +159,7 @@ bool cemuLog_log(LogType type, std::string_view text)
 
 bool cemuLog_log(LogType type, std::u8string_view text)
 {
-	std::basic_string_view<char> s((char*)text.data(), text.size());	
+	std::basic_string_view<char> s((char*)text.data(), text.size());
 	return cemuLog_log(type, s);
 }
 

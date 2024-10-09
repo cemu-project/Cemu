@@ -170,7 +170,7 @@ void LatteTexture_UnregisterTextureMemoryOccupancy(LatteTexture* texture)
 }
 
 // calculate the actually accessed data range
-// the resulting range is an estimate and may be smaller than the actual slice size (but not larger) 
+// the resulting range is an estimate and may be smaller than the actual slice size (but not larger)
 void LatteTexture_EstimateMipSliceAccessedDataRange(LatteTexture* texture, sint32 sliceIndex, sint32 mipIndex, LatteTextureSliceMipInfo* sliceMipInfo)
 {
 	uint32 estAddrStart;
@@ -222,7 +222,7 @@ void LatteTexture_InitSliceAndMipInfo(LatteTexture* texture)
 			LatteAddrLib::AddrSurfaceInfo_OUT surfaceInfo;
 			LatteAddrLib::GX2CalculateSurfaceInfo(texture->format, texture->width, texture->height, texture->depth, texture->dim, Latte::MakeGX2TileMode(texture->tileMode), 0, mipIndex, &surfaceInfo);
 			sliceMipInfo->tileMode = surfaceInfo.hwTileMode;
-			
+
 			if (mipIndex == 0)
 				sliceMipInfo->pitch = texture->pitch; // for the base level, use the pitch value configured in hardware
 			else
@@ -877,7 +877,7 @@ VIEWCOMPATIBILITY LatteTexture_CanTextureBeRepresentedAsView(LatteTexture* baseT
 			// check pitch
 			if(sliceMipInfo->pitch != pitch)
 				continue;
-			// check all slices			
+			// check all slices
 			if(LatteAddrLib::TM_IsThickAndMacroTiled(baseTexture->tileMode))
 				continue; // todo - check only every 4th slice?
 			for (sint32 s=0; s<baseTexture->GetMipDepth(m); s++)
@@ -978,7 +978,7 @@ LatteTextureView* LatteTexture_CreateMapping(MPTR physAddr, MPTR physMipAddr, si
 	}
 	// note: When creating an existing texture, we only allow mip and slice expansion at the end
 	cemu_assert_debug(depth);
-	
+
 	cemu_assert_debug(!(depth > 1 && dimBase == Latte::E_DIM::DIM_2D));
 	cemu_assert_debug(!(numSlice > 1 && dimView == Latte::E_DIM::DIM_2D));
 	// todo, depth and numSlice are redundant
