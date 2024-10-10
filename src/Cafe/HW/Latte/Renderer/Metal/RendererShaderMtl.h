@@ -4,20 +4,26 @@
 #include "HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "util/helpers/ConcurrentQueue.h"
+#include "util/helpers/Semaphore.h"
 
 #include <Metal/Metal.hpp>
 
 class RendererShaderMtl : public RendererShader
 {
-	//enum class COMPILATION_STATE : uint32
-	//{
-	//	NONE,
-	//	QUEUED,
-	//	COMPILING,
-	//	DONE
-	//};
+    friend class ShaderMtlThreadPool;
+
+	enum class COMPILATION_STATE : uint32
+	{
+		NONE,
+		QUEUED,
+		COMPILING,
+		DONE
+	};
 
 public:
+    static void Initialize();
+	static void Shutdown();
+
 	RendererShaderMtl(class MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode);
 	virtual ~RendererShaderMtl();
 
@@ -42,15 +48,19 @@ public:
 	    cemu_assert_suspicious();
 	}
 
-	// TODO: implement this
-	void PreponeCompilation(bool isRenderThread) override {}
-	bool IsCompiled() override { return true; }
-	bool WaitForCompiled() override { return true; }
+	void PreponeCompilation(bool isRenderThread) override;
+	bool IsCompiled() override;
+	bool WaitForCompiled() override;
 
 private:
     class MetalRenderer* m_mtlr;
 
 	MTL::Function* m_function = nullptr;
 
-	void Compile(const std::string& mslCode);
+	StateSemaphore<COMPILATION_STATE> m_compilationState{ COMPILATION_STATE::NONE };
+
+	std::string m_mslCode;
+
+	void CompileInternal();
+	void FinishCompilation();
 };
