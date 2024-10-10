@@ -9,6 +9,8 @@
 #include "config/CemuConfig.h"
 #include "util/helpers/helpers.h"
 
+static bool s_isLoadingShadersMtl{false};
+
 extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
 
@@ -62,7 +64,8 @@ public:
 			s_compilationQueueMutex.unlock();
 			// compile
 			job->CompileInternal();
-			++g_compiled_shaders_async;
+			if (job->ShouldCountCompilation())
+			    ++g_compiled_shaders_async;
 			// mark as compiled
 			cemu_assert_debug(job->m_compilationState.getValue() == RendererShaderMtl::COMPILATION_STATE::COMPILING);
 			job->m_compilationState.setValue(RendererShaderMtl::COMPILATION_STATE::DONE);
@@ -81,6 +84,21 @@ public:
 private:
 	std::atomic<bool> m_threadsActive;
 } shaderMtlThreadPool;
+
+// TODO: find out if it would be possible to cache compiled Metal shaders
+void RendererShaderMtl::ShaderCacheLoading_begin(uint64 cacheTitleId)
+{
+	s_isLoadingShadersMtl = true;
+}
+
+void RendererShaderMtl::ShaderCacheLoading_end()
+{
+	s_isLoadingShadersMtl = false;
+}
+
+void RendererShaderMtl::ShaderCacheLoading_Close()
+{
+}
 
 void RendererShaderMtl::Initialize()
 {
@@ -124,7 +142,8 @@ void RendererShaderMtl::PreponeCompilation(bool isRenderThread)
 	if (!isStillQueued)
 	{
 		m_compilationState.waitUntilValue(COMPILATION_STATE::DONE);
-		--g_compiled_shaders_async; // compilation caused a stall so we don't consider this one async
+		if (ShouldCountCompilation())
+		    --g_compiled_shaders_async; // compilation caused a stall so we don't consider this one async
 		return;
 	}
 	else
@@ -144,6 +163,11 @@ bool RendererShaderMtl::WaitForCompiled()
 {
 	m_compilationState.waitUntilValue(COMPILATION_STATE::DONE);
 	return true;
+}
+
+bool RendererShaderMtl::ShouldCountCompilation() const
+{
+    return !s_isLoadingShadersMtl && m_isGameShader;
 }
 
 void RendererShaderMtl::CompileInternal()
@@ -169,7 +193,8 @@ void RendererShaderMtl::CompileInternal()
     FinishCompilation();
 
 	// Count shader compilation
-	g_compiled_shaders_total++;
+	if (ShouldCountCompilation())
+	    g_compiled_shaders_total++;
 }
 
 void RendererShaderMtl::FinishCompilation()

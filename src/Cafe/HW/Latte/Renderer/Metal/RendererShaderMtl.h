@@ -21,6 +21,10 @@ class RendererShaderMtl : public RendererShader
 	};
 
 public:
+    static void ShaderCacheLoading_begin(uint64 cacheTitleId);
+    static void ShaderCacheLoading_end();
+    static void ShaderCacheLoading_Close();
+
     static void Initialize();
 	static void Shutdown();
 
@@ -61,6 +65,9 @@ private:
 
 	std::string m_mslCode;
 
+	bool ShouldCountCompilation() const;
+
 	void CompileInternal();
+
 	void FinishCompilation();
 };
