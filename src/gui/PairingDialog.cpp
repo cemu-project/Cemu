@@ -243,34 +243,41 @@ void PairingDialog::WorkerThread()
 	}
 
 	// Search for device
-	inquiry_info* info = nullptr;
-	const auto respCount = hci_inquiry(hostId, 5, 1, liacLap, &info, IREQ_CACHE_FLUSH);
+	inquiry_info* infos = nullptr;
+	const auto respCount = hci_inquiry(hostId, 5, 4, liacLap, &infos, IREQ_CACHE_FLUSH);
 	if (respCount <= 0)
 	{
 		UpdateCallback(PairingState::SearchFailed);
 		return;
 	}
-	stdx::scope_exit freeInfo([info]() { bt_free(info);});
 
-	//! Open dev to read name
-	const auto hostDesc = hci_open_dev(hostId);
-	stdx::scope_exit freeDev([hostDesc]() { hci_close_dev(hostDesc);});
+	// Open dev to read name
+	const auto hostDevDesc = hci_open_dev(hostId);
 	char nameBuffer[HCI_MAX_NAME_LENGTH] = {};
 
+	bool foundADevice = false;
 	// Get device name and compare. Would use product and vendor id from SDP, but many third-party Wiimotes don't store them
-	const auto& addr = info->bdaddr;
-	if (hci_read_remote_name(hostDesc, &addr, HCI_MAX_NAME_LENGTH, nameBuffer,
-							 2000) != 0 || !isWiimoteName(nameBuffer))
+	for (const auto& devInfo : std::span(infos, respCount))
 	{
-		UpdateCallback(PairingState::SearchFailed);
-		return;
+		const auto& addr = devInfo.bdaddr;
+		if (hci_read_remote_name(hostDevDesc, &addr, HCI_MAX_NAME_LENGTH, nameBuffer,
+								 2000) != 0 || !isWiimoteName(nameBuffer))
+		{
+			continue;
+		}
+		L2CapWiimote::AddCandidateAddress(addr);
+		foundADevice = true;
+		const auto& b = addr.b;
+		cemuLog_log(LogType::Force, "Pairing Dialog: Found '{}' with address '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}'",
+					nameBuffer, b[5], b[4], b[3], b[2], b[1], b[0]);
 	}
-	const auto& b = addr.b;
-	cemuLog_log(LogType::Force, "Pairing Dialog: Found '{}' with address '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}'",
-		nameBuffer, b[5], b[4], b[3], b[2], b[1], b[0]);
+	if (foundADevice)
+		UpdateCallback(PairingState::Finished);
+	else
+		UpdateCallback(PairingState::SearchFailed);
 
-	UpdateCallback(PairingState::Finished);
-	L2CapWiimote::AddCandidateAddress(addr);
+	bt_free(infos);
+	hci_close_dev(hostDevDesc);
 }
 #else
 void PairingDialog::WorkerThread()
