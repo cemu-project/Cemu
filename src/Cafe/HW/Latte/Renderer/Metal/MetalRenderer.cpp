@@ -223,14 +223,16 @@ void MetalRenderer::ResizeLayer(const Vector2i& size, bool mainWindow)
 void MetalRenderer::Initialize()
 {
     Renderer::Initialize();
+    RendererShaderMtl::Initialize();
 }
 
 void MetalRenderer::Shutdown()
 {
     // TODO: should shutdown both layers
     ImGui_ImplMetal_Shutdown();
-    Renderer::Shutdown();
     CommitCommandBuffer();
+    Renderer::Shutdown();
+    RendererShaderMtl::Shutdown();
 }
 
 bool MetalRenderer::IsPadWindowActive()
@@ -935,13 +937,21 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		return;
 	}
 
+	// TODO: special state 8 and 5
+
 	auto& encoderState = m_state.m_encoderState;
 
     // Shaders
     LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+    if (vertexShader && !vertexShader->shader->IsCompiled())
+        return;
     LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
+    if (geometryShader && !geometryShader->shader->IsCompiled())
+        return;
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
+    if (vertexShader && !pixelShader->shader->IsCompiled())
+        return;
 
     bool neverSkipAccurateBarrier = false;
 
