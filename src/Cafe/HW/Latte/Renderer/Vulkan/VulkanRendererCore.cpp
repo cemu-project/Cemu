@@ -378,21 +378,17 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 	auto GET_UNIFORM_DATA_PTR = [](size_t index) { return s_vkUniformData + (index / 4); };
 
 	sint32 shaderAluConst;
-	sint32 shaderUniformRegisterOffset;
 
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
 		shaderAluConst = 0x400;
-		shaderUniformRegisterOffset = mmSQ_VTX_UNIFORM_BLOCK_START;
 		break;
 	case LatteConst::ShaderType::Pixel:
 		shaderAluConst = 0;
-		shaderUniformRegisterOffset = mmSQ_PS_UNIFORM_BLOCK_START;
 		break;
 	case LatteConst::ShaderType::Geometry:
 		shaderAluConst = 0; // geometry shader has no ALU const
-		shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
 		break;
 	default:
 		UNREACHABLE;
@@ -463,27 +459,29 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 			{
 				if (m_commandBufferSyncIndex == m_commandBufferIndex)
 				{
-					// there is no work currently submitted, so there's no way for conditions based on readIndex to change
-					// we also can't submit here because we could be in the middle of a render pass.
-					cemuLog_logDebug(LogType::Force, "command buffer overflowed and corrupted uniform ringbuffer. expect visual corruption");
-					cemu_assert_suspicious();
-					m_uniformVarBufferReadIndex = m_cmdBufferUniformRingbufIndices[m_commandBufferIndex];
-					break;
+					if(m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
+					{
+						draw_endRenderPass();
+						SubmitCommandBuffer();
+					}
+					else
+					{
+						// submitting work would not change readIndex, so there's no way for conditions based on it to change
+						cemuLog_logDebug(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
+						cemu_assert_suspicious();
+						fmt::println("Hello");
+						break;
+					}
 				}
-				else
-				{
-					WaitForNextFinishedCommandBuffer();
-				}
+				WaitForNextFinishedCommandBuffer();
 			}
 		};
 
-		// if it doesnt fit wrap around
+		// wrap around if it doesnt fit consecutively
 		if (m_uniformVarBufferWriteIndex + uniformSize > UNIFORMVAR_RINGBUFFER_SIZE)
 		{
-			// do not wrap write pointer to zero before the read pointer has moved,
-			// otherwise there is no way to distinguish an empty buffer from a full buffer
 			waitWhileCondition([&](){
-				return m_uniformVarBufferReadIndex == 0;
+				return m_uniformVarBufferReadIndex > m_uniformVarBufferWriteIndex || m_uniformVarBufferReadIndex == 0;
 			});
 			m_uniformVarBufferWriteIndex = 0;
 		}
@@ -501,8 +499,6 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 		const uint32 uniformOffset = m_uniformVarBufferWriteIndex;
 		memcpy(m_uniformVarBufferPtr + uniformOffset, s_vkUniformData, shader->uniform.uniformRangeSize);
 		m_uniformVarBufferWriteIndex += uniformSize;
-		// store where the read pointer should go after command buffer execution
-		m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
 		// update dynamic offset
 		dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformOffset;
 		// flush if not coherent
@@ -1406,28 +1402,6 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 	uint32 indexBufferIndex = 0;
 	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
 
-	// update index binding
-	bool isPrevIndexData = false;
-	if (hostIndexType != INDEX_TYPE::NONE)
-	{
-		if (m_state.activeIndexBufferOffset != indexBufferOffset || m_state.activeIndexBufferIndex != indexBufferIndex || m_state.activeIndexType != hostIndexType)
-		{
-			m_state.activeIndexType = hostIndexType;
-			m_state.activeIndexBufferOffset = indexBufferOffset;
-			m_state.activeIndexBufferIndex = indexBufferIndex;
-			VkIndexType vkType;
-			if (hostIndexType == INDEX_TYPE::U16)
-				vkType = VK_INDEX_TYPE_UINT16;
-			else if (hostIndexType == INDEX_TYPE::U32)
-				vkType = VK_INDEX_TYPE_UINT32;
-			else
-				cemu_assert(false);
-			vkCmdBindIndexBuffer(m_state.currentCommandBuffer, memoryManager->getIndexAllocator().GetBufferByIndex(indexBufferIndex), indexBufferOffset, vkType);
-		}
-		else
-			isPrevIndexData = true;
-	}
-
 	if (m_useHostMemoryForCache)
 	{
 		// direct memory access (Wii U memory space imported as a Vulkan buffer), update buffer bindings
@@ -1463,6 +1437,30 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
 	if (geometryShader)
 		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
+	// store where the read pointer should go after command buffer execution
+	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
+
+	// update index binding
+	bool isPrevIndexData = false;
+	if (hostIndexType != INDEX_TYPE::NONE)
+	{
+		if (m_state.activeIndexBufferOffset != indexBufferOffset || m_state.activeIndexBufferIndex != indexBufferIndex || m_state.activeIndexType != hostIndexType)
+		{
+			m_state.activeIndexType = hostIndexType;
+			m_state.activeIndexBufferOffset = indexBufferOffset;
+			m_state.activeIndexBufferIndex = indexBufferIndex;
+			VkIndexType vkType;
+			if (hostIndexType == INDEX_TYPE::U16)
+				vkType = VK_INDEX_TYPE_UINT16;
+			else if (hostIndexType == INDEX_TYPE::U32)
+				vkType = VK_INDEX_TYPE_UINT32;
+			else
+				cemu_assert(false);
+			vkCmdBindIndexBuffer(m_state.currentCommandBuffer, memoryManager->getIndexAllocator().GetBufferByIndex(indexBufferIndex), indexBufferOffset, vkType);
+		}
+		else
+			isPrevIndexData = true;
+	}
 
 	PipelineInfo* pipeline_info;
 
