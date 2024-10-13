@@ -1402,6 +1402,24 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 	uint32 indexBufferIndex = 0;
 	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
 
+	// prepare streamout
+	m_streamoutState.verticesPerInstance = count;
+	LatteStreamout_PrepareDrawcall(count, instanceCount);
+
+	// update uniform vars
+	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
+
+	if (vertexShader)
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader);
+	if (pixelShader)
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
+	if (geometryShader)
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
+	// store where the read pointer should go after command buffer execution
+	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
+
 	if (m_useHostMemoryForCache)
 	{
 		// direct memory access (Wii U memory space imported as a Vulkan buffer), update buffer bindings
@@ -1421,24 +1439,6 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		// synchronize vertex and uniform cache and update buffer bindings
 		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
 	}
-
-	// prepare streamout
-	m_streamoutState.verticesPerInstance = count;
-	LatteStreamout_PrepareDrawcall(count, instanceCount);
-
-	// update uniform vars
-	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
-	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
-
-	if (vertexShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader);
-	if (pixelShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
-	if (geometryShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
-	// store where the read pointer should go after command buffer execution
-	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
 
 	// update index binding
 	bool isPrevIndexData = false;
