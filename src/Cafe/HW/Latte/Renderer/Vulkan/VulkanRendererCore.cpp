@@ -1390,17 +1390,6 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		return;
 	}
 
-	// process index data
-	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
-
-	Renderer::INDEX_TYPE hostIndexType;
-	uint32 hostIndexCount;
-	uint32 indexMin = 0;
-	uint32 indexMax = 0;
-	uint32 indexBufferOffset = 0;
-	uint32 indexBufferIndex = 0;
-	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
-
 	// prepare streamout
 	m_streamoutState.verticesPerInstance = count;
 	LatteStreamout_PrepareDrawcall(count, instanceCount);
@@ -1419,25 +1408,16 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 	// store where the read pointer should go after command buffer execution
 	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
 
-	if (m_useHostMemoryForCache)
-	{
-		// direct memory access (Wii U memory space imported as a Vulkan buffer), update buffer bindings
-		draw_updateVertexBuffersDirectAccess();
-		LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
-		if (vertexShader)
-			draw_updateUniformBuffersDirectAccess(vertexShader, mmSQ_VTX_UNIFORM_BLOCK_START, LatteConst::ShaderType::Vertex);
-		LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
-		if (geometryShader)
-			draw_updateUniformBuffersDirectAccess(geometryShader, mmSQ_GS_UNIFORM_BLOCK_START, LatteConst::ShaderType::Geometry);
-		LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-		if (pixelShader)
-			draw_updateUniformBuffersDirectAccess(pixelShader, mmSQ_PS_UNIFORM_BLOCK_START, LatteConst::ShaderType::Pixel);
-	}
-	else
-	{
-		// synchronize vertex and uniform cache and update buffer bindings
-		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
-	}
+	// process index data
+	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
+
+	Renderer::INDEX_TYPE hostIndexType;
+	uint32 hostIndexCount;
+	uint32 indexMin = 0;
+	uint32 indexMax = 0;
+	uint32 indexBufferOffset = 0;
+	uint32 indexBufferIndex = 0;
+	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
 
 	// update index binding
 	bool isPrevIndexData = false;
@@ -1459,6 +1439,26 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		}
 		else
 			isPrevIndexData = true;
+	}
+
+	if (m_useHostMemoryForCache)
+	{
+		// direct memory access (Wii U memory space imported as a Vulkan buffer), update buffer bindings
+		draw_updateVertexBuffersDirectAccess();
+		LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+		if (vertexShader)
+			draw_updateUniformBuffersDirectAccess(vertexShader, mmSQ_VTX_UNIFORM_BLOCK_START, LatteConst::ShaderType::Vertex);
+		LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
+		if (geometryShader)
+			draw_updateUniformBuffersDirectAccess(geometryShader, mmSQ_GS_UNIFORM_BLOCK_START, LatteConst::ShaderType::Geometry);
+		LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+		if (pixelShader)
+			draw_updateUniformBuffersDirectAccess(pixelShader, mmSQ_PS_UNIFORM_BLOCK_START, LatteConst::ShaderType::Pixel);
+	}
+	else
+	{
+		// synchronize vertex and uniform cache and update buffer bindings
+		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
 	}
 
 	PipelineInfo* pipeline_info;
