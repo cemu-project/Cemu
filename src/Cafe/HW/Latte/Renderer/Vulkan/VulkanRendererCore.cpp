@@ -469,7 +469,6 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 						// submitting work would not change readIndex, so there's no way for conditions based on it to change
 						cemuLog_logDebug(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
 						cemu_assert_suspicious();
-						fmt::println("Hello");
 						break;
 					}
 				}
