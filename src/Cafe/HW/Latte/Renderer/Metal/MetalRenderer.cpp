@@ -1222,12 +1222,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     //}
 
 	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState;
-	if (usesGeometryShader)
-	    renderPipelineState = m_pipelineCache->GetMeshPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO, m_state.m_activeFBO, LatteGPUState.contextNew, hostIndexType);
-	else
-        renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, m_state.m_activeFBO, LatteGPUState.contextNew);
-
+	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO, m_state.m_activeFBO, LatteGPUState.contextNew);
     if (!renderPipelineState)
         return;
 

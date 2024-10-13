@@ -160,18 +160,11 @@ bool LoadTGAFile(const std::vector<uint8>& buffer, TGAFILE *tgaFile)
 void LatteShaderCache_finish()
 {
     if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
 		RendererShaderVk::ShaderCacheLoading_end();
-	}
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
 		RendererShaderGL::ShaderCacheLoading_end();
-	}
 	else if (g_renderer->GetType() == RendererAPI::Metal)
-	{
 	    RendererShaderMtl::ShaderCacheLoading_end();
-		MetalPipelineCache::ShaderCacheLoading_end();
-	}
 }
 
 uint32 LatteShaderCache_getShaderCacheExtraVersion(uint64 titleId)
@@ -251,18 +244,11 @@ void LatteShaderCache_Load()
 	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/precompiled"), ec);
 	// initialize renderer specific caches
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
 		RendererShaderVk::ShaderCacheLoading_begin(cacheTitleId);
-	}
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
 		RendererShaderGL::ShaderCacheLoading_begin(cacheTitleId);
-	}
 	else if (g_renderer->GetType() == RendererAPI::Metal)
-	{
 	    RendererShaderMtl::ShaderCacheLoading_begin(cacheTitleId);
-		MetalPipelineCache::ShaderCacheLoading_begin(cacheTitleId);
-	}
 	// get cache file name
 	const auto pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
 	const auto pathGenericPre1_25_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}.bin", cacheTitleId); // before 1.25.0
@@ -791,18 +777,11 @@ void LatteShaderCache_Close()
         s_shaderCacheGeneric = nullptr;
     }
     if (g_renderer->GetType() == RendererAPI::Vulkan)
-	{
 		RendererShaderVk::ShaderCacheLoading_Close();
-	}
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
 		RendererShaderGL::ShaderCacheLoading_Close();
-	}
 	else if (g_renderer->GetType() == RendererAPI::Metal)
-	{
 	    RendererShaderMtl::ShaderCacheLoading_Close();
-		MetalPipelineCache::ShaderCacheLoading_Close();
-	}
 
     // if Vulkan then also close pipeline cache
     if (g_renderer->GetType() == RendererAPI::Vulkan)
