@@ -110,13 +110,13 @@ class MEMPTR : MEMPTRBase
 	MEMPTR operator+(sint32 v) noexcept
 	{
 		// pointer arithmetic
-		return MEMPTR(this->GetMPTR() + v * 4);
+		return MEMPTR(this->GetMPTR() + v * sizeof(T));
 	}
 
 	MEMPTR operator-(sint32 v) noexcept
 	{
 		// pointer arithmetic
-		return MEMPTR(this->GetMPTR() - v * 4);
+		return MEMPTR(this->GetMPTR() - v * sizeof(T));
 	}
 
 	MEMPTR& operator+=(sint32 v) noexcept
