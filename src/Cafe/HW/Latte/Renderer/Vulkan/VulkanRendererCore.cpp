@@ -375,24 +375,20 @@ float s_vkUniformData[512 * 4];
 
 void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader)
 {
-	auto GET_UNIFORM_DATA_PTR = [&](size_t index) { return s_vkUniformData + (index / 4); };
+	auto GET_UNIFORM_DATA_PTR = [](size_t index) { return s_vkUniformData + (index / 4); };
 
 	sint32 shaderAluConst;
-	sint32 shaderUniformRegisterOffset;
 
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
 		shaderAluConst = 0x400;
-		shaderUniformRegisterOffset = mmSQ_VTX_UNIFORM_BLOCK_START;
 		break;
 	case LatteConst::ShaderType::Pixel:
 		shaderAluConst = 0;
-		shaderUniformRegisterOffset = mmSQ_PS_UNIFORM_BLOCK_START;
 		break;
 	case LatteConst::ShaderType::Geometry:
 		shaderAluConst = 0; // geometry shader has no ALU const
-		shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
 		break;
 	default:
 		UNREACHABLE;
@@ -445,7 +441,7 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 		}
 		if (shader->uniform.loc_verticesPerInstance >= 0)
 		{
-			*(int*)(s_vkUniformData + ((size_t)shader->uniform.loc_verticesPerInstance / 4)) = m_streamoutState.verticesPerInstance;
+			*(int*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_verticesPerInstance) = m_streamoutState.verticesPerInstance;
 			for (sint32 b = 0; b < LATTE_NUM_STREAMOUT_BUFFER; b++)
 			{
 				if (shader->uniform.loc_streamoutBufferBase[b] >= 0)
@@ -455,26 +451,63 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 			}
 		}
 		// upload
-		if ((m_uniformVarBufferWriteIndex + shader->uniform.uniformRangeSize + 1024) > UNIFORMVAR_RINGBUFFER_SIZE)
+		const uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
+		const uint32 uniformSize = (shader->uniform.uniformRangeSize + bufferAlignmentM1) & ~bufferAlignmentM1;
+
+		auto waitWhileCondition = [&](std::function<bool()> condition) {
+			while (condition())
+			{
+				if (m_commandBufferSyncIndex == m_commandBufferIndex)
+				{
+					if (m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
+					{
+						draw_endRenderPass();
+						SubmitCommandBuffer();
+					}
+					else
+					{
+						// submitting work would not change readIndex, so there's no way for conditions based on it to change
+						cemuLog_log(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
+						cemu_assert_suspicious();
+						break;
+					}
+				}
+				WaitForNextFinishedCommandBuffer();
+			}
+		};
+
+		// wrap around if it doesnt fit consecutively
+		if (m_uniformVarBufferWriteIndex + uniformSize > UNIFORMVAR_RINGBUFFER_SIZE)
 		{
+			waitWhileCondition([&]() {
+				return m_uniformVarBufferReadIndex > m_uniformVarBufferWriteIndex || m_uniformVarBufferReadIndex == 0;
+			});
 			m_uniformVarBufferWriteIndex = 0;
 		}
-		uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
+
+		auto ringBufRemaining = [&]() {
+			ssize_t ringBufferUsedBytes = (ssize_t)m_uniformVarBufferWriteIndex - m_uniformVarBufferReadIndex;
+			if (ringBufferUsedBytes < 0)
+				ringBufferUsedBytes += UNIFORMVAR_RINGBUFFER_SIZE;
+			return UNIFORMVAR_RINGBUFFER_SIZE - 1 - ringBufferUsedBytes;
+		};
+		waitWhileCondition([&]() {
+			return ringBufRemaining() < uniformSize;
+		});
+
 		const uint32 uniformOffset = m_uniformVarBufferWriteIndex;
 		memcpy(m_uniformVarBufferPtr + uniformOffset, s_vkUniformData, shader->uniform.uniformRangeSize);
-		m_uniformVarBufferWriteIndex += shader->uniform.uniformRangeSize;
-		m_uniformVarBufferWriteIndex = (m_uniformVarBufferWriteIndex + bufferAlignmentM1) & ~bufferAlignmentM1;
+		m_uniformVarBufferWriteIndex += uniformSize;
 		// update dynamic offset
 		dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformOffset;
 		// flush if not coherent
 		if (!m_uniformVarBufferMemoryIsCoherent)
 		{
-			uint32 nonCoherentAtomSizeM1 = m_featureControl.limits.nonCoherentAtomSize - 1;
 			VkMappedMemoryRange flushedRange{};
 			flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
 			flushedRange.memory = m_uniformVarBufferMemory;
 			flushedRange.offset = uniformOffset;
-			flushedRange.size = (shader->uniform.uniformRangeSize + nonCoherentAtomSizeM1) & ~nonCoherentAtomSizeM1;
+			flushedRange.size = uniformSize;
 			vkFlushMappedMemoryRanges(m_logicalDevice, 1, &flushedRange);
 		}
 	}
@@ -494,7 +527,7 @@ void VulkanRenderer::draw_prepareDynamicOffsetsForDescriptorSet(uint32 shaderSta
 	{
 		for (auto& itr : pipeline_info->dynamicOffsetInfo.list_uniformBuffers[shaderStageIndex])
 		{
-			dynamicOffsets[numDynOffsets] = dynamicOffsetInfo.shaderUB[shaderStageIndex].unformBufferOffset[itr];
+			dynamicOffsets[numDynOffsets] = dynamicOffsetInfo.shaderUB[shaderStageIndex].uniformBufferOffset[itr];
 			numDynOffsets++;
 		}
 	}
@@ -1357,6 +1390,24 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		return;
 	}
 
+	// prepare streamout
+	m_streamoutState.verticesPerInstance = count;
+	LatteStreamout_PrepareDrawcall(count, instanceCount);
+
+	// update uniform vars
+	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
+	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
+	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
+
+	if (vertexShader)
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader);
+	if (pixelShader)
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
+	if (geometryShader)
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
+	// store where the read pointer should go after command buffer execution
+	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
+
 	// process index data
 	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
 
@@ -1409,22 +1460,6 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		// synchronize vertex and uniform cache and update buffer bindings
 		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
 	}
-
-	// prepare streamout
-	m_streamoutState.verticesPerInstance = count;
-	LatteStreamout_PrepareDrawcall(count, instanceCount);
-
-	// update uniform vars
-	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
-	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
-	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
-
-	if (vertexShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader);
-	if (pixelShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
-	if (geometryShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
 
 	PipelineInfo* pipeline_info;
 
@@ -1613,13 +1648,13 @@ void VulkanRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader
 			switch (shaderType)
 			{
 			case LatteConst::ShaderType::Vertex:
-				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX].unformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
+				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX].uniformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
 				break;
 			case LatteConst::ShaderType::Geometry:
-				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY].unformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
+				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY].uniformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
 				break;
 			case LatteConst::ShaderType::Pixel:
-				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT].unformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
+				dynamicOffsetInfo.shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT].uniformBufferOffset[bufferIndex] = physicalAddr - m_importedMemBaseAddress;
 				break;
 			default:
 				UNREACHABLE;
