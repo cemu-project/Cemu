@@ -137,6 +137,10 @@ namespace iosu
 			this->task_settings.taskType = settings->taskType;
 
 			curl = std::shared_ptr<CURL>(curl_easy_init(), curl_easy_cleanup);
+			if(GetConfig().proxy_server.GetValue() != "")
+			{
+			  curl_easy_setopt(curl.get(), CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
+			}
 		}
 	};
 

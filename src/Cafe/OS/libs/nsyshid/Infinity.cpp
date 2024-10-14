@@ -1017,11 +1017,7 @@ namespace nsyshid
 	std::array<uint8, 16> InfinityUSB::GenerateInfinityFigureKey(const std::vector<uint8>& sha1Data)
 	{
 		std::array<uint8, 20> digest = {};
-		SHA_CTX ctx;
-		SHA1_Init(&ctx);
-		SHA1_Update(&ctx, sha1Data.data(), sha1Data.size());
-		SHA1_Final(digest.data(), &ctx);
-		OPENSSL_cleanse(&ctx, sizeof(ctx));
+		SHA1(sha1Data.data(), sha1Data.size(), digest.data());
 		// Infinity AES keys are the first 16 bytes of the SHA1 Digest, every set of 4 bytes need to be
 		// reversed due to endianness
 		std::array<uint8, 16> key = {};
