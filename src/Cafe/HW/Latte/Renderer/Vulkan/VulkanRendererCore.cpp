@@ -455,11 +455,11 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 		const uint32 uniformSize = (shader->uniform.uniformRangeSize + bufferAlignmentM1) & ~bufferAlignmentM1;
 
 		auto waitWhileCondition = [&](std::function<bool()> condition) {
-			while(condition())
+			while (condition())
 			{
 				if (m_commandBufferSyncIndex == m_commandBufferIndex)
 				{
-					if(m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
+					if (m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
 					{
 						draw_endRenderPass();
 						SubmitCommandBuffer();
@@ -467,7 +467,7 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 					else
 					{
 						// submitting work would not change readIndex, so there's no way for conditions based on it to change
-						cemuLog_logDebug(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
+						cemuLog_log(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
 						cemu_assert_suspicious();
 						break;
 					}
@@ -479,19 +479,19 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 		// wrap around if it doesnt fit consecutively
 		if (m_uniformVarBufferWriteIndex + uniformSize > UNIFORMVAR_RINGBUFFER_SIZE)
 		{
-			waitWhileCondition([&](){
+			waitWhileCondition([&]() {
 				return m_uniformVarBufferReadIndex > m_uniformVarBufferWriteIndex || m_uniformVarBufferReadIndex == 0;
 			});
 			m_uniformVarBufferWriteIndex = 0;
 		}
 
 		auto ringBufRemaining = [&]() {
-		  ssize_t ringBufferUsedBytes = (ssize_t)m_uniformVarBufferWriteIndex - m_uniformVarBufferReadIndex;
-		  if (ringBufferUsedBytes < 0)
-			  ringBufferUsedBytes += UNIFORMVAR_RINGBUFFER_SIZE;
-		  return UNIFORMVAR_RINGBUFFER_SIZE - 1 - ringBufferUsedBytes;
+			ssize_t ringBufferUsedBytes = (ssize_t)m_uniformVarBufferWriteIndex - m_uniformVarBufferReadIndex;
+			if (ringBufferUsedBytes < 0)
+				ringBufferUsedBytes += UNIFORMVAR_RINGBUFFER_SIZE;
+			return UNIFORMVAR_RINGBUFFER_SIZE - 1 - ringBufferUsedBytes;
 		};
-		waitWhileCondition([&](){
+		waitWhileCondition([&]() {
 			return ringBufRemaining() < uniformSize;
 		});
 
