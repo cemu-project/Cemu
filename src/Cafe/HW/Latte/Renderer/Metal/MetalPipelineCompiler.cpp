@@ -10,8 +10,11 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "HW/Latte/ISA/LatteReg.h"
-#include "Metal/MTLPixelFormat.hpp"
+#include <chrono>
+
+extern std::atomic_int g_compiling_pipelines;
+extern std::atomic_int g_compiling_pipelines_async;
+extern std::atomic_uint64_t g_compiling_pipelines_syncTimeSum;
 
 static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
 {
@@ -318,8 +321,12 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
         InitFromStateRender(fetchShader, vertexShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 }
 
-MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread)
+MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
 {
+    MTL::RenderPipelineState* pipeline = nullptr;
+    NS::Error* error = nullptr;
+
+    auto start = std::chrono::high_resolution_clock::now();
     if (m_usesGeometryShader)
     {
         auto desc = static_cast<MTL::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor);
@@ -328,15 +335,7 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Mesh render pipeline state", desc));
 #endif
-       	MTL::RenderPipelineState* pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
-       	desc->release();
-       	if (error)
-       	{
-           	cemuLog_log(LogType::Force, "error creating mesh render pipeline state: {}", error->localizedDescription()->utf8String());
-            error->release();
-       	}
-
-        return pipeline;
+       	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
     }
     else
     {
@@ -346,15 +345,27 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Render pipeline state", desc));
 #endif
-       	MTL::RenderPipelineState* pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
-       	if (error)
-       	{
-           	cemuLog_log(LogType::Force, "error creating render pipeline state: {}", error->localizedDescription()->utf8String());
-            error->release();
-       	}
-
-        return pipeline;
+       	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
     }
+    auto end = std::chrono::high_resolution_clock::now();
+
+    auto creationDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+
+   	if (error)
+   	{
+       	cemuLog_log(LogType::Force, "error creating render pipeline state: {}", error->localizedDescription()->utf8String());
+        error->release();
+   	}
+    else if (showInOverlay)
+	{
+		if (isRenderThread)
+			g_compiling_pipelines_syncTimeSum += creationDuration;
+		else
+			g_compiling_pipelines_async++;
+		g_compiling_pipelines++;
+	}
+
+    return pipeline;
 }
 
 void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)

@@ -48,7 +48,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
 
     MetalPipelineCompiler compiler(m_mtlr);
     compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
-    pipeline = compiler.Compile(false, true);
+    pipeline = compiler.Compile(false, true, true);
 
     AddCurrentStateToCache(hash);
 
@@ -363,7 +363,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		//	s_spinlockSharedInternal.unlock();
 		//	return;
 		//}
-		pipeline = pp.Compile(true, true);
+		pipeline = pp.Compile(true, true, false);
 		// destroy pp early
 	}
 
