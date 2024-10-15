@@ -10,6 +10,8 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
+#include "HW/Latte/Renderer/RendererShader.h"
 #include <chrono>
 
 extern std::atomic_int g_compiling_pipelines;
@@ -194,7 +196,7 @@ extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
 
 template<typename T>
-void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
+void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
 	// Rasterization
 	bool rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
@@ -211,15 +213,12 @@ void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsIn
 	if (cullFront && cullBack)
 	    rasterizationEnabled = false;
 
-	auto pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
-
-	if (!rasterizationEnabled || !pixelShaderMtl)
+	// TODO: check if the pixel shader is valid as well?
+	if (!rasterizationEnabled/* || !pixelShaderMtl*/)
 	{
 	    desc->setRasterizationEnabled(false);
 		return;
 	}
-
-    desc->setFragmentFunction(pixelShaderMtl->GetFunction());
 
     // Color attachments
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
@@ -310,15 +309,29 @@ MetalPipelineCompiler::~MetalPipelineCompiler()
 
 void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
+    // Shaders
+    m_vertexShader = static_cast<const RendererShaderMtl*>(vertexShader->shader);
+    if (geometryShader)
+    {
+        m_geometryShader = static_cast<const RendererShaderMtl*>(geometryShader->shader);
+    }
+    else
+    {
+        // If there is no geometry shader, it means that we are emulating rects
+        m_geometryShader = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
+    }
+    m_pixelShader = static_cast<const RendererShaderMtl*>(pixelShader->shader);
+
+    // Check if the pipeline uses a geometry shader
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
     m_usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
     if (m_usesGeometryShader)
-        InitFromStateMesh(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
+        InitFromStateMesh(fetchShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     else
-        InitFromStateRender(fetchShader, vertexShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
+        InitFromStateRender(fetchShader, vertexShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 }
 
 MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
@@ -331,6 +344,11 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
     {
         auto desc = static_cast<MTL::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor);
 
+        // Shaders
+        desc->setObjectFunction(m_vertexShader->GetFunction());
+        desc->setMeshFunction(m_geometryShader->GetFunction());
+        desc->setFragmentFunction(m_pixelShader->GetFunction());
+
         NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Mesh render pipeline state", desc));
@@ -340,6 +358,10 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
     else
     {
         auto desc = static_cast<MTL::RenderPipelineDescriptor*>(m_pipelineDescriptor);
+
+        // Shaders
+        desc->setVertexFunction(m_vertexShader->GetFunction());
+        desc->setFragmentFunction(m_pixelShader->GetFunction());
 
         NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
@@ -368,14 +390,10 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
     return pipeline;
 }
 
-void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
+void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
-    // Shaders
-	auto vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
-
 	// Render pipeline state
 	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
-	desc->setVertexFunction(vertexShaderMtl->GetFunction());
 
     // Vertex descriptor
     if (!fetchShader->mtlFetchVertexManually)
@@ -447,7 +465,7 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
         vertexDescriptor->release();
     }
 
-	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, pixelShader, lcr);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 
 	m_pipelineDescriptor = desc;
 
@@ -508,26 +526,12 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
 	*/
 }
 
-void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
+void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
-	auto objectShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
-	RendererShaderMtl* meshShaderMtl;
-	if (geometryShader)
-	{
-        meshShaderMtl = static_cast<RendererShaderMtl*>(geometryShader->shader);
-	}
-    else
-    {
-        // If there is no geometry shader, it means that we are emulating rects
-        meshShaderMtl = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
-    }
-
 	// Render pipeline state
 	MTL::MeshRenderPipelineDescriptor* desc = MTL::MeshRenderPipelineDescriptor::alloc()->init();
-	desc->setObjectFunction(objectShaderMtl->GetFunction());
-	desc->setMeshFunction(meshShaderMtl->GetFunction());
 
-	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, pixelShader, lcr);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 
 	m_pipelineDescriptor = desc;
 
