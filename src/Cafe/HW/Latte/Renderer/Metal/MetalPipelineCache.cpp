@@ -14,6 +14,7 @@
 #include "HW/Latte/ISA/LatteReg.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 #include <openssl/sha.h>
@@ -49,8 +50,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
     compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     pipeline = compiler.Compile(false, true);
 
-    if (!HasPipelineCached(vertexShader->baseHash, hash))
-        AddCurrentStateToCache(vertexShader->baseHash, hash);
+    AddCurrentStateToCache(hash);
 
     return pipeline;
 }
@@ -351,6 +351,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 
 	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
 
+	MTL::RenderPipelineState* pipeline = nullptr;
 	// compile
 	{
 		MetalPipelineCompiler pp(m_mtlr);
@@ -362,15 +363,18 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		//	s_spinlockSharedInternal.unlock();
 		//	return;
 		//}
-		pp.Compile(true, true);
+		pipeline = pp.Compile(true, true);
 		// destroy pp early
 	}
+
 	// on success, calculate pipeline hash and flag as present in cache
-	uint64 pipelineBaseHash = vertexShader->baseHash;
-	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
-	m_pipelineIsCachedLock.lock();
-	m_pipelineIsCached.emplace(pipelineBaseHash, pipelineStateHash);
-	m_pipelineIsCachedLock.unlock();
+	if (pipeline)
+	{
+    	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
+    	m_pipelineCacheLock.lock();
+    	m_pipelineCache[pipelineStateHash] = pipeline;
+    	m_pipelineCacheLock.unlock();
+	}
 
 	// clean up
 	s_spinlockSharedInternal.lock();
@@ -379,17 +383,10 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	s_spinlockSharedInternal.unlock();
 }
 
-bool MetalPipelineCache::HasPipelineCached(uint64 baseHash, uint64 pipelineStateHash)
-{
-	PipelineHash ph(baseHash, pipelineStateHash);
-	return m_pipelineIsCached.find(ph) != m_pipelineIsCached.end();
-}
-
 ConcurrentQueue<CachedPipeline*> g_mtlPipelineCachingQueue;
 
-void MetalPipelineCache::AddCurrentStateToCache(uint64 baseHash, uint64 pipelineStateHash)
+void MetalPipelineCache::AddCurrentStateToCache(uint64 pipelineStateHash)
 {
-	m_pipelineIsCached.emplace(baseHash, pipelineStateHash);
 	if (!m_pipelineCacheStoreThread)
 	{
 		m_pipelineCacheStoreThread = new std::thread(&MetalPipelineCache::WorkerThread, this);
