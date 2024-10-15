@@ -944,15 +944,9 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
     // Shaders
     LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
-    if (vertexShader && !vertexShader->shader->IsCompiled())
-        return;
     LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
-    if (geometryShader && !geometryShader->shader->IsCompiled())
-        return;
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
-    if (vertexShader && !pixelShader->shader->IsCompiled())
-        return;
 
     bool neverSkipAccurateBarrier = false;
 
@@ -1003,6 +997,17 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Render pass
 	auto renderCommandEncoder = GetRenderCommandEncoder();
+
+    // Render pipeline state
+    MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO.m_attachmentsInfo, m_state.m_activeFBO.m_attachmentsInfo, LatteGPUState.contextNew);
+    if (!renderPipelineState)
+        return;
+
+    if (renderPipelineState != encoderState.m_renderPipelineState)
+   	{
+        renderCommandEncoder->setRenderPipelineState(renderPipelineState);
+  		encoderState.m_renderPipelineState = renderPipelineState;
+   	}
 
 	// Depth stencil state
 
@@ -1221,17 +1226,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     //{
     //    renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
     //}
-
-	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO.m_attachmentsInfo, m_state.m_activeFBO.m_attachmentsInfo, LatteGPUState.contextNew);
-    if (!renderPipelineState)
-        return;
-
-	if (renderPipelineState != encoderState.m_renderPipelineState)
-   	{
-        renderCommandEncoder->setRenderPipelineState(renderPipelineState);
-  		encoderState.m_renderPipelineState = renderPipelineState;
-   	}
 
 	// Prepare streamout
 	m_state.m_streamoutState.verticesPerInstance = count;

@@ -18,9 +18,9 @@ public:
 private:
     class MetalRenderer* m_mtlr;
 
-    const class RendererShaderMtl* m_vertexShader;
-    const class RendererShaderMtl* m_geometryShader;
-    const class RendererShaderMtl* m_pixelShader;
+    class RendererShaderMtl* m_vertexShaderMtl;
+    class RendererShaderMtl* m_geometryShaderMtl;
+    class RendererShaderMtl* m_pixelShaderMtl;
     bool m_usesGeometryShader;
 
     /*

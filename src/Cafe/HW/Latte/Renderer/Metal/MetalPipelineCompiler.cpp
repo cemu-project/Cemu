@@ -309,24 +309,21 @@ MetalPipelineCompiler::~MetalPipelineCompiler()
 
 void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
-    // Shaders
-    m_vertexShader = static_cast<const RendererShaderMtl*>(vertexShader->shader);
-    if (geometryShader)
-    {
-        m_geometryShader = static_cast<const RendererShaderMtl*>(geometryShader->shader);
-    }
-    else
-    {
-        // If there is no geometry shader, it means that we are emulating rects
-        m_geometryShader = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
-    }
-    m_pixelShader = static_cast<const RendererShaderMtl*>(pixelShader->shader);
-
     // Check if the pipeline uses a geometry shader
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
     m_usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+
+    // Shaders
+    m_vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
+    if (geometryShader)
+        m_geometryShaderMtl = static_cast<RendererShaderMtl*>(geometryShader->shader);
+    else if (isPrimitiveRect)
+        m_geometryShaderMtl = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
+    else
+        m_geometryShaderMtl = nullptr;
+    m_pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
 
     if (m_usesGeometryShader)
         InitFromStateMesh(fetchShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
@@ -336,6 +333,28 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
 
 MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
 {
+    if (forceCompile)
+	{
+		// if some shader stages are not compiled yet, compile them now
+		if (m_vertexShaderMtl && !m_vertexShaderMtl->IsCompiled())
+			m_vertexShaderMtl->PreponeCompilation(isRenderThread);
+		if (m_geometryShaderMtl && !m_geometryShaderMtl->IsCompiled())
+			m_geometryShaderMtl->PreponeCompilation(isRenderThread);
+		if (m_pixelShaderMtl && !m_pixelShaderMtl->IsCompiled())
+			m_pixelShaderMtl->PreponeCompilation(isRenderThread);
+	}
+	else
+	{
+	    // fail early if some shader stages are not compiled
+		if (m_vertexShaderMtl && !m_vertexShaderMtl->IsCompiled())
+			return nullptr;
+		if (m_geometryShaderMtl && !m_geometryShaderMtl->IsCompiled())
+			return nullptr;
+		if (m_pixelShaderMtl && !m_pixelShaderMtl->IsCompiled())
+			return nullptr;
+	}
+
+	// Compile
     MTL::RenderPipelineState* pipeline = nullptr;
     NS::Error* error = nullptr;
 
@@ -345,9 +364,9 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
         auto desc = static_cast<MTL::MeshRenderPipelineDescriptor*>(m_pipelineDescriptor);
 
         // Shaders
-        desc->setObjectFunction(m_vertexShader->GetFunction());
-        desc->setMeshFunction(m_geometryShader->GetFunction());
-        desc->setFragmentFunction(m_pixelShader->GetFunction());
+        desc->setObjectFunction(m_vertexShaderMtl->GetFunction());
+        desc->setMeshFunction(m_geometryShaderMtl->GetFunction());
+        desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
 
         NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
@@ -360,8 +379,8 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
         auto desc = static_cast<MTL::RenderPipelineDescriptor*>(m_pipelineDescriptor);
 
         // Shaders
-        desc->setVertexFunction(m_vertexShader->GetFunction());
-        desc->setFragmentFunction(m_pixelShader->GetFunction());
+        desc->setVertexFunction(m_vertexShaderMtl->GetFunction());
+        desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
 
         NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
