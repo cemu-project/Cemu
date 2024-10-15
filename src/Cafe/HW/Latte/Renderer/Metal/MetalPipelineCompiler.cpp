@@ -10,6 +10,8 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "HW/Latte/ISA/LatteReg.h"
+#include "Metal/MTLPixelFormat.hpp"
 
 static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
 {
@@ -189,7 +191,7 @@ extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
 
 template<typename T>
-void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
+void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
 {
 	// Rasterization
 	bool rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
@@ -222,17 +224,16 @@ void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFB
 	uint32 renderTargetMask = lcr.CB_TARGET_MASK.get_MASK();
 	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
 	{
-	    const auto& colorBuffer = lastUsedFBO->colorBuffer[i];
-		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
-		if (!texture)
-		{
+	    Latte::E_GX2SURFFMT format = lastUsedAttachmentsInfo.colorFormats[i];
+		if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
 		    continue;
-		}
+
+		MTL::PixelFormat pixelFormat = GetMtlPixelFormat(format, false);
 		auto colorAttachment = desc->colorAttachments()->object(i);
-		colorAttachment->setPixelFormat(texture->GetRGBAView()->pixelFormat());
+		colorAttachment->setPixelFormat(pixelFormat);
 
 		// Disable writes if not in the active FBO
-		if (!activeFBO->colorBuffer[i].texture)
+		if (activeAttachmentsInfo.colorFormats[i] == Latte::E_GX2SURFFMT::INVALID_FORMAT)
         {
             colorAttachment->setWriteMask(MTL::ColorWriteMaskNone);
             continue;
@@ -243,7 +244,7 @@ void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFB
 		// Blending
 		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
 		// Only float data type is blendable
-		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).dataType == MetalDataType::FLOAT)
+		if (blendEnabled && GetMtlPixelFormatInfo(format, false).dataType == MetalDataType::FLOAT)
 		{
        		colorAttachment->setBlendingEnabled(true);
 
@@ -272,14 +273,12 @@ void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFB
 	}
 
 	// Depth stencil attachment
-	if (lastUsedFBO->depthBuffer.texture)
+	if (lastUsedAttachmentsInfo.depthFormat != Latte::E_GX2SURFFMT::INVALID_FORMAT)
 	{
-	    auto texture = static_cast<LatteTextureViewMtl*>(lastUsedFBO->depthBuffer.texture);
-        desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-        if (lastUsedFBO->depthBuffer.hasStencil)
-        {
-            desc->setStencilAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-        }
+	    MTL::PixelFormat pixelFormat = GetMtlPixelFormat(lastUsedAttachmentsInfo.depthFormat, true);
+        desc->setDepthAttachmentPixelFormat(pixelFormat);
+        if (lastUsedAttachmentsInfo.hasStencil)
+            desc->setStencilAttachmentPixelFormat(pixelFormat);
 	}
 }
 
@@ -306,7 +305,7 @@ MetalPipelineCompiler::~MetalPipelineCompiler()
     m_pipelineDescriptor->release();
 }
 
-void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
@@ -314,9 +313,9 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
     m_usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
     if (m_usesGeometryShader)
-        InitFromStateMesh(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr);
+        InitFromStateMesh(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     else
-        InitFromStateRender(fetchShader, vertexShader, pixelShader, lastUsedFBO, activeFBO, lcr);
+        InitFromStateRender(fetchShader, vertexShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 }
 
 MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread)
@@ -358,7 +357,7 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
     }
 }
 
-void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     // Shaders
 	auto vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
@@ -437,7 +436,7 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
         vertexDescriptor->release();
     }
 
-	SetFragmentState(desc, lastUsedFBO, activeFBO, pixelShader, lcr);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, pixelShader, lcr);
 
 	m_pipelineDescriptor = desc;
 
@@ -498,7 +497,7 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
 	*/
 }
 
-void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
 	auto objectShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
 	RendererShaderMtl* meshShaderMtl;
@@ -517,7 +516,7 @@ void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShade
 	desc->setObjectFunction(objectShaderMtl->GetFunction());
 	desc->setMeshFunction(meshShaderMtl->GetFunction());
 
-	SetFragmentState(desc, lastUsedFBO, activeFBO, pixelShader, lcr);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, pixelShader, lcr);
 
 	m_pipelineDescriptor = desc;
 

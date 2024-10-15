@@ -11,6 +11,9 @@
 #include "Cafe/HW/Latte/Core/LatteShaderCache.h"
 #include "Cemu/FileCache/FileCache.h"
 #include "HW/Latte/Core/LatteShader.h"
+#include "HW/Latte/ISA/LatteReg.h"
+#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
+#include "HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 #include <openssl/sha.h>
@@ -35,15 +38,15 @@ MetalPipelineCache::~MetalPipelineCache()
     }
 }
 
-MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
-    uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr);
+    uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     auto& pipeline = m_pipelineCache[hash];
     if (pipeline)
         return pipeline;
 
     MetalPipelineCompiler compiler(m_mtlr);
-    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr);
+    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     pipeline = compiler.Compile(false, true);
 
     if (!HasPipelineCached(vertexShader->baseHash, hash))
@@ -52,33 +55,32 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
     return pipeline;
 }
 
-uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     // Hash
     uint64 stateHash = 0;
     for (int i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; ++i)
 	{
-		auto textureView = static_cast<LatteTextureViewMtl*>(lastUsedFBO->colorBuffer[i].texture);
-		if (!textureView)
-		    continue;
+	    Latte::E_GX2SURFFMT format = lastUsedAttachmentsInfo.colorFormats[i];
+		if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+            continue;
 
-		stateHash += textureView->GetRGBAView()->pixelFormat() + i * 31;
+		stateHash += GetMtlPixelFormat(format, false) + i * 31;
 		stateHash = std::rotl<uint64>(stateHash, 7);
 
-		if (activeFBO->colorBuffer[i].texture)
+		if (activeAttachmentsInfo.colorFormats[i] == Latte::E_GX2SURFFMT::INVALID_FORMAT)
 		{
             stateHash += 1;
 		    stateHash = std::rotl<uint64>(stateHash, 1);
 		}
 	}
 
-	if (lastUsedFBO->depthBuffer.texture)
+	if (lastUsedAttachmentsInfo.depthFormat != Latte::E_GX2SURFFMT::INVALID_FORMAT)
 	{
-	    auto textureView = static_cast<LatteTextureViewMtl*>(lastUsedFBO->depthBuffer.texture);
-		stateHash += textureView->GetRGBAView()->pixelFormat();
+		stateHash += GetMtlPixelFormat(lastUsedAttachmentsInfo.depthFormat, true);
 		stateHash = std::rotl<uint64>(stateHash, 7);
 
-		if (activeFBO->depthBuffer.texture)
+		if (activeAttachmentsInfo.depthFormat == Latte::E_GX2SURFFMT::INVALID_FORMAT)
 		{
             stateHash += 1;
 		    stateHash = std::rotl<uint64>(stateHash, 1);
@@ -347,33 +349,28 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		return;
 	}
 
-	// create pipeline info
-	m_pipelineIsCachedLock.lock();
-	m_pipelineIsCachedLock.unlock();
-	throw;
-	// TODO: uncomment
-	/*
+	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
+
 	// compile
 	{
 		MetalPipelineCompiler pp(m_mtlr);
-		if (!pp.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, activeFBO, activeFBO, *lcr))
-		{
-			s_spinlockSharedInternal.lock();
-			delete lcr;
-			delete cachedPipeline;
-			s_spinlockSharedInternal.unlock();
-			return;
-		}
+		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
+		//{
+		//	s_spinlockSharedInternal.lock();
+		//	delete lcr;
+		//	delete cachedPipeline;
+		//	s_spinlockSharedInternal.unlock();
+		//	return;
+		//}
 		pp.Compile(true, true);
 		// destroy pp early
 	}
 	// on success, calculate pipeline hash and flag as present in cache
 	uint64 pipelineBaseHash = vertexShader->baseHash;
-	uint64 pipelineStateHash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, activeFBO, activeFBO, *lcr);
+	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
 	m_pipelineIsCachedLock.lock();
 	m_pipelineIsCached.emplace(pipelineBaseHash, pipelineStateHash);
 	m_pipelineIsCachedLock.unlock();
-	*/
 
 	// clean up
 	s_spinlockSharedInternal.lock();
