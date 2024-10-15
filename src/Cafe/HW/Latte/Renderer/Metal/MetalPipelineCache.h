@@ -7,7 +7,7 @@
 // TODO: binary archives
 class MetalPipelineCache
 {
-public:
+private:
     struct PipelineHash
 	{
 		PipelineHash(uint64 h0, uint64 h1) : h0(h0), h1(h1) {};
@@ -30,7 +30,10 @@ public:
 		};
 	};
 
-    MetalPipelineCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
+public:
+	static MetalPipelineCache& GetInstance();
+
+    MetalPipelineCache(class MetalRenderer* metalRenderer);
     ~MetalPipelineCache();
 
     MTL::RenderPipelineState* GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr);

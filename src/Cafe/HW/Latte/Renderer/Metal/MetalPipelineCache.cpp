@@ -15,6 +15,43 @@
 #include "config/ActiveSettings.h"
 #include <openssl/sha.h>
 
+MetalPipelineCache* g_mtlPipelineCache = nullptr;
+
+MetalPipelineCache& MetalPipelineCache::GetInstance()
+{
+    return *g_mtlPipelineCache;
+}
+
+MetalPipelineCache::MetalPipelineCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}
+{
+    g_mtlPipelineCache = this;
+}
+
+MetalPipelineCache::~MetalPipelineCache()
+{
+    for (auto& [key, value] : m_pipelineCache)
+    {
+        value->release();
+    }
+}
+
+MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+{
+    uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr);
+    auto& pipeline = m_pipelineCache[hash];
+    if (pipeline)
+        return pipeline;
+
+    MetalPipelineCompiler compiler(m_mtlr);
+    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr);
+    pipeline = compiler.Compile(false, true);
+
+    if (!HasPipelineCached(vertexShader->baseHash, hash))
+        AddCurrentStateToCache(vertexShader->baseHash, hash);
+
+    return pipeline;
+}
+
 uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
 {
     // Hash
@@ -117,27 +154,6 @@ uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchSh
 	return stateHash;
 }
 
-MetalPipelineCache::~MetalPipelineCache()
-{
-    for (auto& [key, value] : m_pipelineCache)
-    {
-        value->release();
-    }
-}
-
-MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, class CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
-{
-    auto& pipeline = m_pipelineCache[CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr)];
-    if (pipeline)
-        return pipeline;
-
-    MetalPipelineCompiler compiler(m_mtlr);
-    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedFBO, activeFBO, lcr);
-    pipeline = compiler.Compile(false, true);
-
-    return pipeline;
-}
-
 struct
 {
 	uint32 pipelineLoadIndex;
@@ -181,7 +197,7 @@ uint32 MetalPipelineCache::BeginLoading(uint64 cacheTitleId)
 	s_cache = FileCache::Open(pathCacheFile, true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
 	if (!s_cache)
 	{
-		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", _pathToUtf8(pathCacheFile));
+		cemuLog_log(LogType::Force, "Failed to open or create Metal pipeline cache file: {}", _pathToUtf8(pathCacheFile));
 		return 0;
 	}
 	else
@@ -436,7 +452,7 @@ bool MetalPipelineCache::DeserializePipeline(MemStreamReader& memReader, CachedP
 	// version
 	if (memReader.readBE<uint8>() != 1)
 	{
-		cemuLog_log(LogType::Force, "Cached Vulkan pipeline corrupted or has unknown version");
+		cemuLog_log(LogType::Force, "Cached Metal pipeline corrupted or has unknown version");
 		return false;
 	}
 	// shader hashes
