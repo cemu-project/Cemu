@@ -10,6 +10,7 @@
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
 #include "Cafe/HW/Latte/Core/LatteShaderCache.h"
 #include "Cemu/FileCache/FileCache.h"
+#include "Common/precompiled.h"
 #include "HW/Latte/Core/LatteShader.h"
 #include "HW/Latte/ISA/LatteReg.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
@@ -47,10 +48,13 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
         return pipeline;
 
     MetalPipelineCompiler compiler(m_mtlr);
-    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
+    bool fbosMatch;
+    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
     pipeline = compiler.Compile(false, true, true);
 
-    AddCurrentStateToCache(hash);
+    // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
+    if (fbosMatch)
+        AddCurrentStateToCache(hash);
 
     return pipeline;
 }
@@ -355,7 +359,9 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// compile
 	{
 		MetalPipelineCompiler pp(m_mtlr);
-		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
+		bool fbosMatch;
+		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr, fbosMatch);
+		cemu_assert_debug(fbosMatch);
 		//{
 		//	s_spinlockSharedInternal.lock();
 		//	delete lcr;
