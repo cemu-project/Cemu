@@ -370,7 +370,6 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
         desc->setMeshFunction(m_geometryShaderMtl->GetFunction());
         desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
 
-        NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Mesh render pipeline state", desc));
 #endif
@@ -384,7 +383,6 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
         desc->setVertexFunction(m_vertexShaderMtl->GetFunction());
         desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
 
-        NS::Error* error = nullptr;
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Render pipeline state", desc));
 #endif
