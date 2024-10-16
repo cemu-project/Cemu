@@ -126,6 +126,7 @@ jobs:
           echo "Cemu Version is $VERSION"
           ls cemu-appimage-x64
           mv cemu-appimage-x64/Cemu-*-x86_64.AppImage upload/Cemu-$VERSION-x86_64.AppImage
+          mv cemu-appimage-x64/Cemu-*-x86_64.AppImage.zsync upload/Cemu-$VERSION-x86_64.AppImage.zsync
         
       - name: Create release from linux-bin
         run: |
