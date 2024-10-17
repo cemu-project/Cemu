@@ -98,24 +98,24 @@ class MEMPTR : MEMPTRBase
 		return MEMPTR<X>(this->m_value);
 	}
 
-	sint32 operator-(const MEMPTR& ptr) noexcept
+	sint32 operator-(const MEMPTR& ptr) noexcept requires (!std::is_void_v<T>)
 	{
 		return static_cast<sint32>(this->GetMPTR() - ptr.GetMPTR());
 	}
 
-	MEMPTR operator+(sint32 v) noexcept
+	MEMPTR operator+(sint32 v) noexcept requires (!std::is_void_v<T>)
 	{
 		// pointer arithmetic
 		return MEMPTR(this->GetMPTR() + v * sizeof(T));
 	}
 
-	MEMPTR operator-(sint32 v) noexcept
+	MEMPTR operator-(sint32 v) noexcept requires (!std::is_void_v<T>)
 	{
 		// pointer arithmetic
 		return MEMPTR(this->GetMPTR() - v * sizeof(T));
 	}
 
-	MEMPTR& operator+=(sint32 v) noexcept
+	MEMPTR& operator+=(sint32 v) noexcept requires (!std::is_void_v<T>)
 	{
 		m_value += v * sizeof(T);
 		return *this;
