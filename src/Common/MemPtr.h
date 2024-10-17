@@ -121,8 +121,8 @@ class MEMPTR : MEMPTRBase
 		return *this;
 	}
 
-	template<typename Q = T>
-	std::enable_if_t<!std::is_same_v<Q, void>, Q>& operator*() const noexcept
+	template<typename Q = T> requires (!std::is_void_v<Q>)
+	Q& operator*() const noexcept
 	{
 		return *GetPtr();
 	}
@@ -132,8 +132,8 @@ class MEMPTR : MEMPTRBase
 		return GetPtr();
 	}
 
-	template<typename Q = T>
-	std::enable_if_t<!std::is_same_v<Q, void>, Q>& operator[](int index) noexcept
+	template<typename Q = T> requires (!std::is_void_v<Q>)
+	Q& operator[](int index) noexcept
 	{
 		return GetPtr()[index];
 	}
