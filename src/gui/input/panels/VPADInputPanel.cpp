@@ -5,6 +5,7 @@
 #include <wx/statline.h>
 #include <wx/textctrl.h>
 #include <wx/slider.h>
+#include <wx/checkbox.h>
 
 
 #include "gui/helpers/wxControlObject.h"
@@ -131,11 +132,14 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	}
 
 	// Blow Mic
-	row = 9;
+	row = 8;
 	add_button_row(main_sizer, row, column, VPADController::kButtonId_Mic, _("blow mic"));
 	row++;
 
 	add_button_row(main_sizer, row, column, VPADController::kButtonId_Screen, _("show screen"));
+	row++;
+	m_togglePadViewCheckBox = new wxCheckBox(this, wxID_ANY, _("toggle screen"), wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+	main_sizer->Add(m_togglePadViewCheckBox, wxGBPosition(row,column), wxDefaultSpan, wxALL | wxEXPAND, 5);
 
 	//////////////////////////////////////////////////////////////////
 
@@ -168,6 +172,8 @@ void VPADInputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, 
 {
 	InputPanel::on_timer(emulated_controller, controller_base);
 
+	static_cast<VPADController*>(emulated_controller.get())->set_screen_toggle(m_togglePadViewCheckBox->GetValue());
+
 	if(emulated_controller)
 	{
 		const auto axis = emulated_controller->get_axis();
@@ -181,4 +187,11 @@ void VPADInputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, 
 void VPADInputPanel::OnVolumeChange(wxCommandEvent& event)
 {
 
+}
+void VPADInputPanel::load_controller(const EmulatedControllerPtr& controller)
+{
+	InputPanel::load_controller(controller);
+
+	const bool isToggle = static_cast<VPADController*>(controller.get())->is_screen_active_toggle();
+	m_togglePadViewCheckBox->SetValue(isToggle);
 }
