@@ -11,6 +11,8 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
+#include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
 
 #include <imgui.h>
@@ -41,7 +43,7 @@ struct
 	sint32 pixelShaderCount;
 }shaderCacheScreenStats;
 
-struct  
+struct
 {
 	ImTextureID textureTVId;
 	ImTextureID textureDRCId;
@@ -157,10 +159,19 @@ bool LoadTGAFile(const std::vector<uint8>& buffer, TGAFILE *tgaFile)
 
 void LatteShaderCache_finish()
 {
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
+    if (g_renderer->GetType() == RendererAPI::Vulkan)
+	{
 		RendererShaderVk::ShaderCacheLoading_end();
+	}
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
+	{
 		RendererShaderGL::ShaderCacheLoading_end();
+	}
+	else if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+	    RendererShaderMtl::ShaderCacheLoading_end();
+		MetalPipelineCache::ShaderCacheLoading_end();
+	}
 }
 
 uint32 LatteShaderCache_getShaderCacheExtraVersion(uint64 titleId)
@@ -240,9 +251,18 @@ void LatteShaderCache_Load()
 	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/precompiled"), ec);
 	// initialize renderer specific caches
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
+	{
 		RendererShaderVk::ShaderCacheLoading_begin(cacheTitleId);
+	}
 	else if (g_renderer->GetType() == RendererAPI::OpenGL)
+	{
 		RendererShaderGL::ShaderCacheLoading_begin(cacheTitleId);
+	}
+	else if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+	    RendererShaderMtl::ShaderCacheLoading_begin(cacheTitleId);
+		MetalPipelineCache::ShaderCacheLoading_begin(cacheTitleId);
+	}
 	// get cache file name
 	const auto pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
 	const auto pathGenericPre1_25_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}.bin", cacheTitleId); // before 1.25.0
@@ -328,7 +348,7 @@ void LatteShaderCache_Load()
 	};
 
 	LatteShaderCache_ShowProgress(LoadShadersUpdate, false);
-	
+
 	LatteShaderCache_updateCompileQueue(0);
 	// write load time and RAM usage to log file (in dev build)
 #if BOOST_OS_WINDOWS
@@ -371,7 +391,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 {
 	const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize;
 	const auto textColor = 0xFF888888;
-	
+
 	auto lastFrameUpdate = tick_cached();
 
 	while (true)
@@ -771,9 +791,18 @@ void LatteShaderCache_Close()
         s_shaderCacheGeneric = nullptr;
     }
     if (g_renderer->GetType() == RendererAPI::Vulkan)
-        RendererShaderVk::ShaderCacheLoading_Close();
-    else if (g_renderer->GetType() == RendererAPI::OpenGL)
-        RendererShaderGL::ShaderCacheLoading_Close();
+	{
+		RendererShaderVk::ShaderCacheLoading_Close();
+	}
+	else if (g_renderer->GetType() == RendererAPI::OpenGL)
+	{
+		RendererShaderGL::ShaderCacheLoading_Close();
+	}
+	else if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+	    RendererShaderMtl::ShaderCacheLoading_Close();
+		MetalPipelineCache::ShaderCacheLoading_Close();
+	}
 
     // if Vulkan then also close pipeline cache
     if (g_renderer->GetType() == RendererAPI::Vulkan)
@@ -793,7 +822,7 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 	{
 		// ask user if they want to delete or keep the old cache file
 		auto infoMsg = _("Cemu detected that the shader cache for this game is outdated.\nOnly shader caches generated with Cemu 1.25.0 or above are supported.\n\nWe recommend deleting the outdated cache file as it will no longer be used by Cemu.");
-			
+
 		wxMessageDialog dialog(nullptr, infoMsg, _("Outdated shader cache"),
 			wxYES_NO | wxCENTRE | wxICON_EXCLAMATION);
 

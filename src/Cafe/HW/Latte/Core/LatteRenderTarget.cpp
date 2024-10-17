@@ -724,8 +724,8 @@ void LatteRenderTarget_applyTextureColorClear(LatteTexture* texture, uint32 slic
 
 void LatteRenderTarget_applyTextureDepthClear(LatteTexture* texture, uint32 sliceIndex, uint32 mipIndex, bool hasDepthClear, bool hasStencilClear, float depthValue, uint8 stencilValue, uint64 eventCounter)
 {
-	if(texture->isDepth)	
-	{ 
+	if(texture->isDepth)
+	{
 		g_renderer->texture_clearDepthSlice(texture, sliceIndex, mipIndex, hasDepthClear, hasStencilClear, depthValue, stencilValue);
 	}
 	else
@@ -884,7 +884,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	textureView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
 	_currentOutputImageWidth = effectiveWidth;
 	_currentOutputImageHeight = effectiveHeight;
-	
+
 	sint32 imageX, imageY;
 	sint32 imageWidth, imageHeight;
 	sint32 fullscreenWidth, fullscreenHeight;
@@ -933,7 +933,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	if (shader == nullptr)
 	{
 		sint32 scaling_filter = downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
-		
+
 		if (g_renderer->GetType() == RendererAPI::Vulkan)
 		{
 			// force linear or nearest neighbor filter
@@ -1029,7 +1029,7 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		{
 			controller = InputManager::instance().get_vpad_controller(1);
 			if (controller && controller->is_screen_active())
-				showDRC = true;	
+				showDRC = true;
 		}
 	}
 
@@ -1054,7 +1054,7 @@ void LatteRenderTarget_updateViewport()
 	float vpX = LatteGPUState.contextNew.PA_CL_VPORT_XOFFSET.get_OFFSET() - LatteGPUState.contextNew.PA_CL_VPORT_XSCALE.get_SCALE();
 	float vpHeight = LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE() / -0.5f;
 	float vpY = LatteGPUState.contextNew.PA_CL_VPORT_YOFFSET.get_OFFSET() + LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE();
-	
+
 	bool halfZ = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF();
 
 	// calculate near/far

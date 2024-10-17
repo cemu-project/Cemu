@@ -24,7 +24,7 @@ if (ENABLE_VCPKG)
 	OUTPUT_VARIABLE is_vcpkg_shallow
 	OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-	
+
 	if(is_vcpkg_shallow STREQUAL "true")
 		message(STATUS "vcpkg is shallow. Unshallowing it now...")
 		execute_process(
@@ -100,10 +100,20 @@ if (UNIX AND NOT APPLE)
 	option(ENABLE_FERAL_GAMEMODE "Enables Feral Interactive GameMode Support" ON)
 endif()
 
+if (APPLE)
+    set(ENABLE_METAL_DEFAULT ON)
+else()
+    set(ENABLE_METAL_DEFAULT OFF)
+endif()
+
 option(ENABLE_OPENGL "Enables the OpenGL backend" ON)
 option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
+option(ENABLE_METAL "Enables the Metal backend" ${ENABLE_METAL_DEFAULT})
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
+if (ENABLE_METAL AND NOT APPLE)
+    message(FATAL_ERROR "Metal backend is only supported on Apple platforms")
+endif()
 
 # input backends
 if (WIN32)
@@ -189,6 +199,10 @@ if (ENABLE_OPENGL)
 	find_package(OpenGL REQUIRED)
 endif()
 
+if (ENABLE_METAL)
+    include_directories(${CMAKE_SOURCE_DIR}/dependencies/metal-cpp)
+endif()
+
 if (ENABLE_DISCORD_RPC)
 	add_compile_definitions(ENABLE_DISCORD_RPC)
 	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
@@ -215,7 +229,7 @@ endif()
 
 if (ENABLE_CUBEB)
 	if (NOT ENABLE_VCPKG)
-	find_package(cubeb)
+	    find_package(cubeb)
 	endif()
 	if (NOT cubeb_FOUND)
 		option(BUILD_TESTS "" OFF)

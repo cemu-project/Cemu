@@ -8,6 +8,7 @@
 #include "Cafe/OS/libs/swkbd/swkbd.h"
 #include "gui/canvas/OpenGLCanvas.h"
 #include "gui/canvas/VulkanCanvas.h"
+#include "gui/canvas/MetalCanvas.h"
 #include "config/CemuConfig.h"
 #include "gui/MainWindow.h"
 #include "gui/helpers/wxHelpers.h"
@@ -74,8 +75,10 @@ void PadViewFrame::InitializeRenderCanvas()
 	{
 		if (ActiveSettings::GetGraphicsAPI() == kVulkan)
 			m_render_canvas = new VulkanCanvas(this, wxSize(854, 480), false);
-		else
+		else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
+		else
+		    m_render_canvas = new MetalCanvas(this, wxSize(854, 480), false);
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);
 	}
 	SetSizer(sizer);
@@ -173,7 +176,7 @@ void PadViewFrame::OnChar(wxKeyEvent& event)
 {
 	if (swkbd_hasKeyboardInputHook())
 		swkbd_keyInput(event.GetUnicodeKey());
-	
+
 	event.Skip();
 }
 
@@ -198,7 +201,7 @@ void PadViewFrame::OnMouseLeft(wxMouseEvent& event)
 	instance.m_pad_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_pad_mouse.left_down_toggle = true;
-	
+
 }
 
 void PadViewFrame::OnMouseRight(wxMouseEvent& event)

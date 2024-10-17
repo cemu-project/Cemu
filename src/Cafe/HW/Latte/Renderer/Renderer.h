@@ -33,6 +33,7 @@ enum class RendererAPI
 {
 	OpenGL,
 	Vulkan,
+	Metal,
 
 	MAX
 };
@@ -66,9 +67,9 @@ public:
 	virtual void SwapBuffers(bool swapTV, bool swapDRC) = 0;
 
 	virtual void HandleScreenshotRequest(LatteTextureView* texView, bool padView){}
-	
-	virtual void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, 
-												sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, 
+
+	virtual void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
+												sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 												bool padView, bool clearBackground) = 0;
 	virtual bool BeginFrame(bool mainWindow) = 0;
 
@@ -84,6 +85,7 @@ public:
 	virtual void DeleteFontTextures() = 0;
 
 	GfxVendor GetVendor() const { return m_vendor; }
+	virtual bool UseTFViaSSBO() const { return false; }
 	virtual void AppendOverlayDebugInfo() = 0;
 
 	// rendertarget
@@ -139,7 +141,7 @@ public:
 
 	// index
 	virtual void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) = 0;
-	virtual void indexData_uploadIndexMemory(uint32 offset, uint32 size) = 0;
+	virtual void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) = 0;
 
 	// occlusion queries
 	virtual LatteQueryObject* occlusionQuery_create() = 0;

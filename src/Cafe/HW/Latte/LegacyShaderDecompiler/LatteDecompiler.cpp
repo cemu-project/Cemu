@@ -323,8 +323,8 @@ bool LatteDecompiler_IsALUTransInstruction(bool isOP3, uint32 opcode)
 	}
 	else if( opcode == ALU_OP2_INST_MOV ||
 		opcode == ALU_OP2_INST_ADD ||
-		opcode == ALU_OP2_INST_NOP || 
-		opcode == ALU_OP2_INST_MUL || 
+		opcode == ALU_OP2_INST_NOP ||
+		opcode == ALU_OP2_INST_MUL ||
 		opcode == ALU_OP2_INST_DOT4 ||
 		opcode == ALU_OP2_INST_DOT4_IEEE ||
 		opcode == ALU_OP2_INST_MAX || // Not sure if MIN/MAX are non-transcendental?
@@ -927,7 +927,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 				texInstruction.memRead.format = dataFormat;
 				texInstruction.memRead.nfa = nfa;
 				texInstruction.memRead.isSigned = isSigned;
-	
+
 				cfInstruction->instructionsTEX.emplace_back(texInstruction);
 			}
 			else
@@ -1066,9 +1066,14 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 		LatteDecompiler_analyzeDataTypes(shaderContext);
 	// emit code
 	if (shaderContext->shader->hasError == false)
-		LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+	{
+	    if (g_renderer->GetType() == RendererAPI::Metal)
+			LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
+		else
+		    LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+	}
 	LatteDecompiler_cleanup(shaderContext);
-	// fast access 
+	// fast access
 	_LatteDecompiler_GenerateDataForFastAccess(shaderContext->shader);
 }
 
