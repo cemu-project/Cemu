@@ -98,13 +98,9 @@ class MEMPTR : MEMPTRBase
 		return MEMPTR<X>(this->m_value);
 	}
 
-	MEMPTR operator+(const MEMPTR& ptr) noexcept
+	sint32 operator-(const MEMPTR& ptr) noexcept
 	{
-		return MEMPTR(this->GetMPTR() + ptr.GetMPTR());
-	}
-	MEMPTR operator-(const MEMPTR& ptr) noexcept
-	{
-		return MEMPTR(this->GetMPTR() - ptr.GetMPTR());
+		return static_cast<sint32>(this->GetMPTR() - ptr.GetMPTR());
 	}
 
 	MEMPTR operator+(sint32 v) noexcept
