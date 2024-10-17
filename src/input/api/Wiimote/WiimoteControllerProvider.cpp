@@ -2,7 +2,12 @@
 #include "input/api/Wiimote/NativeWiimoteController.h"
 #include "input/api/Wiimote/WiimoteMessages.h"
 
+#ifdef HAS_HIDAPI
 #include "input/api/Wiimote/hidapi/HidapiWiimote.h"
+#endif
+#ifdef HAS_BLUEZ
+#include "input/api/Wiimote/l2cap/L2CapWiimote.h"
+#endif
 
 #include <numbers>
 #include <queue>
@@ -12,6 +17,7 @@ WiimoteControllerProvider::WiimoteControllerProvider()
 {
 	m_reader_thread = std::thread(&WiimoteControllerProvider::reader_thread, this);
 	m_writer_thread = std::thread(&WiimoteControllerProvider::writer_thread, this);
+	m_connectionThread = std::thread(&WiimoteControllerProvider::connectionThread, this);
 }
 
 WiimoteControllerProvider::~WiimoteControllerProvider()
@@ -21,48 +27,51 @@ WiimoteControllerProvider::~WiimoteControllerProvider()
 		m_running = false;
 		m_writer_thread.join();
 		m_reader_thread.join();
+		m_connectionThread.join();
 	}
 }
 
 std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_controllers()
 {
+	m_connectedDeviceMutex.lock();
+	auto devices = m_connectedDevices;
+	m_connectedDeviceMutex.unlock();
+
 	std::scoped_lock lock(m_device_mutex);
 
-    std::queue<uint32> disconnected_wiimote_indices;
-    for (auto i{0u}; i < m_wiimotes.size(); ++i){
-        if (!(m_wiimotes[i].connected = m_wiimotes[i].device->write_data({kStatusRequest, 0x00}))){
-            disconnected_wiimote_indices.push(i);
-        }
-    }
-
-    const auto valid_new_device = [&](std::shared_ptr<WiimoteDevice> & device) {
-        const auto writeable = device->write_data({kStatusRequest, 0x00});
-        const auto not_already_connected =
-                std::none_of(m_wiimotes.cbegin(), m_wiimotes.cend(),
-                             [device](const auto& it) {
-            return (*it.device == *device) && it.connected;
-        });
-        return writeable && not_already_connected;
-    };
-
-	for (auto& device : WiimoteDevice_t::get_devices())
+	for (auto& device : devices)
 	{
-        if (!valid_new_device(device))
+		const auto writeable = device->write_data({kStatusRequest, 0x00});
+        if (!writeable)
             continue;
-        // Replace disconnected wiimotes
-        if (!disconnected_wiimote_indices.empty()){
-            const auto idx = disconnected_wiimote_indices.front();
-            disconnected_wiimote_indices.pop();
 
-            m_wiimotes.replace(idx, std::make_unique<Wiimote>(device));
-        }
-        // Otherwise add them
-        else {
-            m_wiimotes.push_back(std::make_unique<Wiimote>(device));
-        }
+		bool isDuplicate = false;
+		ssize_t lowestReplaceableIndex = -1;
+		for (ssize_t i = m_wiimotes.size() - 1; i >= 0; --i)
+		{
+			const auto& wiimoteDevice = m_wiimotes[i].device;
+			if (wiimoteDevice)
+			{
+				if (*wiimoteDevice == *device)
+				{
+					isDuplicate = true;
+					break;
+				}
+				continue;
+			}
+
+			lowestReplaceableIndex = i;
+		}
+		if (isDuplicate)
+			continue;
+		if (lowestReplaceableIndex != -1)
+			m_wiimotes.replace(lowestReplaceableIndex, std::make_unique<Wiimote>(device));
+		else
+			m_wiimotes.push_back(std::make_unique<Wiimote>(device));
 	}
 
 	std::vector<std::shared_ptr<ControllerBase>> result;
+	result.reserve(m_wiimotes.size());
 	for (size_t i = 0; i < m_wiimotes.size(); ++i)
 	{
 		result.emplace_back(std::make_shared<NativeWiimoteController>(i));
@@ -74,7 +83,7 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
 bool WiimoteControllerProvider::is_connected(size_t index)
 {
 	std::shared_lock lock(m_device_mutex);
-	return index < m_wiimotes.size() && m_wiimotes[index].connected;
+	return index < m_wiimotes.size() && m_wiimotes[index].device;
 }
 
 bool WiimoteControllerProvider::is_registered_device(size_t index)
@@ -141,6 +150,30 @@ WiimoteControllerProvider::WiimoteState WiimoteControllerProvider::get_state(siz
 	return {};
 }
 
+void WiimoteControllerProvider::connectionThread()
+{
+	SetThreadName("Wiimote-connect");
+	while (m_running.load(std::memory_order_relaxed))
+	{
+		std::vector<WiimoteDevicePtr> devices;
+#ifdef HAS_HIDAPI
+		const auto& hidDevices = HidapiWiimote::get_devices();
+		std::ranges::move(hidDevices, std::back_inserter(devices));
+#endif
+#ifdef HAS_BLUEZ
+		const auto& l2capDevices = L2CapWiimote::get_devices();
+		std::ranges::move(l2capDevices, std::back_inserter(devices));
+#endif
+		{
+			std::scoped_lock lock(m_connectedDeviceMutex);
+			m_connectedDevices.clear();
+			std::ranges::move(devices, std::back_inserter(m_connectedDevices));
+		}
+		std::this_thread::sleep_for(std::chrono::seconds(2));
+	}
+}
+
+
 void WiimoteControllerProvider::reader_thread()
 {
 	SetThreadName("Wiimote-reader");
@@ -148,7 +181,7 @@ void WiimoteControllerProvider::reader_thread()
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		const auto now = std::chrono::steady_clock::now();
-		if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck) > std::chrono::seconds(2))
+		if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck) > std::chrono::milliseconds(500))
 		{
 			// check for new connected wiimotes
 			get_controllers();
@@ -160,11 +193,16 @@ void WiimoteControllerProvider::reader_thread()
 		for (size_t index = 0; index < m_wiimotes.size(); ++index)
 		{
 			auto& wiimote = m_wiimotes[index];
-			if (!wiimote.connected)
+			if (!wiimote.device)
 				continue;
 
 			const auto read_data = wiimote.device->read_data();
-			if (!read_data || read_data->empty())
+			if (!read_data)
+			{
+				wiimote.device.reset();
+				continue;
+			}
+			if (read_data->empty())
 				continue;
 			receivedAnyPacket = true;
 
@@ -921,18 +959,18 @@ void WiimoteControllerProvider::writer_thread()
 
 		if (index != (size_t)-1 && !data.empty())
 		{
-			if (m_wiimotes[index].rumble)
+			auto& wiimote = m_wiimotes[index];
+			if (!wiimote.device)
+				continue;
+			if (wiimote.rumble)
 				data[1] |= 1;
-
-			m_wiimotes[index].connected = m_wiimotes[index].device->write_data(data);
-			if (m_wiimotes[index].connected)
+			if (!wiimote.device->write_data(data))
 			{
-				m_wiimotes[index].data_ts = std::chrono::high_resolution_clock::now();
+				wiimote.device.reset();
+				wiimote.rumble = false;
 			}
 			else
-			{
-				m_wiimotes[index].rumble = false;
-			}
+				wiimote.data_ts = std::chrono::high_resolution_clock::now();
 		}
 		device_lock.unlock();
 

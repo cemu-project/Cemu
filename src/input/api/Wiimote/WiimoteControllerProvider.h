@@ -77,16 +77,17 @@ public:
 private:
 	std::atomic_bool m_running = false;
 	std::thread m_reader_thread, m_writer_thread;
-
 	std::shared_mutex m_device_mutex;
 
+	std::thread m_connectionThread;
+	std::vector<WiimoteDevicePtr> m_connectedDevices;
+	std::mutex m_connectedDeviceMutex;
 	struct Wiimote
 	{
 		Wiimote(WiimoteDevicePtr device)
 			: device(std::move(device)) {}
 
 		WiimoteDevicePtr device;
-		std::atomic_bool connected = true;
 		std::atomic_bool rumble = false;
 
 		std::shared_mutex mutex;
@@ -103,6 +104,7 @@ private:
 
 	void reader_thread();
 	void writer_thread();
+	void connectionThread();
 
 	void calibrate(size_t index);
 	IRMode set_ir_camera(size_t index, bool state);
