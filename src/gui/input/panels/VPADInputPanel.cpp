@@ -103,7 +103,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 
 	text = new wxStaticText(this, wxID_ANY, _("Volume"));
 	text->Disable();
-	main_sizer->Add(text, wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+	main_sizer->Add(text, wxGBPosition(row, column), wxDefaultSpan, wxALL, 5);
 
 	auto*m_volume = new wxSlider(this, wxID_ANY, 0, 0, 100);
 	m_volume->Disable();
@@ -111,7 +111,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 
 	const auto volume_text = new wxStaticText(this, wxID_ANY, wxString::Format("%d%%", 0));
 	volume_text->Disable();
-	main_sizer->Add(volume_text, wxGBPosition(row, column + 2), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+	main_sizer->Add(volume_text, wxGBPosition(row, column + 2), wxDefaultSpan, wxALL, 5);
 	m_volume->Bind(wxEVT_SLIDER, &VPADInputPanel::OnVolumeChange, this, wxID_ANY, wxID_ANY, new wxControlObject(volume_text));
 
 	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 3), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
@@ -138,8 +138,17 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 
 	add_button_row(main_sizer, row, column, VPADController::kButtonId_Screen, _("show screen"));
 	row++;
-	m_togglePadViewCheckBox = new wxCheckBox(this, wxID_ANY, _("toggle screen"), wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
-	main_sizer->Add(m_togglePadViewCheckBox, wxGBPosition(row,column), wxDefaultSpan, wxALL | wxEXPAND, 5);
+
+	auto toggleScreenText = new wxStaticText(this, wxID_ANY, _("toggle screen"));
+	main_sizer->Add(toggleScreenText,
+		wxGBPosition(row, column),
+		wxDefaultSpan,
+		wxALL | wxALIGN_CENTER_VERTICAL, 5);
+	m_togglePadViewCheckBox = new wxCheckBox(this, wxID_ANY, {}, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+	wxString toggleScreenTT = _("Makes the \"show screen\" button toggle between the TV and gamepad screens");
+	m_togglePadViewCheckBox->SetToolTip(toggleScreenTT);
+	toggleScreenText->SetToolTip(toggleScreenTT);
+	main_sizer->Add(m_togglePadViewCheckBox, wxGBPosition(row,column+1), wxDefaultSpan, wxALL | wxEXPAND, 5);
 
 	//////////////////////////////////////////////////////////////////
 
