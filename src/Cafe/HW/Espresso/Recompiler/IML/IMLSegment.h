@@ -3,12 +3,121 @@
 
 #include <boost/container/small_vector.hpp>
 
+// special values to mark the index of ranges that reach across the segment border
+#define RA_INTER_RANGE_START	(-1)
+#define RA_INTER_RANGE_END		(0x70000000)
+
 struct IMLSegmentPoint
 {
+	friend struct IMLSegmentInterval;
+
 	sint32 index;
-	struct IMLSegment* imlSegment;
+	struct IMLSegment* imlSegment; // do we really need to track this? SegmentPoints are always accessed via the segment that they are part of
 	IMLSegmentPoint* next;
 	IMLSegmentPoint* prev;
+
+	// the index is the instruction index times two.
+	// this gives us the ability to cover half an instruction with RA ranges
+	// covering only the first half of an instruction (0-0) means that the register is read, but not preserved
+	// covering first and the second half means the register is read and preserved
+	// covering only the second half means the register is written but not read
+
+	sint32 GetInstructionIndex() const
+	{
+		return index;
+	}
+
+	void SetInstructionIndex(sint32 index)
+	{
+		this->index = index;
+	}
+
+	void ShiftIfAfter(sint32 instructionIndex, sint32 shiftCount)
+	{
+		if (!IsPreviousSegment() && !IsNextSegment())
+		{
+			if (GetInstructionIndex() >= instructionIndex)
+				index += shiftCount;
+		}
+	}
+
+	void DecrementByOneInstruction()
+	{
+		index--;
+	}
+
+	// the segment point can point beyond the first and last instruction which indicates that it is an infinite range reaching up to the previous or next segment
+	bool IsPreviousSegment() const { return index == RA_INTER_RANGE_START; }
+	bool IsNextSegment() const { return index == RA_INTER_RANGE_END; }
+
+	// overload operand > and <
+	bool operator>(const IMLSegmentPoint& other) const { return index > other.index; }
+	bool operator<(const IMLSegmentPoint& other) const { return index < other.index; }
+	bool operator==(const IMLSegmentPoint& other) const { return index == other.index; }
+	bool operator!=(const IMLSegmentPoint& other) const { return index != other.index; }
+
+	// overload comparison operands for sint32
+	bool operator>(const sint32 other) const { return index > other; }
+	bool operator<(const sint32 other) const { return index < other; }
+	bool operator<=(const sint32 other) const { return index <= other; }
+	bool operator>=(const sint32 other) const { return index >= other; }
+};
+
+struct IMLSegmentInterval
+{
+	IMLSegmentPoint start;
+	IMLSegmentPoint end;
+
+	bool ContainsInstructionIndex(sint32 offset) const { return start <= offset && end > offset; }
+
+	bool IsRangeOverlapping(const IMLSegmentInterval& other)
+	{
+		// todo - compare the raw index
+		sint32 r1start = this->start.GetInstructionIndex();
+		sint32 r1end = this->end.GetInstructionIndex();
+		sint32 r2start = other.start.GetInstructionIndex();
+		sint32 r2end = other.end.GetInstructionIndex();
+		if (r1start < r2end && r1end > r2start)
+			return true;
+		if (this->start.IsPreviousSegment() && r1start == r2start)
+			return true;
+		if (this->end.IsNextSegment() && r1end == r2end)
+			return true;
+		return false;
+	}
+
+	bool ExtendsIntoPreviousSegment() const
+	{
+		return start.IsPreviousSegment();
+	}
+
+	bool ExtendsIntoNextSegment() const
+	{
+		return end.IsNextSegment();
+	}
+
+	bool IsNextSegmentOnly() const
+	{
+		if(!start.IsNextSegment())
+			return false;
+		cemu_assert_debug(end.IsNextSegment());
+		return true;
+	}
+
+	bool IsPreviousSegmentOnly() const
+	{
+		if (!end.IsPreviousSegment())
+			return false;
+		cemu_assert_debug(start.IsPreviousSegment());
+		return true;
+	}
+
+	sint32 GetDistance() const
+	{
+		// todo - assert if either start or end is outside the segment
+		// we may also want to switch this to raw indices?
+		return end.GetInstructionIndex() - start.GetInstructionIndex();
+	}
 };
 
 struct PPCSegmentRegisterAllocatorInfo_t

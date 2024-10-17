@@ -18,6 +18,8 @@
 #include "BackendX64/BackendX64.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
+#define PPCREC_FORCE_SYNCHRONOUS_COMPILATION	0 // if 1, then function recompilation will block and execute on the thread that called PPCRecompiler_visitAddressNoBlock
+
 struct PPCInvalidationRange
 {
 	MPTR startAddress;
@@ -41,11 +43,36 @@ void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 
 PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
 
+#if PPCREC_FORCE_SYNCHRONOUS_COMPILATION
+static std::mutex s_singleRecompilationMutex;
+#endif
+
 bool ppcRecompilerEnabled = false;
+
+void PPCRecompiler_recompileAtAddress(uint32 address);
 
 // this function does never block and can fail if the recompiler lock cannot be acquired immediately
 void PPCRecompiler_visitAddressNoBlock(uint32 enterAddress)
 {
+#if PPCREC_FORCE_SYNCHRONOUS_COMPILATION
+	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] != PPCRecompiler_leaveRecompilerCode_unvisited)
+		return;
+	PPCRecompilerState.recompilerSpinlock.lock();
+	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] != PPCRecompiler_leaveRecompilerCode_unvisited)
+	{
+		PPCRecompilerState.recompilerSpinlock.unlock();
+		return;
+	}
+	ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] = PPCRecompiler_leaveRecompilerCode_visited;
+	PPCRecompilerState.recompilerSpinlock.unlock();
+	s_singleRecompilationMutex.lock();
+	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] == PPCRecompiler_leaveRecompilerCode_visited)
+	{
+		PPCRecompiler_recompileAtAddress(enterAddress);
+	}
+	s_singleRecompilationMutex.unlock();
+	return;
+#endif
 	// quick read-only check without lock
 	if (ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4] != PPCRecompiler_leaveRecompilerCode_unvisited)
 		return;
@@ -154,6 +181,9 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		}
 	}
 
+	// if(range.startAddress < 0x0202fa3C || range.startAddress > 0x0202FA7C)
+	// 	return nullptr; // DEBUG
+
 	PPCRecFunction_t* ppcRecFunc = new PPCRecFunction_t();
 	ppcRecFunc->ppcAddress = range.startAddress;
 	ppcRecFunc->ppcSize = range.length;
@@ -182,6 +212,85 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 			return nullptr;
 		}
 	}
+	// DEBUG BEGIN
+	// if(ppcRecFunc->ppcAddress != 0x2BDA9F4) // TP
+	// {
+	//    	delete ppcRecFunc;
+	//  	return nullptr;
+	// }
+	// if(ppcRecFunc->ppcAddress < 0x2BDA9F4) // TP
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
+
+	// this prevents the crashing
+	// if((ppcRecFunc->ppcAddress >= 0x02ade400 && ppcRecFunc->ppcAddress < 0x02ade600)) -> no crash
+	//if((ppcRecFunc->ppcAddress >= 0x02ade500 && ppcRecFunc->ppcAddress < 0x02ade600)) -> no crash
+	// if((ppcRecFunc->ppcAddress >= 0x02ade580 && ppcRecFunc->ppcAddress < 0x02ade600)) // -> crashed around 0x0x2b874b0 (but rare? Out of 5 runs it only crashed once)
+	// {
+	// 	delete ppcRecFunc;
+	//  	return nullptr;
+	// }
+	// the problem with Shovel Knight is that the crash seems to be pretty instable, at least when trying to narrow it down. Lets look for another game for now
+
+	// check TP bug...
+	// if(ppcRecFunc->ppcAddress >= 0x03000000) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02800000) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02C00000) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02A00000) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B00000) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B80000) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B40000) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B60000) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B70000) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68000) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B64000) -> no bug (I went into wrong direction)
+	// if(ppcRecFunc->ppcAddress >= 0x02B6C000) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B6A000) -> has bug (double checked, it has bug)
+	// if(ppcRecFunc->ppcAddress >= 0x02B6B000) -> has bug (I went into the wrong direction again? Or does A000 have no bug??
+	// if(ppcRecFunc->ppcAddress >= 0x02B69000) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68800) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68400) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68600) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68500) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68580) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B685C0) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B685A0) -> has bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68590) -> no bug
+	// if(ppcRecFunc->ppcAddress >= 0x02B68598) -> has bug
+
+	// if(ppcRecFunc->ppcAddress != 0x02B68594) -> seems fine. No bug (against the expectation)
+	// if(ppcRecFunc->ppcAddress == 0x02B68594) -> Still has the bug
+
+	// if(ppcRecFunc->ppcAddress == 0x02B68594)
+	// {
+	//  	delete ppcRecFunc;
+	//  	return nullptr;
+	// }
+	// if(ppcRecFunc->ppcAddress >= 0x2B7A8D4 && ppcRecFunc->ppcAddress < 0x02B7AC9C && ppcRecFunc->ppcAddress != 0x2B7A8D4)
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
+	// doing both of these means no bug!
+	// excluding just ppcAddress == 0x2B7A8D4 is enough to trigger the bug again. So it definitely that function
+	// next: Debug it!
+
+	// In Pikmin 3 030a9998 is broken?
+	// if(!(ppcRecFunc->ppcAddress >= 0x030a9998 && ppcRecFunc->ppcAddress < 0x030AA208))
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
+	// else
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
+
+	// DEBUG END
+
 
 	// apply passes
 	if (!PPCRecompiler_ApplyIMLPasses(ppcImlGenContext))
@@ -190,13 +299,58 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
-	//if (ppcRecFunc->ppcAddress == 0x30DF5F8)
-	//{
-	//	debug_printf("----------------------------------------\n");
-	//	IMLDebug_Dump(&ppcImlGenContext);
-	//	__debugbreak();
-	//}
+	// TP
+	// if (ppcRecFunc->ppcAddress == 0x2B7A8D4)
+	// {
+	// 	debug_printf("----------------------------------------\n");
+	// 	IMLDebug_Dump(&ppcImlGenContext);
+	// 	//__debugbreak();
+	// }
+	// // Bad Function in SM3DW
+	// if (ppcRecFunc->ppcAddress == 0x023D5768)
+	// {
+	// 	debug_printf("----------------------------------------\n");
+	// 	IMLDebug_Dump(&ppcImlGenContext);
+	// }
+	// if (ppcRecFunc->ppcAddress >= 0x023D5768 && ppcRecFunc->ppcAddress < 0x023D58DC)
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
+	//
 
+	//
+	// // 0x02846c74
+	// if (ppcRecFunc->ppcAddress == 0x02846c74)
+	// {
+	// 	debug_printf("----------------------------------------\n");
+	// 	IMLDebug_Dump(&ppcImlGenContext);
+	// 	__debugbreak();
+	// }
+
+	// Shovel Knight
+	// if (ppcRecFunc->ppcAddress >= 0x02A1E630 && ppcRecFunc->ppcAddress < 0x02A1E9D8)
+	// {
+	// 	// debug_printf("----------------------------------------\n");
+	// 	// IMLDebug_Dump(&ppcImlGenContext);
+	// 	// __debugbreak();
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
+	//
+	// //
+	// if (ppcRecFunc->ppcAddress == 0x02ade5c4 || ppcRecFunc->ppcAddress == 0x02ade5c8)
+	// {
+	// 	// debug_printf("----------------------------------------\n");
+	// 	IMLDebug_Dump(&ppcImlGenContext);
+	// 	__debugbreak();
+	// }
+
+	// else
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
 
 	//if (ppcRecFunc->ppcAddress == 0x11223344)
 	//{
@@ -210,13 +364,25 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	//	return nullptr;
 	//}
 
-	//if (ppcRecFunc->ppcAddress == 0x03C26844)
-	//{
-	//	__debugbreak();
-	//	IMLDebug_Dump(&ppcImlGenContext);
-	//	__debugbreak();
-	//}
+	// if (ppcRecFunc->ppcAddress >= 0x2BDA9F4 && ppcRecFunc->ppcAddress < 0x02BDAB38)
+	// {
+	// 	return nullptr;
+	// 	//IMLDebug_Dump(&ppcImlGenContext);
+	// 	//__debugbreak();
+	// }
+
+	// if (ppcRecFunc->ppcAddress == 0x2BDA9F4)
+	// {
+	// 	IMLDebug_Dump(&ppcImlGenContext);
+	// 	__debugbreak();
+	// }
 	// 31A8778
+
+	// if(ppcRecFunc->ppcAddress >= 0x2759E20 && ppcRecFunc->ppcAddress < 0x0275A0CC)
+	// {
+	// 	delete ppcRecFunc;
+	// 	return nullptr;
+	// }
 
 	// Functions for testing (botw):
 	// 3B4049C (large with switch case)
@@ -229,6 +395,14 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	if (x64GenerationSuccess == false)
 	{
 		return nullptr;
+	}
+
+	if (ppcRecFunc->ppcAddress == 0x2B7A8D4)
+	{
+		// write code to binary file
+		FILE* f = fopen("ppcRecFunc_2B7A8D4.bin", "wb");
+		fwrite(ppcRecFunc->x86Code, 1, ppcRecFunc->x86Size, f);
+		fclose(f);
 	}
 
 	// collect list of PPC-->x64 entry points
@@ -255,7 +429,7 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		codeHash += ((uint8*)ppcRecFunc->x86Code)[i];
 	}
 
-	//cemuLog_log(LogType::Force, "[Recompiler] PPC 0x{:08x} -> x64: 0x{:x} Took {:.4}ms | Size {:04x} CodeHash {:08x}", (uint32)ppcRecFunc->ppcAddress, (uint64)(uintptr_t)ppcRecFunc->x86Code, bt.GetElapsedMilliseconds(), ppcRecFunc->x86Size, codeHash);
+	cemuLog_log(LogType::Force, "[Recompiler] PPC 0x{:08x} -> x64: 0x{:x} Took {:.4}ms | Size {:04x} CodeHash {:08x}", (uint32)ppcRecFunc->ppcAddress, (uint64)(uintptr_t)ppcRecFunc->x86Code, bt.GetElapsedMilliseconds(), ppcRecFunc->x86Size, codeHash);
 
 	return ppcRecFunc;
 }
@@ -323,11 +497,14 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 	//PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
 	//PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
 
-//	if(ppcImlGenContext.debug_entryPPCAddress == 0x0200E1E8)
-//	{
-//		IMLDebug_Dump(&ppcImlGenContext);
-//		__debugbreak();
-//	}
+
+	// if(ppcImlGenContext.debug_entryPPCAddress >= 0x0240B7F8 && ppcImlGenContext.debug_entryPPCAddress < 0x0240C0AC)
+	// {
+	// 	IMLDebug_Dump(&ppcImlGenContext);
+	// 	__debugbreak();
+	// }
+	// else if(ppcImlGenContext.debug_entryPPCAddress >= 0x0240B7F8)
+	// 	return false;
 
 	return true;
 }
@@ -438,6 +615,10 @@ std::atomic_bool s_recompilerThreadStopSignal{false};
 void PPCRecompiler_thread()
 {
 	SetThreadName("PPCRecompiler");
+#if PPCREC_FORCE_SYNCHRONOUS_COMPILATION
+	return;
+#endif
+
 	while (true)
 	{
         if(s_recompilerThreadStopSignal)

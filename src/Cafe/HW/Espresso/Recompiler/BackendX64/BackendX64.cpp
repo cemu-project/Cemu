@@ -579,31 +579,23 @@ bool PPCRecompilerX64Gen_imlInstruction_store(PPCRecFunction_t* PPCRecFunction, 
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+void PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	auto regBoolOut = _reg32_from_reg8(_reg8(imlInstruction->op_atomic_compare_store.regBoolOut));
 	auto regEA = _reg32(imlInstruction->op_atomic_compare_store.regEA);
 	auto regVal = _reg32(imlInstruction->op_atomic_compare_store.regWriteValue);
 	auto regCmp = _reg32(imlInstruction->op_atomic_compare_store.regCompareValue);
 
-	// make sure non of the regs are in EAX
-	if (regEA == X86_REG_EAX ||
-		regBoolOut == X86_REG_EAX ||
-		regVal == X86_REG_EAX ||
-		regCmp == X86_REG_EAX)
-	{
-		printf("x86: atomic_cmp_store cannot emit due to EAX already being in use\n");
-		return false;
-	}
+	cemu_assert_debug(regBoolOut == X86_REG_EAX);
+	cemu_assert_debug(regEA != X86_REG_EAX);
+	cemu_assert_debug(regVal != X86_REG_EAX);
+	cemu_assert_debug(regCmp != X86_REG_EAX);
 
-	x64GenContext->emitter->XCHG_qq(REG_RESV_TEMP, X86_REG_RAX);
 	x64GenContext->emitter->MOV_dd(X86_REG_EAX, regCmp);
-	x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regBoolOut), _reg32_from_reg8(regBoolOut)); // zero bytes unaffected by SETcc
 	x64GenContext->emitter->LockPrefix();
 	x64GenContext->emitter->CMPXCHG_dd_l(REG_RESV_MEMBASE, 0, _reg64_from_reg32(regEA), 1, regVal);
 	x64GenContext->emitter->SETcc_b(X86Cond::X86_CONDITION_Z, regBoolOut);
-	x64GenContext->emitter->XCHG_qq(REG_RESV_TEMP, X86_REG_RAX);
-	return true;
+	x64GenContext->emitter->AND_di32(regBoolOut, 1); // SETcc doesn't clear the upper bits so we do it manually here
 }
 
 bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
@@ -908,78 +900,29 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U ||
 		imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
 	{
-		// x86's shift and rotate instruction have the shift amount hardwired to the CL register
-		// since our register allocator doesn't support instruction based fixed phys registers yet
-		// we'll instead have to temporarily shuffle registers around
-
-		// we use BMI2's shift instructions until the RA can assign fixed registers
-		if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
+		if(g_CPUFeatures.x86.bmi2)
 		{
-			x64Gen_sarx_reg32_reg32_reg32(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
+			if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
+				x64Gen_sarx_reg32_reg32_reg32(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
+			else if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
+				x64Gen_shrx_reg32_reg32_reg32(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
+			else if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
+				x64Gen_shlx_reg32_reg32_reg32(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
 		}
-		else if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
+		else
 		{
-			x64Gen_shrx_reg32_reg32_reg32(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
+			cemu_assert_debug(rRegResult != rRegOperand2);
+			cemu_assert_debug(rRegResult != X86_REG_RCX);
+			cemu_assert_debug(rRegOperand2 == X86_REG_RCX);
+			if(rRegOperand1 != rRegResult)
+				x64Gen_mov_reg64_reg64(x64GenContext, rRegResult, rRegOperand1);
+			if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
+				x64GenContext->emitter->SAR_d_CL(rRegResult);
+			else if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
+				x64GenContext->emitter->SHR_d_CL(rRegResult);
+			else if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
+				x64GenContext->emitter->SHL_d_CL(rRegResult);
 		}
-		else if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
-		{
-			x64Gen_shlx_reg32_reg32_reg32(x64GenContext, rRegResult, rRegOperand1, rRegOperand2);
-		}
-
-		//auto rResult = _reg32(rRegResult);
-		//auto rOp2 = _reg8_from_reg32(_reg32(rRegOperand2));
-
-		//if (rRegResult == rRegOperand2)
-		//{
-		//	if (rRegResult != rRegOperand1)
-		//		DEBUG_BREAK; // cannot handle yet (we use rRegResult as a temporary reg, but its not possible if it is shared with op2)
-		//}
-
-		//if(rRegOperand1 != rRegResult)
-		//	x64Gen_mov_reg64_reg64(x64GenContext, rRegResult, rRegOperand1);
-
-		//cemu_assert_debug(rRegOperand1 != X86_REG_ECX);
-
-		//if (rRegOperand2 == X86_REG_ECX)
-		//{
-		//	if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
-		//		x64GenContext->emitter->SAR_d_CL(rResult);
-		//	else if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
-		//		x64GenContext->emitter->SHR_d_CL(rResult);
-		//	else if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
-		//		x64GenContext->emitter->SHL_d_CL(rResult);
-		//	else
-		//		cemu_assert_unimplemented();
-		//}
-		//else
-		//{
-		//	auto rRegResultOrg = rRegResult;
-		//	if (rRegResult == X86_REG_ECX)
-		//	{
-		//		x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, rRegResult);
-		//		rRegResult = REG_RESV_TEMP;
-		//		rResult = _reg32(rRegResult);
-		//	}
-		//	
-		//	x64Gen_xchg_reg64_reg64(x64GenContext, X86_REG_RCX, rRegOperand2);
-		//	
-		//	if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
-		//		x64GenContext->emitter->SAR_d_CL(rResult);
-		//	else if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
-		//		x64GenContext->emitter->SHR_d_CL(rResult);
-		//	else if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
-		//		x64GenContext->emitter->SHL_d_CL(rResult);
-		//	else
-		//		cemu_assert_unimplemented();
-
-		//	x64Gen_xchg_reg64_reg64(x64GenContext, X86_REG_RCX, rRegOperand2);
-
-		//	// move result back if it was in ECX
-		//	if (rRegResultOrg == X86_REG_ECX)
-		//	{
-		//		x64Gen_mov_reg64_reg64(x64GenContext, rRegResultOrg, REG_RESV_TEMP);
-		//	}
-		//}
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_DIVIDE_SIGNED || imlInstruction->operation == PPCREC_IML_OP_DIVIDE_UNSIGNED )
 	{
@@ -1093,9 +1036,19 @@ bool PPCRecompilerX64Gen_imlInstruction_compare(PPCRecFunction_t* PPCRecFunction
 	auto regA = _reg32(imlInstruction->op_compare.regA);
 	auto regB = _reg32(imlInstruction->op_compare.regB);
 	X86Cond cond = _x86Cond(imlInstruction->op_compare.cond);
-	x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR)); // zero bytes unaffected by SETcc
-	x64GenContext->emitter->CMP_dd(regA, regB);
-	x64GenContext->emitter->SETcc_b(cond, regR);
+	bool keepR = regR == regA || regR == regB;
+	if(!keepR)
+	{
+		x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR)); // zero bytes unaffected by SETcc
+		x64GenContext->emitter->CMP_dd(regA, regB);
+		x64GenContext->emitter->SETcc_b(cond, regR);
+	}
+	else
+	{
+		x64GenContext->emitter->CMP_dd(regA, regB);
+		x64GenContext->emitter->MOV_di32(_reg32_from_reg8(regR), 0);
+		x64GenContext->emitter->SETcc_b(cond, regR);
+	}
 	return true;
 }
 
@@ -1105,9 +1058,19 @@ bool PPCRecompilerX64Gen_imlInstruction_compare_s32(PPCRecFunction_t* PPCRecFunc
 	auto regA = _reg32(imlInstruction->op_compare_s32.regA);
 	sint32 imm = imlInstruction->op_compare_s32.immS32;
 	X86Cond cond = _x86Cond(imlInstruction->op_compare_s32.cond);
-	x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR)); // zero bytes unaffected by SETcc
-	x64GenContext->emitter->CMP_di32(regA, imm);
-	x64GenContext->emitter->SETcc_b(cond, regR);
+	bool keepR = regR == regA;
+	if(!keepR)
+	{
+		x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR)); // zero bytes unaffected by SETcc
+		x64GenContext->emitter->CMP_di32(regA, imm);
+		x64GenContext->emitter->SETcc_b(cond, regR);
+	}
+	else
+	{
+		x64GenContext->emitter->CMP_di32(regA, imm);
+		x64GenContext->emitter->MOV_di32(_reg32_from_reg8(regR), 0);
+		x64GenContext->emitter->SETcc_b(cond, regR);
+	}
 	return true;
 }
 
@@ -1202,7 +1165,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 	{
 		if( regA != regR )
 			x64Gen_mov_reg64_reg64(x64GenContext, regR, regA);
-
 		if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
 			x64Gen_shl_reg64Low32_imm8(x64GenContext, regR, imlInstruction->op_r_r_s32.immS32);
 		else if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
@@ -1224,19 +1186,25 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32_carry(PPCRecFunction_t* PPCRecFu
 	auto regA = _reg32(imlInstruction->op_r_r_s32_carry.regA);
 	sint32 immS32 = imlInstruction->op_r_r_s32_carry.immS32;
 	auto regCarry = _reg32(imlInstruction->op_r_r_s32_carry.regCarry);
-	cemu_assert_debug(regCarry != regR && regCarry != regA);
+	cemu_assert_debug(regCarry != regR); // we dont allow two different outputs sharing the same register
+
+	bool delayCarryInit = regCarry == regA;
 
 	switch (imlInstruction->operation)
 	{
 	case PPCREC_IML_OP_ADD:
-		x64GenContext->emitter->XOR_dd(regCarry, regCarry);
+		if(!delayCarryInit)
+			x64GenContext->emitter->XOR_dd(regCarry, regCarry);
 		if (regR != regA)
 			x64GenContext->emitter->MOV_dd(regR, regA);
 		x64GenContext->emitter->ADD_di32(regR, immS32);
+		if(delayCarryInit)
+			x64GenContext->emitter->MOV_di32(regCarry, 0);
 		x64GenContext->emitter->SETcc_b(X86_CONDITION_B, _reg8_from_reg32(regCarry));
 		break;
 	case PPCREC_IML_OP_ADD_WITH_CARRY:
 		// assumes that carry is already correctly initialized as 0 or 1
+		cemu_assert_debug(regCarry != regR);
 		if (regR != regA)
 			x64GenContext->emitter->MOV_dd(regR, regA);
 		x64GenContext->emitter->BT_du8(regCarry, 0); // copy carry register to x86 carry flag
@@ -1600,8 +1568,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			}
 			else if (imlInstruction->type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 			{
-				if (!PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction))
-					codeGenerationFailed = true;
+				PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
 			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_NO_OP )
 			{

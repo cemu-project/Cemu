@@ -1746,7 +1746,7 @@ uint32 PPCRecompiler_getPreviousInstruction(ppcImlGenContext_t* ppcImlGenContext
 void PPCRecompilerIml_setSegmentPoint(IMLSegmentPoint* segmentPoint, IMLSegment* imlSegment, sint32 index)
 {
 	segmentPoint->imlSegment = imlSegment;
-	segmentPoint->index = index;
+	segmentPoint->SetInstructionIndex(index);
 	if (imlSegment->segmentPointList)
 		imlSegment->segmentPointList->prev = segmentPoint;
 	segmentPoint->prev = nullptr;
@@ -1766,7 +1766,7 @@ void PPCRecompilerIml_removeSegmentPoint(IMLSegmentPoint* segmentPoint)
 
 /*
 * Insert multiple no-op instructions
-* Warning: Can invalidate any previous instruction structs from the same segment
+* Warning: Can invalidate any previous instruction pointers from the same segment
 */
 void PPCRecompiler_pushBackIMLInstructions(IMLSegment* imlSegment, sint32 index, sint32 shiftBackCount)
 {
@@ -1788,12 +1788,7 @@ void PPCRecompiler_pushBackIMLInstructions(IMLSegment* imlSegment, sint32 index,
 		IMLSegmentPoint* segmentPoint = imlSegment->segmentPointList;
 		while (segmentPoint)
 		{
-			if (segmentPoint->index != RA_INTER_RANGE_START && segmentPoint->index != RA_INTER_RANGE_END)
-			{
-				if (segmentPoint->index >= index)
-					segmentPoint->index += shiftBackCount;
-			}
-			// next
+			segmentPoint->ShiftIfAfter(index, shiftBackCount);
 			segmentPoint = segmentPoint->next;
 		}
 	}
@@ -2864,6 +2859,76 @@ bool PPCIMLGen_FillBasicBlock(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBloc
 	{
 		uint32 addressOfCurrentInstruction = (uint32)((uint8*)ppcImlGenContext.currentInstruction - memory_base);
 		ppcImlGenContext.ppcAddressOfCurrentInstruction = addressOfCurrentInstruction;
+
+		// DEBUG BEGIN
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7A8D4+0x10) -> stops bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7A9C0) -> has bug (optional code path)
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AA50) -> stops bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AC34) -> stops bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AC78) -> has bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AC70) -> has bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AC88) -> has bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AC3C) -> has bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AC38) -> no bug
+		// weirdly, excluding 0x02B7AC38 fixes the issue. Excluding both 0x02B7AC3C and 0x2B7AC88 (the follow up instructions) does not fix the bug
+
+		// 		if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7ABE4) -> has bug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AAD0) -> fixes bug
+
+		// maybe try to place as many leave instructions as possible while keeping the bug alive
+		// eventually we should end up with a relatively small IR footprint that is easier to analyze
+
+		// 0x023d5818
+		// SM3DW debug
+		// if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x23D58A8)
+		// {
+		// 	ppcImlGenContext.emitInst().make_macro(PPCREC_IML_MACRO_DEBUGBREAK, ppcImlGenContext.ppcAddressOfCurrentInstruction, 0, 0, IMLREG_INVALID);
+		// }
+
+#if 0 // TP
+		if(ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AC78 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AC70 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7A9C0 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AC3C || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AADC || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7ABE4 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7ABC0 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7ABA8 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AB90 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AB04 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02b7abc4 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7A9B0 || // verified
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02b7aa10 -> fixes bug (this is after a bl)
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AA3C || // verified
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7AA44 -> fixes bug (this is on the main path, the one before, 0x02B7AA3C, does not break)
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AADC || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7ABC4 || // verified
+			ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02b7ac88 || // verified
+			// ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02b7aad0 || -> fixes it
+			// ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02b7aa30 || -> fixes it (mostly. There was a small glitch on eponas tail?)
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02b7aa24 || -> this fixes it
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7A918 || -> this fixes it
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7A9A0 || -> this fixes it
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x02B7AC38 || -> this fixes it
+			//ppcImlGenContext.ppcAddressOfCurrentInstruction == 0x2B7A8D4 || -> this fixes it
+			(ppcImlGenContext.ppcAddressOfCurrentInstruction >= 0x2B7AC44 && ppcImlGenContext.ppcAddressOfCurrentInstruction <= 0x2B7AC84) || // verified
+			(ppcImlGenContext.ppcAddressOfCurrentInstruction >= 0x02B7AADC && ppcImlGenContext.ppcAddressOfCurrentInstruction <= 0x2B7ABC0) || // verified
+			(ppcImlGenContext.ppcAddressOfCurrentInstruction >= 0x2B7A9B0 && ppcImlGenContext.ppcAddressOfCurrentInstruction <= 0x02B7AA0C) ||
+			(ppcImlGenContext.ppcAddressOfCurrentInstruction >= 0x02B7AAE4 && ppcImlGenContext.ppcAddressOfCurrentInstruction <= 0x02b7ac20) // verified
+
+			// disabling IMLOptimizerX86_SubstituteCJumpForEflagsJump fixes it...
+
+			//(ppcImlGenContext.ppcAddressOfCurrentInstruction >= 0x2B7AA1C && ppcImlGenContext.ppcAddressOfCurrentInstruction <= 0x02B7AA40) -> fixes it
+			)
+		{
+			ppcImlGenContext.emitInst().make_macro(PPCREC_IML_MACRO_LEAVE, ppcImlGenContext.ppcAddressOfCurrentInstruction, 0, 0, IMLREG_INVALID);
+			// this doesnt work any longer because the basic blocks are determined before the recompiler is called
+			basicBlockInfo.GetSegmentForInstructionAppend()->SetLinkBranchTaken(nullptr);
+			basicBlockInfo.GetSegmentForInstructionAppend()->SetLinkBranchNotTaken(nullptr);
+			break; // but we should be able to just exit the block early?
+		}
+#endif
+
 		if (PPCRecompiler_decodePPCInstruction(&ppcImlGenContext))
 		{
 			debug_printf("Recompiler encountered unsupported instruction at 0x%08x\n", addressOfCurrentInstruction);

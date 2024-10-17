@@ -91,25 +91,37 @@ void IMLDebug_PrintLivenessRangeInfo(StringBuf& currentLineText, IMLSegment* iml
 	sint32 index = currentLineText.getLen();
 	while (index < 70)
 	{
-		debug_printf(" ");
+		currentLineText.add(" ");
 		index++;
 	}
 	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while (subrangeItr)
 	{
-		if (offset == subrangeItr->start.index)
+		if (subrangeItr->interval2.start.GetInstructionIndexEx() == offset)
 		{
-			debug_printf("|%-2d", subrangeItr->GetVirtualRegister());
+			if(subrangeItr->interval2.start.IsInstructionIndex() && !subrangeItr->interval2.start.IsOnInputEdge())
+				currentLineText.add(".");
+			else
+				currentLineText.add("|");
+
+			currentLineText.addFmt("{:<4}", subrangeItr->GetVirtualRegister());
 		}
-		else if (offset >= subrangeItr->start.index && offset < subrangeItr->end.index)
+		else if (subrangeItr->interval2.end.GetInstructionIndexEx() == offset)
 		{
-			debug_printf("|  ");
+			if(subrangeItr->interval2.end.IsInstructionIndex() && !subrangeItr->interval2.end.IsOnOutputEdge())
+				currentLineText.add("*    ");
+			else
+				currentLineText.add("|    ");
+		}
+		else if (subrangeItr->interval2.ContainsInstructionIndexEx(offset))
+		{
+			currentLineText.add("|    ");
 		}
 		else
 		{
-			debug_printf("   ");
+			currentLineText.add("     ");
 		}
-		index += 3;
+		index += 5;
 		// next
 		subrangeItr = subrangeItr->link_allSegmentRanges.next;
 	}
@@ -446,7 +458,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 
 void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool printLivenessRangeInfo)
 {
-	StringBuf strOutput(1024);
+	StringBuf strOutput(4096);
 
 	strOutput.addFmt("SEGMENT {} | PPC=0x{:08x} Loop-depth {}", IMLDebug_GetSegmentName(ctx, imlSegment), imlSegment->ppcAddress, imlSegment->loopDepth);
 	if (imlSegment->isEnterable)
@@ -457,13 +469,13 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 	{
 		strOutput.addFmt(" InheritOverwrite: {}", IMLDebug_GetSegmentName(ctx, imlSegment->deadCodeEliminationHintSeg));
 	}
-	debug_printf("%s\n", strOutput.c_str());
+	cemuLog_log(LogType::Force, "{}", strOutput.c_str());
 
 	if (printLivenessRangeInfo)
 	{
 		strOutput.reset();
 		IMLDebug_PrintLivenessRangeInfo(strOutput, imlSegment, RA_INTER_RANGE_START);
-		debug_printf("%s\n", strOutput.c_str());
+		cemuLog_log(LogType::Force, "{}", strOutput.c_str());
 	}
 	//debug_printf("\n");
 	strOutput.reset();
@@ -475,53 +487,56 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 		// don't log NOP instructions
 		if (inst.type == PPCREC_IML_TYPE_NO_OP)
 			continue;
-		//strOutput.addFmt("{:02x} ", i);
-		debug_printf(fmt::format("{:02x} ", i).c_str());
+		strOutput.reset();
+		strOutput.addFmt("{:02x} ", i);
+		//cemuLog_log(LogType::Force, "{:02x} ", i);
 		disassemblyLine.clear();
 		IMLDebug_DisassembleInstruction(inst, disassemblyLine);
-		debug_printf("%s", disassemblyLine.c_str());
+		strOutput.add(disassemblyLine);
 		if (printLivenessRangeInfo)
 		{
 			IMLDebug_PrintLivenessRangeInfo(strOutput, imlSegment, i);
 		}
-		debug_printf("\n");
+		cemuLog_log(LogType::Force, "{}", strOutput.c_str());
 	}
 	// all ranges
 	if (printLivenessRangeInfo)
 	{
-		debug_printf("Ranges-VirtReg                                                        ");
+		strOutput.reset();
+		strOutput.add("Ranges-VirtReg                                                        ");
 		raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 		while (subrangeItr)
 		{
-			debug_printf("v%-2d", subrangeItr->GetVirtualRegister());
+			strOutput.addFmt("v{:<4}", (uint32)subrangeItr->GetVirtualRegister());
 			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 		}
-		debug_printf("\n");
-		debug_printf("Ranges-PhysReg                                                        ");
+		cemuLog_log(LogType::Force, "{}", strOutput.c_str());
+		strOutput.reset();
+		strOutput.add("Ranges-PhysReg                                                        ");
 		subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 		while (subrangeItr)
 		{
-			debug_printf("p%-2d", subrangeItr->GetPhysicalRegister());
+			strOutput.addFmt("p{:<4}", subrangeItr->GetPhysicalRegister());
 			subrangeItr = subrangeItr->link_allSegmentRanges.next;
 		}
-		debug_printf("\n");
+		cemuLog_log(LogType::Force, "{}", strOutput.c_str());
 	}
 	// branch info
-	debug_printf("Links from: ");
+	strOutput.reset();
+	strOutput.add("Links from: ");
 	for (sint32 i = 0; i < imlSegment->list_prevSegments.size(); i++)
 	{
 		if (i)
-			debug_printf(", ");
-		debug_printf("%s", IMLDebug_GetSegmentName(ctx, imlSegment->list_prevSegments[i]).c_str());
+			strOutput.add(", ");
+		strOutput.addFmt("{}", IMLDebug_GetSegmentName(ctx, imlSegment->list_prevSegments[i]).c_str());
 	}
-	debug_printf("\n");
+	cemuLog_log(LogType::Force, "{}", strOutput.c_str());
 	if (imlSegment->nextSegmentBranchNotTaken)
-		debug_printf("BranchNotTaken: %s\n", IMLDebug_GetSegmentName(ctx, imlSegment->nextSegmentBranchNotTaken).c_str());
+		cemuLog_log(LogType::Force, "BranchNotTaken: {}", IMLDebug_GetSegmentName(ctx, imlSegment->nextSegmentBranchNotTaken).c_str());
 	if (imlSegment->nextSegmentBranchTaken)
-		debug_printf("BranchTaken: %s\n", IMLDebug_GetSegmentName(ctx, imlSegment->nextSegmentBranchTaken).c_str());
+		cemuLog_log(LogType::Force, "BranchTaken: {}", IMLDebug_GetSegmentName(ctx, imlSegment->nextSegmentBranchTaken).c_str());
 	if (imlSegment->nextSegmentIsUncertain)
-		debug_printf("Dynamic target\n");
-	debug_printf("\n");
+		cemuLog_log(LogType::Force, "Dynamic target");
 }
 
 void IMLDebug_Dump(ppcImlGenContext_t* ppcImlGenContext, bool printLivenessRangeInfo)
@@ -529,6 +544,6 @@ void IMLDebug_Dump(ppcImlGenContext_t* ppcImlGenContext, bool printLivenessRange
 	for (size_t i = 0; i < ppcImlGenContext->segmentList2.size(); i++)
 	{
 		IMLDebug_DumpSegment(ppcImlGenContext, ppcImlGenContext->segmentList2[i], printLivenessRangeInfo);
-		debug_printf("\n");
+		cemuLog_log(LogType::Force, "");
 	}
 }

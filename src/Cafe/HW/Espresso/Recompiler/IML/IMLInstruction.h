@@ -1,6 +1,7 @@
 #pragma once
 
 using IMLRegID = uint16; // 16 bit ID
+using IMLPhysReg = sint32; // arbitrary value that is up to the architecture backend, usually this will be the register index. A value of -1 is reserved and means not assigned
 
 // format of IMLReg:
 // 0-15		(16 bit)	IMLRegID
