@@ -103,7 +103,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 
 	text = new wxStaticText(this, wxID_ANY, _("Volume"));
 	text->Disable();
-	main_sizer->Add(text, wxGBPosition(row, column), wxDefaultSpan, wxALL, 5);
+	main_sizer->Add(text, wxGBPosition(row, column), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 	auto*m_volume = new wxSlider(this, wxID_ANY, 0, 0, 100);
 	m_volume->Disable();
@@ -111,7 +111,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 
 	const auto volume_text = new wxStaticText(this, wxID_ANY, wxString::Format("%d%%", 0));
 	volume_text->Disable();
-	main_sizer->Add(volume_text, wxGBPosition(row, column + 2), wxDefaultSpan, wxALL, 5);
+	main_sizer->Add(volume_text, wxGBPosition(row, column + 2), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 	m_volume->Bind(wxEVT_SLIDER, &VPADInputPanel::OnVolumeChange, this, wxID_ANY, wxID_ANY, new wxControlObject(volume_text));
 
 	main_sizer->Add(new wxStaticLine(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVERTICAL), wxGBPosition(0, column + 3), wxGBSpan(11, 1), wxALL | wxEXPAND, 5);
