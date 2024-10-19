@@ -54,7 +54,7 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
     MTL::RenderPipelineState* pipeline = compiler.Compile(false, true, true, attemptedCompilation);
 
     // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
-    if (fbosMatch)
+    if (pipeline && fbosMatch)
         AddCurrentStateToCache(hash);
 
     // Place the pipeline to the cache if the compilation was at least attempted
@@ -359,9 +359,6 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	}
 
 	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
-
-	// TODO: this shouldn't probably be called directly
-	LatteShader_UpdatePSInputs(lcr->GetRawView());
 
 	MTL::RenderPipelineState* pipeline = nullptr;
 	// compile

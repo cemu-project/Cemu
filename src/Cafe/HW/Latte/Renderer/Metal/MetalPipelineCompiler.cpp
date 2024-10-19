@@ -17,18 +17,18 @@ extern std::atomic_int g_compiling_pipelines;
 extern std::atomic_int g_compiling_pipelines_async;
 extern std::atomic_uint64_t g_compiling_pipelines_syncTimeSum;
 
-static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
+static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable& psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
 {
 	auto parameterMask = vertexShader->outputParameterMask;
 	for (uint32 i = 0; i < 32; i++)
 	{
 		if ((parameterMask & (1 << i)) == 0)
 			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		sint32 vsSemanticId = psInputTable.getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
 		if (vsSemanticId < 0)
 			continue;
 		// make sure PS has matching input
-		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+		if (!psInputTable.hasPSImportForSemanticId(vsSemanticId))
 			continue;
 		gsSrc.append(fmt::format("out.passParameterSem{} = objectPayload.vertexOut[{}].passParameterSem{};\r\n", vsSemanticId, vIdx, vsSemanticId));
 	}
@@ -36,18 +36,18 @@ static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteD
 	gsSrc.append(fmt::format("mesh.set_vertex({}, out);\r\n", vIdx));
 }
 
-static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
+static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable& psInputTable, const char* variant, const LatteContextRegister& latteRegister)
 {
 	auto parameterMask = vertexShader->outputParameterMask;
 	for (uint32 i = 0; i < 32; i++)
 	{
 		if ((parameterMask & (1 << i)) == 0)
 			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		sint32 vsSemanticId = psInputTable.getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
 		if (vsSemanticId < 0)
 			continue;
 		// make sure PS has matching input
-		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+		if (!psInputTable.hasPSImportForSemanticId(vsSemanticId))
 			continue;
 		gsSrc.append(fmt::format("out.passParameterSem{} = gen4thVertex{}(objectPayload.vertexOut[0].passParameterSem{}, objectPayload.vertexOut[1].passParameterSem{}, objectPayload.vertexOut[2].passParameterSem{});\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
 	}
@@ -55,7 +55,7 @@ static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const Lat
 	gsSrc.append(fmt::format("mesh.set_vertex(3, out);\r\n"));
 }
 
-static void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
+static void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable& psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
 {
 	sint32 pList[4] = { p0, p1, p2, p3 };
 	for (sint32 i = 0; i < 4; i++)
@@ -79,7 +79,8 @@ static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer
 	gsSrc.append("#include <metal_stdlib>\r\n");
 	gsSrc.append("using namespace metal;\r\n");
 
-	LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
+	LatteShaderPSInputTable psInputTable;
+	LatteShader_CreatePSInputTable(&psInputTable, latteRegister.GetRawView());
 
 	// inputs & outputs
 	std::string vertexOutDefinition = "struct VertexOut {\r\n";
@@ -87,35 +88,29 @@ static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer
 	std::string geometryOutDefinition = "struct GeometryOut {\r\n";
 	geometryOutDefinition += "float4 position [[position]];\r\n";
 	auto parameterMask = vertexShader->outputParameterMask;
-	for (sint32 f = 0; f < 2; f++)
+	for (uint32 i = 0; i < 32; i++)
 	{
-		for (uint32 i = 0; i < 32; i++)
-		{
-			if ((parameterMask & (1 << i)) == 0)
-				continue;
-			sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
-			if (vsSemanticId < 0)
-				continue;
-			auto psImport = psInputTable->getPSImportBySemanticId(vsSemanticId);
-			if (psImport == nullptr)
-				continue;
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable.getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		auto psImport = psInputTable.getPSImportBySemanticId(vsSemanticId);
+		if (psImport == nullptr)
+			continue;
 
-			if (f == 0)
-			{
-				vertexOutDefinition += fmt::format("float4 passParameterSem{};\r\n", vsSemanticId);
-			}
-			else
-			{
-				geometryOutDefinition += fmt::format("float4 passParameterSem{}", vsSemanticId);
+		// VertexOut
+		vertexOutDefinition += fmt::format("float4 passParameterSem{};\r\n", vsSemanticId);
 
-    			geometryOutDefinition += fmt::format(" [[user(locn{})]]", psInputTable->getPSImportLocationBySemanticId(vsSemanticId));
-    			if (psImport->isFlat)
-    				geometryOutDefinition += " [[flat]]";
-    			if (psImport->isNoPerspective)
-    				geometryOutDefinition += " [[center_no_perspective]]";
-                geometryOutDefinition += ";\r\n";
-			}
-		}
+		// GeometryOut
+		geometryOutDefinition += fmt::format("float4 passParameterSem{}", vsSemanticId);
+
+        geometryOutDefinition += fmt::format(" [[user(locn{})]]", psInputTable.getPSImportLocationBySemanticId(vsSemanticId));
+        if (psImport->isFlat)
+            geometryOutDefinition += " [[flat]]";
+        if (psImport->isNoPerspective)
+			geometryOutDefinition += " [[center_no_perspective]]";
+        geometryOutDefinition += ";\r\n";
 	}
 	vertexOutDefinition += "};\r\n";
 	geometryOutDefinition += "};\r\n";
