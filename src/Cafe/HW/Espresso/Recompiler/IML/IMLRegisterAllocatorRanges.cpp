@@ -133,9 +133,11 @@ void PPCRecRARange_addLink_perVirtualGPR(std::unordered_map<IMLRegID, raLiveness
 	else
 	{
 		// insert in first position
-		subrange->link_sameVirtualRegister.next = it->second;
+		raLivenessRange* priorFirst = it->second;
+		subrange->link_sameVirtualRegister.next = priorFirst;
 		it->second = subrange;
-		subrange->link_sameVirtualRegister.prev = subrange;
+		subrange->link_sameVirtualRegister.prev = nullptr;
+		priorFirst->link_sameVirtualRegister.prev = subrange;
 	}
 }
 

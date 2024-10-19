@@ -1000,7 +1000,8 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r_carry(PPCRecFunction_t* PPCRecFunc
 	auto regA = _reg32(imlInstruction->op_r_r_r_carry.regA);
 	auto regB = _reg32(imlInstruction->op_r_r_r_carry.regB);
 	auto regCarry = _reg32(imlInstruction->op_r_r_r_carry.regCarry);
-	cemu_assert_debug(regCarry != regR && regCarry != regA);
+	bool carryRegIsShared = regCarry == regA || regCarry == regB;
+	cemu_assert_debug(regCarry != regR); // two outputs sharing the same register is undefined behavior
 
 	switch (imlInstruction->operation)
 	{
@@ -1009,9 +1010,12 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r_carry(PPCRecFunction_t* PPCRecFunc
 			std::swap(regB, regA);
 		if (regR != regA)
 			x64GenContext->emitter->MOV_dd(regR, regA);
-		x64GenContext->emitter->XOR_dd(regCarry, regCarry);
+		if(!carryRegIsShared)
+			x64GenContext->emitter->XOR_dd(regCarry, regCarry);
 		x64GenContext->emitter->ADD_dd(regR, regB);
 		x64GenContext->emitter->SETcc_b(X86_CONDITION_B, _reg8_from_reg32(regCarry)); // below condition checks carry flag
+		if(carryRegIsShared)
+			x64GenContext->emitter->AND_di8(regCarry, 1); // clear upper bits
 		break;
 	case PPCREC_IML_OP_ADD_WITH_CARRY:
 		// assumes that carry is already correctly initialized as 0 or 1
