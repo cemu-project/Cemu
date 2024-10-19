@@ -10,8 +10,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
-#include "HW/Latte/Renderer/RendererShader.h"
+
 #include <chrono>
 
 extern std::atomic_int g_compiling_pipelines;
@@ -196,23 +195,8 @@ extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
 
 template<typename T>
-void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
+void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, bool rasterizationEnabled, const LatteContextRegister& lcr, bool& fbosMatch)
 {
-	// Rasterization
-	bool rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
-
-	// HACK
-	// TODO: include this in the hash?
-	if (!lcr.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-		rasterizationEnabled = true;
-
-	// Culling both front and back faces effectively disables rasterization
-	const auto& polygonControlReg = lcr.PA_SU_SC_MODE_CNTL;
-	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-	uint32 cullBack = polygonControlReg.get_CULL_BACK();
-	if (cullFront && cullBack)
-	    rasterizationEnabled = false;
-
 	// TODO: check if the pixel shader is valid as well?
 	if (!rasterizationEnabled/* || !pixelShaderMtl*/)
 	{
@@ -317,6 +301,21 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
 
     m_usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
+    // Rasterization
+	m_rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+
+	// HACK
+	// TODO: include this in the hash?
+	if (!lcr.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+		m_rasterizationEnabled = true;
+
+	// Culling both front and back faces effectively disables rasterization
+	const auto& polygonControlReg = lcr.PA_SU_SC_MODE_CNTL;
+	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
+	uint32 cullBack = polygonControlReg.get_CULL_BACK();
+	if (cullFront && cullBack)
+	    m_rasterizationEnabled = false;
+
     // Shaders
     m_vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
     if (geometryShader)
@@ -368,7 +367,8 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
         // Shaders
         desc->setObjectFunction(m_vertexShaderMtl->GetFunction());
         desc->setMeshFunction(m_geometryShaderMtl->GetFunction());
-        desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
+        if (m_rasterizationEnabled)
+            desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
 
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Mesh render pipeline state", desc));
@@ -381,7 +381,8 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 
         // Shaders
         desc->setVertexFunction(m_vertexShaderMtl->GetFunction());
-        desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
+        if (m_rasterizationEnabled)
+            desc->setFragmentFunction(m_pixelShaderMtl->GetFunction());
 
 #ifdef CEMU_DEBUG_ASSERT
         desc->setLabel(GetLabel("Render pipeline state", desc));
@@ -397,7 +398,8 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
        	cemuLog_log(LogType::Force, "error creating render pipeline state: {}", error->localizedDescription()->utf8String());
         error->release();
    	}
-    else if (showInOverlay)
+
+    if (showInOverlay)
 	{
 		if (isRenderThread)
 			g_compiling_pipelines_syncTimeSum += creationDuration;
@@ -484,7 +486,7 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
         vertexDescriptor->release();
     }
 
-	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr, fbosMatch);
 
 	m_pipelineDescriptor = desc;
 
@@ -550,7 +552,7 @@ void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShade
 	// Render pipeline state
 	MTL::MeshRenderPipelineDescriptor* desc = MTL::MeshRenderPipelineDescriptor::alloc()->init();
 
-	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr, fbosMatch);
 
 	m_pipelineDescriptor = desc;
 

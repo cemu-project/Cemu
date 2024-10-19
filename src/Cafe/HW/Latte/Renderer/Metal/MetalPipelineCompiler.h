@@ -22,6 +22,7 @@ private:
     class RendererShaderMtl* m_geometryShaderMtl;
     class RendererShaderMtl* m_pixelShaderMtl;
     bool m_usesGeometryShader;
+    bool m_rasterizationEnabled;
 
     /*
     std::map<uint64, MTL::RenderPipelineState*> m_pipelineCache;

@@ -43,18 +43,20 @@ MetalPipelineCache::~MetalPipelineCache()
 MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
-    auto& pipeline = m_pipelineCache[hash];
-    if (pipeline)
-        return pipeline;
+    auto it = m_pipelineCache.find(hash);
+    if (it != m_pipelineCache.end())
+        return it->second;
 
     MetalPipelineCompiler compiler(m_mtlr);
     bool fbosMatch;
     compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
-    pipeline = compiler.Compile(false, true, true);
+    MTL::RenderPipelineState* pipeline = compiler.Compile(false, true, true);
 
     // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
     if (fbosMatch)
         AddCurrentStateToCache(hash);
+
+    m_pipelineCache.insert({hash, pipeline});
 
     return pipeline;
 }
@@ -354,6 +356,9 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	}
 
 	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
+
+	// TODO: this shouldn't probably be called directly
+	LatteShader_UpdatePSInputs(lcr->GetRawView());
 
 	MTL::RenderPipelineState* pipeline = nullptr;
 	// compile
