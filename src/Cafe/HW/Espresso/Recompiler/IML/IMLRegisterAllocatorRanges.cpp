@@ -32,10 +32,10 @@ void raLivenessRange::SetPhysicalRegisterForCluster(sint32 physicalRegister)
 		range->physicalRegister = physicalRegister;
 }
 
-boost::container::small_vector<raLivenessRange*, 32> raLivenessRange::GetAllSubrangesInCluster()
+boost::container::small_vector<raLivenessRange*, 128> raLivenessRange::GetAllSubrangesInCluster()
 {
 	uint32 iterationIndex = PPCRecRA_getNextIterationIndex();
-	boost::container::small_vector<raLivenessRange*, 32> subranges;
+	boost::container::small_vector<raLivenessRange*, 128> subranges;
 	subranges.push_back(this);
 	this->lastIterationIndex = iterationIndex;
 	size_t i = 0;
@@ -302,7 +302,7 @@ void PPCRecRA_deleteSubrangeCluster(ppcImlGenContext_t* ppcImlGenContext, raLive
 	}
 }
 
-void PPCRecRA_deleteAllRanges(ppcImlGenContext_t* ppcImlGenContext)
+void IMLRA_DeleteAllRanges(ppcImlGenContext_t* ppcImlGenContext)
 {
 	for(auto& seg : ppcImlGenContext->segmentList2)
 	{

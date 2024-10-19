@@ -543,23 +543,31 @@ boost::container::small_vector<raLivenessRange*, 8> IMLRA_GetRangeWithFixedRegRe
 
 void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	// first pass - iterate over all ranges with fixed register requirements and split them if they cross the segment border (we can later optimize this)
-	for(raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange; currentRange = currentRange->link_allSegmentRanges.next)
+	// first pass - iterate over all ranges with fixed register requirements and split them if they cross the segment border
+	// todo - this can be optimized. Ranges only need to be split if there are conflicts with other segments. Note that below passes rely on the fact that this pass currently splits all ranges with fixed register requirements
+	for(raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange;)
 	{
 		IMLPhysRegisterSet allowedRegs;
 		if(!currentRange->GetAllowedRegistersEx(allowedRegs))
+		{
+			currentRange = currentRange->link_allSegmentRanges.next;
 			continue;
+		}
 		if(currentRange->interval2.ExtendsPreviousSegment() || currentRange->interval2.ExtendsIntoNextSegment())
 		{
+			raLivenessRange* nextRange = currentRange->link_allSegmentRanges.next;
 			PPCRecRA_explodeRange(ppcImlGenContext, currentRange);
-			// currentRange may be invalidated, therefore iterate from the beginning again (todo - can be optimized)
-			currentRange = imlSegment->raInfo.linkedList_allSubranges;
+			currentRange = nextRange;
+			continue;
 		}
+		currentRange = currentRange->link_allSegmentRanges.next;
 	}
 	// second pass - look for ranges with conflicting fixed register requirements and split these too (locally)
 	for(raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange; currentRange = currentRange->link_allSegmentRanges.next)
 	{
 		IMLPhysRegisterSet allowedRegs;
+		if(currentRange->list_fixedRegRequirements.empty())
+			continue; // we dont need to check whole clusters because the pass above guarantees that there are no ranges with fixed register requirements that extend outside of this segment
 		if(!currentRange->GetAllowedRegistersEx(allowedRegs))
 			continue;
 		if(allowedRegs.HasAnyAvailable())
@@ -607,6 +615,8 @@ void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment
 	for(raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange; currentRange = currentRange->link_allSegmentRanges.next)
 	{
 		IMLPhysRegisterSet allowedRegs;
+		if(currentRange->list_fixedRegRequirements.empty())
+			continue; // we dont need to check whole clusters because the pass above guarantees that there are no ranges with fixed register requirements that extend outside of this segment
 		if(!currentRange->GetAllowedRegistersEx(allowedRegs))
 		{
 			cemu_assert_debug(currentRange->list_fixedRegRequirements.empty());
@@ -1074,23 +1084,8 @@ void IMLRA_FilterReservedFixedRegisterRequirementsForCluster(IMLRegisterAllocato
 	IMLRA_FilterReservedFixedRegisterRequirementsForSegment(ctx, currentRange, candidatePhysRegSet);
 }
 
-void __DebugTestA(IMLSegment* imlSegment)
-{
-	// iterate all ranges
-	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
-	while(subrangeItr)
-	{
-		if(!subrangeItr->list_fixedRegRequirements.empty())
-		{
-			cemu_assert_debug(subrangeItr->HasPhysicalRegister());
-		}
-		subrangeItr = subrangeItr->link_allSegmentRanges.next;
-	}
-}
-
 bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment)
 {
-	DbgVerifyAllRanges(ctx);
 	// sort subranges ascending by start index
 	_sortSegmentAllSubrangesLinkedList(imlSegment);
 
@@ -1108,7 +1103,6 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 		RASpillStrategy_ExplodeRangeInter explodeRangeInter;
 	}strategy;
 
-	sint32 dbgIndex = 0;
 	while(subrangeItr)
 	{
 		raInstructionEdge currentRangeStart = subrangeItr->interval2.start; // used to be currentIndex before refactor
@@ -1147,7 +1141,6 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 		cemu_assert_debug(allowedRegs.HasAnyAvailable()); // if zero regs are available, then this range needs to be split to avoid mismatching register requirements (do this in the initial pass to keep the code here simpler)
 		candidatePhysRegSet &= allowedRegs;
 
-		__DebugTestA(imlSegment);
 		for (auto& liverangeItr : livenessTimeline.activeRanges)
 		{
 			cemu_assert_debug(liverangeItr->GetPhysicalRegister() >= 0);
@@ -1175,7 +1168,6 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 			subrangeItr = subrangeItr->link_allSegmentRanges.next; // next
 			continue;
 		}
-		__DebugTestA(imlSegment);
 		// there is no free register for the entire range
 		// evaluate different strategies of splitting ranges to free up another register or shorten the current range
 		strategy.localRangeHoleCutting.Reset();
@@ -1205,20 +1197,17 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 			// evaluate strategy: Explode inter-segment ranges
 			strategy.explodeRange.Evaluate(imlSegment, subrangeItr, livenessTimeline, allowedRegs);
 			SelectStrategyIfBetter(strategy.explodeRange);
-			__DebugTestA(imlSegment);
 		}
 		else // if subrangeItr->interval2.ExtendsIntoNextSegment()
 		{
 			strategy.explodeRangeInter.Reset();
 			strategy.explodeRangeInter.Evaluate(imlSegment, subrangeItr, livenessTimeline, allowedRegs);
 			SelectStrategyIfBetter(strategy.explodeRangeInter);
-			__DebugTestA(imlSegment);
 		}
 		// choose strategy
 		if(selectedStrategy)
 		{
 			selectedStrategy->Apply(ppcImlGenContext, imlSegment, subrangeItr);
-			__DebugTestA(imlSegment);
 		}
 		else
 		{
@@ -1226,12 +1215,7 @@ bool IMLRA_AssignSegmentRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenCon
 			cemu_assert_debug(subrangeItr->interval2.ExtendsPreviousSegment());
 			// alternative strategy if we have no other choice: explode current range
 			PPCRecRA_explodeRange(ppcImlGenContext, subrangeItr);
-			__DebugTestA(imlSegment);
 		}
-		// DEBUG BEGIN
-		DbgVerifyAllRanges(ctx);
-		dbgIndex++;
-		// DEBUG END
 		return false;
 	}
 	return true;
@@ -2131,37 +2115,15 @@ void IMLRegisterAllocator_AllocateRegisters(ppcImlGenContext_t* ppcImlGenContext
 	ctx.raParam = &raParam;
 	ctx.deprGenContext = ppcImlGenContext;
 
-	DbgVerifyAllRanges(ctx); // DEBUG
-
 	IMLRA_ReshapeForRegisterAllocation(ppcImlGenContext);
-
-	DbgVerifyAllRanges(ctx); // DEBUG
-
 	ppcImlGenContext->UpdateSegmentIndices(); // update momentaryIndex of each segment
-
-	DbgVerifyAllRanges(ctx); // DEBUG
 	ctx.perSegmentAbstractRanges.resize(ppcImlGenContext->segmentList2.size());
-
 	IMLRA_CalculateLivenessRanges(ctx);
-	DbgVerifyAllRanges(ctx); // DEBUG
 	IMLRA_ProcessFlowAndCalculateLivenessRanges(ctx);
-	DbgVerifyAllRanges(ctx); // DEBUG
 	IMLRA_AssignRegisters(ctx, ppcImlGenContext);
 	DbgVerifyAllRanges(ctx); // DEBUG
-
-	// debug print
-	//IMLDebug_Dump(ppcImlGenContext, true);
-
-	// debug print
-	// if (ppcImlGenContext->debug_entryPPCAddress == 0x2BDA9F4)
-	// {
-	// 	IMLDebug_Dump(ppcImlGenContext, true);
-	// 	__debugbreak();
-	// }
-
 	IMLRA_AnalyzeRangeDataFlow(ppcImlGenContext);
 	IMLRA_GenerateMoveInstructions(ctx);
 
-
-	PPCRecRA_deleteAllRanges(ppcImlGenContext);
+	IMLRA_DeleteAllRanges(ppcImlGenContext);
 }

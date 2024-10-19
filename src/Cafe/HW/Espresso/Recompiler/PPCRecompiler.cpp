@@ -212,85 +212,6 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 			return nullptr;
 		}
 	}
-	// DEBUG BEGIN
-	// if(ppcRecFunc->ppcAddress != 0x2BDA9F4) // TP
-	// {
-	//    	delete ppcRecFunc;
-	//  	return nullptr;
-	// }
-	// if(ppcRecFunc->ppcAddress < 0x2BDA9F4) // TP
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-
-	// this prevents the crashing
-	// if((ppcRecFunc->ppcAddress >= 0x02ade400 && ppcRecFunc->ppcAddress < 0x02ade600)) -> no crash
-	//if((ppcRecFunc->ppcAddress >= 0x02ade500 && ppcRecFunc->ppcAddress < 0x02ade600)) -> no crash
-	// if((ppcRecFunc->ppcAddress >= 0x02ade580 && ppcRecFunc->ppcAddress < 0x02ade600)) // -> crashed around 0x0x2b874b0 (but rare? Out of 5 runs it only crashed once)
-	// {
-	// 	delete ppcRecFunc;
-	//  	return nullptr;
-	// }
-	// the problem with Shovel Knight is that the crash seems to be pretty instable, at least when trying to narrow it down. Lets look for another game for now
-
-	// check TP bug...
-	// if(ppcRecFunc->ppcAddress >= 0x03000000) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02800000) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02C00000) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02A00000) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B00000) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B80000) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B40000) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B60000) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B70000) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68000) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B64000) -> no bug (I went into wrong direction)
-	// if(ppcRecFunc->ppcAddress >= 0x02B6C000) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B6A000) -> has bug (double checked, it has bug)
-	// if(ppcRecFunc->ppcAddress >= 0x02B6B000) -> has bug (I went into the wrong direction again? Or does A000 have no bug??
-	// if(ppcRecFunc->ppcAddress >= 0x02B69000) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68800) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68400) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68600) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68500) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68580) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B685C0) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B685A0) -> has bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68590) -> no bug
-	// if(ppcRecFunc->ppcAddress >= 0x02B68598) -> has bug
-
-	// if(ppcRecFunc->ppcAddress != 0x02B68594) -> seems fine. No bug (against the expectation)
-	// if(ppcRecFunc->ppcAddress == 0x02B68594) -> Still has the bug
-
-	// if(ppcRecFunc->ppcAddress == 0x02B68594)
-	// {
-	//  	delete ppcRecFunc;
-	//  	return nullptr;
-	// }
-	// if(ppcRecFunc->ppcAddress >= 0x2B7A8D4 && ppcRecFunc->ppcAddress < 0x02B7AC9C && ppcRecFunc->ppcAddress != 0x2B7A8D4)
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-	// doing both of these means no bug!
-	// excluding just ppcAddress == 0x2B7A8D4 is enough to trigger the bug again. So it definitely that function
-	// next: Debug it!
-
-	// In Pikmin 3 030a9998 is broken?
-	// if(!(ppcRecFunc->ppcAddress >= 0x030a9998 && ppcRecFunc->ppcAddress < 0x030AA208))
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-	// else
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-
-	// DEBUG END
-
 
 	// apply passes
 	if (!PPCRecompiler_ApplyIMLPasses(ppcImlGenContext))
@@ -299,89 +220,10 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
-	// TP
-	// if (ppcRecFunc->ppcAddress == 0x2B7A8D4)
-	// {
-	// 	debug_printf("----------------------------------------\n");
-	// 	IMLDebug_Dump(&ppcImlGenContext);
-	// 	//__debugbreak();
-	// }
-	// // Bad Function in SM3DW
-	// if (ppcRecFunc->ppcAddress == 0x023D5768)
-	// {
-	// 	debug_printf("----------------------------------------\n");
-	// 	IMLDebug_Dump(&ppcImlGenContext);
-	// }
-	// if (ppcRecFunc->ppcAddress >= 0x023D5768 && ppcRecFunc->ppcAddress < 0x023D58DC)
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-	//
-
-	//
-	// // 0x02846c74
-	// if (ppcRecFunc->ppcAddress == 0x02846c74)
-	// {
-	// 	debug_printf("----------------------------------------\n");
-	// 	IMLDebug_Dump(&ppcImlGenContext);
-	// 	__debugbreak();
-	// }
-
-	// Shovel Knight
-	// if (ppcRecFunc->ppcAddress >= 0x02A1E630 && ppcRecFunc->ppcAddress < 0x02A1E9D8)
-	// {
-	// 	// debug_printf("----------------------------------------\n");
-	// 	// IMLDebug_Dump(&ppcImlGenContext);
-	// 	// __debugbreak();
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-	//
-	// //
-	// if (ppcRecFunc->ppcAddress == 0x02ade5c4 || ppcRecFunc->ppcAddress == 0x02ade5c8)
-	// {
-	// 	// debug_printf("----------------------------------------\n");
-	// 	IMLDebug_Dump(&ppcImlGenContext);
-	// 	__debugbreak();
-	// }
-
-	// else
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
-	// }
-
-	//if (ppcRecFunc->ppcAddress == 0x11223344)
-	//{
-	//	//debug_printf("----------------------------------------\n");
-	//	//IMLDebug_Dump(&ppcImlGenContext);
-	//	//__debugbreak();
-	//}
-	//else
-	//{
-	//	delete ppcRecFunc;
-	//	return nullptr;
-	//}
-
-	// if (ppcRecFunc->ppcAddress >= 0x2BDA9F4 && ppcRecFunc->ppcAddress < 0x02BDAB38)
-	// {
-	// 	return nullptr;
-	// 	//IMLDebug_Dump(&ppcImlGenContext);
-	// 	//__debugbreak();
-	// }
-
 	// if (ppcRecFunc->ppcAddress == 0x2BDA9F4)
 	// {
 	// 	IMLDebug_Dump(&ppcImlGenContext);
 	// 	__debugbreak();
-	// }
-	// 31A8778
-
-	// if(ppcRecFunc->ppcAddress >= 0x2759E20 && ppcRecFunc->ppcAddress < 0x0275A0CC)
-	// {
-	// 	delete ppcRecFunc;
-	// 	return nullptr;
 	// }
 
 	// Functions for testing (botw):

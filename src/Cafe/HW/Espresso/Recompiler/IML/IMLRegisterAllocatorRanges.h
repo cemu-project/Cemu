@@ -324,7 +324,7 @@ struct raLivenessRange
 	// register allocator result
 	sint32 physicalRegister;
 
-	boost::container::small_vector<raLivenessRange*, 32> GetAllSubrangesInCluster();
+	boost::container::small_vector<raLivenessRange*, 128> GetAllSubrangesInCluster();
 	bool GetAllowedRegistersEx(IMLPhysRegisterSet& allowedRegisters); // if the cluster has fixed register requirements in any instruction this returns the combined register mask. Otherwise returns false in which case allowedRegisters is left undefined
 	IMLPhysRegisterSet GetAllowedRegisters(IMLPhysRegisterSet regPool); // return regPool with fixed register requirements filtered out
 
@@ -339,7 +339,7 @@ struct raLivenessRange
 
 raLivenessRange* PPCRecRA_createSubrange2(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, IMLRegID virtualRegister, IMLName name, raInstructionEdge startPosition, raInstructionEdge endPosition);
 void PPCRecRA_deleteSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange);
-void PPCRecRA_deleteAllRanges(ppcImlGenContext_t* ppcImlGenContext);
+void IMLRA_DeleteAllRanges(ppcImlGenContext_t* ppcImlGenContext);
 
 void PPCRecRA_explodeRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* originRange);
 
