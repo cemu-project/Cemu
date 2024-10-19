@@ -6,6 +6,7 @@
 #include "IML/IML.h"
 #include "IML/IMLRegisterAllocatorRanges.h"
 #include "PPCFunctionBoundaryTracker.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 
 bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext);
 
@@ -398,14 +399,29 @@ bool PPCRecompilerImlGen_MFSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	return true;
 }
 
+ATTR_MS_ABI uint32 PPCRecompiler_GetTBL()
+{
+	return (uint32)coreinit::coreinit_getTimerTick();
+}
+
+ATTR_MS_ABI uint32 PPCRecompiler_GetTBU()
+{
+	return (uint32)(coreinit::coreinit_getTimerTick() >> 32);
+}
+
 bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("PPCRecompilerImlGen_MFTB(): Not supported\n");
-	return false;
-
 	uint32 rD, spr1, spr2, spr;
 	PPC_OPC_TEMPL_XO(opcode, rD, spr1, spr2);
 	spr = spr1 | (spr2<<5);
+
+	if( spr == SPR_TBL || spr == SPR_TBU )
+	{
+		IMLReg resultReg = _GetRegGPR(ppcImlGenContext, rD);
+		ppcImlGenContext->emitInst().make_call_imm(spr == SPR_TBL ? (uintptr_t)PPCRecompiler_GetTBL : (uintptr_t)PPCRecompiler_GetTBU, IMLREG_INVALID, IMLREG_INVALID, IMLREG_INVALID, resultReg);
+		return true;
+	}
+	return false;
 
 	if (spr == 268 || spr == 269)
 	{

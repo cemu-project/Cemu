@@ -152,6 +152,20 @@ void PPCRecRARange_addLink_allSegmentRanges(raLivenessRange** root, raLivenessRa
 
 void PPCRecRARange_removeLink_perVirtualGPR(std::unordered_map<IMLRegID, raLivenessRange*>& root, raLivenessRange* subrange)
 {
+#ifdef CEMU_DEBUG_ASSERT
+	raLivenessRange* cur = root.find(subrange->GetVirtualRegister())->second;
+	bool hasRangeFound = false;
+	while(cur)
+	{
+		if(cur == subrange)
+		{
+			hasRangeFound = true;
+			break;
+		}
+		cur = cur->link_sameVirtualRegister.next;
+	}
+	cemu_assert_debug(hasRangeFound);
+#endif
 	IMLRegID regId = subrange->GetVirtualRegister();
 	raLivenessRange* nextRange = subrange->link_sameVirtualRegister.next;
 	raLivenessRange* prevRange = subrange->link_sameVirtualRegister.prev;
@@ -169,6 +183,7 @@ void PPCRecRARange_removeLink_perVirtualGPR(std::unordered_map<IMLRegID, raLiven
 		}
 		else
 		{
+			cemu_assert_debug(root.find(regId)->second == subrange);
 			root.erase(regId);
 		}
 	}

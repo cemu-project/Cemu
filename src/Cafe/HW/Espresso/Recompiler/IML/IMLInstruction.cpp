@@ -222,6 +222,16 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		registersUsed->readGPR3 = op_atomic_compare_store.regWriteValue;
 		registersUsed->writtenGPR1 = op_atomic_compare_store.regBoolOut;
 	}
+	else if (type == PPCREC_IML_TYPE_CALL_IMM)
+	{
+		if (op_call_imm.regParam0.IsValid())
+			registersUsed->readGPR1 = op_call_imm.regParam0;
+		if (op_call_imm.regParam1.IsValid())
+			registersUsed->readGPR2 = op_call_imm.regParam1;
+		if (op_call_imm.regParam2.IsValid())
+			registersUsed->readGPR3 = op_call_imm.regParam2;
+		registersUsed->writtenGPR1 = op_call_imm.regReturn;
+	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
 		// fpr load operation
@@ -631,6 +641,16 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& tr
 		op_atomic_compare_store.regWriteValue = replaceRegisterIdMultiple(op_atomic_compare_store.regWriteValue, translationTable);
 		op_atomic_compare_store.regBoolOut = replaceRegisterIdMultiple(op_atomic_compare_store.regBoolOut, translationTable);
 	}
+	else if (type == PPCREC_IML_TYPE_CALL_IMM)
+	{
+		op_call_imm.regReturn = replaceRegisterIdMultiple(op_call_imm.regReturn, translationTable);
+		if (op_call_imm.regParam0.IsValid())
+			op_call_imm.regParam0 = replaceRegisterIdMultiple(op_call_imm.regParam0, translationTable);
+		if (op_call_imm.regParam1.IsValid())
+			op_call_imm.regParam1 = replaceRegisterIdMultiple(op_call_imm.regParam1, translationTable);
+		if (op_call_imm.regParam2.IsValid())
+			op_call_imm.regParam2 = replaceRegisterIdMultiple(op_call_imm.regParam2, translationTable);
+	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
 		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, translationTable);
@@ -757,6 +777,10 @@ void IMLInstruction::ReplaceFPRs(IMLReg fprRegisterSearched[4], IMLReg fprRegist
 	{
 		;
 	}
+	else if (type == PPCREC_IML_TYPE_CALL_IMM)
+	{
+		// not affected
+	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
 		op_storeLoad.registerData = replaceRegisterIdMultiple(op_storeLoad.registerData, fprRegisterSearched, fprRegisterReplaced);
@@ -866,7 +890,11 @@ void IMLInstruction::ReplaceFPR(IMLRegID fprRegisterSearched, IMLRegID fprRegist
 	}
 	else if (type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 	{
-		;
+		// not affected
+	}
+	else if (type == PPCREC_IML_TYPE_CALL_IMM)
+	{
+		// not affected
 	}
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{

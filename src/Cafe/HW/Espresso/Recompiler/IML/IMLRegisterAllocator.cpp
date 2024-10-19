@@ -60,8 +60,8 @@ struct IMLFixedRegisters
 		IMLReg reg;
 		IMLPhysRegisterSet physRegSet;
 	};
-	boost::container::static_vector<Entry, 4> listInput; // fixed registers for input edge
-	boost::container::static_vector<Entry, 4> listOutput; // fixed registers for output edge
+	boost::container::small_vector<Entry, 4> listInput; // fixed registers for instruction input edge
+	boost::container::small_vector<Entry, 4> listOutput; // fixed registers for instruction output edge
 };
 
 static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRegisters& fixedRegs)
@@ -86,7 +86,38 @@ static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRe
 		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_EAX);
 		fixedRegs.listInput.emplace_back(instruction->op_atomic_compare_store.regBoolOut, ps);
 	}
-	// todo - for volatile registers during call, we can emit a bunch of ranges that cover the output edge of the CALL instruction and use a special vGPR to indicate its not an actually mapped register
+	else if(instruction->type == PPCREC_IML_TYPE_CALL_IMM)
+	{
+		// parameters (todo)
+		cemu_assert_debug(!instruction->op_call_imm.regParam0.IsValid());
+		cemu_assert_debug(!instruction->op_call_imm.regParam1.IsValid());
+		cemu_assert_debug(!instruction->op_call_imm.regParam2.IsValid());
+		// return value
+		if(instruction->op_call_imm.regReturn.IsValid())
+		{
+			IMLRegFormat returnFormat = instruction->op_call_imm.regReturn.GetBaseFormat();
+			bool isIntegerFormat = returnFormat == IMLRegFormat::I64 || returnFormat == IMLRegFormat::I32 || returnFormat == IMLRegFormat::I16 || returnFormat == IMLRegFormat::I8;
+			cemu_assert_debug(isIntegerFormat); // float return values are still todo
+			IMLPhysRegisterSet ps;
+			ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_EAX);
+			fixedRegs.listOutput.emplace_back(instruction->op_call_imm.regReturn, ps);
+		}
+		// block volatile registers from being used on the output edge, this makes the RegAlloc store them during the call
+		IMLPhysRegisterSet ps;
+		if(!instruction->op_call_imm.regReturn.IsValid())
+			ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_RAX);
+		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_RCX);
+		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_RDX);
+		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_R8);
+		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_R9);
+		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_R10);
+		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE+X86_REG_R11);
+		for(int i=0; i<=5; i++)
+			ps.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE+i); // YMM0-YMM5 are volatile
+		// for YMM6-YMM15 only the upper 128 bits are volatile which we dont use
+		fixedRegs.listOutput.emplace_back(IMLREG_INVALID, ps);
+	}
+
 }
 
 
@@ -232,7 +263,7 @@ sint32 IMLRA_CountDistanceUntilFixedRegUsage(IMLSegment* imlSegment, raInstructi
 		auto& fixedRegAccess = currentPos.IsOnInputEdge() ? fixedRegs.listInput : fixedRegs.listOutput;
 		for(auto& fixedRegLoc : fixedRegAccess)
 		{
-			if(fixedRegLoc.reg.GetRegID() != ourRegId)
+			if(fixedRegLoc.reg.IsInvalid() || fixedRegLoc.reg.GetRegID() != ourRegId)
 			{
 				cemu_assert_debug(fixedRegLoc.physRegSet.HasExactlyOneAvailable()); // this whole function only makes sense when there is only one fixed register, otherwise there are extra permutations to consider
 				if(fixedRegLoc.physRegSet.IsAvailable(physRegister))
@@ -487,7 +518,7 @@ std::vector<raFixedRegRequirementWithVGPR> IMLRA_BuildSegmentInstructionFixedReg
 		pos = pos + 1;
 		for(auto& fixedRegAccess : fixedRegs.listOutput)
 		{
-			frrList.emplace_back(pos, fixedRegAccess.physRegSet, fixedRegAccess.reg.GetRegID());
+			frrList.emplace_back(pos, fixedRegAccess.physRegSet, fixedRegAccess.reg.IsValid()?fixedRegAccess.reg.GetRegID():IMLRegID_INVALID);
 		}
 		index++;
 	}
@@ -556,7 +587,8 @@ void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment
 			continue;
 
 		boost::container::small_vector<raLivenessRange*, 8> overlappingRanges = IMLRA_GetRangeWithFixedRegReservationOverlappingPos(imlSegment, entry.pos, physReg);
-		cemu_assert_debug(!overlappingRanges.empty()); // there should always be at least one range that overlaps corresponding to the fixed register requirement
+		if(entry.regId != IMLRegID_INVALID)
+			cemu_assert_debug(!overlappingRanges.empty()); // there should always be at least one range that overlaps corresponding to the fixed register requirement, except for IMLRegID_INVALID which is used to indicate reserved registers
 
 		for(auto& range : overlappingRanges)
 		{
@@ -1013,7 +1045,7 @@ void IMLRA_FilterReservedFixedRegisterRequirementsForSegment(IMLRegisterAllocato
 		auto& fixedRegAccess = currentPos.IsOnInputEdge() ? fixedRegs.listInput : fixedRegs.listOutput;
 		for(auto& fixedRegLoc : fixedRegAccess)
 		{
-			if(fixedRegLoc.reg.GetRegID() != ourRegId)
+			if(fixedRegLoc.reg.IsInvalid() || fixedRegLoc.reg.GetRegID() != ourRegId)
 				candidatePhysRegSet.RemoveRegisters(fixedRegLoc.physRegSet);
 		}
 	}
@@ -1451,11 +1483,13 @@ void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IML
 		GetInstructionFixedRegisters(&imlSegment->imlList[index], fixedRegs);
 		for(auto& fixedRegAccess : fixedRegs.listInput)
 		{
-			AddOrUpdateFixedRegRequirement(fixedRegAccess.reg.GetRegID(), index, true, fixedRegAccess.physRegSet);
+			if(fixedRegAccess.reg != IMLREG_INVALID)
+				AddOrUpdateFixedRegRequirement(fixedRegAccess.reg.GetRegID(), index, true, fixedRegAccess.physRegSet);
 		}
 		for(auto& fixedRegAccess : fixedRegs.listOutput)
 		{
-			AddOrUpdateFixedRegRequirement(fixedRegAccess.reg.GetRegID(), index, false, fixedRegAccess.physRegSet);
+			if(fixedRegAccess.reg != IMLREG_INVALID)
+				AddOrUpdateFixedRegRequirement(fixedRegAccess.reg.GetRegID(), index, false, fixedRegAccess.physRegSet);
 		}
 		index++;
 	}

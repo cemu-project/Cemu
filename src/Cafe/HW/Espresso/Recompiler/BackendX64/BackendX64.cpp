@@ -598,6 +598,13 @@ void PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction_t* PPCRe
 	x64GenContext->emitter->AND_di32(regBoolOut, 1); // SETcc doesn't clear the upper bits so we do it manually here
 }
 
+void PPCRecompilerX64Gen_imlInstruction_call_imm(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+{
+	// the register allocator takes care of spilling volatile registers and moving parameters to the right registers, so we don't need to do any special handling here
+	x64GenContext->emitter->MOV_qi64(X86_REG_RAX, imlInstruction->op_call_imm.callAddress);
+	x64GenContext->emitter->CALL_q(X86_REG_RAX);
+}
+
 bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	auto regR = _reg32(imlInstruction->op_r_r.regR);
@@ -1573,6 +1580,10 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			else if (imlInstruction->type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
 			{
 				PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
+			}
+			else if (imlInstruction->type == PPCREC_IML_TYPE_CALL_IMM)
+			{
+				PPCRecompilerX64Gen_imlInstruction_call_imm(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
 			}
 			else if( imlInstruction->type == PPCREC_IML_TYPE_NO_OP )
 			{

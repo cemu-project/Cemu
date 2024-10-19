@@ -99,6 +99,7 @@ private:
 };
 
 static const IMLReg IMLREG_INVALID(IMLRegFormat::INVALID_FORMAT, IMLRegFormat::INVALID_FORMAT, 0, 0);
+static const IMLRegID IMLRegID_INVALID(0xFFFF);
 
 using IMLName = uint32;
 
@@ -255,6 +256,9 @@ enum
 
 	// conditional (legacy)
 	PPCREC_IML_TYPE_CONDITIONAL_R_S32,
+
+	// function call
+	PPCREC_IML_TYPE_CALL_IMM,			// call to fixed immediate address
 
 	// FPR
 	PPCREC_IML_TYPE_FPR_LOAD,			// r* = (bitdepth) [r*+s32*] (single or paired single mode)
@@ -517,6 +521,14 @@ struct IMLInstruction
 		}op_storeLoad;
 		struct
 		{
+			uintptr_t callAddress;
+			IMLReg regParam0;
+			IMLReg regParam1;
+			IMLReg regParam2;
+			IMLReg regReturn;
+		}op_call_imm;
+		struct
+		{
 			IMLReg regR;
 			IMLReg regA;
 		}op_fpr_r_r;
@@ -773,6 +785,17 @@ struct IMLInstruction
 		this->op_atomic_compare_store.regCompareValue = regCompareValue;
 		this->op_atomic_compare_store.regWriteValue = regWriteValue;
 		this->op_atomic_compare_store.regBoolOut = regSuccessOutput;
+	}
+
+	void make_call_imm(uintptr_t callAddress, IMLReg param0, IMLReg param1, IMLReg param2, IMLReg regReturn)
+	{
+		this->type = PPCREC_IML_TYPE_CALL_IMM;
+		this->operation = 0;
+		this->op_call_imm.callAddress = callAddress;
+		this->op_call_imm.regParam0 = param0;
+		this->op_call_imm.regParam1 = param1;
+		this->op_call_imm.regParam2 = param2;
+		this->op_call_imm.regReturn = regReturn;
 	}
 
 	void make_fpr_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
