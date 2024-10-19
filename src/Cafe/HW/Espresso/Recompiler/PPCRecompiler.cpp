@@ -396,13 +396,14 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	{
 		return nullptr;
 	}
-
-	if (ppcRecFunc->ppcAddress == 0x2B7A8D4)
+	if (ActiveSettings::DumpRecompilerFunctionsEnabled())
 	{
-		// write code to binary file
-		FILE* f = fopen("ppcRecFunc_2B7A8D4.bin", "wb");
-		fwrite(ppcRecFunc->x86Code, 1, ppcRecFunc->x86Size, f);
-		fclose(f);
+		FileStream* fs = FileStream::createFile2(ActiveSettings::GetUserDataPath(fmt::format("dump/recompiler/ppc_{:08x}.bin", ppcRecFunc->ppcAddress)));
+		if (fs)
+		{
+			fs->writeData(ppcRecFunc->x86Code, ppcRecFunc->x86Size);
+			delete fs;
+		}
 	}
 
 	// collect list of PPC-->x64 entry points

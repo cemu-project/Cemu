@@ -265,7 +265,7 @@ sint32 IMLRA_CountDistanceUntilFixedRegUsage(IMLSegment* imlSegment, raInstructi
 		{
 			if(fixedRegLoc.reg.IsInvalid() || fixedRegLoc.reg.GetRegID() != ourRegId)
 			{
-				cemu_assert_debug(fixedRegLoc.physRegSet.HasExactlyOneAvailable()); // this whole function only makes sense when there is only one fixed register, otherwise there are extra permutations to consider
+				cemu_assert_debug(fixedRegLoc.reg.IsInvalid() || fixedRegLoc.physRegSet.HasExactlyOneAvailable()); // this whole function only makes sense when there is only one fixed register, otherwise there are extra permutations to consider. Except for IMLREG_INVALID which is used to indicate reserved registers
 				if(fixedRegLoc.physRegSet.IsAvailable(physRegister))
 					return currentPos.GetRaw() - startPosition.GetRaw();
 			}
@@ -572,30 +572,35 @@ void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment
 	for(size_t i=0; i<frr.size(); i++)
 	{
 		raFixedRegRequirementWithVGPR& entry = frr[i];
-		cemu_assert_debug(entry.allowedReg.HasExactlyOneAvailable()); // we currently only handle fixed register requirements with a single register
-		IMLPhysReg physReg = entry.allowedReg.GetFirstAvailableReg();
-		// check if the assigned vGPR has changed
-		bool vgprHasChanged = false;
-		auto it = lastVGPR.find(physReg);
-		if(it != lastVGPR.end())
-			vgprHasChanged = it->second != entry.regId;
-		else
-			vgprHasChanged = true;
-		lastVGPR[physReg] = entry.regId;
-
-		if(!vgprHasChanged)
-			continue;
-
-		boost::container::small_vector<raLivenessRange*, 8> overlappingRanges = IMLRA_GetRangeWithFixedRegReservationOverlappingPos(imlSegment, entry.pos, physReg);
-		if(entry.regId != IMLRegID_INVALID)
-			cemu_assert_debug(!overlappingRanges.empty()); // there should always be at least one range that overlaps corresponding to the fixed register requirement, except for IMLRegID_INVALID which is used to indicate reserved registers
-
-		for(auto& range : overlappingRanges)
+		// we currently only handle fixed register requirements with a single register
+		// with one exception: When regId is IMLRegID_INVALID then the entry acts as a list of reserved registers
+		cemu_assert_debug(entry.regId == IMLRegID_INVALID || entry.allowedReg.HasExactlyOneAvailable());
+		for(IMLPhysReg physReg = entry.allowedReg.GetFirstAvailableReg(); physReg >= 0; physReg = entry.allowedReg.GetNextAvailableReg(physReg+1))
 		{
-			if(range->interval2.start < entry.pos)
+			// check if the assigned vGPR has changed
+			bool vgprHasChanged = false;
+			auto it = lastVGPR.find(physReg);
+			if(it != lastVGPR.end())
+				vgprHasChanged = it->second != entry.regId;
+			else
+				vgprHasChanged = true;
+			lastVGPR[physReg] = entry.regId;
+
+			if(!vgprHasChanged)
+				continue;
+
+			boost::container::small_vector<raLivenessRange*, 8> overlappingRanges = IMLRA_GetRangeWithFixedRegReservationOverlappingPos(imlSegment, entry.pos, physReg);
+			if(entry.regId != IMLRegID_INVALID)
+				cemu_assert_debug(!overlappingRanges.empty()); // there should always be at least one range that overlaps corresponding to the fixed register requirement, except for IMLRegID_INVALID which is used to indicate reserved registers
+
+			for(auto& range : overlappingRanges)
 			{
-				PPCRecRA_splitLocalSubrange2(ppcImlGenContext, range, entry.pos, true);
+				if(range->interval2.start < entry.pos)
+				{
+					PPCRecRA_splitLocalSubrange2(ppcImlGenContext, range, entry.pos, true);
+				}
 			}
+
 		}
 	}
 	// finally iterate ranges and assign fixed registers
