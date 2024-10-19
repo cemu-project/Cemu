@@ -50,13 +50,16 @@ MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const Latte
     MetalPipelineCompiler compiler(m_mtlr);
     bool fbosMatch;
     compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
-    MTL::RenderPipelineState* pipeline = compiler.Compile(false, true, true);
+    bool attemptedCompilation = false;
+    MTL::RenderPipelineState* pipeline = compiler.Compile(false, true, true, attemptedCompilation);
 
     // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
     if (fbosMatch)
         AddCurrentStateToCache(hash);
 
-    m_pipelineCache.insert({hash, pipeline});
+    // Place the pipeline to the cache if the compilation was at least attempted
+    if (attemptedCompilation)
+        m_pipelineCache.insert({hash, pipeline});
 
     return pipeline;
 }
@@ -374,7 +377,9 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		//	s_spinlockSharedInternal.unlock();
 		//	return;
 		//}
-		pipeline = pp.Compile(true, true, false);
+		bool attemptedCompilation = false;
+		pipeline = pp.Compile(true, true, false, attemptedCompilation);
+		cemu_assert_debug(attemptedCompilation);
 		// destroy pp early
 	}
 

@@ -13,7 +13,7 @@ public:
 
     void InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch);
 
-    MTL::RenderPipelineState* Compile(bool forceCompile, bool isRenderThread, bool showInOverlay);
+    MTL::RenderPipelineState* Compile(bool forceCompile, bool isRenderThread, bool showInOverlay, bool& attemptedCompilation);
 
 private:
     class MetalRenderer* m_mtlr;

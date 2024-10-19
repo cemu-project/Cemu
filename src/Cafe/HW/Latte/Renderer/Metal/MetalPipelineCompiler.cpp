@@ -332,7 +332,7 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
         InitFromStateRender(fetchShader, vertexShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
 }
 
-MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
+MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay, bool& attemptedCompilation)
 {
     if (forceCompile)
 	{
@@ -407,6 +407,9 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 			g_compiling_pipelines_async++;
 		g_compiling_pipelines++;
 	}
+
+	// Inform the pipeline cache that compilation was at least attempted
+	attemptedCompilation = true;
 
     return pipeline;
 }
