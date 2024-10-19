@@ -255,7 +255,7 @@ void InputAPIAddWindow::on_controller_dropdown(wxCommandEvent& event)
 		auto available_controllers = provider->get_controllers();
 
 		{
-			std::scoped_lock lock{data->mutex};
+			std::lock_guard lock{data->mutex};
 			if(!data->discardResult)
 			{
 				wxCommandEvent event(wxControllersRefreshed);
