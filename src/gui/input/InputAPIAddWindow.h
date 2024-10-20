@@ -52,5 +52,11 @@ private:
 	std::shared_ptr<ControllerBase> m_controller;
 
 	std::vector<ControllerPtr> m_controllers;
-	std::jthread m_search_thread;
+	std::atomic_bool m_search_running = false;
+	struct AsyncThreadData
+	{
+		std::atomic_bool discardResult = false;
+		std::mutex mutex;
+	};
+	std::shared_ptr<AsyncThreadData> m_search_thread_data;
 };
