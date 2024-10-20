@@ -212,7 +212,7 @@ void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
 
 void InputAPIAddWindow::on_controller_dropdown(wxCommandEvent& event)
 {
-	if (m_search_running)
+	if (m_search_thread.joinable())
 		return;
 
 	int selection = m_input_api->GetSelection();
@@ -238,38 +238,31 @@ void InputAPIAddWindow::on_controller_dropdown(wxCommandEvent& event)
 		// TODO selected_uuid
 	}
 
-	m_search_running = true;
-
 	wxWindowUpdateLocker lock(m_controller_list);
 	m_controller_list->Clear();
 
 	m_controller_list->Append(_("Searching for controllers..."), (wxClientData*)nullptr);
 	m_controller_list->SetSelection(wxNOT_FOUND);
 
-	m_search_thread_data = std::make_unique<AsyncThreadData>();
-	std::thread([this, provider, selected_uuid](std::shared_ptr<AsyncThreadData> data)
+	m_search_thread = std::jthread([this, provider, selected_uuid](std::stop_token stopToken)
 	{
 		auto available_controllers = provider->get_controllers();
 
+		if(!stopToken.stop_requested())
 		{
-			std::lock_guard lock{data->mutex};
-			if(!data->discardResult)
-			{
-				wxCommandEvent event(wxControllersRefreshed);
-				event.SetEventObject(m_controller_list);
-				event.SetClientObject(new wxCustomData(std::move(available_controllers)));
-				event.SetInt(provider->api());
-				event.SetString(selected_uuid);
-				wxPostEvent(this, event);
-				m_search_running = false;
-			}
+			wxCommandEvent event(wxControllersRefreshed);
+			event.SetEventObject(m_controller_list);
+			event.SetClientObject(new wxCustomData(std::move(available_controllers)));
+			event.SetInt(provider->api());
+			event.SetString(selected_uuid);
+			wxPostEvent(this, event);
 		}
-	}, m_search_thread_data).detach();
+	});
 }
 
 void InputAPIAddWindow::on_controller_selected(wxCommandEvent& event)
 {
-	if (m_search_running)
+	if (m_search_thread.joinable())
 	{
 		return;
 	}
@@ -289,6 +282,7 @@ void InputAPIAddWindow::on_controller_selected(wxCommandEvent& event)
 
 void InputAPIAddWindow::on_controllers_refreshed(wxCommandEvent& event)
 {
+	m_search_thread = {};
 	const auto type = event.GetInt();
 	wxASSERT(0 <= type && type < InputAPI::MAX);
 
@@ -317,10 +311,10 @@ void InputAPIAddWindow::on_controllers_refreshed(wxCommandEvent& event)
 
 void InputAPIAddWindow::discard_thread_result()
 {
-	m_search_running = false;
-	if(m_search_thread_data)
+	if(m_search_thread.joinable())
 	{
-		std::lock_guard lock{m_search_thread_data->mutex};
-		m_search_thread_data->discardResult = true;
+		m_search_thread.request_stop();
+		m_search_thread.detach();
+		m_search_thread = {};
 	}
 }
