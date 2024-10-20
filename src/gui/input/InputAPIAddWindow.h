@@ -39,6 +39,8 @@ private:
 	void on_controller_selected(wxCommandEvent& event);
 	void on_controllers_refreshed(wxCommandEvent& event);
 
+	void discard_thread_result();
+
 	wxChoice* m_input_api;
 	wxComboBox* m_controller_list;
 	wxButton* m_ok_button;
