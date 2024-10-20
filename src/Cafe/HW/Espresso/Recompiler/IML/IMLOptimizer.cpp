@@ -649,7 +649,7 @@ void IMLOptimizer_RemoveDeadCodeFromSegment(IMLOptimizerRegIOAnalysis& regIoAnal
 	// Then for each segment:
 	// - Iterate instructions backwards
 	// - Maintain a list of registers which are read at a later point (initially this is the list from the first step)
-	// - If an instruction only modifies registers which are not in the read list, then it is dead code and can be replaced with a no-op
+	// - If an instruction only modifies registers which are not in the read list and has no side effects, then it is dead code and can be replaced with a no-op
 
 	std::unordered_set<IMLRegID> regsNeeded = regIoAnalysis.GetRegistersNeededAtEndOfSegment(seg);
 
@@ -688,10 +688,7 @@ void IMLOptimizer_RemoveDeadCodeFromSegment(IMLOptimizerRegIOAnalysis& regIoAnal
 		registersUsed.ForEachReadGPR([&](IMLReg reg) {
 			regsNeeded.insert(reg.GetRegID());
 		});
-		// for now we only allow some instruction types to be deleted, eventually we should find a safer way to identify side effects that can't be judged by register usage alone
-		if(imlInstruction.type != PPCREC_IML_TYPE_R_R && imlInstruction.type != PPCREC_IML_TYPE_R_R_S32 && imlInstruction.type != PPCREC_IML_TYPE_COMPARE && imlInstruction.type != PPCREC_IML_TYPE_COMPARE_S32)
-			continue;
-		if(onlyWritesRedundantRegisters)
+		if(!imlInstruction.HasSideEffects() && onlyWritesRedundantRegisters)
 		{
 			imlInstruction.make_no_op();
 		}

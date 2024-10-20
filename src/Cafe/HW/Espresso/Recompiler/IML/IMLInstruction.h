@@ -126,7 +126,6 @@ enum
 	PPCREC_IML_OP_SLW,				// SLW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_SRW,				// SRW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_CNTLZW,
-	PPCREC_IML_OP_DCBZ,				// clear 32 bytes aligned to 0x20
 	// FPU
 	PPCREC_IML_OP_FPR_ADD_BOTTOM,
 	PPCREC_IML_OP_FPR_ADD_PAIR,
@@ -818,6 +817,7 @@ struct IMLInstruction
 	}
 
 	void CheckRegisterUsage(IMLUsedRegisters* registersUsed) const;
+	bool HasSideEffects() const; // returns true if the instruction has side effects beyond just reading and writing registers. Dead code elimination uses this to know if an instruction can be dropped when the regular register outputs are not used
 
 	void RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& translationTable);
 	void ReplaceFPRs(IMLReg fprRegisterSearched[4], IMLReg fprRegisterReplaced[4]);

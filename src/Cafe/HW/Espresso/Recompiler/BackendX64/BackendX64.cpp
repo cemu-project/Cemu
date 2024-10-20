@@ -671,27 +671,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	{
 		x64GenContext->emitter->CMP_dd(regR, regA);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_DCBZ )
-	{
-		if( regR != regA )
-		{
-			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, regA);
-			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, regR);
-			x64Gen_and_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, ~0x1F);
-			x64Gen_add_reg64_reg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE);
-			for(sint32 f=0; f<0x20; f+=8)
-				x64Gen_mov_mem64Reg64_imm32(x64GenContext, REG_RESV_TEMP, f, 0);
-		}
-		else
-		{
-			// calculate effective address
-			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, regA);
-			x64Gen_and_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, ~0x1F);
-			x64Gen_add_reg64_reg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE);
-			for(sint32 f=0; f<0x20; f+=8)
-				x64Gen_mov_mem64Reg64_imm32(x64GenContext, REG_RESV_TEMP, f, 0);
-		}
-	}
 	else
 	{
 		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);

@@ -4,6 +4,15 @@
 #include "../PPCRecompiler.h"
 #include "../PPCRecompilerIml.h"
 
+bool IMLInstruction::HasSideEffects() const
+{
+	bool hasSideEffects = true;
+	if(type == PPCREC_IML_TYPE_R_R || type == PPCREC_IML_TYPE_R_R_S32 || type == PPCREC_IML_TYPE_COMPARE || type == PPCREC_IML_TYPE_COMPARE_S32)
+		hasSideEffects = false;
+	// todo - add more cases
+	return hasSideEffects;
+}
+
 void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 {
 	registersUsed->readGPR1 = IMLREG_INVALID;
@@ -26,8 +35,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_R_R)
 	{
-		if (operation == PPCREC_IML_OP_DCBZ ||
-			operation == PPCREC_IML_OP_X86_CMP)
+		if (operation == PPCREC_IML_OP_X86_CMP)
 		{
 			// both operands are read only
 			registersUsed->readGPR1 = op_r_r.regR;
