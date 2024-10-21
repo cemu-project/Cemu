@@ -32,7 +32,7 @@ Prerequisites:
 
 Instructions for Visual Studio 2022:
 
-1. Run `git clone --recursive https://github.com/RetendoNetwork/Cemu`
+1. Run `git clone --recursive https://github.com/cemu-project/Cemu`
 2. Open the newly created Cemu directory in Visual Studio using the "Open a local folder" option
 3. In the menu select Project -> Configure CMake. Wait until it is done, this may take a long time
 4. You can now build, run and debug Cemu
@@ -64,7 +64,7 @@ At Step 3 in [Build Cemu using cmake and clang](#build-cemu-using-cmake-and-clan
 #### CMake and Clang
 
 ```
-git clone --recursive https://github.com/RetendoNetwork/Cemu
+git clone --recursive https://github.com/cemu-project/Cemu
 cd Cemu
 cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja
 cmake --build build
@@ -78,7 +78,7 @@ If you are building using GCC, make sure you have g++ installed:
 - Installation for Fedora and derivatives: `sudo dnf install gcc-c++`
 
 ```
-git clone --recursive https://github.com/RetendoNetwork/Cemu
+git clone --recursive https://github.com/cemu-project/Cemu
 cd Cemu
 cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/gcc -DCMAKE_CXX_COMPILER=/usr/bin/g++ -G Ninja
 cmake --build build
@@ -87,7 +87,7 @@ cmake --build build
 #### Debug Build
 
 ```
-git clone --recursive https://github.com/RetendoNetwork/Cemu
+git clone --recursive https://github.com/cemu-project/Cemu
 cd Cemu
 cmake -S . -B build -DCMAKE_BUILD_TYPE=debug -DCMAKE_C_COMPILER=/usr/bin/clang -DCMAKE_CXX_COMPILER=/usr/bin/clang++ -G Ninja
 cmake --build build
@@ -173,7 +173,7 @@ Then install the dependencies:
 
 ### Build Cemu using CMake
 
-1. `git clone --recursive https://github.com/RetendoNetwork/Cemu`
+1. `git clone --recursive https://github.com/cemu-project/Cemu`
 2. `cd Cemu`
 3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_OSX_ARCHITECTURES=x86_64 -G Ninja`
 4. `cmake --build build`
