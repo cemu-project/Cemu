@@ -244,15 +244,23 @@ void PairingDialog::WorkerThread()
 
 	// Search for device
 	inquiry_info* infos = nullptr;
+	m_cancelButton->Disable();
 	const auto respCount = hci_inquiry(hostId, 5, 4, liacLap, &infos, IREQ_CACHE_FLUSH);
+	m_cancelButton->Enable();
 	if (respCount <= 0)
 	{
 		UpdateCallback(PairingState::SearchFailed);
 		return;
 	}
+	stdx::scope_exit infoFree([&]() { bt_free(infos);});
+
+	if (m_threadShouldQuit)
+		return;
 
 	// Open dev to read name
-	const auto hostDevDesc = hci_open_dev(hostId);
+	const auto hostDev = hci_open_dev(hostId);
+	stdx::scope_exit devClose([&]() { hci_close_dev(hostDev);});
+
 	char nameBuffer[HCI_MAX_NAME_LENGTH] = {};
 
 	bool foundADevice = false;
@@ -260,11 +268,13 @@ void PairingDialog::WorkerThread()
 	for (const auto& devInfo : std::span(infos, respCount))
 	{
 		const auto& addr = devInfo.bdaddr;
-		if (hci_read_remote_name(hostDevDesc, &addr, HCI_MAX_NAME_LENGTH, nameBuffer,
-								 2000) != 0 || !isWiimoteName(nameBuffer))
-		{
+		const auto err =  hci_read_remote_name(hostDev, &addr, HCI_MAX_NAME_LENGTH, nameBuffer,
+								 2000);
+		if (m_threadShouldQuit)
+			return;
+		if (err || !isWiimoteName(nameBuffer))
 			continue;
-		}
+
 		L2CapWiimote::AddCandidateAddress(addr);
 		foundADevice = true;
 		const auto& b = addr.b;
@@ -275,9 +285,6 @@ void PairingDialog::WorkerThread()
 		UpdateCallback(PairingState::Finished);
 	else
 		UpdateCallback(PairingState::SearchFailed);
-
-	bt_free(infos);
-	hci_close_dev(hostDevDesc);
 }
 #else
 void PairingDialog::WorkerThread()
