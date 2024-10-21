@@ -106,7 +106,7 @@ void gui_updateWindowTitles(bool isIdle, bool isLoading, double fps)
     if (ActiveSettings::IsOnlineEnabled())
 	{
 		if (ActiveSettings::GetNetworkService() == NetworkService::Nintendo)
-			windowText.append(" [Online]");
+			windowText.append(" [Online-Nintendo]");
 		else if (ActiveSettings::GetNetworkService() == NetworkService::Pretendo)
 			 windowText.append(" [Online-Pretendo]");
 		else if (ActiveSettings::GetNetworkService() == NetworkService::Retendo)

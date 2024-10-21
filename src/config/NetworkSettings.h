@@ -72,7 +72,7 @@ struct PretendoURLs {
    inline static std::string OLVURL = "https://discovery.olv.pretendo.cc/v1/endpoint";
 };
 
-struct RetendoURLS {
+struct RetendoURLs {
     inline static std::string ACTURL = "https://account.retendo.online";
     inline static std::string ECSURL = "https://ecs.wup.shop.retendo.online/ecs/services/ECommerceSOAP";
     inline static std::string NUSURL = "https://nus.c.shop.retendo.online/nus/services/NetUpdateSOAP";
