@@ -735,7 +735,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 
 
 	{
-		wxString choices[] = { _("Offline"),  _("Nintendo"), _("Pretendo"), _("Custom") };
+		wxString choices[] = { _("Offline"),  _("Nintendo"), _("Pretendo"), _("Retendo"), _("Custom") };
 		m_active_service = new wxRadioBox(online_panel, wxID_ANY, _("Network Service"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 4, wxRA_SPECIFY_COLS);
 		if (!NetworkConfig::XMLExists())
 			m_active_service->Enable(3, false);
@@ -743,7 +743,8 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		m_active_service->SetItemToolTip(0, _("Online functionality disabled for this account"));
 		m_active_service->SetItemToolTip(1, _("Connect to the official Nintendo Network Service"));
 		m_active_service->SetItemToolTip(2, _("Connect to the Pretendo Network Service"));
-		m_active_service->SetItemToolTip(3, _("Connect to a custom Network Service (configured via network_services.xml)"));
+		m_active_service->SetItemToolTip(3, _("Connect to the Retendo Network Service"));
+		m_active_service->SetItemToolTip(4, _("Connect to a custom Network Service (configured via network_services.xml)"));
 
 		m_active_service->Bind(wxEVT_RADIOBOX, &GeneralSettings2::OnAccountServiceChanged,this);
 		online_panel_sizer->Add(m_active_service, 0, wxEXPAND | wxALL, 5);
