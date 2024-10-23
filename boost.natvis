@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+    <Type Name="boost::container::small_vector&lt;*&gt;">
+        <Expand>
+            <Item Name="[size]">m_holder.m_size</Item>
+            <ArrayItems>
+                <Size>m_holder.m_size</Size>
+                <ValuePointer>m_holder.m_start</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+</AutoVisualizer>
