@@ -4,6 +4,9 @@
 #include "PPCRecompilerIml.h"
 #include "Cafe/GameProfile/GameProfile.h"
 
+ATTR_MS_ABI double frsqrte_espresso(double input);
+ATTR_MS_ABI double fres_espresso(double input);
+
 IMLReg _GetRegCR(ppcImlGenContext_t* ppcImlGenContext, uint8 crReg, uint8 crBit);
 
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext_t* ppcImlGenContext, IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
@@ -1007,9 +1010,12 @@ bool PPCRecompilerImlGen_FRES(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// load registers
 	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
 	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)fres_espresso, fprRegisterB, IMLREG_INVALID, IMLREG_INVALID, fprRegisterD);
 	// adjust accuracy
 	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	// copy result to top
+	if( ppcImlGenContext->PSE )
+		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
 	return true;
 }
 
@@ -1026,9 +1032,7 @@ bool PPCRecompilerImlGen_FRSP(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	}
 	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegisterD);
 	if( ppcImlGenContext->PSE )
-	{
 		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
-	}
 	return true;
 }
 
@@ -1075,7 +1079,7 @@ bool PPCRecompilerImlGen_FRSQRTE(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 	// hCPU->fpr[frD].fpr = 1.0 / sqrt(hCPU->fpr[frB].fpr);
 	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
 	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_BOTTOM_RECIPROCAL_SQRT, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)frsqrte_espresso, fprRegisterB, IMLREG_INVALID, IMLREG_INVALID, fprRegisterD);
 	// adjust accuracy
 	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
 	return true;

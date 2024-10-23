@@ -1513,7 +1513,7 @@ bool PPCRecompilerImlGen_DCBZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, regMemResEA, regA, regB);
 	else
 		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regMemResEA, regB);
-	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_AND, regMemResEA, ~31);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regMemResEA, regMemResEA, ~31);
 	// zero out the cacheline
 	for(sint32 i = 0; i < 32; i += 4)
 		ppcImlGenContext->emitInst().make_memory_r(regZero, regMemResEA, i, 32, false);

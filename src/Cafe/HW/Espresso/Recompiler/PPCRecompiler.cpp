@@ -181,9 +181,6 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		}
 	}
 
-	// if(range.startAddress < 0x0202fa3C || range.startAddress > 0x0202FA7C)
-	// 	return nullptr; // DEBUG
-
 	PPCRecFunction_t* ppcRecFunc = new PPCRecFunction_t();
 	ppcRecFunc->ppcAddress = range.startAddress;
 	ppcRecFunc->ppcSize = range.length;
@@ -339,15 +336,6 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 
 	//PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
 	//PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
-
-
-	// if(ppcImlGenContext.debug_entryPPCAddress >= 0x0240B7F8 && ppcImlGenContext.debug_entryPPCAddress < 0x0240C0AC)
-	// {
-	// 	IMLDebug_Dump(&ppcImlGenContext);
-	// 	__debugbreak();
-	// }
-	// else if(ppcImlGenContext.debug_entryPPCAddress >= 0x0240B7F8)
-	// 	return false;
 
 	return true;
 }

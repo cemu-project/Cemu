@@ -780,18 +780,6 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 		// move to FPR register
 		x64Gen_movq_xmmReg_reg64(x64GenContext, regR, REG_RESV_TEMP);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP )
-	{
-		// move register to XMM15
-		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, regA);
-		
-		// call assembly routine to calculate accurate FRES result in XMM15
-		x64Gen_mov_reg64_imm64(x64GenContext, REG_RESV_TEMP, (uint64)recompiler_fres);
-		x64Gen_call_reg64(x64GenContext, REG_RESV_TEMP);
-
-		// copy result to bottom and top half of result register
-		x64Gen_movddup_xmmReg_xmmReg(x64GenContext, regR, REG_RESV_FPR_TEMP);
-	}
 	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_RECIPROCAL_SQRT)
 	{
 		// move register to XMM15

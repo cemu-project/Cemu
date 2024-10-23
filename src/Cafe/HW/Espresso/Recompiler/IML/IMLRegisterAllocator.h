@@ -17,9 +17,19 @@ public:
 		m_regBitmask &= ~((uint64)1 << index);
 	}
 
+	void SetAllAvailable()
+	{
+		m_regBitmask = ~0ull;
+	}
+
+	bool HasAllAvailable() const
+	{
+		return m_regBitmask == ~0ull;
+	}
+
 	bool IsAvailable(uint32 index) const
 	{
-		return (m_regBitmask & (1 << index)) != 0;
+		return (m_regBitmask & ((uint64)1 << index)) != 0;
 	}
 
 	IMLPhysRegisterSet& operator&=(const IMLPhysRegisterSet& other)

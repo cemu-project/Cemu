@@ -191,8 +191,8 @@ inline double roundTo25BitAccuracy(double d)
 	return *(double*)&v;
 }
 
-double fres_espresso(double input);
-double frsqrte_espresso(double input);
+ATTR_MS_ABI double fres_espresso(double input);
+ATTR_MS_ABI double frsqrte_espresso(double input);
 
 void fcmpu_espresso(PPCInterpreter_t* hCPU, int crfD, double a, double b);
 

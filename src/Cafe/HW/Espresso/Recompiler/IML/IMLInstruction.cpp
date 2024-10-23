@@ -363,7 +363,6 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation == PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP ||
 			operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED ||
 			operation == PPCREC_IML_OP_ASSIGN ||
-			operation == PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP ||
 			operation == PPCREC_IML_OP_FPR_NEGATE_PAIR ||
 			operation == PPCREC_IML_OP_FPR_ABS_PAIR ||
 			operation == PPCREC_IML_OP_FPR_FRES_PAIR ||

@@ -601,8 +601,10 @@ void PPCRecompilerX64Gen_imlInstruction_atomic_cmp_store(PPCRecFunction_t* PPCRe
 void PPCRecompilerX64Gen_imlInstruction_call_imm(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	// the register allocator takes care of spilling volatile registers and moving parameters to the right registers, so we don't need to do any special handling here
+	x64GenContext->emitter->SUB_qi8(X86_REG_RSP, 0x28); // reserve enough space for any parameters while keeping stack alignment of 16 intact
 	x64GenContext->emitter->MOV_qi64(X86_REG_RAX, imlInstruction->op_call_imm.callAddress);
 	x64GenContext->emitter->CALL_q(X86_REG_RAX);
+	x64GenContext->emitter->ADD_qi8(X86_REG_RSP, 0x28);
 }
 
 bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)

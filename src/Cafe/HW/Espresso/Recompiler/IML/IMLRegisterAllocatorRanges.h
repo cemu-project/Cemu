@@ -335,6 +335,9 @@ struct raLivenessRange
 	void SetPhysicalRegister(sint32 physicalRegister);
 	void SetPhysicalRegisterForCluster(sint32 physicalRegister);
 	void UnsetPhysicalRegister() { physicalRegister = -1; }
+
+  private:
+	void GetAllowedRegistersExRecursive(raLivenessRange* range, uint32 iterationIndex, IMLPhysRegisterSet& allowedRegs);
 };
 
 raLivenessRange* PPCRecRA_createSubrange2(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, IMLRegID virtualRegister, IMLName name, raInstructionEdge startPosition, raInstructionEdge endPosition);

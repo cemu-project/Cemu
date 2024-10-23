@@ -143,7 +143,6 @@ enum
 	PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM, // leave top of destination untouched
 	PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED,
 	PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, // expand bottom f32 to f64 in bottom and top half
-	PPCREC_IML_OP_FPR_BOTTOM_FRES_TO_BOTTOM_AND_TOP, // calculate reciprocal with Espresso accuracy of source bottom half and write result to destination bottom and top half
 	PPCREC_IML_OP_FPR_FCMPO_BOTTOM, // deprecated
 	PPCREC_IML_OP_FPR_FCMPU_BOTTOM, // deprecated
 	PPCREC_IML_OP_FPR_FCMPU_TOP, // deprecated

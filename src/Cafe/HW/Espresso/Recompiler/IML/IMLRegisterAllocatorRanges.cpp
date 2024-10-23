@@ -67,38 +67,30 @@ boost::container::small_vector<raLivenessRange*, 128> raLivenessRange::GetAllSub
 	return subranges;
 }
 
+void raLivenessRange::GetAllowedRegistersExRecursive(raLivenessRange* range, uint32 iterationIndex, IMLPhysRegisterSet& allowedRegs)
+{
+	range->lastIterationIndex = iterationIndex;
+	for (auto& it : range->list_fixedRegRequirements)
+		allowedRegs &= it.allowedReg;
+	// check successors
+	if (range->subrangeBranchTaken && range->subrangeBranchTaken->lastIterationIndex != iterationIndex)
+		GetAllowedRegistersExRecursive(range->subrangeBranchTaken, iterationIndex, allowedRegs);
+	if (range->subrangeBranchNotTaken && range->subrangeBranchNotTaken->lastIterationIndex != iterationIndex)
+		GetAllowedRegistersExRecursive(range->subrangeBranchNotTaken, iterationIndex, allowedRegs);
+	// check predecessors
+	for (auto& prev : range->previousRanges)
+	{
+		if (prev->lastIterationIndex != iterationIndex)
+			GetAllowedRegistersExRecursive(prev, iterationIndex, allowedRegs);
+	}
+};
+
 bool raLivenessRange::GetAllowedRegistersEx(IMLPhysRegisterSet& allowedRegisters)
 {
-	if(interval2.ExtendsPreviousSegment() || interval2.ExtendsIntoNextSegment())
-	{
-		auto clusterRanges = GetAllSubrangesInCluster();
-		bool hasAnyRequirement = false;
-		for(auto& subrange : clusterRanges)
-		{
-			if(subrange->list_fixedRegRequirements.empty())
-				continue;
-			allowedRegisters = subrange->list_fixedRegRequirements.front().allowedReg;
-			hasAnyRequirement = true;
-			break;
-		}
-		if(!hasAnyRequirement)
-			return false;
-		for(auto& subrange : clusterRanges)
-		{
-			for(auto& fixedRegLoc : subrange->list_fixedRegRequirements)
-				allowedRegisters &= fixedRegLoc.allowedReg;
-		}
-	}
-	else
-	{
-		// local check only, slightly faster
-		if(list_fixedRegRequirements.empty())
-			return false;
-		allowedRegisters = list_fixedRegRequirements.front().allowedReg;
-		for(auto& fixedRegLoc : list_fixedRegRequirements)
-			allowedRegisters &= fixedRegLoc.allowedReg;
-	}
-	return true;
+	uint32 iterationIndex = PPCRecRA_getNextIterationIndex();
+	allowedRegisters.SetAllAvailable();
+	GetAllowedRegistersExRecursive(this, iterationIndex, allowedRegisters);
+	return !allowedRegisters.HasAllAvailable();
 }
 
 IMLPhysRegisterSet raLivenessRange::GetAllowedRegisters(IMLPhysRegisterSet regPool)
@@ -424,6 +416,14 @@ void PPCRecRA_debugValidateSubrange(raLivenessRange* range)
 		cemu_assert_debug(range->list_locations.front().index >= range->interval2.start.GetInstructionIndexEx());
 		cemu_assert_debug(range->list_locations.back().index <= range->interval2.end.GetInstructionIndexEx());
 	}
+	// validate fixed reg requirements
+	if (!range->list_fixedRegRequirements.empty())
+	{
+		cemu_assert_debug(range->list_fixedRegRequirements.front().pos >= range->interval2.start);
+		cemu_assert_debug(range->list_fixedRegRequirements.back().pos <= range->interval2.end);
+		for(sint32 i = 0; i < (sint32)range->list_fixedRegRequirements.size()-1; i++)
+			cemu_assert_debug(range->list_fixedRegRequirements[i].pos < range->list_fixedRegRequirements[i+1].pos);
+	}
 
 }
 #else
@@ -563,7 +563,7 @@ raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenConte
 	for (sint32 i = 0; i < subrange->list_fixedRegRequirements.size(); i++)
 	{
 		raFixedRegRequirement* fixedReg = subrange->list_fixedRegRequirements.data() + i;
-		if (tailInterval.ContainsInstructionIndex(fixedReg->pos.GetInstructionIndex()))
+		if (tailInterval.ContainsEdge(fixedReg->pos))
 		{
 			tailSubrange->list_fixedRegRequirements.push_back(*fixedReg);
 		}
@@ -572,7 +572,7 @@ raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenConte
 	for (sint32 i = 0; i < subrange->list_fixedRegRequirements.size(); i++)
 	{
 		raFixedRegRequirement* fixedReg = subrange->list_fixedRegRequirements.data() + i;
-		if (!headInterval.ContainsInstructionIndex(fixedReg->pos.GetInstructionIndex()))
+		if (!headInterval.ContainsEdge(fixedReg->pos))
 		{
 			subrange->list_fixedRegRequirements.resize(i);
 			break;
