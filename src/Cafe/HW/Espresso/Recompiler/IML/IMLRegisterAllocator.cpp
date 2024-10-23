@@ -596,6 +596,11 @@ void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment
 	for (raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange;)
 	{
 		IMLPhysRegisterSet allowedRegs;
+		if(currentRange->list_fixedRegRequirements.empty())
+		{
+			currentRange = currentRange->link_allSegmentRanges.next;
+			continue; // since we run this pass for every segment we dont need to do global checks here for clusters which may not even have fixed register requirements
+		}
 		if (!currentRange->GetAllowedRegistersEx(allowedRegs))
 		{
 			currentRange = currentRange->link_allSegmentRanges.next;
@@ -688,16 +693,6 @@ void IMLRA_HandleFixedRegisters(ppcImlGenContext_t* ppcImlGenContext, IMLSegment
 				cemu_assert_debug(currentRange->GetPhysicalRegister() != currentRange2->GetPhysicalRegister());
 			}
 		}
-	}
-	for (raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange; currentRange = currentRange->link_allSegmentRanges.next)
-	{
-		IMLPhysRegisterSet allowedRegs;
-		if (!currentRange->GetAllowedRegistersEx(allowedRegs))
-		{
-			cemu_assert_debug(currentRange->list_fixedRegRequirements.empty());
-			continue;
-		}
-		cemu_assert_debug(currentRange->HasPhysicalRegister() && allowedRegs.IsAvailable(currentRange->GetPhysicalRegister()));
 	}
 #endif
 }
@@ -1275,6 +1270,22 @@ void IMLRA_AssignRegisters(IMLRegisterAllocatorContext& ctx, ppcImlGenContext_t*
 	// assign fixed registers first
 	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
 		IMLRA_HandleFixedRegisters(ppcImlGenContext, segIt);
+#if DEBUG_RA_EXTRA_VALIDATION
+	// fixed registers are currently handled per-segment, but here we validate that they are assigned correctly on a global scope as well
+	for (IMLSegment* imlSegment : ppcImlGenContext->segmentList2)
+	{
+		for (raLivenessRange* currentRange = imlSegment->raInfo.linkedList_allSubranges; currentRange; currentRange = currentRange->link_allSegmentRanges.next)
+		{
+			IMLPhysRegisterSet allowedRegs;
+			if (!currentRange->GetAllowedRegistersEx(allowedRegs))
+			{
+				cemu_assert_debug(currentRange->list_fixedRegRequirements.empty());
+				continue;
+			}
+			cemu_assert_debug(currentRange->HasPhysicalRegister() && allowedRegs.IsAvailable(currentRange->GetPhysicalRegister()));
+		}
+	}
+#endif
 
 	while (true)
 	{
