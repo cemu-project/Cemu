@@ -65,7 +65,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	}
 	else if (textureType == MTL::TextureTypeCube)
 	{
-	    // Do notjing
+	    // Do nothing
 	}
 	else if (textureType == MTL::TextureTypeCubeArray)
 	{
@@ -81,13 +81,10 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 
 	MTL::TextureUsage usage = MTL::TextureUsageShaderRead | MTL::TextureUsagePixelFormatView;
 	if (!Latte::IsCompressedFormat(format))
-	{
 		usage |= MTL::TextureUsageRenderTarget;
-	}
 	desc->setUsage(usage);
 
 	m_texture = mtlRenderer->GetDevice()->newTexture(desc);
-
 	desc->release();
 }
 

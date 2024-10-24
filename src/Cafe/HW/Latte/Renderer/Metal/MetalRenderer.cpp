@@ -23,7 +23,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -70,6 +69,7 @@ MetalRenderer::MetalRenderer()
     MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
     textureDescriptor->setTextureType(MTL::TextureType1D);
     textureDescriptor->setWidth(1);
+    textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
     m_nullTexture1D = m_device->newTexture(textureDescriptor);
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture1D->setLabel(GetLabel("Null texture 1D", m_nullTexture1D));
@@ -77,6 +77,7 @@ MetalRenderer::MetalRenderer()
 
     textureDescriptor->setTextureType(MTL::TextureType2D);
     textureDescriptor->setHeight(1);
+    textureDescriptor->setUsage(MTL::TextureUsageShaderRead | MTL::TextureUsageRenderTarget);
     m_nullTexture2D = m_device->newTexture(textureDescriptor);
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture2D->setLabel(GetLabel("Null texture 2D", m_nullTexture2D));
