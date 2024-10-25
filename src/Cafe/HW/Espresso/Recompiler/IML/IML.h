@@ -3,9 +3,6 @@
 #include "IMLInstruction.h"
 #include "IMLSegment.h"
 
-// analyzer
-bool IMLAnalyzer_IsTightFiniteLoop(IMLSegment* imlSegment);
-
 // optimizer passes
 void IMLOptimizer_OptimizeDirectFloatCopies(struct ppcImlGenContext_t* ppcImlGenContext);
 void IMLOptimizer_OptimizeDirectIntegerCopies(struct ppcImlGenContext_t* ppcImlGenContext);

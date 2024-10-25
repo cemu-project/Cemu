@@ -15,7 +15,6 @@
 #define DEBUG_RA_EXTRA_VALIDATION 0	// if set to non-zero, additional expensive validation checks will be performed
 #define DEBUG_RA_INSTRUCTION_GEN 0
 
-
 struct IMLRARegAbstractLiveness // preliminary liveness info. One entry per register and segment
 {
 	IMLRARegAbstractLiveness(IMLRegFormat regBaseFormat, sint32 usageStart, sint32 usageEnd)
@@ -38,7 +37,7 @@ struct IMLRegisterAllocatorContext
 	IMLRegisterAllocatorParameters* raParam;
 	ppcImlGenContext_t* deprGenContext; // deprecated. Try to decouple IMLRA from other parts of IML/PPCRec
 
-	std::unordered_map<IMLRegID, IMLRegFormat> regIdToBaseFormat; // a vector would be more efficient but it also means that reg ids have to be continuous and not completely arbitrary
+	std::unordered_map<IMLRegID, IMLRegFormat> regIdToBaseFormat;
 	// first pass
 	std::vector<std::unordered_map<IMLRegID, IMLRARegAbstractLiveness>> perSegmentAbstractRanges;
 
@@ -781,11 +780,11 @@ class RASpillStrategy_LocalRangeHoleCutting : public RASpillStrategy
 				cemu_assert_debug(currentRangeStart.IsInstructionIndex());
 				distance2 = std::min<sint32>(distance2, imlSegment->imlList.size() * 2 - currentRangeStart.GetRaw()); // limit distance to end of segment
 				// calculate split cost of candidate
-				sint32 cost = PPCRecRARange_estimateAdditionalCostAfterSplit(candidate, currentRangeStart + distance2);
+				sint32 cost = IMLRA_CalculateAdditionalCostAfterSplit(candidate, currentRangeStart + distance2);
 				// calculate additional split cost of currentRange if hole is not large enough
 				if (distance2 < requiredSize2)
 				{
-					cost += PPCRecRARange_estimateAdditionalCostAfterSplit(currentRange, currentRangeStart + distance2);
+					cost += IMLRA_CalculateAdditionalCostAfterSplit(currentRange, currentRangeStart + distance2);
 					// we also slightly increase cost in relation to the remaining length (in order to make the algorithm prefer larger holes)
 					cost += (requiredSize2 - distance2) / 10;
 				}
@@ -889,7 +888,7 @@ class RASpillStrategy_AvailableRegisterHole : public RASpillStrategy
 						continue;
 					// calculate additional cost due to split
 					cemu_assert_debug(distance < requiredSize2); // should always be true otherwise previous step would have selected this register?
-					sint32 cost = PPCRecRARange_estimateAdditionalCostAfterSplit(currentRange, currentRangeStart + distance);
+					sint32 cost = IMLRA_CalculateAdditionalCostAfterSplit(currentRange, currentRangeStart + distance);
 					// add small additional cost for the remaining range (prefer larger holes)
 					cost += ((requiredSize2 - distance) / 2) / 10;
 					if (cost < strategyCost)
@@ -959,11 +958,11 @@ class RASpillStrategy_ExplodeRange : public RASpillStrategy
 			IMLRA_MakeSafeSplitDistance(imlSegment, currentRangeStart, distance);
 			if (distance < 2)
 				continue;
-			sint32 cost = PPCRecRARange_estimateCostAfterRangeExplode(candidate);
+			sint32 cost = IMLRA_CalculateAdditionalCostOfRangeExplode(candidate);
 			// if the hole is not large enough, add cost of splitting current subrange
 			if (distance < requiredSize2)
 			{
-				cost += PPCRecRARange_estimateAdditionalCostAfterSplit(currentRange, currentRangeStart + distance);
+				cost += IMLRA_CalculateAdditionalCostAfterSplit(currentRange, currentRangeStart + distance);
 				// add small additional cost for the remaining range (prefer larger holes)
 				cost += ((requiredSize2 - distance) / 2) / 10;
 			}
@@ -1032,7 +1031,7 @@ class RASpillStrategy_ExplodeRangeInter : public RASpillStrategy
 			if (!allowedRegs.IsAvailable(candidate->GetPhysicalRegister()))
 				continue;
 			sint32 cost;
-			cost = PPCRecRARange_estimateCostAfterRangeExplode(candidate);
+			cost = IMLRA_CalculateAdditionalCostOfRangeExplode(candidate);
 			// compare with current best candidate for this strategy
 			if (cost < strategyCost)
 			{
@@ -1043,7 +1042,7 @@ class RASpillStrategy_ExplodeRangeInter : public RASpillStrategy
 		}
 		// add current range as a candidate too
 		sint32 ownCost;
-		ownCost = PPCRecRARange_estimateCostAfterRangeExplode(currentRange);
+		ownCost = IMLRA_CalculateAdditionalCostOfRangeExplode(currentRange);
 		if (ownCost < strategyCost)
 		{
 			strategyCost = ownCost;
@@ -1859,7 +1858,7 @@ static void IMLRA_AnalyzeRangeDataFlow(raLivenessRange* subrange)
 				if (subrangeItr->hasStore)
 					continue; // this ending already stores, no extra cost
 				alreadyStoredInAllEndings = false;
-				sint32 storeCost = PPCRecRARange_getReadWriteCost(subrangeItr->imlSegment);
+				sint32 storeCost = IMLRA_GetSegmentReadWriteCost(subrangeItr->imlSegment);
 				delayStoreCost = std::max(storeCost, delayStoreCost);
 			}
 			if (alreadyStoredInAllEndings)
@@ -1867,7 +1866,7 @@ static void IMLRA_AnalyzeRangeDataFlow(raLivenessRange* subrange)
 				subrange->hasStore = false;
 				subrange->hasStoreDelayed = true;
 			}
-			else if (delayStoreCost <= PPCRecRARange_getReadWriteCost(subrange->imlSegment))
+			else if (delayStoreCost <= IMLRA_GetSegmentReadWriteCost(subrange->imlSegment))
 			{
 				subrange->hasStore = false;
 				subrange->hasStoreDelayed = true;

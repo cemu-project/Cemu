@@ -1,18 +1,6 @@
 #pragma once
 #include "IMLRegisterAllocator.h"
 
-struct raLivenessLocation_t
-{
-	sint32 index;
-	bool isRead;
-	bool isWrite;
-
-	raLivenessLocation_t() = default;
-
-	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
-		: index(index), isRead(isRead), isWrite(isWrite) {};
-};
-
 struct raLivenessSubrangeLink
 {
 	struct raLivenessRange* prev;
@@ -165,6 +153,28 @@ public:
 private:
 	sint32 index; // can also be RA_INTER_RANGE_START or RA_INTER_RANGE_END, otherwise contains instruction index * 2
 
+};
+
+struct raLivenessLocation_t
+{
+	sint32 index;
+	bool isRead;
+	bool isWrite;
+
+	raLivenessLocation_t() = default;
+
+	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
+		: index(index), isRead(isRead), isWrite(isWrite) {};
+
+	raInstructionEdge GetReadPos()
+	{
+		return raInstructionEdge(index, true);
+	}
+
+	raInstructionEdge GetWritePos()
+	{
+		return raInstructionEdge(index, false);
+	}
 };
 
 struct raInterval
@@ -354,7 +364,7 @@ void PPCRecRA_updateOrAddSubrangeLocation(raLivenessRange* subrange, sint32 inde
 void PPCRecRA_debugValidateSubrange(raLivenessRange* subrange);
 
 // cost estimation
-sint32 PPCRecRARange_getReadWriteCost(IMLSegment* imlSegment);
-sint32 PPCRecRARange_estimateCostAfterRangeExplode(raLivenessRange* subrange);
+sint32 IMLRA_GetSegmentReadWriteCost(IMLSegment* imlSegment);
+sint32 IMLRA_CalculateAdditionalCostOfRangeExplode(raLivenessRange* subrange);
 //sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessRange* subrange, sint32 splitIndex);
-sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessRange* subrange, raInstructionEdge splitPosition);
+sint32 IMLRA_CalculateAdditionalCostAfterSplit(raLivenessRange* subrange, raInstructionEdge splitPosition);

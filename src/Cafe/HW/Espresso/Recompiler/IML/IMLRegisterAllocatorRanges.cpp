@@ -642,7 +642,7 @@ void PPCRecRA_updateOrAddSubrangeLocation(raLivenessRange* subrange, sint32 inde
 	subrange->list_locations.emplace_back(index, isRead, isWrite);
 }
 
-sint32 PPCRecRARange_getReadWriteCost(IMLSegment* imlSegment)
+sint32 IMLRA_GetSegmentReadWriteCost(IMLSegment* imlSegment)
 {
 	sint32 v = imlSegment->loopDepth + 1;
 	v *= 5;
@@ -668,13 +668,13 @@ sint32 PPCRecRARange_estimateTotalCost(std::span<raLivenessRange*> ranges)
 		if (!subrange->interval2.ExtendsPreviousSegment())
 		{
 			//cost += PPCRecRARange_getReadWriteCost(subrange->imlSegment);
-			mostExpensiveRead = std::max(mostExpensiveRead, PPCRecRARange_getReadWriteCost(subrange->imlSegment));
+			mostExpensiveRead = std::max(mostExpensiveRead, IMLRA_GetSegmentReadWriteCost(subrange->imlSegment));
 			readCount++;
 		}
 		if (!subrange->interval2.ExtendsIntoNextSegment())
 		{
 			//cost += PPCRecRARange_getReadWriteCost(subrange->imlSegment);
-			mostExpensiveWrite = std::max(mostExpensiveWrite, PPCRecRARange_getReadWriteCost(subrange->imlSegment));
+			mostExpensiveWrite = std::max(mostExpensiveWrite, IMLRA_GetSegmentReadWriteCost(subrange->imlSegment));
 			writeCount++;
 		}
 	}
@@ -683,21 +683,34 @@ sint32 PPCRecRARange_estimateTotalCost(std::span<raLivenessRange*> ranges)
 	return cost;
 }
 
-// calculate cost of range that it would have after calling PPCRecRA_explodeRange() on it
-sint32 PPCRecRARange_estimateCostAfterRangeExplode(raLivenessRange* subrange)
+// calculate additional cost of range that it would have after calling _ExplodeRange() on it
+sint32 IMLRA_CalculateAdditionalCostOfRangeExplode(raLivenessRange* subrange)
 {
 	auto ranges = subrange->GetAllSubrangesInCluster();
-	sint32 cost = -PPCRecRARange_estimateTotalCost(ranges);
+	sint32 cost = 0;//-PPCRecRARange_estimateTotalCost(ranges);
 	for (auto& subrange : ranges)
 	{
 		if (subrange->list_locations.empty())
-			continue;
-		cost += PPCRecRARange_getReadWriteCost(subrange->imlSegment) * 2; // we assume a read and a store
+			continue; // this range would be deleted and thus has no cost
+		sint32 segmentLoadStoreCost = IMLRA_GetSegmentReadWriteCost(subrange->imlSegment);
+		bool hasAdditionalLoad = subrange->interval2.ExtendsPreviousSegment();
+		bool hasAdditionalStore = subrange->interval2.ExtendsIntoNextSegment();
+		if(hasAdditionalLoad && !subrange->list_locations.front().isRead && subrange->list_locations.front().isWrite) // if written before read, then a load isn't necessary
+		{
+			cost += segmentLoadStoreCost;
+		}
+		if(hasAdditionalStore)
+		{
+			bool hasWrite = std::find_if(subrange->list_locations.begin(), subrange->list_locations.end(), [](const raLivenessLocation_t& loc) { return loc.isWrite; }) != subrange->list_locations.end();
+			if(!hasWrite) // ranges which don't modify their value do not need to be stored
+				cost += segmentLoadStoreCost;
+		}
 	}
+	// todo - properly calculating all the data-flow dependency based costs is more complex so this currently is an approximation
 	return cost;
 }
 
-sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessRange* subrange, raInstructionEdge splitPosition)
+sint32 IMLRA_CalculateAdditionalCostAfterSplit(raLivenessRange* subrange, raInstructionEdge splitPosition)
 {
 	// validation
 #ifdef CEMU_DEBUG_ASSERT
@@ -719,9 +732,53 @@ sint32 PPCRecRARange_estimateAdditionalCostAfterSplit(raLivenessRange* subrange,
 	if (splitInstructionIndex > subrange->list_locations.back().index)
 		return 0;
 
-	// todo - determine exact cost of split subranges
+	// this can be optimized, but we should change list_locations to track instruction edges instead of instruction indices
+	std::vector<raLivenessLocation_t> headLocations;
+	std::vector<raLivenessLocation_t> tailLocations;
+	for (auto& location : subrange->list_locations)
+	{
+		if(location.GetReadPos() < splitPosition || location.GetWritePos() < splitPosition)
+			headLocations.push_back(location);
+		if(location.GetReadPos() >= splitPosition || location.GetWritePos() >= splitPosition)
+			tailLocations.push_back(location);
+	}
+	// fixup locations
+	if(!headLocations.empty() && headLocations.back().GetWritePos() >= splitPosition)
+	{
+		headLocations.back().isWrite = false;
+		if(!headLocations.back().isRead && !headLocations.back().isWrite)
+			headLocations.pop_back();
+	}
+	if(!tailLocations.empty() && tailLocations.front().GetReadPos() < splitPosition)
+	{
+		tailLocations.front().isRead = false;
+		if(!tailLocations.front().isRead && !tailLocations.front().isWrite)
+			tailLocations.erase(tailLocations.begin());
+	}
 
-	cost += PPCRecRARange_getReadWriteCost(subrange->imlSegment) * 2; // currently we assume that the additional region will require a read and a store
+	// based on
+	sint32 segmentLoadStoreCost = IMLRA_GetSegmentReadWriteCost(subrange->imlSegment);
+
+	auto CalculateCostFromLocationRange = [segmentLoadStoreCost](const std::vector<raLivenessLocation_t>& locations, bool trackLoadCost = true, bool trackStoreCost = true) -> sint32
+	{
+		if(locations.empty())
+			return 0;
+		sint32 cost = 0;
+		if(locations.front().isRead && trackLoadCost)
+			cost += segmentLoadStoreCost; // not overwritten, so there is a load cost
+		bool hasWrite = std::find_if(locations.begin(), locations.end(), [](const raLivenessLocation_t& loc) { return loc.isWrite; }) != locations.end();
+		if(hasWrite && trackStoreCost)
+			cost += segmentLoadStoreCost; // modified, so there is a store cost
+		return cost;
+	};
+
+	sint32 baseCost = CalculateCostFromLocationRange(subrange->list_locations);
+
+	bool tailOverwritesValue = !tailLocations.empty() && !tailLocations.front().isRead && tailLocations.front().isWrite;
+
+	sint32 newCost = CalculateCostFromLocationRange(headLocations) + CalculateCostFromLocationRange(tailLocations, !tailOverwritesValue, true);
+	cemu_assert_debug(newCost >= baseCost);
+	cost = newCost - baseCost;
 
 	return cost;
 }
