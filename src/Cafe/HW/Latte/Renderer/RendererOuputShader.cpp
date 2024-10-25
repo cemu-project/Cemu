@@ -6,13 +6,11 @@ R"(#version 420
 
 #ifdef VULKAN
 layout(location = 0) in vec2 passUV;
-layout(binding = 0) uniform sampler2D textureSrc;
-layout(location = 0) out vec4 colorOut0;
 #else
 in vec2 passUV;
-layout(binding=0) uniform sampler2D textureSrc;
-layout(location = 0) out vec4 colorOut0;
 #endif
+layout(binding = 0) uniform sampler2D textureSrc;
+layout(location = 0) out vec4 colorOut0;
 
 void main()
 {
@@ -26,15 +24,17 @@ R"(
 
 #ifdef VULKAN
 layout(location = 0) in vec2 passUV;
-layout(binding = 0)  uniform sampler2D textureSrc;
-layout(binding = 1)  uniform vec2 textureSrcResolution;
-layout(location = 0) out vec4 colorOut0;
+layout(push_constant) uniform pc {
+	vec2 textureSrcResolution;
+	vec2 inputResolution;
+	vec2 outputResolution;
+};
 #else
 in vec2 passUV;
-layout(binding=0) uniform sampler2D textureSrc;
 uniform vec2 textureSrcResolution;
-layout(location = 0) out vec4 colorOut0;
 #endif
+layout(binding = 0)  uniform sampler2D textureSrc;
+layout(location = 0) out vec4 colorOut0;
 
 vec4 cubic(float x)
 {
@@ -83,11 +83,21 @@ void main(){
 const std::string RendererOutputShader::s_hermite_shader_source =
 R"(#version 420
 
-in vec4 gl_FragCoord;	
-in vec2 passUV;
+in vec4 gl_FragCoord;
 layout(binding=0) uniform sampler2D textureSrc;
+#ifdef VULKAN
+layout(location = 0) in vec2 passUV;
+layout(push_constant) uniform pc {
+	vec2 textureSrcResolution;
+	vec2 inputResolution;
+	vec2 outputResolution;
+};
+#else
+in vec2 passUV;
 uniform vec2 textureSrcResolution;
 uniform vec2 outputResolution;
+#endif
+
 layout(location = 0) out vec4 colorOut0;
 
 // https://www.shadertoy.com/view/MllSzX
@@ -171,18 +181,6 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 		m_attributes[1].m_loc_input_resolution = m_fragment_shader->GetUniformLocation("inputResolution");
 		m_attributes[1].m_loc_output_resolution = m_fragment_shader->GetUniformLocation("outputResolution");
 	}
-	else
-	{
-		cemuLog_logDebug(LogType::Force, "RendererOutputShader() - todo for Vulkan");
-		m_attributes[0].m_loc_texture_src_resolution = -1;
-		m_attributes[0].m_loc_input_resolution = -1;
-		m_attributes[0].m_loc_output_resolution = -1;
-
-		m_attributes[1].m_loc_texture_src_resolution = -1;
-		m_attributes[1].m_loc_input_resolution = -1;
-		m_attributes[1].m_loc_output_resolution = -1;
-	}
-
 }
 
 void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const
@@ -349,28 +347,18 @@ void RendererOutputShader::InitializeStatic()
 	{
 		vertex_source = GetOpenGlVertexSource(false);
 		vertex_source_ud = GetOpenGlVertexSource(true);
-
-		s_copy_shader = new RendererOutputShader(vertex_source, s_copy_shader_source);
-		s_copy_shader_ud = new RendererOutputShader(vertex_source_ud, s_copy_shader_source);
-
-		s_bicubic_shader = new RendererOutputShader(vertex_source, s_bicubic_shader_source);
-		s_bicubic_shader_ud = new RendererOutputShader(vertex_source_ud, s_bicubic_shader_source);
-
-		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
-		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);
 	}
 	else
 	{
 		vertex_source = GetVulkanVertexSource(false);
 		vertex_source_ud = GetVulkanVertexSource(true);
-
-		s_copy_shader = new RendererOutputShader(vertex_source, s_copy_shader_source);
-		s_copy_shader_ud = new RendererOutputShader(vertex_source_ud, s_copy_shader_source);
-
-	/*	s_bicubic_shader = new RendererOutputShader(vertex_source, s_bicubic_shader_source); TODO
-		s_bicubic_shader_ud = new RendererOutputShader(vertex_source_ud, s_bicubic_shader_source);
-
-		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
-		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);*/
 	}
+	s_copy_shader = new RendererOutputShader(vertex_source, s_copy_shader_source);
+	s_copy_shader_ud = new RendererOutputShader(vertex_source_ud, s_copy_shader_source);
+
+	s_bicubic_shader = new RendererOutputShader(vertex_source, s_bicubic_shader_source);
+	s_bicubic_shader_ud = new RendererOutputShader(vertex_source_ud, s_bicubic_shader_source);
+
+	s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
+	s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);
 }
