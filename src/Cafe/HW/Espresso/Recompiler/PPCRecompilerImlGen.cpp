@@ -2930,6 +2930,30 @@ void PPCIMLGen_AssertIfNotLastSegmentInstruction(ppcImlGenContext_t& ppcImlGenCo
 	cemu_assert_debug(ppcImlGenContext.currentBasicBlock->lastAddress == ppcImlGenContext.ppcAddressOfCurrentInstruction);
 }
 
+bool PPCRecompiler_IsBasicBlockATightFiniteLoop(IMLSegment* imlSegment, PPCBasicBlockInfo& basicBlockInfo)
+{
+	// if we detect a finite loop we can skip generating the cycle check
+	// currently we only check for BDNZ loops since thats reasonably safe to rely on
+	// however there are other forms of loops that can be classified as finite,
+	// but detecting those involves analyzing PPC code and we dont have the infrastructure for that (e.g. IML has CheckRegisterUsage but we dont have an equivalent for PPC code)
+
+	// base criteria, must jump to beginning of same segment
+	if (imlSegment->nextSegmentBranchTaken != imlSegment)
+		return false;
+
+	uint32 opcode = *(uint32be*)(memory_base + basicBlockInfo.lastAddress);
+	if (Espresso::GetPrimaryOpcode(opcode) != Espresso::PrimaryOpcode::BC)
+		return false;
+	uint32 BO, BI, BD;
+	PPC_OPC_TEMPL_B(opcode, BO, BI, BD);
+	Espresso::BOField boField(BO);
+	if(!boField.conditionIgnore() || boField.branchAlways())
+		return false;
+	if(boField.decrementerIgnore())
+		return false;
+	return true;
+}
+
 void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo)
 {
 	IMLSegment* imlSegment = basicBlockInfo.GetFirstSegmentInChain();
@@ -2938,8 +2962,7 @@ void PPCRecompiler_HandleCycleCheckCount(ppcImlGenContext_t& ppcImlGenContext, P
 	if (basicBlockInfo.branchTarget > basicBlockInfo.startAddress)
 		return;
 
-	// exclude non-infinite tight loops
-	if (IMLAnalyzer_IsTightFiniteLoop(imlSegment))
+	if (PPCRecompiler_IsBasicBlockATightFiniteLoop(imlSegment, basicBlockInfo))
 		return;
 
 	// make the segment enterable so execution can return after passing a check
