@@ -168,7 +168,8 @@ static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRe
 	{
 		IMLPhysRegisterSet ps;
 		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_EAX);
-		fixedRegs.listInput.emplace_back(instruction->op_atomic_compare_store.regBoolOut, ps);
+		fixedRegs.listInput.emplace_back(IMLREG_INVALID, ps); // none of the inputs may use EAX
+		fixedRegs.listOutput.emplace_back(instruction->op_atomic_compare_store.regBoolOut, ps); // but we output to EAX
 	}
 	else if (instruction->type == PPCREC_IML_TYPE_CALL_IMM)
 	{
@@ -262,30 +263,14 @@ void PPCRecRA_identifyLoop(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* iml
 
 sint32 PPCRecRA_countDistanceUntilNextUse2(raLivenessRange* subrange, raInstructionEdge startPosition)
 {
-	sint32 startInstructionIndex;
-	if (startPosition.ConnectsToPreviousSegment())
-		startInstructionIndex = 0;
-	else
-		startInstructionIndex = startPosition.GetInstructionIndex();
-	for (sint32 i = 0; i < subrange->list_locations.size(); i++)
+	for (sint32 i = 0; i < subrange->list_accessLocations.size(); i++)
 	{
-		if (subrange->list_locations[i].index >= startInstructionIndex)
+		if (subrange->list_accessLocations[i].pos >= startPosition)
 		{
-			sint32 preciseIndex = subrange->list_locations[i].index * 2;
-			cemu_assert_debug(subrange->list_locations[i].isRead || subrange->list_locations[i].isWrite); // locations must have any access
-			// check read edge
-			if (subrange->list_locations[i].isRead)
-			{
-				if (preciseIndex >= startPosition.GetRaw())
-					return preciseIndex - startPosition.GetRaw();
-			}
-			// check write edge
-			if (subrange->list_locations[i].isWrite)
-			{
-				preciseIndex++;
-				if (preciseIndex >= startPosition.GetRaw())
-					return preciseIndex - startPosition.GetRaw();
-			}
+			auto& it = subrange->list_accessLocations[i];
+			cemu_assert_debug(it.IsRead() != it.IsWrite()); // an access location can be either read or write
+			cemu_assert_debug(!startPosition.ConnectsToPreviousSegment() && !startPosition.ConnectsToNextSegment());
+			return it.pos.GetRaw() - startPosition.GetRaw();
 		}
 	}
 	cemu_assert_debug(subrange->imlSegment->imlList.size() < 10000);
@@ -549,9 +534,7 @@ struct raFixedRegRequirementWithVGPR
 std::vector<raFixedRegRequirementWithVGPR> IMLRA_BuildSegmentInstructionFixedRegList(IMLSegment* imlSegment)
 {
 	std::vector<raFixedRegRequirementWithVGPR> frrList;
-
 	size_t index = 0;
-	IMLUsedRegisters gprTracking;
 	while (index < imlSegment->imlList.size())
 	{
 		IMLFixedRegisters fixedRegs;
@@ -560,7 +543,7 @@ std::vector<raFixedRegRequirementWithVGPR> IMLRA_BuildSegmentInstructionFixedReg
 		pos.Set(index, true);
 		for (auto& fixedRegAccess : fixedRegs.listInput)
 		{
-			frrList.emplace_back(pos, fixedRegAccess.physRegSet, fixedRegAccess.reg.GetRegID());
+			frrList.emplace_back(pos, fixedRegAccess.physRegSet, fixedRegAccess.reg.IsValid() ? fixedRegAccess.reg.GetRegID() : IMLRegID_INVALID);
 		}
 		pos = pos + 1;
 		for (auto& fixedRegAccess : fixedRegs.listOutput)
@@ -1468,6 +1451,19 @@ raLivenessRange* PPCRecRA_convertToMappedRanges(IMLRegisterAllocatorContext& ctx
 	return subrange;
 }
 
+void IMLRA_UpdateOrAddSubrangeLocation(raLivenessRange* subrange, raInstructionEdge pos)
+{
+	if (subrange->list_accessLocations.empty())
+	{
+		subrange->list_accessLocations.emplace_back(pos);
+		return;
+	}
+	if(subrange->list_accessLocations.back().pos == pos)
+		return;
+	cemu_assert_debug(subrange->list_accessLocations.back().pos < pos);
+	subrange->list_accessLocations.emplace_back(pos);
+}
+
 // take abstract range data and create LivenessRanges
 void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IMLSegment* imlSegment)
 {
@@ -1500,12 +1496,27 @@ void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IML
 	while (index < imlSegment->imlList.size())
 	{
 		imlSegment->imlList[index].CheckRegisterUsage(&gprTracking);
-		gprTracking.ForEachAccessedGPR([&](IMLReg gprReg, bool isWritten) {
+		raInstructionEdge pos((sint32)index, true);
+		gprTracking.ForEachReadGPR([&](IMLReg gprReg) {
 			IMLRegID gprId = gprReg.GetRegID();
 			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
-			PPCRecRA_updateOrAddSubrangeLocation(subrange, index, !isWritten, isWritten);
-			cemu_assert_debug(!subrange->interval2.start.IsInstructionIndex() || subrange->interval2.start.GetInstructionIndex() <= index);
-			cemu_assert_debug(!subrange->interval2.end.IsInstructionIndex() || subrange->interval2.end.GetInstructionIndex() >= index);
+			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
+		});
+		gprTracking.ForEachReadFPR([&](IMLReg gprReg) {
+			IMLRegID gprId = gprReg.GetRegID();
+			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
+			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
+		});
+		pos = {(sint32)index, false};
+		gprTracking.ForEachWrittenGPR([&](IMLReg gprReg) {
+			IMLRegID gprId = gprReg.GetRegID();
+			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
+			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
+		});
+		gprTracking.ForEachWrittenFPR([&](IMLReg gprReg) {
+			IMLRegID gprId = gprReg.GetRegID();
+			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
+			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
 		});
 		// check fixed register requirements
 		IMLFixedRegisters fixedRegs;
@@ -1754,13 +1765,13 @@ void IMLRA_AnalyzeSubrangeDataDependency(raLivenessRange* subrange)
 	bool isRead = false;
 	bool isWritten = false;
 	bool isOverwritten = false;
-	for (auto& location : subrange->list_locations)
+	for (auto& location : subrange->list_accessLocations)
 	{
-		if (location.isRead)
+		if (location.IsRead())
 		{
 			isRead = true;
 		}
-		if (location.isWrite)
+		if (location.IsWrite())
 		{
 			if (isRead == false)
 				isOverwritten = true;

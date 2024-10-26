@@ -207,7 +207,7 @@ raLivenessRange* PPCRecRA_createSubrange2(ppcImlGenContext_t* ppcImlGenContext, 
 {
 	raLivenessRange* range = memPool_livenessSubrange.acquireObj();
 	range->previousRanges.clear();
-	range->list_locations.clear();
+	range->list_accessLocations.clear();
 	range->list_fixedRegRequirements.clear();
 	range->imlSegment = imlSegment;
 
@@ -259,39 +259,16 @@ void _unlinkSubrange(raLivenessRange* subrange)
 void PPCRecRA_deleteSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange)
 {
 	_unlinkSubrange(subrange);
-	//subrange->range->list_subranges.erase(std::find(subrange->range->list_subranges.begin(), subrange->range->list_subranges.end(), subrange));
-	subrange->list_locations.clear();
-
-	//PPCRecompilerIml_removeSegmentPoint(&subrange->interval.start);
-	//PPCRecompilerIml_removeSegmentPoint(&subrange->interval.end);
+	subrange->list_accessLocations.clear();
+	subrange->list_fixedRegRequirements.clear();
 	memPool_livenessSubrange.releaseObj(subrange);
-}
-
-// leaves range and linked ranges in invalid state. Only use at final clean up when no range is going to be accessed anymore
-void _PPCRecRA_deleteSubrangeNoUnlink(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange)
-{
-	_unlinkSubrange(subrange);
-	//PPCRecompilerIml_removeSegmentPoint(&subrange->interval.start);
-	//PPCRecompilerIml_removeSegmentPoint(&subrange->interval.end);
-	memPool_livenessSubrange.releaseObj(subrange);
-
-// #ifdef CEMU_DEBUG_ASSERT
-// 	// DEBUG BEGIN
-// 	subrange->lastIterationIndex = 0xFFFFFFFE;
-// 	subrange->subrangeBranchTaken = (raLivenessRange*)(uintptr_t)-1;
-// 	subrange->subrangeBranchNotTaken = (raLivenessRange*)(uintptr_t)-1;
-//
-// 	// DEBUG END
-// #endif
 }
 
 void PPCRecRA_deleteSubrangeCluster(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange)
 {
 	auto clusterRanges = subrange->GetAllSubrangesInCluster();
 	for (auto& subrange : clusterRanges)
-	{
-		_PPCRecRA_deleteSubrangeNoUnlink(ppcImlGenContext, subrange);
-	}
+		PPCRecRA_deleteSubrange(ppcImlGenContext, subrange);
 }
 
 void IMLRA_DeleteAllRanges(ppcImlGenContext_t* ppcImlGenContext)
@@ -300,9 +277,7 @@ void IMLRA_DeleteAllRanges(ppcImlGenContext_t* ppcImlGenContext)
 	{
 		raLivenessRange* cur;
 		while(cur = seg->raInfo.linkedList_allSubranges)
-		{
-			_PPCRecRA_deleteSubrangeNoUnlink(ppcImlGenContext, cur);
-		}
+			PPCRecRA_deleteSubrange(ppcImlGenContext, cur);
 		seg->raInfo.linkedList_allSubranges = nullptr;
 		seg->raInfo.linkedList_perVirtualRegister.clear();
 	}
@@ -322,7 +297,6 @@ void PPCRecRA_mergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRan
 	if (subrange == absorbedSubrange)
 		assert_dbg();
 #endif
-
 	// update references
 	subrange->subrangeBranchTaken = absorbedSubrange->subrangeBranchTaken;
 	subrange->subrangeBranchNotTaken = absorbedSubrange->subrangeBranchNotTaken;
@@ -334,22 +308,9 @@ void PPCRecRA_mergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRan
 		*std::find(subrange->subrangeBranchNotTaken->previousRanges.begin(), subrange->subrangeBranchNotTaken->previousRanges.end(), absorbedSubrange) = subrange;
 
 	// merge usage locations
-	// at the merge point both ranges might track the same instruction, we handle this by first merging this duplicate location
-	if(subrange && absorbedSubrange && !subrange->list_locations.empty() && !absorbedSubrange->list_locations.empty())
-	{
-		if(subrange->list_locations.back().index == absorbedSubrange->list_locations.front().index)
-		{
-			subrange->list_locations.back().isRead |= absorbedSubrange->list_locations.front().isRead;
-			subrange->list_locations.back().isWrite |= absorbedSubrange->list_locations.front().isWrite;
-			absorbedSubrange->list_locations.erase(absorbedSubrange->list_locations.begin()); // inefficient
-		}
-	}
-	for (auto& location : absorbedSubrange->list_locations)
-	{
-		cemu_assert_debug(subrange->list_locations.empty() || (subrange->list_locations.back().index < location.index)); // todo - sometimes a subrange can contain the same instruction at the merge point if they are covering half of the instruction edge
-		subrange->list_locations.push_back(location);
-	}
-	absorbedSubrange->list_locations.clear();
+	for (auto& accessLoc : absorbedSubrange->list_accessLocations)
+		subrange->list_accessLocations.push_back(accessLoc);
+	absorbedSubrange->list_accessLocations.clear();
 	// merge fixed reg locations
 #ifdef CEMU_DEBUG_ASSERT
 	if(!subrange->list_fixedRegRequirements.empty() && !absorbedSubrange->list_fixedRegRequirements.empty())
@@ -358,9 +319,8 @@ void PPCRecRA_mergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRan
 	}
 #endif
 	for (auto& fixedReg : absorbedSubrange->list_fixedRegRequirements)
-	{
 		subrange->list_fixedRegRequirements.push_back(fixedReg);
-	}
+	absorbedSubrange->list_fixedRegRequirements.clear();
 
 	subrange->interval2.end = absorbedSubrange->interval2.end;
 
@@ -376,17 +336,28 @@ void PPCRecRA_explodeRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange
 	auto clusterRanges = originRange->GetAllSubrangesInCluster();
 	for (auto& subrange : clusterRanges)
 	{
-		if (subrange->list_locations.empty())
+		if (subrange->list_accessLocations.empty())
 			continue;
 		raInterval interval;
-		interval.SetInterval(subrange->list_locations.front().index, true, subrange->list_locations.back().index, true);
+		interval.SetInterval(subrange->list_accessLocations.front().pos, subrange->list_accessLocations.back().pos);
 		raLivenessRange* newSubrange = PPCRecRA_createSubrange2(ppcImlGenContext, subrange->imlSegment, subrange->GetVirtualRegister(), subrange->GetName(), interval.start, interval.end);
 		// copy locations and fixed reg indices
-		newSubrange->list_locations = subrange->list_locations;
+		newSubrange->list_accessLocations = subrange->list_accessLocations;
 		newSubrange->list_fixedRegRequirements = subrange->list_fixedRegRequirements;
 		if(originRange->HasPhysicalRegister())
 		{
 			cemu_assert_debug(subrange->list_fixedRegRequirements.empty()); // avoid unassigning a register from a range with a fixed register requirement
+		}
+		// validate
+		if(!newSubrange->list_accessLocations.empty())
+		{
+			cemu_assert_debug(newSubrange->list_accessLocations.front().pos >= newSubrange->interval2.start);
+			cemu_assert_debug(newSubrange->list_accessLocations.back().pos <= newSubrange->interval2.end);
+		}
+		if(!newSubrange->list_fixedRegRequirements.empty())
+		{
+			cemu_assert_debug(newSubrange->list_fixedRegRequirements.front().pos >= newSubrange->interval2.start); // fixed register requirements outside of the actual access range probably means there is a mistake in GetInstructionFixedRegisters()
+			cemu_assert_debug(newSubrange->list_fixedRegRequirements.back().pos <= newSubrange->interval2.end);
 		}
 	}
 	// remove subranges
@@ -411,10 +382,10 @@ void PPCRecRA_debugValidateSubrange(raLivenessRange* range)
 		cemu_assert_debug(range->interval2.start.ConnectsToPreviousSegment());
 	}
 	// validate locations
-	if (!range->list_locations.empty())
+	if (!range->list_accessLocations.empty())
 	{
-		cemu_assert_debug(range->list_locations.front().index >= range->interval2.start.GetInstructionIndexEx());
-		cemu_assert_debug(range->list_locations.back().index <= range->interval2.end.GetInstructionIndexEx());
+		cemu_assert_debug(range->list_accessLocations.front().pos >= range->interval2.start);
+		cemu_assert_debug(range->list_accessLocations.back().pos <= range->interval2.end);
 	}
 	// validate fixed reg requirements
 	if (!range->list_fixedRegRequirements.empty())
@@ -430,41 +401,11 @@ void PPCRecRA_debugValidateSubrange(raLivenessRange* range)
 void PPCRecRA_debugValidateSubrange(raLivenessRange* range) {}
 #endif
 
-// since locations are per-instruction, but intervals are per-edge, it's possible that locations track reads/writes outside of the range
-// this function will remove any outside read/write locations
-void IMLRA_FixLocations(raLivenessRange* range)
-{
-	if(range->list_locations.empty())
-		return;
-	if(range->interval2.start.IsInstructionIndex() && range->interval2.start.GetInstructionIndex() == range->list_locations.front().index)
-	{
-		auto& location = range->list_locations.front();
-		if(range->interval2.start.IsOnOutputEdge())
-		{
-			location.isRead = false;
-			if(!location.isRead && !location.isWrite)
-				range->list_locations.erase(range->list_locations.begin());
-		}
-	}
-	if(range->list_locations.empty())
-		return;
-	if(range->interval2.end.IsInstructionIndex() && range->interval2.end.GetInstructionIndex() == range->list_locations.back().index)
-	{
-		auto& location = range->list_locations.back();
-		if(range->interval2.end.IsOnInputEdge())
-		{
-			location.isWrite = false;
-			if(!location.isRead && !location.isWrite)
-				range->list_locations.pop_back();
-		}
-	}
-}
-
 // trim start and end of range to match first and last read/write locations
 // does not trim start/endpoints which extend into the next/previous segment
 void IMLRA_TrimRangeToUse(raLivenessRange* range)
 {
-	if(range->list_locations.empty())
+	if(range->list_accessLocations.empty())
 	{
 		// special case where we trim ranges extending from other segments to a single instruction edge
 		cemu_assert_debug(!range->interval2.start.IsInstructionIndex() || !range->interval2.end.IsInstructionIndex());
@@ -474,25 +415,18 @@ void IMLRA_TrimRangeToUse(raLivenessRange* range)
 			range->interval2.end = range->interval2.start;
 		return;
 	}
+	// trim start and end
 	raInterval prevInterval = range->interval2;
-	// trim start
 	if(range->interval2.start.IsInstructionIndex())
-	{
-		bool isInputEdge = range->list_locations.front().isRead;
-		range->interval2.start.Set(range->list_locations.front().index, isInputEdge);
-	}
-	// trim end
+		range->interval2.start = range->list_accessLocations.front().pos;
 	if(range->interval2.end.IsInstructionIndex())
-	{
-		bool isOutputEdge = range->list_locations.back().isWrite;
-		range->interval2.end.Set(range->list_locations.back().index, !isOutputEdge);
-	}
+		range->interval2.end = range->list_accessLocations.back().pos;
 	// extra checks
 #ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug(range->interval2.start <= range->interval2.end);
-	for(auto& loc : range->list_locations)
+	for(auto& loc : range->list_accessLocations)
 	{
-		cemu_assert_debug(range->interval2.ContainsInstructionIndex(loc.index));
+		cemu_assert_debug(range->interval2.ContainsEdge(loc.pos));
 	}
 	cemu_assert_debug(prevInterval.ContainsWholeInterval(range->interval2));
 #endif
@@ -532,33 +466,25 @@ raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenConte
 		*std::find(tailSubrange->subrangeBranchNotTaken->previousRanges.begin(), tailSubrange->subrangeBranchNotTaken->previousRanges.end(), subrange) = tailSubrange;
 	// we assume that list_locations is ordered by instruction index and contains no duplicate indices, so lets check that here just in case
 #ifdef CEMU_DEBUG_ASSERT
-	if(!subrange->list_locations.empty())
+	if(subrange->list_accessLocations.size() > 1)
 	{
-		sint32 curIdx = -1;
-		for(auto& location : subrange->list_locations)
+		for(size_t i=0; i<subrange->list_accessLocations.size()-1; i++)
 		{
-			cemu_assert_debug(curIdx < location.index);
-			curIdx = location.index;
+			cemu_assert_debug(subrange->list_accessLocations[i].pos < subrange->list_accessLocations[i+1].pos);
 		}
 	}
 #endif
 	// split locations
-	// since there are 2 edges per instruction and locations track both via a single index, locations on the split point might need to be copied into both ranges
-	for (auto& location : subrange->list_locations)
-	{
-		if(tailInterval.ContainsInstructionIndex(location.index))
-			tailSubrange->list_locations.push_back(location);
-	}
-	// remove tail locations from head
-	for (sint32 i = 0; i < subrange->list_locations.size(); i++)
-	{
-		raLivenessLocation_t* location = subrange->list_locations.data() + i;
-		if (!headInterval.ContainsInstructionIndex(location->index))
-		{
-			subrange->list_locations.resize(i);
-			break;
-		}
-	}
+	auto it = std::lower_bound(
+		subrange->list_accessLocations.begin(), subrange->list_accessLocations.end(), splitPosition,
+		[](const raAccessLocation& accessLoc, raInstructionEdge value) { return accessLoc.pos < value; }
+	);
+	size_t originalCount = subrange->list_accessLocations.size();
+	tailSubrange->list_accessLocations.insert(tailSubrange->list_accessLocations.end(), it, subrange->list_accessLocations.end());
+	subrange->list_accessLocations.erase(it, subrange->list_accessLocations.end());
+	cemu_assert_debug(subrange->list_accessLocations.empty() || subrange->list_accessLocations.back().pos < splitPosition);
+	cemu_assert_debug(tailSubrange->list_accessLocations.empty() || tailSubrange->list_accessLocations.front().pos >= splitPosition);
+	cemu_assert_debug(subrange->list_accessLocations.size() + tailSubrange->list_accessLocations.size() == originalCount);
 	// split fixed reg requirements
 	for (sint32 i = 0; i < subrange->list_fixedRegRequirements.size(); i++)
 	{
@@ -581,15 +507,10 @@ raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenConte
 	// adjust intervals
 	subrange->interval2 = headInterval;
 	tailSubrange->interval2 = tailInterval;
-	// fix locations to only include read/write edges within the range
-	if(subrange)
-		IMLRA_FixLocations(subrange);
-	if(tailSubrange)
-		IMLRA_FixLocations(tailSubrange);
 	// trim to hole
 	if(trimToHole)
 	{
-		if(subrange->list_locations.empty() && (subrange->interval2.start.IsInstructionIndex() && subrange->interval2.end.IsInstructionIndex()))
+		if(subrange->list_accessLocations.empty() && (subrange->interval2.start.IsInstructionIndex() && subrange->interval2.end.IsInstructionIndex()))
 		{
 			PPCRecRA_deleteSubrange(ppcImlGenContext, subrange);
 			subrange = nullptr;
@@ -598,7 +519,7 @@ raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenConte
 		{
 			IMLRA_TrimRangeToUse(subrange);
 		}
-		if(tailSubrange->list_locations.empty() && (tailSubrange->interval2.start.IsInstructionIndex() && tailSubrange->interval2.end.IsInstructionIndex()))
+		if(tailSubrange->list_accessLocations.empty() && (tailSubrange->interval2.start.IsInstructionIndex() && tailSubrange->interval2.end.IsInstructionIndex()))
 		{
 			PPCRecRA_deleteSubrange(ppcImlGenContext, tailSubrange);
 			tailSubrange = nullptr;
@@ -622,65 +543,11 @@ raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenConte
 	return tailSubrange;
 }
 
-void PPCRecRA_updateOrAddSubrangeLocation(raLivenessRange* subrange, sint32 index, bool isRead, bool isWrite)
-{
-	if (subrange->list_locations.empty())
-	{
-		subrange->list_locations.emplace_back(index, isRead, isWrite);
-		return;
-	}
-	raLivenessLocation_t* lastLocation = subrange->list_locations.data() + (subrange->list_locations.size() - 1);
-	cemu_assert_debug(lastLocation->index <= index);
-	if (lastLocation->index == index)
-	{
-		// update
-		lastLocation->isRead = lastLocation->isRead || isRead;
-		lastLocation->isWrite = lastLocation->isWrite || isWrite;
-		return;
-	}
-	// add new
-	subrange->list_locations.emplace_back(index, isRead, isWrite);
-}
-
 sint32 IMLRA_GetSegmentReadWriteCost(IMLSegment* imlSegment)
 {
 	sint32 v = imlSegment->loopDepth + 1;
 	v *= 5;
 	return v*v; // 25, 100, 225, 400
-}
-
-// calculate cost of entire range cluster
-sint32 PPCRecRARange_estimateTotalCost(std::span<raLivenessRange*> ranges)
-{
-	sint32 cost = 0;
-
-	// todo - this algorithm isn't accurate. If we have 10 parallel branches with a load each then the actual cost is still only that of one branch (plus minimal extra cost for generating more code).
-
-	// currently we calculate the cost based on the most expensive entry/exit point
-
-	sint32 mostExpensiveRead = 0;
-	sint32 mostExpensiveWrite = 0;
-	sint32 readCount = 0;
-	sint32 writeCount = 0;
-
-	for (auto& subrange : ranges)
-	{
-		if (!subrange->interval2.ExtendsPreviousSegment())
-		{
-			//cost += PPCRecRARange_getReadWriteCost(subrange->imlSegment);
-			mostExpensiveRead = std::max(mostExpensiveRead, IMLRA_GetSegmentReadWriteCost(subrange->imlSegment));
-			readCount++;
-		}
-		if (!subrange->interval2.ExtendsIntoNextSegment())
-		{
-			//cost += PPCRecRARange_getReadWriteCost(subrange->imlSegment);
-			mostExpensiveWrite = std::max(mostExpensiveWrite, IMLRA_GetSegmentReadWriteCost(subrange->imlSegment));
-			writeCount++;
-		}
-	}
-	cost = mostExpensiveRead + mostExpensiveWrite;
-	cost = cost + (readCount + writeCount) / 10;
-	return cost;
 }
 
 // calculate additional cost of range that it would have after calling _ExplodeRange() on it
@@ -690,18 +557,19 @@ sint32 IMLRA_CalculateAdditionalCostOfRangeExplode(raLivenessRange* subrange)
 	sint32 cost = 0;//-PPCRecRARange_estimateTotalCost(ranges);
 	for (auto& subrange : ranges)
 	{
-		if (subrange->list_locations.empty())
+		if (subrange->list_accessLocations.empty())
 			continue; // this range would be deleted and thus has no cost
 		sint32 segmentLoadStoreCost = IMLRA_GetSegmentReadWriteCost(subrange->imlSegment);
 		bool hasAdditionalLoad = subrange->interval2.ExtendsPreviousSegment();
 		bool hasAdditionalStore = subrange->interval2.ExtendsIntoNextSegment();
-		if(hasAdditionalLoad && !subrange->list_locations.front().isRead && subrange->list_locations.front().isWrite) // if written before read, then a load isn't necessary
+		if(hasAdditionalLoad && subrange->list_accessLocations.front().IsWrite()) // if written before read then a load isn't necessary
 		{
+			cemu_assert_debug(!subrange->list_accessLocations.front().IsRead());
 			cost += segmentLoadStoreCost;
 		}
 		if(hasAdditionalStore)
 		{
-			bool hasWrite = std::find_if(subrange->list_locations.begin(), subrange->list_locations.end(), [](const raLivenessLocation_t& loc) { return loc.isWrite; }) != subrange->list_locations.end();
+			bool hasWrite = std::find_if(subrange->list_accessLocations.begin(), subrange->list_accessLocations.end(), [](const raAccessLocation& loc) { return loc.IsWrite(); }) != subrange->list_accessLocations.end();
 			if(!hasWrite) // ranges which don't modify their value do not need to be stored
 				cost += segmentLoadStoreCost;
 		}
@@ -721,60 +589,45 @@ sint32 IMLRA_CalculateAdditionalCostAfterSplit(raLivenessRange* subrange, raInst
 
 	sint32 cost = 0;
 	// find split position in location list
-	if (subrange->list_locations.empty())
-	{
-		assert_dbg(); // should not happen?
+	if (subrange->list_accessLocations.empty())
 		return 0;
-	}
-	sint32 splitInstructionIndex = splitPosition.GetInstructionIndex();
-	if (splitInstructionIndex <= subrange->list_locations.front().index)
+	if (splitPosition <= subrange->list_accessLocations.front().pos)
 		return 0;
-	if (splitInstructionIndex > subrange->list_locations.back().index)
+	if (splitPosition > subrange->list_accessLocations.back().pos)
 		return 0;
 
-	// this can be optimized, but we should change list_locations to track instruction edges instead of instruction indices
-	std::vector<raLivenessLocation_t> headLocations;
-	std::vector<raLivenessLocation_t> tailLocations;
-	for (auto& location : subrange->list_locations)
+	size_t firstTailLocationIndex = 0;
+	for (size_t i = 0; i < subrange->list_accessLocations.size(); i++)
 	{
-		if(location.GetReadPos() < splitPosition || location.GetWritePos() < splitPosition)
-			headLocations.push_back(location);
-		if(location.GetReadPos() >= splitPosition || location.GetWritePos() >= splitPosition)
-			tailLocations.push_back(location);
+		if (subrange->list_accessLocations[i].pos >= splitPosition)
+		{
+			firstTailLocationIndex = i;
+			break;
+		}
 	}
-	// fixup locations
-	if(!headLocations.empty() && headLocations.back().GetWritePos() >= splitPosition)
-	{
-		headLocations.back().isWrite = false;
-		if(!headLocations.back().isRead && !headLocations.back().isWrite)
-			headLocations.pop_back();
-	}
-	if(!tailLocations.empty() && tailLocations.front().GetReadPos() < splitPosition)
-	{
-		tailLocations.front().isRead = false;
-		if(!tailLocations.front().isRead && !tailLocations.front().isWrite)
-			tailLocations.erase(tailLocations.begin());
-	}
+	std::span<raAccessLocation> headLocations{subrange->list_accessLocations.data(), firstTailLocationIndex};
+	std::span<raAccessLocation> tailLocations{subrange->list_accessLocations.data() + firstTailLocationIndex, subrange->list_accessLocations.size() - firstTailLocationIndex};
+	cemu_assert_debug(headLocations.empty() || headLocations.back().pos < splitPosition);
+	cemu_assert_debug(tailLocations.empty() || tailLocations.front().pos >= splitPosition);
 
-	// based on
 	sint32 segmentLoadStoreCost = IMLRA_GetSegmentReadWriteCost(subrange->imlSegment);
 
-	auto CalculateCostFromLocationRange = [segmentLoadStoreCost](const std::vector<raLivenessLocation_t>& locations, bool trackLoadCost = true, bool trackStoreCost = true) -> sint32
+	auto CalculateCostFromLocationRange = [segmentLoadStoreCost](std::span<raAccessLocation> locations, bool trackLoadCost = true, bool trackStoreCost = true) -> sint32
 	{
 		if(locations.empty())
 			return 0;
 		sint32 cost = 0;
-		if(locations.front().isRead && trackLoadCost)
+		if(locations.front().IsRead() && trackLoadCost)
 			cost += segmentLoadStoreCost; // not overwritten, so there is a load cost
-		bool hasWrite = std::find_if(locations.begin(), locations.end(), [](const raLivenessLocation_t& loc) { return loc.isWrite; }) != locations.end();
+		bool hasWrite = std::find_if(locations.begin(), locations.end(), [](const raAccessLocation& loc) { return loc.IsWrite(); }) != locations.end();
 		if(hasWrite && trackStoreCost)
 			cost += segmentLoadStoreCost; // modified, so there is a store cost
 		return cost;
 	};
 
-	sint32 baseCost = CalculateCostFromLocationRange(subrange->list_locations);
+	sint32 baseCost = CalculateCostFromLocationRange(subrange->list_accessLocations);
 
-	bool tailOverwritesValue = !tailLocations.empty() && !tailLocations.front().isRead && tailLocations.front().isWrite;
+	bool tailOverwritesValue = !tailLocations.empty() && !tailLocations.front().IsRead() && tailLocations.front().IsWrite();
 
 	sint32 newCost = CalculateCostFromLocationRange(headLocations) + CalculateCostFromLocationRange(tailLocations, !tailOverwritesValue, true);
 	cemu_assert_debug(newCost >= baseCost);

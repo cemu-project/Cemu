@@ -155,26 +155,21 @@ private:
 
 };
 
-struct raLivenessLocation_t
+struct raAccessLocation
 {
-	sint32 index;
-	bool isRead;
-	bool isWrite;
+	raAccessLocation(raInstructionEdge pos) : pos(pos) {}
 
-	raLivenessLocation_t() = default;
-
-	raLivenessLocation_t(sint32 index, bool isRead, bool isWrite)
-		: index(index), isRead(isRead), isWrite(isWrite) {};
-
-	raInstructionEdge GetReadPos()
+	bool IsRead() const
 	{
-		return raInstructionEdge(index, true);
+		return pos.IsOnInputEdge();
 	}
 
-	raInstructionEdge GetWritePos()
+	bool IsWrite() const
 	{
-		return raInstructionEdge(index, false);
+		return pos.IsOnOutputEdge();
 	}
+
+	raInstructionEdge pos;
 };
 
 struct raInterval
@@ -321,7 +316,7 @@ struct raLivenessRange
 	// processing
 	uint32 lastIterationIndex;
 	// instruction read/write locations
-	std::vector<raLivenessLocation_t> list_locations;
+	std::vector<raAccessLocation> list_accessLocations;
 	// ordered list of all raInstructionEdge indices which require a fixed register
 	std::vector<raFixedRegRequirement> list_fixedRegRequirements;
 	// linked list (subranges with same GPR virtual register)
@@ -360,7 +355,6 @@ void PPCRecRA_mergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRan
 
 raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange*& subrange, raInstructionEdge splitPosition, bool trimToHole = false);
 
-void PPCRecRA_updateOrAddSubrangeLocation(raLivenessRange* subrange, sint32 index, bool isRead, bool isWrite);
 void PPCRecRA_debugValidateSubrange(raLivenessRange* subrange);
 
 // cost estimation

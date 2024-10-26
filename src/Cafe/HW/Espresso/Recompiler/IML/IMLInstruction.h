@@ -408,6 +408,27 @@ struct IMLUsedRegisters
 			F(readGPR3);
 	}
 
+	// temporary (for FPRs)
+	template<typename Fn>
+	void ForEachWrittenFPR(Fn F) const
+	{
+		if (writtenFPR1.IsValid())
+			F(writtenFPR1);
+	}
+
+	template<typename Fn>
+	void ForEachReadFPR(Fn F) const
+	{
+		if (readFPR1.IsValid())
+			F(readFPR1);
+		if (readFPR2.IsValid())
+			F(readFPR2);
+		if (readFPR3.IsValid())
+			F(readFPR3);
+		if (readFPR4.IsValid())
+			F(readFPR4);
+	}
+
 	template<typename Fn>
 	void ForEachAccessedGPR(Fn F) const
 	{
