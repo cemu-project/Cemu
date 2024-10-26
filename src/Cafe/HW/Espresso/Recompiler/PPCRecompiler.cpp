@@ -334,9 +334,6 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 
 	PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext);
 
-	//PPCRecompiler_reorderConditionModifyInstructions(&ppcImlGenContext);
-	//PPCRecompiler_removeRedundantCRUpdates(&ppcImlGenContext);
-
 	return true;
 }
 

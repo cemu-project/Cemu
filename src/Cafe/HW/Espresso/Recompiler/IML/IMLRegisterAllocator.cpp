@@ -1502,18 +1502,8 @@ void IMLRA_ConvertAbstractToLivenessRanges(IMLRegisterAllocatorContext& ctx, IML
 			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
 			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
 		});
-		gprTracking.ForEachReadFPR([&](IMLReg gprReg) {
-			IMLRegID gprId = gprReg.GetRegID();
-			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
-			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
-		});
 		pos = {(sint32)index, false};
 		gprTracking.ForEachWrittenGPR([&](IMLReg gprReg) {
-			IMLRegID gprId = gprReg.GetRegID();
-			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
-			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);
-		});
-		gprTracking.ForEachWrittenFPR([&](IMLReg gprReg) {
 			IMLRegID gprId = gprReg.GetRegID();
 			raLivenessRange* subrange = regToSubrange.find(gprId)->second;
 			IMLRA_UpdateOrAddSubrangeLocation(subrange, pos);

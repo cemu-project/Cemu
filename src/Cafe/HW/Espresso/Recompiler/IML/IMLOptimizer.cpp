@@ -57,15 +57,15 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 
 		// check if FPR is overwritten (we can actually ignore read operations?)
 		imlInstruction->CheckRegisterUsage(&registersUsed);
-		if (registersUsed.writtenFPR1.IsValidAndSameRegID(fprIndex))
+		if (registersUsed.writtenGPR1.IsValidAndSameRegID(fprIndex) || registersUsed.writtenGPR2.IsValidAndSameRegID(fprIndex))
 			break;
-		if (registersUsed.readFPR1.IsValidAndSameRegID(fprIndex))
+		if (registersUsed.readGPR1.IsValidAndSameRegID(fprIndex))
 			break;
-		if (registersUsed.readFPR2.IsValidAndSameRegID(fprIndex))
+		if (registersUsed.readGPR2.IsValidAndSameRegID(fprIndex))
 			break;
-		if (registersUsed.readFPR3.IsValidAndSameRegID(fprIndex))
+		if (registersUsed.readGPR3.IsValidAndSameRegID(fprIndex))
 			break;
-		if (registersUsed.readFPR4.IsValidAndSameRegID(fprIndex))
+		if (registersUsed.readGPR4.IsValidAndSameRegID(fprIndex))
 			break;
 	}
 

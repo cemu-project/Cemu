@@ -335,7 +335,6 @@ struct IMLUsedRegisters
 {
 	IMLUsedRegisters() {};
 
-	// GPR
 	union
 	{
 		struct
@@ -343,21 +342,9 @@ struct IMLUsedRegisters
 			IMLReg readGPR1;
 			IMLReg readGPR2;
 			IMLReg readGPR3;
+			IMLReg readGPR4;
 			IMLReg writtenGPR1;
 			IMLReg writtenGPR2;
-		};
-	};
-	// FPR
-	union
-	{
-		struct
-		{
-			// note: If destination operand is not fully written (PS0 and PS1) it will be added to the read registers
-			IMLReg readFPR1;
-			IMLReg readFPR2;
-			IMLReg readFPR3;
-			IMLReg readFPR4;
-			IMLReg writtenFPR1;
 		};
 	};
 
@@ -375,17 +362,6 @@ struct IMLUsedRegisters
 		cemu_assert_debug(imlReg.IsValid());
 		auto regId = imlReg.GetRegID();
 		return IsWrittenByRegId(regId);
-	}
-
-	bool IsRegIdRead(IMLRegID regId) const
-	{
-		if (readGPR1.IsValid() && readGPR1.GetRegID() == regId)
-			return true;
-		if (readGPR2.IsValid() && readGPR2.GetRegID() == regId)
-			return true;
-		if (readGPR3.IsValid() && readGPR3.GetRegID() == regId)
-			return true;
-		return false;
 	}
 
 	template<typename Fn>
@@ -406,27 +382,8 @@ struct IMLUsedRegisters
 			F(readGPR2);
 		if (readGPR3.IsValid())
 			F(readGPR3);
-	}
-
-	// temporary (for FPRs)
-	template<typename Fn>
-	void ForEachWrittenFPR(Fn F) const
-	{
-		if (writtenFPR1.IsValid())
-			F(writtenFPR1);
-	}
-
-	template<typename Fn>
-	void ForEachReadFPR(Fn F) const
-	{
-		if (readFPR1.IsValid())
-			F(readFPR1);
-		if (readFPR2.IsValid())
-			F(readFPR2);
-		if (readFPR3.IsValid())
-			F(readFPR3);
-		if (readFPR4.IsValid())
-			F(readFPR4);
+		if (readGPR4.IsValid())
+			F(readGPR4);
 	}
 
 	template<typename Fn>
@@ -439,21 +396,12 @@ struct IMLUsedRegisters
 			F(readGPR2, false);
 		if (readGPR3.IsValid())
 			F(readGPR3, false);
+		if (readGPR4.IsValid())
+			F(readGPR4, false);
 		if (writtenGPR1.IsValid())
 			F(writtenGPR1, true);
 		if (writtenGPR2.IsValid())
 			F(writtenGPR2, true);
-		// FPRs
-		if (readFPR1.IsValid())
-			F(readFPR1, false);
-		if (readFPR2.IsValid())
-			F(readFPR2, false);
-		if (readFPR3.IsValid())
-			F(readFPR3, false);
-		if (readFPR4.IsValid())
-			F(readFPR4, false);
-		if (writtenFPR1.IsValid())
-			F(writtenFPR1, true);
 	}
 
 };

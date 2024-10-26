@@ -18,13 +18,9 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	registersUsed->readGPR1 = IMLREG_INVALID;
 	registersUsed->readGPR2 = IMLREG_INVALID;
 	registersUsed->readGPR3 = IMLREG_INVALID;
+	registersUsed->readGPR4 = IMLREG_INVALID;
 	registersUsed->writtenGPR1 = IMLREG_INVALID;
 	registersUsed->writtenGPR2 = IMLREG_INVALID;
-	registersUsed->readFPR1 = IMLREG_INVALID;
-	registersUsed->readFPR2 = IMLREG_INVALID;
-	registersUsed->readFPR3 = IMLREG_INVALID;
-	registersUsed->readFPR4 = IMLREG_INVALID;
-	registersUsed->writtenFPR1 = IMLREG_INVALID;
 	if (type == PPCREC_IML_TYPE_R_NAME)
 	{
 		registersUsed->writtenGPR1 = op_r_name.regR;
@@ -243,7 +239,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD)
 	{
 		// fpr load operation
-		registersUsed->writtenFPR1 = op_storeLoad.registerData;
+		registersUsed->writtenGPR1 = op_storeLoad.registerData;
 		// address is in gpr register
 		if (op_storeLoad.registerMem.IsValid())
 			registersUsed->readGPR1 = op_storeLoad.registerMem;
@@ -257,8 +253,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			break;
 		case PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0:
 			// PS1 remains the same
-			registersUsed->readFPR4 = op_storeLoad.registerData;
 			cemu_assert_debug(op_storeLoad.registerGQR.IsInvalid());
+			registersUsed->readGPR2 = op_storeLoad.registerData;
 			break;
 		case PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1:
 		case PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0_PS1:
@@ -280,7 +276,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED)
 	{
 		// fpr load operation
-		registersUsed->writtenFPR1 = op_storeLoad.registerData;
+		registersUsed->writtenGPR1 = op_storeLoad.registerData;
 		// address is in gpr registers
 		if (op_storeLoad.registerMem.IsValid())
 			registersUsed->readGPR1 = op_storeLoad.registerMem;
@@ -297,7 +293,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		case PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0:
 			// PS1 remains the same
 			cemu_assert_debug(op_storeLoad.registerGQR.IsInvalid());
-			registersUsed->readFPR4 = op_storeLoad.registerData;
+			registersUsed->readGPR3 = op_storeLoad.registerData;
 			break;
 		case PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1:
 		case PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0_PS1:
@@ -318,16 +314,16 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_STORE)
 	{
 		// fpr store operation
-		registersUsed->readFPR1 = op_storeLoad.registerData;
+		registersUsed->readGPR1 = op_storeLoad.registerData;
 		if (op_storeLoad.registerMem.IsValid())
-			registersUsed->readGPR1 = op_storeLoad.registerMem;
+			registersUsed->readGPR2 = op_storeLoad.registerMem;
 		// PSQ generic stores also access GQR
 		switch (op_storeLoad.mode)
 		{
 		case PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0:
 		case PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1:
 			cemu_assert_debug(op_storeLoad.registerGQR.IsValid());
-			registersUsed->readGPR2 = op_storeLoad.registerGQR;
+			registersUsed->readGPR3 = op_storeLoad.registerGQR;
 			break;
 		default:
 			cemu_assert_debug(op_storeLoad.registerGQR.IsInvalid());
@@ -337,19 +333,19 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
 	{
 		// fpr store operation
-		registersUsed->readFPR1 = op_storeLoad.registerData;
+		registersUsed->readGPR1 = op_storeLoad.registerData;
 		// address is in gpr registers
 		if (op_storeLoad.registerMem.IsValid())
-			registersUsed->readGPR1 = op_storeLoad.registerMem;
+			registersUsed->readGPR2 = op_storeLoad.registerMem;
 		if (op_storeLoad.registerMem2.IsValid())
-			registersUsed->readGPR2 = op_storeLoad.registerMem2;
+			registersUsed->readGPR3 = op_storeLoad.registerMem2;
 		// PSQ generic stores also access GQR
 		switch (op_storeLoad.mode)
 		{
 		case PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0:
 		case PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1:
 			cemu_assert_debug(op_storeLoad.registerGQR.IsValid());
-			registersUsed->readGPR3 = op_storeLoad.registerGQR;
+			registersUsed->readGPR4 = op_storeLoad.registerGQR;
 			break;
 		default:
 			cemu_assert_debug(op_storeLoad.registerGQR.IsInvalid());
@@ -369,8 +365,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation == PPCREC_IML_OP_FPR_FRSQRTE_PAIR)
 		{
 			// operand read, result written
-			registersUsed->readFPR1 = op_fpr_r_r.regA;
-			registersUsed->writtenFPR1 = op_fpr_r_r.regR;
+			registersUsed->readGPR1 = op_fpr_r_r.regA;
+			registersUsed->writtenGPR1 = op_fpr_r_r.regR;
 		}
 		else if (
 			operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM ||
@@ -383,9 +379,9 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			)
 		{
 			// operand read, result read and (partially) written
-			registersUsed->readFPR1 = op_fpr_r_r.regA;
-			registersUsed->readFPR4 = op_fpr_r_r.regR;
-			registersUsed->writtenFPR1 = op_fpr_r_r.regR;
+			registersUsed->readGPR1 = op_fpr_r_r.regA;
+			registersUsed->readGPR2 = op_fpr_r_r.regR;
+			registersUsed->writtenGPR1 = op_fpr_r_r.regR;
 		}
 		else if (operation == PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM ||
 			operation == PPCREC_IML_OP_FPR_MULTIPLY_PAIR ||
@@ -397,9 +393,9 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation == PPCREC_IML_OP_FPR_SUB_BOTTOM)
 		{
 			// operand read, result read and written
-			registersUsed->readFPR1 = op_fpr_r_r.regA;
-			registersUsed->readFPR2 = op_fpr_r_r.regR;
-			registersUsed->writtenFPR1 = op_fpr_r_r.regR;
+			registersUsed->readGPR1 = op_fpr_r_r.regA;
+			registersUsed->readGPR2 = op_fpr_r_r.regR;
+			registersUsed->writtenGPR1 = op_fpr_r_r.regR;
 
 		}
 		else if (operation == PPCREC_IML_OP_FPR_FCMPU_BOTTOM ||
@@ -407,8 +403,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation == PPCREC_IML_OP_FPR_FCMPO_BOTTOM)
 		{
 			// operand read, result read
-			registersUsed->readFPR1 = op_fpr_r_r.regA;
-			registersUsed->readFPR2 = op_fpr_r_r.regR;
+			registersUsed->readGPR1 = op_fpr_r_r.regA;
+			registersUsed->readGPR2 = op_fpr_r_r.regR;
 		}
 		else
 			cemu_assert_unimplemented();
@@ -416,16 +412,16 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_R_R_R)
 	{
 		// fpr operation
-		registersUsed->readFPR1 = op_fpr_r_r_r.regA;
-		registersUsed->readFPR2 = op_fpr_r_r_r.regB;
-		registersUsed->writtenFPR1 = op_fpr_r_r_r.regR;
+		registersUsed->readGPR1 = op_fpr_r_r_r.regA;
+		registersUsed->readGPR2 = op_fpr_r_r_r.regB;
+		registersUsed->writtenGPR1 = op_fpr_r_r_r.regR;
 		// handle partially written result
 		switch (operation)
 		{
 		case PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM:
 		case PPCREC_IML_OP_FPR_ADD_BOTTOM:
 		case PPCREC_IML_OP_FPR_SUB_BOTTOM:
-			registersUsed->readFPR4 = op_fpr_r_r_r.regR;
+			registersUsed->readGPR3 = op_fpr_r_r_r.regR;
 			break;
 		case PPCREC_IML_OP_FPR_SUB_PAIR:
 			break;
@@ -436,15 +432,15 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_R_R_R_R)
 	{
 		// fpr operation
-		registersUsed->readFPR1 = op_fpr_r_r_r_r.regA;
-		registersUsed->readFPR2 = op_fpr_r_r_r_r.regB;
-		registersUsed->readFPR3 = op_fpr_r_r_r_r.regC;
-		registersUsed->writtenFPR1 = op_fpr_r_r_r_r.regR;
+		registersUsed->readGPR1 = op_fpr_r_r_r_r.regA;
+		registersUsed->readGPR2 = op_fpr_r_r_r_r.regB;
+		registersUsed->readGPR3 = op_fpr_r_r_r_r.regC;
+		registersUsed->writtenGPR1 = op_fpr_r_r_r_r.regR;
 		// handle partially written result
 		switch (operation)
 		{
 		case PPCREC_IML_OP_FPR_SELECT_BOTTOM:
-			registersUsed->readFPR4 = op_fpr_r_r_r_r.regR;
+			registersUsed->readGPR4 = op_fpr_r_r_r_r.regR;
 			break;
 		case PPCREC_IML_OP_FPR_SUM0:
 		case PPCREC_IML_OP_FPR_SUM1:
@@ -464,8 +460,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM ||
 			operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_PAIR)
 		{
-			registersUsed->readFPR1 = op_fpr_r.regR;
-			registersUsed->writtenFPR1 = op_fpr_r.regR;
+			registersUsed->readGPR1 = op_fpr_r.regR;
+			registersUsed->writtenGPR1 = op_fpr_r.regR;
 		}
 		else
 			cemu_assert_unimplemented();
@@ -473,8 +469,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_COMPARE)
 	{
 		registersUsed->writtenGPR1 = op_fpr_compare.regR;
-		registersUsed->readFPR1 = op_fpr_compare.regA;
-		registersUsed->readFPR2 = op_fpr_compare.regB;
+		registersUsed->readGPR1 = op_fpr_compare.regA;
+		registersUsed->readGPR2 = op_fpr_compare.regB;
 	}
 	else if (type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
 	{
