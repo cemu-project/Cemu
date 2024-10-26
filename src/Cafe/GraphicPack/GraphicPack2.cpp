@@ -960,7 +960,7 @@ bool GraphicPack2::Activate()
 				auto option_upscale = rules.FindOption("upscaleMagFilter");
 				if(option_upscale && boost::iequals(*option_upscale, "NearestNeighbor"))
 					m_output_settings.upscale_filter = LatteTextureView::MagFilter::kNearestNeighbor;
-				auto option_downscale = rules.FindOption("NearestNeighbor");
+				auto option_downscale = rules.FindOption("downscaleMagFilter");
 				if (option_downscale && boost::iequals(*option_downscale, "NearestNeighbor"))
 					m_output_settings.downscale_filter = LatteTextureView::MagFilter::kNearestNeighbor;
 			}
