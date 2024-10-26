@@ -202,16 +202,24 @@ VkSampler LatteTextureViewVk::GetDefaultTextureSampler(bool useLinearTexFilter)
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
+	// emulate OpenGL linear minFilter
+	// see note under: https://docs.vulkan.org/spec/latest/chapters/samplers.html#VkSamplerCreateInfo
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 0.25f;
+
 	if (useLinearTexFilter)
 	{
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
-		samplerInfo.minFilter = VK_FILTER_LINEAR;
 	}
 	else
 	{
 		samplerInfo.magFilter = VK_FILTER_NEAREST;
-		samplerInfo.minFilter = VK_FILTER_NEAREST;
 	}
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
 	if (vkCreateSampler(m_device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 	{
