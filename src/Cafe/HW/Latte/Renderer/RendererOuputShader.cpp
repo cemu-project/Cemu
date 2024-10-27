@@ -31,7 +31,7 @@ layout(push_constant) uniform pc {
 };
 #else
 in vec2 passUV;
-uniform vec2 textureSrcResolution;
+uniform vec2 inputResolution;
 #endif
 layout(binding = 0)  uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
@@ -76,7 +76,7 @@ vec4 bcFilter(vec2 texcoord, vec2 texscale)
 }
 
 void main(){
-	colorOut0 = vec4(bcFilter(passUV*textureSrcResolution, vec2(1.0,1.0)/textureSrcResolution).rgb,1.0);
+	colorOut0 = vec4(bcFilter(passUV*inputResolution, vec2(1.0,1.0)/inputResolution).rgb,1.0);
 }
 )";
 
@@ -94,8 +94,7 @@ layout(push_constant) uniform pc {
 };
 #else
 in vec2 passUV;
-uniform vec2 textureSrcResolution;
-uniform vec2 outputResolution;
+uniform vec2 inputResolution;
 #endif
 
 layout(location = 0) out vec4 colorOut0;
@@ -152,7 +151,7 @@ vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 }
 
 void main(){
-	vec4 texelSize = vec4( 1.0 / outputResolution.xy, outputResolution.xy);
+	vec4 texelSize = vec4( 1.0 / inputResolution.xy, inputResolution.xy);
 	colorOut0 = vec4(BicubicHermiteTexture(passUV, texelSize), 1.0);
 }
 )";
