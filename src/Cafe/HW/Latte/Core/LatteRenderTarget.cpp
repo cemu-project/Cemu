@@ -950,7 +950,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 			else
 				shader = RendererOutputShader::s_bicubic_shader;
 
-			filter = LatteTextureView::MagFilter::kNearestNeighbor;
+			filter = LatteTextureView::MagFilter::kLinear;
 		}
 		else if (scaling_filter == kBicubicHermiteFilter)
 		{
