@@ -120,7 +120,7 @@ vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 	vec2 frac = fract(pixel);	
     pixel = floor(pixel) / texelSize.zw - vec2(texelSize.xy/2.0);
 	
-	vec4 doubleSize = texelSize*texelSize;
+	vec4 doubleSize = texelSize*2.0;
 
 	vec3 C00 = texture(textureSrc, pixel + vec2(-texelSize.x ,-texelSize.y)).rgb;
     vec3 C10 = texture(textureSrc, pixel + vec2( 0.0        ,-texelSize.y)).rgb;
