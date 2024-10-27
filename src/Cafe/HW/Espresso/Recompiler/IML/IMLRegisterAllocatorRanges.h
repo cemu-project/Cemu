@@ -302,7 +302,7 @@ struct raFixedRegRequirement
 struct raLivenessRange
 {
 	IMLSegment* imlSegment;
-	raInterval interval2;
+	raInterval interval;
 
 	// dirty state tracking
 	bool _noLoad;
@@ -327,7 +327,7 @@ struct raLivenessRange
 	IMLRegID virtualRegister;
 	IMLName name;
 	// register allocator result
-	sint32 physicalRegister;
+	IMLPhysReg physicalRegister;
 
 	boost::container::small_vector<raLivenessRange*, 128> GetAllSubrangesInCluster();
 	bool GetAllowedRegistersEx(IMLPhysRegisterSet& allowedRegisters); // if the cluster has fixed register requirements in any instruction this returns the combined register mask. Otherwise returns false in which case allowedRegisters is left undefined
@@ -337,23 +337,23 @@ struct raLivenessRange
 	sint32 GetPhysicalRegister() const;
 	bool HasPhysicalRegister() const { return physicalRegister >= 0; }
 	IMLName GetName() const;
-	void SetPhysicalRegister(sint32 physicalRegister);
-	void SetPhysicalRegisterForCluster(sint32 physicalRegister);
+	void SetPhysicalRegister(IMLPhysReg physicalRegister);
+	void SetPhysicalRegisterForCluster(IMLPhysReg physicalRegister);
 	void UnsetPhysicalRegister() { physicalRegister = -1; }
 
   private:
 	void GetAllowedRegistersExRecursive(raLivenessRange* range, uint32 iterationIndex, IMLPhysRegisterSet& allowedRegs);
 };
 
-raLivenessRange* PPCRecRA_createSubrange2(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, IMLRegID virtualRegister, IMLName name, raInstructionEdge startPosition, raInstructionEdge endPosition);
-void PPCRecRA_deleteSubrange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange);
+raLivenessRange* IMLRA_CreateRange(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, IMLRegID virtualRegister, IMLName name, raInstructionEdge startPosition, raInstructionEdge endPosition);
+void IMLRA_DeleteRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange);
 void IMLRA_DeleteAllRanges(ppcImlGenContext_t* ppcImlGenContext);
 
-void PPCRecRA_explodeRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* originRange);
+void IMLRA_ExplodeRangeCluster(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* originRange);
 
-void PPCRecRA_mergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange, raLivenessRange* absorbedSubrange);
+void IMLRA_MergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange* subrange, raLivenessRange* absorbedSubrange);
 
-raLivenessRange* PPCRecRA_splitLocalSubrange2(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange*& subrange, raInstructionEdge splitPosition, bool trimToHole = false);
+raLivenessRange* IMLRA_SplitRange(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange*& subrange, raInstructionEdge splitPosition, bool trimToUsage = false);
 
 void PPCRecRA_debugValidateSubrange(raLivenessRange* subrange);
 

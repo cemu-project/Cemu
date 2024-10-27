@@ -60,10 +60,10 @@ public:
 	}
 
 	// returns index of first available register. Do not call when HasAnyAvailable() == false
-	uint32 GetFirstAvailableReg()
+	IMLPhysReg GetFirstAvailableReg()
 	{
 		cemu_assert_debug(m_regBitmask != 0);
-		uint32 regIndex = 0;
+		sint32 regIndex = 0;
 		auto tmp = m_regBitmask;
 		while ((tmp & 0xFF) == 0)
 		{
@@ -80,7 +80,7 @@ public:
 
 	// returns index of next available register (search includes any register index >= startIndex)
 	// returns -1 if there is no more register
-	sint32 GetNextAvailableReg(sint32 startIndex) const
+	IMLPhysReg GetNextAvailableReg(sint32 startIndex) const
 	{
 		if (startIndex >= 64)
 			return -1;
@@ -110,7 +110,6 @@ public:
 private:
 	uint64 m_regBitmask{ 0 };
 };
-
 
 struct IMLRegisterAllocatorParameters
 {

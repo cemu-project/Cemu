@@ -97,23 +97,23 @@ void IMLDebug_PrintLivenessRangeInfo(StringBuf& currentLineText, IMLSegment* iml
 	raLivenessRange* subrangeItr = imlSegment->raInfo.linkedList_allSubranges;
 	while (subrangeItr)
 	{
-		if (subrangeItr->interval2.start.GetInstructionIndexEx() == offset)
+		if (subrangeItr->interval.start.GetInstructionIndexEx() == offset)
 		{
-			if(subrangeItr->interval2.start.IsInstructionIndex() && !subrangeItr->interval2.start.IsOnInputEdge())
+			if(subrangeItr->interval.start.IsInstructionIndex() && !subrangeItr->interval.start.IsOnInputEdge())
 				currentLineText.add(".");
 			else
 				currentLineText.add("|");
 
 			currentLineText.addFmt("{:<4}", subrangeItr->GetVirtualRegister());
 		}
-		else if (subrangeItr->interval2.end.GetInstructionIndexEx() == offset)
+		else if (subrangeItr->interval.end.GetInstructionIndexEx() == offset)
 		{
-			if(subrangeItr->interval2.end.IsInstructionIndex() && !subrangeItr->interval2.end.IsOnOutputEdge())
+			if(subrangeItr->interval.end.IsInstructionIndex() && !subrangeItr->interval.end.IsOnOutputEdge())
 				currentLineText.add("*    ");
 			else
 				currentLineText.add("|    ");
 		}
-		else if (subrangeItr->interval2.ContainsInstructionIndexEx(offset))
+		else if (subrangeItr->interval.ContainsInstructionIndexEx(offset))
 		{
 			currentLineText.add("|    ");
 		}
@@ -373,10 +373,6 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		else if (inst.operation == PPCREC_IML_MACRO_HLE)
 		{
 			strOutput.addFmt("MACRO HLE ppcAddr: 0x{:08x} funcId: 0x{:08x}", inst.op_macro.param, inst.op_macro.param2);
-		}
-		else if (inst.operation == PPCREC_IML_MACRO_MFTB)
-		{
-			strOutput.addFmt("MACRO MFTB ppcAddr: 0x{:08x} sprId: 0x{:08x}", inst.op_macro.param, inst.op_macro.param2);
 		}
 		else if (inst.operation == PPCREC_IML_MACRO_COUNT_CYCLES)
 		{

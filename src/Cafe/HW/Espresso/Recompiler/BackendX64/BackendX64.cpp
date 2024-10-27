@@ -172,18 +172,6 @@ void* ATTR_MS_ABI PPCRecompiler_virtualHLE(PPCInterpreter_t* hCPU, uint32 hleFun
 	return PPCInterpreter_getCurrentInstance();
 }
 
-void ATTR_MS_ABI PPCRecompiler_getTBL(PPCInterpreter_t* hCPU, uint32 gprIndex)
-{
-	uint64 coreTime = coreinit::OSGetSystemTime();
-	hCPU->gpr[gprIndex] = (uint32)(coreTime&0xFFFFFFFF);
-}
-
-void ATTR_MS_ABI PPCRecompiler_getTBU(PPCInterpreter_t* hCPU, uint32 gprIndex)
-{
-	uint64 coreTime = coreinit::OSGetSystemTime();
-	hCPU->gpr[gprIndex] = (uint32)((coreTime>>32)&0xFFFFFFFF);
-}
-
 bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	if (imlInstruction->operation == PPCREC_IML_MACRO_B_TO_REG)
@@ -338,43 +326,6 @@ bool PPCRecompilerX64Gen_imlInstruction_macro(PPCRecFunction_t* PPCRecFunction, 
 		x64Gen_add_reg64_reg64(x64GenContext, X86_REG_RAX, X86_REG_R15);
 		// JMP [ppcRecompilerDirectJumpTable+RAX/4*8]
 		x64Gen_jmp_memReg64(x64GenContext, X86_REG_RAX, (uint32)offsetof(PPCRecompilerInstanceData_t, ppcRecompilerDirectJumpTable));
-		return true;
-	}
-	else if( imlInstruction->operation == PPCREC_IML_MACRO_MFTB )
-	{
-		// according to MS ABI the caller needs to save:
-		// RAX, RCX, RDX, R8, R9, R10, R11
-
-		uint32 ppcAddress = imlInstruction->op_macro.param;
-		uint32 sprId = imlInstruction->op_macro.param2&0xFFFF;
-		uint32 gprIndex = (imlInstruction->op_macro.param2>>16)&0x1F;
-		// update instruction pointer
-		x64Gen_mov_mem32Reg64_imm32(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, instructionPointer), ppcAddress);
-		// set parameters
-		x64Gen_mov_reg64_reg64(x64GenContext, X86_REG_RCX, X86_REG_RSP);
-		x64Gen_mov_reg64_imm64(x64GenContext, X86_REG_RDX, gprIndex);
-		// restore stackpointer to original RSP
-		x64Emit_mov_reg64_mem64(x64GenContext, X86_REG_RSP, REG_RESV_HCPU, offsetof(PPCInterpreter_t, rspTemp));
-		// push hCPU on stack
-		x64Gen_push_reg64(x64GenContext, X86_REG_RCX);
-		// reserve space on stack for call parameters
-		x64Gen_sub_reg64_imm32(x64GenContext, X86_REG_RSP, 8*11 + 8);
-		x64Gen_mov_reg64_imm64(x64GenContext, X86_REG_RBP, 0);
-		// call function
-		if( sprId == SPR_TBL )
-			x64Gen_mov_reg64_imm64(x64GenContext, X86_REG_RAX, (uint64)PPCRecompiler_getTBL);
-		else if( sprId == SPR_TBU )
-			x64Gen_mov_reg64_imm64(x64GenContext, X86_REG_RAX, (uint64)PPCRecompiler_getTBU);
-		else
-			assert_dbg();
-		x64Gen_call_reg64(x64GenContext, X86_REG_RAX);
-		// restore hCPU from stack
-		x64Gen_add_reg64_imm32(x64GenContext, X86_REG_RSP, 8 * 11 + 8);
-		x64Gen_pop_reg64(x64GenContext, X86_REG_RSP);
-		// MOV R15, ppcRecompilerInstanceData
-		x64Gen_mov_reg64_imm64(x64GenContext, X86_REG_R15, (uint64)ppcRecompilerInstanceData);
-		// MOV R13, memory_base
-		x64Gen_mov_reg64_imm64(x64GenContext, X86_REG_R13, (uint64)memory_base);
 		return true;
 	}
 	else

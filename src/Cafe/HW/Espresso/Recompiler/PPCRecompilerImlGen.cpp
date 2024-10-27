@@ -3008,7 +3008,6 @@ void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext
 					break;
 				case PPCREC_IML_MACRO_DEBUGBREAK:
 				case PPCREC_IML_MACRO_COUNT_CYCLES:
-				case PPCREC_IML_MACRO_MFTB:
 					break;
 				default:
 				cemu_assert_unimplemented();

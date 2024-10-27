@@ -19,6 +19,7 @@
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
 #define PPCREC_FORCE_SYNCHRONOUS_COMPILATION	0 // if 1, then function recompilation will block and execute on the thread that called PPCRecompiler_visitAddressNoBlock
+#define PPCREC_LOG_RECOMPILATION_RESULTS		0
 
 struct PPCInvalidationRange
 {
@@ -185,8 +186,10 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 	ppcRecFunc->ppcAddress = range.startAddress;
 	ppcRecFunc->ppcSize = range.length;
 
+#if PPCREC_LOG_RECOMPILATION_RESULTS
 	BenchmarkTimer bt;
 	bt.Start();
+#endif
 
 	// generate intermediate code
 	ppcImlGenContext_t ppcImlGenContext = { 0 };
@@ -217,18 +220,6 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
-	// if (ppcRecFunc->ppcAddress == 0x2BDA9F4)
-	// {
-	// 	IMLDebug_Dump(&ppcImlGenContext);
-	// 	__debugbreak();
-	// }
-
-	// Functions for testing (botw):
-	// 3B4049C (large with switch case)
-	// 30BF118 (has a bndz copy loop + some float instructions at the end)
-	
-
-
 	// emit x64 code
 	bool x64GenerationSuccess = PPCRecompiler_generateX64Code(ppcRecFunc, &ppcImlGenContext);
 	if (x64GenerationSuccess == false)
@@ -258,18 +249,16 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		entryPointsOut.emplace_back(ppcEnterOffset, x64Offset);
 	}
 
+#if PPCREC_LOG_RECOMPILATION_RESULTS
 	bt.Stop();
-
-	//cemuLog_log(LogType::Force, "[Recompiler] Successfully compiled {:08x} - {:08x} Segments: {} Entrypoints: {}", ppcRecFunc->ppcAddress, ppcRecFunc->ppcAddress + ppcRecFunc->ppcSize, ppcImlGenContext.segmentList2.size(), entryPointsOut.size());
-
 	uint32 codeHash = 0;
 	for (uint32 i = 0; i < ppcRecFunc->x86Size; i++)
 	{
 		codeHash = _rotr(codeHash, 3);
 		codeHash += ((uint8*)ppcRecFunc->x86Code)[i];
 	}
-
 	cemuLog_log(LogType::Force, "[Recompiler] PPC 0x{:08x} -> x64: 0x{:x} Took {:.4}ms | Size {:04x} CodeHash {:08x}", (uint32)ppcRecFunc->ppcAddress, (uint64)(uintptr_t)ppcRecFunc->x86Code, bt.GetElapsedMilliseconds(), ppcRecFunc->x86Size, codeHash);
+#endif
 
 	return ppcRecFunc;
 }

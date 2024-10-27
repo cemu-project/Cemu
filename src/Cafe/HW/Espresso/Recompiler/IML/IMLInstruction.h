@@ -197,7 +197,6 @@ enum
 	PPCREC_IML_MACRO_B_FAR,			// branch to different function
 	PPCREC_IML_MACRO_COUNT_CYCLES,	// decrease current remaining thread cycles by a certain amount
 	PPCREC_IML_MACRO_HLE,			// HLE function call
-	PPCREC_IML_MACRO_MFTB,			// get TB register value (low or high)
 	PPCREC_IML_MACRO_LEAVE,			// leaves recompiler and switches to interpeter
 	// debugging
 	PPCREC_IML_MACRO_DEBUGBREAK,	// throws a debugbreak
@@ -335,19 +334,6 @@ struct IMLUsedRegisters
 {
 	IMLUsedRegisters() {};
 
-	union
-	{
-		struct
-		{
-			IMLReg readGPR1;
-			IMLReg readGPR2;
-			IMLReg readGPR3;
-			IMLReg readGPR4;
-			IMLReg writtenGPR1;
-			IMLReg writtenGPR2;
-		};
-	};
-
 	bool IsWrittenByRegId(IMLRegID regId) const
 	{
 		if (writtenGPR1.IsValid() && writtenGPR1.GetRegID() == regId)
@@ -404,6 +390,12 @@ struct IMLUsedRegisters
 			F(writtenGPR2, true);
 	}
 
+	IMLReg readGPR1;
+	IMLReg readGPR2;
+	IMLReg readGPR3;
+	IMLReg readGPR4;
+	IMLReg writtenGPR1;
+	IMLReg writtenGPR2;
 };
 
 struct IMLInstruction
@@ -575,7 +567,6 @@ struct IMLInstruction
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_B_TO_REG ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_LEAVE ||
 			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_HLE ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_MFTB ||
 			type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK ||
 			type == PPCREC_IML_TYPE_JUMP ||
 			type == PPCREC_IML_TYPE_CONDITIONAL_JUMP ||
@@ -788,9 +779,6 @@ struct IMLInstruction
 	bool HasSideEffects() const; // returns true if the instruction has side effects beyond just reading and writing registers. Dead code elimination uses this to know if an instruction can be dropped when the regular register outputs are not used
 
 	void RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& translationTable);
-	void ReplaceFPRs(IMLReg fprRegisterSearched[4], IMLReg fprRegisterReplaced[4]);
-	void ReplaceFPR(IMLRegID fprRegisterSearched, IMLRegID fprRegisterReplaced);
-
 };
 
 // architecture specific constants
