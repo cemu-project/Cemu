@@ -4,11 +4,7 @@
 const std::string RendererOutputShader::s_copy_shader_source =
 R"(#version 420
 
-#ifdef VULKAN
 layout(location = 0) in vec2 passUV;
-#else
-in vec2 passUV;
-#endif
 layout(binding = 0) uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
 
@@ -23,16 +19,16 @@ R"(
 #version 420
 
 #ifdef VULKAN
-layout(location = 0) in vec2 passUV;
 layout(push_constant) uniform pc {
 	vec2 textureSrcResolution;
 	vec2 inputResolution;
 	vec2 outputResolution;
 };
 #else
-in vec2 passUV;
 uniform vec2 inputResolution;
 #endif
+
+layout(location = 0) in vec2 passUV;
 layout(binding = 0)  uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
 
@@ -83,20 +79,18 @@ void main(){
 const std::string RendererOutputShader::s_hermite_shader_source =
 R"(#version 420
 
-in vec4 gl_FragCoord;
-layout(binding=0) uniform sampler2D textureSrc;
 #ifdef VULKAN
-layout(location = 0) in vec2 passUV;
 layout(push_constant) uniform pc {
 	vec2 textureSrcResolution;
 	vec2 inputResolution;
 	vec2 outputResolution;
 };
 #else
-in vec2 passUV;
 uniform vec2 inputResolution;
 #endif
 
+layout(location = 0) in vec2 passUV;
+layout(binding=0) uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
 
 // https://www.shadertoy.com/view/MllSzX
