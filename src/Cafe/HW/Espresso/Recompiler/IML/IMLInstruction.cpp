@@ -93,19 +93,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	}
 	else if (type == PPCREC_IML_TYPE_R_R_S32)
 	{
-		if (operation == PPCREC_IML_OP_RLWIMI)
-		{
-			// result and operand register are both read, result is written
-			registersUsed->writtenGPR1 = op_r_r_s32.regR;
-			registersUsed->readGPR1 = op_r_r_s32.regR;
-			registersUsed->readGPR2 = op_r_r_s32.regA;
-		}
-		else
-		{
-			// result is write only and operand is read only
-			registersUsed->writtenGPR1 = op_r_r_s32.regR;
-			registersUsed->readGPR1 = op_r_r_s32.regA;
-		}
+		registersUsed->writtenGPR1 = op_r_r_s32.regR;
+		registersUsed->readGPR1 = op_r_r_s32.regA;
 	}
 	else if (type == PPCREC_IML_TYPE_R_R_S32_CARRY)
 	{

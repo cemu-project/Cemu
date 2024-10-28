@@ -982,12 +982,12 @@ bool PPCRecompilerImlGen_DIVWU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 bool PPCRecompilerImlGen_RLWINM(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	int rS, rA, SH, MB, ME;
+	sint32 rS, rA, SH, MB, ME;
 	PPC_OPC_TEMPL_M(opcode, rS, rA, SH, MB, ME);
 	uint32 mask = ppc_mask(MB, ME);
 
 	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
-	IMLReg regA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
+	IMLReg regA = _GetRegGPR(ppcImlGenContext, rA);
 	if( ME == (31-SH) && MB == 0 )
 	{
 		// SLWI
@@ -1015,16 +1015,22 @@ bool PPCRecompilerImlGen_RLWINM(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 
 bool PPCRecompilerImlGen_RLWIMI(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	int rS, rA, SH, MB, ME;
+	sint32 rS, rA, SH, MB, ME;
 	PPC_OPC_TEMPL_M(opcode, rS, rA, SH, MB, ME);
-
-	IMLReg regS = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rS);
-	IMLReg regA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// pack RLWIMI parameters into single integer
-	uint32 vImm = MB|(ME<<8)|(SH<<16);
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RLWIMI, regA, regS, (sint32)vImm);
+	IMLReg regS = _GetRegGPR(ppcImlGenContext, rS);
+	IMLReg regR = _GetRegGPR(ppcImlGenContext, rA);
+	IMLReg regTmp = _GetRegTemporary(ppcImlGenContext, 0);
+	uint32 mask = ppc_mask(MB, ME);
+	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regTmp, regS);
+	if (SH)
+		ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_LEFT_ROTATE, regTmp, SH);
+	if (mask != 0)
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regR, regR, (sint32)~mask);
+	if (mask != 0xFFFFFFFF)
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regTmp, regTmp, (sint32)mask);
+	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_OR, regR, regR, regTmp);
 	if (opcode & PPC_OPC_RC)
-		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
+		PPCImlGen_UpdateCR0(ppcImlGenContext, regR);
 	return true;
 }
 

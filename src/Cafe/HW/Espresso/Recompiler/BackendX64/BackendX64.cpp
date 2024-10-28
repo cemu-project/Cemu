@@ -1073,26 +1073,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_s32(PPCRecFunction_t* PPCRecFunction
 		else // XOR
 			x64Gen_xor_reg64Low32_imm32(x64GenContext, regR, immS32);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_RLWIMI )
-	{
-		// registerResult = ((registerResult<<<SH)&mask) | (registerOperand&~mask)
-		uint32 vImm = (uint32)imlInstruction->op_r_r_s32.immS32;
-		uint32 mb = (vImm>>0)&0xFF;
-		uint32 me = (vImm>>8)&0xFF;
-		uint32 sh = (vImm>>16)&0xFF;
-		uint32 mask = ppc_mask(mb, me);
-		// copy rS to temporary register
-		x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, regA);
-		// rotate destination register
-		if( sh )
-			x64Gen_rol_reg64Low32_imm8(x64GenContext, REG_RESV_TEMP, (uint8)sh&0x1F);
-		// AND destination register with inverted mask
-		x64Gen_and_reg64Low32_imm32(x64GenContext, regR, ~mask);
-		// AND temporary rS register with mask
-		x64Gen_and_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, mask);
-		// OR result with temporary
-		x64Gen_or_reg64Low32_reg64Low32(x64GenContext, regR, REG_RESV_TEMP);
-	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_MULTIPLY_SIGNED )
 	{
 		// registerResult = registerOperand * immS32

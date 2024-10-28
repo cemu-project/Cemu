@@ -122,7 +122,6 @@ enum
 	PPCREC_IML_OP_RIGHT_SHIFT_U,	// right shift operator (unsigned)
 	PPCREC_IML_OP_RIGHT_SHIFT_S,	// right shift operator (signed)
 	// ppc
-	PPCREC_IML_OP_RLWIMI,			// RLWIMI instruction (rotate, merge based on mask)
 	PPCREC_IML_OP_SLW,				// SLW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_SRW,				// SRW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_CNTLZW,

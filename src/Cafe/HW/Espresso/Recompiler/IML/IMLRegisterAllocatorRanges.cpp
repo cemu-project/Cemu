@@ -290,7 +290,7 @@ void IMLRA_MergeSubranges(ppcImlGenContext_t* ppcImlGenContext, raLivenessRange*
 	PPCRecRA_debugValidateSubrange(absorbedSubrange);
 	if (subrange->imlSegment != absorbedSubrange->imlSegment)
 		assert_dbg();
-	cemu_assert_debug(subrange->interval2.end == absorbedSubrange->interval2.start);
+	cemu_assert_debug(subrange->interval.end == absorbedSubrange->interval.start);
 
 	if (subrange->subrangeBranchTaken || subrange->subrangeBranchNotTaken)
 		assert_dbg();
@@ -375,23 +375,23 @@ void PPCRecRA_debugValidateSubrange(raLivenessRange* range)
 
 	if(range->subrangeBranchTaken || range->subrangeBranchNotTaken)
 	{
-		cemu_assert_debug(range->interval2.end.ConnectsToNextSegment());
+		cemu_assert_debug(range->interval.end.ConnectsToNextSegment());
 	}
 	if(!range->previousRanges.empty())
 	{
-		cemu_assert_debug(range->interval2.start.ConnectsToPreviousSegment());
+		cemu_assert_debug(range->interval.start.ConnectsToPreviousSegment());
 	}
 	// validate locations
 	if (!range->list_accessLocations.empty())
 	{
-		cemu_assert_debug(range->list_accessLocations.front().pos >= range->interval2.start);
-		cemu_assert_debug(range->list_accessLocations.back().pos <= range->interval2.end);
+		cemu_assert_debug(range->list_accessLocations.front().pos >= range->interval.start);
+		cemu_assert_debug(range->list_accessLocations.back().pos <= range->interval.end);
 	}
 	// validate fixed reg requirements
 	if (!range->list_fixedRegRequirements.empty())
 	{
-		cemu_assert_debug(range->list_fixedRegRequirements.front().pos >= range->interval2.start);
-		cemu_assert_debug(range->list_fixedRegRequirements.back().pos <= range->interval2.end);
+		cemu_assert_debug(range->list_fixedRegRequirements.front().pos >= range->interval.start);
+		cemu_assert_debug(range->list_fixedRegRequirements.back().pos <= range->interval.end);
 		for(sint32 i = 0; i < (sint32)range->list_fixedRegRequirements.size()-1; i++)
 			cemu_assert_debug(range->list_fixedRegRequirements[i].pos < range->list_fixedRegRequirements[i+1].pos);
 	}
@@ -423,12 +423,12 @@ void IMLRA_TrimRangeToUse(raLivenessRange* range)
 		range->interval.end = range->list_accessLocations.back().pos;
 	// extra checks
 #ifdef CEMU_DEBUG_ASSERT
-	cemu_assert_debug(range->interval2.start <= range->interval2.end);
+	cemu_assert_debug(range->interval.start <= range->interval.end);
 	for(auto& loc : range->list_accessLocations)
 	{
-		cemu_assert_debug(range->interval2.ContainsEdge(loc.pos));
+		cemu_assert_debug(range->interval.ContainsEdge(loc.pos));
 	}
-	cemu_assert_debug(prevInterval.ContainsWholeInterval(range->interval2));
+	cemu_assert_debug(prevInterval.ContainsWholeInterval(range->interval));
 #endif
 }
 
@@ -580,7 +580,7 @@ sint32 IMLRA_CalculateAdditionalCostAfterSplit(raLivenessRange* subrange, raInst
 {
 	// validation
 #ifdef CEMU_DEBUG_ASSERT
-	if (subrange->interval2.ExtendsIntoNextSegment())
+	if (subrange->interval.ExtendsIntoNextSegment())
 		assert_dbg();
 #endif
 	cemu_assert_debug(splitPosition.IsInstructionIndex());
