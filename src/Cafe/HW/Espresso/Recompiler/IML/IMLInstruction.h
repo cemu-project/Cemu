@@ -250,9 +250,6 @@ enum
 	// atomic
 	PPCREC_IML_TYPE_ATOMIC_CMP_STORE,
 
-	// conditional (legacy)
-	PPCREC_IML_TYPE_CONDITIONAL_R_S32,
-
 	// function call
 	PPCREC_IML_TYPE_CALL_IMM,			// call to fixed immediate address
 

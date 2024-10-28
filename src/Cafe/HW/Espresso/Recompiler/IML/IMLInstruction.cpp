@@ -80,17 +80,6 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			registersUsed->writtenGPR1 = op_r_immS32.regR;
 		}
 	}
-	else if (type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
-	{
-		if (operation == PPCREC_IML_OP_ASSIGN)
-		{
-			// result is written, but also considered read (in case the condition is false the input is preserved)
-			registersUsed->readGPR1 = op_conditional_r_s32.regR;
-			registersUsed->writtenGPR1 = op_conditional_r_s32.regR;
-		}
-		else
-			cemu_assert_unimplemented();
-	}
 	else if (type == PPCREC_IML_TYPE_R_R_S32)
 	{
 		registersUsed->writtenGPR1 = op_r_r_s32.regR;
@@ -117,9 +106,13 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_R_R_R)
 	{
 		// in all cases result is written and other operands are read only
+		// with the exception of XOR, where if regA == regB then all bits are zeroed out. So we don't consider it a read
 		registersUsed->writtenGPR1 = op_r_r_r.regR;
-		registersUsed->readGPR1 = op_r_r_r.regA;
-		registersUsed->readGPR2 = op_r_r_r.regB;
+		if(!(operation == PPCREC_IML_OP_XOR && op_r_r_r.regA == op_r_r_r.regB))
+		{
+			registersUsed->readGPR1 = op_r_r_r.regA;
+			registersUsed->readGPR2 = op_r_r_r.regB;
+		}
 	}
 	else if (type == PPCREC_IML_TYPE_R_R_R_CARRY)
 	{
@@ -501,10 +494,6 @@ void IMLInstruction::RewriteGPR(const std::unordered_map<IMLRegID, IMLRegID>& tr
 	else if (type == PPCREC_IML_TYPE_R_S32)
 	{
 		op_r_immS32.regR = replaceRegisterIdMultiple(op_r_immS32.regR, translationTable);
-	}
-	else if (type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
-	{
-		op_conditional_r_s32.regR = replaceRegisterIdMultiple(op_conditional_r_s32.regR, translationTable);
 	}
 	else if (type == PPCREC_IML_TYPE_R_R_S32)
 	{

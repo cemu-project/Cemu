@@ -15,6 +15,7 @@ struct x64GenContext_t
 {
 	IMLSegment* currentSegment{};
 	x86Assembler64* emitter;
+	sint32 m_currentInstructionEmitIndex;
 
 	x64GenContext_t()
 	{
@@ -24,6 +25,14 @@ struct x64GenContext_t
 	~x64GenContext_t()
 	{
 		delete emitter;
+	}
+
+	IMLInstruction* GetNextInstruction(sint32 relativeIndex = 1)
+	{
+		sint32 index = m_currentInstructionEmitIndex + relativeIndex;
+		if(index < 0 || index >= (sint32)currentSegment->imlList.size())
+			return nullptr;
+		return currentSegment->imlList.data() + index;
 	}
 
 	// relocate offsets

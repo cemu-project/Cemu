@@ -54,23 +54,6 @@ IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext
 	return &inst;
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, IMLReg registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet)
-{
-	if(imlInstruction == NULL)
-		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	else
-		memset(imlInstruction, 0, sizeof(IMLInstruction));
-	imlInstruction->type = PPCREC_IML_TYPE_CONDITIONAL_R_S32;
-	imlInstruction->operation = operation;
-	// r_s32 operation
-	imlInstruction->op_conditional_r_s32.regR = registerIndex;
-	imlInstruction->op_conditional_r_s32.immS32 = immS32;
-	// condition
-	imlInstruction->op_conditional_r_s32.crRegisterIndex = crRegisterIndex;
-	imlInstruction->op_conditional_r_s32.crBitIndex = crBitIndex;
-	imlInstruction->op_conditional_r_s32.bitMustBeSet = bitMustBeSet;
-}
-
 void PPCRecompilerImlGen_generateNewInstruction_r_memory_indexed(ppcImlGenContext_t* ppcImlGenContext, IMLReg registerDestination, IMLReg registerMemory1, IMLReg registerMemory2, uint32 copyWidth, bool signExtend, bool switchEndian)
 {
 	cemu_assert_debug(registerMemory1.IsValid());
@@ -559,7 +542,6 @@ bool PPCRecompilerImlGen_BC(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 	uint32 BO, BI, BD;
 	PPC_OPC_TEMPL_B(opcode, BO, BI, BD);
 
-	// decodeOp_BC(uint32 opcode, uint32& BD, BOField& BO, uint32& BI, bool& AA, bool& LK)
 	Espresso::BOField boField(BO);
 
 	uint32 crRegister = BI/4;

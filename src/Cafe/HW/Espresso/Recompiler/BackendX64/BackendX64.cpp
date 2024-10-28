@@ -7,6 +7,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "util/MemMapper/MemMapper.h"
 #include "Common/cpu_features.h"
+#include <boost/container/static_vector.hpp>
 
 static x86Assembler64::GPR32 _reg32(IMLReg physReg)
 {
@@ -658,29 +659,6 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_conditional_r_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
-{
-	cemu_assert_unimplemented();
-	//if (imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
-	//{
-	//	// registerResult = immS32 (conditional)
-	//	if (imlInstruction->crRegister != PPC_REC_INVALID_REGISTER)
-	//	{
-	//		assert_dbg();
-	//	}
-
-	//	x64Gen_mov_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, (uint32)imlInstruction->op_conditional_r_s32.immS32);
-	//	uint8 crBitIndex = imlInstruction->op_conditional_r_s32.crRegisterIndex * 4 + imlInstruction->op_conditional_r_s32.crBitIndex;
-	//	x64Gen_bt_mem8(x64GenContext, X86_REG_RSP, offsetof(PPCInterpreter_t, cr) + crBitIndex * sizeof(uint8), 0);
-	//	if (imlInstruction->op_conditional_r_s32.bitMustBeSet)
-	//		x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, X86_CONDITION_CARRY, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-	//	else
-	//		x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext, X86_CONDITION_NOT_CARRY, imlInstruction->op_conditional_r_s32.registerIndex, REG_RESV_TEMP);
-	//	return true;
-	//}
-	return false;
-}
-
 bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
 	auto rRegResult = _reg32(imlInstruction->op_r_r_r.regR);
@@ -973,47 +951,71 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r_carry(PPCRecFunction_t* PPCRecFunc
 	return true;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_compare(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+bool PPCRecompilerX64Gen_IsSameCompare(IMLInstruction* imlInstructionA, IMLInstruction* imlInstructionB)
 {
-	auto regR = _reg8(imlInstruction->op_compare.regR);
-	auto regA = _reg32(imlInstruction->op_compare.regA);
-	auto regB = _reg32(imlInstruction->op_compare.regB);
-	X86Cond cond = _x86Cond(imlInstruction->op_compare.cond);
-	bool keepR = regR == regA || regR == regB;
-	if(!keepR)
-	{
-		x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR)); // zero bytes unaffected by SETcc
-		x64GenContext->emitter->CMP_dd(regA, regB);
-		x64GenContext->emitter->SETcc_b(cond, regR);
-	}
-	else
-	{
-		x64GenContext->emitter->CMP_dd(regA, regB);
-		x64GenContext->emitter->MOV_di32(_reg32_from_reg8(regR), 0);
-		x64GenContext->emitter->SETcc_b(cond, regR);
-	}
-	return true;
+	if(imlInstructionA->type != imlInstructionB->type)
+		return false;
+	if(imlInstructionA->type == PPCREC_IML_TYPE_COMPARE)
+		return imlInstructionA->op_compare.regA == imlInstructionB->op_compare.regA && imlInstructionA->op_compare.regB == imlInstructionB->op_compare.regB;
+	else if(imlInstructionA->type == PPCREC_IML_TYPE_COMPARE_S32)
+		return imlInstructionA->op_compare_s32.regA == imlInstructionB->op_compare_s32.regA && imlInstructionA->op_compare_s32.immS32 == imlInstructionB->op_compare_s32.immS32;
+	return false;
 }
 
-bool PPCRecompilerX64Gen_imlInstruction_compare_s32(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
+bool PPCRecompilerX64Gen_imlInstruction_compare_x(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, sint32& extraInstructionsProcessed)
 {
-	auto regR = _reg8(imlInstruction->op_compare_s32.regR);
-	auto regA = _reg32(imlInstruction->op_compare_s32.regA);
-	sint32 imm = imlInstruction->op_compare_s32.immS32;
-	X86Cond cond = _x86Cond(imlInstruction->op_compare_s32.cond);
-	bool keepR = regR == regA;
-	if(!keepR)
+	extraInstructionsProcessed = 0;
+	boost::container::static_vector<IMLInstruction*, 4> compareInstructions;
+	compareInstructions.push_back(imlInstruction);
+	for(sint32 i=1; i<4; i++)
 	{
-		x64GenContext->emitter->XOR_dd(_reg32_from_reg8(regR), _reg32_from_reg8(regR)); // zero bytes unaffected by SETcc
+		IMLInstruction* nextIns = x64GenContext->GetNextInstruction(i);
+		if(!nextIns || !PPCRecompilerX64Gen_IsSameCompare(imlInstruction, nextIns))
+			break;
+		compareInstructions.push_back(nextIns);
+	}
+	auto OperandOverlapsWithR = [&](IMLInstruction* ins) -> bool
+	{
+		if(ins->type == PPCREC_IML_TYPE_COMPARE)
+			return _reg32_from_reg8(_reg8(ins->op_compare.regR)) == _reg32(ins->op_compare.regA) || _reg32_from_reg8(_reg8(ins->op_compare.regR)) == _reg32(ins->op_compare.regB);
+		else if(ins->type == PPCREC_IML_TYPE_COMPARE_S32)
+			return _reg32_from_reg8(_reg8(ins->op_compare_s32.regR)) == _reg32(ins->op_compare_s32.regA);
+	};
+	auto GetRegR = [](IMLInstruction* insn)
+	{
+		return insn->type == PPCREC_IML_TYPE_COMPARE ? _reg32_from_reg8(_reg8(insn->op_compare.regR)) : _reg32_from_reg8(_reg8(insn->op_compare_s32.regR));
+	};
+	// prefer XOR method for zeroing out registers if possible
+	for(auto& it : compareInstructions)
+	{
+		if(OperandOverlapsWithR(it))
+			continue;
+		auto regR = GetRegR(it);
+		x64GenContext->emitter->XOR_dd(regR, regR); // zero bytes unaffected by SETcc
+	}
+	// emit the compare instruction
+	if(imlInstruction->type == PPCREC_IML_TYPE_COMPARE)
+	{
+		auto regA = _reg32(imlInstruction->op_compare.regA);
+		auto regB = _reg32(imlInstruction->op_compare.regB);
+		x64GenContext->emitter->CMP_dd(regA, regB);
+	}
+	else if(imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
+	{
+		auto regA = _reg32(imlInstruction->op_compare_s32.regA);
+		sint32 imm = imlInstruction->op_compare_s32.immS32;
 		x64GenContext->emitter->CMP_di32(regA, imm);
+	}
+	// emit the SETcc instructions
+	for(auto& it : compareInstructions)
+	{
+		auto regR = _reg8(it->op_compare.regR);
+		X86Cond cond = _x86Cond(it->op_compare.cond);
+		if(OperandOverlapsWithR(it))
+			x64GenContext->emitter->MOV_di32(_reg32_from_reg8(regR), 0);
 		x64GenContext->emitter->SETcc_b(cond, regR);
 	}
-	else
-	{
-		x64GenContext->emitter->CMP_di32(regA, imm);
-		x64GenContext->emitter->MOV_di32(_reg32_from_reg8(regR), 0);
-		x64GenContext->emitter->SETcc_b(cond, regR);
-	}
+	extraInstructionsProcessed = (sint32)compareInstructions.size() - 1;
 	return true;
 }
 
@@ -1383,6 +1385,7 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 		segIt->x64Offset = x64GenContext.emitter->GetWriteIndex();
 		for(size_t i=0; i<segIt->imlList.size(); i++)
 		{
+			x64GenContext.m_currentInstructionEmitIndex = i;
 			IMLInstruction* imlInstruction = segIt->imlList.data() + i;
 
 			if( imlInstruction->type == PPCREC_IML_TYPE_R_NAME )
@@ -1401,11 +1404,6 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 			else if (imlInstruction->type == PPCREC_IML_TYPE_R_S32)
 			{
 				if (PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction) == false)
-					codeGenerationFailed = true;
-			}
-			else if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
-			{
-				if (PPCRecompilerX64Gen_imlInstruction_conditional_r_s32(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction) == false)
 					codeGenerationFailed = true;
 			}
 			else if (imlInstruction->type == PPCREC_IML_TYPE_R_R_S32)
@@ -1428,13 +1426,11 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 				if (PPCRecompilerX64Gen_imlInstruction_r_r_r_carry(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction) == false)
 					codeGenerationFailed = true;
 			}
-			else if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE)
+			else if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE || imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
 			{
-				PPCRecompilerX64Gen_imlInstruction_compare(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
-			}
-			else if (imlInstruction->type == PPCREC_IML_TYPE_COMPARE_S32)
-			{
-				PPCRecompilerX64Gen_imlInstruction_compare_s32(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction);
+				sint32 extraInstructionsProcessed;
+				PPCRecompilerX64Gen_imlInstruction_compare_x(PPCRecFunction, ppcImlGenContext, &x64GenContext, imlInstruction, extraInstructionsProcessed);
+				i += extraInstructionsProcessed;
 			}
 			else if (imlInstruction->type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
 			{

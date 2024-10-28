@@ -2239,7 +2239,7 @@ void MainWindow::RecreateMenu()
 	wxMenu* debugDumpMenu = new wxMenu;
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, _("&Textures"), wxEmptyString)->Check(ActiveSettings::DumpTexturesEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
-	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, _("&Recompiler functions"), wxEmptyString)->Check(ActiveSettings::DumpRecompilerFunctionsEnabled());
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, _("&Recompiled functions"), wxEmptyString)->Check(ActiveSettings::DumpRecompilerFunctionsEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
 	// debug submenu
 	wxMenu* debugMenu = new wxMenu();

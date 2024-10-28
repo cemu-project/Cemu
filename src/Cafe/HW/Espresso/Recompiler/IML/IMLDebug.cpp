@@ -424,23 +424,6 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 	{
 		strOutput.addFmt("CYCLE_CHECK");
 	}
-	else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_R_S32)
-	{
-		strOutput.addFmt("{} ", IMLDebug_GetRegName(inst.op_conditional_r_s32.regR));
-		bool displayAsHex = false;
-		if (inst.operation == PPCREC_IML_OP_ASSIGN)
-		{
-			displayAsHex = true;
-			strOutput.add("=");
-		}
-		else
-			strOutput.addFmt("(unknown operation CONDITIONAL_R_S32 {})", inst.operation);
-		if (displayAsHex)
-			strOutput.addFmt(" 0x{:x}", inst.op_conditional_r_s32.immS32);
-		else
-			strOutput.addFmt(" {}", inst.op_conditional_r_s32.immS32);
-		strOutput.add(" (conditional)");
-	}
 	else if (inst.type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
 	{
 		strOutput.addFmt("X86_JCC {}", IMLDebug_GetConditionName(inst.op_x86_eflags_jcc.cond));
