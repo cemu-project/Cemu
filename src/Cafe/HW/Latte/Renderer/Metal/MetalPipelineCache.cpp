@@ -15,6 +15,7 @@
 #include "HW/Latte/ISA/LatteReg.h"
 #include "HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
+#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
 #include "Metal/MTLRenderPipeline.hpp"
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
@@ -34,32 +35,32 @@ MetalPipelineCache::MetalPipelineCache(class MetalRenderer* metalRenderer) : m_m
 
 MetalPipelineCache::~MetalPipelineCache()
 {
-    for (auto& [key, value] : m_pipelineCache)
-        value->release();
+    for (auto& [key, pipelineObj] : m_pipelineCache)
+    {
+        pipelineObj->m_pipeline->release();
+        delete pipelineObj;
+    }
 }
 
-MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
+PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
-    auto it = m_pipelineCache.find(hash);
-    if (it != m_pipelineCache.end())
-        return it->second;
+    PipelineObject*& pipelineObj = m_pipelineCache[hash];
+    if (pipelineObj)
+        return pipelineObj;
 
-    MetalPipelineCompiler compiler(m_mtlr);
+    pipelineObj = new PipelineObject();
+
+    MetalPipelineCompiler compiler(m_mtlr, *pipelineObj);
     bool fbosMatch;
     compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
-    bool attemptedCompilation = false;
-    MTL::RenderPipelineState* pipeline = compiler.Compile(false, true, true, attemptedCompilation);
+    compiler.Compile(false, true, true);
 
     // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
-    if (pipeline && fbosMatch)
+    if (fbosMatch)
         AddCurrentStateToCache(hash);
 
-    // Place the pipeline to the cache if the compilation was at least attempted
-    if (attemptedCompilation)
-        m_pipelineCache.insert({hash, pipeline});
-
-    return pipeline;
+    return pipelineObj;
 }
 
 uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
@@ -358,32 +359,24 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 
 	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
 
-	MTL::RenderPipelineState* pipeline = nullptr;
+	PipelineObject* pipelineObject = new PipelineObject();
+
 	// compile
 	{
-		MetalPipelineCompiler pp(m_mtlr);
+		MetalPipelineCompiler pp(m_mtlr, *pipelineObject);
 		bool fbosMatch;
 		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr, fbosMatch);
 		cemu_assert_debug(fbosMatch);
-		//{
-		//	s_spinlockSharedInternal.lock();
-		//	delete lcr;
-		//	delete cachedPipeline;
-		//	s_spinlockSharedInternal.unlock();
-		//	return;
-		//}
-		bool attemptedCompilation = false;
-		pipeline = pp.Compile(true, true, false, attemptedCompilation);
-		cemu_assert_debug(attemptedCompilation);
+		pp.Compile(true, true, false);
 		// destroy pp early
 	}
 
-	// on success, calculate pipeline hash and flag as present in cache
-	if (pipeline)
+	// on success, cache the pipeline
+	if (pipelineObject->m_pipeline)
 	{
     	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
     	m_pipelineCacheLock.lock();
-    	m_pipelineCache[pipelineStateHash] = pipeline;
+    	m_pipelineCache[pipelineStateHash] = pipelineObject;
     	m_pipelineCacheLock.unlock();
 	}
 

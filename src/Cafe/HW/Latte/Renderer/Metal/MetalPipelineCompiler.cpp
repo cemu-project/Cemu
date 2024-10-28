@@ -327,7 +327,7 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
         InitFromStateRender(fetchShader, vertexShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
 }
 
-MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay, bool& attemptedCompilation)
+bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
 {
     if (forceCompile)
 	{
@@ -343,11 +343,11 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 	{
 	    // fail early if some shader stages are not compiled
 		if (m_vertexShaderMtl && !m_vertexShaderMtl->IsCompiled())
-			return nullptr;
+			return false;
 		if (m_geometryShaderMtl && !m_geometryShaderMtl->IsCompiled())
-			return nullptr;
+			return false;
 		if (m_pixelShaderMtl && !m_pixelShaderMtl->IsCompiled())
-			return nullptr;
+			return false;
 	}
 
 	// Compile
@@ -403,10 +403,9 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 		g_compiling_pipelines++;
 	}
 
-	// Inform the pipeline cache that compilation was at least attempted
-	attemptedCompilation = true;
+	m_pipelineObj.m_pipeline = pipeline;
 
-    return pipeline;
+	return true;
 }
 
 void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
