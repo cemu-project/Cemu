@@ -1,25 +1,77 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
-#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
 #include "Cafe/HW/Latte/Core/LatteShaderCache.h"
 #include "Cemu/FileCache/FileCache.h"
 #include "Common/precompiled.h"
-#include "HW/Latte/Core/LatteShader.h"
-#include "HW/Latte/ISA/LatteReg.h"
-#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
-#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
-#include "Metal/MTLRenderPipeline.hpp"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
+
 #include <openssl/sha.h>
+
+static bool g_compilePipelineThreadInit{false};
+static std::mutex g_compilePipelineMutex;
+static std::condition_variable g_compilePipelineCondVar;
+static std::queue<MetalPipelineCompiler*> g_compilePipelineRequests;
+
+static void compileThreadFunc(sint32 threadIndex)
+{
+	SetThreadName("compilePl");
+
+	// one thread runs at normal priority while the others run at lower priority
+	if(threadIndex != 0)
+		; // TODO: set thread priority
+
+	while (true)
+	{
+		std::unique_lock lock(g_compilePipelineMutex);
+		while (g_compilePipelineRequests.empty())
+			g_compilePipelineCondVar.wait(lock);
+
+		MetalPipelineCompiler* request = g_compilePipelineRequests.front();
+
+		g_compilePipelineRequests.pop();
+
+		lock.unlock();
+
+		request->Compile(true, false, true);
+		delete request;
+	}
+}
+
+static void initCompileThread()
+{
+	uint32 numCompileThreads;
+
+	uint32 cpuCoreCount = GetPhysicalCoreCount();
+	if (cpuCoreCount <= 2)
+		numCompileThreads = 1;
+	else
+		numCompileThreads = 2 + (cpuCoreCount - 3); // 2 plus one additionally for every extra core above 3
+
+	numCompileThreads = std::min(numCompileThreads, 8u); // cap at 8
+
+	for (uint32 i = 0; i < numCompileThreads; i++)
+	{
+		std::thread compileThread(compileThreadFunc, i);
+		compileThread.detach();
+	}
+}
+
+static void queuePipeline(MetalPipelineCompiler* v)
+{
+	std::unique_lock lock(g_compilePipelineMutex);
+	g_compilePipelineRequests.push(std::move(v));
+	lock.unlock();
+	g_compilePipelineCondVar.notify_one();
+}
 
 MetalPipelineCache* g_mtlPipelineCache = nullptr;
 
@@ -51,10 +103,30 @@ PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShade
 
     pipelineObj = new PipelineObject();
 
-    MetalPipelineCompiler compiler(m_mtlr, *pipelineObj);
+    MetalPipelineCompiler* compiler = new MetalPipelineCompiler(m_mtlr, *pipelineObj);
     bool fbosMatch;
-    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
-    compiler.Compile(false, true, true);
+    compiler->InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+
+    bool allowAsyncCompile = false;
+    // TODO: uncomment
+    if (GetConfig().async_compile)
+		allowAsyncCompile = true;//IsAsyncPipelineAllowed(indexCount);
+
+	if (allowAsyncCompile)
+	{
+	    if (!g_compilePipelineThreadInit)
+		{
+			initCompileThread();
+			g_compilePipelineThreadInit = true;
+		}
+
+		queuePipeline(compiler);
+	}
+	else
+	{
+        compiler->Compile(false, true, true);
+        delete compiler;
+	}
 
     // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
     if (fbosMatch)
