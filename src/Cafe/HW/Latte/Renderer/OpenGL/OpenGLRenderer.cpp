@@ -584,6 +584,12 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewGL* texViewGL = (LatteTextureViewGL*)texView;
 	texture_bindAndActivate(texView, 0);
 
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	texViewGL->samplerState.clampS = texViewGL->samplerState.clampT = 0xFF;
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
+	texViewGL->samplerState.filterMin = 0xFFFFFFFF;
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
 	texViewGL->samplerState.filterMag = 0xFFFFFFFF;
 
