@@ -43,6 +43,8 @@ public:
 	static std::string GetVulkanVertexSource(bool render_upside_down);
 	static std::string GetOpenGlVertexSource(bool render_upside_down);
 
+	static std::string PrependFragmentPreamble(const std::string& shaderSrc);
+
 protected:
 	RendererShader* m_vertex_shader;
 	RendererShader* m_fragment_shader;

@@ -2,12 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 
 const std::string RendererOutputShader::s_copy_shader_source =
-R"(#version 420
-
-layout(location = 0) in vec2 passUV;
-layout(binding = 0) uniform sampler2D textureSrc;
-layout(location = 0) out vec4 colorOut0;
-
+R"(
 void main()
 {
 	colorOut0 = vec4(texture(textureSrc, passUV).rgb,1.0);
@@ -16,22 +11,6 @@ void main()
 
 const std::string RendererOutputShader::s_bicubic_shader_source =
 R"(
-#version 420
-
-#ifdef VULKAN
-layout(push_constant) uniform pc {
-	vec2 textureSrcResolution;
-	vec2 inputResolution;
-	vec2 outputResolution;
-};
-#else
-uniform vec2 inputResolution;
-#endif
-
-layout(location = 0) in vec2 passUV;
-layout(binding = 0)  uniform sampler2D textureSrc;
-layout(location = 0) out vec4 colorOut0;
-
 vec4 cubic(float x)
 {
 	float x2 = x * x;
@@ -77,22 +56,7 @@ void main(){
 )";
 
 const std::string RendererOutputShader::s_hermite_shader_source =
-R"(#version 420
-
-#ifdef VULKAN
-layout(push_constant) uniform pc {
-	vec2 textureSrcResolution;
-	vec2 inputResolution;
-	vec2 outputResolution;
-};
-#else
-uniform vec2 inputResolution;
-#endif
-
-layout(location = 0) in vec2 passUV;
-layout(binding=0) uniform sampler2D textureSrc;
-layout(location = 0) out vec4 colorOut0;
-
+R"(
 // https://www.shadertoy.com/view/MllSzX
 
 vec3 CubicHermite (vec3 A, vec3 B, vec3 C, vec3 D, float t)
@@ -152,8 +116,10 @@ void main(){
 
 RendererOutputShader::RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source)
 {
+	auto finalFragmentSrc = PrependFragmentPreamble(fragment_source);
+
 	m_vertex_shader = g_renderer->shader_create(RendererShader::ShaderType::kVertex, 0, 0, vertex_source, false, false);
-	m_fragment_shader = g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, fragment_source, false, false);
+	m_fragment_shader = g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, finalFragmentSrc, false, false);
 
 	m_vertex_shader->PreponeCompilation(true);
 	m_fragment_shader->PreponeCompilation(true);
@@ -331,6 +297,27 @@ void main(){
 }
 )";
 		return vertex_source.str();
+}
+
+std::string RendererOutputShader::PrependFragmentPreamble(const std::string& shaderSrc)
+{
+	return R"(#version 420
+#ifdef VULKAN
+layout(push_constant) uniform pc {
+	vec2 textureSrcResolution;
+	vec2 inputResolution;
+	vec2 outputResolution;
+};
+#else
+uniform vec2 textureSrcResolution;
+uniform vec2 inputResolution;
+uniform vec2 outputResolution;
+#endif
+
+layout(location = 0) in vec2 passUV;
+layout(binding=0) uniform sampler2D textureSrc;
+layout(location = 0) out vec4 colorOut0;
+)" + shaderSrc;
 }
 void RendererOutputShader::InitializeStatic()
 {
