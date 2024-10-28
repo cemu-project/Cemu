@@ -73,6 +73,23 @@ static void queuePipeline(MetalPipelineCompiler* v)
 	g_compilePipelineCondVar.notify_one();
 }
 
+// make a guess if a pipeline is not essential
+// non-essential means that skipping these drawcalls shouldn't lead to permanently corrupted graphics
+bool IsAsyncPipelineAllowed(const MetalAttachmentsInfo& attachmentsInfo, Vector2i extend, uint32 indexCount)
+{
+	if (extend.x == 1600 && extend.y == 1600)
+		return false; // Splatoon ink mechanics use 1600x1600 R8 and R8G8 framebuffers, this resolution is rare enough that we can just blacklist it globally
+
+	if (attachmentsInfo.depthFormat != Latte::E_GX2SURFFMT::INVALID_FORMAT)
+		return true; // aggressive filter but seems to work well so far
+
+	// small index count (3,4,5,6) is often associated with full-viewport quads (which are considered essential due to often being used to generate persistent textures)
+	if (indexCount <= 6)
+		return false;
+
+	return true;
+}
+
 MetalPipelineCache* g_mtlPipelineCache = nullptr;
 
 MetalPipelineCache& MetalPipelineCache::GetInstance()
@@ -94,7 +111,7 @@ MetalPipelineCache::~MetalPipelineCache()
     }
 }
 
-PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
+PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, Vector2i extend, uint32 indexCount, const LatteContextRegister& lcr)
 {
     uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     PipelineObject*& pipelineObj = m_pipelineCache[hash];
@@ -108,9 +125,8 @@ PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShade
     compiler->InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
 
     bool allowAsyncCompile = false;
-    // TODO: uncomment
     if (GetConfig().async_compile)
-		allowAsyncCompile = true;//IsAsyncPipelineAllowed(indexCount);
+		allowAsyncCompile = IsAsyncPipelineAllowed(activeAttachmentsInfo, extend, indexCount);
 
 	if (allowAsyncCompile)
 	{
@@ -124,7 +140,8 @@ PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShade
 	}
 	else
 	{
-        compiler->Compile(false, true, true);
+	    // Also force compile to ensure that the pipeline is ready
+        cemu_assert_debug(compiler->Compile(true, true, true));
         delete compiler;
 	}
 
