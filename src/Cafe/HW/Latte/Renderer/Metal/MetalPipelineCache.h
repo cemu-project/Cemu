@@ -4,7 +4,6 @@
 #include "util/helpers/ConcurrentQueue.h"
 #include "util/helpers/fspinlock.h"
 
-// TODO: binary archives
 class MetalPipelineCache
 {
 public:

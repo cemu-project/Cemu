@@ -35,9 +35,7 @@ MetalPipelineCache::MetalPipelineCache(class MetalRenderer* metalRenderer) : m_m
 MetalPipelineCache::~MetalPipelineCache()
 {
     for (auto& [key, value] : m_pipelineCache)
-    {
         value->release();
-    }
 }
 
 MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)

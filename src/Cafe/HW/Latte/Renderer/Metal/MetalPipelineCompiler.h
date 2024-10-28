@@ -24,17 +24,9 @@ private:
     bool m_usesGeometryShader;
     bool m_rasterizationEnabled;
 
-    /*
-    std::map<uint64, MTL::RenderPipelineState*> m_pipelineCache;
-
-    NS::URL* m_binaryArchiveURL;
-    MTL::BinaryArchive* m_binaryArchive;
-    */
     NS::Object* m_pipelineDescriptor;
 
     void InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch);
 
     void InitFromStateMesh(const LatteFetchShader* fetchShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch);
-
-    //void TryLoadBinaryArchive();
 };
