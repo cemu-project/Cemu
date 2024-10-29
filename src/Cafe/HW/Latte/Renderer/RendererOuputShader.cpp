@@ -50,7 +50,7 @@ vec4 bcFilter(vec2 uv, vec4 texelSize)
 }
 
 void main(){
-	vec4 texelSize = vec4( 1.0 / inputResolution.xy, inputResolution.xy);
+	vec4 texelSize = vec4( 1.0 / textureSrcResolution.xy, textureSrcResolution.xy);
 	colorOut0 = vec4(bcFilter(passUV, texelSize).rgb,1.0);
 }
 )";
@@ -109,7 +109,7 @@ vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
 }
 
 void main(){
-	vec4 texelSize = vec4( 1.0 / inputResolution.xy, inputResolution.xy);
+	vec4 texelSize = vec4( 1.0 / textureSrcResolution.xy, textureSrcResolution.xy);
 	colorOut0 = vec4(BicubicHermiteTexture(passUV, texelSize), 1.0);
 }
 )";
@@ -132,62 +132,43 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
-		m_attributes[0].m_loc_texture_src_resolution = m_vertex_shader->GetUniformLocation("textureSrcResolution");
-		m_attributes[0].m_loc_input_resolution = m_vertex_shader->GetUniformLocation("inputResolution");
-		m_attributes[0].m_loc_output_resolution = m_vertex_shader->GetUniformLocation("outputResolution");
+		m_uniformLocations[0].m_loc_textureSrcResolution = m_vertex_shader->GetUniformLocation("textureSrcResolution");
+		m_uniformLocations[0].m_loc_nativeResolution = m_vertex_shader->GetUniformLocation("nativeResolution");
+		m_uniformLocations[0].m_loc_outputResolution = m_vertex_shader->GetUniformLocation("outputResolution");
 
-		m_attributes[1].m_loc_texture_src_resolution = m_fragment_shader->GetUniformLocation("textureSrcResolution");
-		m_attributes[1].m_loc_input_resolution = m_fragment_shader->GetUniformLocation("inputResolution");
-		m_attributes[1].m_loc_output_resolution = m_fragment_shader->GetUniformLocation("outputResolution");
+		m_uniformLocations[1].m_loc_textureSrcResolution = m_fragment_shader->GetUniformLocation("textureSrcResolution");
+		m_uniformLocations[1].m_loc_nativeResolution = m_fragment_shader->GetUniformLocation("nativeResolution");
+		m_uniformLocations[1].m_loc_outputResolution = m_fragment_shader->GetUniformLocation("outputResolution");
 	}
 }
 
 void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const
 {
-	float res[2];
-	// vertex shader
-	if (m_attributes[0].m_loc_texture_src_resolution != -1)
-	{ 
-		res[0] = (float)texture_view.baseTexture->width;
-		res[1] = (float)texture_view.baseTexture->height;
-		m_vertex_shader->SetUniform2fv(m_attributes[0].m_loc_texture_src_resolution, res, 1);
-	}
+	auto setUniforms = [&](RendererShader* shader, const UniformLocations& attributes){
+	  float res[2];
+	  if (attributes.m_loc_textureSrcResolution != -1)
+	  {
+		  res[0] = (float)input_res.x;
+		  res[1] = (float)input_res.y;
+		  shader->SetUniform2fv(attributes.m_loc_textureSrcResolution, res, 1);
+	  }
 
-	if (m_attributes[0].m_loc_input_resolution != -1)
-	{
-		res[0] = (float)input_res.x;
-		res[1] = (float)input_res.y;
-		m_vertex_shader->SetUniform2fv(m_attributes[0].m_loc_input_resolution, res, 1);
-	}
+	  if (attributes.m_loc_nativeResolution != -1)
+	  {
+		  res[0] = (float)texture_view.baseTexture->width;
+		  res[1] = (float)texture_view.baseTexture->height;
+		  shader->SetUniform2fv(attributes.m_loc_nativeResolution, res, 1);
+	  }
 
-	if (m_attributes[0].m_loc_output_resolution != -1)
-	{
-		res[0] = (float)output_res.x;
-		res[1] = (float)output_res.y;
-		m_vertex_shader->SetUniform2fv(m_attributes[0].m_loc_output_resolution, res, 1);
-	}
-
-	// fragment shader
-	if (m_attributes[1].m_loc_texture_src_resolution != -1)
-	{
-		res[0] = (float)texture_view.baseTexture->width;
-		res[1] = (float)texture_view.baseTexture->height;
-		m_fragment_shader->SetUniform2fv(m_attributes[1].m_loc_texture_src_resolution, res, 1);
-	}
-
-	if (m_attributes[1].m_loc_input_resolution != -1)
-	{
-		res[0] = (float)input_res.x;
-		res[1] = (float)input_res.y;
-		m_fragment_shader->SetUniform2fv(m_attributes[1].m_loc_input_resolution, res, 1);
-	}
-
-	if (m_attributes[1].m_loc_output_resolution != -1)
-	{
-		res[0] = (float)output_res.x;
-		res[1] = (float)output_res.y;
-		m_fragment_shader->SetUniform2fv(m_attributes[1].m_loc_output_resolution, res, 1);
-	}
+	  if (attributes.m_loc_outputResolution != -1)
+	  {
+		  res[0] = (float)output_res.x;
+		  res[1] = (float)output_res.y;
+		  shader->SetUniform2fv(attributes.m_loc_outputResolution, res, 1);
+	  }
+	};
+	setUniforms(m_vertex_shader, m_uniformLocations[0]);
+	setUniforms(m_fragment_shader, m_uniformLocations[1]);
 }
 
 RendererOutputShader* RendererOutputShader::s_copy_shader;
@@ -305,12 +286,12 @@ std::string RendererOutputShader::PrependFragmentPreamble(const std::string& sha
 #ifdef VULKAN
 layout(push_constant) uniform pc {
 	vec2 textureSrcResolution;
-	vec2 inputResolution;
+	vec2 nativeResolution;
 	vec2 outputResolution;
 };
 #else
 uniform vec2 textureSrcResolution;
-uniform vec2 inputResolution;
+uniform vec2 nativeResolution;
 uniform vec2 outputResolution;
 #endif
 

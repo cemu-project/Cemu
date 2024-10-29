@@ -2968,16 +2968,16 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	Vector2f pushData;
 
 	// textureSrcResolution
+	sint32 effectiveWidth, effectiveHeight;
+	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
+	pushData = {(float)effectiveWidth, (float)effectiveHeight};
+	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0*sizeof(float)*2, sizeof(float)*2, &pushData);
+
+	// nativeResolution
 	pushData = {
 		(float)texViewVk->baseTexture->width,
 		(float)texViewVk->baseTexture->height,
 	};
-	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0*sizeof(float)*2, sizeof(float)*2, &pushData);
-
-	// inputResolution
-	sint32 effectiveWidth, effectiveHeight;
-	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	pushData = {(float)effectiveWidth, (float)effectiveHeight};
 	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 1*sizeof(float)*2, sizeof(float)*2, &pushData);
 
 	// outputResolution
