@@ -284,7 +284,7 @@ void main(){
 
 std::string RendererOutputShader::PrependFragmentPreamble(const std::string& shaderSrc)
 {
-	return R"(#version 420
+	return R"(#version 430
 #ifdef VULKAN
 layout(push_constant) uniform pc {
 	vec2 textureSrcResolution;
@@ -298,7 +298,7 @@ uniform vec2 outputResolution;
 #endif
 
 layout(location = 0) in vec2 passUV;
-layout(binding=0) uniform sampler2D textureSrc;
+layout(binding = 0) uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
 )" + shaderSrc;
 }
