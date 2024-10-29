@@ -190,7 +190,7 @@ extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
 
 template<typename T>
-void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, bool rasterizationEnabled, const LatteContextRegister& lcr, bool& fbosMatch)
+void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, bool rasterizationEnabled, const LatteContextRegister& lcr)
 {
 	// TODO: check if the pixel shader is valid as well?
 	if (!rasterizationEnabled/* || !pixelShaderMtl*/)
@@ -200,7 +200,6 @@ void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsIn
 	}
 
     // Color attachments
-    fbosMatch = true;
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
 	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
 	uint32 renderTargetMask = lcr.CB_TARGET_MASK.get_MASK();
@@ -218,7 +217,6 @@ void SetFragmentState(T* desc, const MetalAttachmentsInfo& lastUsedAttachmentsIn
 		if (activeAttachmentsInfo.colorFormats[i] == Latte::E_GX2SURFFMT::INVALID_FORMAT)
         {
             colorAttachment->setWriteMask(MTL::ColorWriteMaskNone);
-            fbosMatch = false;
             continue;
         }
 
@@ -288,7 +286,7 @@ MetalPipelineCompiler::~MetalPipelineCompiler()
     m_pipelineDescriptor->release();
 }
 
-void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
+void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     // Check if the pipeline uses a geometry shader
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(lcr.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE());
@@ -322,9 +320,9 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
     m_pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
 
     if (m_usesGeometryShader)
-        InitFromStateMesh(fetchShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+        InitFromStateMesh(fetchShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
     else
-        InitFromStateRender(fetchShader, vertexShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+        InitFromStateRender(fetchShader, vertexShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 }
 
 bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
@@ -408,7 +406,7 @@ bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool
 	return true;
 }
 
-void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
+void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
 	// Render pipeline state
 	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
@@ -482,17 +480,17 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
         vertexDescriptor->release();
     }
 
-	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr, fbosMatch);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr);
 
 	m_pipelineDescriptor = desc;
 }
 
-void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
+void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
 	// Render pipeline state
 	MTL::MeshRenderPipelineDescriptor* desc = MTL::MeshRenderPipelineDescriptor::alloc()->init();
 
-	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr, fbosMatch);
+	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr);
 
 	m_pipelineDescriptor = desc;
 }

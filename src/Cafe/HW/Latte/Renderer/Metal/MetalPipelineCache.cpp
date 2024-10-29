@@ -11,6 +11,7 @@
 #include "Common/precompiled.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
+#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 
@@ -121,8 +122,7 @@ PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShade
     pipelineObj = new PipelineObject();
 
     MetalPipelineCompiler* compiler = new MetalPipelineCompiler(m_mtlr, *pipelineObj);
-    bool fbosMatch;
-    compiler->InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+    compiler->InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 
     bool allowAsyncCompile = false;
     if (GetConfig().async_compile)
@@ -145,9 +145,8 @@ PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShade
         delete compiler;
 	}
 
-    // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
-    if (fbosMatch)
-        AddCurrentStateToCache(hash);
+	// Save to cache
+    AddCurrentStateToCache(hash, lastUsedAttachmentsInfo);
 
     return pipelineObj;
 }
@@ -380,6 +379,8 @@ struct CachedPipeline
 	ShaderHash gsHash;
 	ShaderHash psHash;
 
+	MetalAttachmentsInfo lastUsedAttachmentsInfo;
+
 	Latte::GPUCompactedRegisterState gpuState;
 };
 
@@ -453,9 +454,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// compile
 	{
 		MetalPipelineCompiler pp(m_mtlr, *pipelineObject);
-		bool fbosMatch;
-		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr, fbosMatch);
-		cemu_assert_debug(fbosMatch);
+		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, cachedPipeline->lastUsedAttachmentsInfo, attachmentsInfo, *lcr);
 		pp.Compile(true, true, false);
 		// destroy pp early
 	}
@@ -463,7 +462,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	// on success, cache the pipeline
 	if (pipelineObject->m_pipeline)
 	{
-    	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
+    	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, cachedPipeline->lastUsedAttachmentsInfo, attachmentsInfo, *lcr);
     	m_pipelineCacheLock.lock();
     	m_pipelineCache[pipelineStateHash] = pipelineObject;
     	m_pipelineCacheLock.unlock();
@@ -478,7 +477,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 
 ConcurrentQueue<CachedPipeline*> g_mtlPipelineCachingQueue;
 
-void MetalPipelineCache::AddCurrentStateToCache(uint64 pipelineStateHash)
+void MetalPipelineCache::AddCurrentStateToCache(uint64 pipelineStateHash, const MetalAttachmentsInfo& lastUsedAttachmentsInfo)
 {
 	if (!m_pipelineCacheStoreThread)
 	{
@@ -499,6 +498,7 @@ void MetalPipelineCache::AddCurrentStateToCache(uint64 pipelineStateHash)
 		job->gsHash.set(gs->baseHash, gs->auxHash);
 	if (ps)
 		job->psHash.set(ps->baseHash, ps->auxHash);
+	job->lastUsedAttachmentsInfo = lastUsedAttachmentsInfo;
 	Latte::StoreGPURegisterState(LatteGPUState.contextNew, job->gpuState);
 	// queue job
 	g_mtlPipelineCachingQueue.push(job);
@@ -530,7 +530,13 @@ bool MetalPipelineCache::SerializePipeline(MemStreamWriter& memWriter, CachedPip
 		memWriter.writeBE<uint64>(cachedPipeline.psHash.baseHash);
 		memWriter.writeBE<uint64>(cachedPipeline.psHash.auxHash);
 	}
+
+	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+	    memWriter.writeBE<uint16>((uint16)cachedPipeline.lastUsedAttachmentsInfo.colorFormats[i]);
+	memWriter.writeBE<uint16>((uint16)cachedPipeline.lastUsedAttachmentsInfo.depthFormat);
+
 	Latte::SerializeRegisterState(cachedPipeline.gpuState, memWriter);
+
 	return true;
 }
 
@@ -562,12 +568,18 @@ bool MetalPipelineCache::DeserializePipeline(MemStreamReader& memReader, CachedP
 		uint64 auxHash = memReader.readBE<uint64>();
 		cachedPipeline.psHash.set(baseHash, auxHash);
 	}
+
+	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+	    cachedPipeline.lastUsedAttachmentsInfo.colorFormats[i] = (Latte::E_GX2SURFFMT)memReader.readBE<uint16>();
+	cachedPipeline.lastUsedAttachmentsInfo.depthFormat = (Latte::E_GX2SURFFMT)memReader.readBE<uint16>();
+
 	// deserialize GPU state
 	if (!Latte::DeserializeRegisterState(cachedPipeline.gpuState, memReader))
 	{
 		return false;
 	}
 	cemu_assert_debug(!memReader.hasError());
+
 	return true;
 }
 
