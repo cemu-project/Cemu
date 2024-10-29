@@ -1,535 +1,186 @@
-#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
-#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cemu/Logging/CemuLogging.h"
-#include "HW/Latte/Core/LatteConst.h"
+#include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "Cafe/HW/Latte/Common/RegisterSerializer.h"
+#include "Cafe/HW/Latte/Core/LatteShaderCache.h"
+#include "Cemu/FileCache/FileCache.h"
+#include "Common/precompiled.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
+#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
+#include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 
-static void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
+#include <openssl/sha.h>
+
+static bool g_compilePipelineThreadInit{false};
+static std::mutex g_compilePipelineMutex;
+static std::condition_variable g_compilePipelineCondVar;
+static std::queue<MetalPipelineCompiler*> g_compilePipelineRequests;
+
+static void compileThreadFunc(sint32 threadIndex)
 {
-	auto parameterMask = vertexShader->outputParameterMask;
-	for (uint32 i = 0; i < 32; i++)
+	SetThreadName("compilePl");
+
+	// one thread runs at normal priority while the others run at lower priority
+	if(threadIndex != 0)
+		; // TODO: set thread priority
+
+	while (true)
 	{
-		if ((parameterMask & (1 << i)) == 0)
-			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
-		if (vsSemanticId < 0)
-			continue;
-		// make sure PS has matching input
-		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
-			continue;
-		gsSrc.append(fmt::format("out.passParameterSem{} = objectPayload.vertexOut[{}].passParameterSem{};\r\n", vsSemanticId, vIdx, vsSemanticId));
-	}
-	gsSrc.append(fmt::format("out.position = objectPayload.vertexOut[{}].position;\r\n", vIdx));
-	gsSrc.append(fmt::format("mesh.set_vertex({}, out);\r\n", vIdx));
-}
+		std::unique_lock lock(g_compilePipelineMutex);
+		while (g_compilePipelineRequests.empty())
+			g_compilePipelineCondVar.wait(lock);
 
-static void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
-{
-	auto parameterMask = vertexShader->outputParameterMask;
-	for (uint32 i = 0; i < 32; i++)
-	{
-		if ((parameterMask & (1 << i)) == 0)
-			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
-		if (vsSemanticId < 0)
-			continue;
-		// make sure PS has matching input
-		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
-			continue;
-		gsSrc.append(fmt::format("out.passParameterSem{} = gen4thVertex{}(objectPayload.vertexOut[0].passParameterSem{}, objectPayload.vertexOut[1].passParameterSem{}, objectPayload.vertexOut[2].passParameterSem{});\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
-	}
-	gsSrc.append(fmt::format("out.position = gen4thVertex{}(objectPayload.vertexOut[0].position, objectPayload.vertexOut[1].position, objectPayload.vertexOut[2].position);\r\n", variant));
-	gsSrc.append(fmt::format("mesh.set_vertex(3, out);\r\n"));
-}
+		MetalPipelineCompiler* request = g_compilePipelineRequests.front();
 
-static void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, const LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
-{
-	sint32 pList[4] = { p0, p1, p2, p3 };
-	for (sint32 i = 0; i < 4; i++)
-	{
-		if (pList[i] == 3)
-			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant, latteRegister);
-		else
-			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
-	}
-	gsSrc.append(fmt::format("mesh.set_index(0, {});\r\n", pList[0]));
-	gsSrc.append(fmt::format("mesh.set_index(1, {});\r\n", pList[1]));
-	gsSrc.append(fmt::format("mesh.set_index(2, {});\r\n", pList[2]));
-	gsSrc.append(fmt::format("mesh.set_index(3, {});\r\n", pList[1]));
-	gsSrc.append(fmt::format("mesh.set_index(4, {});\r\n", pList[2]));
-	gsSrc.append(fmt::format("mesh.set_index(5, {});\r\n", pList[3]));
-}
+		g_compilePipelineRequests.pop();
 
-static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer, const LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
-{
-	std::string gsSrc;
-	gsSrc.append("#include <metal_stdlib>\r\n");
-	gsSrc.append("using namespace metal;\r\n");
+		lock.unlock();
 
-	LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
-
-	// inputs & outputs
-	std::string vertexOutDefinition = "struct VertexOut {\r\n";
-	vertexOutDefinition += "float4 position;\r\n";
-	std::string geometryOutDefinition = "struct GeometryOut {\r\n";
-	geometryOutDefinition += "float4 position [[position]];\r\n";
-	auto parameterMask = vertexShader->outputParameterMask;
-	for (sint32 f = 0; f < 2; f++)
-	{
-		for (uint32 i = 0; i < 32; i++)
-		{
-			if ((parameterMask & (1 << i)) == 0)
-				continue;
-			sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
-			if (vsSemanticId < 0)
-				continue;
-			auto psImport = psInputTable->getPSImportBySemanticId(vsSemanticId);
-			if (psImport == nullptr)
-				continue;
-
-			if (f == 0)
-			{
-				vertexOutDefinition += fmt::format("float4 passParameterSem{};\r\n", vsSemanticId);
-			}
-			else
-			{
-				geometryOutDefinition += fmt::format("float4 passParameterSem{}", vsSemanticId);
-
-    			geometryOutDefinition += fmt::format(" [[user(locn{})]]", psInputTable->getPSImportLocationBySemanticId(vsSemanticId));
-    			if (psImport->isFlat)
-    				geometryOutDefinition += " [[flat]]";
-    			if (psImport->isNoPerspective)
-    				geometryOutDefinition += " [[center_no_perspective]]";
-                geometryOutDefinition += ";\r\n";
-			}
-		}
-	}
-	vertexOutDefinition += "};\r\n";
-	geometryOutDefinition += "};\r\n";
-
-	gsSrc.append(vertexOutDefinition);
-	gsSrc.append(geometryOutDefinition);
-
-	gsSrc.append("struct ObjectPayload {\r\n");
-	gsSrc.append("VertexOut vertexOut[3];\r\n");
-	gsSrc.append("};\r\n");
-
-	// gen function
-	gsSrc.append("float4 gen4thVertexA(float4 a, float4 b, float4 c)\r\n");
-	gsSrc.append("{\r\n");
-	gsSrc.append("return b - (c - a);\r\n");
-	gsSrc.append("}\r\n");
-
-	gsSrc.append("float4 gen4thVertexB(float4 a, float4 b, float4 c)\r\n");
-	gsSrc.append("{\r\n");
-	gsSrc.append("return c - (b - a);\r\n");
-	gsSrc.append("}\r\n");
-
-	gsSrc.append("float4 gen4thVertexC(float4 a, float4 b, float4 c)\r\n");
-	gsSrc.append("{\r\n");
-	gsSrc.append("return c + (b - a);\r\n");
-	gsSrc.append("}\r\n");
-
-	// main
-	gsSrc.append("using MeshType = mesh<GeometryOut, void, 4, 2, topology::triangle>;\r\n");
-	gsSrc.append("[[mesh, max_total_threads_per_threadgroup(1)]]\r\n");
-	gsSrc.append("void main0(MeshType mesh, const object_data ObjectPayload& objectPayload [[payload]])\r\n");
-	gsSrc.append("{\r\n");
-	gsSrc.append("GeometryOut out;\r\n");
-
-	// there are two possible winding orders that need different triangle generation:
-	// 0 1
-	// 2 3
-	// and
-	// 0 1
-	// 3 2
-	// all others are just symmetries of these cases
-
-	// we can determine the case by comparing the distance 0<->1 and 0<->2
-
-	gsSrc.append("float dist0_1 = length(objectPayload.vertexOut[1].position.xy - objectPayload.vertexOut[0].position.xy);\r\n");
-	gsSrc.append("float dist0_2 = length(objectPayload.vertexOut[2].position.xy - objectPayload.vertexOut[0].position.xy);\r\n");
-	gsSrc.append("float dist1_2 = length(objectPayload.vertexOut[2].position.xy - objectPayload.vertexOut[1].position.xy);\r\n");
-
-	// emit vertices
-	gsSrc.append("if(dist0_1 > dist0_2 && dist0_1 > dist1_2)\r\n");
-	gsSrc.append("{\r\n");
-	// p0 to p1 is diagonal
-	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 2, 1, 0, 3, "A", latteRegister);
-	gsSrc.append("} else if ( dist0_2 > dist0_1 && dist0_2 > dist1_2 ) {\r\n");
-	// p0 to p2 is diagonal
-	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 1, 2, 0, 3, "B", latteRegister);
-	gsSrc.append("} else {\r\n");
-	// p1 to p2 is diagonal
-	rectsEmulationGS_outputVerticesCode(gsSrc, vertexShader, psInputTable, 0, 1, 2, 3, "C", latteRegister);
-	gsSrc.append("}\r\n");
-
-	gsSrc.append("mesh.set_primitive_count(2);\r\n");
-
-	gsSrc.append("}\r\n");
-
-	auto mtlShader = new RendererShaderMtl(metalRenderer, RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
-	mtlShader->PreponeCompilation(true);
-
-	return mtlShader;
-}
-
-#define INVALID_TITLE_ID 0xFFFFFFFFFFFFFFFF
-
-uint64 s_cacheTitleId = INVALID_TITLE_ID;
-
-extern std::atomic_int g_compiled_shaders_total;
-extern std::atomic_int g_compiled_shaders_async;
-
-template<typename T>
-void SetFragmentState(T* desc, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
-{
-	// Rasterization
-	bool rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
-
-	// HACK
-	// TODO: include this in the hash?
-	if (!lcr.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-		rasterizationEnabled = true;
-
-	// Culling both front and back faces effectively disables rasterization
-	const auto& polygonControlReg = lcr.PA_SU_SC_MODE_CNTL;
-	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-	uint32 cullBack = polygonControlReg.get_CULL_BACK();
-	if (cullFront && cullBack)
-	    rasterizationEnabled = false;
-
-	auto pixelShaderMtl = static_cast<RendererShaderMtl*>(pixelShader->shader);
-
-	if (!rasterizationEnabled || !pixelShaderMtl)
-	{
-	    desc->setRasterizationEnabled(false);
-		return;
-	}
-
-    desc->setFragmentFunction(pixelShaderMtl->GetFunction());
-
-    // Color attachments
-	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
-	uint32 blendEnableMask = colorControlReg.get_BLEND_MASK();
-	uint32 renderTargetMask = lcr.CB_TARGET_MASK.get_MASK();
-	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
-	{
-	    const auto& colorBuffer = lastUsedFBO->colorBuffer[i];
-		auto texture = static_cast<LatteTextureViewMtl*>(colorBuffer.texture);
-		if (!texture)
-		{
-		    continue;
-		}
-		auto colorAttachment = desc->colorAttachments()->object(i);
-		colorAttachment->setPixelFormat(texture->GetRGBAView()->pixelFormat());
-
-		// Disable writes if not in the active FBO
-		if (!activeFBO->colorBuffer[i].texture)
-        {
-            colorAttachment->setWriteMask(MTL::ColorWriteMaskNone);
-            continue;
-        }
-
-		colorAttachment->setWriteMask(GetMtlColorWriteMask((renderTargetMask >> (i * 4)) & 0xF));
-
-		// Blending
-		bool blendEnabled = ((blendEnableMask & (1 << i))) != 0;
-		// Only float data type is blendable
-		if (blendEnabled && GetMtlPixelFormatInfo(texture->format, false).dataType == MetalDataType::FLOAT)
-		{
-       		colorAttachment->setBlendingEnabled(true);
-
-       		const auto& blendControlReg = lcr.CB_BLENDN_CONTROL[i];
-
-       		auto rgbBlendOp = GetMtlBlendOp(blendControlReg.get_COLOR_COMB_FCN());
-       		auto srcRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_SRCBLEND());
-       		auto dstRgbBlendFactor = GetMtlBlendFactor(blendControlReg.get_COLOR_DSTBLEND());
-
-       		colorAttachment->setRgbBlendOperation(rgbBlendOp);
-       		colorAttachment->setSourceRGBBlendFactor(srcRgbBlendFactor);
-       		colorAttachment->setDestinationRGBBlendFactor(dstRgbBlendFactor);
-       		if (blendControlReg.get_SEPARATE_ALPHA_BLEND())
-       		{
-       			colorAttachment->setAlphaBlendOperation(GetMtlBlendOp(blendControlReg.get_ALPHA_COMB_FCN()));
-         		    colorAttachment->setSourceAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_SRCBLEND()));
-         		    colorAttachment->setDestinationAlphaBlendFactor(GetMtlBlendFactor(blendControlReg.get_ALPHA_DSTBLEND()));
-       		}
-       		else
-       		{
-           		colorAttachment->setAlphaBlendOperation(rgbBlendOp);
-           		colorAttachment->setSourceAlphaBlendFactor(srcRgbBlendFactor);
-           		colorAttachment->setDestinationAlphaBlendFactor(dstRgbBlendFactor);
-       		}
-		}
-	}
-
-	// Depth stencil attachment
-	if (lastUsedFBO->depthBuffer.texture)
-	{
-	    auto texture = static_cast<LatteTextureViewMtl*>(lastUsedFBO->depthBuffer.texture);
-        desc->setDepthAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-        if (lastUsedFBO->depthBuffer.hasStencil)
-        {
-            desc->setStencilAttachmentPixelFormat(texture->GetRGBAView()->pixelFormat());
-        }
+		request->Compile(true, false, true);
+		delete request;
 	}
 }
 
-void MetalPipelineCache::ShaderCacheLoading_begin(uint64 cacheTitleId)
+static void initCompileThread()
 {
-    s_cacheTitleId = cacheTitleId;
+	uint32 numCompileThreads;
+
+	uint32 cpuCoreCount = GetPhysicalCoreCount();
+	if (cpuCoreCount <= 2)
+		numCompileThreads = 1;
+	else
+		numCompileThreads = 2 + (cpuCoreCount - 3); // 2 plus one additionally for every extra core above 3
+
+	numCompileThreads = std::min(numCompileThreads, 8u); // cap at 8
+
+	for (uint32 i = 0; i < numCompileThreads; i++)
+	{
+		std::thread compileThread(compileThreadFunc, i);
+		compileThread.detach();
+	}
 }
 
-void MetalPipelineCache::ShaderCacheLoading_end()
+static void queuePipeline(MetalPipelineCompiler* v)
 {
+	std::unique_lock lock(g_compilePipelineMutex);
+	g_compilePipelineRequests.push(std::move(v));
+	lock.unlock();
+	g_compilePipelineCondVar.notify_one();
 }
 
-void MetalPipelineCache::ShaderCacheLoading_Close()
+// make a guess if a pipeline is not essential
+// non-essential means that skipping these drawcalls shouldn't lead to permanently corrupted graphics
+bool IsAsyncPipelineAllowed(const MetalAttachmentsInfo& attachmentsInfo, Vector2i extend, uint32 indexCount)
 {
-    g_compiled_shaders_total = 0;
-    g_compiled_shaders_async = 0;
+	if (extend.x == 1600 && extend.y == 1600)
+		return false; // Splatoon ink mechanics use 1600x1600 R8 and R8G8 framebuffers, this resolution is rare enough that we can just blacklist it globally
+
+	if (attachmentsInfo.depthFormat != Latte::E_GX2SURFFMT::INVALID_FORMAT)
+		return true; // aggressive filter but seems to work well so far
+
+	// small index count (3,4,5,6) is often associated with full-viewport quads (which are considered essential due to often being used to generate persistent textures)
+	if (indexCount <= 6)
+		return false;
+
+	return true;
+}
+
+MetalPipelineCache* g_mtlPipelineCache = nullptr;
+
+MetalPipelineCache& MetalPipelineCache::GetInstance()
+{
+    return *g_mtlPipelineCache;
+}
+
+MetalPipelineCache::MetalPipelineCache(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}
+{
+    g_mtlPipelineCache = this;
 }
 
 MetalPipelineCache::~MetalPipelineCache()
 {
-    for (auto& pair : m_pipelineCache)
+    for (auto& [key, pipelineObj] : m_pipelineCache)
     {
-        pair.second->release();
+        pipelineObj->m_pipeline->release();
+        delete pipelineObj;
     }
-    m_pipelineCache.clear();
-
-    NS::Error* error = nullptr;
-    m_binaryArchive->serializeToURL(m_binaryArchiveURL, &error);
-    if (error)
-    {
-        cemuLog_log(LogType::Force, "error serializing binary archive: {}", error->localizedDescription()->utf8String());
-        error->release();
-    }
-    m_binaryArchive->release();
-
-    m_binaryArchiveURL->release();
 }
 
-MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr)
+PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, Vector2i extend, uint32 indexCount, const LatteContextRegister& lcr)
 {
-    uint64 stateHash = CalculateRenderPipelineHash(fetchShader, vertexShader, pixelShader, lastUsedFBO, lcr);
-    auto& pipeline = m_pipelineCache[stateHash];
-    if (pipeline)
-        return pipeline;
+    uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
+    PipelineObject*& pipelineObj = m_pipelineCache[hash];
+    if (pipelineObj)
+        return pipelineObj;
 
-	auto vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
+    pipelineObj = new PipelineObject();
 
-	// Render pipeline state
-	MTL::RenderPipelineDescriptor* desc = MTL::RenderPipelineDescriptor::alloc()->init();
-	desc->setVertexFunction(vertexShaderMtl->GetFunction());
+    MetalPipelineCompiler* compiler = new MetalPipelineCompiler(m_mtlr, *pipelineObj);
+    compiler->InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
 
-    // Vertex descriptor
-    if (!fetchShader->mtlFetchVertexManually)
-    {
-    	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
-    	for (auto& bufferGroup : fetchShader->bufferGroups)
-    	{
-    		std::optional<LatteConst::VertexFetchType2> fetchType;
+    bool allowAsyncCompile = false;
+    if (GetConfig().async_compile)
+		allowAsyncCompile = IsAsyncPipelineAllowed(activeAttachmentsInfo, extend, indexCount);
 
-    		uint32 minBufferStride = 0;
-    		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
-    		{
-    			auto& attr = bufferGroup.attrib[j];
-
-    			uint32 semanticId = vertexShader->resourceMapping.attributeMapping[attr.semanticId];
-    			if (semanticId == (uint32)-1)
-    				continue; // attribute not used?
-
-    			auto attribute = vertexDescriptor->attributes()->object(semanticId);
-    			attribute->setOffset(attr.offset);
-    			attribute->setBufferIndex(GET_MTL_VERTEX_BUFFER_INDEX(attr.attributeBufferIndex));
-    			attribute->setFormat(GetMtlVertexFormat(attr.format));
-
-    			minBufferStride = std::max(minBufferStride, attr.offset + GetMtlVertexFormatSize(attr.format));
-
-    			if (fetchType.has_value())
-    				cemu_assert_debug(fetchType == attr.fetchType);
-    			else
-    				fetchType = attr.fetchType;
-
-    			if (attr.fetchType == LatteConst::INSTANCE_DATA)
-    			{
-    				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
-    			}
-    		}
-
-    		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
-    		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-    		uint32 bufferStride = (lcr.GetRawView()[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
-
-    		auto layout = vertexDescriptor->layouts()->object(GET_MTL_VERTEX_BUFFER_INDEX(bufferIndex));
-    		if (bufferStride == 0)
-    		{
-    		    // Buffer stride cannot be zero, let's use the minimum stride
-    			bufferStride = minBufferStride;
-
-    			// Additionally, constant vertex function must be used
-    			layout->setStepFunction(MTL::VertexStepFunctionConstant);
-    			layout->setStepRate(0);
-    		}
-    		else
-    		{
-      		if (!fetchType.has_value() || fetchType == LatteConst::VertexFetchType2::VERTEX_DATA)
-     			layout->setStepFunction(MTL::VertexStepFunctionPerVertex);
-      		else if (fetchType == LatteConst::VertexFetchType2::INSTANCE_DATA)
-     			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
-      		else
-      		{
-      		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
-     			cemu_assert(false);
-      		}
-    		}
-    		bufferStride = Align(bufferStride, 4);
-    		layout->setStride(bufferStride);
-    	}
-
-        // TODO: don't always set the vertex descriptor?
-    	desc->setVertexDescriptor(vertexDescriptor);
-        vertexDescriptor->release();
-    }
-
-	SetFragmentState(desc, lastUsedFBO, activeFBO, pixelShader, lcr);
-
-	TryLoadBinaryArchive();
-
-	// Load binary
-    if (m_binaryArchive)
-    {
-        NS::Object* binArchives[] = {m_binaryArchive};
-        auto binaryArchives = NS::Array::alloc()->init(binArchives, 1);
-        desc->setBinaryArchives(binaryArchives);
-        binaryArchives->release();
-    }
-
-    NS::Error* error = nullptr;
-#ifdef CEMU_DEBUG_ASSERT
-    desc->setLabel(GetLabel("Cached render pipeline state", desc));
-#endif
-	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionFailOnBinaryArchiveMiss, nullptr, &error);
-
-	// Pipeline wasn't found in the binary archive, we need to compile it
-	if (error)
+	if (allowAsyncCompile)
 	{
-		desc->setBinaryArchives(nullptr);
+	    if (!g_compilePipelineThreadInit)
+		{
+			initCompileThread();
+			g_compilePipelineThreadInit = true;
+		}
 
-        error->release();
-        error = nullptr;
-#ifdef CEMU_DEBUG_ASSERT
-        desc->setLabel(GetLabel("New render pipeline state", desc));
-#endif
-	    pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
-		if (error)
-		{
-		    cemuLog_log(LogType::Force, "error creating render pipeline state: {}", error->localizedDescription()->utf8String());
-			error->release();
-		}
-		else
-		{
-		    // Save binary
-			if (m_binaryArchive)
-			{
-                NS::Error* error = nullptr;
-                m_binaryArchive->addRenderPipelineFunctions(desc, &error);
-                if (error)
-                {
-                    cemuLog_log(LogType::Force, "error saving render pipeline functions: {}", error->localizedDescription()->utf8String());
-                    error->release();
-                }
-			}
-		}
+		queuePipeline(compiler);
 	}
-	desc->release();
+	else
+	{
+	    // Also force compile to ensure that the pipeline is ready
+        cemu_assert_debug(compiler->Compile(true, true, true));
+        delete compiler;
+	}
 
-	return pipeline;
+	// Save to cache
+    AddCurrentStateToCache(hash, lastUsedAttachmentsInfo);
+
+    return pipelineObj;
 }
 
-MTL::RenderPipelineState* MetalPipelineCache::GetMeshPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, CachedFBOMtl* lastUsedFBO, CachedFBOMtl* activeFBO, const LatteContextRegister& lcr, Renderer::INDEX_TYPE hostIndexType)
-{
-    uint64 stateHash = CalculateRenderPipelineHash(fetchShader, vertexShader, pixelShader, lastUsedFBO, lcr);
-
-	stateHash += lcr.GetRawView()[mmVGT_PRIMITIVE_TYPE];
-	stateHash = std::rotl<uint64>(stateHash, 7);
-
-	stateHash += (uint8)hostIndexType;
-	stateHash = std::rotl<uint64>(stateHash, 7);
-
-    auto& pipeline = m_pipelineCache[stateHash];
-    if (pipeline)
-        return pipeline;
-
-	auto objectShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
-	RendererShaderMtl* meshShaderMtl;
-	if (geometryShader)
-	{
-        meshShaderMtl = static_cast<RendererShaderMtl*>(geometryShader->shader);
-	}
-    else
-    {
-        // If there is no geometry shader, it means that we are emulating rects
-        meshShaderMtl = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
-    }
-
-	// Render pipeline state
-	MTL::MeshRenderPipelineDescriptor* desc = MTL::MeshRenderPipelineDescriptor::alloc()->init();
-	desc->setObjectFunction(objectShaderMtl->GetFunction());
-	desc->setMeshFunction(meshShaderMtl->GetFunction());
-
-	SetFragmentState(desc, lastUsedFBO, activeFBO, pixelShader, lcr);
-
-	TryLoadBinaryArchive();
-
-	// Load binary
-    // TODO: no binary archives? :(
-
-    NS::Error* error = nullptr;
-#ifdef CEMU_DEBUG_ASSERT
-    desc->setLabel(GetLabel("Mesh pipeline state", desc));
-#endif
-	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
-	desc->release();
-	if (error)
-	{
-    	cemuLog_log(LogType::Force, "error creating mesh render pipeline state: {}", error->localizedDescription()->utf8String());
-        error->release();
-	}
-
-	return pipeline;
-}
-
-uint64 MetalPipelineCache::CalculateRenderPipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* pixelShader, class CachedFBOMtl* lastUsedFBO, const LatteContextRegister& lcr)
+uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
     // Hash
     uint64 stateHash = 0;
     for (int i = 0; i < Latte::GPU_LIMITS::NUM_COLOR_ATTACHMENTS; ++i)
 	{
-		auto textureView = static_cast<LatteTextureViewMtl*>(lastUsedFBO->colorBuffer[i].texture);
-		if (!textureView)
-		    continue;
+	    Latte::E_GX2SURFFMT format = lastUsedAttachmentsInfo.colorFormats[i];
+		if (format == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+            continue;
 
-		stateHash += textureView->GetRGBAView()->pixelFormat() + i * 31;
+		stateHash += GetMtlPixelFormat(format, false) + i * 31;
 		stateHash = std::rotl<uint64>(stateHash, 7);
+
+		if (activeAttachmentsInfo.colorFormats[i] == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+		{
+            stateHash += 1;
+		    stateHash = std::rotl<uint64>(stateHash, 1);
+		}
 	}
 
-	if (lastUsedFBO->depthBuffer.texture)
+	if (lastUsedAttachmentsInfo.depthFormat != Latte::E_GX2SURFFMT::INVALID_FORMAT)
 	{
-	    auto textureView = static_cast<LatteTextureViewMtl*>(lastUsedFBO->depthBuffer.texture);
-		stateHash += textureView->GetRGBAView()->pixelFormat();
+		stateHash += GetMtlPixelFormat(lastUsedAttachmentsInfo.depthFormat, true);
 		stateHash = std::rotl<uint64>(stateHash, 7);
+
+		if (activeAttachmentsInfo.depthFormat == Latte::E_GX2SURFFMT::INVALID_FORMAT)
+		{
+            stateHash += 1;
+		    stateHash = std::rotl<uint64>(stateHash, 1);
+		}
 	}
 
 	for (auto& group : fetchShader->bufferGroups)
@@ -586,55 +237,388 @@ uint64 MetalPipelineCache::CalculateRenderPipelineHash(const LatteFetchShader* f
 		}
 	}
 
+	// Mesh pipeline
+	const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
+    bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
+
+    bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+
+    if (usesGeometryShader)
+    {
+        stateHash += lcr.GetRawView()[mmVGT_PRIMITIVE_TYPE];
+        stateHash = std::rotl<uint64>(stateHash, 7);
+    }
+
 	return stateHash;
 }
 
-void MetalPipelineCache::TryLoadBinaryArchive()
+struct
 {
-    if (m_binaryArchive || s_cacheTitleId == INVALID_TITLE_ID)
-        return;
+	uint32 pipelineLoadIndex;
+	uint32 pipelineMaxFileIndex;
 
-    // GPU name
-    const char* deviceName1 = m_mtlr->GetDevice()->name()->utf8String();
-    std::string deviceName;
-    deviceName.assign(deviceName1);
+	std::atomic_uint32_t pipelinesQueued;
+	std::atomic_uint32_t pipelinesLoaded;
+} g_mtlCacheState;
 
-    // Replace spaces with underscores
-    for (auto& c : deviceName)
+uint32 MetalPipelineCache::BeginLoading(uint64 cacheTitleId)
+{
+	std::error_code ec;
+	fs::create_directories(ActiveSettings::GetCachePath("shaderCache/transferable"), ec);
+	const auto pathCacheFile = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_mtlpipeline.bin", cacheTitleId);
+
+	// init cache loader state
+	g_mtlCacheState.pipelineLoadIndex = 0;
+	g_mtlCacheState.pipelineMaxFileIndex = 0;
+	g_mtlCacheState.pipelinesLoaded = 0;
+	g_mtlCacheState.pipelinesQueued = 0;
+
+	// start async compilation threads
+	m_compilationCount.store(0);
+	m_compilationQueue.clear();
+
+	// get core count
+	uint32 cpuCoreCount = GetPhysicalCoreCount();
+	m_numCompilationThreads = std::clamp(cpuCoreCount, 1u, 8u);
+	// TODO: uncomment?
+	//if (VulkanRenderer::GetInstance()->GetDisableMultithreadedCompilation())
+	//	m_numCompilationThreads = 1;
+
+	for (uint32 i = 0; i < m_numCompilationThreads; i++)
+	{
+		std::thread compileThread(&MetalPipelineCache::CompilerThread, this);
+		compileThread.detach();
+	}
+
+	// open cache file or create it
+	cemu_assert_debug(s_cache == nullptr);
+	s_cache = FileCache::Open(pathCacheFile, true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
+	if (!s_cache)
+	{
+		cemuLog_log(LogType::Force, "Failed to open or create Metal pipeline cache file: {}", _pathToUtf8(pathCacheFile));
+		return 0;
+	}
+	else
+	{
+		s_cache->UseCompression(false);
+		g_mtlCacheState.pipelineMaxFileIndex = s_cache->GetMaximumFileIndex();
+	}
+	return s_cache->GetFileCount();
+}
+
+bool MetalPipelineCache::UpdateLoading(uint32& pipelinesLoadedTotal, uint32& pipelinesMissingShaders)
+{
+	pipelinesLoadedTotal = g_mtlCacheState.pipelinesLoaded;
+	pipelinesMissingShaders = 0;
+	while (g_mtlCacheState.pipelineLoadIndex <= g_mtlCacheState.pipelineMaxFileIndex)
+	{
+		if (m_compilationQueue.size() >= 50)
+		{
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+			return true; // queue up to 50 entries at a time
+		}
+
+		uint64 fileNameA, fileNameB;
+		std::vector<uint8> fileData;
+		if (s_cache->GetFileByIndex(g_mtlCacheState.pipelineLoadIndex, &fileNameA, &fileNameB, fileData))
+		{
+			// queue for async compilation
+			g_mtlCacheState.pipelinesQueued++;
+			m_compilationQueue.push(std::move(fileData));
+			g_mtlCacheState.pipelineLoadIndex++;
+			return true;
+		}
+		g_mtlCacheState.pipelineLoadIndex++;
+	}
+	if (g_mtlCacheState.pipelinesLoaded != g_mtlCacheState.pipelinesQueued)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		return true; // pipelines still compiling
+	}
+	return false; // done
+}
+
+void MetalPipelineCache::EndLoading()
+{
+	// shut down compilation threads
+	uint32 threadCount = m_numCompilationThreads;
+	m_numCompilationThreads = 0; // signal thread shutdown
+	for (uint32 i = 0; i < threadCount; i++)
+	{
+		m_compilationQueue.push({}); // push empty workload for every thread. Threads then will shutdown after checking for m_numCompilationThreads == 0
+	}
+	// keep cache file open for writing of new pipelines
+}
+
+void MetalPipelineCache::Close()
+{
+    if(s_cache)
     {
-        if (c == ' ')
-            c = '_';
+        delete s_cache;
+        s_cache = nullptr;
     }
+}
 
-    // OS version
-    auto osVersion = NS::ProcessInfo::processInfo()->operatingSystemVersion();
+struct CachedPipeline
+{
+	struct ShaderHash
+	{
+		uint64 baseHash;
+		uint64 auxHash;
+		bool isPresent{};
 
-    // Precompiled binaries cannot be shared between different devices or OS versions
-    const std::string cacheFilename = fmt::format("{:016x}_mtl_pipelines.bin", s_cacheTitleId);
-	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}/{}-{}-{}/{}", deviceName, osVersion.majorVersion, osVersion.minorVersion, osVersion.patchVersion, cacheFilename);
+		void set(uint64 baseHash, uint64 auxHash)
+		{
+			this->baseHash = baseHash;
+			this->auxHash = auxHash;
+			this->isPresent = true;
+		}
+	};
 
-	// Create the directory if it doesn't exist
-	std::filesystem::create_directories(cachePath.parent_path());
+	ShaderHash vsHash; // includes fetch shader
+	ShaderHash gsHash;
+	ShaderHash psHash;
 
-    m_binaryArchiveURL = NS::URL::fileURLWithPath(ToNSString((const char*)cachePath.generic_u8string().c_str()));
+	MetalAttachmentsInfo lastUsedAttachmentsInfo;
 
-    MTL::BinaryArchiveDescriptor* desc = MTL::BinaryArchiveDescriptor::alloc()->init();
-    desc->setUrl(m_binaryArchiveURL);
+	Latte::GPUCompactedRegisterState gpuState;
+};
 
-    NS::Error* error = nullptr;
-    m_binaryArchive = m_mtlr->GetDevice()->newBinaryArchive(desc, &error);
-    if (error)
-    {
-        desc->setUrl(nullptr);
+void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
+{
+	static FSpinlock s_spinlockSharedInternal;
 
-        error->release();
-        error = nullptr;
-        m_binaryArchive = m_mtlr->GetDevice()->newBinaryArchive(desc, &error);
-        if (error)
-        {
-            cemuLog_log(LogType::Force, "failed to create binary archive: {}", error->localizedDescription()->utf8String());
-            error->release();
-        }
-    }
-    desc->release();
+	// deserialize file
+	LatteContextRegister* lcr = new LatteContextRegister();
+	s_spinlockSharedInternal.lock();
+	CachedPipeline* cachedPipeline = new CachedPipeline();
+	s_spinlockSharedInternal.unlock();
+
+	MemStreamReader streamReader(fileData.data(), fileData.size());
+	if (!DeserializePipeline(streamReader, *cachedPipeline))
+	{
+		// failed to deserialize
+		s_spinlockSharedInternal.lock();
+		delete lcr;
+		delete cachedPipeline;
+		s_spinlockSharedInternal.unlock();
+		return;
+	}
+	// restored register view from compacted state
+	Latte::LoadGPURegisterState(*lcr, cachedPipeline->gpuState);
+
+	LatteDecompilerShader* vertexShader = nullptr;
+	LatteDecompilerShader* geometryShader = nullptr;
+	LatteDecompilerShader* pixelShader = nullptr;
+	// find vertex shader
+	if (cachedPipeline->vsHash.isPresent)
+	{
+		vertexShader = LatteSHRC_FindVertexShader(cachedPipeline->vsHash.baseHash, cachedPipeline->vsHash.auxHash);
+		if (!vertexShader)
+		{
+			cemuLog_logDebug(LogType::Force, "Vertex shader not found in cache");
+			return;
+		}
+	}
+	// find geometry shader
+	if (cachedPipeline->gsHash.isPresent)
+	{
+		geometryShader = LatteSHRC_FindGeometryShader(cachedPipeline->gsHash.baseHash, cachedPipeline->gsHash.auxHash);
+		if (!geometryShader)
+		{
+			cemuLog_logDebug(LogType::Force, "Geometry shader not found in cache");
+			return;
+		}
+	}
+	// find pixel shader
+	if (cachedPipeline->psHash.isPresent)
+	{
+		pixelShader = LatteSHRC_FindPixelShader(cachedPipeline->psHash.baseHash, cachedPipeline->psHash.auxHash);
+		if (!pixelShader)
+		{
+			cemuLog_logDebug(LogType::Force, "Pixel shader not found in cache");
+			return;
+		}
+	}
+
+	if (!pixelShader)
+	{
+		cemu_assert_debug(false);
+		return;
+	}
+
+	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
+
+	PipelineObject* pipelineObject = new PipelineObject();
+
+	// compile
+	{
+		MetalPipelineCompiler pp(m_mtlr, *pipelineObject);
+		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, cachedPipeline->lastUsedAttachmentsInfo, attachmentsInfo, *lcr);
+		pp.Compile(true, true, false);
+		// destroy pp early
+	}
+
+	// on success, cache the pipeline
+	if (pipelineObject->m_pipeline)
+	{
+    	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, cachedPipeline->lastUsedAttachmentsInfo, attachmentsInfo, *lcr);
+    	m_pipelineCacheLock.lock();
+    	m_pipelineCache[pipelineStateHash] = pipelineObject;
+    	m_pipelineCacheLock.unlock();
+	}
+
+	// clean up
+	s_spinlockSharedInternal.lock();
+	delete lcr;
+	delete cachedPipeline;
+	s_spinlockSharedInternal.unlock();
+}
+
+ConcurrentQueue<CachedPipeline*> g_mtlPipelineCachingQueue;
+
+void MetalPipelineCache::AddCurrentStateToCache(uint64 pipelineStateHash, const MetalAttachmentsInfo& lastUsedAttachmentsInfo)
+{
+	if (!m_pipelineCacheStoreThread)
+	{
+		m_pipelineCacheStoreThread = new std::thread(&MetalPipelineCache::WorkerThread, this);
+		m_pipelineCacheStoreThread->detach();
+	}
+	// fill job structure with cached GPU state
+	// for each cached pipeline we store:
+	// - Active shaders (referenced by hash)
+	// - An almost-complete register state of the GPU (minus some ALU uniform constants which aren't relevant)
+	CachedPipeline* job = new CachedPipeline();
+	auto vs = LatteSHRC_GetActiveVertexShader();
+	auto gs = LatteSHRC_GetActiveGeometryShader();
+	auto ps = LatteSHRC_GetActivePixelShader();
+	if (vs)
+		job->vsHash.set(vs->baseHash, vs->auxHash);
+	if (gs)
+		job->gsHash.set(gs->baseHash, gs->auxHash);
+	if (ps)
+		job->psHash.set(ps->baseHash, ps->auxHash);
+	job->lastUsedAttachmentsInfo = lastUsedAttachmentsInfo;
+	Latte::StoreGPURegisterState(LatteGPUState.contextNew, job->gpuState);
+	// queue job
+	g_mtlPipelineCachingQueue.push(job);
+}
+
+bool MetalPipelineCache::SerializePipeline(MemStreamWriter& memWriter, CachedPipeline& cachedPipeline)
+{
+	memWriter.writeBE<uint8>(0x01); // version
+	uint8 presentMask = 0;
+	if (cachedPipeline.vsHash.isPresent)
+		presentMask |= 1;
+	if (cachedPipeline.gsHash.isPresent)
+		presentMask |= 2;
+	if (cachedPipeline.psHash.isPresent)
+		presentMask |= 4;
+	memWriter.writeBE<uint8>(presentMask);
+	if (cachedPipeline.vsHash.isPresent)
+	{
+		memWriter.writeBE<uint64>(cachedPipeline.vsHash.baseHash);
+		memWriter.writeBE<uint64>(cachedPipeline.vsHash.auxHash);
+	}
+	if (cachedPipeline.gsHash.isPresent)
+	{
+		memWriter.writeBE<uint64>(cachedPipeline.gsHash.baseHash);
+		memWriter.writeBE<uint64>(cachedPipeline.gsHash.auxHash);
+	}
+	if (cachedPipeline.psHash.isPresent)
+	{
+		memWriter.writeBE<uint64>(cachedPipeline.psHash.baseHash);
+		memWriter.writeBE<uint64>(cachedPipeline.psHash.auxHash);
+	}
+
+	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+	    memWriter.writeBE<uint16>((uint16)cachedPipeline.lastUsedAttachmentsInfo.colorFormats[i]);
+	memWriter.writeBE<uint16>((uint16)cachedPipeline.lastUsedAttachmentsInfo.depthFormat);
+
+	Latte::SerializeRegisterState(cachedPipeline.gpuState, memWriter);
+
+	return true;
+}
+
+bool MetalPipelineCache::DeserializePipeline(MemStreamReader& memReader, CachedPipeline& cachedPipeline)
+{
+	// version
+	if (memReader.readBE<uint8>() != 1)
+	{
+		cemuLog_log(LogType::Force, "Cached Metal pipeline corrupted or has unknown version");
+		return false;
+	}
+	// shader hashes
+	uint8 presentMask = memReader.readBE<uint8>();
+	if (presentMask & 1)
+	{
+		uint64 baseHash = memReader.readBE<uint64>();
+		uint64 auxHash = memReader.readBE<uint64>();
+		cachedPipeline.vsHash.set(baseHash, auxHash);
+	}
+	if (presentMask & 2)
+	{
+		uint64 baseHash = memReader.readBE<uint64>();
+		uint64 auxHash = memReader.readBE<uint64>();
+		cachedPipeline.gsHash.set(baseHash, auxHash);
+	}
+	if (presentMask & 4)
+	{
+		uint64 baseHash = memReader.readBE<uint64>();
+		uint64 auxHash = memReader.readBE<uint64>();
+		cachedPipeline.psHash.set(baseHash, auxHash);
+	}
+
+	for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+	    cachedPipeline.lastUsedAttachmentsInfo.colorFormats[i] = (Latte::E_GX2SURFFMT)memReader.readBE<uint16>();
+	cachedPipeline.lastUsedAttachmentsInfo.depthFormat = (Latte::E_GX2SURFFMT)memReader.readBE<uint16>();
+
+	// deserialize GPU state
+	if (!Latte::DeserializeRegisterState(cachedPipeline.gpuState, memReader))
+	{
+		return false;
+	}
+	cemu_assert_debug(!memReader.hasError());
+
+	return true;
+}
+
+int MetalPipelineCache::CompilerThread()
+{
+	SetThreadName("plCacheCompiler");
+	while (m_numCompilationThreads != 0)
+	{
+		std::vector<uint8> pipelineData = m_compilationQueue.pop();
+		if(pipelineData.empty())
+			continue;
+		LoadPipelineFromCache(pipelineData);
+		++g_mtlCacheState.pipelinesLoaded;
+	}
+	return 0;
+}
+
+void MetalPipelineCache::WorkerThread()
+{
+	SetThreadName("plCacheWriter");
+	while (true)
+	{
+		CachedPipeline* job;
+		g_mtlPipelineCachingQueue.pop(job);
+		if (!s_cache)
+		{
+			delete job;
+			continue;
+		}
+		// serialize
+		MemStreamWriter memWriter(1024 * 4);
+		SerializePipeline(memWriter, *job);
+		auto blob = memWriter.getResult();
+		// file name is derived from data hash
+		uint8 hash[SHA256_DIGEST_LENGTH];
+		SHA256(blob.data(), blob.size(), hash);
+		uint64 nameA = *(uint64be*)(hash + 0);
+		uint64 nameB = *(uint64be*)(hash + 8);
+		s_cache->AddFileAsync({ nameA, nameB }, blob.data(), blob.size());
+		delete job;
+	}
 }

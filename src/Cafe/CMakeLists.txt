@@ -534,6 +534,7 @@ if(APPLE)
 endif()
 
 if(ENABLE_METAL)
+    # TODO: sort alphabetically
     target_sources(CemuCafe PRIVATE
         HW/Latte/Renderer/Metal/MetalRenderer.cpp
         HW/Latte/Renderer/Metal/MetalRenderer.h
@@ -555,11 +556,15 @@ if(ENABLE_METAL)
         HW/Latte/Renderer/Metal/RendererShaderMtl.h
         HW/Latte/Renderer/Metal/CachedFBOMtl.cpp
         HW/Latte/Renderer/Metal/CachedFBOMtl.h
+        HW/Latte/Renderer/Metal/MetalAttachmentsInfo.cpp
+        HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h
         HW/Latte/Renderer/Metal/MetalBufferAllocator.h
         HW/Latte/Renderer/Metal/MetalMemoryManager.cpp
         HW/Latte/Renderer/Metal/MetalMemoryManager.h
         HW/Latte/Renderer/Metal/MetalOutputShaderCache.cpp
         HW/Latte/Renderer/Metal/MetalOutputShaderCache.h
+        HW/Latte/Renderer/Metal/MetalPipelineCompiler.cpp
+        HW/Latte/Renderer/Metal/MetalPipelineCompiler.h
         HW/Latte/Renderer/Metal/MetalPipelineCache.cpp
         HW/Latte/Renderer/Metal/MetalPipelineCache.h
         HW/Latte/Renderer/Metal/MetalDepthStencilCache.cpp

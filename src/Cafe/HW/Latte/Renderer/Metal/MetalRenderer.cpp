@@ -23,6 +23,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -69,6 +70,7 @@ MetalRenderer::MetalRenderer()
     MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
     textureDescriptor->setTextureType(MTL::TextureType1D);
     textureDescriptor->setWidth(1);
+    textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
     m_nullTexture1D = m_device->newTexture(textureDescriptor);
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture1D->setLabel(GetLabel("Null texture 1D", m_nullTexture1D));
@@ -76,6 +78,7 @@ MetalRenderer::MetalRenderer()
 
     textureDescriptor->setTextureType(MTL::TextureType2D);
     textureDescriptor->setHeight(1);
+    textureDescriptor->setUsage(MTL::TextureUsageShaderRead | MTL::TextureUsageRenderTarget);
     m_nullTexture2D = m_device->newTexture(textureDescriptor);
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture2D->setLabel(GetLabel("Null texture 2D", m_nullTexture2D));
@@ -511,13 +514,13 @@ LatteCachedFBO* MetalRenderer::rendertarget_createCachedFBO(uint64 key)
 
 void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
 {
-	if (cfbo == (LatteCachedFBO*)m_state.m_activeFBO)
-	m_state.m_activeFBO = nullptr;
+	if (cfbo == (LatteCachedFBO*)m_state.m_activeFBO.m_fbo)
+	    m_state.m_activeFBO = {nullptr};
 }
 
 void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo)
 {
-	m_state.m_activeFBO = (CachedFBOMtl*)cfbo;
+	m_state.m_activeFBO = {(CachedFBOMtl*)cfbo, MetalAttachmentsInfo((CachedFBOMtl*)cfbo)};
 }
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
@@ -943,15 +946,9 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
     // Shaders
     LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();
-    if (vertexShader && !vertexShader->shader->IsCompiled())
-        return;
     LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
-    if (geometryShader && !geometryShader->shader->IsCompiled())
-        return;
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
-    if (vertexShader && !pixelShader->shader->IsCompiled())
-        return;
 
     bool neverSkipAccurateBarrier = false;
 
@@ -1003,12 +1000,23 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Render pass
 	auto renderCommandEncoder = GetRenderCommandEncoder();
 
+    // Render pipeline state
+    PipelineObject* pipelineObj = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO.m_attachmentsInfo, m_state.m_activeFBO.m_attachmentsInfo, m_state.m_activeFBO.m_fbo->m_size, count, LatteGPUState.contextNew);
+    if (!pipelineObj->m_pipeline)
+        return;
+
+    if (pipelineObj->m_pipeline != encoderState.m_renderPipelineState)
+   	{
+        renderCommandEncoder->setRenderPipelineState(pipelineObj->m_pipeline);
+  		encoderState.m_renderPipelineState = pipelineObj->m_pipeline;
+   	}
+
 	// Depth stencil state
 
 	// Disable depth write when there is no depth attachment
 	auto& depthControl = LatteGPUState.contextNew.DB_DEPTH_CONTROL;
 	bool depthWriteEnable = depthControl.get_Z_WRITE_ENABLE();
-	if (!m_state.m_activeFBO->depthBuffer.texture)
+	if (!m_state.m_activeFBO.m_fbo->depthBuffer.texture)
 	    depthControl.set_Z_WRITE_ENABLE(false);
 
 	MTL::DepthStencilState* depthStencilState = m_depthStencilCache->GetDepthStencilState(LatteGPUState.contextNew);
@@ -1220,22 +1228,6 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     //{
     //    renderCommandEncoder->memoryBarrier(barrierBuffers.data(), barrierBuffers.size(), MTL::RenderStageVertex, MTL::RenderStageVertex);
     //}
-
-	// Render pipeline state
-	MTL::RenderPipelineState* renderPipelineState;
-	if (usesGeometryShader)
-	    renderPipelineState = m_pipelineCache->GetMeshPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO, m_state.m_activeFBO, LatteGPUState.contextNew, hostIndexType);
-	else
-        renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, pixelShader, m_state.m_lastUsedFBO, m_state.m_activeFBO, LatteGPUState.contextNew);
-
-    if (!renderPipelineState)
-        return;
-
-	if (renderPipelineState != encoderState.m_renderPipelineState)
-   	{
-        renderCommandEncoder->setRenderPipelineState(renderPipelineState);
-  		encoderState.m_renderPipelineState = renderPipelineState;
-   	}
 
 	// Prepare streamout
 	m_state.m_streamoutState.verticesPerInstance = count;
@@ -1529,12 +1521,12 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
         {
             if (m_encoderType == MetalEncoderType::Render)
             {
-                bool needsNewRenderPass = (m_state.m_lastUsedFBO == nullptr);
+                bool needsNewRenderPass = (m_state.m_lastUsedFBO.m_fbo == nullptr);
                 if (!needsNewRenderPass)
                 {
                     for (uint8 i = 0; i < 8; i++)
                     {
-                        if (m_state.m_activeFBO->colorBuffer[i].texture && m_state.m_activeFBO->colorBuffer[i].texture != m_state.m_lastUsedFBO->colorBuffer[i].texture)
+                        if (m_state.m_activeFBO.m_fbo->colorBuffer[i].texture && m_state.m_activeFBO.m_fbo->colorBuffer[i].texture != m_state.m_lastUsedFBO.m_fbo->colorBuffer[i].texture)
                         {
                             needsNewRenderPass = true;
                             break;
@@ -1544,7 +1536,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
                 if (!needsNewRenderPass)
                 {
-                    if (m_state.m_activeFBO->depthBuffer.texture && (m_state.m_activeFBO->depthBuffer.texture != m_state.m_lastUsedFBO->depthBuffer.texture || ( m_state.m_activeFBO->depthBuffer.hasStencil && !m_state.m_lastUsedFBO->depthBuffer.hasStencil)))
+                    if (m_state.m_activeFBO.m_fbo->depthBuffer.texture && (m_state.m_activeFBO.m_fbo->depthBuffer.texture != m_state.m_lastUsedFBO.m_fbo->depthBuffer.texture || ( m_state.m_activeFBO.m_fbo->depthBuffer.hasStencil && !m_state.m_lastUsedFBO.m_fbo->depthBuffer.hasStencil)))
                     {
                         needsNewRenderPass = true;
                     }
@@ -1562,7 +1554,7 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
     auto commandBuffer = GetCommandBuffer();
 
-    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO->GetRenderPassDescriptor());
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO.m_fbo->GetRenderPassDescriptor());
 #ifdef CEMU_DEBUG_ASSERT
     renderCommandEncoder->setLabel(GetLabel("Render command encoder", renderCommandEncoder));
 #endif
@@ -1721,7 +1713,7 @@ bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
 		    // If the texture is also used in the current render pass, we need to end the render pass to "flush" the texture
 			for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
 			{
-			    auto colorTarget = m_state.m_activeFBO->colorBuffer[i].texture;
+			    auto colorTarget = m_state.m_activeFBO.m_fbo->colorBuffer[i].texture;
 				if (colorTarget && colorTarget->baseTexture == baseTexture)
 				    return true;
 			}

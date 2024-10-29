@@ -5,6 +5,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
 
 struct MetalBufferAllocation
 {
@@ -121,6 +122,12 @@ struct MetalStreamoutState
 	sint32 verticesPerInstance;
 };
 
+struct MetalActiveFBOState
+{
+    class CachedFBOMtl* m_fbo = nullptr;
+    MetalAttachmentsInfo m_attachmentsInfo;
+};
+
 struct MetalState
 {
     MetalEncoderState m_encoderState{};
@@ -130,9 +137,9 @@ struct MetalState
     bool m_skipDrawSequence = false;
     bool m_isFirstDrawInRenderPass = true;
 
-    class CachedFBOMtl* m_activeFBO = nullptr;
-    // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change'
-    class CachedFBOMtl* m_lastUsedFBO = nullptr;
+    MetalActiveFBOState m_activeFBO;
+    // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change
+    MetalActiveFBOState m_lastUsedFBO;
 
     MetalBoundBuffer m_vertexBuffers[MAX_MTL_BUFFERS] = {{}};
     // TODO: find out what is the max number of bound textures on the Wii U
