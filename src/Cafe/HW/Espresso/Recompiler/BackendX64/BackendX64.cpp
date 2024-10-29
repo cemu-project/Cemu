@@ -828,9 +828,14 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		}
 		else
 		{
-			cemu_assert_debug(rRegResult != rRegOperand2);
-			cemu_assert_debug(rRegResult != X86_REG_RCX);
-			cemu_assert_debug(rRegOperand2 == X86_REG_RCX);
+			cemu_assert_debug(rRegOperand2 == X86_REG_ECX);
+			bool useTempReg = rRegResult == X86_REG_ECX && rRegOperand1 != X86_REG_ECX;
+			auto origRegResult = rRegResult;
+			if(useTempReg)
+			{
+				x64GenContext->emitter->MOV_dd(REG_RESV_TEMP, rRegOperand1);
+				rRegResult = REG_RESV_TEMP;
+			}
 			if(rRegOperand1 != rRegResult)
 				x64Gen_mov_reg64_reg64(x64GenContext, rRegResult, rRegOperand1);
 			if (imlInstruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S)
@@ -839,6 +844,8 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 				x64GenContext->emitter->SHR_d_CL(rRegResult);
 			else if (imlInstruction->operation == PPCREC_IML_OP_LEFT_SHIFT)
 				x64GenContext->emitter->SHL_d_CL(rRegResult);
+			if(useTempReg)
+				x64GenContext->emitter->MOV_dd(origRegResult, REG_RESV_TEMP);
 		}
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_DIVIDE_SIGNED || imlInstruction->operation == PPCREC_IML_OP_DIVIDE_UNSIGNED )
