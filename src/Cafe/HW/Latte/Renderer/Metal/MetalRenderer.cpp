@@ -23,6 +23,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -1000,14 +1001,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	auto renderCommandEncoder = GetRenderCommandEncoder();
 
     // Render pipeline state
-    MTL::RenderPipelineState* renderPipelineState = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO.m_attachmentsInfo, m_state.m_activeFBO.m_attachmentsInfo, LatteGPUState.contextNew);
-    if (!renderPipelineState)
+    PipelineObject* pipelineObj = m_pipelineCache->GetRenderPipelineState(fetchShader, vertexShader, geometryShader, pixelShader, m_state.m_lastUsedFBO.m_attachmentsInfo, m_state.m_activeFBO.m_attachmentsInfo, m_state.m_activeFBO.m_fbo->m_size, count, LatteGPUState.contextNew);
+    if (!pipelineObj->m_pipeline)
         return;
 
-    if (renderPipelineState != encoderState.m_renderPipelineState)
+    if (pipelineObj->m_pipeline != encoderState.m_renderPipelineState)
    	{
-        renderCommandEncoder->setRenderPipelineState(renderPipelineState);
-  		encoderState.m_renderPipelineState = renderPipelineState;
+        renderCommandEncoder->setRenderPipelineState(pipelineObj->m_pipeline);
+  		encoderState.m_renderPipelineState = pipelineObj->m_pipeline;
    	}
 
 	// Depth stencil state

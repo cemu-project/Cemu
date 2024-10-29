@@ -327,7 +327,7 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
         InitFromStateRender(fetchShader, vertexShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
 }
 
-MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay, bool& attemptedCompilation)
+bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
 {
     if (forceCompile)
 	{
@@ -343,11 +343,11 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 	{
 	    // fail early if some shader stages are not compiled
 		if (m_vertexShaderMtl && !m_vertexShaderMtl->IsCompiled())
-			return nullptr;
+			return false;
 		if (m_geometryShaderMtl && !m_geometryShaderMtl->IsCompiled())
-			return nullptr;
+			return false;
 		if (m_pixelShaderMtl && !m_pixelShaderMtl->IsCompiled())
-			return nullptr;
+			return false;
 	}
 
 	// Compile
@@ -386,7 +386,7 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
     }
     auto end = std::chrono::high_resolution_clock::now();
 
-    auto creationDuration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    auto creationDuration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
    	if (error)
    	{
@@ -403,10 +403,9 @@ MTL::RenderPipelineState* MetalPipelineCompiler::Compile(bool forceCompile, bool
 		g_compiling_pipelines++;
 	}
 
-	// Inform the pipeline cache that compilation was at least attempted
-	attemptedCompilation = true;
+	m_pipelineObj.m_pipeline = pipeline;
 
-    return pipeline;
+	return true;
 }
 
 void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
@@ -479,7 +478,6 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
     		layout->setStride(bufferStride);
     	}
 
-        // TODO: don't always set the vertex descriptor?
     	desc->setVertexDescriptor(vertexDescriptor);
         vertexDescriptor->release();
     }
@@ -487,62 +485,6 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
 	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr, fbosMatch);
 
 	m_pipelineDescriptor = desc;
-
-	//TryLoadBinaryArchive();
-
-	// Load binary
-	/*
-    if (m_binaryArchive)
-    {
-        NS::Object* binArchives[] = {m_binaryArchive};
-        auto binaryArchives = NS::Array::alloc()->init(binArchives, 1);
-        desc->setBinaryArchives(binaryArchives);
-        binaryArchives->release();
-    }
-    */
-
-    /*
-    NS::Error* error = nullptr;
-#ifdef CEMU_DEBUG_ASSERT
-    desc->setLabel(GetLabel("Cached render pipeline state", desc));
-#endif
-	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionFailOnBinaryArchiveMiss, nullptr, &error);
-
-	// Pipeline wasn't found in the binary archive, we need to compile it
-	if (error)
-	{
-		desc->setBinaryArchives(nullptr);
-
-        error->release();
-        error = nullptr;
-#ifdef CEMU_DEBUG_ASSERT
-        desc->setLabel(GetLabel("New render pipeline state", desc));
-#endif
-	    pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, &error);
-		if (error)
-		{
-		    cemuLog_log(LogType::Force, "error creating render pipeline state: {}", error->localizedDescription()->utf8String());
-			error->release();
-		}
-		else
-		{
-		    // Save binary
-			if (m_binaryArchive)
-			{
-                NS::Error* error = nullptr;
-                m_binaryArchive->addRenderPipelineFunctions(desc, &error);
-                if (error)
-                {
-                    cemuLog_log(LogType::Force, "error saving render pipeline functions: {}", error->localizedDescription()->utf8String());
-                    error->release();
-                }
-			}
-		}
-	}
-	desc->release();
-
-	return pipeline;
-	*/
 }
 
 void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch)
@@ -553,77 +495,4 @@ void MetalPipelineCompiler::InitFromStateMesh(const LatteFetchShader* fetchShade
 	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr, fbosMatch);
 
 	m_pipelineDescriptor = desc;
-
-	//TryLoadBinaryArchive();
-
-	// Load binary
-    // TODO: no binary archives? :(
-
-    /*
-    NS::Error* error = nullptr;
-#ifdef CEMU_DEBUG_ASSERT
-    desc->setLabel(GetLabel("Mesh pipeline state", desc));
-#endif
-	pipeline = m_mtlr->GetDevice()->newRenderPipelineState(desc, MTL::PipelineOptionNone, nullptr, &error);
-	desc->release();
-	if (error)
-	{
-    	cemuLog_log(LogType::Force, "error creating mesh render pipeline state: {}", error->localizedDescription()->utf8String());
-        error->release();
-	}
-
-	return pipeline;
-	*/
 }
-
-/*
-void MetalPipelineCache::TryLoadBinaryArchive()
-{
-    if (m_binaryArchive || s_cacheTitleId == INVALID_TITLE_ID)
-        return;
-
-    // GPU name
-    const char* deviceName1 = m_mtlr->GetDevice()->name()->utf8String();
-    std::string deviceName;
-    deviceName.assign(deviceName1);
-
-    // Replace spaces with underscores
-    for (auto& c : deviceName)
-    {
-        if (c == ' ')
-            c = '_';
-    }
-
-    // OS version
-    auto osVersion = NS::ProcessInfo::processInfo()->operatingSystemVersion();
-
-    // Precompiled binaries cannot be shared between different devices or OS versions
-    const std::string cacheFilename = fmt::format("{:016x}_mtl_pipelines.bin", s_cacheTitleId);
-	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}/{}-{}-{}/{}", deviceName, osVersion.majorVersion, osVersion.minorVersion, osVersion.patchVersion, cacheFilename);
-
-	// Create the directory if it doesn't exist
-	std::filesystem::create_directories(cachePath.parent_path());
-
-    m_binaryArchiveURL = NS::URL::fileURLWithPath(ToNSString((const char*)cachePath.generic_u8string().c_str()));
-
-    MTL::BinaryArchiveDescriptor* desc = MTL::BinaryArchiveDescriptor::alloc()->init();
-    desc->setUrl(m_binaryArchiveURL);
-
-    NS::Error* error = nullptr;
-    m_binaryArchive = m_mtlr->GetDevice()->newBinaryArchive(desc, &error);
-    if (error)
-    {
-        desc->setUrl(nullptr);
-
-        error->release();
-        error = nullptr;
-        m_binaryArchive = m_mtlr->GetDevice()->newBinaryArchive(desc, &error);
-        if (error)
-        {
-            cemuLog_log(LogType::Force, "failed to create binary archive: {}", error->localizedDescription()->utf8String());
-            error->release();
-        }
-    }
-    desc->release();
-}
-*/

@@ -5,18 +5,24 @@
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 
+struct PipelineObject
+{
+    MTL::RenderPipelineState* m_pipeline = nullptr;
+};
+
 class MetalPipelineCompiler
 {
 public:
-    MetalPipelineCompiler(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer} {}
+    MetalPipelineCompiler(class MetalRenderer* metalRenderer, PipelineObject& pipelineObj) : m_mtlr{metalRenderer}, m_pipelineObj{pipelineObj} {}
     ~MetalPipelineCompiler();
 
     void InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch);
 
-    MTL::RenderPipelineState* Compile(bool forceCompile, bool isRenderThread, bool showInOverlay, bool& attemptedCompilation);
+    bool Compile(bool forceCompile, bool isRenderThread, bool showInOverlay);
 
 private:
     class MetalRenderer* m_mtlr;
+    PipelineObject& m_pipelineObj;
 
     class RendererShaderMtl* m_vertexShaderMtl;
     class RendererShaderMtl* m_geometryShaderMtl;
@@ -24,17 +30,9 @@ private:
     bool m_usesGeometryShader;
     bool m_rasterizationEnabled;
 
-    /*
-    std::map<uint64, MTL::RenderPipelineState*> m_pipelineCache;
-
-    NS::URL* m_binaryArchiveURL;
-    MTL::BinaryArchive* m_binaryArchive;
-    */
     NS::Object* m_pipelineDescriptor;
 
     void InitFromStateRender(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch);
 
     void InitFromStateMesh(const LatteFetchShader* fetchShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr, bool& fbosMatch);
-
-    //void TryLoadBinaryArchive();
 };

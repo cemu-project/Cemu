@@ -1,24 +1,94 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Metal/CachedFBOMtl.h"
-#include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
 #include "Cafe/HW/Latte/Core/LatteShaderCache.h"
 #include "Cemu/FileCache/FileCache.h"
 #include "Common/precompiled.h"
-#include "HW/Latte/Core/LatteShader.h"
-#include "HW/Latte/ISA/LatteReg.h"
-#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
-#include "Metal/MTLRenderPipeline.hpp"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
+
 #include <openssl/sha.h>
+
+static bool g_compilePipelineThreadInit{false};
+static std::mutex g_compilePipelineMutex;
+static std::condition_variable g_compilePipelineCondVar;
+static std::queue<MetalPipelineCompiler*> g_compilePipelineRequests;
+
+static void compileThreadFunc(sint32 threadIndex)
+{
+	SetThreadName("compilePl");
+
+	// one thread runs at normal priority while the others run at lower priority
+	if(threadIndex != 0)
+		; // TODO: set thread priority
+
+	while (true)
+	{
+		std::unique_lock lock(g_compilePipelineMutex);
+		while (g_compilePipelineRequests.empty())
+			g_compilePipelineCondVar.wait(lock);
+
+		MetalPipelineCompiler* request = g_compilePipelineRequests.front();
+
+		g_compilePipelineRequests.pop();
+
+		lock.unlock();
+
+		request->Compile(true, false, true);
+		delete request;
+	}
+}
+
+static void initCompileThread()
+{
+	uint32 numCompileThreads;
+
+	uint32 cpuCoreCount = GetPhysicalCoreCount();
+	if (cpuCoreCount <= 2)
+		numCompileThreads = 1;
+	else
+		numCompileThreads = 2 + (cpuCoreCount - 3); // 2 plus one additionally for every extra core above 3
+
+	numCompileThreads = std::min(numCompileThreads, 8u); // cap at 8
+
+	for (uint32 i = 0; i < numCompileThreads; i++)
+	{
+		std::thread compileThread(compileThreadFunc, i);
+		compileThread.detach();
+	}
+}
+
+static void queuePipeline(MetalPipelineCompiler* v)
+{
+	std::unique_lock lock(g_compilePipelineMutex);
+	g_compilePipelineRequests.push(std::move(v));
+	lock.unlock();
+	g_compilePipelineCondVar.notify_one();
+}
+
+// make a guess if a pipeline is not essential
+// non-essential means that skipping these drawcalls shouldn't lead to permanently corrupted graphics
+bool IsAsyncPipelineAllowed(const MetalAttachmentsInfo& attachmentsInfo, Vector2i extend, uint32 indexCount)
+{
+	if (extend.x == 1600 && extend.y == 1600)
+		return false; // Splatoon ink mechanics use 1600x1600 R8 and R8G8 framebuffers, this resolution is rare enough that we can just blacklist it globally
+
+	if (attachmentsInfo.depthFormat != Latte::E_GX2SURFFMT::INVALID_FORMAT)
+		return true; // aggressive filter but seems to work well so far
+
+	// small index count (3,4,5,6) is often associated with full-viewport quads (which are considered essential due to often being used to generate persistent textures)
+	if (indexCount <= 6)
+		return false;
+
+	return true;
+}
 
 MetalPipelineCache* g_mtlPipelineCache = nullptr;
 
@@ -34,34 +104,52 @@ MetalPipelineCache::MetalPipelineCache(class MetalRenderer* metalRenderer) : m_m
 
 MetalPipelineCache::~MetalPipelineCache()
 {
-    for (auto& [key, value] : m_pipelineCache)
+    for (auto& [key, pipelineObj] : m_pipelineCache)
     {
-        value->release();
+        pipelineObj->m_pipeline->release();
+        delete pipelineObj;
     }
 }
 
-MTL::RenderPipelineState* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
+PipelineObject* MetalPipelineCache::GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, Vector2i extend, uint32 indexCount, const LatteContextRegister& lcr)
 {
     uint64 hash = CalculatePipelineHash(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr);
-    auto it = m_pipelineCache.find(hash);
-    if (it != m_pipelineCache.end())
-        return it->second;
+    PipelineObject*& pipelineObj = m_pipelineCache[hash];
+    if (pipelineObj)
+        return pipelineObj;
 
-    MetalPipelineCompiler compiler(m_mtlr);
+    pipelineObj = new PipelineObject();
+
+    MetalPipelineCompiler* compiler = new MetalPipelineCompiler(m_mtlr, *pipelineObj);
     bool fbosMatch;
-    compiler.InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
-    bool attemptedCompilation = false;
-    MTL::RenderPipelineState* pipeline = compiler.Compile(false, true, true, attemptedCompilation);
+    compiler->InitFromState(fetchShader, vertexShader, geometryShader, pixelShader, lastUsedAttachmentsInfo, activeAttachmentsInfo, lcr, fbosMatch);
+
+    bool allowAsyncCompile = false;
+    if (GetConfig().async_compile)
+		allowAsyncCompile = IsAsyncPipelineAllowed(activeAttachmentsInfo, extend, indexCount);
+
+	if (allowAsyncCompile)
+	{
+	    if (!g_compilePipelineThreadInit)
+		{
+			initCompileThread();
+			g_compilePipelineThreadInit = true;
+		}
+
+		queuePipeline(compiler);
+	}
+	else
+	{
+	    // Also force compile to ensure that the pipeline is ready
+        cemu_assert_debug(compiler->Compile(true, true, true));
+        delete compiler;
+	}
 
     // If FBOs don't match, it wouldn't be possible to reconstruct the pipeline from the cache
-    if (pipeline && fbosMatch)
+    if (fbosMatch)
         AddCurrentStateToCache(hash);
 
-    // Place the pipeline to the cache if the compilation was at least attempted
-    if (attemptedCompilation)
-        m_pipelineCache.insert({hash, pipeline});
-
-    return pipeline;
+    return pipelineObj;
 }
 
 uint64 MetalPipelineCache::CalculatePipelineHash(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
@@ -360,32 +448,24 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 
 	MetalAttachmentsInfo attachmentsInfo(*lcr, pixelShader);
 
-	MTL::RenderPipelineState* pipeline = nullptr;
+	PipelineObject* pipelineObject = new PipelineObject();
+
 	// compile
 	{
-		MetalPipelineCompiler pp(m_mtlr);
+		MetalPipelineCompiler pp(m_mtlr, *pipelineObject);
 		bool fbosMatch;
 		pp.InitFromState(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr, fbosMatch);
 		cemu_assert_debug(fbosMatch);
-		//{
-		//	s_spinlockSharedInternal.lock();
-		//	delete lcr;
-		//	delete cachedPipeline;
-		//	s_spinlockSharedInternal.unlock();
-		//	return;
-		//}
-		bool attemptedCompilation = false;
-		pipeline = pp.Compile(true, true, false, attemptedCompilation);
-		cemu_assert_debug(attemptedCompilation);
+		pp.Compile(true, true, false);
 		// destroy pp early
 	}
 
-	// on success, calculate pipeline hash and flag as present in cache
-	if (pipeline)
+	// on success, cache the pipeline
+	if (pipelineObject->m_pipeline)
 	{
     	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, attachmentsInfo, attachmentsInfo, *lcr);
     	m_pipelineCacheLock.lock();
-    	m_pipelineCache[pipelineStateHash] = pipeline;
+    	m_pipelineCache[pipelineStateHash] = pipelineObject;
     	m_pipelineCacheLock.unlock();
 	}
 

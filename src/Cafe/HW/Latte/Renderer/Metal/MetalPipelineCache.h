@@ -3,8 +3,8 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
 #include "util/helpers/ConcurrentQueue.h"
 #include "util/helpers/fspinlock.h"
+#include "util/math/vector2.h"
 
-// TODO: binary archives
 class MetalPipelineCache
 {
 public:
@@ -13,7 +13,7 @@ public:
     MetalPipelineCache(class MetalRenderer* metalRenderer);
     ~MetalPipelineCache();
 
-    MTL::RenderPipelineState* GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr);
+    PipelineObject* GetRenderPipelineState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const class MetalAttachmentsInfo& lastUsedAttachmentsInfo, const class MetalAttachmentsInfo& activeAttachmentsInfo, Vector2i extend, uint32 indexCount, const LatteContextRegister& lcr);
 
     // Cache loading
 	uint32 BeginLoading(uint64 cacheTitleId); // returns count of pipelines stored in cache
@@ -28,7 +28,7 @@ public:
 private:
     class MetalRenderer* m_mtlr;
 
-    std::map<uint64, MTL::RenderPipelineState*> m_pipelineCache;
+    std::map<uint64, PipelineObject*> m_pipelineCache;
     FSpinlock m_pipelineCacheLock;
 
 	std::thread* m_pipelineCacheStoreThread;
