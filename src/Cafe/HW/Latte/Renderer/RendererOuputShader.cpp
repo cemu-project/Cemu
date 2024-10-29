@@ -142,14 +142,16 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 	}
 }
 
-void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const
+void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res) const
 {
+	sint32 effectiveWidth, effectiveHeight;
+	texture_view.baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
 	auto setUniforms = [&](RendererShader* shader, const UniformLocations& attributes){
 	  float res[2];
 	  if (attributes.m_loc_textureSrcResolution != -1)
 	  {
-		  res[0] = (float)input_res.x;
-		  res[1] = (float)input_res.y;
+		  res[0] = (float)effectiveWidth;
+		  res[1] = (float)effectiveHeight;
 		  shader->SetUniform2fv(attributes.m_loc_textureSrcResolution, res, 1);
 	  }
 

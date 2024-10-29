@@ -570,13 +570,10 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		g_renderer->ClearColorbuffer(padView);
 	}
 
-	sint32 effectiveWidth, effectiveHeight;
-	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-
 	shader_unbind(RendererShader::ShaderType::kGeometry);
 	shader_bind(shader->GetVertexShader());
 	shader_bind(shader->GetFragmentShader());
-	shader->SetUniformParameters(*texView, { effectiveWidth, effectiveHeight }, { imageWidth, imageHeight });
+	shader->SetUniformParameters(*texView, {imageWidth, imageHeight});
 
 	// set viewport
 	glViewportIndexedf(0, imageX, imageY, imageWidth, imageHeight);

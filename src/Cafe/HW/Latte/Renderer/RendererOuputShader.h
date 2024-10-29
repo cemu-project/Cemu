@@ -17,7 +17,7 @@ public:
 	RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source);
 	virtual ~RendererOutputShader() = default;
 
-	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const;
+	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res) const;
 
 	RendererShader* GetVertexShader() const
 	{
