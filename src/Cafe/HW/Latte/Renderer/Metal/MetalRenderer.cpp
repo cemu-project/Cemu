@@ -1051,10 +1051,18 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 
 	// Blend color
-	float* blendColorConstant = (float*)LatteGPUState.contextRegister + Latte::REGADDR::CB_BLEND_RED;
+	uint32* blendColorConstantU32 = LatteGPUState.contextRegister + Latte::REGADDR::CB_BLEND_RED;
 
-	// TODO: only set when changed
-	renderCommandEncoder->setBlendColor(blendColorConstant[0], blendColorConstant[1], blendColorConstant[2], blendColorConstant[3]);
+	if (blendColorConstantU32[0] != encoderState.m_blendColor[0] || blendColorConstantU32[1] != encoderState.m_blendColor[1] || blendColorConstantU32[2] != encoderState.m_blendColor[2] || blendColorConstantU32[3] != encoderState.m_blendColor[3])
+	{
+    	float* blendColorConstant = (float*)LatteGPUState.contextRegister + Latte::REGADDR::CB_BLEND_RED;
+    	renderCommandEncoder->setBlendColor(blendColorConstant[0], blendColorConstant[1], blendColorConstant[2], blendColorConstant[3]);
+
+        encoderState.m_blendColor[0] = blendColorConstantU32[0];
+        encoderState.m_blendColor[1] = blendColorConstantU32[1];
+        encoderState.m_blendColor[2] = blendColorConstantU32[2];
+        encoderState.m_blendColor[3] = blendColorConstantU32[3];
+	}
 
 	// polygon control
 	const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
@@ -1178,7 +1186,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     {
         encoderState.m_scissor = m_state.m_scissor;
 
-        // TODO: clamp scissor to render target dimensions
+        // TODO: clamp scissor to render target dimensions?
         //scissor.width = ;
         //scissor.height = ;
         renderCommandEncoder->setScissorRect(encoderState.m_scissor);

@@ -99,6 +99,7 @@ struct MetalEncoderState
     MTL::ScissorRect m_scissor;
     uint32 m_stencilRefFront = 0;
     uint32 m_stencilRefBack = 0;
+    uint32 m_blendColor[4] = {0};
     uint32 m_depthBias = 0;
    	uint32 m_depthSlope = 0;
    	uint32 m_depthClamp = 0;
