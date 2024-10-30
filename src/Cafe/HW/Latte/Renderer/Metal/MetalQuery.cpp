@@ -1,6 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalQuery.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 
 bool LatteQueryObjectMtl::getResult(uint64& numSamplesPassed)
 {
@@ -13,29 +12,31 @@ bool LatteQueryObjectMtl::getResult(uint64& numSamplesPassed)
     if (!CommandBufferCompleted(m_commandBuffer))
         return false;
 
-    numSamplesPassed = m_mtlr->GetOcclusionQueryResultsPtr()[m_queryIndex];
+    uint64* resultPtr = m_mtlr->GetOcclusionQueryResultsPtr();
+
+    numSamplesPassed = 0;
+    for (uint32 i = m_range.begin; i != m_range.end; i = (i + 1) % MetalRenderer::OCCLUSION_QUERY_POOL_SIZE)
+        numSamplesPassed += resultPtr[i];
 
     return true;
 }
 
 LatteQueryObjectMtl::~LatteQueryObjectMtl()
 {
-    if (m_queryIndex != INVALID_UINT32)
-        m_mtlr->ReleaseOcclusionQueryIndex(m_queryIndex);
-
     if (m_commandBuffer)
         m_commandBuffer->release();
 }
 
 void LatteQueryObjectMtl::begin()
 {
-    m_queryIndex = m_mtlr->GetAvailableOcclusionQueryIndex();
-    m_mtlr->SetActiveOcclusionQueryIndex(m_queryIndex);
+    m_range.begin = m_mtlr->GetOcclusionQueryIndex();
+    m_mtlr->BeginOcclusionQuery();
 }
 
 void LatteQueryObjectMtl::end()
 {
-    m_mtlr->SetActiveOcclusionQueryIndex(INVALID_UINT32);
+    m_range.end = m_mtlr->GetOcclusionQueryIndex();
+    m_mtlr->EndOcclusionQuery();
     if (m_mtlr->IsCommandBufferActive())
     {
         m_commandBuffer = m_mtlr->GetCurrentCommandBuffer()->retain();

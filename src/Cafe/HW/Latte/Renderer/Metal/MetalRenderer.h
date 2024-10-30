@@ -104,7 +104,6 @@ struct MetalEncoderState
    	uint32 m_depthSlope = 0;
    	uint32 m_depthClamp = 0;
     bool m_depthClipEnable = true;
-    uint32 m_visibilityResultOffset = INVALID_UINT32;
     struct {
         MTL::Buffer* m_buffer;
         size_t m_offset;
@@ -170,7 +169,8 @@ enum class MetalEncoderType
 class MetalRenderer : public Renderer
 {
 public:
-    static const inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
+    static constexpr uint32 OCCLUSION_QUERY_POOL_SIZE = 1024;
+    static constexpr uint32 TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
 
     MetalRenderer();
 	~MetalRenderer() override;
@@ -428,28 +428,19 @@ public:
         return m_occlusionQuery.m_resultsPtr;
     }
 
-    uint32 GetAvailableOcclusionQueryIndex()
+    uint32 GetOcclusionQueryIndex()
     {
-        if (m_occlusionQuery.m_availableIndices.empty())
-        {
-            cemuLog_log(LogType::Force, "No occlusion query index available");
-            return 0;
-        }
-
-        uint32 queryIndex = m_occlusionQuery.m_availableIndices.back();
-        m_occlusionQuery.m_availableIndices.pop_back();
-
-        return queryIndex;
+        return m_occlusionQuery.m_currentIndex;
     }
 
-    void ReleaseOcclusionQueryIndex(uint32 queryIndex)
+    void BeginOcclusionQuery()
     {
-        m_occlusionQuery.m_availableIndices.push_back(queryIndex);
+        m_occlusionQuery.m_active = true;
     }
 
-    void SetActiveOcclusionQueryIndex(uint32 queryIndex)
+    void EndOcclusionQuery()
     {
-        m_occlusionQuery.m_activeIndex = queryIndex;
+        m_occlusionQuery.m_active = false;
     }
 
 private:
@@ -505,8 +496,8 @@ private:
 	{
     	MTL::Buffer* m_resultBuffer;
     	uint64* m_resultsPtr;
-    	std::vector<uint32> m_availableIndices;
-        uint32 m_activeIndex = INVALID_UINT32;
+    	uint32 m_currentIndex = 0;
+        bool m_active = false;
 	} m_occlusionQuery;
 
 	// Active objects

@@ -14,10 +14,15 @@ public:
 	void begin() override;
 	void end() override;
 
+	void GrowRange()
+	{
+	    m_range.end++;
+	}
+
 private:
 	class MetalRenderer* m_mtlr;
 
-	uint32 m_queryIndex = INVALID_UINT32;
+	MetalQueryRange m_range = {INVALID_UINT32, INVALID_UINT32};
 	// TODO: make this a list of command buffers
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
 };

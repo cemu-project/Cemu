@@ -22,6 +22,13 @@ struct MetalPixelFormatSupport
 	}
 };
 
+// TODO: don't define a new struct for this
+struct MetalQueryRange
+{
+    uint32 begin;
+	uint32 end;
+};
+
 #define MAX_MTL_BUFFERS 31
 // Buffer indices 28-30 are reserved for the helper shaders
 #define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 4)

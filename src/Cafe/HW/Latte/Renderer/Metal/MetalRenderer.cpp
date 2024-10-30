@@ -31,7 +31,6 @@
 #include "imgui/imgui_impl_metal.h"
 
 #define DEFAULT_COMMIT_TRESHOLD 196
-#define OCCLUSION_QUERY_POOL_SIZE 1024
 
 extern bool hasValidFramebufferAttached;
 
@@ -97,10 +96,6 @@ MetalRenderer::MetalRenderer()
     m_occlusionQuery.m_resultBuffer->setLabel(GetLabel("Occlusion query result buffer", m_occlusionQuery.m_resultBuffer));
 #endif
     m_occlusionQuery.m_resultsPtr = (uint64*)m_occlusionQuery.m_resultBuffer->contents();
-
-    m_occlusionQuery.m_availableIndices.reserve(OCCLUSION_QUERY_POOL_SIZE);
-    for (uint32 i = 0; i < OCCLUSION_QUERY_POOL_SIZE; i++)
-        m_occlusionQuery.m_availableIndices.push_back(i);
 
     // Initialize state
     for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
@@ -1115,11 +1110,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 
 	// Visibility result mode
-	if (m_occlusionQuery.m_activeIndex != encoderState.m_visibilityResultOffset)
+	if (m_occlusionQuery.m_active)
 	{
-	    auto mode = (m_occlusionQuery.m_activeIndex == INVALID_UINT32 ? MTL::VisibilityResultModeDisabled : MTL::VisibilityResultModeCounting);
-	    renderCommandEncoder->setVisibilityResultMode(mode, m_occlusionQuery.m_activeIndex * sizeof(uint64));
-		encoderState.m_visibilityResultOffset = m_occlusionQuery.m_activeIndex;
+	    auto mode = (m_occlusionQuery.m_currentIndex == INVALID_UINT32 ? MTL::VisibilityResultModeDisabled : MTL::VisibilityResultModeCounting);
+	    renderCommandEncoder->setVisibilityResultMode(mode, m_occlusionQuery.m_currentIndex * sizeof(uint64));
 	}
 
 	// todo - how does culling behave with rects?
@@ -1302,6 +1296,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	m_state.m_isFirstDrawInRenderPass = false;
 
+	// Occlusion queries
+	if (m_occlusionQuery.m_active)
+	    m_occlusionQuery.m_currentIndex = (m_occlusionQuery.m_currentIndex + 1) % OCCLUSION_QUERY_POOL_SIZE;
+
+	// Streamout
 	LatteStreamout_FinishDrawcall(false);
 
 	// Debug
