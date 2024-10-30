@@ -146,27 +146,27 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 {
 	sint32 effectiveWidth, effectiveHeight;
 	texture_view.baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	auto setUniforms = [&](RendererShader* shader, const UniformLocations& attributes){
+	auto setUniforms = [&](RendererShader* shader, const UniformLocations& locations){
 	  float res[2];
-	  if (attributes.m_loc_textureSrcResolution != -1)
+	  if (locations.m_loc_textureSrcResolution != -1)
 	  {
 		  res[0] = (float)effectiveWidth;
 		  res[1] = (float)effectiveHeight;
-		  shader->SetUniform2fv(attributes.m_loc_textureSrcResolution, res, 1);
+		  shader->SetUniform2fv(locations.m_loc_textureSrcResolution, res, 1);
 	  }
 
-	  if (attributes.m_loc_nativeResolution != -1)
+	  if (locations.m_loc_nativeResolution != -1)
 	  {
 		  res[0] = (float)texture_view.baseTexture->width;
 		  res[1] = (float)texture_view.baseTexture->height;
-		  shader->SetUniform2fv(attributes.m_loc_nativeResolution, res, 1);
+		  shader->SetUniform2fv(locations.m_loc_nativeResolution, res, 1);
 	  }
 
-	  if (attributes.m_loc_outputResolution != -1)
+	  if (locations.m_loc_outputResolution != -1)
 	  {
 		  res[0] = (float)output_res.x;
 		  res[1] = (float)output_res.y;
-		  shader->SetUniform2fv(attributes.m_loc_outputResolution, res, 1);
+		  shader->SetUniform2fv(locations.m_loc_outputResolution, res, 1);
 	  }
 	};
 	setUniforms(m_vertex_shader, m_uniformLocations[0]);
