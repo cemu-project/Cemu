@@ -71,9 +71,6 @@ enum
 	X86_CONDITION_NONE, // no condition, jump always
 };
 
-#define PPC_X64_GPR_USABLE_REGISTERS		(16-4)
-#define PPC_X64_FPR_USABLE_REGISTERS		(16-1) // Use XMM0 - XMM14, XMM15 is the temp register
-
 bool PPCRecompiler_generateX64Code(struct PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
 
 void PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext_t* x64GenContext, sint32 jumpInstructionOffset, sint32 destinationOffset);
