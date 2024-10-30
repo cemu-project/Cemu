@@ -611,7 +611,8 @@ sint32 IMLUtil_MoveInstructionTo(IMLSegment& seg, sint32 initialIndex, sint32 ta
 	{
 		cemu_assert_debug(targetIndex > 0);
 		targetIndex--;
-		std::copy_backward(seg.imlList.begin() + initialIndex + 1, seg.imlList.begin() + targetIndex + 1, seg.imlList.begin() + targetIndex);
+		for(size_t i=initialIndex; i<targetIndex; i++)
+			seg.imlList[i] = seg.imlList[i+1];
 		seg.imlList[targetIndex] = temp;
 		return targetIndex;
 	}
