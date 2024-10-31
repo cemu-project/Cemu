@@ -77,8 +77,10 @@ void PadViewFrame::InitializeRenderCanvas()
 			m_render_canvas = new VulkanCanvas(this, wxSize(854, 480), false);
 		else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
+#if ENABLE_METAL
 		else
 		    m_render_canvas = new MetalCanvas(this, wxSize(854, 480), false);
+#endif
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);
 	}
 	SetSizer(sizer);

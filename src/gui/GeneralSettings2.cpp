@@ -314,7 +314,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		{
 			choices[api_size++] = "Vulkan";
 		}
-#ifdef __APPLE__
+#if ENABLE_METAL
         choices[api_size++] = "Metal";
 #endif
 

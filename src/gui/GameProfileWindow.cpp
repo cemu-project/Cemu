@@ -113,7 +113,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString gapi_values[] = { "", "OpenGL", "Vulkan",
-#ifdef __APPLE__
+#if ENABLE_METAL
             "Metal"
 #endif
 		};
@@ -271,7 +271,7 @@ void GameProfileWindow::ApplyProfile()
 	if (!m_game_profile.m_graphics_api.has_value())
 		m_graphic_api->SetSelection(0); // selecting ""
 	else
-		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan
+		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan, Metal
 	m_shader_mul_accuracy->SetSelection((int)m_game_profile.m_accurateShaderMul);
 
 	//// audio
@@ -338,7 +338,7 @@ void GameProfileWindow::SaveProfile()
 	if (m_graphic_api->GetSelection() == 0)
 		m_game_profile.m_graphics_api = {};
 	else
-		m_game_profile.m_graphics_api = (GraphicAPI)(m_graphic_api->GetSelection() - 1);  // "", OpenGL, Vulkan
+		m_game_profile.m_graphics_api = (GraphicAPI)(m_graphic_api->GetSelection() - 1);  // "", OpenGL, Vulkan, Metal
 
 	// controller
 	for (int i = 0; i < 8; ++i)

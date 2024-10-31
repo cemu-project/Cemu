@@ -11,7 +11,7 @@
 #include "HW/Latte/Renderer/Renderer.h"
 #include "util/containers/LookupTableL3.h"
 #include "util/helpers/fspinlock.h"
-#if BOOST_OS_MACOS
+#if ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #endif
 #include <openssl/sha.h> /* SHA1_DIGEST_LENGTH */
@@ -166,6 +166,7 @@ void LatteFetchShader::CalculateFetchShaderVkHash()
 
 void LatteFetchShader::CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister)
 {
+#if ENABLE_METAL
 	for (sint32 g = 0; g < bufferGroups.size(); g++)
 	{
 	    LatteParsedFetchShaderBufferGroup_t& group = bufferGroups[g];
@@ -183,6 +184,7 @@ void LatteFetchShader::CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister
  			    mtlFetchVertexManually = true;
   		}
 	}
+#endif
 }
 
 void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* parsedFetchShader, uint32* contextRegister, const LatteClauseInstruction_VTX* instr)

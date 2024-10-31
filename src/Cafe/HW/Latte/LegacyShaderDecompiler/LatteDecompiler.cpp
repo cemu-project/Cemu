@@ -1067,10 +1067,12 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	// emit code
 	if (shaderContext->shader->hasError == false)
 	{
-	    if (g_renderer->GetType() == RendererAPI::Metal)
-			LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
+	    if (g_renderer->GetType() == RendererAPI::OpenGL || g_renderer->GetType() == RendererAPI::Vulkan)
+	        LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+#if ENABLE_METAL
 		else
-		    LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+		    LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
+#endif
 	}
 	LatteDecompiler_cleanup(shaderContext);
 	// fast access

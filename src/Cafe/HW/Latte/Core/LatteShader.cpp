@@ -14,7 +14,7 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
-#if BOOST_OS_MACOS
+#if ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #endif
 #include <cinttypes>
@@ -591,7 +591,7 @@ void LatteSHRC_UpdatePSBaseHash(uint8* pixelShaderPtr, uint32 pixelShaderSize, b
 	// get vertex shader
 	uint64 psHash = psHash1 + psHash2 + _activePSImportTable.key + (usesGeometryShader ? hashCacheGS.prevHash1 : 0ULL);
 
-#if BOOST_OS_MACOS
+#if ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
         for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)

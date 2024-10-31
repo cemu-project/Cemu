@@ -1570,8 +1570,10 @@ void MainWindow::CreateCanvas()
 		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
 	else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
+#if ENABLE_METAL
 	else
 	    m_render_canvas = new MetalCanvas(m_game_panel, wxSize(1280, 720), true);
+#endif
 
 	// mouse events
 	m_render_canvas->Bind(wxEVT_MOTION, &MainWindow::OnMouseMove, this);
