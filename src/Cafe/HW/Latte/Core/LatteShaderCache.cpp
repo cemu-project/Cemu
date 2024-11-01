@@ -437,7 +437,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 				std::string text;
 				if (isPipelines)
 				{
-					text = "Loading cached Vulkan pipelines...";
+					text = "Loading cached pipelines...";
 				}
 				else
 				{
