@@ -132,16 +132,16 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 
 	auto* row = new wxBoxSizer(wxHORIZONTAL);
 
-	m_emulate_toypad =
+	m_emulateToypad =
 		new wxCheckBox(box, wxID_ANY, _("Emulate Dimensions Toypad"));
-	m_emulate_toypad->SetValue(
+	m_emulateToypad->SetValue(
 		GetConfig().emulated_usb_devices.emulate_dimensions_toypad);
-	m_emulate_toypad->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+	m_emulateToypad->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
 		GetConfig().emulated_usb_devices.emulate_dimensions_toypad =
-			m_emulate_toypad->IsChecked();
+			m_emulateToypad->IsChecked();
 		g_config.Save();
 	});
-	row->Add(m_emulate_toypad, 1, wxEXPAND | wxALL, 2);
+	row->Add(m_emulateToypad, 1, wxEXPAND | wxALL, 2);
 	box_sizer->Add(row, 1, wxEXPAND | wxALL, 2);
 	auto* top_row = new wxBoxSizer(wxHORIZONTAL);
 	auto* bottom_row = new wxBoxSizer(wxHORIZONTAL);
