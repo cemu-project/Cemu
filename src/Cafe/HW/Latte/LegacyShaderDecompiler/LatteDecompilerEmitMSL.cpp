@@ -2690,16 +2690,16 @@ static void _emitTEXGetCompTexLodCode(LatteDecompilerShaderContext* shaderContex
 	{
 		// 3 coordinates
 		if(shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-			src->addFmt("float4(textureQueryLod(tex{}, {}.{}{}{}),0.0,0.0)", texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
+			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}{}),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
 		else
-			src->addFmt("float4(textureQueryLod(tex{}, bitCast<float>({}.{}{}{})),0.0,0.0)", texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
+			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{}{})),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
 	}
 	else
 	{
 		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-			src->addFmt("float4(textureQueryLod(tex{}, {}.{}{}),0.0,0.0)", texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
+			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
 		else
-			src->addFmt("float4(textureQueryLod(tex{}, bitCast<float>({}.{}{})),0.0,0.0)", texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
+			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{})),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
 		debugBreakpoint();
 	}
 
@@ -3734,7 +3734,6 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 
 	// Sample compare emulate
 	// TODO: only add when needed
-
 	// TODO: lod_options overload
 	// TODO: when the sampler has linear min mag filter, use gather and filter manually
 	// TODO: offset?
@@ -3744,6 +3743,15 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 	    "return compareValue < tex.sample(samplr, coord).x ? 1.0 : 0.0;\r\n"
 	"}\r\n"
 	);
+
+	// Texture calculate lod
+	// TODO: only add when needed
+	fCStr_shaderSource->add(""
+	"template<typename TextureT, typename CoordT>\r\n"
+	"float2 textureCalculateLod(TextureT tex, sampler samplr, CoordT coord) {\r\n"
+        "float lod = tex.calculate_unclamped_lod(samplr, coord);\r\n"
+        "return float2(floor(lod), fract(lod));\r\n"
+	"}\r\n");
 
 	// clamp
 	fCStr_shaderSource->add(""
