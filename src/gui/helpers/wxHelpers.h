@@ -8,7 +8,7 @@ template <>
 struct fmt::formatter<wxString> : formatter<string_view>
 {
 	template <typename FormatContext>
-	auto format(const wxString& str, FormatContext& ctx)
+	auto format(const wxString& str, FormatContext& ctx) const
 	{
 		return formatter<string_view>::format(str.c_str().AsChar(), ctx);
 	}

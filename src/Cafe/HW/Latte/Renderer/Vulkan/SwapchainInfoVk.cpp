@@ -146,8 +146,17 @@ void SwapchainInfoVk::Create()
 			UnrecoverableError("Failed to create semaphore for swapchain acquire");
 	}
 
+	VkFenceCreateInfo fenceInfo = {};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	result = vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &m_imageAvailableFence);
+	if (result != VK_SUCCESS)
+		UnrecoverableError("Failed to create fence for swapchain");
+
 	m_acquireIndex = 0;
 	hasDefinedSwapchainImage = false;
+
+	m_queueDepth = 0;
 }
 
 void SwapchainInfoVk::Cleanup()
@@ -177,6 +186,12 @@ void SwapchainInfoVk::Cleanup()
 	m_swapchainFramebuffers.clear();
 
 
+	if (m_imageAvailableFence)
+	{
+		WaitAvailableFence();
+		vkDestroyFence(m_logicalDevice, m_imageAvailableFence, nullptr);
+		m_imageAvailableFence = nullptr;
+	}
 	if (m_swapchain)
 	{
 		vkDestroySwapchainKHR(m_logicalDevice, m_swapchain, nullptr);
@@ -189,6 +204,18 @@ bool SwapchainInfoVk::IsValid() const
 	return m_swapchain && !m_acquireSemaphores.empty();
 }
 
+void SwapchainInfoVk::WaitAvailableFence()
+{
+	if(m_awaitableFence != VK_NULL_HANDLE)
+		vkWaitForFences(m_logicalDevice, 1, &m_awaitableFence, VK_TRUE, UINT64_MAX);
+	m_awaitableFence = VK_NULL_HANDLE;
+}
+
+void SwapchainInfoVk::ResetAvailableFence() const
+{
+	vkResetFences(m_logicalDevice, 1, &m_imageAvailableFence);
+}
+
 VkSemaphore SwapchainInfoVk::ConsumeAcquireSemaphore()
 {
 	VkSemaphore ret = m_currentSemaphore;
@@ -198,8 +225,10 @@ VkSemaphore SwapchainInfoVk::ConsumeAcquireSemaphore()
 
 bool SwapchainInfoVk::AcquireImage()
 {
+	ResetAvailableFence();
+
 	VkSemaphore acquireSemaphore = m_acquireSemaphores[m_acquireIndex];
-	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, m_swapchain, 1'000'000'000, acquireSemaphore, nullptr, &swapchainImageIndex);
+	VkResult result = vkAcquireNextImageKHR(m_logicalDevice, m_swapchain, 1'000'000'000, acquireSemaphore, m_imageAvailableFence, &swapchainImageIndex);
 	if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
 		m_shouldRecreate = true;
 	if (result == VK_TIMEOUT)
@@ -216,6 +245,7 @@ bool SwapchainInfoVk::AcquireImage()
 		return false;
 	}
 	m_currentSemaphore = acquireSemaphore;
+	m_awaitableFence = m_imageAvailableFence;
 	m_acquireIndex = (m_acquireIndex + 1) % m_swapchainImages.size();
 
 	return true;
@@ -319,6 +349,7 @@ VkExtent2D SwapchainInfoVk::ChooseSwapExtent(const VkSurfaceCapabilitiesKHR& cap
 
 VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentModeKHR>& modes)
 {
+	m_maxQueued = 0;
 	const auto vsyncState = (VSync)GetConfig().vsync.GetValue();
 	if (vsyncState == VSync::MAILBOX)
 	{
@@ -345,6 +376,7 @@ VkPresentModeKHR SwapchainInfoVk::ChoosePresentMode(const std::vector<VkPresentM
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
+	m_maxQueued = 1;
 	return VK_PRESENT_MODE_FIFO_KHR;
 }
 

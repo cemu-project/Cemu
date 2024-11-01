@@ -194,7 +194,7 @@ namespace robin_hood {
 
 // workaround missing "is_trivially_copyable" in g++ < 5.0
 // See https://stackoverflow.com/a/31798726/48181
-#if defined(__GNUC__) && __GNUC__ < 5
+#if defined(__GNUC__) && __GNUC__ < 5 && !defined(__clang__)
 #    define ROBIN_HOOD_IS_TRIVIALLY_COPYABLE(...) __has_trivial_copy(__VA_ARGS__)
 #else
 #    define ROBIN_HOOD_IS_TRIVIALLY_COPYABLE(...) std::is_trivially_copyable<__VA_ARGS__>::value

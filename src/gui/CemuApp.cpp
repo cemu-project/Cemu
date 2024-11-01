@@ -15,6 +15,9 @@
 #if BOOST_OS_LINUX && HAS_WAYLAND
 #include "gui/helpers/wxWayland.h"
 #endif
+#if __WXGTK__
+#include <glib.h>
+#endif
 
 #include <wx/image.h>
 #include <wx/filename.h>

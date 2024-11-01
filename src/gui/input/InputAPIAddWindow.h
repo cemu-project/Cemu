@@ -19,6 +19,7 @@ class InputAPIAddWindow : public wxDialog
 {
 public:
 	InputAPIAddWindow(wxWindow* parent, const wxPoint& position, const std::vector<ControllerPtr>& controllers);
+	~InputAPIAddWindow();
 
 	bool is_valid() const { return m_type.has_value() && m_controller != nullptr; }
 	InputAPI::Type get_type() const { return m_type.value(); }
@@ -38,6 +39,8 @@ private:
 	void on_controller_selected(wxCommandEvent& event);
 	void on_controllers_refreshed(wxCommandEvent& event);
 
+	void discard_thread_result();
+
 	wxChoice* m_input_api;
 	wxComboBox* m_controller_list;
 	wxButton* m_ok_button;
@@ -50,4 +53,10 @@ private:
 
 	std::vector<ControllerPtr> m_controllers;
 	std::atomic_bool m_search_running = false;
+	struct AsyncThreadData
+	{
+		std::atomic_bool discardResult = false;
+		std::mutex mutex;
+	};
+	std::shared_ptr<AsyncThreadData> m_search_thread_data;
 };

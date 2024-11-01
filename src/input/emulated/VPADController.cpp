@@ -686,3 +686,14 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 
 	return mapping_updated;
 }
+
+void VPADController::load(const pugi::xml_node& node)
+{
+	if (const auto value = node.child("toggle_display"))
+		m_screen_active_toggle = ConvertString<bool>(value.child_value());
+}
+
+void VPADController::save(pugi::xml_node& node)
+{
+	node.append_child("toggle_display").append_child(pugi::node_pcdata).set_value(fmt::format("{}", (int)m_screen_active_toggle).c_str());
+}

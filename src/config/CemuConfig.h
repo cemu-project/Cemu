@@ -195,7 +195,7 @@ ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
 template <>
 struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const PrecompiledShaderOption c, FormatContext &ctx) {
+	auto format(const PrecompiledShaderOption c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -210,7 +210,7 @@ struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
 template <>
 struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const AccurateShaderMulOption c, FormatContext &ctx) {
+	auto format(const AccurateShaderMulOption c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -224,7 +224,7 @@ struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 template <>
 struct fmt::formatter<CPUMode> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const CPUMode c, FormatContext &ctx) {
+	auto format(const CPUMode c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -241,7 +241,7 @@ struct fmt::formatter<CPUMode> : formatter<string_view> {
 template <>
 struct fmt::formatter<CPUModeLegacy> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const CPUModeLegacy c, FormatContext &ctx) {
+	auto format(const CPUModeLegacy c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -258,7 +258,7 @@ struct fmt::formatter<CPUModeLegacy> : formatter<string_view> {
 template <>
 struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const CafeConsoleRegion v, FormatContext &ctx) {
+	auto format(const CafeConsoleRegion v, FormatContext &ctx) const {
 		string_view name;
 		switch (v)
 		{

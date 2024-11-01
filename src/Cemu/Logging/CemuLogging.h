@@ -92,7 +92,11 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 	else
 	{
 		const auto format_view = fmt::basic_string_view<T>(formatStr);
+#if FMT_VERSION >= 110000
+		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffered_context<T>>(args...));
+#else
 		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(args...));
+#endif
 		cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
 	}
 	return true;
