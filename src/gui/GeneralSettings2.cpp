@@ -344,10 +344,6 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_async_compile->SetToolTip(_("Enables async shader and pipeline compilation. Reduces stutter at the cost of objects not rendering for a short time.\nVulkan only"));
 		graphic_misc_row->Add(m_async_compile, 0, wxALL, 5);
 
-		m_fast_math = new wxCheckBox(box, wxID_ANY, _("Fast math"));
-		m_fast_math->SetToolTip(_("Enables fast math for all shaders. May cause minor inaccuracies in some games.\nMetal only"));
-		graphic_misc_row->Add(m_fast_math, 0, wxALL, 5);
-
 		m_gx2drawdone_sync = new wxCheckBox(box, wxID_ANY, _("Full sync at GX2DrawDone()"));
 		m_gx2drawdone_sync->SetToolTip(_("If synchronization is requested by the game, the emulated CPU will wait for the GPU to finish all operations.\nThis is more accurate behavior, but may cause lower performance"));
 		graphic_misc_row->Add(m_gx2drawdone_sync, 0, wxALL, 5);
@@ -1042,7 +1038,6 @@ void GeneralSettings2::StoreConfig()
 	config.vsync = m_vsync->GetSelection();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
 	config.async_compile = m_async_compile->IsChecked();
-	config.fast_math = m_fast_math->IsChecked();
 
 	config.upscale_filter = m_upscale_filter->GetSelection();
 	config.downscale_filter = m_downscale_filter->GetSelection();
@@ -1520,14 +1515,12 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_gx2drawdone_sync->Enable();
 		m_async_compile->Disable();
-		m_fast_math->Disable();
 	}
 	else if (m_graphic_api->GetSelection() == 1)
 	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
-		m_fast_math->Disable();
 
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
@@ -1565,7 +1558,6 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		// Metal
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
-		m_fast_math->Enable();
 
 		// TODO: vsync options
 		m_vsync->AppendString(_("Off"));
@@ -1629,7 +1621,6 @@ void GeneralSettings2::ApplyConfig()
 	m_graphic_api->SetSelection(config.graphic_api);
 	m_vsync->SetSelection(config.vsync);
 	m_async_compile->SetValue(config.async_compile);
-	m_fast_math->SetValue(config.fast_math);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
 	m_upscale_filter->SetSelection(config.upscale_filter);
 	m_downscale_filter->SetSelection(config.downscale_filter);

@@ -219,7 +219,6 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	downscale_filter = graphic.get("DownscaleFilter", kLinearFilter);
 	fullscreen_scaling = graphic.get("FullscreenScaling", kKeepAspectRatio);
 	async_compile = graphic.get("AsyncCompile", async_compile);
-	fast_math = graphic.get("FastMath", fast_math);
 	vk_accurate_barriers = graphic.get("vkAccurateBarriers", true); // this used to be "VulkanAccurateBarriers" but because we changed the default to true in 1.27.1 the option name had to be changed
 
 	auto overlay_node = graphic.get("Overlay");
@@ -476,7 +475,6 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	graphic.set("DownscaleFilter", downscale_filter);
 	graphic.set("FullscreenScaling", fullscreen_scaling);
 	graphic.set("AsyncCompile", async_compile.GetValue());
-	graphic.set("FastMath", fast_math.GetValue());
 	graphic.set("vkAccurateBarriers", vk_accurate_barriers);
 
 	auto overlay_node = graphic.set("Overlay");

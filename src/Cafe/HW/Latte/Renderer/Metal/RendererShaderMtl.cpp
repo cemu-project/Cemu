@@ -1,12 +1,12 @@
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+
 //#include "Cemu/FileCache/FileCache.h"
 //#include "config/ActiveSettings.h"
-
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
-#include "config/CemuConfig.h"
+#include "GameProfile/GameProfile.h"
 #include "util/helpers/helpers.h"
 
 static bool s_isLoadingShadersMtl{false};
@@ -174,7 +174,7 @@ void RendererShaderMtl::CompileInternal()
 {
     MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
     // TODO: always disable fast math for problematic shaders
-    if (GetConfig().fast_math)
+    if (g_current_game_profile->GetFastMath())
         options->setFastMathEnabled(true);
 
     NS::Error* error = nullptr;

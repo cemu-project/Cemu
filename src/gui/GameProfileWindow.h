@@ -40,6 +40,7 @@ private:
 	wxChoice* m_graphic_api;
 
 	wxChoice* m_shader_mul_accuracy;
+	wxChoice* m_fast_math;
 	wxChoice* m_buffer_cache_type;
 	//wxChoice* m_cache_accuracy;
 

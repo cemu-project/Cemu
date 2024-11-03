@@ -467,7 +467,6 @@ struct CemuConfig
 	ConfigValue<bool> gx2drawdone_sync {true};
 	ConfigValue<bool> render_upside_down{ false };
 	ConfigValue<bool> async_compile{ true };
-	ConfigValue<bool> fast_math{ true };
 
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
