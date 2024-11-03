@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
+#include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
 
 /*
@@ -115,7 +116,23 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 {
     cemu_assert_debug(!m_bufferCache);
 
-    m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModePrivate);
+    // First, try to import the host memory as a buffer
+    // TODO: only import if the option is ticked in game profile
+    if (m_mtlr->IsAppleGPU())
+    {
+        m_importedMemBaseAddress = 0x10000000;
+    	size_t hostAllocationSize = 0x40000000ull;
+    	// TODO: get size of allocation
+        m_bufferCache = m_mtlr->GetDevice()->newBuffer(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), hostAllocationSize, MTL::ResourceStorageModeShared, nullptr);
+        if (m_bufferCache)
+            m_useHostMemoryForCache = true;
+        else
+            cemuLog_logDebug(LogType::Force, "Failed to import host memory as a buffer");
+    }
+
+    if (!m_useHostMemoryForCache)
+        m_bufferCache = m_mtlr->GetDevice()->newBuffer(size, MTL::ResourceStorageModePrivate);
+
 #ifdef CEMU_DEBUG_ASSERT
     m_bufferCache->setLabel(GetLabel("Buffer cache", m_bufferCache));
 #endif
@@ -123,6 +140,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
 
 void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, size_t size)
 {
+    cemu_assert_debug(!m_useHostMemoryForCache);
     cemu_assert_debug(m_bufferCache);
     cemu_assert_debug((offset + size) <= m_bufferCache->length());
 
@@ -147,6 +165,7 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
 void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size)
 {
+    cemu_assert_debug(!m_useHostMemoryForCache);
     cemu_assert_debug(m_bufferCache);
 
     m_mtlr->CopyBufferToBuffer(m_bufferCache, srcOffset, m_bufferCache, dstOffset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);

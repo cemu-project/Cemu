@@ -115,6 +115,17 @@ public:
     }
     */
 
+    // Getters
+    bool UseHostMemoryForCache() const
+    {
+        return m_useHostMemoryForCache;
+    }
+
+    MPTR GetImportedMemBaseAddress() const
+    {
+        return m_importedMemBaseAddress;
+    }
+
 private:
     class MetalRenderer* m_mtlr;
 
@@ -126,4 +137,6 @@ private:
     //MetalVertexBufferCache m_vertexBufferCache;
 
     MTL::Buffer* m_bufferCache = nullptr;
+    bool m_useHostMemoryForCache = false;
+    MPTR m_importedMemBaseAddress;
 };
