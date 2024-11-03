@@ -127,6 +127,13 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		m_shader_mul_accuracy->SetToolTip(_("EXPERT OPTION\nControls the accuracy of floating point multiplication in shaders.\n\nRecommended: true"));
 		first_row->Add(m_shader_mul_accuracy, 0, wxALL, 5);
 
+		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Use host memory for cache")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+		wxString mem_values[] = { _("false"), _("true")};
+		m_use_host_mem_for_cache = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(mem_values), mem_values);
+		m_use_host_mem_for_cache->SetToolTip(_("EXPERT OPTION\nAllows the GPU to access data directly without the need for an intermediate cache. May increase performance and reduce memory usage, but can also cause flickering.\n\nMetal only\n\nRecommended: false"));
+		first_row->Add(m_use_host_mem_for_cache, 0, wxALL, 5);
+
 		/*first_row->Add(new wxStaticText(panel, wxID_ANY, _("GPU buffer cache accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		wxString accuarcy_values[] = { _("high"), _("medium"), _("low") };
 		m_cache_accuracy = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(accuarcy_values), accuarcy_values);
@@ -273,6 +280,7 @@ void GameProfileWindow::ApplyProfile()
 	else
 		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan, Metal
 	m_shader_mul_accuracy->SetSelection((int)m_game_profile.m_accurateShaderMul);
+	m_use_host_mem_for_cache->SetSelection((int)m_game_profile.m_useHostMemForCache);
 
 	//// audio
 	//m_disable_audio->Set3StateValue(GetCheckboxState(m_game_profile.disableAudio));
@@ -332,6 +340,7 @@ void GameProfileWindow::SaveProfile()
 
 	// gpu
 	m_game_profile.m_accurateShaderMul = (AccurateShaderMulOption)m_shader_mul_accuracy->GetSelection();
+	m_game_profile.m_useHostMemForCache = (bool)m_use_host_mem_for_cache->GetSelection();
 	if (m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::False && m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::True)
 		m_game_profile.m_accurateShaderMul = AccurateShaderMulOption::True; // force a legal value
 

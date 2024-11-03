@@ -1,8 +1,10 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
+
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
+#include "GameProfile/GameProfile.h"
 
 /*
 MetalVertexBufferCache::~MetalVertexBufferCache()
@@ -117,8 +119,7 @@ void MetalMemoryManager::InitBufferCache(size_t size)
     cemu_assert_debug(!m_bufferCache);
 
     // First, try to import the host memory as a buffer
-    // TODO: only import if the option is ticked in game profile
-    if (m_mtlr->IsAppleGPU())
+    if (g_current_game_profile->UseHostMemForCache() && m_mtlr->IsAppleGPU())
     {
         m_importedMemBaseAddress = 0x10000000;
     	size_t hostAllocationSize = 0x40000000ull;
@@ -165,7 +166,6 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
 void MetalMemoryManager::CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size)
 {
-    cemu_assert_debug(!m_useHostMemoryForCache);
     cemu_assert_debug(m_bufferCache);
 
     m_mtlr->CopyBufferToBuffer(m_bufferCache, srcOffset, m_bufferCache, dstOffset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);
