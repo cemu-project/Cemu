@@ -20,25 +20,6 @@ struct MetalBufferAllocation
     }
 };
 
-/*
-struct MetalRestrideInfo
-{
-    bool memoryInvalidated = true;
-    size_t lastStride = 0;
-    MetalBufferAllocation allocation{};
-};
-*/
-
-/*
-struct MetalBoundBuffer
-{
-    size_t offset = INVALID_OFFSET;
-    size_t size = 0;
-    // Memory manager will write restride info to this variable
-    //MetalRestrideInfo restrideInfo;
-};
-*/
-
 enum MetalGeneralShaderType
 {
     METAL_GENERAL_SHADER_TYPE_VERTEX,
@@ -143,7 +124,7 @@ struct MetalState
     // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change
     MetalActiveFBOState m_lastUsedFBO;
 
-    size_t m_vertexBufferOffsets[MAX_MTL_VERTEX_BUFFERS] = {INVALID_OFFSET};
+    size_t m_vertexBufferOffsets[MAX_MTL_VERTEX_BUFFERS];
     // TODO: find out what is the max number of bound textures on the Wii U
     class LatteTextureViewMtl* m_textures[64] = {nullptr};
     size_t m_uniformBufferOffsets[METAL_GENERAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
@@ -472,14 +453,8 @@ private:
 	class MetalDepthStencilCache* m_depthStencilCache;
 	class MetalSamplerCache* m_samplerCache;
 
-	// Pipelines
-	//MTL::RenderPipelineState* m_presentPipelineLinear;
-	//MTL::RenderPipelineState* m_presentPipelineSRGB;
-
-	// Hybrid pipelines
+	// Void vertex pipelines
 	class MetalVoidVertexPipeline* m_copyBufferToBufferPipeline;
-	//class MetalVoidVertexPipeline* m_copyTextureToTexturePipeline;
-	//class MetalVoidVertexPipeline* m_restrideBufferPipeline;
 
 	// Resources
 	MTL::SamplerState* m_nearestSampler;

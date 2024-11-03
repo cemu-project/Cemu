@@ -4,73 +4,11 @@
 
 #include "GameProfile/GameProfile.h"
 
-/*
-struct MetalRestridedBufferRange
-{
-    MTL::Buffer* buffer;
-    size_t offset;
-};
-
-struct MetalVertexBufferRange
-{
-    size_t offset = INVALID_OFFSET;
-    size_t size;
-    MetalRestrideInfo* restrideInfo;
-};
-
-class MetalVertexBufferCache
-{
-public:
-    friend class MetalMemoryManager;
-
-    MetalVertexBufferCache(class MetalRenderer* metalRenderer, MetalDefaultBufferAllocator& bufferAllocator) : m_mtlr{metalRenderer}, m_bufferAllocator{bufferAllocator} {}
-    ~MetalVertexBufferCache();
-
-    void SetRestrideBufferPipeline(class MetalVoidVertexPipeline* restrideBufferPipeline)
-    {
-        m_restrideBufferPipeline = restrideBufferPipeline;
-    }
-
-    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo* restrideInfo)
-    {
-        m_bufferRanges[bufferIndex] = MetalVertexBufferRange{offset, size, restrideInfo};
-    }
-
-    void UntrackVertexBuffer(uint32 bufferIndex)
-    {
-        auto& range = m_bufferRanges[bufferIndex];
-        //if (range.restrideInfo->allocation.offset != INVALID_OFFSET)
-        //    m_bufferAllocator.FreeAllocation(range.restrideInfo->allocation);
-        range.offset = INVALID_OFFSET;
-    }
-
-    MetalRestridedBufferRange RestrideBufferIfNeeded(MTL::Buffer* bufferCache, uint32 bufferIndex, size_t stride, std::vector<MTL::Resource*>& barrierBuffers);
-
-private:
-    class MetalRenderer* m_mtlr;
-    MetalDefaultBufferAllocator& m_bufferAllocator;
-
-    class MetalVoidVertexPipeline* m_restrideBufferPipeline = nullptr;
-
-    MetalVertexBufferRange m_bufferRanges[LATTE_MAX_VERTEX_BUFFERS] = {};
-
-    void MemoryRangeChanged(size_t offset, size_t size);
-};
-*/
-
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer)/*, m_vertexBufferCache(metalRenderer, m_framePersistentBufferAllocator)*/ {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer) {}
     ~MetalMemoryManager();
-
-    // Pipelines
-    /*
-    void SetRestrideBufferPipeline(class MetalVoidVertexPipeline* restrideBufferPipeline)
-    {
-        m_vertexBufferCache.SetRestrideBufferPipeline(restrideBufferPipeline);
-    }
-    */
 
     MetalDefaultBufferAllocator& GetBufferAllocator()
     {
@@ -99,24 +37,6 @@ public:
     void UploadToBufferCache(const void* data, size_t offset, size_t size);
     void CopyBufferCache(size_t srcOffset, size_t dstOffset, size_t size);
 
-    // Vertex buffer cache
-    /*
-    void TrackVertexBuffer(uint32 bufferIndex, size_t offset, size_t size, MetalRestrideInfo* restrideInfo)
-    {
-        m_vertexBufferCache.TrackVertexBuffer(bufferIndex, offset, size, restrideInfo);
-    }
-
-    void UntrackVertexBuffer(uint32 bufferIndex)
-    {
-        m_vertexBufferCache.UntrackVertexBuffer(bufferIndex);
-    }
-
-    MetalRestridedBufferRange RestrideBufferIfNeeded(uint32 bufferIndex, size_t stride, std::vector<MTL::Resource*>& barrierBuffers)
-    {
-        return m_vertexBufferCache.RestrideBufferIfNeeded(m_bufferCache, bufferIndex, stride, barrierBuffers);
-    }
-    */
-
     // Getters
     bool UseHostMemoryForCache() const
     {
@@ -136,7 +56,6 @@ private:
     MetalDefaultBufferAllocator m_bufferAllocator;
     MetalDefaultBufferAllocator m_framePersistentBufferAllocator;
     MetalTemporaryBufferAllocator m_tempBufferAllocator;
-    //MetalVertexBufferCache m_vertexBufferCache;
 
     MTL::Buffer* m_bufferCache = nullptr;
     BufferCacheType m_bufferCacheType;
