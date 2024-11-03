@@ -258,6 +258,7 @@ void InfoLog_PrintActiveSettings()
 	{
 	    cemuLog_log(LogType::Force, "Async compile: {}", GetConfig().async_compile.GetValue() ? "true" : "false");
 		cemuLog_log(LogType::Force, "Fast math: {}", GetConfig().fast_math.GetValue() ? "true" : "false");
+		cemuLog_log(LogType::Force, "Buffer cache type: {}", g_current_game_profile->GetBufferCacheType());
 		if (!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}

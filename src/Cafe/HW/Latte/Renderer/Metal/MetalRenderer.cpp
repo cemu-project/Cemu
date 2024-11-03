@@ -30,8 +30,6 @@
 #include "imgui/imgui_extension.h"
 #include "imgui/imgui_impl_metal.h"
 
-#define DEFAULT_COMMIT_TRESHOLD 196
-
 extern bool hasValidFramebufferAttached;
 
 float supportBufferData[512 * 4];
@@ -90,6 +88,12 @@ MetalRenderer::MetalRenderer()
     m_depthStencilCache = new MetalDepthStencilCache(this);
     m_samplerCache = new MetalSamplerCache(this);
 
+    // Lower the commit treshold when host memory is used for cache to reduce latency
+    if (m_memoryManager->UseHostMemoryForCache())
+        m_defaultCommitTreshlod = 64;
+    else
+        m_defaultCommitTreshlod = 196;
+
     // Occlusion queries
     m_occlusionQuery.m_resultBuffer = m_device->newBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), MTL::ResourceStorageModeShared);
 #ifdef CEMU_DEBUG_ASSERT
@@ -97,8 +101,11 @@ MetalRenderer::MetalRenderer()
 #endif
     m_occlusionQuery.m_resultsPtr = (uint64*)m_occlusionQuery.m_resultBuffer->contents();
 
-    // Initialize state
-    for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
+    // Reset vertex and uniform buffers
+   	for (uint32 i = 0; i < MAX_MTL_VERTEX_BUFFERS; i++)
+        m_state.m_vertexBufferOffsets[i] = INVALID_OFFSET;
+
+   	for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
     {
         for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
             m_state.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;
@@ -821,23 +828,28 @@ void MetalRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 
 
 void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
 {
+    if (m_memoryManager->UseHostMemoryForCache())
+        dstOffset -= m_memoryManager->GetImportedMemBaseAddress();
+
     CopyBufferToBuffer(GetXfbRingBuffer(), srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size, MTL::RenderStageVertex | MTL::RenderStageMesh, ALL_MTL_RENDER_STAGES);
 }
 
 void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
 {
+    cemu_assert_debug(!m_memoryManager->UseHostMemoryForCache());
     cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
-    auto& buffer = m_state.m_vertexBuffers[bufferIndex];
-	if (buffer.offset == offset && buffer.size == size)
-		return;
+
+    m_state.m_vertexBufferOffsets[bufferIndex] = offset;
+	//if (buffer.offset == offset && buffer.size == size)
+	//	return;
 
 	//if (buffer.offset != INVALID_OFFSET)
 	//{
 	//    m_memoryManager->UntrackVertexBuffer(bufferIndex);
 	//}
 
-	buffer.offset = offset;
-	buffer.size = size;
+	//buffer.offset = offset;
+	//buffer.size = size;
 	//buffer.restrideInfo = {};
 
 	//m_memoryManager->TrackVertexBuffer(bufferIndex, offset, size, &buffer.restrideInfo);
@@ -845,6 +857,8 @@ void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, u
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
 {
+    cemu_assert_debug(!m_memoryManager->UseHostMemoryForCache());
+
     m_state.m_uniformBufferOffsets[GetMtlGeneralShaderType(shaderType)][bufferIndex] = offset;
 }
 
@@ -988,9 +1002,24 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	uint32 indexBufferIndex = 0;
 	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
 
-	// synchronize vertex and uniform cache and update buffer bindings
-	// We need to call this before getting the render command encoder, since it can cause buffer copies
-	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+	// Buffer cache
+	if (m_memoryManager->UseHostMemoryForCache())
+	{
+		// direct memory access (Wii U memory space imported as a buffer), update buffer bindings
+		draw_updateVertexBuffersDirectAccess();
+		if (vertexShader)
+			draw_updateUniformBuffersDirectAccess(vertexShader, mmSQ_VTX_UNIFORM_BLOCK_START);
+		if (geometryShader)
+			draw_updateUniformBuffersDirectAccess(geometryShader, mmSQ_GS_UNIFORM_BLOCK_START);
+		if (pixelShader)
+			draw_updateUniformBuffersDirectAccess(pixelShader, mmSQ_PS_UNIFORM_BLOCK_START);
+	}
+	else
+	{
+    	// synchronize vertex and uniform cache and update buffer bindings
+    	// We need to call this before getting the render command encoder, since it can cause buffer copies
+    	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+	}
 
 	// Render pass
 	auto renderCommandEncoder = GetRenderCommandEncoder();
@@ -1190,10 +1219,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Vertex buffers
 	//std::vector<MTL::Resource*> barrierBuffers;
-    for (uint8 i = 0; i < MAX_MTL_BUFFERS; i++)
+    for (uint8 i = 0; i < MAX_MTL_VERTEX_BUFFERS; i++)
     {
-        auto& vertexBufferRange = m_state.m_vertexBuffers[i];
-        if (vertexBufferRange.offset != INVALID_OFFSET)
+        size_t offset = m_state.m_vertexBufferOffsets[i];
+        if (offset != INVALID_OFFSET)
         {
             /*
             MTL::Buffer* buffer;
@@ -1218,11 +1247,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             }
             */
 
-            MTL::Buffer* buffer = m_memoryManager->GetBufferCache();
-            size_t offset = m_state.m_vertexBuffers[i].offset;
-
             // Bind
-            SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), buffer, offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
+            SetBuffer(renderCommandEncoder, GetMtlShaderType(vertexShader->shaderType, usesGeometryShader), m_memoryManager->GetBufferCache(), offset, GET_MTL_VERTEX_BUFFER_INDEX(i));
         }
     }
 
@@ -1301,7 +1327,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	    m_occlusionQuery.m_currentIndex = (m_occlusionQuery.m_currentIndex + 1) % OCCLUSION_QUERY_POOL_SIZE;
 
 	// Streamout
-	LatteStreamout_FinishDrawcall(false);
+	LatteStreamout_FinishDrawcall(m_memoryManager->UseHostMemoryForCache());
 
 	// Debug
 	if (fetchVertexManually)
@@ -1330,6 +1356,54 @@ void MetalRenderer::draw_endSequence()
 
         // TODO: where should this be called?
         LatteTextureReadback_UpdateFinishedTransfers(false);
+	}
+}
+
+void MetalRenderer::draw_updateVertexBuffersDirectAccess()
+{
+	LatteFetchShader* parsedFetchShader = LatteSHRC_GetActiveFetchShader();
+	if (!parsedFetchShader)
+		return;
+
+	for (auto& bufferGroup : parsedFetchShader->bufferGroups)
+	{
+		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
+		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+		MPTR bufferAddress = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 0];
+		//uint32 bufferSize = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 1] + 1;
+		//uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+		if (bufferAddress == MPTR_NULL) [[unlikely]]
+			bufferAddress = 0x10000000; // TODO: really?
+
+		m_state.m_vertexBufferOffsets[bufferIndex] = bufferAddress - m_memoryManager->GetImportedMemBaseAddress();
+	}
+}
+
+void MetalRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader* shader, const uint32 uniformBufferRegOffset)
+{
+	if (shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
+	{
+		for (const auto& buf : shader->list_quickBufferList)
+		{
+			sint32 i = buf.index;
+			MPTR physicalAddr = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 0];
+			uint32 uniformSize = LatteGPUState.contextRegister[uniformBufferRegOffset + i * 7 + 1] + 1;
+
+			if (physicalAddr == MPTR_NULL) [[unlikely]]
+			{
+				cemu_assert_unimplemented();
+				continue;
+			}
+			uniformSize = std::min<uint32>(uniformSize, buf.size);
+
+			cemu_assert_debug(physicalAddr < 0x50000000);
+
+			uint32 bufferIndex = i;
+			cemu_assert_debug(bufferIndex < 16);
+
+			m_state.m_uniformBufferOffsets[GetMtlGeneralShaderType(shader->shaderType)][bufferIndex] = physicalAddr - m_memoryManager->GetImportedMemBaseAddress();
+		}
 	}
 }
 
@@ -1486,7 +1560,7 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 		m_commandBuffers.push_back({mtlCommandBuffer});
 
 		m_recordedDrawcalls = 0;
-		m_commitTreshold = DEFAULT_COMMIT_TRESHOLD;
+		m_commitTreshold = m_defaultCommitTreshlod;
 
 		// Notify memory manager about the new command buffer
         m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);

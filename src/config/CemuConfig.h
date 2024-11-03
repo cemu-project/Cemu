@@ -124,6 +124,14 @@ enum class AccurateShaderMulOption
 };
 ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, AccurateShaderMulOption::True);
 
+enum class BufferCacheType
+{
+    DevicePrivate,
+    DeviceShared,
+    Host,
+};
+ENABLE_ENUM_ITERATORS(BufferCacheType, BufferCacheType::DevicePrivate, BufferCacheType::Host);
+
 enum class CPUMode
 {
 	SinglecoreInterpreter = 0,
@@ -216,6 +224,21 @@ struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 		{
 		case AccurateShaderMulOption::True: name = "true"; break;
 		case AccurateShaderMulOption::False: name = "false"; break;
+		default: name = "unknown"; break;
+		}
+		return formatter<string_view>::format(name, ctx);
+	}
+};
+template <>
+struct fmt::formatter<BufferCacheType> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const BufferCacheType c, FormatContext &ctx) const {
+		string_view name;
+		switch (c)
+		{
+		case BufferCacheType::DevicePrivate: name = "device private"; break;
+		case BufferCacheType::DeviceShared: name = "device shared"; break;
+		case BufferCacheType::Host: name = "host"; break;
 		default: name = "unknown"; break;
 		}
 		return formatter<string_view>::format(name, ctx);

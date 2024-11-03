@@ -31,7 +31,9 @@ struct MetalQueryRange
 
 #define MAX_MTL_BUFFERS 31
 // Buffer indices 28-30 are reserved for the helper shaders
-#define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_BUFFERS - index - 4)
+#define MTL_RESERVED_BUFFERS 3
+#define MAX_MTL_VERTEX_BUFFERS (MAX_MTL_BUFFERS - MTL_RESERVED_BUFFERS)
+#define GET_MTL_VERTEX_BUFFER_INDEX(index) (MAX_MTL_VERTEX_BUFFERS - index - 1)
 
 #define MAX_MTL_TEXTURES 31
 #define MAX_MTL_SAMPLERS 16

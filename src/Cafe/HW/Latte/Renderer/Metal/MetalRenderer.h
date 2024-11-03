@@ -29,6 +29,7 @@ struct MetalRestrideInfo
 };
 */
 
+/*
 struct MetalBoundBuffer
 {
     size_t offset = INVALID_OFFSET;
@@ -36,6 +37,7 @@ struct MetalBoundBuffer
     // Memory manager will write restride info to this variable
     //MetalRestrideInfo restrideInfo;
 };
+*/
 
 enum MetalGeneralShaderType
 {
@@ -141,7 +143,7 @@ struct MetalState
     // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change
     MetalActiveFBOState m_lastUsedFBO;
 
-    MetalBoundBuffer m_vertexBuffers[MAX_MTL_BUFFERS] = {{}};
+    size_t m_vertexBufferOffsets[MAX_MTL_VERTEX_BUFFERS] = {INVALID_OFFSET};
     // TODO: find out what is the max number of bound textures on the Wii U
     class LatteTextureViewMtl* m_textures[64] = {nullptr};
     size_t m_uniformBufferOffsets[METAL_GENERAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
@@ -276,6 +278,9 @@ public:
 	void draw_beginSequence() override;
 	void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst) override;
 	void draw_endSequence() override;
+
+	void draw_updateVertexBuffersDirectAccess();
+	void draw_updateUniformBuffersDirectAccess(LatteDecompilerShader* shader, const uint32 uniformBufferRegOffset);
 
 	// index
 	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
@@ -506,6 +511,7 @@ private:
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 
     uint32 m_recordedDrawcalls;
+    uint32 m_defaultCommitTreshlod;
     uint32 m_commitTreshold;
 
 	// State
