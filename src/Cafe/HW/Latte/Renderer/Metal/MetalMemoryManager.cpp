@@ -33,9 +33,8 @@ void MetalMemoryManager::InitBufferCache(size_t size)
     if (m_bufferCacheType == BufferCacheType::Host && m_mtlr->IsAppleGPU())
     {
         m_importedMemBaseAddress = 0x10000000;
-    	size_t hostAllocationSize = 0x40000000ull;
-    	// TODO: get size of allocation
-        m_bufferCache = m_mtlr->GetDevice()->newBuffer(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), hostAllocationSize, MTL::ResourceStorageModeShared, nullptr);
+    	m_hostAllocationSize = 0x40000000ull; // TODO: get size of allocation
+        m_bufferCache = m_mtlr->GetDevice()->newBuffer(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), m_hostAllocationSize, MTL::ResourceStorageModeShared, nullptr);
         if (!m_bufferCache)
         {
             cemuLog_logDebug(LogType::Force, "Failed to import host memory as a buffer");

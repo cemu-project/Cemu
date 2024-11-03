@@ -48,6 +48,11 @@ public:
         return m_importedMemBaseAddress;
     }
 
+    size_t GetHostAllocationSize() const
+    {
+        return m_hostAllocationSize;
+    }
+
 private:
     class MetalRenderer* m_mtlr;
 
@@ -60,4 +65,5 @@ private:
     MTL::Buffer* m_bufferCache = nullptr;
     BufferCacheType m_bufferCacheType;
     MPTR m_importedMemBaseAddress;
+    size_t m_hostAllocationSize = 0;
 };

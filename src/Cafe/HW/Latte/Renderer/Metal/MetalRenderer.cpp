@@ -204,7 +204,8 @@ bool MetalRenderer::IsPadWindowActive()
 
 bool MetalRenderer::GetVRAMInfo(int& usageInMB, int& totalInMB) const
 {
-    usageInMB = m_device->currentAllocatedSize() / 1024 / 1024;
+    // Subtract host memory from total VRAM, since it's shared with the CPU
+    usageInMB = (m_device->currentAllocatedSize() - m_memoryManager->GetHostAllocationSize()) / 1024 / 1024;
     totalInMB = m_recommendedMaxVRAMUsage / 1024 / 1024;
 
     return true;
