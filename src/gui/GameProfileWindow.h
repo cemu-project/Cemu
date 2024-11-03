@@ -40,7 +40,7 @@ private:
 	wxChoice* m_graphic_api;
 
 	wxChoice* m_shader_mul_accuracy;
-	wxChoice* m_use_host_mem_for_cache;
+	wxChoice* m_buffer_cache_type;
 	//wxChoice* m_cache_accuracy;
 
 	// audio

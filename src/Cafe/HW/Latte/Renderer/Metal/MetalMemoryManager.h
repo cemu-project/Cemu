@@ -2,6 +2,8 @@
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalBufferAllocator.h"
 
+#include "GameProfile/GameProfile.h"
+
 /*
 struct MetalRestridedBufferRange
 {
@@ -118,7 +120,7 @@ public:
     // Getters
     bool UseHostMemoryForCache() const
     {
-        return m_useHostMemoryForCache;
+        return (m_bufferCacheType == BufferCacheType::Host);
     }
 
     MPTR GetImportedMemBaseAddress() const
@@ -137,6 +139,6 @@ private:
     //MetalVertexBufferCache m_vertexBufferCache;
 
     MTL::Buffer* m_bufferCache = nullptr;
-    bool m_useHostMemoryForCache = false;
+    BufferCacheType m_bufferCacheType;
     MPTR m_importedMemBaseAddress;
 };
