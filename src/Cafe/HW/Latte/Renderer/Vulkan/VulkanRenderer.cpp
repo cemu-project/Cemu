@@ -628,6 +628,12 @@ VulkanRenderer::~VulkanRenderer()
 	m_pipeline_cache_semaphore.notify();
 	m_pipeline_cache_save_thread.join();
 
+	for(auto& i : m_backbufferBlitPipelineCache)
+	{
+		vkDestroyPipeline(m_logicalDevice, i.second, nullptr);
+	}
+	m_backbufferBlitPipelineCache = {};
+
 	// shut down imgui
 	ImGui_ImplVulkan_Shutdown();
 
@@ -2517,9 +2523,8 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	hash += (uint64)(chainInfo.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
-	static std::unordered_map<uint64, VkPipeline> s_pipeline_cache;
-	const auto it = s_pipeline_cache.find(hash);
-	if (it != s_pipeline_cache.cend())
+	const auto it = m_backbufferBlitPipelineCache.find(hash);
+	if (it != m_backbufferBlitPipelineCache.cend())
 		return it->second;
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
@@ -2615,7 +2620,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 		throw std::runtime_error(fmt::format("Failed to create graphics pipeline: {}", result));
 	}
 
-	s_pipeline_cache[hash] = pipeline;
+	m_backbufferBlitPipelineCache[hash] = pipeline;
 	m_pipeline_cache_semaphore.notify();
 
 	return pipeline;
