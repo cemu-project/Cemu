@@ -25,6 +25,7 @@ struct VkSupportedFormatInfo_t
 struct VkDescriptorSetInfo
 {
 	VKRObjectDescriptorSet* m_vkObjDescriptorSet{};
+	std::vector<VKRObjectSampler*> m_vkObjSamplers{};
 
 	~VkDescriptorSetInfo();
 

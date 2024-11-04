@@ -3195,7 +3195,10 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 	performanceMonitor.vk.numDescriptorDynUniformBuffers.decrement(statsNumDynUniformBuffers);
 	performanceMonitor.vk.numDescriptorStorageBuffers.decrement(statsNumStorageBuffers);
 
-	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_vkObjDescriptorSet);
+	auto renderer = VulkanRenderer::GetInstance();
+	renderer->ReleaseDestructibleObject(m_vkObjDescriptorSet);
+	for(auto& sampler : m_vkObjSamplers)
+		renderer->ReleaseDestructibleObject(sampler);
 	m_vkObjDescriptorSet = nullptr;
 }
 
@@ -3791,8 +3794,6 @@ VKRObjectTextureView::VKRObjectTextureView(VKRObjectTexture* tex, VkImageView vi
 VKRObjectTextureView::~VKRObjectTextureView()
 {
 	auto logicalDevice = VulkanRenderer::GetInstance()->GetLogicalDevice();
-	if (m_textureViewSampler != VK_NULL_HANDLE)
-		vkDestroySampler(logicalDevice, m_textureViewSampler, nullptr);
 	if (m_textureDefaultSampler[0] != VK_NULL_HANDLE)
 		vkDestroySampler(logicalDevice, m_textureDefaultSampler[0], nullptr);
 	if (m_textureDefaultSampler[1] != VK_NULL_HANDLE)
@@ -4007,4 +4008,10 @@ VKRObjectDescriptorSet::~VKRObjectDescriptorSet()
 	auto vkr = VulkanRenderer::GetInstance();
 	vkFreeDescriptorSets(vkr->GetLogicalDevice(), vkr->GetDescriptorPool(), 1, &descriptorSet);
 	performanceMonitor.vk.numDescriptorSets.decrement();
+}
+
+VKRObjectSampler::~VKRObjectSampler()
+{
+	auto vkr = VulkanRenderer::GetInstance();
+	vkDestroySampler(vkr->GetLogicalDevice(), sampler, nullptr);
 }

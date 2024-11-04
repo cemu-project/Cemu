@@ -899,13 +899,11 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			}
 		}
 
-		if(imageViewObj->m_textureViewSampler == VK_NULL_HANDLE)
-		{
-			if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &imageViewObj->m_textureViewSampler) != VK_SUCCESS)
-				UnrecoverableError("Failed to create texture sampler");
-		}
+		auto vkObjSampler = dsInfo->m_vkObjSamplers.emplace_back(new VKRObjectSampler);
 
-		info.sampler = imageViewObj->m_textureViewSampler;
+		if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &vkObjSampler->sampler) != VK_SUCCESS)
+			UnrecoverableError("Failed to create texture sampler");
+		info.sampler = vkObjSampler->sampler;
 		textureArray.emplace_back(info);
 	}
 
