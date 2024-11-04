@@ -88,8 +88,8 @@ MetalRenderer::MetalRenderer()
     m_depthStencilCache = new MetalDepthStencilCache(this);
     m_samplerCache = new MetalSamplerCache(this);
 
-    // Lower the commit treshold when host memory is used for cache to reduce latency
-    if (m_memoryManager->UseHostMemoryForCache())
+    // Lower the commit treshold when buffer cache needs reduced latency
+    if (m_memoryManager->NeedsReducedLatency())
         m_defaultCommitTreshlod = 64;
     else
         m_defaultCommitTreshlod = 196;

@@ -43,6 +43,11 @@ public:
         return (m_bufferCacheType == BufferCacheType::Host);
     }
 
+    bool NeedsReducedLatency() const
+    {
+        return (m_bufferCacheType == BufferCacheType::DeviceShared || m_bufferCacheType == BufferCacheType::Host);
+    }
+
     MPTR GetImportedMemBaseAddress() const
     {
         return m_importedMemBaseAddress;

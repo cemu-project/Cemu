@@ -4,6 +4,7 @@
 
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
+#include "HW/MMU/MMU.h"
 
 MetalMemoryManager::~MetalMemoryManager()
 {
@@ -30,15 +31,23 @@ void MetalMemoryManager::InitBufferCache(size_t size)
     m_bufferCacheType = g_current_game_profile->GetBufferCacheType();
 
     // First, try to import the host memory as a buffer
-    if (m_bufferCacheType == BufferCacheType::Host && m_mtlr->IsAppleGPU())
+    if (m_bufferCacheType == BufferCacheType::Host)
     {
-        m_importedMemBaseAddress = 0x10000000;
-    	m_hostAllocationSize = 0x40000000ull; // TODO: get size of allocation
-        m_bufferCache = m_mtlr->GetDevice()->newBuffer(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), m_hostAllocationSize, MTL::ResourceStorageModeShared, nullptr);
-        if (!m_bufferCache)
+        if (m_mtlr->HasUnifiedMemory())
         {
-            cemuLog_logDebug(LogType::Force, "Failed to import host memory as a buffer");
-            m_bufferCacheType = BufferCacheType::DevicePrivate;
+            m_importedMemBaseAddress = mmuRange_MEM2.getBase();
+           	m_hostAllocationSize = mmuRange_MEM2.getSize();
+            m_bufferCache = m_mtlr->GetDevice()->newBuffer(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), m_hostAllocationSize, MTL::ResourceStorageModeShared, nullptr);
+            if (!m_bufferCache)
+            {
+                cemuLog_logDebug(LogType::Force, "Failed to import host memory as a buffer, using device shared mode instead");
+                m_bufferCacheType = BufferCacheType::DeviceShared;
+            }
+        }
+        else
+        {
+            cemuLog_logDebug(LogType::Force, "Host buffer cache mode is only available on unified memory systems, using device shared mode instead");
+            m_bufferCacheType = BufferCacheType::DeviceShared;
         }
     }
 
