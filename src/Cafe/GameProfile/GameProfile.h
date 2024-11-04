@@ -32,7 +32,7 @@ public:
 	[[nodiscard]] const std::optional<GraphicAPI>& GetGraphicsAPI() const { return m_graphics_api; }
 	[[nodiscard]] const AccurateShaderMulOption& GetAccurateShaderMul() const { return m_accurateShaderMul; }
 	[[nodiscard]] bool GetFastMath() const { return m_fastMath; }
-	[[nodiscard]] BufferCacheType GetBufferCacheType() const { return m_bufferCacheType; }
+	[[nodiscard]] BufferCacheMode GetBufferCacheMode() const { return m_bufferCacheMode; }
 	[[nodiscard]] const std::optional<PrecompiledShaderOption>& GetPrecompiledShadersState() const { return m_precompiledShaders; }
 
 	[[nodiscard]] uint32 GetThreadQuantum() const { return m_threadQuantum; }
@@ -57,7 +57,7 @@ private:
 	std::optional<GraphicAPI> m_graphics_api{};
 	AccurateShaderMulOption m_accurateShaderMul = AccurateShaderMulOption::True;
 	bool m_fastMath = false;
-	BufferCacheType m_bufferCacheType = BufferCacheType::DevicePrivate;
+	BufferCacheMode m_bufferCacheMode = BufferCacheMode::DevicePrivate;
 	std::optional<PrecompiledShaderOption> m_precompiledShaders{};
 	// cpu settings
 	uint32 m_threadQuantum = kThreadQuantumDefault; // values: 20000 45000 60000 80000 100000

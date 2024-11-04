@@ -40,12 +40,12 @@ public:
     // Getters
     bool UseHostMemoryForCache() const
     {
-        return (m_bufferCacheType == BufferCacheType::Host);
+        return (m_bufferCacheMode == BufferCacheMode::Host);
     }
 
     bool NeedsReducedLatency() const
     {
-        return (m_bufferCacheType == BufferCacheType::DeviceShared || m_bufferCacheType == BufferCacheType::Host);
+        return (m_bufferCacheMode == BufferCacheMode::DeviceShared || m_bufferCacheMode == BufferCacheMode::Host);
     }
 
     MPTR GetImportedMemBaseAddress() const
@@ -68,7 +68,7 @@ private:
     MetalTemporaryBufferAllocator m_tempBufferAllocator;
 
     MTL::Buffer* m_bufferCache = nullptr;
-    BufferCacheType m_bufferCacheType;
+    BufferCacheMode m_bufferCacheMode;
     MPTR m_importedMemBaseAddress;
     size_t m_hostAllocationSize = 0;
 };

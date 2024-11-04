@@ -227,7 +227,7 @@ bool GameProfile::Load(uint64_t title_id)
 
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
 			gameProfile_loadBooleanOption2(iniParser, "fastMath", m_fastMath);
-			gameProfile_loadEnumOption(iniParser, "bufferCacheType", m_bufferCacheType);
+			gameProfile_loadEnumOption(iniParser, "bufferCacheMode", m_bufferCacheMode);
 
 			// legacy support
 			auto option_precompiledShaders = iniParser.FindOption("precompiledShaders");
@@ -311,7 +311,7 @@ void GameProfile::Save(uint64_t title_id)
 	fs->writeLine("[Graphics]");
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_ENTRY(fastMath);
-	WRITE_ENTRY(bufferCacheType);
+	WRITE_ENTRY(bufferCacheMode);
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
@@ -342,7 +342,7 @@ void GameProfile::ResetOptional()
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fastMath = true;
-	m_bufferCacheType = BufferCacheType::DevicePrivate;
+	m_bufferCacheMode = BufferCacheMode::DevicePrivate;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
 	m_cpuMode.reset(); // CPUModeOption::kSingleCoreRecompiler;
@@ -364,7 +364,7 @@ void GameProfile::Reset()
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fastMath = true;
-	m_bufferCacheType = BufferCacheType::DevicePrivate;
+	m_bufferCacheMode = BufferCacheMode::DevicePrivate;
 	m_precompiledShaders = PrecompiledShaderOption::Auto;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;

@@ -135,12 +135,12 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		m_fast_math->SetToolTip(_("Enables fast math for all shaders. May (rarely) cause graphical bugs.\n\nMetal only\n\nRecommended: true"));
 		first_row->Add(m_fast_math, 0, wxALL, 5);
 
-		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Buffer cache type")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Buffer cache mode")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString cache_values[] = { _("device private"), _("device shared"), _("host") };
-		m_buffer_cache_type = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(cache_values), cache_values);
-		m_buffer_cache_type->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: device private"));
-		first_row->Add(m_buffer_cache_type, 0, wxALL, 5);
+		m_buffer_cache_mode = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(cache_values), cache_values);
+		m_buffer_cache_mode->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: device private"));
+		first_row->Add(m_buffer_cache_mode, 0, wxALL, 5);
 
 		/*first_row->Add(new wxStaticText(panel, wxID_ANY, _("GPU buffer cache accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		wxString accuarcy_values[] = { _("high"), _("medium"), _("low") };
@@ -289,7 +289,7 @@ void GameProfileWindow::ApplyProfile()
 		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan, Metal
 	m_shader_mul_accuracy->SetSelection((int)m_game_profile.m_accurateShaderMul);
 	m_fast_math->SetSelection((int)m_game_profile.m_fastMath);
-	m_buffer_cache_type->SetSelection((int)m_game_profile.m_bufferCacheType);
+	m_buffer_cache_mode->SetSelection((int)m_game_profile.m_bufferCacheMode);
 
 	//// audio
 	//m_disable_audio->Set3StateValue(GetCheckboxState(m_game_profile.disableAudio));
@@ -350,7 +350,7 @@ void GameProfileWindow::SaveProfile()
 	// gpu
 	m_game_profile.m_accurateShaderMul = (AccurateShaderMulOption)m_shader_mul_accuracy->GetSelection();
 	m_game_profile.m_fastMath = (bool)m_fast_math->GetSelection();
-	m_game_profile.m_bufferCacheType = (BufferCacheType)m_buffer_cache_type->GetSelection();
+	m_game_profile.m_bufferCacheMode = (BufferCacheMode)m_buffer_cache_mode->GetSelection();
 	if (m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::False && m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::True)
 		m_game_profile.m_accurateShaderMul = AccurateShaderMulOption::True; // force a legal value
 
