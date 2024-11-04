@@ -859,7 +859,7 @@ private:
 		memBarrier.pNext = nullptr;
 
 		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
 		memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 		memBarrier.dstAccessMask = 0;
