@@ -2685,7 +2685,6 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	Vector2i size;
 	if (mainWindow)
 	{
-		ImGui_ImplVulkan_DestroyFontsTexture();
 		ImGui_ImplVulkan_Shutdown();
 		gui_getWindowPhysSize(size.x, size.y);
 	}
