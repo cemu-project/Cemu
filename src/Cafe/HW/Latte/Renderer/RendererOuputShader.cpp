@@ -149,8 +149,8 @@ void main(){
 
 RendererOutputShader::RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source)
 {
-	m_vertex_shader = g_renderer->shader_create(RendererShader::ShaderType::kVertex, 0, 0, vertex_source, false, false);
-	m_fragment_shader = g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, fragment_source, false, false);
+	m_vertex_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kVertex, 0, 0, vertex_source, false, false));
+	m_fragment_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, fragment_source, false, false));
 
 	m_vertex_shader->PreponeCompilation(true);
 	m_fragment_shader->PreponeCompilation(true);
@@ -373,4 +373,16 @@ void RendererOutputShader::InitializeStatic()
 		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source);
 		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source);*/
 	}
+}
+
+void RendererOutputShader::ShutdownStatic()
+{
+	delete s_copy_shader;
+	delete s_copy_shader_ud;
+
+	delete s_bicubic_shader;
+	delete s_bicubic_shader_ud;
+
+	delete s_hermit_shader;
+	delete s_hermit_shader_ud;
 }
