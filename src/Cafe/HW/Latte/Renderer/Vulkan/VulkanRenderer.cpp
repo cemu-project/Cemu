@@ -630,6 +630,17 @@ VulkanRenderer::~VulkanRenderer()
 
 	vkDestroyPipelineCache(m_logicalDevice, m_pipeline_cache, nullptr);
 
+	if(!m_backbufferBlitDescriptorSetCache.empty())
+	{
+		std::vector<VkDescriptorSet> freeVector;
+		freeVector.reserve(m_backbufferBlitDescriptorSetCache.size());
+		std::transform(m_backbufferBlitDescriptorSetCache.begin(), m_backbufferBlitDescriptorSetCache.end(), std::back_inserter(freeVector), [](auto& i) {
+		  return i.second;
+		});
+		vkFreeDescriptorSets(m_logicalDevice, m_descriptorPool, freeVector.size(), freeVector.data());
+	}
+
+	vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
 
 	for(auto& i : m_backbufferBlitPipelineCache)
 	{
@@ -3019,9 +3030,8 @@ VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorS
 	hash += (uint64)texViewVk->GetViewRGBA();
 	hash += (uint64)texViewVk->GetDefaultTextureSampler(useLinearTexFilter);
 
-	static std::unordered_map<uint64, VkDescriptorSet> s_set_cache;
-	const auto it = s_set_cache.find(hash);
-	if (it != s_set_cache.cend())
+	const auto it = m_backbufferBlitDescriptorSetCache.find(hash);
+	if (it != m_backbufferBlitDescriptorSetCache.cend())
 		return it->second;
 
 	VkDescriptorSetAllocateInfo allocInfo = {};
@@ -3052,7 +3062,7 @@ VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorS
 	vkUpdateDescriptorSets(m_logicalDevice, 1, &descriptorWrites, 0, nullptr);
 	performanceMonitor.vk.numDescriptorSamplerTextures.increment();
 
-	s_set_cache[hash] = result;
+	m_backbufferBlitDescriptorSetCache[hash] = result;
 	return result;
 }
 

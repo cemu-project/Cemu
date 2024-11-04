@@ -237,6 +237,7 @@ VKFUNC_DEVICE(vkAllocateDescriptorSets);
 VKFUNC_DEVICE(vkFreeDescriptorSets);
 VKFUNC_DEVICE(vkUpdateDescriptorSets);
 VKFUNC_DEVICE(vkCreateDescriptorPool);
+VKFUNC_DEVICE(vkDestroyDescriptorPool);
 VKFUNC_DEVICE(vkDestroyDescriptorSetLayout);
 
 #undef VKFUNC_INIT
