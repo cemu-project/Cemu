@@ -2912,9 +2912,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
-	if (clearBackground)
-		ClearColorbuffer(padView);
-
 	// barrier for input texture
 	VkMemoryBarrier memoryBarrier{};
 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -2950,6 +2947,16 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	auto descriptSet = backbufferBlit_createDescriptorSet(m_swapchainDescriptorSetLayout, texViewVk, useLinearTexFilter);
 
 	vkCmdBeginRenderPass(m_state.currentCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	if (clearBackground)
+	{
+		VkClearAttachment clearAttachment{};
+		clearAttachment.clearValue = {0,0,0,0};
+		clearAttachment.colorAttachment = 0;
+		clearAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		VkClearRect clearExtent = {{{0,0},chainInfo.m_actualExtent}, 0, 1};
+		vkCmdClearAttachments(m_state.currentCommandBuffer, 1, &clearAttachment, 1, &clearExtent);
+	}
 
 	vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	m_state.currentPipeline = pipeline;

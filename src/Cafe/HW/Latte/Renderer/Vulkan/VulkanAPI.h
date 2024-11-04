@@ -165,6 +165,7 @@ VKFUNC_DEVICE(vkCmdDraw);
 VKFUNC_DEVICE(vkCmdCopyBufferToImage);
 VKFUNC_DEVICE(vkCmdCopyImageToBuffer);
 VKFUNC_DEVICE(vkCmdClearColorImage);
+VKFUNC_DEVICE(vkCmdClearAttachments);
 VKFUNC_DEVICE(vkCmdBindIndexBuffer);
 VKFUNC_DEVICE(vkCmdBindVertexBuffers);
 VKFUNC_DEVICE(vkCmdDrawIndexed);
