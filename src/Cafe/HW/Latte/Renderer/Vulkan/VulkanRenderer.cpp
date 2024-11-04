@@ -677,6 +677,12 @@ VulkanRenderer::~VulkanRenderer()
 		it = VK_NULL_HANDLE;
 	}
 
+	for(auto& sem : m_commandBufferSemaphores)
+	{
+		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
+		sem = VK_NULL_HANDLE;
+	}
+
 	if (m_pipelineLayout != VK_NULL_HANDLE)
 		vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
 
