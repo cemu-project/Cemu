@@ -4,6 +4,14 @@
 
 /* VKRSynchronizedMemoryBuffer */
 
+VKRSynchronizedRingAllocator::~VKRSynchronizedRingAllocator()
+{
+	for(auto& buf : m_buffers)
+	{
+		m_vkrMemMgr->DeleteBuffer(buf.vk_buffer, buf.vk_mem);
+	}
+}
+
 void VKRSynchronizedRingAllocator::addUploadBufferSyncPoint(AllocatorBuffer_t& buffer, uint32 offset)
 {
 	auto cmdBufferId = m_vkr->GetCurrentCommandBufferId();
