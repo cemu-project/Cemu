@@ -637,6 +637,8 @@ VulkanRenderer::~VulkanRenderer()
 	}
 	m_backbufferBlitPipelineCache = {};
 
+	vkDestroyDescriptorSetLayout(m_logicalDevice, m_swapchainDescriptorSetLayout, nullptr);
+
 	// shut down imgui
 	ImGui_ImplVulkan_Shutdown();
 
