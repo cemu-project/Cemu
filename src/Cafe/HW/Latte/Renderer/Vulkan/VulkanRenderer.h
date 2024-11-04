@@ -137,8 +137,8 @@ class VulkanRenderer : public Renderer
 public:
 
 	// memory management
-	VKRMemoryManager* memoryManager{};
-	VKRMemoryManager* GetMemoryManager() const { return memoryManager; };
+	std::unique_ptr<VKRMemoryManager> memoryManager;
+	const std::unique_ptr<VKRMemoryManager>& GetMemoryManager() const { return memoryManager; };
 
 	VkSupportedFormatInfo_t m_supportedFormatInfo;
 
