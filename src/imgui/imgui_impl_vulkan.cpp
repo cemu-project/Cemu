@@ -465,6 +465,15 @@ void ImGui_ImplVulkan_DestroyFontsTexture()
 	if (g_FontView)             { vkDestroyImageView(v->Device, g_FontView, v->Allocator); g_FontView = VK_NULL_HANDLE; }
     if (g_FontImage)            { vkDestroyImage(v->Device, g_FontImage, v->Allocator); g_FontImage = VK_NULL_HANDLE; }
     if (g_FontMemory)           { vkFreeMemory(v->Device, g_FontMemory, v->Allocator); g_FontMemory = VK_NULL_HANDLE; }
+
+	ImGuiIO& io = ImGui::GetIO();
+	auto texture = io.Fonts->TexID;
+	if(texture != (ImTextureID)nullptr)
+	{
+		ImGui_ImplVulkan_DeleteTexture(texture);
+		delete (ImGuiTexture*)texture;
+		io.Fonts->TexID = nullptr;
+	}
 }
 
 bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer)

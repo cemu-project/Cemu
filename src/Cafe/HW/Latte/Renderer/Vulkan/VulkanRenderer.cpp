@@ -1623,6 +1623,7 @@ void VulkanRenderer::Initialize()
 
 void VulkanRenderer::Shutdown()
 {
+	DeleteFontTextures();
 	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
@@ -1853,6 +1854,7 @@ void VulkanRenderer::DeleteTexture(ImTextureID id)
 
 void VulkanRenderer::DeleteFontTextures()
 {
+	WaitDeviceIdle();
 	ImGui_ImplVulkan_DestroyFontsTexture();
 }
 
@@ -2675,6 +2677,7 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	Vector2i size;
 	if (mainWindow)
 	{
+		ImGui_ImplVulkan_DestroyFontsTexture();
 		ImGui_ImplVulkan_Shutdown();
 		gui_getWindowPhysSize(size.x, size.y);
 	}
