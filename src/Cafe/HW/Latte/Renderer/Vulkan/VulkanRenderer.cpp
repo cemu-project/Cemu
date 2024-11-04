@@ -3773,6 +3773,8 @@ VKRObjectTextureView::VKRObjectTextureView(VKRObjectTexture* tex, VkImageView vi
 VKRObjectTextureView::~VKRObjectTextureView()
 {
 	auto logicalDevice = VulkanRenderer::GetInstance()->GetLogicalDevice();
+	if (m_textureViewSampler != VK_NULL_HANDLE)
+		vkDestroySampler(logicalDevice, m_textureViewSampler, nullptr);
 	if (m_textureDefaultSampler[0] != VK_NULL_HANDLE)
 		vkDestroySampler(logicalDevice, m_textureDefaultSampler[0], nullptr);
 	if (m_textureDefaultSampler[1] != VK_NULL_HANDLE)

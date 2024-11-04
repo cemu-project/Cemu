@@ -128,6 +128,7 @@ public:
 	~VKRObjectTextureView() override;
 
 	VkImageView m_textureImageView{ VK_NULL_HANDLE };
+	VkSampler m_textureViewSampler{ VK_NULL_HANDLE };
 	VkSampler m_textureDefaultSampler[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE }; // relict from LatteTextureViewVk, get rid of it eventually
 };
 
