@@ -18,6 +18,7 @@ class VkTextureChunkedHeap : private ChunkedHeap
 {
 public:
 	VkTextureChunkedHeap(class VKRMemoryManager* memoryManager, uint32 typeFilter, VkDevice device) : m_vkrMemoryManager(memoryManager), m_typeFilter(typeFilter), m_device(device) { };
+	~VkTextureChunkedHeap();
 
 	struct ChunkInfo
 	{
@@ -80,6 +81,7 @@ public:
 
 	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer, class VKRMemoryManager* vkMemoryManager, BUFFER_TYPE bufferType, uint32 minimumBufferAllocSize) : m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
 	VKRSynchronizedRingAllocator(const VKRSynchronizedRingAllocator&) = delete; // disallow copy
+	~VKRSynchronizedRingAllocator();
 
 	struct BufferSyncPoint_t
 	{
@@ -148,7 +150,7 @@ public:
 	}
 
 	// texture memory management
-	std::unordered_map<uint32, VkTextureChunkedHeap*> map_textureHeap; // one heap per memory type
+	std::unordered_map<uint32, std::unique_ptr<VkTextureChunkedHeap>> map_textureHeap; // one heap per memory type
 	std::vector<uint8> m_textureUploadBuffer;
 
 	// texture upload buffer

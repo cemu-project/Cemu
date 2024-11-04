@@ -177,6 +177,14 @@ void VKRSynchronizedRingAllocator::GetStats(uint32& numBuffers, size_t& totalBuf
 
 /* VkTextureChunkedHeap */
 
+VkTextureChunkedHeap::~VkTextureChunkedHeap()
+{
+	for (auto& i : m_list_chunkInfo)
+	{
+		vkFreeMemory(m_device, i.mem, nullptr);
+	}
+}
+
 uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize)
 {
 	cemu_assert_debug(m_list_chunkInfo.size() == chunkIndex);
@@ -481,7 +489,7 @@ VkImageMemAllocation* VKRMemoryManager::imageMemoryAllocate(VkImage image)
 		map_textureHeap.emplace(typeFilter, texHeap);
 	}
 	else
-		texHeap = it->second;
+		texHeap = it->second.get();
 
 	// alloc mem from heap
 	uint32 allocationSize = (uint32)memRequirements.size;
