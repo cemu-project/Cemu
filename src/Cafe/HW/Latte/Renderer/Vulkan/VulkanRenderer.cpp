@@ -628,6 +628,9 @@ VulkanRenderer::~VulkanRenderer()
 	m_pipeline_cache_semaphore.notify();
 	m_pipeline_cache_save_thread.join();
 
+	vkDestroyPipelineCache(m_logicalDevice, m_pipeline_cache, nullptr);
+
+
 	for(auto& i : m_backbufferBlitPipelineCache)
 	{
 		vkDestroyPipeline(m_logicalDevice, i.second, nullptr);
