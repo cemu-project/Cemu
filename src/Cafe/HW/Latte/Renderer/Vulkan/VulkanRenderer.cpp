@@ -651,10 +651,6 @@ VulkanRenderer::~VulkanRenderer()
 	memoryManager->DeleteBuffer(m_xfbRingBuffer, m_xfbRingBufferMemory);
 	memoryManager->DeleteBuffer(m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults);
 	memoryManager->DeleteBuffer(m_bufferCache, m_bufferCacheMemory);
-	// texture memory
-	// todo
-	// upload buffers
-	// todo
 
 	m_padSwapchainInfo = nullptr;
 	m_mainSwapchainInfo = nullptr;
@@ -698,6 +694,8 @@ VulkanRenderer::~VulkanRenderer()
 
 	// destroy memory manager
 	memoryManager.reset();
+
+	ProcessDestructionQueue();
 
 	// destroy instance, devices
 	if (m_instance != VK_NULL_HANDLE)
@@ -1824,7 +1822,6 @@ void VulkanRenderer::ImguiEnd()
 	vkCmdEndRenderPass(m_state.currentCommandBuffer);
 }
 
-std::vector<LatteTextureVk*> g_imgui_textures; // TODO manage better
 ImTextureID VulkanRenderer::GenerateTexture(const std::vector<uint8>& data, const Vector2i& size)
 {
 	try

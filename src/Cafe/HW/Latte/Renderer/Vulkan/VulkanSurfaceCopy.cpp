@@ -871,5 +871,4 @@ void VulkanRenderer::surfaceCopy_cleanup()
 		delete i.second;
 	}
 	m_copySurfacePipelineCache = {};
-	// todo - cleanup other resources?
 }
