@@ -703,10 +703,11 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyDebugUtilsMessengerEXT(m_instance, m_debugCallback, nullptr);
 	}
 
+	while(!m_destructionQueue.empty())
+		ProcessDestructionQueue();
+
 	// destroy memory manager
 	memoryManager.reset();
-
-	ProcessDestructionQueue();
 
 	// destroy instance, devices
 	if (m_instance != VK_NULL_HANDLE)
