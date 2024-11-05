@@ -1232,7 +1232,7 @@ void MetalRenderer::draw_updateVertexBuffersDirectAccess()
 		MPTR bufferAddress = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 0];
 
 		if (bufferAddress == MPTR_NULL) [[unlikely]]
-			bufferAddress = 0x10000000; // TODO: really?
+			bufferAddress = m_memoryManager->GetImportedMemBaseAddress();
 
 		m_state.m_vertexBufferOffsets[bufferIndex] = bufferAddress - m_memoryManager->GetImportedMemBaseAddress();
 	}
@@ -1317,7 +1317,9 @@ void MetalRenderer::occlusionQuery_destroy(LatteQueryObject* queryObj) {
 }
 
 void MetalRenderer::occlusionQuery_flush() {
-    // TODO: implement
+    // TODO: wait for all command buffers with occlusion queries?
+    if (m_occlusionQuery.m_lastCommandBuffer)
+        m_occlusionQuery.m_lastCommandBuffer->waitUntilCompleted();
 }
 
 void MetalRenderer::occlusionQuery_updateState() {

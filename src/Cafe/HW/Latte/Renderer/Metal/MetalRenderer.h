@@ -429,6 +429,12 @@ public:
     void EndOcclusionQuery()
     {
         m_occlusionQuery.m_active = false;
+        if (m_occlusionQuery.m_lastCommandBuffer)
+            m_occlusionQuery.m_lastCommandBuffer->release();
+        if (IsCommandBufferActive())
+            m_occlusionQuery.m_lastCommandBuffer = GetCurrentCommandBuffer()->retain();
+        else
+            m_occlusionQuery.m_lastCommandBuffer = nullptr;
     }
 
 private:
@@ -480,6 +486,7 @@ private:
     	uint64* m_resultsPtr;
     	uint32 m_currentIndex = 0;
         bool m_active = false;
+        MTL::CommandBuffer* m_lastCommandBuffer = nullptr;
 	} m_occlusionQuery;
 
 	// Active objects
