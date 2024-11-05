@@ -263,6 +263,8 @@ public:
 	void draw_updateVertexBuffersDirectAccess();
 	void draw_updateUniformBuffersDirectAccess(LatteDecompilerShader* shader, const uint32 uniformBufferRegOffset);
 
+	void draw_handleSpecialState5();
+
 	// index
 	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
 	void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) override;

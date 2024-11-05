@@ -20,10 +20,6 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalLayerHandle.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "HW/Latte/Renderer/Metal/MetalPipelineCompiler.h"
 #include "config/CemuConfig.h"
 
 #define IMGUI_IMPL_METAL_CPP
@@ -33,6 +29,9 @@
 extern bool hasValidFramebufferAttached;
 
 float supportBufferData[512 * 4];
+
+// Defined in the OpenGL renderer
+void LatteDraw_handleSpecialState8_clearAsDepth();
 
 MetalRenderer::MetalRenderer()
 {
@@ -827,7 +826,19 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		return;
 	}
 
-	// TODO: special state 8 and 5
+	// fast clear color as depth
+	if (LatteGPUState.contextNew.GetSpecialStateValues()[8] != 0)
+	{
+		LatteDraw_handleSpecialState8_clearAsDepth();
+		LatteGPUState.drawCallCounter++;
+		return;
+	}
+	else if (LatteGPUState.contextNew.GetSpecialStateValues()[5] != 0)
+	{
+		draw_handleSpecialState5();
+		LatteGPUState.drawCallCounter++;
+		return;
+	}
 
 	auto& encoderState = m_state.m_encoderState;
 
@@ -1252,6 +1263,23 @@ void MetalRenderer::draw_updateUniformBuffersDirectAccess(LatteDecompilerShader*
 			m_state.m_uniformBufferOffsets[GetMtlGeneralShaderType(shader->shaderType)][bufferIndex] = physicalAddr - m_memoryManager->GetImportedMemBaseAddress();
 		}
 	}
+}
+
+void MetalRenderer::draw_handleSpecialState5()
+{
+    LatteMRT::UpdateCurrentFBO();
+	LatteRenderTarget_updateViewport();
+
+	LatteTextureView* colorBuffer = LatteMRT::GetColorAttachment(0);
+	LatteTextureView* depthBuffer = LatteMRT::GetDepthAttachment();
+
+	sint32 vpWidth, vpHeight;
+	LatteMRT::GetVirtualViewportDimensions(vpWidth, vpHeight);
+
+	surfaceCopy_copySurfaceWithFormatConversion(
+		depthBuffer->baseTexture, depthBuffer->firstMip, depthBuffer->firstSlice,
+		colorBuffer->baseTexture, colorBuffer->firstMip, colorBuffer->firstSlice,
+		vpWidth, vpHeight);
 }
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
