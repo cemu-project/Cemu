@@ -648,6 +648,9 @@ VulkanRenderer::~VulkanRenderer()
 	}
 	m_backbufferBlitPipelineCache = {};
 
+	if(m_occlusionQueries.queryPool != VK_NULL_HANDLE)
+		vkDestroyQueryPool(m_logicalDevice, m_occlusionQueries.queryPool, nullptr);
+
 	vkDestroyDescriptorSetLayout(m_logicalDevice, m_swapchainDescriptorSetLayout, nullptr);
 
 	// shut down imgui

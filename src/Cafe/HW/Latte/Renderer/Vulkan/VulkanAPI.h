@@ -199,6 +199,7 @@ VKFUNC_DEVICE(vkCmdEndTransformFeedbackEXT);
 
 // query
 VKFUNC_DEVICE(vkCreateQueryPool);
+VKFUNC_DEVICE(vkDestroyQueryPool);
 VKFUNC_DEVICE(vkCmdResetQueryPool);
 VKFUNC_DEVICE(vkCmdBeginQuery);
 VKFUNC_DEVICE(vkCmdEndQuery);
