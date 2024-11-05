@@ -1539,6 +1539,12 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_updateVkBlendConstants();
 
 	// update descriptor sets
+	auto markSamplers = [this](VkDescriptorSetInfo* info) {
+		if(!info)
+			return;
+		for(auto& sampler : info->m_vkObjSamplers)
+			sampler->flagForCurrentCommandBuffer();
+	};
 	uint32_t dynamicOffsets[17 * 2];
 	if (vertexDS && pixelDS)
 	{
@@ -1585,6 +1591,9 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 			vkObjPipeline->pipeline_layout, 2, 1, &geometryDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
 			dynamicOffsets);
 	}
+	markSamplers(vertexDS);
+	markSamplers(pixelDS);
+	markSamplers(geometryDS);
 
 	// draw
 	if (hostIndexType != INDEX_TYPE::NONE)
