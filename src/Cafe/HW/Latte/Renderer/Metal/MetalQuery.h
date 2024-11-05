@@ -23,6 +23,6 @@ private:
 	class MetalRenderer* m_mtlr;
 
 	MetalQueryRange m_range = {INVALID_UINT32, INVALID_UINT32};
-	// TODO: make this a list of command buffers
+	// TODO: make this a list of command buffers?
 	MTL::CommandBuffer* m_commandBuffer = nullptr;
 };

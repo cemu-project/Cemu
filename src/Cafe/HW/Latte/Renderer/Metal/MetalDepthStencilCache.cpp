@@ -54,8 +54,6 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 
     	MTL::StencilDescriptor* frontStencil = MTL::StencilDescriptor::alloc()->init();
-    	// TODO: set reference
-    	//depthStencilState.front.reference = stencilRefFront;
     	frontStencil->setReadMask(stencilCompareMaskFront);
     	frontStencil->setWriteMask(stencilWriteMaskFront);
     	frontStencil->setStencilCompareFunction(GetMtlCompareFunc(frontStencilFunc));
@@ -67,8 +65,6 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     	MTL::StencilDescriptor* backStencil = MTL::StencilDescriptor::alloc()->init();
     	if (backStencilEnable)
     	{
-           	// TODO: set reference
-           	//depthStencilState.back.reference = stencilRefBack;
            	backStencil->setReadMask(stencilCompareMaskBack);
            	backStencil->setWriteMask(stencilWriteMaskBack);
            	backStencil->setStencilCompareFunction(GetMtlCompareFunc(backStencilFunc));
@@ -78,8 +74,6 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     	}
     	else
     	{
-    	    // TODO: set reference
-           	//depthStencilState.back.reference = stencilRefFront;
            	backStencil->setReadMask(stencilCompareMaskFront);
            	backStencil->setWriteMask(stencilWriteMaskFront);
            	backStencil->setStencilCompareFunction(GetMtlCompareFunc(frontStencilFunc));

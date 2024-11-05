@@ -27,7 +27,7 @@ static void compileThreadFunc(sint32 threadIndex)
 	SetThreadName("compilePl");
 
 	// one thread runs at normal priority while the others run at lower priority
-	if(threadIndex != 0)
+	if (threadIndex != 0)
 		; // TODO: set thread priority
 
 	while (true)

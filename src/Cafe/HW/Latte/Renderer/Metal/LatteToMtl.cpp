@@ -84,7 +84,6 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::D32_FLOAT, {MTL::PixelFormatDepth32Float, MetalDataType::NONE, 4, {1, 1}}},
 };
 
-// TODO: change the decoders when a format is not supported
 // TODO: R10_G10_B10_A2_UINT and R10_G10_B10_A2_SINT
 // TODO: A2_B10_G10_R10_UNORM and A2_B10_G10_R10_UINT
 void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)

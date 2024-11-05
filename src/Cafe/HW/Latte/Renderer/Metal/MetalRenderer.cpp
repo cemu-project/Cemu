@@ -1719,7 +1719,6 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		auto textureView = m_state.m_textures[hostTextureUnit];
 		if (!textureView)
 		{
-		    // TODO: don't bind if already bound
             if (textureDim == Latte::E_DIM::DIM_1D)
                 SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture1D, binding);
            	else
