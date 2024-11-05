@@ -900,6 +900,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		}
 
 		auto vkObjSampler = dsInfo->m_vkObjSamplers.emplace_back(new VKRObjectSampler);
+		dsInfo->m_vkObjDescriptorSet->addRef(vkObjSampler);
 
 		if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &vkObjSampler->sampler) != VK_SUCCESS)
 			UnrecoverableError("Failed to create texture sampler");
@@ -1169,6 +1170,8 @@ void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkD
 	{
 		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, vertexShader);
 		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
+		for(auto& sampler : descriptorSetInfo->m_vkObjSamplers)
+			sampler->flagForCurrentCommandBuffer();
 		vertexDS = descriptorSetInfo;
 	}
 
@@ -1176,6 +1179,8 @@ void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkD
 	{
 		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, pixelShader);
 		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
+		for(auto& sampler : descriptorSetInfo->m_vkObjSamplers)
+			sampler->flagForCurrentCommandBuffer();
 		pixelDS = descriptorSetInfo;
 
 	}
@@ -1184,6 +1189,8 @@ void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkD
 	{
 		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, geometryShader);
 		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
+		for(auto& sampler : descriptorSetInfo->m_vkObjSamplers)
+			sampler->flagForCurrentCommandBuffer();
 		geometryDS = descriptorSetInfo;
 	}
 }
@@ -1539,12 +1546,6 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_updateVkBlendConstants();
 
 	// update descriptor sets
-	auto markSamplers = [this](VkDescriptorSetInfo* info) {
-		if(!info)
-			return;
-		for(auto& sampler : info->m_vkObjSamplers)
-			sampler->flagForCurrentCommandBuffer();
-	};
 	uint32_t dynamicOffsets[17 * 2];
 	if (vertexDS && pixelDS)
 	{
@@ -1591,9 +1592,6 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 			vkObjPipeline->pipeline_layout, 2, 1, &geometryDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
 			dynamicOffsets);
 	}
-	markSamplers(vertexDS);
-	markSamplers(pixelDS);
-	markSamplers(geometryDS);
 
 	// draw
 	if (hostIndexType != INDEX_TYPE::NONE)
