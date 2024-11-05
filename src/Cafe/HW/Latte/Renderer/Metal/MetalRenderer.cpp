@@ -456,9 +456,10 @@ void MetalRenderer::AppendOverlayDebugInfo()
     ImGui::Text("Triangle fans             %u", m_performanceMonitor.m_triangleFans);
 }
 
-// TODO: halfZ
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
 {
+    // halfZ is handled in the shader
+
     m_state.m_viewport = MTL::Viewport{x, y, width, height, nearZ, farZ};
 }
 
@@ -485,12 +486,12 @@ void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo)
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
 {
-    return m_memoryManager->GetTextureUploadBuffer(size);
+    return m_memoryManager->AcquireTextureUploadBuffer(size);
 }
 
 void MetalRenderer::texture_releaseTextureUploadBuffer(uint8* mem)
 {
-    // TODO: should the texture buffer get released?
+    m_memoryManager->ReleaseTextureUploadBuffer(mem);
 }
 
 TextureDecoder* MetalRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height)

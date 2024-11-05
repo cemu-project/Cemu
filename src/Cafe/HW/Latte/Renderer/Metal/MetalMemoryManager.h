@@ -30,7 +30,9 @@ public:
         return m_bufferCache;
     }
 
-    void* GetTextureUploadBuffer(size_t size);
+    // Texture upload buffer
+    void* AcquireTextureUploadBuffer(size_t size);
+    void ReleaseTextureUploadBuffer(uint8* mem);
 
     // Buffer cache
     void InitBufferCache(size_t size);

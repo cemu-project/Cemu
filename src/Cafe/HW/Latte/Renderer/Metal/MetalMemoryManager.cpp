@@ -14,7 +14,7 @@ MetalMemoryManager::~MetalMemoryManager()
     }
 }
 
-void* MetalMemoryManager::GetTextureUploadBuffer(size_t size)
+void* MetalMemoryManager::AcquireTextureUploadBuffer(size_t size)
 {
     if (m_textureUploadBuffer.size() < size)
     {
@@ -22,6 +22,12 @@ void* MetalMemoryManager::GetTextureUploadBuffer(size_t size)
     }
 
     return m_textureUploadBuffer.data();
+}
+
+void MetalMemoryManager::ReleaseTextureUploadBuffer(uint8* mem)
+{
+    cemu_assert_debug(m_textureUploadBuffer.data() == mem);
+	m_textureUploadBuffer.clear();
 }
 
 void MetalMemoryManager::InitBufferCache(size_t size)
