@@ -234,7 +234,6 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
     // Reset the command buffers (they are released by TemporaryBufferAllocator)
     CommitCommandBuffer();
-    m_commandBuffers.clear();
 
     // Release frame persistent buffers
     m_memoryManager->GetFramePersistentBufferAllocator().ResetAllocations();
@@ -318,12 +317,9 @@ void MetalRenderer::Flush(bool waitIdle)
         CommitCommandBuffer();
     if (waitIdle)
     {
-        for (auto commandBuffer : m_commandBuffers)
-        {
-            cemu_assert_debug(commandBuffer.m_commited);
+        cemu_assert_debug(m_currentCommandBuffer.m_commited);
 
-            commandBuffer.m_commandBuffer->waitUntilCompleted();
-        }
+        m_currentCommandBuffer.m_commandBuffer->waitUntilCompleted();
     }
 }
 
@@ -448,7 +444,7 @@ void MetalRenderer::AppendOverlayDebugInfo()
     ImGui::Text("Buffer allocator memory   %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
-    ImGui::Text("Command buffers           %zu", m_commandBuffers.size());
+    ImGui::Text("Command buffers           %u", m_performanceMonitor.m_commandBuffers);
     ImGui::Text("Render passes             %u", m_performanceMonitor.m_renderPasses);
     ImGui::Text("Clears                    %u", m_performanceMonitor.m_clears);
     ImGui::Text("Manual vertex fetch draws %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
@@ -1427,14 +1423,14 @@ void MetalRenderer::SetSamplerState(MTL::RenderCommandEncoder* renderCommandEnco
 
 MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 {
-    bool needsNewCommandBuffer = (m_commandBuffers.empty() || m_commandBuffers.back().m_commited);
+    bool needsNewCommandBuffer = (!m_currentCommandBuffer.m_commandBuffer || m_currentCommandBuffer.m_commited);
     if (needsNewCommandBuffer)
 	{
         // Debug
         //m_commandQueue->insertDebugCaptureBoundary();
 
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
-		m_commandBuffers.push_back({mtlCommandBuffer});
+		m_currentCommandBuffer = {mtlCommandBuffer};
 
 		m_recordedDrawcalls = 0;
 		m_commitTreshold = m_defaultCommitTreshlod;
@@ -1442,11 +1438,14 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 		// Notify memory manager about the new command buffer
         m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
 
+        // Debug
+        m_performanceMonitor.m_commandBuffers++;
+
 		return mtlCommandBuffer;
 	}
 	else
 	{
-	    return m_commandBuffers.back().m_commandBuffer;
+	    return m_currentCommandBuffer.m_commandBuffer;
 	}
 }
 
@@ -1594,27 +1593,26 @@ void MetalRenderer::EndEncoding()
 
 void MetalRenderer::CommitCommandBuffer()
 {
-    if (m_commandBuffers.size() != 0)
+    if (!m_currentCommandBuffer.m_commandBuffer)
+        return;
+
+    EndEncoding();
+
+    if (!m_currentCommandBuffer.m_commited)
     {
-        EndEncoding();
+        // Handled differently, since it seems like Metal doesn't always call the completion handler
+        //commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
+        //    m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
+        //});
 
-        auto& commandBuffer = m_commandBuffers.back();
-        if (!commandBuffer.m_commited)
-        {
-            // Handled differently, since it seems like Metal doesn't always call the completion handler
-            //commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
-            //    m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
-            //});
+        m_currentCommandBuffer.m_commandBuffer->commit();
+        m_currentCommandBuffer.m_commandBuffer->release();
+        m_currentCommandBuffer.m_commited = true;
 
-            commandBuffer.m_commandBuffer->commit();
-            commandBuffer.m_commandBuffer->release();
-            commandBuffer.m_commited = true;
+        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
 
-            m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
-
-            // Debug
-            //m_commandQueue->insertDebugCaptureBoundary();
-        }
+        // Debug
+        //m_commandQueue->insertDebugCaptureBoundary();
     }
 }
 

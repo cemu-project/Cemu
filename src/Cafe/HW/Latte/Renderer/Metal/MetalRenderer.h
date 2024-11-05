@@ -137,7 +137,7 @@ struct MetalState
 
 struct MetalCommandBuffer
 {
-    MTL::CommandBuffer* m_commandBuffer;
+    MTL::CommandBuffer* m_commandBuffer = nullptr;
     bool m_commited = false;
 };
 
@@ -280,14 +280,14 @@ public:
 
 	bool IsCommandBufferActive() const
 	{
-        return (m_commandBuffers.size() != 0);
+        return (m_currentCommandBuffer.m_commandBuffer && !m_currentCommandBuffer.m_commited);
     }
 
 	MTL::CommandBuffer* GetCurrentCommandBuffer()
     {
-        cemu_assert_debug(m_commandBuffers.size() != 0);
+        cemu_assert_debug(m_currentCommandBuffer.m_commandBuffer);
 
-        return m_commandBuffers[m_commandBuffers.size() - 1].m_commandBuffer;
+        return m_currentCommandBuffer.m_commandBuffer;
     }
 
     void RequestSoonCommit()
@@ -431,10 +431,7 @@ public:
         m_occlusionQuery.m_active = false;
         if (m_occlusionQuery.m_lastCommandBuffer)
             m_occlusionQuery.m_lastCommandBuffer->release();
-        if (IsCommandBufferActive())
-            m_occlusionQuery.m_lastCommandBuffer = GetCurrentCommandBuffer()->retain();
-        else
-            m_occlusionQuery.m_lastCommandBuffer = nullptr;
+        m_occlusionQuery.m_lastCommandBuffer = GetCurrentCommandBuffer()->retain();
     }
 
 private:
@@ -490,7 +487,7 @@ private:
 	} m_occlusionQuery;
 
 	// Active objects
-	std::vector<MetalCommandBuffer> m_commandBuffers;
+	MetalCommandBuffer m_currentCommandBuffer{};
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 

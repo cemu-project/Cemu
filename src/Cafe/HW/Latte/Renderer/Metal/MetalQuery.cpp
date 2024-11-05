@@ -37,9 +37,8 @@ void LatteQueryObjectMtl::end()
 {
     m_range.end = m_mtlr->GetOcclusionQueryIndex();
     m_mtlr->EndOcclusionQuery();
+
+    m_commandBuffer = m_mtlr->GetCurrentCommandBuffer()->retain();
     if (m_mtlr->IsCommandBufferActive())
-    {
-        m_commandBuffer = m_mtlr->GetCurrentCommandBuffer()->retain();
         m_mtlr->RequestSoonCommit();
-    }
 }
