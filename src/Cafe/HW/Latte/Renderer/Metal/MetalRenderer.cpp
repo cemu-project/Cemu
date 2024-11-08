@@ -21,6 +21,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "config/CemuConfig.h"
+#include "gui/guiWrapper.h"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -246,7 +247,78 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 }
 
 void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView) {
-    cemuLog_log(LogType::Force, "Screenshots are not yet supported on Metal");
+    const bool hasScreenshotRequest = gui_hasScreenshotRequest();
+	if (!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
+		return;
+
+	if (m_mainLayer.GetDrawable())
+	{
+		// we already took a pad view screenshow and want a main window screenshot
+		if (m_screenshot_state == ScreenshotState::Main && padView)
+			return;
+
+		if (m_screenshot_state == ScreenshotState::Pad && !padView)
+			return;
+
+		// remember which screenshot is left to take
+		if (m_screenshot_state == ScreenshotState::None)
+			m_screenshot_state = padView ? ScreenshotState::Main : ScreenshotState::Pad;
+		else
+			m_screenshot_state = ScreenshotState::None;
+	}
+	else
+		m_screenshot_state = ScreenshotState::None;
+
+	auto texMtl = static_cast<LatteTextureMtl*>(texView->baseTexture);
+
+	int width, height;
+	texMtl->GetEffectiveSize(width, height, 0);
+
+	uint32 bytesPerRow = GetMtlTextureBytesPerRow(texMtl->format, texMtl->IsDepth(), width);
+	uint32 size = GetMtlTextureBytesPerImage(texMtl->format, texMtl->IsDepth(), height, bytesPerRow);
+
+	// TODO: get a buffer from the memory manager
+	MTL::Buffer* buffer = m_device->newBuffer(size, MTL::ResourceStorageModeShared);
+
+	auto blitCommandEncoder = GetBlitCommandEncoder();
+	blitCommandEncoder->copyFromTexture(texMtl->GetTexture(), 0, 0, MTL::Origin(0, 0, 0), MTL::Size(width, height, 1), buffer, 0, bytesPerRow, 0);
+
+	uint8* bufferPtr = (uint8*)buffer->contents();
+
+	bool formatValid = true;
+	std::vector<uint8> rgb_data;
+	rgb_data.reserve(3 * width * height);
+
+	auto pixelFormat = texMtl->GetTexture()->pixelFormat();
+	// TODO: implement more formats
+	switch (pixelFormat)
+	{
+	case MTL::PixelFormatRGBA8Unorm:
+		for (auto ptr = bufferPtr; ptr < bufferPtr + size; ptr += 4)
+		{
+			rgb_data.emplace_back(*ptr);
+			rgb_data.emplace_back(*(ptr + 1));
+			rgb_data.emplace_back(*(ptr + 2));
+		}
+		break;
+	case MTL::PixelFormatRGBA8Unorm_sRGB:
+		for (auto ptr = bufferPtr; ptr < bufferPtr + size; ptr += 4)
+		{
+			rgb_data.emplace_back(SRGBComponentToRGB(*ptr));
+			rgb_data.emplace_back(SRGBComponentToRGB(*(ptr + 1)));
+			rgb_data.emplace_back(SRGBComponentToRGB(*(ptr + 2)));
+		}
+		break;
+	default:
+		cemuLog_log(LogType::Force, "Unsupported screenshot texture pixel format {}", pixelFormat);
+		formatValid = false;
+		break;
+	}
+
+	buffer->release();
+
+	if (formatValid)
+		SaveScreenshot(rgb_data, width, height, !padView);
 }
 
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
