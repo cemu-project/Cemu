@@ -46,13 +46,13 @@ void MetalMemoryManager::InitBufferCache(size_t size)
             m_bufferCache = m_mtlr->GetDevice()->newBuffer(memory_getPointerFromVirtualOffset(m_importedMemBaseAddress), m_hostAllocationSize, MTL::ResourceStorageModeShared, nullptr);
             if (!m_bufferCache)
             {
-                cemuLog_logDebug(LogType::Force, "Failed to import host memory as a buffer, using device shared mode instead");
+                cemuLog_log(LogType::Force, "Failed to import host memory as a buffer, using device shared mode instead");
                 m_bufferCacheMode = BufferCacheMode::DeviceShared;
             }
         }
         else
         {
-            cemuLog_logDebug(LogType::Force, "Host buffer cache mode is only available on unified memory systems, using device shared mode instead");
+            cemuLog_log(LogType::Force, "Host buffer cache mode is only available on unified memory systems, using device shared mode instead");
             m_bufferCacheMode = BufferCacheMode::DeviceShared;
         }
     }

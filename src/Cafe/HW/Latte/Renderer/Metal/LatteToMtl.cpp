@@ -255,7 +255,7 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode)
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS:
 		return MTL::PrimitiveTypeTriangle; // rects are emulated as 2 triangles
 	default:
-		cemuLog_logDebug(LogType::Force, "Metal-Unsupported: Render pipeline with primitive mode {} created", primitiveMode);
+		cemuLog_log(LogType::Force, "Unsupported primitive mode {}", primitiveMode);
 		cemu_assert_debug(false);
 		return MTL::PrimitiveTypeTriangle;
     }

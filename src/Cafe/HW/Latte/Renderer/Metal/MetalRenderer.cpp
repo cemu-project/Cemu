@@ -245,6 +245,10 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
     m_performanceMonitor.ResetPerFrameData();
 }
 
+void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView) {
+    cemuLog_log(LogType::Force, "Screenshots are not yet supported on Metal");
+}
+
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
 								sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 								bool padView, bool clearBackground)

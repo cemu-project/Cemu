@@ -186,9 +186,7 @@ public:
 	void DrawEmptyFrame(bool mainWindow) override;
 	void SwapBuffers(bool swapTV, bool swapDRC) override;
 
-	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override {
-	    cemuLog_log(LogType::MetalLogging, "Screenshots are not yet supported on Metal");
-	}
+	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
 
 	void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
 									sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
