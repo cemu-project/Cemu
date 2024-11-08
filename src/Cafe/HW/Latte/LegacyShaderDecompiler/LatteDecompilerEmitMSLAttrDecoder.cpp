@@ -486,7 +486,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
 			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
 			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
-			src->add("attrDecoder.xy = as_type<uint2>(uint2(float(int(attrDecoder.x)), float(int(attrDecoder.y))));" _CRLF);
+			src->add("attrDecoder.xy = as_type<uint2>(float2(float(int(attrDecoder.x)), float(int(attrDecoder.y))));" _CRLF);
 			src->add("attrDecoder.zw = uint2(0);" _CRLF);
 		}
 		else if (attrib->format == FMT_16 && attrib->nfa == 1 && attrib->isSigned == 0)
