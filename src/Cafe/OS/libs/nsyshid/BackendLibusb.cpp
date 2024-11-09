@@ -15,7 +15,7 @@ namespace nsyshid::backend::libusb
 		if (m_initReturnCode < 0)
 		{
 			m_ctx = nullptr;
-			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb: {}",
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb, return code: {}",
 							 m_initReturnCode);
 			return;
 		}
@@ -415,7 +415,7 @@ namespace nsyshid::backend::libusb
 			if (ret < 0)
 			{
 				cemuLog_log(LogType::Force,
-							"nsyshid::DeviceLibusb::open(): failed to get device descriptor: {}",
+							"nsyshid::DeviceLibusb::open(): failed to get device descriptor, return code: {}",
 							ret);
 				libusb_free_device_list(devices, 1);
 				return false;
