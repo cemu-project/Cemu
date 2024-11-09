@@ -103,7 +103,8 @@ LatteTextureView* LatteTextureMtl::CreateView(Latte::E_DIM dim, Latte::E_GX2SURF
 	return new LatteTextureViewMtl(m_mtlr, this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
 }
 
+// TODO: lazy allocation?
 void LatteTextureMtl::AllocateOnHost()
 {
-	cemuLog_log(LogType::Force, "not implemented");
+	// The texture is already allocated
 }
