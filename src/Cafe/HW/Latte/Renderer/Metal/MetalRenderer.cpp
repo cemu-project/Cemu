@@ -614,6 +614,7 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     memcpy(allocation.data, pixelData, compressedImageSize);
     //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
 
+    // TODO: specify blit options when copying to a depth stencil texture?
     // Copy the data from the temporary buffer to the texture
     blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
     //}
