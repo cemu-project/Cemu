@@ -2353,8 +2353,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 				src->add(", ");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
-				src->add("), ");
+				src->add("), uint(");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_FLOAT);
+				src->add(")");
 
 				src->addFmt(", {}", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[3], -1, -1, -1, tempBuffer0));
 			}
@@ -2396,8 +2397,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 			src->add(", ");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
-			src->add("), ");
+			src->add("), uint(");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_FLOAT);
+			src->add(")");
 		}
 		else if(texDim == Latte::E_DIM::DIM_3D)
 		{
