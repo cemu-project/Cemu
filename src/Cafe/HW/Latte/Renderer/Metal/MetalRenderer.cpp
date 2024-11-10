@@ -27,6 +27,8 @@
 #include "imgui/imgui_extension.h"
 #include "imgui/imgui_impl_metal.h"
 
+#define EVENT_VALUE_WRAP 4096
+
 extern bool hasValidFramebufferAttached;
 
 float supportBufferData[512 * 4];
@@ -47,6 +49,9 @@ MetalRenderer::MetalRenderer()
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
     CheckForPixelFormatSupport(m_pixelFormatSupport);
+
+    // Synchronization resources
+    m_event = m_device->newEvent();
 
     // Resources
     MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
@@ -160,6 +165,8 @@ MetalRenderer::~MetalRenderer()
         m_xfbRingBuffer->release();
 
     m_occlusionQuery.m_resultBuffer->release();
+
+    m_event->release();
 
     m_commandQueue->release();
     m_device->release();
@@ -1509,6 +1516,10 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
 		m_currentCommandBuffer = {mtlCommandBuffer};
 
+		// Wait for the previous command buffer
+		if (m_eventValue != -1)
+		    mtlCommandBuffer->encodeWait(m_event, m_eventValue);
+
 		m_recordedDrawcalls = 0;
 		m_commitTreshold = m_defaultCommitTreshlod;
 
@@ -1681,6 +1692,10 @@ void MetalRenderer::CommitCommandBuffer()
         //commandBuffer.m_commandBuffer->addCompletedHandler(^(MTL::CommandBuffer*) {
         //    m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer.m_commandBuffer);
         //});
+
+        // Signal event
+        m_eventValue = (m_eventValue + 1) % EVENT_VALUE_WRAP;
+        m_currentCommandBuffer.m_commandBuffer->encodeSignalEvent(m_event, m_eventValue);
 
         m_currentCommandBuffer.m_commandBuffer->commit();
         m_currentCommandBuffer.m_commandBuffer->release();

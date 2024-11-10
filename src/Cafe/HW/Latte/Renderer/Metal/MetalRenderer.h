@@ -6,6 +6,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
+#include <cstdint>
 
 struct MetalBufferAllocation
 {
@@ -458,6 +459,10 @@ private:
 
 	// Void vertex pipelines
 	class MetalVoidVertexPipeline* m_copyBufferToBufferPipeline;
+
+	// Synchronization resources
+	MTL::Event* m_event;
+	int32_t m_eventValue = -1;
 
 	// Resources
 	MTL::SamplerState* m_nearestSampler;
