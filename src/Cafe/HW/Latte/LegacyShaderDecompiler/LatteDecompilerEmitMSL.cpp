@@ -2240,6 +2240,8 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 
 	bool unnormalizationHandled = false;
 	bool useTexelCoordinates = false;
+	bool isRead = ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) ||
+    	    texOpcode == GPU7_TEX_INST_LD);
 
 	// handle illegal combinations
 	if (texOpcode == GPU7_TEX_INST_FETCH4 && (texDim == Latte::E_DIM::DIM_1D || texDim == Latte::E_DIM::DIM_1D_ARRAY))
@@ -2266,8 +2268,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	if (!emulateCompare)
 	{
 	    src->add(".");
-    	if ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) ||
-    	    texOpcode == GPU7_TEX_INST_LD)
+    	if (isRead)
     	{
     		if (hasOffset)
     			cemu_assert_unimplemented();
@@ -2353,9 +2354,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 				src->add(", ");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
-				src->add("), uint(");
+				src->add("), uint(rint(");
 				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_FLOAT);
-				src->add(")");
+				src->add("))");
 
 				src->addFmt(", {}", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[3], -1, -1, -1, tempBuffer0));
 			}
@@ -2397,9 +2398,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 			src->add(", ");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 1, LATTE_DECOMPILER_DTYPE_FLOAT);
-			src->add("), uint(");
+			src->add("), uint(rint(");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 2, LATTE_DECOMPILER_DTYPE_FLOAT);
-			src->add(")");
+			src->add("))");
 		}
 		else if(texDim == Latte::E_DIM::DIM_3D)
 		{
@@ -2443,7 +2444,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		// 1D textures don't support lod
 		if (texDim != Latte::E_DIM::DIM_1D && texDim != Latte::E_DIM::DIM_1D_ARRAY)
 		{
-    		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
+    		if (texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
     		{
     		    src->add(", ");
     			if (texOpcode == GPU7_TEX_INST_SAMPLE_LB)
@@ -2458,7 +2459,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
     				src->add(")");
     			}
     		}
-    		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
+    		else if (!isRead && !isGather/*texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ*/)
     		{
     			src->add(", level(0.0)");
     		}
