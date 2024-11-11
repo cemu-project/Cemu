@@ -112,10 +112,10 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		{
 			requireConsole();
 			std::string versionStr;
-#if EMULATOR_VERSION_MINOR == 0
-			versionStr = fmt::format("{}.{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_SUFFIX);
+#if EMULATOR_VERSION_PATCH == 0
+			versionStr = fmt::format("{}.{}{}", EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_SUFFIX);
 #else
-			versionStr = fmt::format("{}.{}-{}{}", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_SUFFIX);
+			versionStr = fmt::format("{}.{}-{}{}", EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH, EMULATOR_VERSION_SUFFIX);
 #endif
 			std::cout << versionStr << std::endl;
 			return false; // exit in main
@@ -199,7 +199,11 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		std::string errorMsg;
 		errorMsg.append("Error while trying to parse command line parameter:\n");
 		errorMsg.append(ex.what());
+#if BOOST_OS_WINDOWS
 		wxMessageBox(errorMsg, "Parameter error", wxICON_ERROR);
+#else
+		std::cout << errorMsg << std::endl;
+#endif
 		return false;
 	}
 	

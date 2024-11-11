@@ -427,7 +427,7 @@ namespace proc_ui
 		}
 		if(callbackType != ProcUICallbackId::AcquireForeground)
 			priority = -priority;
-		AddCallbackInternal(funcPtr, userParam, priority, 0, s_CallbackTables[stdx::to_underlying(callbackType)][coreIndex]);
+		AddCallbackInternal(funcPtr, userParam, 0, priority, s_CallbackTables[stdx::to_underlying(callbackType)][coreIndex]);
 	}
 
 	void ProcUIRegisterCallback(ProcUICallbackId callbackType, void* funcPtr, void* userParam, sint32 priority)
@@ -437,7 +437,7 @@ namespace proc_ui
 
 	void ProcUIRegisterBackgroundCallback(void* funcPtr, void* userParam, uint64 tickDelay)
 	{
-		AddCallbackInternal(funcPtr, userParam, 0, tickDelay, s_backgroundCallbackList);
+		AddCallbackInternal(funcPtr, userParam, tickDelay, 0, s_backgroundCallbackList);
 	}
 
 	void FreeCallbackChain(ProcUICallbackList& callbackList)

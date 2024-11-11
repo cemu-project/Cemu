@@ -826,7 +826,7 @@ void PipelineCompiler::InitDepthStencilState()
 
 	depthStencilState.front.reference = stencilRefFront;
 	depthStencilState.front.compareMask = stencilCompareMaskFront;
-	depthStencilState.front.writeMask = stencilWriteMaskBack;
+	depthStencilState.front.writeMask = stencilWriteMaskFront;
 	depthStencilState.front.compareOp = vkDepthCompareTable[(size_t)frontStencilFunc];
 	depthStencilState.front.depthFailOp = stencilOpTable[(size_t)frontStencilZFail];
 	depthStencilState.front.failOp = stencilOpTable[(size_t)frontStencilFail];

@@ -511,6 +511,8 @@ namespace iosu
 					return CallHandler_GetBlackList(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
 				case FPD_REQUEST_ID::GetFriendListEx:
 					return CallHandler_GetFriendListEx(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
+				case FPD_REQUEST_ID::UpdateCommentAsync:
+					return CallHandler_UpdateCommentAsync(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
 				case FPD_REQUEST_ID::UpdatePreferenceAsync:
 					return CallHandler_UpdatePreferenceAsync(fpdClient, vecIn, numVecIn, vecOut, numVecOut);
 				case FPD_REQUEST_ID::AddFriendRequestByPlayRecordAsync:
@@ -719,18 +721,23 @@ namespace iosu
 
 			nnResult CallHandler_GetMyComment(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
 			{
-				static constexpr uint32 MY_COMMENT_LENGTH = 0x12; // are comments utf16? Buffer length is 0x24
 				if(numVecIn != 0 || numVecOut != 1)
 					return FPResult_InvalidIPCParam;
-				if(vecOut->size != MY_COMMENT_LENGTH*sizeof(uint16be))
-				{
-					cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
-					return FPResult_InvalidIPCParam;
-				}
 				std::basic_string<uint16be> myComment;
-				myComment.resize(MY_COMMENT_LENGTH);
-				memcpy(vecOut->basePhys.GetPtr(), myComment.data(), MY_COMMENT_LENGTH*sizeof(uint16be));
-				return 0;
+				if(g_fpd.nexFriendSession)
+				{
+					if(vecOut->size != MY_COMMENT_LENGTH * sizeof(uint16be))
+					{
+						cemuLog_log(LogType::Force, "GetMyComment: Unexpected output size");
+						return FPResult_InvalidIPCParam;
+					}
+					nexComment myNexComment;
+					g_fpd.nexFriendSession->getMyComment(myNexComment);
+					myComment = StringHelpers::FromUtf8(myNexComment.commentString);
+				}
+				myComment.insert(0, 1, '\0');
+				memcpy(vecOut->basePhys.GetPtr(), myComment.c_str(), MY_COMMENT_LENGTH * sizeof(uint16be));
+				return FPResult_Ok;
 			}
 
 			nnResult CallHandler_GetMyPreference(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
@@ -1138,6 +1145,36 @@ namespace iosu
 					cemu_assert_debug(basicInfo.size() == count);
 					for(uint32 i = 0; i < count; i++)
 						NexBasicInfoToBasicInfo(basicInfo[i], basicInfoList[i]);
+					ServiceCallAsyncRespond(cmd, FPResult_Ok);
+				});
+				return FPResult_Ok;
+			}
+
+			nnResult CallHandler_UpdateCommentAsync(FPDClient* fpdClient, IPCIoctlVector* vecIn, uint32 numVecIn, IPCIoctlVector* vecOut, uint32 numVecOut)
+			{
+				std::unique_lock _l(g_fpd.mtxFriendSession);
+				if (numVecIn != 1 || numVecOut != 0)
+					return FPResult_InvalidIPCParam;
+				if (!g_fpd.nexFriendSession)
+					return FPResult_RequestFailed;
+				uint32 messageLength = vecIn[0].size / sizeof(uint16be);
+				DeclareInputPtr(newComment, uint16be, messageLength, 0);
+				if (messageLength == 0 || newComment[messageLength-1] != 0)
+				{
+					cemuLog_log(LogType::Force, "UpdateCommentAsync: Message must contain at least a null-termination character");
+					return FPResult_InvalidIPCParam;
+				}
+				IPCCommandBody* cmd = ServiceCallDelayCurrentResponse();
+
+				auto utf8_comment = StringHelpers::ToUtf8(newComment, messageLength);
+				nexComment temporaryComment;
+				temporaryComment.ukn0 = 0;
+				temporaryComment.commentString = utf8_comment;
+				temporaryComment.ukn1 = 0;
+
+				g_fpd.nexFriendSession->updateCommentAsync(temporaryComment, [cmd](NexFriends::RpcErrorCode result) {
+					if (result != NexFriends::ERR_NONE)
+						return ServiceCallAsyncRespond(cmd, FPResult_RequestFailed);
 					ServiceCallAsyncRespond(cmd, FPResult_Ok);
 				});
 				return FPResult_Ok;

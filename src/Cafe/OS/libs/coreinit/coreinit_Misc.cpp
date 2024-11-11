@@ -7,14 +7,9 @@
 
 namespace coreinit
 {
-
-	/* coreinit logging and string format */
-
-	sint32 ppcSprintf(const char* formatStr, char* strOut, sint32 maxLength, PPCInterpreter_t* hCPU, sint32 initialParamIndex)
+	sint32 ppc_vprintf(const char* formatStr, char* strOut, sint32 maxLength, ppc_va_list* vargs)
 	{
 		char tempStr[4096];
-		sint32 integerParamIndex = initialParamIndex;
-		sint32 floatParamIndex = 0;
 		sint32 writeIndex = 0;
 		while (*formatStr)
 		{
@@ -101,8 +96,7 @@ namespace coreinit
 						tempFormat[(formatStr - formatStart)] = '\0';
 					else
 						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, PPCInterpreter_getCallParamU32(hCPU, integerParamIndex));
-					integerParamIndex++;
+					sint32 tempLen = sprintf(tempStr, tempFormat, (uint32)*(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32));
 					for (sint32 i = 0; i < tempLen; i++)
 					{
 						if (writeIndex >= maxLength)
@@ -120,13 +114,12 @@ namespace coreinit
 						tempFormat[(formatStr - formatStart)] = '\0';
 					else
 						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					MPTR strOffset = PPCInterpreter_getCallParamU32(hCPU, integerParamIndex);
+					MPTR strOffset = *(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
 					sint32 tempLen = 0;
 					if (strOffset == MPTR_NULL)
 						tempLen = sprintf(tempStr, "NULL");
 					else
 						tempLen = sprintf(tempStr, tempFormat, memory_getPointerFromVirtualOffset(strOffset));
-					integerParamIndex++;
 					for (sint32 i = 0; i < tempLen; i++)
 					{
 						if (writeIndex >= maxLength)
@@ -135,25 +128,6 @@ namespace coreinit
 						writeIndex++;
 					}
 					strOut[std::min(maxLength - 1, writeIndex)] = '\0';
-				}
-				else if (*formatStr == 'f')
-				{
-					// float
-					formatStr++;
-					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
-					if ((formatStr - formatStart) < sizeof(tempFormat))
-						tempFormat[(formatStr - formatStart)] = '\0';
-					else
-						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, (float)hCPU->fpr[1 + floatParamIndex].fp0);
-					floatParamIndex++;
-					for (sint32 i = 0; i < tempLen; i++)
-					{
-						if (writeIndex >= maxLength)
-							break;
-						strOut[writeIndex] = tempStr[i];
-						writeIndex++;
-					}
 				}
 				else if (*formatStr == 'c')
 				{
@@ -164,8 +138,24 @@ namespace coreinit
 						tempFormat[(formatStr - formatStart)] = '\0';
 					else
 						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, PPCInterpreter_getCallParamU32(hCPU, integerParamIndex));
-					integerParamIndex++;
+					sint32 tempLen = sprintf(tempStr, tempFormat, (uint32)*(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32));
+					for (sint32 i = 0; i < tempLen; i++)
+					{
+						if (writeIndex >= maxLength)
+							break;
+						strOut[writeIndex] = tempStr[i];
+						writeIndex++;
+					}
+				}
+				else if (*formatStr == 'f' || *formatStr == 'g' || *formatStr == 'G')
+				{
+					formatStr++;
+					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
+					if ((formatStr - formatStart) < sizeof(tempFormat))
+						tempFormat[(formatStr - formatStart)] = '\0';
+					else
+						tempFormat[sizeof(tempFormat) - 1] = '\0';
+					sint32 tempLen = sprintf(tempStr, tempFormat, (double)*(betype<double>*)_ppc_va_arg(vargs, ppc_va_type::FLOAT_OR_DOUBLE));
 					for (sint32 i = 0; i < tempLen; i++)
 					{
 						if (writeIndex >= maxLength)
@@ -183,8 +173,7 @@ namespace coreinit
 						tempFormat[(formatStr - formatStart)] = '\0';
 					else
 						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, (double)hCPU->fpr[1 + floatParamIndex].fp0);
-					floatParamIndex++;
+					sint32 tempLen = sprintf(tempStr, tempFormat, (double)*(betype<double>*)_ppc_va_arg(vargs, ppc_va_type::FLOAT_OR_DOUBLE));
 					for (sint32 i = 0; i < tempLen; i++)
 					{
 						if (writeIndex >= maxLength)
@@ -196,16 +185,13 @@ namespace coreinit
 				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && (formatStr[2] == 'x' || formatStr[2] == 'X')))
 				{
 					formatStr += 3;
-					// double (64bit)
+					// 64bit int
 					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
 					if ((formatStr - formatStart) < sizeof(tempFormat))
 						tempFormat[(formatStr - formatStart)] = '\0';
 					else
 						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					if (integerParamIndex & 1)
-						integerParamIndex++;
-					sint32 tempLen = sprintf(tempStr, tempFormat, PPCInterpreter_getCallParamU64(hCPU, integerParamIndex));
-					integerParamIndex += 2;
+					sint32 tempLen = sprintf(tempStr, tempFormat, (uint64)*(uint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64));
 					for (sint32 i = 0; i < tempLen; i++)
 					{
 						if (writeIndex >= maxLength)
@@ -223,10 +209,7 @@ namespace coreinit
 						tempFormat[(formatStr - formatStart)] = '\0';
 					else
 						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					if (integerParamIndex & 1)
-						integerParamIndex++;
-					sint32 tempLen = sprintf(tempStr, tempFormat, PPCInterpreter_getCallParamU64(hCPU, integerParamIndex));
-					integerParamIndex += 2;
+					sint32 tempLen = sprintf(tempStr, tempFormat, (sint64)*(sint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64));
 					for (sint32 i = 0; i < tempLen; i++)
 					{
 						if (writeIndex >= maxLength)
@@ -255,9 +238,12 @@ namespace coreinit
 		return std::min(writeIndex, maxLength - 1);
 	}
 
+	/* coreinit logging and string format */
+
 	sint32 __os_snprintf(char* outputStr, sint32 maxLength, const char* formatStr)
 	{
-		sint32 r = ppcSprintf(formatStr, outputStr, maxLength, PPCInterpreter_getCurrentInstance(), 3);
+		ppc_define_va_list(3, 0);
+		sint32 r = ppc_vprintf(formatStr, outputStr, maxLength, &vargs);
 		return r;
 	}
 
@@ -322,32 +308,40 @@ namespace coreinit
 		}
 	}
 
-	void OSReport(const char* format)
+	void COSVReport(COSReportModule module, COSReportLevel level, const char* format, ppc_va_list* vargs)
 	{
-		char buffer[1024 * 2];
-		sint32 len = ppcSprintf(format, buffer, sizeof(buffer), PPCInterpreter_getCurrentInstance(), 1);
-		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len);
+		char tmpBuffer[1024];
+		sint32 len = ppc_vprintf(format, tmpBuffer, sizeof(tmpBuffer), vargs);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, tmpBuffer, len);
 	}
 
-	void OSVReport(const char* format, MPTR vaArgs)
+	void OSReport(const char* format)
 	{
-		cemu_assert_unimplemented();
+		ppc_define_va_list(1, 0);
+		COSVReport(COSReportModule::coreinit, COSReportLevel::Info, format, &vargs);
+	}
+
+	void OSVReport(const char* format, ppc_va_list* vargs)
+	{
+		COSVReport(COSReportModule::coreinit, COSReportLevel::Info, format, vargs);
 	}
 
 	void COSWarn(int moduleId, const char* format)
 	{
-		char buffer[1024 * 2];
-		int prefixLen = sprintf(buffer, "[COSWarn-%d] ", moduleId);
-		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, PPCInterpreter_getCurrentInstance(), 2);
-		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
+		ppc_define_va_list(2, 0);
+		char tmpBuffer[1024];
+		int prefixLen = sprintf(tmpBuffer, "[COSWarn-%d] ", moduleId);
+		sint32 len = ppc_vprintf(format, tmpBuffer + prefixLen, sizeof(tmpBuffer) - prefixLen, &vargs);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, tmpBuffer, len + prefixLen);
 	}
 
 	void OSLogPrintf(int ukn1, int ukn2, int ukn3, const char* format)
 	{
-		char buffer[1024 * 2];
-		int prefixLen = sprintf(buffer, "[OSLogPrintf-%d-%d-%d] ", ukn1, ukn2, ukn3);
-		sint32 len = ppcSprintf(format, buffer + prefixLen, sizeof(buffer) - prefixLen, PPCInterpreter_getCurrentInstance(), 4);
-		WriteCafeConsole(CafeLogType::OSCONSOLE, buffer, len + prefixLen);
+		ppc_define_va_list(4, 0);
+		char tmpBuffer[1024];
+		int prefixLen = sprintf(tmpBuffer, "[OSLogPrintf-%d-%d-%d] ", ukn1, ukn2, ukn3);
+		sint32 len = ppc_vprintf(format, tmpBuffer + prefixLen, sizeof(tmpBuffer) - prefixLen, &vargs);
+		WriteCafeConsole(CafeLogType::OSCONSOLE, tmpBuffer, len + prefixLen);
 	}
 
 	void OSConsoleWrite(const char* strPtr, sint32 length)
@@ -562,9 +556,11 @@ namespace coreinit
 		s_transitionToForeground = false;
 
 		cafeExportRegister("coreinit", __os_snprintf, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", COSVReport, LogType::Placeholder);
+		cafeExportRegister("coreinit", COSWarn, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSReport, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSVReport, LogType::Placeholder);
-		cafeExportRegister("coreinit", COSWarn, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSLogPrintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSConsoleWrite, LogType::Placeholder);
 

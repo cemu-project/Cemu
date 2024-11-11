@@ -194,7 +194,7 @@ ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
 template <>
 struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const PrecompiledShaderOption c, FormatContext &ctx) {
+	auto format(const PrecompiledShaderOption c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -209,7 +209,7 @@ struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
 template <>
 struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const AccurateShaderMulOption c, FormatContext &ctx) {
+	auto format(const AccurateShaderMulOption c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -223,7 +223,7 @@ struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 template <>
 struct fmt::formatter<CPUMode> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const CPUMode c, FormatContext &ctx) {
+	auto format(const CPUMode c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -240,7 +240,7 @@ struct fmt::formatter<CPUMode> : formatter<string_view> {
 template <>
 struct fmt::formatter<CPUModeLegacy> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const CPUModeLegacy c, FormatContext &ctx) {
+	auto format(const CPUModeLegacy c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
@@ -257,7 +257,7 @@ struct fmt::formatter<CPUModeLegacy> : formatter<string_view> {
 template <>
 struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const CafeConsoleRegion v, FormatContext &ctx) {
+	auto format(const CafeConsoleRegion v, FormatContext &ctx) const {
 		string_view name;
 		switch (v)
 		{
@@ -413,7 +413,8 @@ struct CemuConfig
 	Vector2i pad_size{ -1,-1 };
 	ConfigValue<bool> pad_maximized;
 
-	ConfigValue<bool> check_update{false};
+	ConfigValue<bool> check_update{true};
+	ConfigValue<bool> receive_untested_updates{false};
 	ConfigValue<bool> save_screenshot{true};
 
 	ConfigValue<bool> did_show_vulkan_warning{false};
@@ -441,7 +442,7 @@ struct CemuConfig
 	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = on depending on render backend
 	ConfigValue<bool> gx2drawdone_sync {true};
 	ConfigValue<bool> render_upside_down{ false };
-	ConfigValue<bool> async_compile{ false };
+	ConfigValue<bool> async_compile{ true };
 
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
@@ -520,6 +521,7 @@ struct CemuConfig
 	{
 		ConfigValue<bool> emulate_skylander_portal{false};
 		ConfigValue<bool> emulate_infinity_base{false};
+		ConfigValue<bool> emulate_dimensions_toypad{false};
 	}emulated_usb_devices{};
 
 	private:

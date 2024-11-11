@@ -2,20 +2,39 @@ cmake_minimum_required(VERSION 3.21.1)
 
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
-set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
-if (EXPERIMENTAL_VERSION)
-	add_definitions(-DEMULATOR_VERSION_MINOR=${EXPERIMENTAL_VERSION})
-	execute_process(
-			COMMAND git log --format=%h -1
-			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-			OUTPUT_VARIABLE GIT_HASH
-			OUTPUT_STRIP_TRAILING_WHITESPACE
-	)
-	add_definitions(-DEMULATOR_HASH=${GIT_HASH})
-endif()
+# used by CI script to set version:
+set(EMULATOR_VERSION_MAJOR "0" CACHE STRING "")
+set(EMULATOR_VERSION_MINOR "0" CACHE STRING "")
+set(EMULATOR_VERSION_PATCH "0" CACHE STRING "")
+
+execute_process(
+		COMMAND git log --format=%h -1
+		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+		OUTPUT_VARIABLE GIT_HASH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+add_definitions(-DEMULATOR_HASH=${GIT_HASH})
 
 if (ENABLE_VCPKG)
+	# check if vcpkg is shallow and unshallow it if necessary
+	execute_process(
+	COMMAND git rev-parse --is-shallow-repository
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/vcpkg
+	OUTPUT_VARIABLE is_vcpkg_shallow
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+	
+	if(is_vcpkg_shallow STREQUAL "true")
+		message(STATUS "vcpkg is shallow. Unshallowing it now...")
+		execute_process(
+			COMMAND git fetch --unshallow
+			WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/dependencies/vcpkg"
+			RESULT_VARIABLE result
+			OUTPUT_VARIABLE output
+		)
+	endif()
+
 	if(UNIX AND NOT APPLE)
 		set(VCPKG_OVERLAY_PORTS "${CMAKE_CURRENT_LIST_DIR}/dependencies/vcpkg_overlay_ports_linux")
 	elseif(APPLE)
@@ -44,6 +63,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions($<$<CONFIG:Debug>:CEMU_DEBUG_ASSERT>) # if build type is debug, set CEMU_DEBUG_ASSERT
 
+add_definitions(-DEMULATOR_VERSION_MAJOR=${EMULATOR_VERSION_MAJOR})
+add_definitions(-DEMULATOR_VERSION_MINOR=${EMULATOR_VERSION_MINOR})
+add_definitions(-DEMULATOR_VERSION_PATCH=${EMULATOR_VERSION_PATCH})
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # enable link time optimization for release builds
@@ -69,6 +92,7 @@ endif()
 
 if (APPLE)
     enable_language(OBJC OBJCXX)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -198,7 +222,7 @@ if (ENABLE_CUBEB)
 		option(BUILD_TOOLS "" OFF)
 		option(BUNDLE_SPEEX "" OFF)
 		set(USE_WINMM OFF CACHE BOOL "")
-		add_subdirectory("dependencies/cubeb" EXCLUDE_FROM_ALL)
+		add_subdirectory("dependencies/cubeb" EXCLUDE_FROM_ALL SYSTEM)
 		set_property(TARGET cubeb PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 		add_library(cubeb::cubeb ALIAS cubeb)
 	endif()

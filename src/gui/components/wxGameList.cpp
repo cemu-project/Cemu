@@ -1392,7 +1392,6 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 	const auto outputPath = shortcutDialog.GetPath();
 
 	std::optional<fs::path> icon_path = std::nullopt;
-	[&]()
 	{
 		int iconIdx;
 		int smallIconIdx;
@@ -1402,15 +1401,13 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 			return;
 		}
 		const auto icon = m_image_list->GetIcon(iconIdx);
-		PWSTR localAppData;
-		const auto hres = SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, NULL, &localAppData);
-		wxBitmap bitmap{};
-		auto folder = fs::path(localAppData) / "Cemu" / "icons";
-		if (!SUCCEEDED(hres) || (!fs::exists(folder) && !fs::create_directories(folder)))
+		const auto folder = ActiveSettings::GetUserDataPath("icons");
+		if (!fs::exists(folder) && !fs::create_directories(folder))
 		{
 			cemuLog_log(LogType::Force, "Failed to create icon directory");
 			return;
 		}
+		wxBitmap bitmap{};
 		if (!bitmap.CopyFromIcon(icon))
 		{
 			cemuLog_log(LogType::Force, "Failed to copy icon");
@@ -1426,7 +1423,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 			icon_path = std::nullopt;
 			cemuLog_log(LogType::Force, "Icon failed to save");
 		}
-	}();
+	}
 
 	IShellLinkW* shellLink;
 	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));

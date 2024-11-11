@@ -116,9 +116,11 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 #elif BOOST_OS_MACOS
 	urlStr.append("&platform=macos_bundle_x86");
 #elif
-
 #error Name for current platform is missing
 #endif
+	const auto& config = GetConfig();
+	if(config.receive_untested_updates)
+		urlStr.append("&allowNewUpdates=1");
 
 	curl_easy_setopt(curl, CURLOPT_URL, urlStr.c_str());
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);

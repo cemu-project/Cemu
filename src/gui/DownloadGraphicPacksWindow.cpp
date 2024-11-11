@@ -115,7 +115,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	curlDownloadFileState_t tempDownloadState;
 	std::string queryUrl("https://cemu.info/api2/query_graphicpack_url.php?");
 	char temp[64];
-	sprintf(temp, "version=%d.%d.%d", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	sprintf(temp, "version=%d.%d.%d", EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH);
 	queryUrl.append(temp);
 	queryUrl.append("&");
 	sprintf(temp, "t=%u", (uint32)std::chrono::seconds(std::time(NULL)).count()); // add a dynamic part to the url to bypass overly aggressive caching (like some proxies do)

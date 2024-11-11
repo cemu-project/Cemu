@@ -117,7 +117,13 @@ add_library (ih264d
 "decoder/ivd.h"
 )
 
-if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "amd64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "AMD64")
+if (CMAKE_OSX_ARCHITECTURES)
+set(IH264D_ARCHITECTURE ${CMAKE_OSX_ARCHITECTURES})
+else()
+set(IH264D_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
+if (IH264D_ARCHITECTURE STREQUAL "x86_64" OR IH264D_ARCHITECTURE STREQUAL "amd64" OR IH264D_ARCHITECTURE STREQUAL "AMD64")
 set(LIBAVCDEC_X86_INCLUDES "common/x86" "decoder/x86")
 include_directories("common/" "decoder/" ${LIBAVCDEC_X86_INCLUDES})
 target_sources(ih264d PRIVATE
@@ -140,7 +146,7 @@ target_sources(ih264d PRIVATE
 "decoder/x86/ih264d_function_selector_sse42.c"
 "decoder/x86/ih264d_function_selector_ssse3.c"
 )
-elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+elseif(IH264D_ARCHITECTURE STREQUAL "aarch64" OR IH264D_ARCHITECTURE STREQUAL "arm64")
 enable_language( C CXX ASM )
 set(LIBAVCDEC_ARM_INCLUDES "common/armv8" "decoder/arm")
 include_directories("common/" "decoder/" ${LIBAVCDEC_ARM_INCLUDES})
@@ -178,7 +184,7 @@ target_sources(ih264d PRIVATE
 )
 target_compile_options(ih264d PRIVATE -DARMV8)
 else()
-message(FATAL_ERROR "ih264d unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+message(FATAL_ERROR "ih264d unknown architecture: ${IH264D_ARCHITECTURE}")
 endif()
 
 if(MSVC)

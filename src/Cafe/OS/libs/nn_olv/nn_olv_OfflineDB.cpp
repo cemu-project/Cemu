@@ -112,7 +112,7 @@ namespace nn
 
 		nnResult _Async_OfflineDB_DownloadPostDataListParam_DownloadPostDataList(coreinit::OSEvent* event, DownloadedTopicData* downloadedTopicData, DownloadedPostData* downloadedPostData, uint32be* postCountOut, uint32 maxCount, DownloadPostDataListParam* param)
 		{
-			scope_exit _se([&](){coreinit::OSSignalEvent(event);});
+			stdx::scope_exit _se([&](){coreinit::OSSignalEvent(event);});
 
 			uint64 titleId = CafeSystem::GetForegroundTitleId();
 
@@ -184,7 +184,7 @@ namespace nn
 
 		nnResult _Async_OfflineDB_DownloadPostDataListParam_DownloadExternalImageData(coreinit::OSEvent* event, DownloadedDataBase* _this, void* imageDataOut, uint32be* imageSizeOut, uint32 maxSize)
 		{
-			scope_exit _se([&](){coreinit::OSSignalEvent(event);});
+			stdx::scope_exit _se([&](){coreinit::OSSignalEvent(event);});
 
 			if (!_this->TestFlags(_this, DownloadedDataBase::FLAGS::HAS_EXTERNAL_IMAGE))
 				return OLV_RESULT_MISSING_DATA;
