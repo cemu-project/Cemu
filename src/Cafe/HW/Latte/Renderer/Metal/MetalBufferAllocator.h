@@ -144,6 +144,8 @@ public:
 
 protected:
     class MetalRenderer* m_mtlr;
+
+    // TODO: make these template arguments
     bool m_isCPUAccessible;
     MTL::ResourceOptions m_options;
 
@@ -153,8 +155,7 @@ protected:
     {
         auto& buffer = m_buffers[bufferIndex];
         buffer.m_freeRanges.clear();
-        buffer.m_freeRanges.reserve(1);
-        buffer.m_freeRanges.push_back({0, m_buffers[bufferIndex].m_buffer->length()});
+        buffer.m_freeRanges.push_back({0, buffer.m_buffer->length()});
     }
 };
 
@@ -191,7 +192,6 @@ public:
 
         buffer.m_data.m_lock--;
 
-        // TODO: is this really necessary?
         // Release the buffer if it wasn't released due to the lock
         if (!buffer.m_data.IsLocked() && buffer.m_data.m_commandBufferCount == 0)
             FreeBuffer(bufferIndex);
@@ -206,7 +206,7 @@ public:
         {
             auto& buffer = m_buffers[i];
 
-            if (buffer.m_data.m_lock != 0)
+            if (buffer.m_data.IsLocked())
             {
                 if (buffer.m_data.m_commandBufferCount == 0)
                     FreeBuffer(i);
@@ -272,6 +272,7 @@ public:
                     auto& buffer = m_buffers[bufferIndex];
                     buffer.m_data.m_commandBufferCount--;
 
+                    // TODO: is this neccessary?
                     if (!buffer.m_data.IsLocked() && buffer.m_data.m_commandBufferCount == 0)
                         FreeBuffer(bufferIndex);
                 }
