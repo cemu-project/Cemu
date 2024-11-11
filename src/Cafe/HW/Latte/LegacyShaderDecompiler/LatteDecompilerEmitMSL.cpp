@@ -4308,27 +4308,12 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 				continue;
 			}
 
-			// TODO: is the if statement even needed?
-			if (usesGeometryShader)
-			{
-				// import from geometry shader
-				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{} = bitCast<int>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
-				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-					src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId & 0x7F);
-				else
-					cemu_assert_unimplemented();
-			}
+			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
+				src->addFmt("{} = bitCast<int>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
+			else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
+				src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
 			else
-			{
-				// import from vertex shader
-				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{} = bitCast<int>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
-				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-					src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
-				else
-					cemu_assert_unimplemented();
-			}
+				cemu_assert_unimplemented();
 		}
 		// front facing attribute
 		if (frontFace_enabled)
