@@ -549,8 +549,10 @@ namespace LatteDecompiler
 		}
 		if (g_renderer->GetType() == RendererAPI::Metal)
 		{
+            bool isRectVertexShader = (static_cast<LattePrimitiveMode>(decompilerContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
+
 		    // TODO: also check for rect primitive
-		    if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader)
+		    if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && (decompilerContext->options->usesGeometryShader || isRectVertexShader))
 				decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance
 		}
 	}
