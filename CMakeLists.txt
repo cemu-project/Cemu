@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.21.1)
 
-include(CMakeDependentOption)
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
-cmake_dependent_option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" ON "APPLE" OFF)
+option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
 set(EXPERIMENTAL_VERSION "" CACHE STRING "") # used by CI script to set experimental version
 
 if (EXPERIMENTAL_VERSION)

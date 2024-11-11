@@ -40,9 +40,8 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
 
 	endif()
 
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)|(arm64)(ARM64)")
+elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
 	add_library(CemuAsm stub.cpp)
 else()
 	message(STATUS "CemuAsm - Unsupported arch: ${CMAKE_SYSTEM_PROCESSOR}")
-	add_library(CemuAsm stub.cpp)
 endif()
