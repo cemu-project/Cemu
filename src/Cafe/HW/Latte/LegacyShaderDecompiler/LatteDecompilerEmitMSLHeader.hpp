@@ -5,7 +5,7 @@
 
 namespace LatteDecompiler
 {
-	static void _emitUniformVariables(LatteDecompilerShaderContext* decompilerContext)
+	static void _emitUniformVariables(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
 	{
 	    auto src = decompilerContext->shaderSource;
 
@@ -85,7 +85,11 @@ namespace LatteDecompiler
 			uniformCurrentOffset += 8;
 		}
 		// define verticesPerInstance + streamoutBufferBaseX
-		if (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry)
+		if ((shader->shaderType == LatteConst::ShaderType::Vertex &&
+		    (decompilerContext->options->usesGeometryShader || isRectVertexShader)) ||
+	        (decompilerContext->analyzer.useSSBOForStreamout &&
+			(shader->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
+			(shader->shaderType == LatteConst::ShaderType::Geometry)))
 		{
 			src->add("int verticesPerInstance;" _CRLF);
 			uniformOffsets.offset_verticesPerInstance = uniformCurrentOffset;
@@ -392,7 +396,7 @@ namespace LatteDecompiler
 		if(dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// start of shader inputs/outputs, predetermined by Cemu. Do not touch" _CRLF);
 		// uniform variables
-		_emitUniformVariables(decompilerContext);
+		_emitUniformVariables(decompilerContext, isRectVertexShader);
 		// uniform buffers
 		_emitUniformBuffers(decompilerContext);
 		// inputs and outputs
