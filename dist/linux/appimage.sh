@@ -6,8 +6,8 @@ fi
 
 curl -sSfLO "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage"
 chmod a+x linuxdeploy*.AppImage
-curl -sSfL https://github.com"$(curl https://github.com/probonopd/go-appimage/releases/expanded_assets/continuous | grep "mkappimage-.*-x86_64.AppImage" | head -n 1 | cut -d '"' -f 2)" -o mkappimage.AppImage
-chmod a+x mkappimage.AppImage
+curl -sSfL "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage" -o appimagetool
+chmod a+x appimagetool
 curl -sSfLO "https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gtk/master/linuxdeploy-plugin-gtk.sh"
 chmod a+x linuxdeploy-plugin-gtk.sh
 curl -sSfLO "https://github.com/darealshinji/linuxdeploy-plugin-checkrt/releases/download/continuous/linuxdeploy-plugin-checkrt.sh"
@@ -34,9 +34,10 @@ chmod +x AppDir/usr/bin/Cemu
 
 cp /usr/lib/x86_64-linux-gnu/{libsepol.so.1,libffi.so.7,libpcre.so.3,libGLU.so.1,libthai.so.0} AppDir/usr/lib
 
-export UPD_INFO="gh-releases-zsync|cemu-project|Cemu|ci|Cemu.AppImage.zsync"
+export UPD_INFO="gh-releases-zsync|$GITHUB_REPOSITORY_OWNER|Cemu|latest|Cemu-*x86_64.AppImage.zsync"
+export APPIMAGE_EXTRACT_AND_RUN=1
 export NO_STRIP=1
-./linuxdeploy-x86_64.AppImage --appimage-extract-and-run \
+./linuxdeploy-x86_64.AppImage \
   --appdir="${GITHUB_WORKSPACE}"/AppDir/ \
   -d "${GITHUB_WORKSPACE}"/AppDir/info.cemu.Cemu.desktop \
   -i "${GITHUB_WORKSPACE}"/AppDir/info.cemu.Cemu.png \
@@ -51,7 +52,8 @@ echo "Cemu Version Cemu-${GITVERSION}"
 
 rm AppDir/usr/lib/libwayland-client.so.0
 echo -e "export LC_ALL=C\nexport FONTCONFIG_PATH=/etc/fonts" >> AppDir/apprun-hooks/linuxdeploy-plugin-gtk.sh
-VERSION="${GITVERSION}" ./mkappimage.AppImage --appimage-extract-and-run "${GITHUB_WORKSPACE}"/AppDir
+./appimagetool --comp zstd --mksquashfs-opt -Xcompression-level --mksquashfs-opt 20 -u "${UPD_INFO}" \
+	"${GITHUB_WORKSPACE}"/AppDir Cemu-"${GITVERSION}"-x86_64.AppImage
 
 mkdir -p "${GITHUB_WORKSPACE}"/artifacts/
-mv Cemu-"${GITVERSION}"-x86_64.AppImage "${GITHUB_WORKSPACE}"/artifacts/
+mv Cemu-"${GITVERSION}"-x86_64.AppImage* "${GITHUB_WORKSPACE}"/artifacts/
