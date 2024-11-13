@@ -25,6 +25,7 @@ struct VkSupportedFormatInfo_t
 struct VkDescriptorSetInfo
 {
 	VKRObjectDescriptorSet* m_vkObjDescriptorSet{};
+	std::vector<VKRObjectSampler*> m_vkObjSamplers{};
 
 	~VkDescriptorSetInfo();
 
@@ -137,8 +138,8 @@ class VulkanRenderer : public Renderer
 public:
 
 	// memory management
-	VKRMemoryManager* memoryManager{};
-	VKRMemoryManager* GetMemoryManager() const { return memoryManager; };
+	std::unique_ptr<VKRMemoryManager> memoryManager;
+	const std::unique_ptr<VKRMemoryManager>& GetMemoryManager() const { return memoryManager; };
 
 	VkSupportedFormatInfo_t m_supportedFormatInfo;
 
@@ -582,6 +583,8 @@ private:
 	std::shared_mutex m_pipeline_cache_save_mutex;
 	std::thread m_pipeline_cache_save_thread;
 	VkPipelineCache m_pipeline_cache{ nullptr };
+	std::unordered_map<uint64, VkPipeline> m_backbufferBlitPipelineCache;
+	std::unordered_map<uint64, VkDescriptorSet> m_backbufferBlitDescriptorSetCache;
 	VkPipelineLayout m_pipelineLayout{nullptr};
 	VkCommandPool m_commandPool{ nullptr };
 	
@@ -859,7 +862,7 @@ private:
 		memBarrier.pNext = nullptr;
 
 		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
 		memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 		memBarrier.dstAccessMask = 0;

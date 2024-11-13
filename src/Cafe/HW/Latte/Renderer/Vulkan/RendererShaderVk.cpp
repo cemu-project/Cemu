@@ -211,6 +211,9 @@ RendererShaderVk::~RendererShaderVk()
 {
 	while (!list_pipelineInfo.empty())
 		delete list_pipelineInfo[0];
+
+	VkDevice vkDev = VulkanRenderer::GetInstance()->GetLogicalDevice();
+	vkDestroyShaderModule(vkDev, m_shader_module, nullptr);
 }
 
 void RendererShaderVk::Init()

@@ -727,7 +727,6 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 
 		VkSamplerCustomBorderColorCreateInfoEXT samplerCustomBorderColor{};
 
-		VkSampler sampler;
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -900,9 +899,12 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			}
 		}
 
-		if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
+		auto vkObjSampler = dsInfo->m_vkObjSamplers.emplace_back(new VKRObjectSampler);
+		dsInfo->m_vkObjDescriptorSet->addRef(vkObjSampler);
+
+		if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &vkObjSampler->sampler) != VK_SUCCESS)
 			UnrecoverableError("Failed to create texture sampler");
-		info.sampler = sampler;
+		info.sampler = vkObjSampler->sampler;
 		textureArray.emplace_back(info);
 	}
 
@@ -1163,28 +1165,19 @@ void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkD
 	const auto geometryShader = LatteSHRC_GetActiveGeometryShader();
 	const auto pixelShader = LatteSHRC_GetActivePixelShader();
 
-
-	if (vertexShader)
-	{
-		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, vertexShader);
+	auto prepareShaderDescriptors = [this, &pipeline_info](LatteDecompilerShader* shader) -> VkDescriptorSetInfo* {
+		if (!shader)
+			return nullptr;
+		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, shader);
 		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		vertexDS = descriptorSetInfo;
-	}
+		for (auto& sampler : descriptorSetInfo->m_vkObjSamplers)
+			sampler->flagForCurrentCommandBuffer();
+		return descriptorSetInfo;
+	};
 
-	if (pixelShader)
-	{
-		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, pixelShader);
-		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		pixelDS = descriptorSetInfo;
-
-	}
-
-	if (geometryShader)
-	{
-		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, geometryShader);
-		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		geometryDS = descriptorSetInfo;
-	}
+	vertexDS = prepareShaderDescriptors(vertexShader);
+	pixelDS = prepareShaderDescriptors(pixelShader);
+	geometryDS = prepareShaderDescriptors(geometryShader);
 }
 
 void VulkanRenderer::draw_updateVkBlendConstants()
