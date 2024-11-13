@@ -1,4 +1,4 @@
-name: Deploy experimental release
+name: Deploy release
 on: 
   workflow_dispatch:
     inputs:
@@ -54,7 +54,7 @@ jobs:
       next_version_major: ${{ needs.calculate-version.outputs.next_version_major }}
       next_version_minor: ${{ needs.calculate-version.outputs.next_version_minor }}
   deploy:
-    name: Deploy experimental release
+    name: Deploy release
     runs-on: ubuntu-22.04
     needs: [call-release-build, calculate-version]
     steps:
