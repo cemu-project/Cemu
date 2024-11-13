@@ -38,7 +38,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
 	feral_gamemode = parser.get("feral_gamemode", false);
 	check_update = parser.get("check_update", check_update);
-	receive_untested_updates = parser.get("receive_untested_updates", check_update);
+	receive_untested_updates = parser.get("receive_untested_updates", receive_untested_updates);
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
