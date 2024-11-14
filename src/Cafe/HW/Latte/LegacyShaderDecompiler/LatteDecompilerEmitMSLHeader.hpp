@@ -366,7 +366,7 @@ namespace LatteDecompiler
                 src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 3" _CRLF);
                 break;
             default:
-                cemu_assert_suspicious();
+                cemuLog_log(LogType::Force, "Unknown vertex out primitive type {}", vsOutPrimType);
                 break;
             }
             if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -386,7 +386,7 @@ namespace LatteDecompiler
                    	src->add("#define GET_PRIMITIVE_COUNT(vertexCount) (vertexCount - 2)" _CRLF);
                     break;
                 default:
-                    cemu_assert_suspicious();
+                    cemuLog_log(LogType::Force, "Unknown geometry out primitive type {}", gsOutPrimType);
                     break;
                 }
             }
