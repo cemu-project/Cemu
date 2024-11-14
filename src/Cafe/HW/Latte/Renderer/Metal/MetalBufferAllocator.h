@@ -14,6 +14,8 @@ struct MetalBufferRange
 constexpr size_t BASE_ALLOCATION_SIZE = 8 * 1024 * 1024; // 8 MB
 constexpr size_t MAX_ALLOCATION_SIZE = 64 * 1024 * 1024; // 64 MB
 
+void LatteIndices_invalidateAll();
+
 template<typename BufferT>
 class MetalBufferAllocator
 {
@@ -261,8 +263,10 @@ public:
         }
     }
 
+    // TODO: this function should be more more lightweight and leave the checking for completion to the caller, but this works fine for now, since there is always only one instance of this class
     void CheckForCompletedCommandBuffers(/*MTL::CommandBuffer* commandBuffer, bool erase = true*/)
     {
+        bool atLeastOneCompleted = false;
         for (auto it = m_executingCommandBuffers.begin(); it != m_executingCommandBuffers.end();)
         {
             if (CommandBufferCompleted(it->first))
@@ -280,12 +284,17 @@ public:
                 it->first->release();
 
                 it = m_executingCommandBuffers.erase(it);
+
+                atLeastOneCompleted = true;
             }
             else
             {
                 ++it;
             }
         }
+
+        if (atLeastOneCompleted)
+            LatteIndices_invalidateAll();
 
         //if (erase)
         //    m_commandBuffersFrames.erase(commandBuffer);
