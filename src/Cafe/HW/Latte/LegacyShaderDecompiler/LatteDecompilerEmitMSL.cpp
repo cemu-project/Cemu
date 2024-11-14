@@ -3609,7 +3609,7 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 		// write point size
 		if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
-		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+		//src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 		src->add("mesh.set_vertex(vertexIndex, out);" _CRLF);
 		src->add("vertexIndex++;" _CRLF);
 		// increment transform feedback pointer
@@ -4378,8 +4378,8 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 
     if (rasterizationEnabled)
     {
-    	if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
-    		src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
+    	//if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
+    	//	src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 
     	// Return
     	if (!usesGeometryShader || shader->shaderType == LatteConst::ShaderType::Pixel)
