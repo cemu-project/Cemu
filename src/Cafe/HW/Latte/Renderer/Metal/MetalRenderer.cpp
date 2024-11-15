@@ -123,7 +123,7 @@ MetalRenderer::MetalRenderer()
 	MTL::Library* utilityLibrary = m_device->newLibrary(ToNSString(utilityShaderSource), nullptr, &error);
 	if (error)
     {
-        debug_printf("failed to create utility library (error: %s)\n", error->localizedDescription()->utf8String());
+        cemuLog_log(LogType::Force, "failed to create utility library (error: {})", error->localizedDescription()->utf8String());
         error->release();
         throw;
         return;
@@ -454,7 +454,7 @@ void MetalRenderer::ImguiEnd()
 
     if (m_encoderType != MetalEncoderType::Render)
     {
-        debug_printf("no render command encoder, cannot draw ImGui\n");
+        cemuLog_logOnce(LogType::Force, "no render command encoder, cannot draw ImGui");
         return;
     }
 
@@ -850,7 +850,7 @@ void MetalRenderer::draw_beginSequence()
 	LatteSHRC_UpdateActiveShaders();
 	if (LatteGPUState.activeShaderHasError)
 	{
-		debug_printf("Skipping drawcalls due to shader error\n");
+		cemuLog_logOnce(LogType::Force, "Skipping drawcalls due to shader error\n");
 		m_state.m_skipDrawSequence = true;
 		cemu_assert_debug(false);
 		return;
@@ -863,14 +863,14 @@ void MetalRenderer::draw_beginSequence()
 		LatteGPUState.repeatTextureInitialization = false;
 		if (!LatteMRT::UpdateCurrentFBO())
 		{
-			debug_printf("Rendertarget invalid\n");
+			cemuLog_logOnce(LogType::Force, "Rendertarget invalid\n");
 			m_state.m_skipDrawSequence = true;
 			return; // no render target
 		}
 
 		if (!hasValidFramebufferAttached && !streamoutEnable)
 		{
-			debug_printf("Drawcall with no color buffer or depth buffer attached\n");
+			cemuLog_logOnce(LogType::Force, "Drawcall with no color buffer or depth buffer attached\n");
 			m_state.m_skipDrawSequence = true;
 			return; // no render target
 		}
@@ -1241,7 +1241,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             verticesPerPrimitive = 3;
             break;
         default:
-            debug_printf("invalid primitive mode %u\n", (uint32)primitiveMode);
+            cemuLog_log(LogType::Force, "unimplemented geometry shader primitive mode {}", (uint32)primitiveMode);
             break;
         }
 
@@ -1804,7 +1804,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		uint32 binding = shader->resourceMapping.getTextureBaseBindingPoint() + i;
 		if (binding >= MAX_MTL_TEXTURES)
 		{
-		    debug_printf("invalid texture binding %u\n", binding);
+		    cemuLog_logOnce(LogType::Force, "invalid texture binding {}", binding);
             continue;
 		}
 
@@ -1952,7 +1952,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     		uint32 binding = shader->resourceMapping.uniformBuffersBindingPoint[i];
     		if (binding >= MAX_MTL_BUFFERS)
     		{
-    		    debug_printf("invalid buffer binding%u\n", binding);
+    		    cemuLog_logOnce(LogType::Force, "invalid buffer binding {}", binding);
     			continue;
     		}
 

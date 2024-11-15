@@ -468,7 +468,7 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
      			layout->setStepFunction(MTL::VertexStepFunctionPerInstance);
       		else
       		{
-      		    debug_printf("unimplemented vertex fetch type %u\n", (uint32)fetchType.value());
+      		    cemuLog_log(LogType::Force, "unimplemented vertex fetch type {}", (uint32)fetchType.value());
      			cemu_assert(false);
       		}
     		}

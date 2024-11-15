@@ -240,7 +240,7 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode)
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_LOOP:
 		return MTL::PrimitiveTypeLineStrip; // line loops are emulated as line strips with an extra connecting strip at the end
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::LINE_STRIP_ADJACENT: // Tropical Freeze level 3-6
-	    debug_printf("Metal doesn't support line strip adjacent primitive, using line strip instead\n");
+	    cemuLog_logOnce(LogType::Force, "Metal doesn't support line strip adjacent primitive, using line strip instead");
 		return MTL::PrimitiveTypeLineStrip;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLES:
 		return MTL::PrimitiveTypeTriangle;

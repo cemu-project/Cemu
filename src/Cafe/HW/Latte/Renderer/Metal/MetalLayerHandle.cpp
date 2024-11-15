@@ -32,7 +32,7 @@ bool MetalLayerHandle::AcquireDrawable()
     m_drawable = m_layer->nextDrawable();
     if (!m_drawable)
     {
-        debug_printf("layer %p failed to acquire next drawable\n", this);
+        cemuLog_log(LogType::Force, "layer {} failed to acquire next drawable", (void*)this);
         return false;
     }
 
