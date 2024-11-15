@@ -88,16 +88,18 @@ private:
 // TODO: find out if it would be possible to cache compiled Metal shaders
 void RendererShaderMtl::ShaderCacheLoading_begin(uint64 cacheTitleId)
 {
-	s_isLoadingShadersMtl = true;
+    // Maximize shader compilation speed
+    static_cast<MetalRenderer*>(g_renderer.get())->GetDevice()->setShouldMaximizeConcurrentCompilation(true);
 }
 
 void RendererShaderMtl::ShaderCacheLoading_end()
 {
-	s_isLoadingShadersMtl = false;
+    static_cast<MetalRenderer*>(g_renderer.get())->GetDevice()->setShouldMaximizeConcurrentCompilation(false);
 }
 
 void RendererShaderMtl::ShaderCacheLoading_Close()
 {
+    // Do nothing
 }
 
 void RendererShaderMtl::Initialize()
