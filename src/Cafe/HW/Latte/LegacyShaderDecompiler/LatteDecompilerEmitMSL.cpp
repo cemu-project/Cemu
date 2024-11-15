@@ -3123,13 +3123,13 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
 				src->add(";" _CRLF);
 				src->add("finalPos.xy = finalPos.xy * supportBuffer.windowSpaceToClipSpaceTransform - float2(1.0,1.0);");
-				src->add("out.position = finalPos;");
+				src->add("SET_POSITION(finalPos);");
 			}
 			else
 			{
-				src->add("out.position = ");
+				src->add("SET_POSITION(");
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
-				src->add(";" _CRLF);
+				src->add(");" _CRLF);
 			}
 		}
 		else if (cfInstruction->exportType == 1 && cfInstruction->exportArrayBase == GPU7_DECOMPILER_CF_EXPORT_POINT_SIZE )
@@ -3371,7 +3371,7 @@ static void _emitCFRingWriteCode(LatteDecompilerShaderContext* shaderContext, La
 				src->addFmt(" = ");
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, burstIndex);
 				src->add(";" _CRLF);
-				src->add("out.position = pos;" _CRLF);
+				src->add("SET_POSITION(pos);" _CRLF);
 				src->add("}" _CRLF);
 			}
 			else if (parameterExportType == 2 && parameterExportBase < 16)
@@ -3609,7 +3609,6 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 		// write point size
 		if (shaderContext->analyzer.outputPointSize && shaderContext->analyzer.writesPointSize == false)
 			src->add("out.pointSize = supportBuffer.pointSize;" _CRLF);
-		//src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
 		src->add("mesh.set_vertex(vertexIndex, out);" _CRLF);
 		src->add("vertexIndex++;" _CRLF);
 		// increment transform feedback pointer
@@ -4376,14 +4375,10 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
         }
 	}
 
-    if (rasterizationEnabled)
+    if (rasterizationEnabled && (!usesGeometryShader || shader->shaderType == LatteConst::ShaderType::Pixel))
     {
-    	//if (shader->shaderType == LatteConst::ShaderType::Vertex && !shaderContext->options->usesGeometryShader)
-    	//	src->add("out.position.z = (out.position.z + out.position.w) / 2.0;" _CRLF);
-
     	// Return
-    	if (!usesGeometryShader || shader->shaderType == LatteConst::ShaderType::Pixel)
-            src->add("return out;" _CRLF);
+        src->add("return out;" _CRLF);
     }
 
 	// end of shader main

@@ -392,6 +392,11 @@ namespace LatteDecompiler
             }
         }
 
+        if (decompilerContext->contextRegistersNew->PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF())
+			src->add("#define SET_POSITION(_v) out.position = _v" _CRLF);
+		else
+			src->add("#define SET_POSITION(_v) out.position = _v; out.position.z = (out.position.z + out.position.w) / 2.0" _CRLF);
+
 		const bool dump_shaders_enabled = ActiveSettings::DumpShadersEnabled();
 		if(dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// start of shader inputs/outputs, predetermined by Cemu. Do not touch" _CRLF);
