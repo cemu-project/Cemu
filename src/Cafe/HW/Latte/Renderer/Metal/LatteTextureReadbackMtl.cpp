@@ -1,7 +1,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureReadbackMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureMtl.h"
-#include "HW/Latte/Renderer/Metal/LatteToMtl.h"
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
 LatteTextureReadbackInfoMtl::~LatteTextureReadbackInfoMtl()
 {

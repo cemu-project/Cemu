@@ -20,6 +20,7 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
@@ -398,12 +399,9 @@ void MetalRenderer::Flush(bool waitIdle)
 {
     if (m_recordedDrawcalls > 0 || waitIdle)
         CommitCommandBuffer();
-    if (waitIdle)
-    {
-        cemu_assert_debug(m_currentCommandBuffer.m_commited);
 
-        m_currentCommandBuffer.m_commandBuffer->waitUntilCompleted();
-    }
+    if (waitIdle && m_executingCommandBuffers.size() != 0)
+        m_executingCommandBuffers.back()->waitUntilCompleted();
 }
 
 void MetalRenderer::NotifyLatteCommandProcessorIdle()
@@ -1397,13 +1395,12 @@ void MetalRenderer::occlusionQuery_destroy(LatteQueryObject* queryObj) {
 }
 
 void MetalRenderer::occlusionQuery_flush() {
-    // TODO: wait for all command buffers with occlusion queries?
     if (m_occlusionQuery.m_lastCommandBuffer)
         m_occlusionQuery.m_lastCommandBuffer->waitUntilCompleted();
 }
 
 void MetalRenderer::occlusionQuery_updateState() {
-    // TODO: implement
+    ProcessFinishedCommandBuffers();
 }
 
 void MetalRenderer::SetBuffer(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::Buffer* buffer, size_t offset, uint32 index)
@@ -1686,6 +1683,9 @@ void MetalRenderer::CommitCommandBuffer()
 
     EndEncoding();
 
+    ProcessFinishedCommandBuffers();
+
+    // Commit the command buffer
     if (!m_currentCommandBuffer.m_commited)
     {
         // Handled differently, since it seems like Metal doesn't always call the completion handler
@@ -1695,17 +1695,44 @@ void MetalRenderer::CommitCommandBuffer()
 
         // Signal event
         m_eventValue = (m_eventValue + 1) % EVENT_VALUE_WRAP;
-        m_currentCommandBuffer.m_commandBuffer->encodeSignalEvent(m_event, m_eventValue);
+        auto mtlCommandBuffer = m_currentCommandBuffer.m_commandBuffer;
+        mtlCommandBuffer->encodeSignalEvent(m_event, m_eventValue);
 
-        m_currentCommandBuffer.m_commandBuffer->commit();
-        m_currentCommandBuffer.m_commandBuffer->release();
+        mtlCommandBuffer->commit();
         m_currentCommandBuffer.m_commited = true;
+
+        m_executingCommandBuffers.push_back(mtlCommandBuffer);
 
         m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
 
         // Debug
         //m_commandQueue->insertDebugCaptureBoundary();
     }
+}
+
+void MetalRenderer::ProcessFinishedCommandBuffers()
+{
+    // Check for finished command buffers
+    bool atLeastOneCompleted = false;
+    for (auto it = m_executingCommandBuffers.begin(); it != m_executingCommandBuffers.end();)
+    {
+        auto commandBuffer = *it;
+        if (CommandBufferCompleted(commandBuffer))
+        {
+            m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer);
+            commandBuffer->release();
+            it = m_executingCommandBuffers.erase(it);
+            atLeastOneCompleted = true;
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    // Invalidate indices if at least one command buffer has completed
+    if (atLeastOneCompleted)
+        LatteIndices_invalidateAll();
 }
 
 bool MetalRenderer::AcquireDrawable(bool mainWindow)

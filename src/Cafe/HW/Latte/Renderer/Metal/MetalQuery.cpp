@@ -3,13 +3,7 @@
 
 bool LatteQueryObjectMtl::getResult(uint64& numSamplesPassed)
 {
-    if (!m_commandBuffer)
-    {
-        numSamplesPassed = 0;
-        return true;
-    }
-
-    if (!CommandBufferCompleted(m_commandBuffer))
+    if (m_commandBuffer && !CommandBufferCompleted(m_commandBuffer))
         return false;
 
     uint64* resultPtr = m_mtlr->GetOcclusionQueryResultsPtr();
@@ -38,7 +32,7 @@ void LatteQueryObjectMtl::end()
     m_range.end = m_mtlr->GetOcclusionQueryIndex();
     m_mtlr->EndOcclusionQuery();
 
-    m_commandBuffer = m_mtlr->GetCurrentCommandBuffer()->retain();
-    if (m_mtlr->IsCommandBufferActive())
+    m_commandBuffer = m_mtlr->GetAndRetainCurrentCommandBufferIfNotCompleted();
+    if (m_commandBuffer)
         m_mtlr->RequestSoonCommit();
 }

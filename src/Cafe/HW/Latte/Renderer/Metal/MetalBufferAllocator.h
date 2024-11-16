@@ -201,8 +201,6 @@ public:
 
     void EndFrame()
     {
-        CheckForCompletedCommandBuffers();
-
         // Unlock all buffers
         for (uint32_t i = 0; i < m_buffers.size(); i++)
         {
@@ -255,7 +253,6 @@ public:
             auto result = m_executingCommandBuffers.emplace(std::make_pair(m_activeCommandBuffer, std::vector<uint32>{}));
             cemu_assert_debug(result.second);
             m_activeCommandBufferIt = result.first;
-            commandBuffer->retain();
         }
         else
         {
@@ -263,41 +260,20 @@ public:
         }
     }
 
-    // TODO: this function should be more more lightweight and leave the checking for completion to the caller, but this works fine for now, since there is always only one instance of this class
-    void CheckForCompletedCommandBuffers(/*MTL::CommandBuffer* commandBuffer, bool erase = true*/)
+    void CommandBufferFinished(MTL::CommandBuffer* commandBuffer)
     {
-        bool atLeastOneCompleted = false;
-        for (auto it = m_executingCommandBuffers.begin(); it != m_executingCommandBuffers.end();)
+        auto it = m_executingCommandBuffers.find(commandBuffer);
+        for (auto bufferIndex : it->second)
         {
-            if (CommandBufferCompleted(it->first))
-            {
-                for (auto bufferIndex : it->second)
-                {
-                    auto& buffer = m_buffers[bufferIndex];
-                    buffer.m_data.m_commandBufferCount--;
+            auto& buffer = m_buffers[bufferIndex];
+            buffer.m_data.m_commandBufferCount--;
 
-                    // TODO: is this neccessary?
-                    if (!buffer.m_data.IsLocked() && buffer.m_data.m_commandBufferCount == 0)
-                        FreeBuffer(bufferIndex);
-                }
-
-                it->first->release();
-
-                it = m_executingCommandBuffers.erase(it);
-
-                atLeastOneCompleted = true;
-            }
-            else
-            {
-                ++it;
-            }
+            // TODO: is this neccessary?
+            if (!buffer.m_data.IsLocked() && buffer.m_data.m_commandBufferCount == 0)
+                FreeBuffer(bufferIndex);
         }
 
-        if (atLeastOneCompleted)
-            LatteIndices_invalidateAll();
-
-        //if (erase)
-        //    m_commandBuffersFrames.erase(commandBuffer);
+        m_executingCommandBuffers.erase(it);
     }
 
     MTL::Buffer* GetBuffer(uint32 bufferIndex)
