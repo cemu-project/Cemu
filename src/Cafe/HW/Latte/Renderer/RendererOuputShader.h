@@ -17,7 +17,7 @@ public:
 	RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source);
 	virtual ~RendererOutputShader() = default;
 
-	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& input_res, const Vector2i& output_res) const;
+	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res) const;
 
 	RendererShader* GetVertexShader() const
 	{
@@ -43,16 +43,18 @@ public:
 	static std::string GetVulkanVertexSource(bool render_upside_down);
 	static std::string GetOpenGlVertexSource(bool render_upside_down);
 
+	static std::string PrependFragmentPreamble(const std::string& shaderSrc);
+
 protected:
 	RendererShader* m_vertex_shader;
 	RendererShader* m_fragment_shader;
 
-	struct
+	struct UniformLocations
 	{
-		sint32 m_loc_texture_src_resolution = -1;
-		sint32 m_loc_input_resolution = -1;
-		sint32 m_loc_output_resolution = -1;
-	} m_attributes[2]{};
+		sint32 m_loc_textureSrcResolution = -1;
+		sint32 m_loc_nativeResolution = -1;
+		sint32 m_loc_outputResolution = -1;
+	} m_uniformLocations[2]{};
 
 private:
 	static const std::string s_copy_shader_source;
