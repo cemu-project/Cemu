@@ -91,6 +91,21 @@ uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, L
 		cemu_assert_suspicious();
 		return 0;
 	}
+	else if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN && g_renderer->GetType() == RendererAPI::Metal)
+	{
+		if (indexType == LatteIndexType::AUTO)
+		{
+			if (count <= 0xFFFF)
+				return count * sizeof(uint16);
+			return count * sizeof(uint32);
+		}
+		if (indexType == LatteIndexType::U16_BE || indexType == LatteIndexType::U16_LE)
+			return count * sizeof(uint16);
+		if (indexType == LatteIndexType::U32_BE || indexType == LatteIndexType::U32_LE)
+			return count * sizeof(uint32);
+		cemu_assert_suspicious();
+		return 0;
+	}
 	else if(indexType == LatteIndexType::AUTO)
 		return 0;
 	else if (indexType == LatteIndexType::U16_BE || indexType == LatteIndexType::U16_LE)
