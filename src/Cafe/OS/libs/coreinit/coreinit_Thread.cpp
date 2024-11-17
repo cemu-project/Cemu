@@ -1114,13 +1114,13 @@ namespace coreinit
 		thread->requestFlags = (OSThread_t::REQUEST_FLAG_BIT)(thread->requestFlags & OSThread_t::REQUEST_FLAG_CANCEL); // remove all flags except cancel flag
 
 		// update total cycles
-		uint64 remainingCycles = std::min((uint64)hCPU->remainingCycles, (uint64)thread->quantumTicks);
-		uint64 executedCycles = thread->quantumTicks - remainingCycles;
-		if (executedCycles < hCPU->skippedCycles)
+		sint64 executedCycles = (sint64)thread->quantumTicks - (sint64)hCPU->remainingCycles;
+		executedCycles = std::max<sint64>(executedCycles, 0);
+		if (executedCycles < (sint64)hCPU->skippedCycles)
 			executedCycles = 0;
 		else
 			executedCycles -= hCPU->skippedCycles;
-		thread->totalCycles += executedCycles;
+		thread->totalCycles += (uint64)executedCycles;
 		// store context and set current thread to null
 		__OSThreadStoreContext(hCPU, thread);
 		OSSetCurrentThread(OSGetCoreId(), nullptr);
