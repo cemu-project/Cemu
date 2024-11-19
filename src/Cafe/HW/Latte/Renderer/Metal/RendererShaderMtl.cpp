@@ -185,7 +185,6 @@ void RendererShaderMtl::CompileInternal()
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create library: {} -> {}", error->localizedDescription()->utf8String(), m_mslCode.c_str());
-        error->release();
         FinishCompilation();
         return;
     }

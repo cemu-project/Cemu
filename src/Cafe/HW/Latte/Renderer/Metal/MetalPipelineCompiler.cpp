@@ -389,7 +389,6 @@ bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool
    	if (error)
    	{
        	cemuLog_log(LogType::Force, "error creating render pipeline state: {}", error->localizedDescription()->utf8String());
-        error->release();
    	}
 
     if (showInOverlay)

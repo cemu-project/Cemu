@@ -16,7 +16,6 @@ MetalVoidVertexPipeline::MetalVoidVertexPipeline(class MetalRenderer* mtlRendere
     if (error)
     {
         cemuLog_log(LogType::Force, "error creating hybrid render pipeline state: {}", error->localizedDescription()->utf8String());
-        error->release();
     }
 }
 

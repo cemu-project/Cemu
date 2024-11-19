@@ -125,8 +125,6 @@ MetalRenderer::MetalRenderer()
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create utility library (error: {})", error->localizedDescription()->utf8String());
-        error->release();
-        throw;
         return;
     }
 
@@ -1666,7 +1664,7 @@ void MetalRenderer::EndEncoding()
     if (m_commandEncoder)
     {
         m_commandEncoder->endEncoding();
-        m_commandEncoder->release();
+        //m_commandEncoder->release();
         m_commandEncoder = nullptr;
         m_encoderType = MetalEncoderType::None;
 
@@ -1720,7 +1718,7 @@ void MetalRenderer::ProcessFinishedCommandBuffers()
         if (CommandBufferCompleted(commandBuffer))
         {
             m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer);
-            commandBuffer->release();
+            //commandBuffer->release();
             it = m_executingCommandBuffers.erase(it);
             atLeastOneCompleted = true;
         }

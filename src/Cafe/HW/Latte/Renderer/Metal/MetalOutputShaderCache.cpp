@@ -31,7 +31,6 @@ MTL::RenderPipelineState* MetalOutputShaderCache::GetPipeline(RendererOutputShad
     if (error)
     {
         cemuLog_log(LogType::Force, "error creating output render pipeline state: {}", error->localizedDescription()->utf8String());
-        error->release();
     }
 
     return renderPipelineState;
