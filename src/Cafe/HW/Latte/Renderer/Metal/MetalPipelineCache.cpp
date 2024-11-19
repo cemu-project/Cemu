@@ -416,7 +416,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		vertexShader = LatteSHRC_FindVertexShader(cachedPipeline->vsHash.baseHash, cachedPipeline->vsHash.auxHash);
 		if (!vertexShader)
 		{
-			cemuLog_logDebug(LogType::Force, "Vertex shader not found in cache");
+			cemuLog_log(LogType::Force, "Vertex shader not found in cache");
 			return;
 		}
 	}
@@ -426,7 +426,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		geometryShader = LatteSHRC_FindGeometryShader(cachedPipeline->gsHash.baseHash, cachedPipeline->gsHash.auxHash);
 		if (!geometryShader)
 		{
-			cemuLog_logDebug(LogType::Force, "Geometry shader not found in cache");
+			cemuLog_log(LogType::Force, "Geometry shader not found in cache");
 			return;
 		}
 	}
@@ -436,7 +436,7 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		pixelShader = LatteSHRC_FindPixelShader(cachedPipeline->psHash.baseHash, cachedPipeline->psHash.auxHash);
 		if (!pixelShader)
 		{
-			cemuLog_logDebug(LogType::Force, "Pixel shader not found in cache");
+			cemuLog_log(LogType::Force, "Pixel shader not found in cache");
 			return;
 		}
 	}
@@ -459,14 +459,11 @@ void MetalPipelineCache::LoadPipelineFromCache(std::span<uint8> fileData)
 		// destroy pp early
 	}
 
-	// on success, cache the pipeline
-	if (pipelineObject->m_pipeline)
-	{
-    	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, cachedPipeline->lastUsedAttachmentsInfo, attachmentsInfo, *lcr);
-    	m_pipelineCacheLock.lock();
-    	m_pipelineCache[pipelineStateHash] = pipelineObject;
-    	m_pipelineCacheLock.unlock();
-	}
+	// Cache the pipeline
+   	uint64 pipelineStateHash = CalculatePipelineHash(vertexShader->compatibleFetchShader, vertexShader, geometryShader, pixelShader, cachedPipeline->lastUsedAttachmentsInfo, attachmentsInfo, *lcr);
+   	m_pipelineCacheLock.lock();
+   	m_pipelineCache[pipelineStateHash] = pipelineObject;
+   	m_pipelineCacheLock.unlock();
 
 	// clean up
 	s_spinlockSharedInternal.lock();
