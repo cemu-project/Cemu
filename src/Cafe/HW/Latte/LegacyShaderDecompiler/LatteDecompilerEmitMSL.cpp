@@ -2240,8 +2240,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 
 	bool unnormalizationHandled = false;
 	bool useTexelCoordinates = false;
-	bool isRead = ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) ||
-    	    texOpcode == GPU7_TEX_INST_LD);
+	bool isRead = ((texOpcode == GPU7_TEX_INST_SAMPLE && (texInstruction->textureFetch.unnormalized[0] && texInstruction->textureFetch.unnormalized[1] && texInstruction->textureFetch.unnormalized[2] && texInstruction->textureFetch.unnormalized[3])) || texOpcode == GPU7_TEX_INST_LD);
 
 	// handle illegal combinations
 	if (texOpcode == GPU7_TEX_INST_FETCH4 && (texDim == Latte::E_DIM::DIM_1D || texDim == Latte::E_DIM::DIM_1D_ARRAY))
@@ -2459,7 +2458,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
     				src->add(")");
     			}
     		}
-    		else if (!isRead && !isGather/*texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ*/)
+    		else if (texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ)
     		{
     			src->add(", level(0.0)");
     		}
@@ -2469,9 +2468,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	if (texOpcode == GPU7_TEX_INST_SAMPLE_G)
 	{
 		if (texDim == Latte::E_DIM::DIM_2D ||
-			texDim == Latte::E_DIM::DIM_1D )
+			texDim == Latte::E_DIM::DIM_1D)
 		{
-			src->add(",gradH.xy,gradV.xy");
+			src->add(", gradient2d(gradH.xy, gradV.xy)");
 		}
 		else
 		{
