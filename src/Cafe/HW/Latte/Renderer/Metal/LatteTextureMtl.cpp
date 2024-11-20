@@ -64,15 +64,11 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	{
 		desc->setDepth(effectiveBaseDepth);
 	}
-	else if (textureType == MTL::TextureTypeCube)
-	{
-	    // Do nothing
-	}
 	else if (textureType == MTL::TextureTypeCubeArray)
 	{
 		desc->setArrayLength(effectiveBaseDepth / 6);
 	}
-	else
+	else if (textureType == MTL::TextureType2DArray)
 	{
 		desc->setArrayLength(effectiveBaseDepth);
 	}
