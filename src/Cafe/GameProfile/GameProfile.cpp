@@ -127,7 +127,7 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 	{
 		cemuLog_log(LogType::Force, "Value '{}' is out of range for option '{}' in game profile", *option_value, optionName);
 		return false;
-	}	
+	}
 }
 
 template<typename T>
@@ -224,8 +224,10 @@ bool GameProfile::Load(uint64_t title_id)
 			gameProfile_loadIntegerOption(&iniParser, "graphics_api", &graphicsApi, -1, 0, 1);
 			if (graphicsApi.value != -1)
 				m_graphics_api = (GraphicAPI)graphicsApi.value;
-			
+
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
+			gameProfile_loadBooleanOption2(iniParser, "fastMath", m_fastMath);
+			gameProfile_loadEnumOption(iniParser, "bufferCacheMode", m_bufferCacheMode);
 
 			// legacy support
 			auto option_precompiledShaders = iniParser.FindOption("precompiledShaders");
@@ -277,7 +279,7 @@ bool GameProfile::Load(uint64_t title_id)
 void GameProfile::Save(uint64_t title_id)
 {
 	auto gameProfileDir = ActiveSettings::GetConfigPath("gameProfiles");
-	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec)) 
+	if (std::error_code ex_ec; !fs::exists(gameProfileDir, ex_ec))
 		fs::create_directories(gameProfileDir, ex_ec);
 	auto gameProfilePath = gameProfileDir / fmt::format("{:016x}.ini", title_id);
 	FileStream* fs = FileStream::createFile2(gameProfilePath);
@@ -308,6 +310,8 @@ void GameProfile::Save(uint64_t title_id)
 
 	fs->writeLine("[Graphics]");
 	WRITE_ENTRY(accurateShaderMul);
+	WRITE_ENTRY(fastMath);
+	WRITE_ENTRY(bufferCacheMode);
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
@@ -337,6 +341,8 @@ void GameProfile::ResetOptional()
 
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
+	m_fastMath = true;
+	m_bufferCacheMode = BufferCacheMode::DevicePrivate;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
 	m_cpuMode.reset(); // CPUModeOption::kSingleCoreRecompiler;
@@ -354,9 +360,11 @@ void GameProfile::Reset()
 	// general settings
 	m_loadSharedLibraries = true;
 	m_startWithPadView = false;
-	
+
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
+	m_fastMath = true;
+	m_bufferCacheMode = BufferCacheMode::DevicePrivate;
 	m_precompiledShaders = PrecompiledShaderOption::Auto;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
