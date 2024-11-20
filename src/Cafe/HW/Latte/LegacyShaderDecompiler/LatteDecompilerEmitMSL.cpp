@@ -849,7 +849,7 @@ static void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, L
 	else if( GPU7_ALU_SRC_IS_LITERAL(aluInstruction->sourceOperand[operandIndex].sel) )
 	{
 		if( requiredType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
-			src->addFmt("0x{:x}", aluInstruction->literalData.w[aluInstruction->sourceOperand[operandIndex].chan]);
+			src->addFmt("int(0x{:x})", aluInstruction->literalData.w[aluInstruction->sourceOperand[operandIndex].chan]);
 		else if( requiredType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT )
 			src->addFmt("uint(0x{:x})", aluInstruction->literalData.w[aluInstruction->sourceOperand[operandIndex].chan]);
 		else if (requiredType == LATTE_DECOMPILER_DTYPE_FLOAT)
