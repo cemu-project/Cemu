@@ -21,6 +21,9 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Metal/MTLPixelFormat.hpp"
+#include "Metal/MTLRenderCommandEncoder.hpp"
+#include "Metal/MTLRenderPipeline.hpp"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
@@ -125,7 +128,26 @@ MetalRenderer::MetalRenderer()
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create utility library (error: {})", error->localizedDescription()->utf8String());
-        return;
+    }
+
+    // Pipelines
+    MTL::Function* vertexFullscreenFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
+    MTL::Function* fragmentCopyDepthToColorFunction = utilityLibrary->newFunction(ToNSString("fragmentCopyDepthToColor"));
+
+    MTL::RenderPipelineDescriptor* rpd = MTL::RenderPipelineDescriptor::alloc()->init();
+    rpd->setVertexFunction(vertexFullscreenFunction);
+    rpd->setFragmentFunction(fragmentCopyDepthToColorFunction);
+    // TODO: don't hardcode the format
+    rpd->colorAttachments()->object(0)->setPixelFormat(MTL::PixelFormatR16Unorm);
+
+    vertexFullscreenFunction->release();
+    fragmentCopyDepthToColorFunction->release();
+
+    error = nullptr;
+    m_copyDepthToColorPipeline = m_device->newRenderPipelineState(rpd, &error);
+    if (error)
+    {
+        cemuLog_log(LogType::Force, "failed to create copy depth to color pipeline (error: {})", error->localizedDescription()->utf8String());
     }
 
     // Void vertex pipelines
@@ -142,8 +164,7 @@ MetalRenderer::~MetalRenderer()
     //delete m_copyTextureToTexturePipeline;
     //delete m_restrideBufferPipeline;
 
-    //m_presentPipelineLinear->release();
-    //m_presentPipelineSRGB->release();
+    m_copyDepthToColorPipeline->release();
 
     delete m_outputShaderCache;
     delete m_pipelineCache;
@@ -1348,14 +1369,27 @@ void MetalRenderer::draw_handleSpecialState5()
 
 	LatteTextureView* colorBuffer = LatteMRT::GetColorAttachment(0);
 	LatteTextureView* depthBuffer = LatteMRT::GetDepthAttachment();
+	auto mtlDepthTexture = static_cast<LatteTextureViewMtl*>(depthBuffer)->GetRGBAView();
 
 	sint32 vpWidth, vpHeight;
 	LatteMRT::GetVirtualViewportDimensions(vpWidth, vpHeight);
 
-	surfaceCopy_copySurfaceWithFormatConversion(
-		depthBuffer->baseTexture, depthBuffer->firstMip, depthBuffer->firstSlice,
-		colorBuffer->baseTexture, colorBuffer->firstMip, colorBuffer->firstSlice,
-		vpWidth, vpHeight);
+	// Sadly, we need to end encoding to ensure that the depth data is up-to-date
+
+	// Copy depth to color
+	auto renderCommandEncoder = GetRenderCommandEncoder();
+
+	auto& encoderState = m_state.m_encoderState;
+
+	renderCommandEncoder->setRenderPipelineState(m_copyDepthToColorPipeline);
+	// TODO: make a helper function for this
+	encoderState.m_renderPipelineState = m_copyDepthToColorPipeline;
+	SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_FRAGMENT, mtlDepthTexture, GET_HELPER_TEXTURE_BINDING(0));
+	// TODO: make a helper function for this
+	renderCommandEncoder->setFragmentBytes(&vpWidth, sizeof(sint32), GET_HELPER_BUFFER_BINDING(0));
+	encoderState.m_buffers[METAL_SHADER_TYPE_FRAGMENT][GET_HELPER_BUFFER_BINDING(0)] = {nullptr};
+
+	renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle,  NS::UInteger(0),  NS::UInteger(3));
 }
 
 void* MetalRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
