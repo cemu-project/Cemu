@@ -75,8 +75,8 @@ add_library(CemuGui
   input/InputAPIAddWindow.h
   input/InputSettings2.cpp
   input/InputSettings2.h
-	input/PairingDialog.cpp
-	input/PairingDialog.h
+  input/PairingDialog.cpp
+  input/PairingDialog.h
   input/panels/ClassicControllerInputPanel.cpp
   input/panels/ClassicControllerInputPanel.h
   input/panels/InputPanel.cpp
