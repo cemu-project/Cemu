@@ -228,7 +228,7 @@ void PairingDialog::WorkerThread()
 #elif BOOST_OS_LINUX
 void PairingDialog::WorkerThread()
 {
-	constexpr static uint8_t liacLap[] = {0x00, 0x8b, 0x9e};
+	constexpr static uint8_t LIAC_LAP[] = {0x00, 0x8b, 0x9e};
 
 	constexpr static auto isWiimoteName = [](std::string_view name) {
 		return name == "Nintendo RVL-CNT-01" || name == "Nintendo RVL-CNT-01-TR";
@@ -245,7 +245,7 @@ void PairingDialog::WorkerThread()
 	// Search for device
 	inquiry_info* infos = nullptr;
 	m_cancelButton->Disable();
-	const auto respCount = hci_inquiry(hostId, 5, 4, liacLap, &infos, IREQ_CACHE_FLUSH);
+	const auto respCount = hci_inquiry(hostId, 5, 4, LIAC_LAP, &infos, IREQ_CACHE_FLUSH);
 	m_cancelButton->Enable();
 	if (respCount <= 0)
 	{
