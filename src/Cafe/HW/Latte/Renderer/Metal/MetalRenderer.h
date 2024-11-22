@@ -473,7 +473,8 @@ private:
 	class MetalSamplerCache* m_samplerCache;
 
 	// Pipelines
-	MTL::RenderPipelineState* m_copyDepthToColorPipeline;
+	MTL::RenderPipelineDescriptor* m_copyDepthToColorDesc;
+	std::map<MTL::PixelFormat, MTL::RenderPipelineState*> m_copyDepthToColorPipelines;
 
 	// Void vertex pipelines
 	class MetalVoidVertexPipeline* m_copyBufferToBufferPipeline;
