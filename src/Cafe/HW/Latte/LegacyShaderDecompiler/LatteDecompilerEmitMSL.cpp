@@ -2316,7 +2316,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		// handle integer coordinates for texelFetch
 		if (texDim == Latte::E_DIM::DIM_2D || texDim == Latte::E_DIM::DIM_2D_MSAA)
 		{
-			src->add("int2(");
+			src->add("uint2(");
 			src->add("float2(");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, texCoordDataType);
 			src->addFmt(", ");
@@ -2330,7 +2330,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		else if (texDim == Latte::E_DIM::DIM_1D)
 		{
 			// VC DS games forget to initialize textures and use texel fetch on an uninitialized texture (a dim of 0 maps to 1D)
-			src->add("int(");
+			src->add("uint(");
 			src->add("float(");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, (texOpcode == GPU7_TEX_INST_LD) ? LATTE_DECOMPILER_DTYPE_SIGNED_INT : LATTE_DECOMPILER_DTYPE_FLOAT);
 			src->addFmt(")*supportBuffer.tex{}Scale.x", texInstruction->textureFetch.textureIndex);

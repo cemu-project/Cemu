@@ -20,7 +20,6 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
