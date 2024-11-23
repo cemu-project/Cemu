@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
-#include "Metal/MTLRenderPipeline.hpp"
 #include <cstdint>
 
 struct MetalBufferAllocation
