@@ -131,6 +131,12 @@ typedef struct
 		LattePerfStatCounter numDrawBarriersPerFrame;
 		LattePerfStatCounter numBeginRenderpassPerFrame;
 	}vk;
+
+	// calculated stats (per frame)
+	struct
+	{
+		uint32 indexDataUploadPerFrame;
+	}stats;
 }performanceMonitor_t;
 
 extern performanceMonitor_t performanceMonitor;
