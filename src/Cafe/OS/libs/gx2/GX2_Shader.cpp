@@ -421,7 +421,7 @@ namespace GX2
 	{
 		if(aluRegisterOffset&0x8000)
 		{
-			cemuLog_logDebug(LogType::Force, "_GX2SubmitUniformReg(): Unhandled loop const special case or invalid offset");
+			cemuLog_logDebugOnce(LogType::Force, "_GX2SubmitUniformReg(): Unhandled loop const special case or invalid offset");
 			return;
 		}
 		if((aluRegisterOffset+sizeInU32s) > 0x400)

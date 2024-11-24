@@ -675,6 +675,7 @@ namespace nsyshid
 
 		figureChangeResponse[13] = GenerateChecksum(figureChangeResponse, 13);
 		m_figureAddedRemovedResponses.push(figureChangeResponse);
+		return true;
 	}
 
 	bool DimensionsUSB::CancelRemove(uint8 index)
