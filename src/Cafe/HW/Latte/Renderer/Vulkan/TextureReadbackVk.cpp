@@ -81,13 +81,10 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R5_G6_B5_UNORM )
 	{
-		cemu_assert(textureFormat == VK_FORMAT_R8G8B8A8_UNORM);
-		return baseTexture->width * baseTexture->height * 2;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM )
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R8G8B8A8_UNORM);
-		return baseTexture->width * baseTexture->height * 4;
+		if(textureFormat == VK_FORMAT_R5G6B5_UNORM_PACK16){
+			return baseTexture->width * baseTexture->height * 2;
+		}	
+		return 0;
 	}
 	else
 	{
