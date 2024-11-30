@@ -89,12 +89,12 @@ private:
 void RendererShaderMtl::ShaderCacheLoading_begin(uint64 cacheTitleId)
 {
     // Maximize shader compilation speed
-    static_cast<MetalRenderer*>(g_renderer.get())->GetDevice()->setShouldMaximizeConcurrentCompilation(true);
+    static_cast<MetalRenderer*>(g_renderer.get())->SetShouldMaximizeConcurrentCompilation(true);
 }
 
 void RendererShaderMtl::ShaderCacheLoading_end()
 {
-    static_cast<MetalRenderer*>(g_renderer.get())->GetDevice()->setShouldMaximizeConcurrentCompilation(false);
+    static_cast<MetalRenderer*>(g_renderer.get())->SetShouldMaximizeConcurrentCompilation(false);
 }
 
 void RendererShaderMtl::ShaderCacheLoading_Close()

@@ -2,7 +2,6 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "HW/Latte/Core/LatteTextureLoader.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "Metal/MTLPixelFormat.hpp"
 
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
     {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
