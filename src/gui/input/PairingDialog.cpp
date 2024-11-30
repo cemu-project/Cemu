@@ -1,5 +1,5 @@
 #include "gui/wxgui.h"
-#include "gui/PairingDialog.h"
+#include "PairingDialog.h"
 
 #if BOOST_OS_WINDOWS
 #include <bluetoothapis.h>
