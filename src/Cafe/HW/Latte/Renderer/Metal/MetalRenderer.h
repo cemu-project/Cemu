@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
-#include <cstdint>
 
 struct MetalBufferAllocation
 {
@@ -276,6 +275,12 @@ public:
 
 	// Helpers
 	MetalPerformanceMonitor& GetPerformanceMonitor() { return m_performanceMonitor; }
+
+	void SetShouldMaximizeConcurrentCompilation(bool shouldMaximizeConcurrentCompilation)
+	{
+	    if (m_supportsMetal3)
+	        m_device->setShouldMaximizeConcurrentCompilation(shouldMaximizeConcurrentCompilation);
+	}
 
 	bool IsCommandBufferActive() const
 	{
