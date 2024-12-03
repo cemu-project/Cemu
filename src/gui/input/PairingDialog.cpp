@@ -245,7 +245,7 @@ void PairingDialog::WorkerThread()
 	// Search for device
 	inquiry_info* infos = nullptr;
 	m_cancelButton->Disable();
-	const auto respCount = hci_inquiry(hostId, 5, 4, LIAC_LAP, &infos, IREQ_CACHE_FLUSH);
+	const auto respCount = hci_inquiry(hostId, 7, 4, LIAC_LAP, &infos, IREQ_CACHE_FLUSH);
 	m_cancelButton->Enable();
 	if (respCount <= 0)
 	{
