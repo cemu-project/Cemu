@@ -334,10 +334,12 @@ VKRBuffer* VKRBuffer::Create(VKR_BUFFER_TYPE bufferType, size_t bufferSize, VkMe
 
 VKRBuffer::~VKRBuffer()
 {
-	if(m_mappedMemory)
+	if (m_mappedMemory)
 		vkUnmapMemory(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_bufferMemory);
-	vkFreeMemory(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_bufferMemory, nullptr);
-	vkDestroyBuffer(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_buffer, nullptr);
+	if (m_bufferMemory != VK_NULL_HANDLE)
+		vkFreeMemory(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_bufferMemory, nullptr);
+	if (m_buffer != VK_NULL_HANDLE)
+		vkDestroyBuffer(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_buffer, nullptr);
 }
 
 VkBufferChunkedHeap::~VkBufferChunkedHeap()

@@ -679,6 +679,9 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyDebugUtilsMessengerEXT(m_instance, m_debugCallback, nullptr);
 	}
 
+	// destroy memory manager
+	delete memoryManager;
+
 	// destroy instance, devices
 	if (m_instance != VK_NULL_HANDLE)
 	{
@@ -689,9 +692,6 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyInstance(m_instance, nullptr);
 	}
-
-	// destroy memory manager
-	delete memoryManager;
 
 	// crashes?
 	//glslang::FinalizeProcess();
