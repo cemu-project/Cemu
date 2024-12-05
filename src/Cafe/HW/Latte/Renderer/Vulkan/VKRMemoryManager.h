@@ -44,7 +44,7 @@ struct VkImageMemAllocation
 	uint32 getAllocationSize() { return allocationSize; }
 };
 
-class VkTextureChunkedHeap : private ChunkedHeap
+class VkTextureChunkedHeap : private ChunkedHeap<>
 {
 public:
 	VkTextureChunkedHeap(class VKRMemoryManager* memoryManager, uint32 typeFilter) : m_vkrMemoryManager(memoryManager), m_typeFilter(typeFilter) { };
@@ -80,8 +80,8 @@ public:
 
 	void getStatistics(uint32& totalHeapSize, uint32& allocatedBytes) const
 	{
-		totalHeapSize = numHeapBytes;
-		allocatedBytes = numAllocatedBytes;
+		totalHeapSize = m_numHeapBytes;
+		allocatedBytes = m_numAllocatedBytes;
 	}
 
   private:
@@ -92,7 +92,7 @@ public:
 	std::vector<ChunkInfo> m_list_chunkInfo;
 };
 
-class VkBufferChunkedHeap : private ChunkedHeap
+class VkBufferChunkedHeap : private ChunkedHeap<>
 {
   public:
 	VkBufferChunkedHeap(VKR_BUFFER_TYPE bufferType, size_t minimumBufferAllocationSize) : m_bufferType(bufferType), m_minimumBufferAllocationSize(minimumBufferAllocationSize) { };
@@ -123,8 +123,8 @@ class VkBufferChunkedHeap : private ChunkedHeap
 	void GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const
 	{
 		numBuffers = m_chunkBuffers.size();
-		totalBufferSize = numHeapBytes;
-		freeBufferSize = numHeapBytes - numAllocatedBytes;
+		totalBufferSize = m_numHeapBytes;
+		freeBufferSize = m_numHeapBytes - m_numAllocatedBytes;
 	}
 
 	bool RequiresFlush(uint32 index) const
