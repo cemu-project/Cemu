@@ -46,6 +46,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen = parser.get("fullscreen", fullscreen);
 	proxy_server = parser.get("proxy_server", "");
 	disable_screensaver = parser.get("disable_screensaver", disable_screensaver);
+	play_boot_sound = parser.get("play_boot_sound", play_boot_sound);
 	console_language = parser.get("console_language", console_language.GetInitValue());
 
 	window_position.x = parser.get("window_position").get("x", -1);
@@ -370,6 +371,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("fullscreen", fullscreen);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
 	config.set<bool>("disable_screensaver", disable_screensaver);
+	config.set<bool>("play_boot_sound", play_boot_sound);
 
 	// config.set("cpu_mode", cpu_mode.GetValue());
 	//config.set("console_region", console_region.GetValue());

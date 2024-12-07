@@ -207,8 +207,10 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 #if BOOST_OS_MACOS
 			m_disable_screensaver->Enable(false);
 #endif
-
-			// InsertEmptyRow();
+			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
+			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
+			second_row->Add(m_play_boot_sound, 0, botflag, 5);
+			CountRowElement();
 
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
@@ -936,13 +938,15 @@ void GeneralSettings2::StoreConfig()
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     config.feral_gamemode = m_feral_gamemode->IsChecked();
 #endif
+	config.play_boot_sound = m_play_boot_sound->IsChecked();
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
 	// Toggle while a game is running
 	if (CafeSystem::IsTitleRunning())
 	{
 		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
-	
+
+
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
 	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
 	config.window_size = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
@@ -1574,6 +1578,7 @@ void GeneralSettings2::ApplyConfig()
 	m_save_screenshot->SetValue(config.save_screenshot);
 
 	m_disable_screensaver->SetValue(config.disable_screensaver);
+	m_play_boot_sound->SetValue(config.play_boot_sound);
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     	m_feral_gamemode->SetValue(config.feral_gamemode);
 #endif
@@ -1776,20 +1781,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_tvAudio)
 					channels = g_tvAudio->GetChannels();
 				else
-				{
-					switch (config.tv_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.tv_channels);
 
 				try
 				{
@@ -1824,20 +1816,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_padAudio)
 					channels = g_padAudio->GetChannels();
 				else
-				{
-					switch (config.pad_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.pad_channels);
 
 				try
 				{
@@ -1873,20 +1852,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				if (m_game_launched && g_inputAudio)
 					channels = g_inputAudio->GetChannels();
 				else
-				{
-					switch (config.input_channels)
-					{
-					case 0:
-						channels = 1;
-						break;
-					case 2:
-						channels = 6;
-						break;
-					default: // stereo
-						channels = 2;
-						break;
-					}
-				}
+					channels = CemuConfig::AudioChannelsToNChannels(config.input_channels);
 
 				try
 				{
