@@ -143,6 +143,7 @@ enum
 	// debug->dump
 	MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES = 21600,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS,
+	MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_RAM,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_FST,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS,
@@ -204,8 +205,9 @@ EVT_MENU_RANGE(MAINFRAME_MENU_ID_NFC_RECENT_0 + 0, MAINFRAME_MENU_ID_NFC_RECENT_
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 0, MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 98, MainWindow::OnDebugLoggingToggleFlagGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, MainWindow::OnPPCInfoToggle)
 // debug -> dump menu
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, MainWindow::OnDebugDumpUsedTextures)
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, MainWindow::OnDebugDumpUsedShaders)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, MainWindow::OnDebugDumpGeneric)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, MainWindow::OnDebugDumpGeneric)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, MainWindow::OnDebugDumpGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, MainWindow::OnDebugSetting)
 // debug -> Other options
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, MainWindow::OnDebugSetting)
@@ -1084,45 +1086,35 @@ void MainWindow::OnPPCInfoToggle(wxCommandEvent& event)
 	g_config.Save();
 }
 
-void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
+void MainWindow::OnDebugDumpGeneric(wxCommandEvent& event)
 {
-	const bool value = event.IsChecked();
-	ActiveSettings::EnableDumpTextures(value);
-	if (value)
+	std::string dumpSubpath;
+	std::function<void(bool)> setDumpState;
+	switch(event.GetId())
 	{
-		try
-		{
-			// create directory
-			const fs::path path(ActiveSettings::GetUserDataPath());
-			fs::create_directories(path / "dump" / "textures");
-		}
-		catch (const std::exception& ex)
-		{
-			SystemException sys(ex);
-			cemuLog_log(LogType::Force, "can't create texture dump folder: {}", ex.what());
-			ActiveSettings::EnableDumpTextures(false);
-		}
+	case MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES:
+		dumpSubpath = "dump/textures";
+		setDumpState = ActiveSettings::EnableDumpTextures;
+		break;
+	case MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS:
+		dumpSubpath = "dump/shaders";
+		setDumpState = ActiveSettings::EnableDumpShaders;
+		break;
+	case MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS:
+		dumpSubpath = "dump/recompiler";
+		setDumpState = ActiveSettings::EnableDumpRecompilerFunctions;
+		break;
+	default:
+		UNREACHABLE;
 	}
-}
-
-void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
-{
 	const bool value = event.IsChecked();
-	ActiveSettings::EnableDumpShaders(value);
+	setDumpState(value);
 	if (value)
 	{
-		try
-		{
-			// create directory
-			const fs::path path(ActiveSettings::GetUserDataPath());
-			fs::create_directories(path / "dump" / "shaders");
-		}
-		catch (const std::exception & ex)
-		{
-			SystemException sys(ex);
-			cemuLog_log(LogType::Force, "can't create shaders dump folder: {}", ex.what());
-			ActiveSettings::EnableDumpShaders(false);
-		}
+		std::error_code ec;
+		auto dumpDir = ActiveSettings::GetUserDataPath(dumpSubpath);
+		if(!fs::exists(dumpDir, ec) && !fs::create_directories(dumpDir, ec))
+			setDumpState(false);
 	}
 }
 
@@ -2233,6 +2225,7 @@ void MainWindow::RecreateMenu()
 	wxMenu* debugDumpMenu = new wxMenu;
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, _("&Textures"), wxEmptyString)->Check(ActiveSettings::DumpTexturesEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, _("&Recompiled functions"), wxEmptyString)->Check(ActiveSettings::DumpRecompilerFunctionsEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
 	// debug submenu
 	wxMenu* debugMenu = new wxMenu();

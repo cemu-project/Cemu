@@ -21,6 +21,16 @@ public:
 	};
 
 public:
+	~PPCFunctionBoundaryTracker()
+	{
+		while (!map_ranges.empty())
+		{
+			PPCRange_t* range = *map_ranges.begin();
+			delete range;
+			map_ranges.erase(map_ranges.begin());
+		}
+	}
+
 	void trackStartPoint(MPTR startAddress)
 	{
 		processRange(startAddress, nullptr, nullptr);
@@ -40,10 +50,34 @@ public:
 		return false;
 	}
 
+	std::vector<PPCRange_t> GetRanges()
+	{
+		std::vector<PPCRange_t> r;
+		for (auto& it : map_ranges)
+			r.emplace_back(*it);
+		return r;
+	}
+
+	bool ContainsAddress(uint32 addr) const
+	{
+		for (auto& it : map_ranges)
+		{
+			if (addr >= it->startAddress && addr < it->getEndAddress())
+				return true;
+		}
+		return false;
+	}
+
+	const std::set<uint32>& GetBranchTargets() const
+	{
+		return map_branchTargetsAll;
+	}
+
 private:
 	void addBranchDestination(PPCRange_t* sourceRange, MPTR address)
 	{
-		map_branchTargets.emplace(address);
+		map_queuedBranchTargets.emplace(address);
+		map_branchTargetsAll.emplace(address);
 	}
 
 	// process flow of instruction
@@ -114,7 +148,7 @@ private:
 				Espresso::BOField BO;
 				uint32 BI;
 				bool LK;
-				Espresso::decodeOp_BCLR(opcode, BO, BI, LK);
+				Espresso::decodeOp_BCSPR(opcode, BO, BI, LK);
 				if (BO.branchAlways() && !LK)
 				{
 					// unconditional BLR
@@ -218,7 +252,7 @@ private:
 		auto rangeItr = map_ranges.begin();
 
 		PPCRange_t* previousRange = nullptr;
-		for (std::set<uint32_t>::const_iterator targetItr = map_branchTargets.begin() ; targetItr != map_branchTargets.end(); )
+		for (std::set<uint32_t>::const_iterator targetItr = map_queuedBranchTargets.begin() ; targetItr != map_queuedBranchTargets.end(); )
 		{
 			while (rangeItr != map_ranges.end() && ((*rangeItr)->startAddress + (*rangeItr)->length) <= (*targetItr))
 			{
@@ -239,7 +273,7 @@ private:
 				(*targetItr) < ((*rangeItr)->startAddress + (*rangeItr)->length))
 			{
 				// delete visited targets
-				targetItr = map_branchTargets.erase(targetItr);
+				targetItr = map_queuedBranchTargets.erase(targetItr);
 				continue;
 			}
 
@@ -289,5 +323,6 @@ private:
 	};
 
 	std::set<PPCRange_t*, RangePtrCmp> map_ranges;
-	std::set<uint32> map_branchTargets;
+	std::set<uint32> map_queuedBranchTargets;
+	std::set<uint32> map_branchTargetsAll;
 };
