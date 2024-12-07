@@ -156,10 +156,20 @@ namespace coreinit
 		return &currentThread->crt.eh_mem_manage;
 	}
 
-	void* __gh_errno_ptr()
+	sint32be* __gh_errno_ptr()
 	{
 		OSThread_t* currentThread = coreinit::OSGetCurrentThread();
 		return &currentThread->context.ghs_errno;
+	}
+
+	void __gh_set_errno(sint32 errNo)
+	{
+		*__gh_errno_ptr() = errNo;
+	}
+
+	sint32 __gh_get_errno()
+	{
+		return *__gh_errno_ptr();
 	}
 
 	void* __get_eh_store_globals()
@@ -272,6 +282,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", __get_eh_globals, LogType::Placeholder);
 		cafeExportRegister("coreinit", __get_eh_mem_manage, LogType::Placeholder);
 		cafeExportRegister("coreinit", __gh_errno_ptr, LogType::Placeholder);
+		cafeExportRegister("coreinit", __gh_set_errno, LogType::Placeholder);
+		cafeExportRegister("coreinit", __gh_get_errno, LogType::Placeholder);
 		cafeExportRegister("coreinit", __get_eh_store_globals, LogType::Placeholder);
 		cafeExportRegister("coreinit", __get_eh_store_globals_tdeh, LogType::Placeholder);
 
