@@ -2,6 +2,7 @@
 
 #include "Common/precompiled.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "HW/Latte/Core/LatteShader.h"
 
 namespace LatteDecompiler
 {
@@ -185,6 +186,7 @@ namespace LatteDecompiler
 
 		LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
 		auto parameterMask = shaderContext->shader->outputParameterMask;
+		bool psInputsWritten[GPU7_PS_MAX_INPUTS] = {false};
 		for (uint32 i = 0; i < 32; i++)
 		{
 			if ((parameterMask&(1 << i)) == 0)
@@ -205,6 +207,8 @@ namespace LatteDecompiler
 			if (psInputIndex == -1)
 				continue; // no ps input
 
+			psInputsWritten[psInputIndex] = true;
+
 			src->addFmt("float4 passParameterSem{}", psInputTable->import[psInputIndex].semanticId);
 			if (!isRectVertexShader)
 			{
@@ -215,6 +219,19 @@ namespace LatteDecompiler
     				src->add(" [[center_no_perspective]]");
 			}
 			src->addFmt(";" _CRLF);
+		}
+
+		// TODO: handle this in the fragment shader instead?
+		// Declare all PS inputs that are not written by the VS
+		for (uint32 i = 0; i < psInputTable->count; i++)
+		{
+		    if (psInputsWritten[i])
+				continue;
+
+			if (psInputTable->import[i].semanticId > LATTE_ANALYZER_IMPORT_INDEX_PARAM_MAX)
+				continue;
+
+			src->addFmt("float4 unknown{} [[user(locn{})]];" _CRLF, psInputTable->import[i].semanticId, i);
 		}
 
 		src->add("};" _CRLF _CRLF);
