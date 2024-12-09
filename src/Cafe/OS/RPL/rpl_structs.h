@@ -116,7 +116,7 @@ typedef struct
 	/* +0x34 */ uint32be ukn34;
 	/* +0x38 */ uint32be ukn38;
 	/* +0x3C */ uint32be ukn3C;
-	/* +0x40 */ uint32be toolkitVersion;
+	/* +0x40 */ uint32be minimumToolkitVersion;
 	/* +0x44 */ uint32be ukn44;
 	/* +0x48 */ uint32be ukn48;
 	/* +0x4C */ uint32be ukn4C;

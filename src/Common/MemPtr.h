@@ -98,35 +98,36 @@ class MEMPTR : MEMPTRBase
 		return MEMPTR<X>(this->m_value);
 	}
 
-	MEMPTR operator+(const MEMPTR& ptr) noexcept
+	sint32 operator-(const MEMPTR& ptr) noexcept
+		requires(!std::is_void_v<T>)
 	{
-		return MEMPTR(this->GetMPTR() + ptr.GetMPTR());
-	}
-	MEMPTR operator-(const MEMPTR& ptr) noexcept
-	{
-		return MEMPTR(this->GetMPTR() - ptr.GetMPTR());
+		return static_cast<sint32>(this->GetMPTR() - ptr.GetMPTR());
 	}
 
 	MEMPTR operator+(sint32 v) noexcept
+		requires(!std::is_void_v<T>)
 	{
 		// pointer arithmetic
-		return MEMPTR(this->GetMPTR() + v * 4);
+		return MEMPTR(this->GetMPTR() + v * sizeof(T));
 	}
 
 	MEMPTR operator-(sint32 v) noexcept
+		requires(!std::is_void_v<T>)
 	{
 		// pointer arithmetic
-		return MEMPTR(this->GetMPTR() - v * 4);
+		return MEMPTR(this->GetMPTR() - v * sizeof(T));
 	}
 
 	MEMPTR& operator+=(sint32 v) noexcept
+		requires(!std::is_void_v<T>)
 	{
 		m_value += v * sizeof(T);
 		return *this;
 	}
 
 	template<typename Q = T>
-	std::enable_if_t<!std::is_same_v<Q, void>, Q>& operator*() const noexcept
+		requires(!std::is_void_v<Q>)
+	Q& operator*() const noexcept
 	{
 		return *GetPtr();
 	}
@@ -137,7 +138,8 @@ class MEMPTR : MEMPTRBase
 	}
 
 	template<typename Q = T>
-	std::enable_if_t<!std::is_same_v<Q, void>, Q>& operator[](int index) noexcept
+		requires(!std::is_void_v<Q>)
+	Q& operator[](int index) noexcept
 	{
 		return GetPtr()[index];
 	}

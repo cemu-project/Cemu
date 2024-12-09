@@ -10,7 +10,7 @@ public:
 
     bool write_data(const std::vector<uint8> &data) override;
     std::optional<std::vector<uint8>> read_data() override;
-    bool operator==(WiimoteDevice& o) const override;
+    bool operator==(const WiimoteDevice& o) const override;
 
     static std::vector<WiimoteDevicePtr> get_devices();
 
@@ -19,5 +19,3 @@ private:
     const std::string m_path;
 
 };
-
-using WiimoteDevice_t = HidapiWiimote;

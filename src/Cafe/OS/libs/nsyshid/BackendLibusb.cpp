@@ -15,7 +15,7 @@ namespace nsyshid::backend::libusb
 		if (m_initReturnCode < 0)
 		{
 			m_ctx = nullptr;
-			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb with return code %i",
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb, return code: {}",
 							 m_initReturnCode);
 			return;
 		}
@@ -35,7 +35,7 @@ namespace nsyshid::backend::libusb
 			if (ret != LIBUSB_SUCCESS)
 			{
 				cemuLog_logDebug(LogType::Force,
-								 "nsyshid::BackendLibusb: failed to register hotplug callback with return code %i",
+								 "nsyshid::BackendLibusb: failed to register hotplug callback with return code {}",
 								 ret);
 			}
 			else
@@ -415,7 +415,7 @@ namespace nsyshid::backend::libusb
 			if (ret < 0)
 			{
 				cemuLog_log(LogType::Force,
-							"nsyshid::DeviceLibusb::open(): failed to get device descriptor; return code: %i",
+							"nsyshid::DeviceLibusb::open(): failed to get device descriptor, return code: {}",
 							ret);
 				libusb_free_device_list(devices, 1);
 				return false;
@@ -439,8 +439,8 @@ namespace nsyshid::backend::libusb
 				{
 					this->m_libusbHandle = nullptr;
 					cemuLog_log(LogType::Force,
-								"nsyshid::DeviceLibusb::open(): failed to open device; return code: %i",
-								ret);
+								"nsyshid::DeviceLibusb::open(): failed to open device: {}",
+								libusb_strerror(ret));
 					libusb_free_device_list(devices, 1);
 					return false;
 				}

@@ -234,6 +234,12 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 			g_config.Save();
 		}
 	}
+	else
+	{
+		// default path is not writeable. Just let the user know and quit. Unsure if it would be a good idea to ask the user to choose an alternative path instead
+		wxMessageBox(formatWxString(_("Cemu failed to write to the default mlc directory.\nThe path is:\n{}"), wxHelper::FromPath(mlc)), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+		exit(0);
+	}
 }
 
 bool CemuApp::OnInit()
@@ -507,6 +513,13 @@ bool CemuApp::CreateDefaultMLCFiles(const fs::path& mlc)
 			file.flush();
 			file.close();
 		}
+		// create a dummy file in the mlc folder to check if it's writable
+		const auto dummyFile = fs::path(mlc).append("writetestdummy");
+		std::ofstream file(dummyFile);
+		if (!file.is_open())
+			return false;
+		file.close();
+		fs::remove(dummyFile);
 	}
 	catch (const std::exception& ex)
 	{
