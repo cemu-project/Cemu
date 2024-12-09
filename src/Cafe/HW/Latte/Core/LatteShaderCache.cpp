@@ -167,13 +167,14 @@ class BootSoundPlayer
 	BootSoundPlayer() = default;
 	~BootSoundPlayer()
 	{
-		StopSound();
+		m_stopRequested = true;
 	}
 
 	void StartSound()
 	{
 		if (!m_bootSndPlayThread.joinable())
 		{
+			m_fadeOutRequested = false;
 			m_stopRequested = false;
 			m_volumeFactor = 1.0f;
 			m_bootSndPlayThread = std::thread{[this]() {
@@ -182,9 +183,9 @@ class BootSoundPlayer
 		}
 	}
 
-	void StopSound()
+	void FadeOutSound()
 	{
-		m_stopRequested = true;
+		m_fadeOutRequested = true;
 	}
 
 	void ApplyFadeOutEffect(std::span<sint16> samples, float fadeStep)
@@ -239,7 +240,7 @@ class BootSoundPlayer
 		constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
 		BootSoundReader bootSndFileReader(bootSndFileHandle, audioBlockSize);
 
-		while(m_volumeFactor > 0)
+		while(m_volumeFactor > 0 && !m_stopRequested)
 		{
 			while (bootSndAudioDev->NeedAdditionalBlocks())
 			{
@@ -247,11 +248,10 @@ class BootSoundPlayer
 				if(data == nullptr)
 				{
 					// break outer loop
-					m_volumeFactor = 0.0f;
 					m_stopRequested = true;
 					break;
 				}
-				if(m_stopRequested)
+				if(m_fadeOutRequested)
 					ApplyFadeOutEffect({data, samplesPerBlock * 2}, 1.0f / (sampleRate * 10.0f));
 
 				bootSndAudioDev->FeedBlock(data);
@@ -266,6 +266,7 @@ class BootSoundPlayer
 
   private:
 	std::thread m_bootSndPlayThread;
+	std::atomic_bool m_fadeOutRequested = false;
 	std::atomic_bool m_stopRequested = false;
 	float m_volumeFactor = 1.0f;
 };
@@ -485,7 +486,7 @@ void LatteShaderCache_Load()
 	if (g_shaderCacheLoaderState.textureDRCId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
 
-	g_bootSndPlayer.StopSound();
+	g_bootSndPlayer.FadeOutSound();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
