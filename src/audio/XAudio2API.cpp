@@ -270,9 +270,7 @@ bool XAudio2API::FeedBlock(sint16* data)
 	// check if we queued too many blocks
 	if (m_blocks_queued >= kBlockCount)
 	{
-		XAUDIO2_VOICE_STATE state{};
-		m_source_voice->GetState(&state);
-		m_blocks_queued = state.BuffersQueued;
+		m_blocks_queued = GetQueuedBuffers();
 
 		if (m_blocks_queued >= kBlockCount)
 		{
@@ -293,7 +291,14 @@ bool XAudio2API::FeedBlock(sint16* data)
 	return true;
 }
 
+uint32 XAudio2API::GetQueuedBuffers() const
+{
+	XAUDIO2_VOICE_STATE state{};
+	m_source_voice->GetState(&state);
+	return state.BuffersQueued;
+}
+
 bool XAudio2API::NeedAdditionalBlocks() const
 {
-	return m_blocks_queued < s_audioDelay;
+	return GetQueuedBuffers() < GetAudioDelay();
 }
