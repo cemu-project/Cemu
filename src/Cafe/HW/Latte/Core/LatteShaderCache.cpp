@@ -161,6 +161,116 @@ bool LoadTGAFile(const std::vector<uint8>& buffer, TGAFILE *tgaFile)
 	return true;
 }
 
+class BootSoundPlayer
+{
+  public:
+	BootSoundPlayer() = default;
+	~BootSoundPlayer()
+	{
+		StopSound();
+	}
+
+	void StartSound()
+	{
+		if (!m_bootSndPlayThread.joinable())
+		{
+			m_stopRequested = false;
+			m_volumeFactor = 1.0f;
+			m_bootSndPlayThread = std::thread{[this]() {
+				StreamBootSound();
+			}};
+		}
+	}
+
+	void StopSound()
+	{
+		m_stopRequested = true;
+	}
+
+	void ApplyFadeOutEffect(std::span<sint16> samples, float fadeStep)
+	{
+		for(auto& i : samples)
+		{
+			i *= m_volumeFactor;
+			if(m_volumeFactor >= fadeStep)
+				m_volumeFactor -= fadeStep;
+			else
+				m_volumeFactor = 0;
+		}
+	}
+
+	void StreamBootSound()
+	{
+		constexpr sint32 sampleRate = 48'000;
+		constexpr sint32 bitsPerSample = 16;
+		constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
+		constexpr sint32 nChannels = 2;
+		static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
+
+		AudioAPIPtr bootSndAudioDev;
+
+		try
+		{
+			bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
+			if(!bootSndAudioDev)
+				return;
+		}
+		catch (const std::runtime_error& ex)
+		{
+			cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
+			return;
+		}
+		bootSndAudioDev->SetAudioDelayOverride(4);
+		bootSndAudioDev->Play();
+
+		std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
+		sint32 fscStatus = FSC_STATUS_UNDEFINED;
+
+		if(!fsc_doesFileExist(sndPath.c_str()))
+			return;
+
+		FSCVirtualFile* bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+		if(!bootSndFileHandle)
+		{
+			cemuLog_log(LogType::Force, "failed to open bootSound.btsnd");
+			return;
+		}
+
+		constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
+		BootSoundReader bootSndFileReader(bootSndFileHandle, audioBlockSize);
+
+		while(m_volumeFactor > 0)
+		{
+			while (bootSndAudioDev->NeedAdditionalBlocks())
+			{
+				sint16* data = bootSndFileReader.getSamples();
+				if(data == nullptr)
+				{
+					// break outer loop
+					m_volumeFactor = 0.0f;
+					m_stopRequested = true;
+					break;
+				}
+				if(m_stopRequested)
+					ApplyFadeOutEffect({data, samplesPerBlock * 2}, 1.0f / (sampleRate * 10.0f));
+
+				bootSndAudioDev->FeedBlock(data);
+			}
+			// sleep for the duration of a single block
+			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (sampleRate/ 1'000)));
+		}
+
+		if(bootSndFileHandle)
+			fsc_close(bootSndFileHandle);
+	}
+
+  private:
+	std::thread m_bootSndPlayThread;
+	std::atomic_bool m_stopRequested = false;
+	float m_volumeFactor = 1.0f;
+};
+static BootSoundPlayer g_bootSndPlayer;
+
 void LatteShaderCache_finish()
 {
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
@@ -305,9 +415,8 @@ void LatteShaderCache_Load()
 	loadBackgroundTexture(true, g_shaderCacheLoaderState.textureTVId);
 	loadBackgroundTexture(false, g_shaderCacheLoaderState.textureDRCId);
 
-	// initialise resources for playing bootup sound
 	if(GetConfig().play_boot_sound)
-		LatteShaderCache_InitBootSound();
+		g_bootSndPlayer.StartSound();
 
 	sint32 numLoadedShaders = 0;
 	uint32 loadIndex = 0;
@@ -376,8 +485,7 @@ void LatteShaderCache_Load()
 	if (g_shaderCacheLoaderState.textureDRCId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
 
-	// free resources for playing boot sound
-	LatteShaderCache_ShutdownBootSound();
+	g_bootSndPlayer.StopSound();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
@@ -818,87 +926,4 @@ void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path 
 			fs::remove(pathGenericPre1_25_0, ec);
 		}
 	}
-}
-
-static std::atomic<bool> audiothread_keeprunning = true;
-
-void LatteShaderCache_StreamBootSound()
-{
-	constexpr sint32 sampleRate = 48'000;
-	constexpr sint32 bitsPerSample = 16;
-	constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
-	constexpr sint32 nChannels = 2;
-	static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
-
-	AudioAPIPtr bootSndAudioDev;
-	std::unique_ptr<BootSoundReader> bootSndFileReader;
-	FSCVirtualFile* bootSndFileHandle = 0;
-
-	try
-	{
-		bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
-		if(!bootSndAudioDev)
-			return;
-	}
-	catch (const std::runtime_error& ex)
-	{
-		cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
-		return;
-	}
-	bootSndAudioDev->SetAudioDelayOverride(4);
-	bootSndAudioDev->Play();
-
-	std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
-	sint32 fscStatus = FSC_STATUS_UNDEFINED;
-
-	if(!fsc_doesFileExist(sndPath.c_str()))
-		return;
-
-	bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
-	if(!bootSndFileHandle)
-	{
-		cemuLog_log(LogType::Force, "failed to open bootSound.btsnd");
-		return;
-	}
-
-	constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
-	bootSndFileReader = std::make_unique<BootSoundReader>(bootSndFileHandle, audioBlockSize);
-
-	if(bootSndAudioDev && bootSndFileHandle && bootSndFileReader)
-	{
-		while(audiothread_keeprunning)
-		{
-			while (bootSndAudioDev->NeedAdditionalBlocks())
-			{
-				sint16* data = bootSndFileReader->getSamples();
-				if(data == nullptr)
-				{
-					audiothread_keeprunning = false;
-					break;
-				}
-				bootSndAudioDev->FeedBlock(data);
-			}
-			// sleep for the duration of a single block
-			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (sampleRate/ 1'000)));
-		}
-	}
-
-	if(bootSndFileHandle)
-		fsc_close(bootSndFileHandle);
-}
-
-static std::thread g_bootSndPlayThread;
-void LatteShaderCache_InitBootSound()
-{
-	audiothread_keeprunning = true;
-	if(!g_bootSndPlayThread.joinable())
-		g_bootSndPlayThread = std::thread{LatteShaderCache_StreamBootSound};
-}
-
-void LatteShaderCache_ShutdownBootSound()
-{
-	audiothread_keeprunning = false;
-	if(g_bootSndPlayThread.joinable())
-		g_bootSndPlayThread.join();
-	g_bootSndPlayThread = {};
 }
