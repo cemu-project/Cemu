@@ -192,7 +192,7 @@ class BootSoundPlayer
 	{
 		for(size_t i = 0; i < samples.size(); i++)
 		{
-			float decibel = (float)m_fadeOutSample / fadeOutDuration * -100.0f;
+			float decibel = (float)m_fadeOutSample / fadeOutDuration * -60.0f;
 			float volumeFactor = pow(10,decibel/20);
 			samples[i] *= volumeFactor;
 			if(i % 2 == 1)
@@ -206,7 +206,7 @@ class BootSoundPlayer
 		constexpr sint32 bitsPerSample = 16;
 		constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
 		constexpr sint32 nChannels = 2;
-		constexpr uint64 fadeOutDuration = sampleRate * 3 / 2; // fadeout should last ~1.5 seconds
+		constexpr uint64 fadeOutDuration = sampleRate * 2; // fadeout should last 2 seconds
 		static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
 
 		AudioAPIPtr bootSndAudioDev;
