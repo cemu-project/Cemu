@@ -190,12 +190,13 @@ class BootSoundPlayer
 
 	void ApplyFadeOutEffect(std::span<sint16> samples, uint64 fadeOutDuration)
 	{
-		for(auto& i : samples)
+		for(size_t i = 0; i < samples.size(); i++)
 		{
 			float decibel = (float)m_fadeOutSample / fadeOutDuration * -100.0f;
 			float volumeFactor = pow(10,decibel/20);
-			i *= volumeFactor;
-			m_fadeOutSample++;
+			samples[i] *= volumeFactor;
+			if(i % 2 == 1)
+				m_fadeOutSample++;
 		}
 	}
 
