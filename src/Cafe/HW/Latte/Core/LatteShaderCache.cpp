@@ -176,7 +176,7 @@ class BootSoundPlayer
 		{
 			m_fadeOutRequested = false;
 			m_stopRequested = false;
-			m_volumeFactor = 1.0f;
+			m_fadeOutSample = 0;
 			m_bootSndPlayThread = std::thread{[this]() {
 				StreamBootSound();
 			}};
@@ -188,15 +188,14 @@ class BootSoundPlayer
 		m_fadeOutRequested = true;
 	}
 
-	void ApplyFadeOutEffect(std::span<sint16> samples, float fadeStep)
+	void ApplyFadeOutEffect(std::span<sint16> samples, uint64 fadeOutDuration)
 	{
 		for(auto& i : samples)
 		{
-			i *= m_volumeFactor;
-			if(m_volumeFactor >= fadeStep)
-				m_volumeFactor -= fadeStep;
-			else
-				m_volumeFactor = 0;
+			float decibel = (float)m_fadeOutSample / fadeOutDuration * -100.0f;
+			float volumeFactor = pow(10,decibel/20);
+			i *= volumeFactor;
+			m_fadeOutSample++;
 		}
 	}
 
@@ -206,6 +205,7 @@ class BootSoundPlayer
 		constexpr sint32 bitsPerSample = 16;
 		constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
 		constexpr sint32 nChannels = 2;
+		constexpr uint64 fadeOutDuration = sampleRate * 3 / 2; // fadeout should last ~1.5 seconds
 		static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
 
 		AudioAPIPtr bootSndAudioDev;
@@ -240,7 +240,7 @@ class BootSoundPlayer
 		constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
 		BootSoundReader bootSndFileReader(bootSndFileHandle, audioBlockSize);
 
-		while(m_volumeFactor > 0 && !m_stopRequested)
+		while(m_fadeOutSample < fadeOutDuration && !m_stopRequested)
 		{
 			while (bootSndAudioDev->NeedAdditionalBlocks())
 			{
@@ -252,7 +252,7 @@ class BootSoundPlayer
 					break;
 				}
 				if(m_fadeOutRequested)
-					ApplyFadeOutEffect({data, samplesPerBlock * 2}, 1.0f / (sampleRate * 10.0f));
+					ApplyFadeOutEffect({data, samplesPerBlock * 2}, fadeOutDuration);
 
 				bootSndAudioDev->FeedBlock(data);
 			}
@@ -268,7 +268,7 @@ class BootSoundPlayer
 	std::thread m_bootSndPlayThread;
 	std::atomic_bool m_fadeOutRequested = false;
 	std::atomic_bool m_stopRequested = false;
-	float m_volumeFactor = 1.0f;
+	uint64 m_fadeOutSample = 0;
 };
 static BootSoundPlayer g_bootSndPlayer;
 
