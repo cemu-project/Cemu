@@ -253,7 +253,7 @@ class BootSoundPlayer
 					break;
 				}
 				if(m_fadeOutRequested)
-					ApplyFadeOutEffect({data, samplesPerBlock * 2}, fadeOutDuration);
+					ApplyFadeOutEffect({data, samplesPerBlock * nChannels}, fadeOutDuration);
 
 				bootSndAudioDev->FeedBlock(data);
 			}
