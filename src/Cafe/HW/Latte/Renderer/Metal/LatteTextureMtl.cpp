@@ -56,6 +56,10 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
     }
     desc->setTextureType(textureType);
 
+    // Clamp mip levels
+    mipLevels = std::min(mipLevels, (uint32)maxPossibleMipLevels);
+    mipLevels = std::max(mipLevels, (uint32)1);
+
 	desc->setWidth(effectiveBaseWidth);
 	desc->setHeight(effectiveBaseHeight);
 	desc->setMipmapLevelCount(mipLevels);

@@ -1308,6 +1308,40 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 	{
 		this->enableReadback = true;
 	}
+
+	// calculate number of potential mip levels (from effective size)
+	sint32 effectiveWidth = width;
+	sint32 effectiveHeight = height;
+	sint32 effectiveDepth = depth;
+	if (this->overwriteInfo.hasResolutionOverwrite)
+	{
+		effectiveWidth = this->overwriteInfo.width;
+		effectiveHeight = this->overwriteInfo.height;
+		effectiveDepth = this->overwriteInfo.depth;
+	}
+	this->maxPossibleMipLevels = 1;
+	if (dim != Latte::E_DIM::DIM_3D)
+	{
+		for (sint32 i = 0; i < 20; i++)
+		{
+			if ((effectiveWidth >> i) <= 1 && (effectiveHeight >> i) <= 1)
+			{
+				this->maxPossibleMipLevels = i + 1;
+				break;
+			}
+		}
+	}
+	else
+	{
+		for (sint32 i = 0; i < 20; i++)
+		{
+			if ((effectiveWidth >> i) <= 1 && (effectiveHeight >> i) <= 1 && (effectiveDepth >> i) <= 1)
+			{
+				this->maxPossibleMipLevels = i + 1;
+				break;
+			}
+		}
+	}
 }
 
 LatteTexture::~LatteTexture()

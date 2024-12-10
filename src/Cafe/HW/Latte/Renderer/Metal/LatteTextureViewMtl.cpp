@@ -180,6 +180,10 @@ MTL::Texture* LatteTextureViewMtl::CreateSwizzledView(uint32 gpuSamplerSwizzle)
     swizzle.blue = GetMtlTextureSwizzle(compSelB);
     swizzle.alpha = GetMtlTextureSwizzle(compSelA);
 
+    // Clamp mip levels
+    levelCount = std::min(levelCount, m_baseTexture->maxPossibleMipLevels - baseLevel);
+    levelCount = std::max(levelCount, (uint32)1);
+
     auto pixelFormat = GetMtlPixelFormat(format, m_baseTexture->IsDepth());
     MTL::Texture* texture = m_baseTexture->GetTexture()->newTextureView(pixelFormat, textureType, NS::Range::Make(baseLevel, levelCount), NS::Range::Make(baseLayer, layerCount), swizzle);
 
