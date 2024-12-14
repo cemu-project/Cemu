@@ -636,7 +636,7 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
 {
     if (!FormatIsRenderable(hostTexture->format))
     {
-        cemuLog_logOnce(LogType::Force, "cannot clear texture with pixel format {}, because it's not renderable", hostTexture->format);
+        cemuLog_logOnce(LogType::Force, "cannot clear color texture with format {}, because it's not renderable", hostTexture->format);
         return;
     }
 
