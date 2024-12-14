@@ -69,9 +69,6 @@ void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId);
 bool LatteShaderCache_updatePipelineLoadingProgress();
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines);
 
-void LatteShaderCache_InitBootSound();
-void LatteShaderCache_ShutdownBootSound();
-
 void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path pathGenericPre1_25_0, fs::path pathGenericPre1_16_0);
 
 struct
@@ -201,6 +198,7 @@ class BootSoundPlayer
 
 	void StreamBootSound()
 	{
+		SetThreadName("bootsnd");
 		constexpr sint32 sampleRate = 48'000;
 		constexpr sint32 bitsPerSample = 16;
 		constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
