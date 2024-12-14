@@ -81,7 +81,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	desc->setPixelFormat(pixelFormat);
 
 	MTL::TextureUsage usage = MTL::TextureUsageShaderRead | MTL::TextureUsagePixelFormatView;
-	if (!Latte::IsCompressedFormat(format))
+	if (FormatIsRenderable(format))
 		usage |= MTL::TextureUsageRenderTarget;
 	desc->setUsage(usage);
 

@@ -84,3 +84,8 @@ inline bool CommandBufferCompleted(MTL::CommandBuffer* commandBuffer)
     auto status = commandBuffer->status();
     return (status == MTL::CommandBufferStatusCompleted || status == MTL::CommandBufferStatusError);
 }
+
+inline bool FormatIsRenderable(Latte::E_GX2SURFFMT format)
+{
+    return !Latte::IsCompressedFormat(format);
+}

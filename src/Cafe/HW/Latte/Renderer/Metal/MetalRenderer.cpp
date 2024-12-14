@@ -634,6 +634,12 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
 {
+    if (!FormatIsRenderable(hostTexture->format))
+    {
+        cemuLog_logOnce(LogType::Force, "cannot clear texture with pixel format {}, because it's not renderable", hostTexture->format);
+        return;
+    }
+
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
 
     ClearColorTextureInternal(mtlTexture, sliceIndex, mipIndex, r, g, b, a);
@@ -641,6 +647,13 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
 
 void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sliceIndex, sint32 mipIndex, bool clearDepth, bool clearStencil, float depthValue, uint32 stencilValue)
 {
+    clearStencil = (clearStencil && GetMtlPixelFormatInfo(hostTexture->format, true).hasStencil);
+    if (!clearDepth && !clearStencil)
+    {
+        cemuLog_logOnce(LogType::Force, "skipping depth/stencil clear");
+        return;
+    }
+
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
 
     MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
@@ -654,7 +667,7 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
         depthAttachment->setSlice(sliceIndex);
         depthAttachment->setLevel(mipIndex);
     }
-    if (clearStencil && GetMtlPixelFormatInfo(hostTexture->format, true).hasStencil)
+    if (clearStencil)
     {
         auto stencilAttachment = renderPassDescriptor->stencilAttachment();
         stencilAttachment->setTexture(mtlTexture);
@@ -2046,8 +2059,6 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
     colorAttachment->setSlice(sliceIndex);
     colorAttachment->setLevel(mipIndex);
 
-    MTL::Texture* colorRenderTargets[8] = {nullptr};
-    colorRenderTargets[0] = mtlTexture;
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderPassDescriptor->release();
     EndEncoding();
