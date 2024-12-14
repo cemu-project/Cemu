@@ -22,7 +22,8 @@ BootSoundReader::BootSoundReader(FSCVirtualFile* bootsndFile, sint32 blockSize) 
 sint16* BootSoundReader::getSamples()
 {
 	size_t totalRead = 0;
-	while(totalRead < blockSize)
+	const size_t loopPointOffset = 8 + loopPoint * 4;
+	while (totalRead < blockSize)
 	{
 		auto read = fsc_readFile(bootsndFile, bufferBE.data(), blockSize - totalRead);
 		if (read == 0)
@@ -39,8 +40,12 @@ sint16* BootSoundReader::getSamples()
 		std::copy_n(bufferBE.begin(), read / sizeof(sint16be), buffer.begin() + (totalRead / sizeof(sint16)));
 		totalRead += read;
 		if (totalRead < blockSize)
-			fsc_setFileSeek(bootsndFile, 8 + loopPoint * 4);
+			fsc_setFileSeek(bootsndFile, loopPointOffset);
 	}
+
+	// handle case where the end of a block of samples lines up with the end of the file
+	if(fsc_getFileSeek(bootsndFile) == fsc_getFileSize(bootsndFile))
+		fsc_setFileSeek(bootsndFile, loopPointOffset);
 
 	return buffer.data();
 }
