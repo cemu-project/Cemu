@@ -462,7 +462,7 @@ struct CemuConfig
 
 	// graphics
 	ConfigValue<GraphicAPI> graphic_api{ kVulkan };
-	std::array<uint8, 16> graphic_device_uuid;
+	std::string graphic_device_name;
 	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = on depending on render backend
 	ConfigValue<bool> gx2drawdone_sync {true};
 	ConfigValue<bool> render_upside_down{ false };

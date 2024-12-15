@@ -156,19 +156,7 @@ public:
 		sint32 texelCountY;
 	}FormatInfoVK;
 
-	struct DeviceInfo
-	{
-		DeviceInfo(const std::string name, uint8* uuid)
-			: name(name)
-		{
-			std::copy(uuid, uuid + VK_UUID_SIZE, this->uuid.data());
-		}
-
-		std::string name;
-		std::array<uint8, VK_UUID_SIZE> uuid;
-	};
-
-	static std::vector<DeviceInfo> GetDevices();
+	static std::vector<std::string> GetDevices();
 	VulkanRenderer();
 	virtual ~VulkanRenderer();
 
