@@ -15,6 +15,8 @@
 #include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
 #include <wx/mstream.h> // for wxMemoryInputStream
 
+wxDEFINE_EVENT(wxEVT_DISASMCTRL_NOTIFY_GOTO_ADDRESS, wxCommandEvent);
+
 #define MAX_SYMBOL_LEN			(120)
 
 #define COLOR_DEBUG_ACTIVE_BP	0xFFFFA0FF
@@ -74,6 +76,8 @@ DisasmCtrl::DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& po
 	auto tooltip_sizer = new wxBoxSizer(wxVERTICAL);
 	tooltip_sizer->Add(new wxStaticText(m_tooltip_window, wxID_ANY, wxEmptyString), 0, wxALL, 5);
 	m_tooltip_window->SetSizer(tooltip_sizer);
+
+	Bind(wxEVT_MENU, &DisasmCtrl::OnContextMenuEntryClicked, this, IDContextMenu_ToggleBreakpoint, IDContextMenu_Last);
 }
 
 void DisasmCtrl::Init()
@@ -662,29 +666,67 @@ void DisasmCtrl::CopyToClipboard(std::string text) {
 #endif
 }
 
+static uint32 GetUnrelocatedAddress(MPTR address)
+{
+	RPLModule* rplModule = RPLLoader_FindModuleByCodeAddr(address);
+	if (!rplModule)
+		return 0;
+	if (address >= rplModule->regionMappingBase_text.GetMPTR() && address < (rplModule->regionMappingBase_text.GetMPTR() + rplModule->regionSize_text))
+		return 0x02000000 + (address - rplModule->regionMappingBase_text.GetMPTR());
+	return 0;
+}
+
 void DisasmCtrl::OnContextMenu(const wxPoint& position, uint32 line)
 {
-	wxPoint pos = position;
 	auto optVirtualAddress = LinePixelPosToAddress(position.y - GetViewStart().y * m_line_height);
 	if (!optVirtualAddress)
 		return;
 	MPTR virtualAddress = *optVirtualAddress;
+	m_contextMenuAddress = virtualAddress;
+	// show dialog
+	wxMenu menu;
+	menu.Append(IDContextMenu_ToggleBreakpoint, _("Toggle breakpoint"));
+	if(debugger_hasPatch(virtualAddress))
+		menu.Append(IDContextMenu_RestoreOriginalInstructions, _("Restore original instructions"));
+	menu.AppendSeparator();
+	menu.Append(IDContextMenu_CopyAddress, _("Copy address"));
+	uint32 unrelocatedAddress = GetUnrelocatedAddress(virtualAddress);
+	if (unrelocatedAddress && unrelocatedAddress != virtualAddress)
+		menu.Append(IDContextMenu_CopyUnrelocatedAddress, _("Copy virtual address (for IDA/Ghidra)"));
+	PopupMenu(&menu);
+}
 
-	// address
-	if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE)
+void DisasmCtrl::OnContextMenuEntryClicked(wxCommandEvent& event)
+{
+	switch(event.GetId())
 	{
-		CopyToClipboard(fmt::format("{:#10x}", virtualAddress));
-		return;
-	}
-	else if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE + OFFSET_DISASSEMBLY)
-	{
-		// double-clicked on disassembly (operation and operand data)
-		return;
-	}
-	else
-	{
-		// comment
-		return;
+		case IDContextMenu_ToggleBreakpoint:
+		{
+			debugger_toggleExecuteBreakpoint(m_contextMenuAddress);
+			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
+			wxPostEvent(this->m_parent, evt);
+			break;
+		}
+		case IDContextMenu_RestoreOriginalInstructions:
+		{
+			debugger_removePatch(m_contextMenuAddress);
+			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE); // This also refreshes the disassembly view
+			wxPostEvent(this->m_parent, evt);
+			break;
+		}
+		case IDContextMenu_CopyAddress:
+		{
+			CopyToClipboard(fmt::format("{:#10x}", m_contextMenuAddress));
+			break;
+		}
+		case IDContextMenu_CopyUnrelocatedAddress:
+		{
+			uint32 unrelocatedAddress = GetUnrelocatedAddress(m_contextMenuAddress);
+			CopyToClipboard(fmt::format("{:#10x}", unrelocatedAddress));
+			break;
+		}
+		default:
+			UNREACHABLE;
 	}
 }
 
@@ -722,7 +764,6 @@ std::optional<MPTR> DisasmCtrl::LinePixelPosToAddress(sint32 posY)
 	if (posY < 0)
 		return std::nullopt;
 
-
 	sint32 lineIndex = posY / m_line_height;
 	if (lineIndex >= m_lineToAddress.size())
 		return std::nullopt;
@@ -751,8 +792,6 @@ void DisasmCtrl::CenterOffset(uint32 offset)
 
 	m_active_line = line;
 	RefreshLine(m_active_line);
-
-	debug_printf("scroll to %x\n", debuggerState.debugSession.instructionPointer);
 }
 
 void DisasmCtrl::GoToAddressDialog()
@@ -765,6 +804,10 @@ void DisasmCtrl::GoToAddressDialog()
 		auto value = goto_dialog.GetValue().ToStdString();
 		std::transform(value.begin(), value.end(), value.begin(), tolower);
 
+		// trim any leading spaces
+		while(!value.empty() && value[0] == ' ')
+			value.erase(value.begin());
+
 		debugger_addParserSymbols(parser);
 
 		// try to parse expression as hex value first (it should interpret 1234 as 0x1234, not 1234)
@@ -773,17 +816,24 @@ void DisasmCtrl::GoToAddressDialog()
 			const auto result = (uint32)parser.Evaluate("0x"+value);
 			m_lastGotoTarget = result;
 			CenterOffset(result);
+			wxCommandEvent evt(wxEVT_DISASMCTRL_NOTIFY_GOTO_ADDRESS);
+			evt.SetExtraLong(static_cast<long>(result));
+			wxPostEvent(GetParent(), evt);
 		}
 		else if (parser.IsConstantExpression(value))
 		{
 			const auto result = (uint32)parser.Evaluate(value);
 			m_lastGotoTarget = result;
 			CenterOffset(result);
+			wxCommandEvent evt(wxEVT_DISASMCTRL_NOTIFY_GOTO_ADDRESS);
+			evt.SetExtraLong(static_cast<long>(result));
+			wxPostEvent(GetParent(), evt);
 		}
 		else
 		{
 			try
 			{
+				// if not a constant expression (i.e. relying on unknown variables), then evaluating will throw an exception with a detailed error message
 				const auto _ = (uint32)parser.Evaluate(value);
 			}
 			catch (const std::exception& ex)
