@@ -183,6 +183,42 @@ bool ProController::set_default_mapping(const std::shared_ptr<ControllerBase>& c
 				{kButtonId_StickR_Right, kRotationXP},
 			};
 		}
+		else if (sdl_controller->get_guid() == SDLController::kSwitchProController)
+		{
+			mapping =
+			{
+				{kButtonId_A, kButton0},
+				{kButtonId_B, kButton1},
+				{kButtonId_X, kButton2},
+				{kButtonId_Y, kButton3},
+
+				{kButtonId_L, kButton9},
+				{kButtonId_R, kButton10},
+				{kButtonId_ZL, kTriggerXP},
+				{kButtonId_ZR, kTriggerYP},
+
+				{kButtonId_Plus, kButton6},
+				{kButtonId_Minus, kButton4},
+
+				{kButtonId_Up, kButton11},
+				{kButtonId_Down, kButton12},
+				{kButtonId_Left, kButton13},
+				{kButtonId_Right, kButton14},
+
+				{kButtonId_StickL, kButton7},
+				{kButtonId_StickR, kButton8},
+
+				{kButtonId_StickL_Up, kAxisYN},
+				{kButtonId_StickL_Down, kAxisYP},
+				{kButtonId_StickL_Left, kAxisXN},
+				{kButtonId_StickL_Right, kAxisXP},
+
+				{kButtonId_StickR_Up, kRotationYN},
+				{kButtonId_StickR_Down, kRotationYP},
+				{kButtonId_StickR_Left, kRotationXN},
+				{kButtonId_StickR_Right, kRotationXP},
+			};
+		}
 		else
 		{
 			mapping =
