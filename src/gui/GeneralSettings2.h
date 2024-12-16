@@ -28,7 +28,7 @@ private:
 
 	bool m_has_account_change = false; // keep track of dirty state of accounts
 
-	
+
 	wxPanel* AddGeneralPage(wxNotebook* notebook);
 	wxPanel* AddGraphicsPage(wxNotebook* notebook);
 	wxPanel* AddAudioPage(wxNotebook* notebook);
@@ -106,11 +106,10 @@ private:
 	void UpdateAudioDevice();
 	// refreshes audio device list for dropdown
 	void UpdateAudioDeviceList();
-	
+
 	void ResetAccountInformation();
 	void UpdateAccountInformation();
 	void UpdateOnlineAccounts();
 	void HandleGraphicsApiSelection();
 	void ApplyConfig();
 };
-

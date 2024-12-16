@@ -377,7 +377,8 @@ void CemuApp::OnAssertFailure(const wxChar* file, int line, const wxChar* func, 
 #if BOOST_OS_WINDOWS
 	DumpThreadStackTrace();
 #endif
-	cemu_assert_debug(false);
+    // HACK
+	//cemu_assert_debug(false);
 }
 
 int CemuApp::FilterEvent(wxEvent& event)
@@ -561,5 +562,3 @@ void CemuApp::ActivateApp(wxActivateEvent& event)
 	g_window_info.app_active = event.GetActive();
 	event.Skip();
 }
-
-

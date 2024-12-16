@@ -65,7 +65,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 	if (strstr(pCallbackData->pMessage, "consumes input location"))
 		return VK_FALSE; // false means we dont care
 	if (strstr(pCallbackData->pMessage, "blend"))
-		return VK_FALSE; // 
+		return VK_FALSE; //
 
 	// note: Check if previously used location in VK_EXT_debug_report callback is the same as messageIdNumber under the new extension
 	// validation errors which are difficult to fix
@@ -91,7 +91,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 	return VK_FALSE;
 }
 
-std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
+std::vector<std::string> VulkanRenderer::GetDevices()
 {
     if(!vkEnumerateInstanceVersion)
     {
@@ -105,7 +105,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 			apiVersion = VK_API_VERSION_1_1;
 	}
 
-	std::vector<DeviceInfo> result;
+	std::vector<std::string> result;
 
 	std::vector<const char*> requiredExtensions;
 	requiredExtensions.clear();
@@ -168,7 +168,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 				physDeviceProps.pNext = &physDeviceIDProps;
 				vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
 
-				result.emplace_back(physDeviceProps.properties.deviceName, physDeviceIDProps.deviceUUID);
+				result.emplace_back(physDeviceProps.properties.deviceName);
 			}
 		}
 		vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -181,7 +181,6 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 		vkDestroyInstance(instance, nullptr);
 
 	return result;
-
 }
 
 void VulkanRenderer::DetermineVendor()
@@ -389,8 +388,7 @@ VulkanRenderer::VulkanRenderer()
 	auto surface = CreateFramebufferSurface(m_instance, gui_getWindowInfo().window_main);
 
 	auto& config = GetConfig();
-	decltype(config.graphic_device_uuid) zero{};
-	const bool has_device_set = config.graphic_device_uuid != zero;
+	const bool has_device_set = !config.graphic_device_name.empty();
 
 	VkPhysicalDevice fallbackDevice = VK_NULL_HANDLE;
 
@@ -410,7 +408,7 @@ VulkanRenderer::VulkanRenderer()
 				physDeviceProps.pNext = &physDeviceIDProps;
 				vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
 
-				if (memcmp(config.graphic_device_uuid.data(), physDeviceIDProps.deviceUUID, VK_UUID_SIZE) != 0)
+				if (config.graphic_device_name != physDeviceProps.properties.deviceName)
 					continue;
 			}
 
@@ -423,7 +421,7 @@ VulkanRenderer::VulkanRenderer()
 	{
 		cemuLog_log(LogType::Force, "The selected GPU could not be found or is not suitable. Falling back to first available device instead");
 		m_physicalDevice = fallbackDevice;
-		config.graphic_device_uuid = {}; // resetting device selection
+		config.graphic_device_name = ""; // resetting device selection
 	}
 	else if (m_physicalDevice == VK_NULL_HANDLE)
 	{
@@ -2324,7 +2322,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 				}
 				else {
 					formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
-					formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_To_RGBA4_vk::getInstance();
+					formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_To_ABGR4::getInstance();
 				}
 			}
 			else

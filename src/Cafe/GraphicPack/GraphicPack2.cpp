@@ -109,7 +109,7 @@ bool GraphicPack2::LoadGraphicPack(const fs::path& rulesPath, IniParser& rules)
 
 				gp->SetActivePreset(kv.first, kv.second, false);
 			}
-			
+
 			gp->SetEnabled(enabled);
 		}
 
@@ -141,7 +141,7 @@ bool GraphicPack2::DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& gr
 	if (!graphic_pack->IsActivated())
 		return false;
 
-	const auto it = std::find_if(s_active_graphic_packs.begin(), s_active_graphic_packs.end(), 
+	const auto it = std::find_if(s_active_graphic_packs.begin(), s_active_graphic_packs.end(),
 		[graphic_pack](const GraphicPackPtr& gp)
 	{
 		return gp->GetNormalizedPathString() == graphic_pack->GetNormalizedPathString();
@@ -269,6 +269,8 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 			m_renderer_api = RendererAPI::Vulkan;
 		else if (boost::iequals(*option_rendererFilter, "opengl"))
 			m_renderer_api = RendererAPI::OpenGL;
+		else if (boost::iequals(*option_rendererFilter, "metal"))
+			m_renderer_api = RendererAPI::Metal;
 		else
 			cemuLog_log(LogType::Force, "Unknown value '{}' for rendererFilter option", *option_rendererFilter);
 	}
@@ -348,7 +350,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Preset in line {} skipped because it has no name option defined", GetNormalizedPathString(), rules.GetCurrentSectionLineNumber());
 				continue;
 			}
-			
+
 			const auto category = rules.FindOption("category");
 			const auto condition = rules.FindOption("condition");
 			const auto default_selected = rules.FindOption("default");
@@ -420,7 +422,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 	{
 		// store by category
 		std::unordered_map<std::string, std::vector<PresetPtr>> tmp_map;
-		
+
 		// all vars must be defined in the default preset vars before
 		std::vector<std::pair<std::string, std::string>> mismatchingPresetVars;
 		for (const auto& presetEntry : m_presets)
@@ -568,7 +570,7 @@ void GraphicPack2::ValidatePresetSelections()
 	//
 	// example: a preset category might be hidden entirely (e.g. due to a separate advanced options dropdown)
 	// how to handle: leave the previously selected preset
-	// 
+	//
 	// the logic is therefore as follows:
 	// if there is a preset category with at least 1 visible preset entry then make sure one of those is actually selected
 	// for completely hidden preset categories we leave the selection as-is
@@ -632,17 +634,17 @@ bool GraphicPack2::SetActivePreset(std::string_view category, std::string_view n
 	// disable currently active preset
 	std::for_each(m_presets.begin(), m_presets.end(), [category](PresetPtr& p)
 	{
-		if(p->category == category) 
+		if(p->category == category)
 			p->active = false;
 	});
-	
+
 	if (name.empty())
 		return true;
-	
+
 	// enable new preset
 	const auto it = std::find_if(m_presets.cbegin(), m_presets.cend(), [category, name](const PresetPtr& preset)
 		{
-			return preset->category == category && preset->name == name; 
+			return preset->category == category && preset->name == name;
 		});
 
 	bool result;
@@ -783,7 +785,7 @@ std::optional<GraphicPack2::PresetVar> GraphicPack2::GetPresetVariable(const std
 				return it->second;
 		}
 	}
-	
+
 	for (const auto& preset : presets)
 	{
 		if (!preset->visible)
@@ -793,7 +795,7 @@ std::optional<GraphicPack2::PresetVar> GraphicPack2::GetPresetVariable(const std
 				return it->second;
 		}
 	}
-	
+
 	const auto it = std::find_if(m_preset_vars.cbegin(), m_preset_vars.cend(), [&var_name](auto p) { return p.first == var_name; });
 	if (it != m_preset_vars.cend())
 	{
@@ -839,7 +841,7 @@ void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC
 				virtualMountPath = fs::path("vol/content/") / virtualMountPath;
 			}
 			fscDeviceRedirect_add(virtualMountPath.generic_string(), it.file_size(), it.path().generic_string(), m_fs_priority);
-		}		
+		}
 	}
 }
 
@@ -859,7 +861,7 @@ void GraphicPack2::LoadReplacedFiles()
 	std::error_code ec;
 	if (fs::exists(contentPath, ec))
 	{
-		// setup redirections	
+		// setup redirections
 		fscDeviceRedirect_map();
 		_iterateReplacedFiles(contentPath, false);
 	}
@@ -872,7 +874,7 @@ void GraphicPack2::LoadReplacedFiles()
 		uint64 aocTitleId = CafeSystem::GetForegroundTitleId();
 		aocTitleId = aocTitleId & 0xFFFFFFFFULL;
 		aocTitleId |= 0x0005000c00000000ULL;
-		// setup redirections	
+		// setup redirections
 		fscDeviceRedirect_map();
 		_iterateReplacedFiles(aocPath, true);
 	}
@@ -988,7 +990,7 @@ bool GraphicPack2::Activate()
 
 	// enable patch groups
 	EnablePatches();
-	
+
 	// load replaced files
 	LoadReplacedFiles();
 
@@ -1034,7 +1036,7 @@ bool GraphicPack2::Deactivate()
 	m_output_shader_source.clear();
 	m_upscaling_shader_source.clear();
 	m_downscaling_shader_source.clear();
-	
+
 	if (HasCustomVSyncFrequency())
 	{
 		m_vsync_frequency = -1;
@@ -1066,7 +1068,7 @@ const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, u
 std::unordered_map<std::string, std::vector<GraphicPack2::PresetPtr>> GraphicPack2::GetCategorizedPresets(std::vector<std::string>& order) const
 {
 	order.clear();
-	
+
 	std::unordered_map<std::string, std::vector<PresetPtr>> result;
 	for(const auto& entry : m_presets)
 	{
@@ -1075,13 +1077,13 @@ std::unordered_map<std::string, std::vector<GraphicPack2::PresetPtr>> GraphicPac
 		if (it == order.cend())
 			order.emplace_back(entry->category);
 	}
-	
+
 	return result;
 }
 
 bool GraphicPack2::HasShaders() const
 {
-	return !GetCustomShaders().empty() 
+	return !GetCustomShaders().empty()
 	|| !m_output_shader_source.empty() || !m_upscaling_shader_source.empty() || !m_downscaling_shader_source.empty();
 }
 
