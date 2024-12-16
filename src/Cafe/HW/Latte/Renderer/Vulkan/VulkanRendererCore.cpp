@@ -899,12 +899,9 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			}
 		}
 
-		auto vkObjSampler = dsInfo->m_vkObjSamplers.emplace_back(new VKRObjectSampler);
-		dsInfo->m_vkObjDescriptorSet->addRef(vkObjSampler);
-
-		if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &vkObjSampler->sampler) != VK_SUCCESS)
-			UnrecoverableError("Failed to create texture sampler");
-		info.sampler = vkObjSampler->sampler;
+		VKRObjectSampler* samplerObj = VKRObjectSampler::GetOrCreateSampler(&samplerInfo);
+		vkObjDS->addRef(samplerObj);
+		info.sampler = samplerObj->GetSampler();
 		textureArray.emplace_back(info);
 	}
 

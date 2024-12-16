@@ -38,7 +38,7 @@ struct OSContext_t
 	/* +0x1E0 */ uint64be fp_ps1[32];
 	/* +0x2E0 */ uint64be coretime[3];
 	/* +0x2F8 */ uint64be starttime;
-	/* +0x300 */ uint32be ghs_errno;         // returned by __gh_errno_ptr() (used by socketlasterr)
+	/* +0x300 */ sint32be ghs_errno;         // returned by __gh_errno_ptr() (used by socketlasterr)
 	/* +0x304 */ uint32be affinity;
 	/* +0x308 */ uint32be upmc1;
 	/* +0x30C */ uint32be upmc2;

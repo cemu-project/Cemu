@@ -699,6 +699,8 @@ VulkanRenderer::~VulkanRenderer()
 	if (m_commandPool != VK_NULL_HANDLE)
 		vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
 
+	VKRObjectSampler::DestroyCache();
+
 	// destroy debug callback
 	if (m_debugCallback)
 	{
@@ -2611,10 +2613,18 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
 
+	VkPushConstantRange pushConstantRange{
+		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+		.offset = 0,
+		.size = 3 * sizeof(float) * 2 // 3 vec2's
+	};
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &descriptorLayout;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
 	if (result != VK_SUCCESS)
@@ -2992,6 +3002,25 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	m_state.currentPipeline = pipeline;
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet, 0, nullptr);
+
+	// update push constants
+	Vector2f pushData[3];
+
+	// textureSrcResolution
+	sint32 effectiveWidth, effectiveHeight;
+	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
+	pushData[0] = {(float)effectiveWidth, (float)effectiveHeight};
+
+	// nativeResolution
+	pushData[1] = {
+		(float)texViewVk->baseTexture->width,
+		(float)texViewVk->baseTexture->height,
+	};
+
+	// outputResolution
+	pushData[2] = {(float)imageWidth,(float)imageHeight};
+
+	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float) * 2 * 3, &pushData);
 
 	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);
 
@@ -3719,6 +3748,7 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::Text("DS StorageBuf  %u", performanceMonitor.vk.numDescriptorStorageBuffers.get());
 	ImGui::Text("Images         %u", performanceMonitor.vk.numImages.get());
 	ImGui::Text("ImageView      %u", performanceMonitor.vk.numImageViews.get());
+	ImGui::Text("ImageSampler   %u", performanceMonitor.vk.numSamplers.get());
 	ImGui::Text("RenderPass     %u", performanceMonitor.vk.numRenderPass.get());
 	ImGui::Text("Framebuffer    %u", performanceMonitor.vk.numFramebuffer.get());
 	m_spinlockDestructionQueue.lock();
@@ -3764,7 +3794,7 @@ void VKRDestructibleObject::flagForCurrentCommandBuffer()
 
 bool VKRDestructibleObject::canDestroy()
 {
-	if (refCount > 0)
+	if (m_refCount > 0)
 		return false;
 	return VulkanRenderer::GetInstance()->HasCommandBufferFinished(m_lastCmdBufferId);
 }
@@ -3803,6 +3833,111 @@ VKRObjectTextureView::~VKRObjectTextureView()
 		vkDestroySampler(logicalDevice, m_textureDefaultSampler[1], nullptr);
 	vkDestroyImageView(logicalDevice, m_textureImageView, nullptr);
 	performanceMonitor.vk.numImageViews.decrement();
+}
+
+static uint64 CalcHashSamplerCreateInfo(const VkSamplerCreateInfo& info)
+{
+	uint64 h = 0xcbf29ce484222325ULL;
+	auto fnvHashCombine = [](uint64_t &h, auto val) {
+		using T = decltype(val);
+		static_assert(sizeof(T) <= 8);
+		uint64_t val64 = 0;
+		std::memcpy(&val64, &val, sizeof(val));
+		h ^= val64;
+		h *= 0x100000001b3ULL;
+	};
+	cemu_assert_debug(info.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+	fnvHashCombine(h, info.flags);
+	fnvHashCombine(h, info.magFilter);
+	fnvHashCombine(h, info.minFilter);
+	fnvHashCombine(h, info.mipmapMode);
+	fnvHashCombine(h, info.addressModeU);
+	fnvHashCombine(h, info.addressModeV);
+	fnvHashCombine(h, info.addressModeW);
+	fnvHashCombine(h, info.mipLodBias);
+	fnvHashCombine(h, info.anisotropyEnable);
+	if(info.anisotropyEnable == VK_TRUE)
+		fnvHashCombine(h, info.maxAnisotropy);
+	fnvHashCombine(h, info.compareEnable);
+	if(info.compareEnable == VK_TRUE)
+		fnvHashCombine(h, info.compareOp);
+	fnvHashCombine(h, info.minLod);
+	fnvHashCombine(h, info.maxLod);
+	fnvHashCombine(h, info.borderColor);
+	fnvHashCombine(h, info.unnormalizedCoordinates);
+	// handle custom border color
+	VkBaseOutStructure* ext = (VkBaseOutStructure*)info.pNext;
+	while(ext)
+	{
+		if(ext->sType == VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT)
+		{
+			auto* extInfo = (VkSamplerCustomBorderColorCreateInfoEXT*)ext;
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[0]);
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[1]);
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[2]);
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[3]);
+		}
+		else
+		{
+			cemu_assert_unimplemented();
+		}
+		ext = ext->pNext;
+	}
+	return h;
+}
+
+std::unordered_map<uint64, VKRObjectSampler*> VKRObjectSampler::s_samplerCache;
+
+VKRObjectSampler::VKRObjectSampler(VkSamplerCreateInfo* samplerInfo)
+{
+	auto* vulkanRenderer = VulkanRenderer::GetInstance();
+	if (vkCreateSampler(vulkanRenderer->GetLogicalDevice(), samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
+		vulkanRenderer->UnrecoverableError("Failed to create texture sampler");
+	performanceMonitor.vk.numSamplers.increment();
+	m_hash = CalcHashSamplerCreateInfo(*samplerInfo);
+}
+
+VKRObjectSampler::~VKRObjectSampler()
+{
+	vkDestroySampler(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_sampler, nullptr);
+	performanceMonitor.vk.numSamplers.decrement();
+	// remove from cache
+	auto it = s_samplerCache.find(m_hash);
+	if(it != s_samplerCache.end())
+		s_samplerCache.erase(it);
+}
+
+void VKRObjectSampler::RefCountReachedZero()
+{
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(this);
+}
+
+VKRObjectSampler* VKRObjectSampler::GetOrCreateSampler(VkSamplerCreateInfo* samplerInfo)
+{
+	auto* vulkanRenderer = VulkanRenderer::GetInstance();
+	uint64 hash = CalcHashSamplerCreateInfo(*samplerInfo);
+	auto it = s_samplerCache.find(hash);
+	if (it != s_samplerCache.end())
+	{
+		auto* sampler = it->second;
+		return sampler;
+	}
+	auto* sampler = new VKRObjectSampler(samplerInfo);
+	s_samplerCache[hash] = sampler;
+	return sampler;
+}
+
+void VKRObjectSampler::DestroyCache()
+{
+	// assuming all other objects which depend on vkSampler are destroyed, this cache should also have been emptied already
+	// but just to be sure lets still clear the cache
+	cemu_assert_debug(s_samplerCache.empty());
+	for(auto& sampler : s_samplerCache)
+	{
+		cemu_assert_debug(sampler.second->m_refCount == 0);
+		delete sampler.second;
+	}
+	s_samplerCache.clear();
 }
 
 VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint32 colorAttachmentCount)

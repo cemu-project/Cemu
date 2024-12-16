@@ -370,6 +370,8 @@ bool LatteDecompiler_IsALUTransInstruction(bool isOP3, uint32 opcode)
 		opcode == ALU_OP2_INST_LSHR_INT ||
 		opcode == ALU_OP2_INST_MAX_INT ||
 		opcode == ALU_OP2_INST_MIN_INT ||
+		opcode == ALU_OP2_INST_MAX_UINT ||
+		opcode == ALU_OP2_INST_MIN_UINT ||
 		opcode == ALU_OP2_INST_MOVA_FLOOR ||
 		opcode == ALU_OP2_INST_MOVA_INT ||
 		opcode == ALU_OP2_INST_SETE_DX10 ||

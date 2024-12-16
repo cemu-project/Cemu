@@ -12,7 +12,6 @@
 #include "input/emulated/WiimoteController.h"
 #include "gui/helpers/wxHelpers.h"
 #include "gui/components/wxInputDraw.h"
-#include "gui/PairingDialog.h"
 
 constexpr WiimoteController::ButtonId g_kFirstColumnItems[] =
 {
@@ -39,11 +38,6 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
     auto* horiz_main_sizer = new wxBoxSizer(wxHORIZONTAL);
-
-    auto* pair_button = new wxButton(this, wxID_ANY, _("Pair a Wii or Wii U controller"));
-    pair_button->Bind(wxEVT_BUTTON, &WiimoteInputPanel::on_pair_button, this);
-    horiz_main_sizer->Add(pair_button);
-    horiz_main_sizer->AddSpacer(10);
 
     auto* extensions_sizer = new wxBoxSizer(wxHORIZONTAL);
     horiz_main_sizer->Add(extensions_sizer, wxSizerFlags(0).Align(wxALIGN_CENTER_VERTICAL));
@@ -263,10 +257,4 @@ void WiimoteInputPanel::load_controller(const EmulatedControllerPtr& emulated_co
 		wxASSERT(wiimote);
 		set_active_device_type(wiimote->get_device_type());
 	}
-}
-
-void WiimoteInputPanel::on_pair_button(wxCommandEvent& event)
-{
-    PairingDialog pairing_dialog(this);
-    pairing_dialog.ShowModal();
 }

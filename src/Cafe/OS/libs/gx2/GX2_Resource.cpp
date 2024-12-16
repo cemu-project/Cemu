@@ -87,6 +87,11 @@ namespace GX2
 		return true;
 	}
 
+	void GX2RSetBufferName(GX2RBuffer* buffer, const char* name)
+	{
+		// no-op in production builds
+	}
+
 	void* GX2RLockBufferEx(GX2RBuffer* buffer, uint32 resFlags)
 	{
 		return buffer->GetPtr();
@@ -226,6 +231,7 @@ namespace GX2
 		cafeExportRegister("gx2", GX2RCreateBufferUserMemory, LogType::GX2);
 		cafeExportRegister("gx2", GX2RDestroyBufferEx, LogType::GX2);
 		cafeExportRegister("gx2", GX2RBufferExists, LogType::GX2);
+		cafeExportRegister("gx2", GX2RSetBufferName, LogType::GX2);
 		cafeExportRegister("gx2", GX2RLockBufferEx, LogType::GX2);
 		cafeExportRegister("gx2", GX2RUnlockBufferEx, LogType::GX2);
 		cafeExportRegister("gx2", GX2RInvalidateBuffer, LogType::GX2);

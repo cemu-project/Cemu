@@ -19,7 +19,7 @@ public:
 
 	virtual ~VKRMoveableRefCounter()
 	{
-		cemu_assert_debug(refCount == 0);
+		cemu_assert_debug(m_refCount == 0);
 
 		// remove references
 #ifdef CEMU_DEBUG_ASSERT
@@ -30,7 +30,11 @@ public:
 		}
 #endif
 		for (auto itr : refs)
-			itr->ref->refCount--;
+		{
+			itr->ref->m_refCount--;
+			if (itr->ref->m_refCount == 0)
+				itr->ref->RefCountReachedZero();
+		}
 		refs.clear();
 		delete selfRef;
 		selfRef = nullptr;
@@ -41,8 +45,8 @@ public:
 	VKRMoveableRefCounter(VKRMoveableRefCounter&& rhs) noexcept
 	{
 		this->refs = std::move(rhs.refs);
-		this->refCount = rhs.refCount;
-		rhs.refCount = 0;
+		this->m_refCount = rhs.m_refCount;
+		rhs.m_refCount = 0;
 		this->selfRef = rhs.selfRef;
 		rhs.selfRef = nullptr;
 		this->selfRef->ref = this;
@@ -57,7 +61,7 @@ public:
 	void addRef(VKRMoveableRefCounter* refTarget)
 	{
 		this->refs.emplace_back(refTarget->selfRef);
-		refTarget->refCount++;
+		refTarget->m_refCount++;
 
 #ifdef CEMU_DEBUG_ASSERT
 		// add reverse ref
@@ -68,16 +72,23 @@ public:
 	// methods to directly increment/decrement ref counter (for situations where no external object is available)
 	void incRef()
 	{
-		this->refCount++;
+		m_refCount++;
 	}
 
 	void decRef()
 	{
-		this->refCount--;
+		m_refCount--;
+		if (m_refCount == 0)
+			RefCountReachedZero();
 	}
 
 protected:
-	int refCount{};
+  	virtual void RefCountReachedZero()
+	{
+		// does nothing by default
+	}
+
+	int m_refCount{};
 private:
 	VKRMoveableRefCounterRef* selfRef;
 	std::vector<VKRMoveableRefCounterRef*> refs;
@@ -88,7 +99,7 @@ private:
 	void moveObj(VKRMoveableRefCounter&& rhs)
 	{
 		this->refs = std::move(rhs.refs);
-		this->refCount = rhs.refCount;
+		this->m_refCount = rhs.m_refCount;
 		this->selfRef = rhs.selfRef;
 		this->selfRef->ref = this;
 	}
@@ -129,6 +140,25 @@ public:
 
 	VkImageView m_textureImageView{ VK_NULL_HANDLE };
 	VkSampler m_textureDefaultSampler[2] = { VK_NULL_HANDLE, VK_NULL_HANDLE }; // relict from LatteTextureViewVk, get rid of it eventually
+};
+
+
+class VKRObjectSampler : public VKRDestructibleObject
+{
+  public:
+	VKRObjectSampler(VkSamplerCreateInfo* samplerInfo);
+	~VKRObjectSampler() override;
+
+	static VKRObjectSampler* GetOrCreateSampler(VkSamplerCreateInfo* samplerInfo);
+	static void DestroyCache();
+
+	void RefCountReachedZero() override; // sampler objects are destroyed when not referenced anymore
+
+	VkSampler GetSampler() const { return m_sampler; }
+  private:
+	static std::unordered_map<uint64, VKRObjectSampler*> s_samplerCache;
+	VkSampler m_sampler{ VK_NULL_HANDLE };
+	uint64 m_hash;
 };
 
 class VKRObjectRenderPass : public VKRDestructibleObject

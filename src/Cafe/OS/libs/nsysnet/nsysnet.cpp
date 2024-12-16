@@ -3,6 +3,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/coreinit/coreinit_GHS.h"
 
 #include "Common/socket.h"
 
@@ -117,20 +118,14 @@ void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
 }
 
-static uint32be* __gh_errno_ptr()
-{
-	OSThread_t* osThread = coreinit::OSGetCurrentThread();
-	return &osThread->context.ghs_errno;
-}
-
 void _setSockError(sint32 errCode)
 {
-	*(uint32be*)__gh_errno_ptr() = (uint32)errCode;
+	coreinit::__gh_set_errno(errCode);
 }
 
 sint32 _getSockError()
 {
-	return (sint32)*(uint32be*)__gh_errno_ptr();
+	return coreinit::__gh_get_errno();
 }
 
 // error translation modes for _translateError

@@ -447,6 +447,34 @@ bool debugger_hasPatch(uint32 address)
 	return false;
 }
 
+void debugger_removePatch(uint32 address)
+{
+	for (sint32 i = 0; i < debuggerState.patches.size(); i++)
+	{
+		auto& patch = debuggerState.patches[i];
+		if (address < patch->address || address >= (patch->address + patch->length))
+			continue;
+		MPTR startAddress = patch->address;
+		MPTR endAddress = patch->address + patch->length;
+		// remove any breakpoints overlapping with the patch
+		for (auto& bp : debuggerState.breakpoints)
+		{
+			if (bp->address + 4 > startAddress && bp->address < endAddress)
+			{
+				bp->enabled = false;
+				debugger_updateExecutionBreakpoint(bp->address);
+			}
+		}
+		// restore original data
+		memcpy(MEMPTR<void>(startAddress).GetPtr(), patch->origData.data(), patch->length);
+		PPCRecompiler_invalidateRange(startAddress, endAddress);
+		// remove patch
+		delete patch;
+		debuggerState.patches.erase(debuggerState.patches.begin() + i);
+		return;
+	}
+}
+
 void debugger_stepInto(PPCInterpreter_t* hCPU, bool updateDebuggerWindow = true)
 {
 	bool isRecEnabled = ppcRecompilerEnabled;
