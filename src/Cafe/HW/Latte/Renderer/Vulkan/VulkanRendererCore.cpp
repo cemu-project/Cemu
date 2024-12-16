@@ -727,7 +727,6 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 
 		VkSamplerCustomBorderColorCreateInfoEXT samplerCustomBorderColor{};
 
-		VkSampler sampler;
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
@@ -899,10 +898,9 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 				}
 			}
 		}
-
-		if (vkCreateSampler(m_logicalDevice, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
-			UnrecoverableError("Failed to create texture sampler");
-		info.sampler = sampler;
+		VKRObjectSampler* samplerObj = VKRObjectSampler::GetOrCreateSampler(&samplerInfo);
+		vkObjDS->addRef(samplerObj);
+		info.sampler = samplerObj->GetSampler();
 		textureArray.emplace_back(info);
 	}
 

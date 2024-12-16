@@ -347,7 +347,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 			const auto preset_name = rules.FindOption("name");
 			if (!preset_name)
 			{
-				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Preset in line {} skipped because it has no name option defined", m_name, rules.GetCurrentSectionLineNumber());
+				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Preset in line {} skipped because it has no name option defined", GetNormalizedPathString(), rules.GetCurrentSectionLineNumber());
 				continue;
 			}
 
@@ -371,7 +371,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 			}
 			catch (const std::exception & ex)
 			{
-				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Can't parse preset \"{}\": {}", m_name, *preset_name, ex.what());
+				cemuLog_log(LogType::Force, "Graphic pack \"{}\": Can't parse preset \"{}\": {}", GetNormalizedPathString(), *preset_name, ex.what());
 			}
 		}
 		else if (boost::iequals(currentSectionName, "RAM"))
@@ -385,7 +385,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 				{
 					if (m_version <= 5)
 					{
-						cemuLog_log(LogType::Force, "Graphic pack \"{}\": [RAM] options are only available for graphic pack version 6 or higher", m_name, optionNameBuf);
+						cemuLog_log(LogType::Force, "Graphic pack \"{}\": [RAM] options are only available for graphic pack version 6 or higher", GetNormalizedPathString(), optionNameBuf);
 						throw std::exception();
 					}
 
@@ -395,12 +395,12 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 					{
 						if (addrEnd <= addrStart)
 						{
-							cemuLog_log(LogType::Force, "Graphic pack \"{}\": start address (0x{:08x}) must be greater than end address (0x{:08x}) for {}", m_name, addrStart, addrEnd, optionNameBuf);
+							cemuLog_log(LogType::Force, "Graphic pack \"{}\": start address (0x{:08x}) must be greater than end address (0x{:08x}) for {}", GetNormalizedPathString(), addrStart, addrEnd, optionNameBuf);
 							throw std::exception();
 						}
 						else if ((addrStart & 0xFFF) != 0 || (addrEnd & 0xFFF) != 0)
 						{
-							cemuLog_log(LogType::Force, "Graphic pack \"{}\": addresses for %s are not aligned to 0x1000", m_name, optionNameBuf);
+							cemuLog_log(LogType::Force, "Graphic pack \"{}\": addresses for %s are not aligned to 0x1000", GetNormalizedPathString(), optionNameBuf);
 							throw std::exception();
 						}
 						else
@@ -410,7 +410,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 					}
 					else
 					{
-						cemuLog_log(LogType::Force, "Graphic pack \"{}\": has invalid syntax for option {}", m_name, optionNameBuf);
+						cemuLog_log(LogType::Force, "Graphic pack \"{}\": has invalid syntax for option {}", GetNormalizedPathString(), optionNameBuf);
 						throw std::exception();
 					}
 				}
@@ -424,22 +424,30 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 		std::unordered_map<std::string, std::vector<PresetPtr>> tmp_map;
 
 		// all vars must be defined in the default preset vars before
-		for (const auto& entry : m_presets)
+		std::vector<std::pair<std::string, std::string>> mismatchingPresetVars;
+		for (const auto& presetEntry : m_presets)
 		{
-			tmp_map[entry->category].emplace_back(entry);
-
-			for (auto& kv : entry->variables)
+			tmp_map[presetEntry->category].emplace_back(presetEntry);
+			
+			for (auto& presetVar : presetEntry->variables)
 			{
-				const auto it = m_preset_vars.find(kv.first);
+				const auto it = m_preset_vars.find(presetVar.first);
 				if (it == m_preset_vars.cend())
 				{
-					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains preset variables which are not defined in the default section", m_name);
-					throw std::exception();
+					mismatchingPresetVars.emplace_back(presetEntry->name, presetVar.first);
+					continue;
 				}
-
 				// overwrite var type with default var type
-				kv.second.first = it->second.first;
+				presetVar.second.first = it->second.first;
 			}
+		}
+
+		if(!mismatchingPresetVars.empty())
+		{
+			cemuLog_log(LogType::Force, "Graphic pack \"{}\" contains preset variables which are not defined in the [Default] section:", GetNormalizedPathString());
+			for (const auto& [presetName, varName] : mismatchingPresetVars)
+				cemuLog_log(LogType::Force, "Preset: {} Variable: {}", presetName, varName);
+			throw std::exception();
 		}
 
 		// have first entry be default active for every category if no default= is set
@@ -471,7 +479,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 				auto& p2 = kv.second[i + 1];
 				if (p1->variables.size() != p2->variables.size())
 				{
-					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
+					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains inconsistent preset variables", GetNormalizedPathString());
 					throw std::exception();
 				}
 
@@ -479,14 +487,14 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 				std::set<std::string> keys2(get_keys(p2->variables).begin(), get_keys(p2->variables).end());
 				if (keys1 != keys2)
 				{
-					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains inconsistent preset variables", m_name);
+					cemuLog_log(LogType::Force, "Graphic pack: \"{}\" contains inconsistent preset variables", GetNormalizedPathString());
 					throw std::exception();
 				}
 
 				if(p1->is_default)
 				{
 					if(has_default)
-						cemuLog_log(LogType::Force, "Graphic pack: \"{}\" has more than one preset with the default key set for the same category \"{}\"", m_name, p1->name);
+						cemuLog_log(LogType::Force, "Graphic pack: \"{}\" has more than one preset with the default key set for the same category \"{}\"", GetNormalizedPathString(), p1->name);
 					p1->active = true;
 					has_default = true;
 				}

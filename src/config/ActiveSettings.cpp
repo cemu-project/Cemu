@@ -198,14 +198,20 @@ bool ActiveSettings::ShaderPreventInfiniteLoopsEnabled()
 {
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
 	// workaround for NSMBU (and variants) having a bug where shaders can get stuck in infinite loops
-	// update: As of Cemu 1.20.0 this should no longer be required
+	// Fatal Frame has an actual infinite loop in shader 0xb6a67c19f6472e00 encountered during a cutscene for the second drop (eShop version only?)
+	// update: As of Cemu 1.20.0 this should no longer be required for NSMBU/NSLU due to fixes with uniform handling. But we leave it here for good measure
+	// todo - Once we add support for loop config registers this workaround should become unnecessary
 	return /* NSMBU JP */ titleId == 0x0005000010101C00 ||
 		/* NSMBU US */ titleId == 0x0005000010101D00 ||
 		/* NSMBU EU */ titleId == 0x0005000010101E00 ||
 		/* NSMBU+L US */ titleId == 0x000500001014B700 ||
 		/* NSMBU+L EU */ titleId == 0x000500001014B800 ||
 		/* NSLU US */ titleId == 0x0005000010142300 ||
-		/* NSLU EU */ titleId == 0x0005000010142400;
+		/* NSLU EU */ titleId == 0x0005000010142400 ||
+	   /* Project Zero: Maiden of Black Water (EU) */ titleId == 0x00050000101D0300 ||
+	   /* Fatal Frame: Maiden of Black Water (US) */ titleId == 0x00050000101D0600 ||
+	   /* Project Zero: Maiden of Black Water (JP) */ titleId == 0x000500001014D200 ||
+	   /* Project Zero: Maiden of Black Water (Trial, EU) */ titleId == 0x00050000101D3F00;
 }
 
 bool ActiveSettings::FlushGPUCacheOnSwap()

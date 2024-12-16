@@ -594,6 +594,12 @@ set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CON
 
 target_include_directories(CemuCafe PUBLIC "../")
 
+if (glslang_VERSION VERSION_LESS "15.0.0")
+	set(glslang_target "glslang::SPIRV")
+else()
+	set(glslang_target "glslang")
+endif()
+
 target_link_libraries(CemuCafe PRIVATE
 	CemuAsm
 	CemuAudio
@@ -609,7 +615,7 @@ target_link_libraries(CemuCafe PRIVATE
 	Boost::nowide
 	CURL::libcurl
 	fmt::fmt
-	glslang::SPIRV
+	${glslang_target}
 	ih264d
 	OpenSSL::Crypto
 	OpenSSL::SSL

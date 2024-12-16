@@ -124,6 +124,7 @@ typedef struct
 		LattePerfStatCounter numGraphicPipelines;
 		LattePerfStatCounter numImages;
 		LattePerfStatCounter numImageViews;
+		LattePerfStatCounter numSamplers;
 		LattePerfStatCounter numRenderPass;
 		LattePerfStatCounter numFramebuffer;
 

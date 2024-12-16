@@ -75,6 +75,8 @@ add_library(CemuGui
   input/InputAPIAddWindow.h
   input/InputSettings2.cpp
   input/InputSettings2.h
+  input/PairingDialog.cpp
+  input/PairingDialog.h
   input/panels/ClassicControllerInputPanel.cpp
   input/panels/ClassicControllerInputPanel.h
   input/panels/InputPanel.cpp
@@ -97,8 +99,6 @@ add_library(CemuGui
   MemorySearcherTool.h
   PadViewFrame.cpp
   PadViewFrame.h
-  PairingDialog.cpp
-  PairingDialog.h
   TitleManager.cpp
   TitleManager.h
   EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp

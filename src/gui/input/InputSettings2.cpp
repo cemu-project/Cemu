@@ -20,6 +20,8 @@
 #include "gui/input/InputAPIAddWindow.h"
 #include "input/ControllerFactory.h"
 
+#include "gui/input/PairingDialog.h"
+
 #include "gui/input/panels/VPADInputPanel.h"
 #include "gui/input/panels/ProControllerInputPanel.h"
 
@@ -251,6 +253,13 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 			page_data.m_controller_api_add = add_api;
 			page_data.m_controller_api_remove = remove_api;
 		}
+
+		auto* pairingDialog = new wxButton(page, wxID_ANY, _("Pair Wii/Wii U Controller"));
+		pairingDialog->Bind(wxEVT_BUTTON, [this](wxEvent&) {
+			PairingDialog pairing_dialog(this);
+			pairing_dialog.ShowModal();
+		});
+		sizer->Add(pairingDialog, wxGBPosition(5, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		// controller
 		auto* controller_bttns = new wxBoxSizer(wxHORIZONTAL);
