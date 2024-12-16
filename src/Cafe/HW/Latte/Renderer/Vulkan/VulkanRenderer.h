@@ -138,7 +138,7 @@ public:
 
 	// memory management
 	std::unique_ptr<VKRMemoryManager> memoryManager;
-	const std::unique_ptr<VKRMemoryManager>& GetMemoryManager() const { return memoryManager; };
+	VKRMemoryManager* GetMemoryManager() const { return memoryManager.get(); };
 
 	VkSupportedFormatInfo_t m_supportedFormatInfo;
 

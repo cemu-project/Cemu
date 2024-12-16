@@ -146,7 +146,7 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 {
 	sint32 effectiveWidth, effectiveHeight;
 	texture_view.baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	auto setUniforms = [&](const std::unique_ptr<RendererShader>& shader, const UniformLocations& locations){
+	auto setUniforms = [&](RendererShader* shader, const UniformLocations& locations){
 	  float res[2];
 	  if (locations.m_loc_textureSrcResolution != -1)
 	  {
@@ -169,8 +169,8 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 		  shader->SetUniform2fv(locations.m_loc_outputResolution, res, 1);
 	  }
 	};
-	setUniforms(m_vertex_shader, m_uniformLocations[0]);
-	setUniforms(m_fragment_shader, m_uniformLocations[1]);
+	setUniforms(m_vertex_shader.get(), m_uniformLocations[0]);
+	setUniforms(m_fragment_shader.get(), m_uniformLocations[1]);
 }
 
 RendererOutputShader* RendererOutputShader::s_copy_shader;
