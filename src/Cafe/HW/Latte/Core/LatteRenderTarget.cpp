@@ -450,14 +450,6 @@ bool LatteMRT::UpdateCurrentFBO()
 	uint8 colorBufferMask = GetActiveColorBufferMask(pixelShader, LatteGPUState.contextNew);
 	bool depthBufferMask = GetActiveDepthBufferMask(LatteGPUState.contextNew);
 
-	// if depth test is not used then detach the depth buffer
-	bool depthEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_ENABLE();
-	bool stencilTestEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
-	bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
-
-	if (!depthEnable && !stencilTestEnable && !backStencilEnable)
-		depthBufferMask = false;
-
 	bool hasResizedTexture = false; // set to true if any of the color buffers or the depth buffer reference a resized texture (via graphic pack texture rules)
 	sLatteRenderTargetState.renderTargetIsResized = false;
 	// real size

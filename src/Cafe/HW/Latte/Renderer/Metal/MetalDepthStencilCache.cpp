@@ -21,37 +21,36 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
         return depthStencilState;
 
 	// Depth stencil state
-	bool depthEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_ENABLE();
-	auto depthFunc = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_FUNC();
-	bool depthWriteEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_WRITE_ENABLE();
+	bool depthEnable = lcr.DB_DEPTH_CONTROL.get_Z_ENABLE();
+	auto depthFunc = lcr.DB_DEPTH_CONTROL.get_Z_FUNC();
+	bool depthWriteEnable = lcr.DB_DEPTH_CONTROL.get_Z_WRITE_ENABLE();
 
 	MTL::DepthStencilDescriptor* desc = MTL::DepthStencilDescriptor::alloc()->init();
-	desc->setDepthWriteEnabled(depthWriteEnable);
-
 	if (depthEnable)
 	{
+	    desc->setDepthWriteEnabled(depthWriteEnable);
 	    desc->setDepthCompareFunction(GetMtlCompareFunc(depthFunc));
-    }
+	}
 
 	// Stencil state
-	bool stencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
+	bool stencilEnable = lcr.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
 	if (stencilEnable)
 	{
 	    // get stencil control parameters
-    	bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
-    	auto frontStencilFunc = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FUNC_F();
-    	auto frontStencilZPass = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZPASS_F();
-    	auto frontStencilZFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZFAIL_F();
-    	auto frontStencilFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FAIL_F();
-    	auto backStencilFunc = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FUNC_B();
-    	auto backStencilZPass = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZPASS_B();
-    	auto backStencilZFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ZFAIL_B();
-    	auto backStencilFail = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_FAIL_B();
+    	bool backStencilEnable = lcr.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
+    	auto frontStencilFunc = lcr.DB_DEPTH_CONTROL.get_STENCIL_FUNC_F();
+    	auto frontStencilZPass = lcr.DB_DEPTH_CONTROL.get_STENCIL_ZPASS_F();
+    	auto frontStencilZFail = lcr.DB_DEPTH_CONTROL.get_STENCIL_ZFAIL_F();
+    	auto frontStencilFail = lcr.DB_DEPTH_CONTROL.get_STENCIL_FAIL_F();
+    	auto backStencilFunc = lcr.DB_DEPTH_CONTROL.get_STENCIL_FUNC_B();
+    	auto backStencilZPass = lcr.DB_DEPTH_CONTROL.get_STENCIL_ZPASS_B();
+    	auto backStencilZFail = lcr.DB_DEPTH_CONTROL.get_STENCIL_ZFAIL_B();
+    	auto backStencilFail = lcr.DB_DEPTH_CONTROL.get_STENCIL_FAIL_B();
     	// get stencil control parameters
-    	uint32 stencilCompareMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILMASK_F();
-    	uint32 stencilWriteMaskFront = LatteGPUState.contextNew.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
-    	uint32 stencilCompareMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
-    	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
+    	uint32 stencilCompareMaskFront = lcr.DB_STENCILREFMASK.get_STENCILMASK_F();
+    	uint32 stencilWriteMaskFront = lcr.DB_STENCILREFMASK.get_STENCILWRITEMASK_F();
+    	uint32 stencilCompareMaskBack = lcr.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
+    	uint32 stencilWriteMaskBack = lcr.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 
     	MTL::StencilDescriptor* frontStencil = MTL::StencilDescriptor::alloc()->init();
     	frontStencil->setReadMask(stencilCompareMaskFront);

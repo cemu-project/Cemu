@@ -3121,7 +3121,7 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				src->add("float4 finalPos = ");
 				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
 				src->add(";" _CRLF);
-				src->add("finalPos.xy = finalPos.xy * supportBuffer.windowSpaceToClipSpaceTransform - float2(1.0,1.0);");
+				src->add("finalPos.xy = finalPos.xy * supportBuffer.windowSpaceToClipSpaceTransform - float2(1.0,1.0);" _CRLF);
 				src->add("SET_POSITION(finalPos);");
 			}
 			else
