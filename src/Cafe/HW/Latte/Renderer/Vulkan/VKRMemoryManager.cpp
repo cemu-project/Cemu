@@ -4,6 +4,14 @@
 
 /* VKRSynchronizedMemoryBuffer */
 
+VKRSynchronizedRingAllocator::~VKRSynchronizedRingAllocator()
+{
+	for(auto& buf : m_buffers)
+	{
+		m_vkrMemMgr->DeleteBuffer(buf.vk_buffer, buf.vk_mem);
+	}
+}
+
 void VKRSynchronizedRingAllocator::addUploadBufferSyncPoint(AllocatorBuffer_t& buffer, uint32 offset)
 {
 	auto cmdBufferId = m_vkr->GetCurrentCommandBufferId();
@@ -168,6 +176,14 @@ void VKRSynchronizedRingAllocator::GetStats(uint32& numBuffers, size_t& totalBuf
 }
 
 /* VkTextureChunkedHeap */
+
+VkTextureChunkedHeap::~VkTextureChunkedHeap()
+{
+	for (auto& i : m_list_chunkInfo)
+	{
+		vkFreeMemory(m_device, i.mem, nullptr);
+	}
+}
 
 uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize)
 {
@@ -473,7 +489,7 @@ VkImageMemAllocation* VKRMemoryManager::imageMemoryAllocate(VkImage image)
 		map_textureHeap.emplace(typeFilter, texHeap);
 	}
 	else
-		texHeap = it->second;
+		texHeap = it->second.get();
 
 	// alloc mem from heap
 	uint32 allocationSize = (uint32)memRequirements.size;
