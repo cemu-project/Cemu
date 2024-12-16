@@ -3229,8 +3229,6 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 
 	auto renderer = VulkanRenderer::GetInstance();
 	renderer->ReleaseDestructibleObject(m_vkObjDescriptorSet);
-	for(auto& sampler : m_vkObjSamplers)
-		renderer->ReleaseDestructibleObject(sampler);
 	m_vkObjDescriptorSet = nullptr;
 }
 
@@ -4146,10 +4144,4 @@ VKRObjectDescriptorSet::~VKRObjectDescriptorSet()
 	auto vkr = VulkanRenderer::GetInstance();
 	vkFreeDescriptorSets(vkr->GetLogicalDevice(), vkr->GetDescriptorPool(), 1, &descriptorSet);
 	performanceMonitor.vk.numDescriptorSets.decrement();
-}
-
-VKRObjectSampler::~VKRObjectSampler()
-{
-	auto vkr = VulkanRenderer::GetInstance();
-	vkDestroySampler(vkr->GetLogicalDevice(), sampler, nullptr);
 }

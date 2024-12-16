@@ -146,7 +146,7 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 {
 	sint32 effectiveWidth, effectiveHeight;
 	texture_view.baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	auto setUniforms = [&](RendererShader* shader, const UniformLocations& locations){
+	auto setUniforms = [&](const std::unique_ptr<RendererShader>& shader, const UniformLocations& locations){
 	  float res[2];
 	  if (locations.m_loc_textureSrcResolution != -1)
 	  {

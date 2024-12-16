@@ -236,10 +236,3 @@ public:
 
 	VkDescriptorSet descriptorSet{ VK_NULL_HANDLE };
 };
-
-class VKRObjectSampler : public VKRDestructibleObject
-{
-public:
-	~VKRObjectSampler() override;
-	VkSampler sampler { VK_NULL_HANDLE };
-};

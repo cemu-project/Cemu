@@ -1167,8 +1167,6 @@ void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkD
 			return nullptr;
 		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, shader);
 		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		for (auto& sampler : descriptorSetInfo->m_vkObjSamplers)
-			sampler->flagForCurrentCommandBuffer();
 		return descriptorSetInfo;
 	};
 
