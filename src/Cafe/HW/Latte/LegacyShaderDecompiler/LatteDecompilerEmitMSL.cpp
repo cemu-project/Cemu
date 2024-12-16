@@ -1331,19 +1331,23 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 	}
 	else if( aluInstruction->opcode == ALU_OP2_INST_ADD_INT )
 		_emitALUOperationBinary<LATTE_DECOMPILER_DTYPE_SIGNED_INT>(shaderContext, aluInstruction, " + ");
-	else if( aluInstruction->opcode == ALU_OP2_INST_MAX_INT || aluInstruction->opcode == ALU_OP2_INST_MIN_INT )
+	else if( aluInstruction->opcode == ALU_OP2_INST_MAX_INT || aluInstruction->opcode == ALU_OP2_INST_MIN_INT ||
+			 aluInstruction->opcode == ALU_OP2_INST_MAX_UINT || aluInstruction->opcode == ALU_OP2_INST_MIN_UINT)
 	{
 		// not verified
+		bool isUnsigned = aluInstruction->opcode == ALU_OP2_INST_MAX_UINT || aluInstruction->opcode == ALU_OP2_INST_MIN_UINT;
+		auto opType = isUnsigned ? LATTE_DECOMPILER_DTYPE_UNSIGNED_INT : LATTE_DECOMPILER_DTYPE_SIGNED_INT;
 		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
-		if( aluInstruction->opcode == ALU_OP2_INST_MAX_INT )
-			src->add(" = max(");
+		src->add(" = ");
+		_emitTypeConversionPrefixMSL(shaderContext, opType, outputType);
+		if( aluInstruction->opcode == ALU_OP2_INST_MAX_INT || aluInstruction->opcode == ALU_OP2_INST_MAX_UINT )
+			src->add("max(");
 		else
-			src->add(" = min(");
-		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, outputType);
-		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
+			src->add("min(");
+		_emitOperandInputCode(shaderContext, aluInstruction, 0, opType);
 		src->add(", ");
-		_emitOperandInputCode(shaderContext, aluInstruction, 1, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-		_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, outputType);
+		_emitOperandInputCode(shaderContext, aluInstruction, 1, opType);
+		_emitTypeConversionSuffixMSL(shaderContext, opType, outputType);
 		src->add(");" _CRLF);
 	}
 	else if( aluInstruction->opcode == ALU_OP2_INST_SUB_INT )
