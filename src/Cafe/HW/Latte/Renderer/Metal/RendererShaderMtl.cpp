@@ -178,6 +178,8 @@ void RendererShaderMtl::CompileInternal()
     // TODO: always disable fast math for problematic shaders
     if (g_current_game_profile->GetFastMath())
         options->setFastMathEnabled(true);
+    if (g_current_game_profile->GetPositionInvariance())
+        options->setPreserveInvariance(true);
 
     NS::Error* error = nullptr;
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(m_mslCode), options, &error);

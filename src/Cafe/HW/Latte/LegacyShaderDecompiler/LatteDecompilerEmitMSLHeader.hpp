@@ -180,7 +180,7 @@ namespace LatteDecompiler
 		auto* src = shaderContext->shaderSource;
 
 		src->add("struct VertexOut {" _CRLF);
-		src->add("float4 position [[position]];" _CRLF);
+		src->add("float4 position [[position]] [[invariant]];" _CRLF);
 		if (shaderContext->analyzer.outputPointSize)
 		    src->add("float pointSize [[point_size]];" _CRLF);
 
