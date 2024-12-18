@@ -523,6 +523,7 @@ void MetalRenderer::DeleteFontTextures()
 void MetalRenderer::AppendOverlayDebugInfo()
 {
     ImGui::Text("--- GPU info ---");
+    ImGui::Text("GPU                       %s", m_device->name()->utf8String());
     ImGui::Text("Is Apple GPU              %s", (m_isAppleGPU ? "yes" : "no"));
     ImGui::Text("Has unified memory        %s", (m_hasUnifiedMemory ? "yes" : "no"));
     ImGui::Text("Supports Metal3           %s", (m_supportsMetal3 ? "yes" : "no"));
