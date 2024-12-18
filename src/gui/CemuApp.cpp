@@ -88,7 +88,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Windo
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
 	fs::path portablePath = exePath.parent_path() / "portable";
 	data_path = exePath.parent_path(); // the data path is always the same as the exe path
-	if (fs::exists(portablePath, ec))
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
