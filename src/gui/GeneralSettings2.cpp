@@ -1,5 +1,3 @@
-#include "Foundation/NSString.hpp"
-#include "Metal/MTLDevice.hpp"
 #include "gui/wxgui.h"
 #include "gui/GeneralSettings2.h"
 #include "gui/CemuApp.h"
@@ -29,9 +27,6 @@
 
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#if ENABLE_METAL
-#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#endif
 #include "Cafe/Account/Account.h"
 
 #include <boost/tokenizer.hpp>
@@ -87,15 +82,15 @@ private:
 	IAudioInputAPI::DeviceDescriptionPtr m_description;
 };
 
-class wxGraphicsDevice : public wxClientData
+class wxVulkanUUID : public wxClientData
 {
 public:
-	wxGraphicsDevice(const std::string& name)
-		: m_name(name) {}
-	const std::string& GetName() const { return m_name; }
+	wxVulkanUUID(const VulkanRenderer::DeviceInfo& info)
+		: m_device_info(info) {}
+	const VulkanRenderer::DeviceInfo& GetDeviceInfo() const { return m_device_info; }
 
 private:
-	std::string m_name;
+	VulkanRenderer::DeviceInfo m_device_info;
 };
 
 class wxAccountData : public wxClientData
@@ -1030,14 +1025,14 @@ void GeneralSettings2::StoreConfig()
 	selection = m_graphic_device->GetSelection();
 	if(selection != wxNOT_FOUND)
 	{
-		const auto* info = (wxGraphicsDevice*)m_graphic_device->GetClientObject(selection);
+		const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
 		if(info)
-			config.graphic_device_name = info->GetName();
+			config.graphic_device_uuid = info->GetDeviceInfo().uuid;
 		else
-			config.graphic_device_name = "";
+			config.graphic_device_uuid = {};
 	}
 	else
-		config.graphic_device_name = "";
+		config.graphic_device_uuid = {};
 
 
 	config.vsync = m_vsync->GetSelection();
@@ -1543,14 +1538,14 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		{
 			for(const auto& device : devices)
 			{
-				m_graphic_device->Append(device, new wxGraphicsDevice(device));
+				m_graphic_device->Append(device.name, new wxVulkanUUID(device));
 			}
 			m_graphic_device->SetSelection(0);
 
 			const auto& config = GetConfig();
 			for(size_t i = 0; i < devices.size(); ++i)
 			{
-				if(config.graphic_device_name == devices[i])
+				if(config.graphic_device_uuid == devices[i].uuid)
 				{
 					m_graphic_device->SetSelection(i);
 					break;
@@ -1571,30 +1566,9 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_vsync->Select(selection);
 
-		m_graphic_device->Enable();
-		m_graphic_device->Clear();
-
-#if ENABLE_METAL
-        auto devices = MetalRenderer::GetDevices();
-		if (!devices.empty())
-		{
-			for (const auto& device : devices)
-			{
-				m_graphic_device->Append(device, new wxGraphicsDevice(device));
-			}
-			m_graphic_device->SetSelection(0);
-
-			const auto& config = GetConfig();
-			for (size_t i = 0; i < devices.size(); ++i)
-			{
-				if (config.graphic_device_name == devices[i])
-				{
-					m_graphic_device->SetSelection(i);
-					break;
-				}
-			}
-		}
-#endif
+		// TODO: add an option to select the graphic device
+    	m_graphic_device->Clear();
+    	m_graphic_device->Disable();
 	}
 }
 

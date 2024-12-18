@@ -91,7 +91,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 	return VK_FALSE;
 }
 
-std::vector<std::string> VulkanRenderer::GetDevices()
+std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 {
     if(!vkEnumerateInstanceVersion)
     {
@@ -105,7 +105,7 @@ std::vector<std::string> VulkanRenderer::GetDevices()
 			apiVersion = VK_API_VERSION_1_1;
 	}
 
-	std::vector<std::string> result;
+	std::vector<DeviceInfo> result;
 
 	std::vector<const char*> requiredExtensions;
 	requiredExtensions.clear();
@@ -168,7 +168,7 @@ std::vector<std::string> VulkanRenderer::GetDevices()
 				physDeviceProps.pNext = &physDeviceIDProps;
 				vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
 
-				result.emplace_back(physDeviceProps.properties.deviceName);
+				result.emplace_back(physDeviceProps.properties.deviceName, physDeviceIDProps.deviceUUID);
 			}
 		}
 		vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -181,6 +181,7 @@ std::vector<std::string> VulkanRenderer::GetDevices()
 		vkDestroyInstance(instance, nullptr);
 
 	return result;
+
 }
 
 void VulkanRenderer::DetermineVendor()
@@ -388,7 +389,8 @@ VulkanRenderer::VulkanRenderer()
 	auto surface = CreateFramebufferSurface(m_instance, gui_getWindowInfo().window_main);
 
 	auto& config = GetConfig();
-	const bool has_device_set = !config.graphic_device_name.empty();
+	decltype(config.graphic_device_uuid) zero{};
+	const bool has_device_set = config.graphic_device_uuid != zero;
 
 	VkPhysicalDevice fallbackDevice = VK_NULL_HANDLE;
 
@@ -408,7 +410,7 @@ VulkanRenderer::VulkanRenderer()
 				physDeviceProps.pNext = &physDeviceIDProps;
 				vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
 
-				if (config.graphic_device_name != physDeviceProps.properties.deviceName)
+				if (memcmp(config.graphic_device_uuid.data(), physDeviceIDProps.deviceUUID, VK_UUID_SIZE) != 0)
 					continue;
 			}
 
@@ -421,7 +423,7 @@ VulkanRenderer::VulkanRenderer()
 	{
 		cemuLog_log(LogType::Force, "The selected GPU could not be found or is not suitable. Falling back to first available device instead");
 		m_physicalDevice = fallbackDevice;
-		config.graphic_device_name = ""; // resetting device selection
+		config.graphic_device_uuid = {}; // resetting device selection
 	}
 	else if (m_physicalDevice == VK_NULL_HANDLE)
 	{

@@ -20,8 +20,6 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Foundation/NSString.hpp"
-#include "Metal/MTLDevice.hpp"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
@@ -38,53 +36,10 @@ float supportBufferData[512 * 4];
 // Defined in the OpenGL renderer
 void LatteDraw_handleSpecialState8_clearAsDepth();
 
-std::vector<std::string> MetalRenderer::GetDevices()
-{
-    auto devices = MTL::CopyAllDevices();
-    std::vector<std::string> result;
-    result.reserve(devices->count());
-    for (uint32 i = 0; i < devices->count(); i++)
-    {
-        MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
-        result.push_back(std::string(device->name()->utf8String()));
-    }
-
-    return result;
-}
-
 MetalRenderer::MetalRenderer()
 {
-    // Pick a device
-    auto& config = GetConfig();
-    const bool hasDeviceSet = !config.graphic_device_name.empty();
-
-    // If a device is set, try to find it
-    if (hasDeviceSet)
-    {
-        auto devices = MTL::CopyAllDevices();
-        for (uint32 i = 0; i < devices->count(); i++)
-        {
-            MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
-            std::string name = std::string(device->name()->utf8String());
-            if (name == config.graphic_device_name)
-            {
-                m_device = device;
-                break;
-            }
-        }
-    }
-
-    if (!m_device)
-    {
-        if (hasDeviceSet)
-        {
-            cemuLog_log(LogType::Force, "The selected GPU ({}) could not be found. Using the system default device.", config.graphic_device_name);
-            config.graphic_device_name = "";
-        }
-
-        // Use the system default device
-        m_device = MTL::CreateSystemDefaultDevice();
-    }
+    m_device = MTL::CreateSystemDefaultDevice();
+    m_commandQueue = m_device->newCommandQueue();
 
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
@@ -94,9 +49,6 @@ MetalRenderer::MetalRenderer()
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
     CheckForPixelFormatSupport(m_pixelFormatSupport);
-
-    // Create command queue
-    m_commandQueue = m_device->newCommandQueue();
 
     // Synchronization resources
     m_event = m_device->newEvent();
@@ -571,7 +523,6 @@ void MetalRenderer::DeleteFontTextures()
 void MetalRenderer::AppendOverlayDebugInfo()
 {
     ImGui::Text("--- GPU info ---");
-    ImGui::Text("GPU name                  %s", m_device->name()->utf8String());
     ImGui::Text("Is Apple GPU              %s", (m_isAppleGPU ? "yes" : "no"));
     ImGui::Text("Has unified memory        %s", (m_hasUnifiedMemory ? "yes" : "no"));
     ImGui::Text("Supports Metal3           %s", (m_supportsMetal3 ? "yes" : "no"));
@@ -685,7 +636,6 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
 {
     if (!FormatIsRenderable(hostTexture->format))
     {
-        // TODO: handle this somehow?
         cemuLog_logOnce(LogType::Force, "cannot clear color texture with format {}, because it's not renderable", hostTexture->format);
         return;
     }
