@@ -1,0 +1,26 @@
+<?xml version='1.0' encoding='utf-8'?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+
+    <Type Name="boost::container::small_vector&lt;*&gt;">
+        <Expand>
+            <Item Name="[size]">m_holder.m_size</Item>
+            <ArrayItems>
+                <Size>m_holder.m_size</Size>
+                <ValuePointer>m_holder.m_start</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+
+	<Type Name="boost::container::static_vector&lt;*&gt;">
+	<DisplayString>{{ size={m_holder.m_size} }}</DisplayString>
+	<Expand>
+	  <Item Name="[size]" ExcludeView="simple">m_holder.m_size</Item>
+	  <Item Name="[capacity]" ExcludeView="simple">static_capacity</Item>
+	  <ArrayItems>
+		<Size>m_holder.m_size</Size>
+		<ValuePointer>($T1*)m_holder.storage.data</ValuePointer>
+	  </ArrayItems>
+	</Expand>
+	</Type>
+
+</AutoVisualizer>

@@ -5,7 +5,6 @@
 #include "Cafe/OS/libs/coreinit/coreinit_CodeGen.h"
 
 #include "../Recompiler/PPCRecompiler.h"
-#include "../Recompiler/PPCRecompilerX64.h"
 
 #include <float.h>
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"

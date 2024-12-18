@@ -203,7 +203,6 @@ template<class opcodeBytes, typename TA, typename TB>
 void _x64Gen_writeMODRM_internal(x64GenContext_t* x64GenContext, TA opA, TB opB)
 {
 	static_assert(TA::getType() == MODRM_OPR_TYPE::REG);
-	x64Gen_checkBuffer(x64GenContext);
 	// REX prefix
 	// 0100 WRXB
 	if constexpr (TA::getType() == MODRM_OPR_TYPE::REG && TB::getType() == MODRM_OPR_TYPE::REG)
