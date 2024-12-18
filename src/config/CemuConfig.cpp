@@ -212,7 +212,8 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	// graphics
 	auto graphic = parser.get("Graphic");
 	graphic_api = graphic.get("api", kOpenGL);
-	graphic.get("device", graphic_device_uuid);
+	graphic.get("vkDevice", vk_graphic_device_uuid);
+	graphic.get("mtlDevice", mtl_graphic_device_uuid);
 	vsync = graphic.get("VSync", 0);
 	gx2drawdone_sync = graphic.get("GX2DrawdoneSync", true);
 	upscale_filter = graphic.get("UpscaleFilter", kBicubicHermiteFilter);
@@ -468,7 +469,8 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	// graphics
 	auto graphic = config.set("Graphic");
 	graphic.set("api", graphic_api);
-	graphic.set("device", graphic_device_uuid);
+	graphic.set("vkDevice", vk_graphic_device_uuid);
+	graphic.set("mtlDevice", mtl_graphic_device_uuid);
 	graphic.set("VSync", vsync);
 	graphic.set("GX2DrawdoneSync", gx2drawdone_sync);
 	//graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());

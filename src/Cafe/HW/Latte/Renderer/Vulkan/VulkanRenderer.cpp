@@ -389,8 +389,8 @@ VulkanRenderer::VulkanRenderer()
 	auto surface = CreateFramebufferSurface(m_instance, gui_getWindowInfo().window_main);
 
 	auto& config = GetConfig();
-	decltype(config.graphic_device_uuid) zero{};
-	const bool has_device_set = config.graphic_device_uuid != zero;
+	decltype(config.vk_graphic_device_uuid) zero{};
+	const bool has_device_set = config.vk_graphic_device_uuid != zero;
 
 	VkPhysicalDevice fallbackDevice = VK_NULL_HANDLE;
 
@@ -410,7 +410,7 @@ VulkanRenderer::VulkanRenderer()
 				physDeviceProps.pNext = &physDeviceIDProps;
 				vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
 
-				if (memcmp(config.graphic_device_uuid.data(), physDeviceIDProps.deviceUUID, VK_UUID_SIZE) != 0)
+				if (memcmp(config.vk_graphic_device_uuid.data(), physDeviceIDProps.deviceUUID, VK_UUID_SIZE) != 0)
 					continue;
 			}
 
@@ -423,7 +423,7 @@ VulkanRenderer::VulkanRenderer()
 	{
 		cemuLog_log(LogType::Force, "The selected GPU could not be found or is not suitable. Falling back to first available device instead");
 		m_physicalDevice = fallbackDevice;
-		config.graphic_device_uuid = {}; // resetting device selection
+		config.vk_graphic_device_uuid = {}; // resetting device selection
 	}
 	else if (m_physicalDevice == VK_NULL_HANDLE)
 	{

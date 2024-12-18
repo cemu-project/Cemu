@@ -36,10 +36,51 @@ float supportBufferData[512 * 4];
 // Defined in the OpenGL renderer
 void LatteDraw_handleSpecialState8_clearAsDepth();
 
+std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
+{
+    auto devices = MTL::CopyAllDevices();
+    std::vector<MetalRenderer::DeviceInfo> result;
+    result.reserve(devices->count());
+    for (uint32 i = 0; i < devices->count(); i++)
+    {
+        MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
+        result.emplace_back(std::string(device->name()->utf8String()), device->registryID());
+    }
+
+    return result;
+}
+
 MetalRenderer::MetalRenderer()
 {
-    m_device = MTL::CreateSystemDefaultDevice();
-    m_commandQueue = m_device->newCommandQueue();
+    // Pick a device
+    auto& config = GetConfig();
+    const bool hasDeviceSet = config.mtl_graphic_device_uuid != 0;
+
+    // If a device is set, try to find it
+    if (hasDeviceSet)
+    {
+        auto devices = MTL::CopyAllDevices();
+        for (uint32 i = 0; i < devices->count(); i++)
+        {
+            MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
+            if (device->registryID() == config.mtl_graphic_device_uuid)
+            {
+                m_device = device;
+                break;
+            }
+        }
+    }
+
+    if (!m_device)
+    {
+        if (hasDeviceSet)
+        {
+            cemuLog_log(LogType::Force, "The selected GPU ({}) could not be found. Using the system default device.", config.mtl_graphic_device_uuid);
+            config.mtl_graphic_device_uuid = 0;
+        }
+        // Use the system default device
+        m_device = MTL::CreateSystemDefaultDevice();
+    }
 
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
@@ -49,6 +90,9 @@ MetalRenderer::MetalRenderer()
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
     CheckForPixelFormatSupport(m_pixelFormatSupport);
+
+    // Command queue
+    m_commandQueue = m_device->newCommandQueue();
 
     // Synchronization resources
     m_event = m_device->newEvent();

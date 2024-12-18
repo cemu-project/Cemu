@@ -155,6 +155,14 @@ public:
     static constexpr uint32 OCCLUSION_QUERY_POOL_SIZE = 1024;
     static constexpr uint32 TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
 
+    struct DeviceInfo
+    {
+        std::string name;
+        uint64 uuid;
+    };
+
+    static std::vector<DeviceInfo> GetDevices();
+
     MetalRenderer();
 	~MetalRenderer() override;
 
