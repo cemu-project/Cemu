@@ -380,6 +380,7 @@ struct CemuConfig
 #endif
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
+	ConfigValue<bool> play_boot_sound{false};
 
 	std::vector<std::string> game_paths;
 	std::mutex game_cache_entries_mutex;
@@ -524,7 +525,20 @@ struct CemuConfig
 		ConfigValue<bool> emulate_dimensions_toypad{false};
 	}emulated_usb_devices{};
 
-	private:
+	static int AudioChannelsToNChannels(AudioChannels kStereo)
+	{
+		switch (kStereo)
+		{
+		case 0:
+			return 1; // will mix mono sound on both output channels
+		case 2:
+			return 6;
+		default: // stereo
+			return 2;
+		}
+	}
+
+  private:
 	GameEntry* GetGameEntryByTitleId(uint64 titleId);
 	GameEntry* CreateGameEntry(uint64 titleId);
 };

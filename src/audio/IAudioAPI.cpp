@@ -97,7 +97,40 @@ bool IAudioAPI::IsAudioAPIAvailable(AudioAPI api)
 	return false;
 }
 
+AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(bool TV, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample)
+{
+	auto& config = GetConfig();
+	sint32 channels = CemuConfig::AudioChannelsToNChannels(TV ? config.tv_channels : config.pad_channels);
+	return CreateDeviceFromConfig(TV, rate, channels, samples_per_block, bits_per_sample);
+}
 
+AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(bool TV, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
+{
+	AudioAPIPtr audioAPIDev;
+
+	auto& config = GetConfig();
+
+	const auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
+	auto& selectedDevice = TV ? config.tv_device : config.pad_device;
+
+	if(selectedDevice.empty())
+		return {};
+
+	IAudioAPI::DeviceDescriptionPtr device_description;
+	if (IAudioAPI::IsAudioAPIAvailable(audio_api))
+	{
+		auto devices = IAudioAPI::GetDevices(audio_api);
+		const auto it = std::find_if(devices.begin(), devices.end(), [&selectedDevice](const auto& d) {return d->GetIdentifier() == selectedDevice; });
+		if (it != devices.end())
+			device_description = *it;
+	}
+	if (!device_description)
+		throw std::runtime_error("failed to find selected device while trying to create audio device");
+
+	audioAPIDev = CreateDevice(audio_api, device_description, rate, channels, samples_per_block, bits_per_sample);
+	audioAPIDev->SetVolume(TV ? config.tv_volume : config.pad_volume);
+	return audioAPIDev;
+}
 
 AudioAPIPtr IAudioAPI::CreateDevice(AudioAPI api, const DeviceDescriptionPtr& device, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
 {
@@ -167,3 +200,12 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> IAudioAPI::GetDevices(AudioAPI api)
 	}
 }
 
+void IAudioAPI::SetAudioDelayOverride(uint32 delay)
+{
+	m_audioDelayOverride = delay;
+}
+
+uint32 IAudioAPI::GetAudioDelay() const
+{
+	return m_audioDelayOverride > 0 ? m_audioDelayOverride : s_audioDelay;
+}

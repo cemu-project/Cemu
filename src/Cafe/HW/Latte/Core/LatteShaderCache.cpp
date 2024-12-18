@@ -25,6 +25,9 @@
 #include "util/helpers/Serializer.h"
 
 #include <wx/msgdlg.h>
+#include <audio/IAudioAPI.h>
+#include <util/bootSound/BootSoundReader.h>
+#include <thread>
 
 #if BOOST_OS_WINDOWS
 #include <psapi.h>
@@ -154,6 +157,118 @@ bool LoadTGAFile(const std::vector<uint8>& buffer, TGAFILE *tgaFile)
 
 	return true;
 }
+
+class BootSoundPlayer
+{
+  public:
+	BootSoundPlayer() = default;
+	~BootSoundPlayer()
+	{
+		m_stopRequested = true;
+	}
+
+	void StartSound()
+	{
+		if (!m_bootSndPlayThread.joinable())
+		{
+			m_fadeOutRequested = false;
+			m_stopRequested = false;
+			m_bootSndPlayThread = std::thread{[this]() {
+				StreamBootSound();
+			}};
+		}
+	}
+
+	void FadeOutSound()
+	{
+		m_fadeOutRequested = true;
+	}
+
+	void ApplyFadeOutEffect(std::span<sint16> samples, uint64& fadeOutSample, uint64 fadeOutDuration)
+	{
+		for (size_t i = 0; i < samples.size(); i += 2)
+		{
+			const float decibel = (float)fadeOutSample / fadeOutDuration * -60.0f;
+			const float volumeFactor = pow(10, decibel / 20);
+			samples[i] *= volumeFactor;
+			samples[i + 1] *= volumeFactor;
+			fadeOutSample++;
+		}
+	}
+
+	void StreamBootSound()
+	{
+		SetThreadName("bootsnd");
+		constexpr sint32 sampleRate = 48'000;
+		constexpr sint32 bitsPerSample = 16;
+		constexpr sint32 samplesPerBlock = sampleRate / 10; // block is 1/10th of a second
+		constexpr sint32 nChannels = 2;
+		static_assert(bitsPerSample % 8 == 0, "bits per sample is not a multiple of 8");
+
+		AudioAPIPtr bootSndAudioDev;
+
+		try
+		{
+			bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
+			if(!bootSndAudioDev)
+				return;
+		}
+		catch (const std::runtime_error& ex)
+		{
+			cemuLog_log(LogType::Force, "Failed to initialise audio device for bootup sound");
+			return;
+		}
+		bootSndAudioDev->SetAudioDelayOverride(4);
+		bootSndAudioDev->Play();
+
+		std::string sndPath = fmt::format("{}/meta/{}", CafeSystem::GetMlcStoragePath(CafeSystem::GetForegroundTitleId()), "bootSound.btsnd");
+		sint32 fscStatus = FSC_STATUS_UNDEFINED;
+
+		if(!fsc_doesFileExist(sndPath.c_str()))
+			return;
+
+		FSCVirtualFile* bootSndFileHandle = fsc_open(sndPath.c_str(), FSC_ACCESS_FLAG::OPEN_FILE | FSC_ACCESS_FLAG::READ_PERMISSION, &fscStatus);
+		if(!bootSndFileHandle)
+		{
+			cemuLog_log(LogType::Force, "failed to open bootSound.btsnd");
+			return;
+		}
+
+		constexpr sint32 audioBlockSize = samplesPerBlock * (bitsPerSample/8) * nChannels;
+		BootSoundReader bootSndFileReader(bootSndFileHandle, audioBlockSize);
+
+		uint64 fadeOutSample = 0; // track how far into the fadeout
+		constexpr uint64 fadeOutDuration = sampleRate * 2; // fadeout should last 2 seconds
+		while(fadeOutSample < fadeOutDuration && !m_stopRequested)
+		{
+			while (bootSndAudioDev->NeedAdditionalBlocks())
+			{
+				sint16* data = bootSndFileReader.getSamples();
+				if(data == nullptr)
+				{
+					// break outer loop
+					m_stopRequested = true;
+					break;
+				}
+				if(m_fadeOutRequested)
+					ApplyFadeOutEffect({data, samplesPerBlock * nChannels}, fadeOutSample, fadeOutDuration);
+
+				bootSndAudioDev->FeedBlock(data);
+			}
+			// sleep for the duration of a single block
+			std::this_thread::sleep_for(std::chrono::milliseconds(samplesPerBlock / (sampleRate/ 1'000)));
+		}
+
+		if(bootSndFileHandle)
+			fsc_close(bootSndFileHandle);
+	}
+
+  private:
+	std::thread m_bootSndPlayThread;
+	std::atomic_bool m_fadeOutRequested = false;
+	std::atomic_bool m_stopRequested = false;
+};
+static BootSoundPlayer g_bootSndPlayer;
 
 void LatteShaderCache_finish()
 {
@@ -299,6 +414,9 @@ void LatteShaderCache_Load()
 	loadBackgroundTexture(true, g_shaderCacheLoaderState.textureTVId);
 	loadBackgroundTexture(false, g_shaderCacheLoaderState.textureDRCId);
 
+	if(GetConfig().play_boot_sound)
+		g_bootSndPlayer.StartSound();
+
 	sint32 numLoadedShaders = 0;
 	uint32 loadIndex = 0;
 
@@ -365,6 +483,8 @@ void LatteShaderCache_Load()
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureTVId);
 	if (g_shaderCacheLoaderState.textureDRCId)
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
+
+	g_bootSndPlayer.FadeOutSound();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)

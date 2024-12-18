@@ -396,90 +396,35 @@ namespace snd_core
 
 	void AXOut_init()
 	{
-		auto& config = GetConfig();
-		const auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
 
 		numQueuedFramesSndGeneric = 0;
 
 		std::unique_lock lock(g_audioMutex);
 		if (!g_tvAudio)
 		{
-			sint32 channels;
-			switch (config.tv_channels)
+			try
 			{
-			case 0:
-				channels = 1; // will mix mono sound on both output channels
-				break;
-			case 2:
-				channels = 6;
-				break;
-			default: // stereo
-				channels = 2;
-				break;
+				g_tvAudio = IAudioAPI::CreateDeviceFromConfig(true, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
 			}
-
-			IAudioAPI::DeviceDescriptionPtr device_description;
-			if (IAudioAPI::IsAudioAPIAvailable(audio_api))
+			catch (std::runtime_error& ex)
 			{
-				auto devices = IAudioAPI::GetDevices(audio_api);
-				const auto it = std::find_if(devices.begin(), devices.end(), [&config](const auto& d) {return d->GetIdentifier() == config.tv_device; });
-				if (it != devices.end())
-					device_description = *it;
-			}
-
-			if (device_description)
-			{
-				try
-				{
-					g_tvAudio = IAudioAPI::CreateDevice((IAudioAPI::AudioAPI)config.audio_api, device_description, 48000, channels, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
-					g_tvAudio->SetVolume(config.tv_volume);
-				}
-				catch (std::runtime_error& ex)
-				{
-					cemuLog_log(LogType::Force, "can't initialize tv audio: {}", ex.what());
-					exit(0);
-				}
+				cemuLog_log(LogType::Force, "can't initialize tv audio: {}", ex.what());
+				exit(0);
 			}
 		}
 
 		if (!g_padAudio)
 		{
-			sint32 channels;
-			switch (config.pad_channels)
+			try
 			{
-			case 0:
-				channels = 1; // will mix mono sound on both output channels
-				break;
-			case 2:
-				channels = 6;
-				break;
-			default: // stereo
-				channels = 2;
-				break;
+				g_padAudio = IAudioAPI::CreateDeviceFromConfig(false, 48000, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
+				if(g_padAudio)
+					g_padVolume = g_padAudio->GetVolume();
 			}
-
-			IAudioAPI::DeviceDescriptionPtr device_description;
-			if (IAudioAPI::IsAudioAPIAvailable(audio_api))
+			catch (std::runtime_error& ex)
 			{
-				auto devices = IAudioAPI::GetDevices(audio_api);
-				const auto it = std::find_if(devices.begin(), devices.end(), [&config](const auto& d) {return d->GetIdentifier() == config.pad_device; });
-				if (it != devices.end())
-					device_description = *it;
-			}
-
-			if (device_description)
-			{
-				try
-				{
-					g_padAudio = IAudioAPI::CreateDevice((IAudioAPI::AudioAPI)config.audio_api, device_description, 48000, channels, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
-					g_padAudio->SetVolume(config.pad_volume);
-					g_padVolume = config.pad_volume;
-				}
-				catch (std::runtime_error& ex)
-				{
-					cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
-					exit(0);
-				}
+				cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
+				exit(0);
 			}
 		}
 	}
