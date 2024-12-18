@@ -107,7 +107,13 @@ void LatteOverlay_renderOverlay(ImVec2& position, ImVec2& pivot, sint32 directio
 				ImGui::Text("VRAM: %dMB / %dMB", g_state.vramUsage, g_state.vramTotal);
 
 			if (config.overlay.debug)
+			{
+				// general debug info
+				ImGui::Text("--- Debug info ---");
+				ImGui::Text("IndexUploadPerFrame: %dKB", (performanceMonitor.stats.indexDataUploadPerFrame+1023)/1024);
+				// backend specific info
 				g_renderer->AppendOverlayDebugInfo();
+			}
 
 			position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
 		}

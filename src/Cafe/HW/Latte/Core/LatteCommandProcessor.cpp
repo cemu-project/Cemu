@@ -141,6 +141,14 @@ private:
 
 void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx);
 
+// called whenever the GPU runs out of commands or hits a wait condition (semaphores, HLE waits)
+void LatteCP_signalEnterWait()
+{
+	// based on the assumption that games won't do a rugpull and swap out buffer data in the middle of an uninterrupted sequence of drawcalls,
+	// we only flush caches when the GPU goes idle or has to wait for any operation
+	LatteIndices_invalidateAll();
+}
+
 /*
 * Read a U32 from the command buffer
 * If no data is available then wait in a busy loop
@@ -466,6 +474,8 @@ LatteCMDPtr LatteCP_itWaitRegMem(LatteCMDPtr cmd, uint32 nWords)
 	const uint32 GPU7_WAIT_MEM_OP_GREATER = 6;
 	const uint32 GPU7_WAIT_MEM_OP_NEVER = 7;
 
+	LatteCP_signalEnterWait();
+
 	bool stalls = false;
 	if ((word0 & 0x10) != 0)
 	{
@@ -594,6 +604,7 @@ LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 	else if(SEM_SIGNAL == 7)
 	{
 		// wait
+		LatteCP_signalEnterWait();
 		size_t loopCount = 0;
 		while (true)
 		{
@@ -1305,11 +1316,13 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				}
 				case IT_HLE_TRIGGER_SCANBUFFER_SWAP:
 				{
+					LatteCP_signalEnterWait();
 					LatteCP_itHLESwapScanBuffer(cmdData, nWords);
 					break;
 				}
 				case IT_HLE_WAIT_FOR_FLIP:
 				{
+					LatteCP_signalEnterWait();
 					LatteCP_itHLEWaitForFlip(cmdData, nWords);
 					break;
 				}
@@ -1594,12 +1607,14 @@ void LatteCP_ProcessRingbuffer()
 			}
 			case IT_HLE_TRIGGER_SCANBUFFER_SWAP:
 			{
+				LatteCP_signalEnterWait();
 				LatteCP_itHLESwapScanBuffer(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 64;
 				break;
 			}
 			case IT_HLE_WAIT_FOR_FLIP:
 			{
+				LatteCP_signalEnterWait();
 				LatteCP_itHLEWaitForFlip(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 1;
 				break;
