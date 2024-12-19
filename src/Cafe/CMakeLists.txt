@@ -67,24 +67,31 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/PPCFunctionBoundaryTracker.h
   HW/Espresso/Recompiler/PPCRecompiler.cpp
   HW/Espresso/Recompiler/PPCRecompiler.h
-  HW/Espresso/Recompiler/PPCRecompilerImlAnalyzer.cpp
+  HW/Espresso/Recompiler/IML/IML.h
+  HW/Espresso/Recompiler/IML/IMLSegment.cpp
+  HW/Espresso/Recompiler/IML/IMLSegment.h
+  HW/Espresso/Recompiler/IML/IMLInstruction.cpp
+  HW/Espresso/Recompiler/IML/IMLInstruction.h
+  HW/Espresso/Recompiler/IML/IMLDebug.cpp
+  HW/Espresso/Recompiler/IML/IMLAnalyzer.cpp
+  HW/Espresso/Recompiler/IML/IMLOptimizer.cpp
+  HW/Espresso/Recompiler/IML/IMLRegisterAllocator.cpp
+  HW/Espresso/Recompiler/IML/IMLRegisterAllocator.h
+  HW/Espresso/Recompiler/IML/IMLRegisterAllocatorRanges.cpp
+  HW/Espresso/Recompiler/IML/IMLRegisterAllocatorRanges.h
   HW/Espresso/Recompiler/PPCRecompilerImlGen.cpp
   HW/Espresso/Recompiler/PPCRecompilerImlGenFPU.cpp
   HW/Espresso/Recompiler/PPCRecompilerIml.h
-  HW/Espresso/Recompiler/PPCRecompilerImlOptimizer.cpp
-  HW/Espresso/Recompiler/PPCRecompilerImlRanges.cpp
-  HW/Espresso/Recompiler/PPCRecompilerImlRanges.h
-  HW/Espresso/Recompiler/PPCRecompilerImlRegisterAllocator2.cpp
-  HW/Espresso/Recompiler/PPCRecompilerImlRegisterAllocator.cpp
   HW/Espresso/Recompiler/PPCRecompilerIntermediate.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64AVX.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64BMI.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64FPU.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64Gen.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64GenFPU.cpp
-  HW/Espresso/Recompiler/PPCRecompilerX64.h
-  HW/Espresso/Recompiler/x64Emit.hpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64AVX.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64BMI.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64FPU.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64Gen.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
+  HW/Espresso/Recompiler/BackendX64/BackendX64.h
+  HW/Espresso/Recompiler/BackendX64/X64Emit.hpp
+  HW/Espresso/Recompiler/BackendX64/x86Emitter.h
   HW/Latte/Common/RegisterSerializer.cpp
   HW/Latte/Common/RegisterSerializer.h
   HW/Latte/Common/ShaderSerializer.cpp

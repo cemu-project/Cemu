@@ -165,6 +165,11 @@ bool ActiveSettings::DumpTexturesEnabled()
 	return s_dump_textures;
 }
 
+bool ActiveSettings::DumpRecompilerFunctionsEnabled()
+{
+	return s_dump_recompiler_functions;
+}
+
 bool ActiveSettings::DumpLibcurlRequestsEnabled()
 {
 	return s_dump_libcurl_requests;
@@ -178,6 +183,11 @@ void ActiveSettings::EnableDumpShaders(bool state)
 void ActiveSettings::EnableDumpTextures(bool state)
 {
 	s_dump_textures = state;
+}
+
+void ActiveSettings::EnableDumpRecompilerFunctions(bool state)
+{
+	s_dump_recompiler_functions = state;
 }
 
 void ActiveSettings::EnableDumpLibcurlRequests(bool state)

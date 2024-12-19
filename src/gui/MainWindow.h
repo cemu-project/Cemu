@@ -107,8 +107,7 @@ public:
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
 	void OnPPCInfoToggle(wxCommandEvent& event);
-	void OnDebugDumpUsedTextures(wxCommandEvent& event);
-	void OnDebugDumpUsedShaders(wxCommandEvent& event);
+	void OnDebugDumpGeneric(wxCommandEvent& event);
 	void OnLoggingWindow(wxCommandEvent& event);
 	void OnGDBStubToggle(wxCommandEvent& event);
 	void OnDebugViewPPCThreads(wxCommandEvent& event);
