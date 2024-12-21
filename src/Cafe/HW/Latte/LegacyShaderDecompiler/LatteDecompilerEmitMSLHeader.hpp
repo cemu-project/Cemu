@@ -516,6 +516,7 @@ namespace LatteDecompiler
 			}
 			else
 			{
+			    // TODO: only include these if needed?
                 src->add("uint vid [[vertex_id]]");
                 src->add(", uint iid [[instance_id]]");
 			}
@@ -532,6 +533,8 @@ namespace LatteDecompiler
             break;
         case LatteConst::ShaderType::Pixel:
             src->add("FragmentIn in [[stage_in]]");
+            // TODO: only include these if needed?
+            src->add(", float2 pointCoord [[point_coord]]");
             src->add(", bool frontFacing [[front_facing]]");
             break;
         default:

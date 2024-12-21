@@ -4287,9 +4287,9 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			cemu_assert_debug((psInputTable->paramGen) == 1); // handle the other bits (the same set of coordinates with different perspective/projection settings?)
 			uint32 paramGenGPRIndex = psInputTable->paramGenGPR;
 			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-				src->addFmt("{} = in.position.xyxy;" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
+				src->addFmt("{} = pointCoord.xyxy;" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
 			else
-				src->addFmt("{} = bitCast<int>(gl_PointCoord.xyxy);" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
+				src->addFmt("{} = bitCast<int>(pointCoord.xyxy);" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
 		}
 
 		for (sint32 i = 0; i < psInputTable->count; i++)
