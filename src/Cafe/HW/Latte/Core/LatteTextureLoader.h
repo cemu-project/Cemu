@@ -679,7 +679,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4G4_UNORM_To_RG8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_To_RGBA8>
+class TextureDecoder_R4G4_UNORM_To_RG8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_To_RG8>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
