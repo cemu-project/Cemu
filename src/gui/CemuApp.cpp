@@ -88,12 +88,14 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Windo
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
 	fs::path portablePath = exePath.parent_path() / "portable";
 	data_path = exePath.parent_path(); // the data path is always the same as the exe path
+#ifdef CEMU_ALLOW_PORTABLE
 	if (fs::exists(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
 	}
 	else
+#endif
 	{
 		fs::path roamingPath = GetAppDataRoamingPath() / "Cemu";
 		user_data_path = config_path = cache_path = roamingPath;
@@ -124,11 +126,12 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 	fs::path portablePath = exePath.parent_path() / "portable";
 	// GetExecutablePath returns the AppImage's temporary mount location
 	wxString appImagePath;
-	if (wxGetEnv(("APPIMAGE"), &appImagePath))
+	if (wxGetEnv("APPIMAGE", &appImagePath))
 	{
 		exePath = wxHelper::MakeFSPath(appImagePath);
 		portablePath = exePath.parent_path() / "portable";
 	}
+#ifdef CEMU_ALLOW_PORTABLE
 	if (fs::exists(portablePath, ec))
 	{
 		isPortable = true;
@@ -137,6 +140,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 		data_path = exePath.parent_path();
 	}
 	else
+#endif
 	{
 		SetAppName("Cemu");
 		wxString appName = GetAppName();
@@ -167,9 +171,10 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
-        // If run from an app bundle, use its parent directory
-        fs::path appPath = exePath.parent_path().parent_path().parent_path();
-        fs::path portablePath = appPath.extension() == ".app" ? appPath.parent_path() / "portable" : exePath.parent_path() / "portable";
+    // If run from an app bundle, use its parent directory
+	fs::path appPath = exePath.parent_path().parent_path().parent_path();
+	fs::path portablePath = appPath.extension() == ".app" ? appPath.parent_path() / "portable" : exePath.parent_path() / "portable";
+	#ifdef CEMU_ALLOW_PORTABLE
 	if (fs::exists(portablePath, ec))
 	{
 		isPortable = true;
@@ -177,6 +182,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
 		data_path = exePath.parent_path();
 	}
 	else
+#endif
 	{
 		SetAppName("Cemu");
 		wxString appName = GetAppName();
