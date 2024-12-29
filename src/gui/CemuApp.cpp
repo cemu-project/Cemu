@@ -89,7 +89,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Windo
 	fs::path portablePath = exePath.parent_path() / "portable";
 	data_path = exePath.parent_path(); // the data path is always the same as the exe path
 #ifdef CEMU_ALLOW_PORTABLE
-	if (fs::exists(portablePath, ec))
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
@@ -132,7 +132,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 		portablePath = exePath.parent_path() / "portable";
 	}
 #ifdef CEMU_ALLOW_PORTABLE
-	if (fs::exists(portablePath, ec))
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
@@ -174,8 +174,8 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
     // If run from an app bundle, use its parent directory
 	fs::path appPath = exePath.parent_path().parent_path().parent_path();
 	fs::path portablePath = appPath.extension() == ".app" ? appPath.parent_path() / "portable" : exePath.parent_path() / "portable";
-	#ifdef CEMU_ALLOW_PORTABLE
-	if (fs::exists(portablePath, ec))
+#ifdef CEMU_ALLOW_PORTABLE
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
