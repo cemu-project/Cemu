@@ -49,6 +49,8 @@ struct PPCInterpreter_t
 	uint32 fpscr;
 	uint8 cr[32]; // 0 -> bit not set, 1 -> bit set (upper 7 bits of each byte must always be zero) (cr0 starts at index 0, cr1 at index 4 ..)
 	uint8 xer_ca;  // carry from xer
+	uint8 xer_so;
+	uint8 xer_ov;
 	uint8 LSQE;
 	uint8 PSE;
 	// thread remaining cycles
@@ -67,7 +69,8 @@ struct PPCInterpreter_t
 	uint32 reservedMemValue;
 	// temporary storage for recompiler
 	FPR_t temporaryFPR[8];
-	uint32 temporaryGPR[4];
+	uint32 temporaryGPR[4]; // deprecated, refactor backend dependency on this away
+	uint32 temporaryGPR_reg[4];
 	// values below this are not used by Cafe OS usermode
 	struct  
 	{

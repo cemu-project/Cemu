@@ -1,104 +1,56 @@
 
-typedef struct  
+#include "../PPCRecompiler.h" // todo - get rid of dependency
+
+#include "x86Emitter.h"
+
+struct x64RelocEntry_t
 {
+	x64RelocEntry_t(uint32 offset, void* extraInfo) : offset(offset), extraInfo(extraInfo) {};
+
 	uint32 offset;
-	uint8  type;
 	void*  extraInfo;
-}x64RelocEntry_t;
+};
 
-typedef struct  
+struct x64GenContext_t
 {
-	uint8* codeBuffer;
-	sint32 codeBufferIndex;
-	sint32 codeBufferSize;
-	// cr state
-	sint32 activeCRRegister; // current x86 condition flags reflect this cr* register
-	sint32 activeCRState; // describes the way in which x86 flags map to the cr register (signed / unsigned)
+	IMLSegment* currentSegment{};
+	x86Assembler64* emitter;
+	sint32 m_currentInstructionEmitIndex;
+
+	x64GenContext_t()
+	{
+		emitter = new x86Assembler64();
+	}
+
+	~x64GenContext_t()
+	{
+		delete emitter;
+	}
+
+	IMLInstruction* GetNextInstruction(sint32 relativeIndex = 1)
+	{
+		sint32 index = m_currentInstructionEmitIndex + relativeIndex;
+		if(index < 0 || index >= (sint32)currentSegment->imlList.size())
+			return nullptr;
+		return currentSegment->imlList.data() + index;
+	}
+
 	// relocate offsets
-	x64RelocEntry_t* relocateOffsetTable;
-	sint32 relocateOffsetTableSize;
-	sint32 relocateOffsetTableCount;
-}x64GenContext_t;
-
-// Some of these are defined by winnt.h and gnu headers
-#undef REG_EAX
-#undef REG_ECX
-#undef REG_EDX
-#undef REG_EBX
-#undef REG_ESP
-#undef REG_EBP
-#undef REG_ESI
-#undef REG_EDI
-#undef REG_NONE
-#undef REG_RAX
-#undef REG_RCX
-#undef REG_RDX
-#undef REG_RBX
-#undef REG_RSP
-#undef REG_RBP
-#undef REG_RSI
-#undef REG_RDI
-#undef REG_R8
-#undef REG_R9
-#undef REG_R10
-#undef REG_R11
-#undef REG_R12
-#undef REG_R13
-#undef REG_R14
-#undef REG_R15
-
-#define REG_EAX		0
-#define REG_ECX		1
-#define REG_EDX		2
-#define REG_EBX		3
-#define REG_ESP		4	// reserved for low half of hCPU pointer
-#define REG_EBP		5
-#define REG_ESI		6
-#define REG_EDI		7
-#define REG_NONE	-1
-
-#define REG_RAX		0
-#define REG_RCX		1
-#define REG_RDX		2
-#define REG_RBX		3
-#define REG_RSP		4	// reserved for hCPU pointer
-#define REG_RBP		5
-#define REG_RSI		6
-#define REG_RDI		7
-#define REG_R8		8
-#define REG_R9		9
-#define REG_R10		10
-#define REG_R11		11
-#define REG_R12		12
-#define REG_R13		13 // reserved to hold pointer to memory base? (Not decided yet)
-#define REG_R14		14 // reserved as temporary register
-#define REG_R15		15 // reserved for pointer to ppcRecompilerInstanceData
-
-#define REG_AL		0
-#define REG_CL		1
-#define REG_DL		2
-#define REG_BL		3
-#define REG_AH		4
-#define REG_CH		5
-#define REG_DH		6
-#define REG_BH		7
+	std::vector<x64RelocEntry_t> relocateOffsetTable2;
+};
 
 // reserved registers
-#define REG_RESV_TEMP		(REG_R14)
-#define REG_RESV_HCPU		(REG_RSP)
-#define REG_RESV_MEMBASE	(REG_R13)
-#define REG_RESV_RECDATA	(REG_R15)
+#define REG_RESV_TEMP		(X86_REG_R14)
+#define REG_RESV_HCPU		(X86_REG_RSP)
+#define REG_RESV_MEMBASE	(X86_REG_R13)
+#define REG_RESV_RECDATA	(X86_REG_R15)
 
 // reserved floating-point registers
 #define REG_RESV_FPR_TEMP	(15)
 
+#define reg32ToReg16(__x)	(__x) // deprecated
 
-extern sint32 x64Gen_registerMap[12];
-
-#define tempToRealRegister(__x) (x64Gen_registerMap[__x])
-#define tempToRealFPRRegister(__x) (__x)
-#define reg32ToReg16(__x)	(__x)
-
+// deprecated condition flags
 enum
 {
 	X86_CONDITION_EQUAL, // or zero
@@ -119,36 +71,23 @@ enum
 	X86_CONDITION_NONE, // no condition, jump always
 };
 
-#define PPCREC_CR_TEMPORARY							(8)		// never stored
-#define PPCREC_CR_STATE_TYPE_UNSIGNED_ARITHMETIC	(0)		// for signed arithmetic operations (ADD, CMPI)
-#define PPCREC_CR_STATE_TYPE_SIGNED_ARITHMETIC		(1)		// for unsigned arithmetic operations (ADD, CMPI)
-#define PPCREC_CR_STATE_TYPE_LOGICAL				(2)		// for unsigned operations (CMPLI)
-
-#define X86_RELOC_MAKE_RELATIVE				(0)		// make code imm relative to instruction
-#define X64_RELOC_LINK_TO_PPC				(1)		// translate from ppc address to x86 offset 
-#define X64_RELOC_LINK_TO_SEGMENT			(2)		// link to beginning of segment
-
-#define PPC_X64_GPR_USABLE_REGISTERS		(16-4)
-#define PPC_X64_FPR_USABLE_REGISTERS		(16-1) // Use XMM0 - XMM14, XMM15 is the temp register
-
-
-bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
-
-void PPCRecompilerX64Gen_crConditionFlags_forget(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext);
+bool PPCRecompiler_generateX64Code(struct PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext);
 
 void PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext_t* x64GenContext, sint32 jumpInstructionOffset, sint32 destinationOffset);
 
 void PPCRecompilerX64Gen_generateRecompilerInterfaceFunctions();
 
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction);
-void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction);
-bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction, bool indexed);
-bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction, bool indexed);
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_name(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+void PPCRecompilerX64Gen_imlInstruction_fpr_name_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed);
+bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed);
 
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction);
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction);
-void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction);
-void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, PPCRecImlInstruction_t* imlInstruction);
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
+
+void PPCRecompilerX64Gen_imlInstruction_fpr_compare(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction);
 
 // ASM gen
 void x64Gen_writeU8(x64GenContext_t* x64GenContext, uint8 v);
@@ -196,9 +135,6 @@ void x64Gen_or_reg64Low8_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstReg
 void x64Gen_and_reg64Low8_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegister64, sint32 memImmS32);
 void x64Gen_mov_mem8Reg64_reg64Low8(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegister64, sint32 memImmS32);
 
-void x64Gen_lock_cmpxchg_mem32Reg64PlusReg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32, sint32 srcRegister);
-void x64Gen_lock_cmpxchg_mem32Reg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegister64, sint32 memImmS32, sint32 srcRegister);
-
 void x64Gen_add_reg64_reg64(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_add_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_add_reg64_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
@@ -207,9 +143,6 @@ void x64Gen_sub_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 des
 void x64Gen_sub_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
 void x64Gen_sub_reg64_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
 void x64Gen_sub_mem32reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegister, sint32 memImmS32, uint64 immU32);
-void x64Gen_sbb_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
-void x64Gen_adc_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
-void x64Gen_adc_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
 void x64Gen_dec_mem32(x64GenContext_t* x64GenContext, sint32 memoryRegister, uint32 memoryImmU32);
 void x64Gen_imul_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 operandRegister);
 void x64Gen_idiv_reg64Low32(x64GenContext_t* x64GenContext, sint32 operandRegister);
@@ -241,9 +174,7 @@ void x64Gen_not_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister);
 void x64Gen_neg_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister);
 void x64Gen_cdq(x64GenContext_t* x64GenContext);
 
-void x64Gen_bswap_reg64(x64GenContext_t* x64GenContext, sint32 destRegister);
 void x64Gen_bswap_reg64Lower32bit(x64GenContext_t* x64GenContext, sint32 destRegister);
-void x64Gen_bswap_reg64Lower16bit(x64GenContext_t* x64GenContext, sint32 destRegister);
 
 void x64Gen_lzcnt_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_bsr_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
@@ -329,4 +260,8 @@ void x64Gen_movBEZeroExtend_reg64Low16_mem16Reg64PlusReg64(x64GenContext_t* x64G
 void x64Gen_movBETruncate_mem32Reg64PlusReg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32, sint32 srcRegister);
 
 void x64Gen_shrx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_shrx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_sarx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_sarx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
 void x64Gen_shlx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_shlx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);

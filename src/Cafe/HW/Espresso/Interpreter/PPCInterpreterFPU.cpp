@@ -32,7 +32,7 @@ espresso_frsqrte_entry_t frsqrteLookupTable[32] =
 	{0x20c1000, 0x35e},{0x1f12000, 0x332},{0x1d79000, 0x30a},{0x1bf4000, 0x2e6},
 };
 
-double frsqrte_espresso(double input)
+ATTR_MS_ABI double frsqrte_espresso(double input)
 {
 	unsigned long long x = *(unsigned long long*)&input;
 
@@ -111,7 +111,7 @@ espresso_fres_entry_t fresLookupTable[32] =
 	{0x88400, 0x11a},	{0x65000, 0x11a},	{0x41c00, 0x108},	{0x20c00, 0x106}
 };
 
-double fres_espresso(double input)
+ATTR_MS_ABI double fres_espresso(double input)
 {
 	// based on testing we know that fres uses only the first 15 bits of the mantissa
 	// seee eeee eeee mmmm mmmm mmmm mmmx xxxx ....		(s = sign, e = exponent, m = mantissa, x = not used)
