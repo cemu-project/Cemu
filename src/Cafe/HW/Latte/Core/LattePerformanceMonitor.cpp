@@ -74,7 +74,6 @@ void LattePerformanceMonitor_frameEnd()
 		uniformBankDataUploadedPerFrame /= 1024ULL;
 		uint32 uniformBankCountUploadedPerFrame = (uint32)(uniformBankUploadedCount / (uint64)elapsedFrames);
 		uint64 indexDataUploadPerFrame = (indexDataUploaded / (uint64)elapsedFrames);
-		indexDataUploadPerFrame /= 1024ULL;
 
 		double fps = (double)elapsedFrames2S * 1000.0 / (double)totalElapsedTimeFPS;
 		uint32 shaderBindsPerFrame = shaderBindCounter / elapsedFrames;
@@ -82,7 +81,7 @@ void LattePerformanceMonitor_frameEnd()
 		uint32 rlps = (uint32)((uint64)recompilerLeaveCount * 1000ULL / (uint64)totalElapsedTime);
 		uint32 tlps = (uint32)((uint64)threadLeaveCount * 1000ULL / (uint64)totalElapsedTime);
 		// set stats
-
+		performanceMonitor.stats.indexDataUploadPerFrame = indexDataUploadPerFrame;
 		// next counter cycle
 		sint32 nextCycleIndex = (performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES;
 		performanceMonitor.cycle[nextCycleIndex].drawCallCounter = 0;

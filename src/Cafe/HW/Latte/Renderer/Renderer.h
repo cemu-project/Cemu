@@ -138,8 +138,15 @@ public:
 	virtual void draw_endSequence() = 0;
 
 	// index
-	virtual void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) = 0;
-	virtual void indexData_uploadIndexMemory(uint32 offset, uint32 size) = 0;
+	struct IndexAllocation
+	{
+		void* mem; // pointer to index data inside buffer
+		void* rendererInternal; // for renderer use
+	};
+
+	virtual IndexAllocation indexData_reserveIndexMemory(uint32 size) = 0;
+	virtual void indexData_releaseIndexMemory(IndexAllocation& allocation) = 0;
+	virtual void indexData_uploadIndexMemory(IndexAllocation& allocation) = 0;
 
 	// occlusion queries
 	virtual LatteQueryObject* occlusionQuery_create() = 0;
