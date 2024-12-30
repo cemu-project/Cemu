@@ -22,7 +22,7 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 		cemu_assert(textureFormat == VK_FORMAT_R8G8B8A8_UNORM);
 		return baseTexture->width * baseTexture->height * 4;
 	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R8_UNORM)
+	else if (textureView->format == Latte::E_GX2SURFFMT::R8_UNORM )
 	{
 		cemu_assert(textureFormat == VK_FORMAT_R8_UNORM);
 		return baseTexture->width * baseTexture->height * 1;
@@ -78,6 +78,13 @@ uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 		cemu_assert(textureFormat == VK_FORMAT_D24_UNORM_S8_UINT);
 		// todo - if driver does not support VK_FORMAT_D24_UNORM_S8_UINT this is represented as VK_FORMAT_D32_SFLOAT_S8_UINT which is 8 bytes
 		return baseTexture->width * baseTexture->height * 4;
+	}
+	else if (textureView->format == Latte::E_GX2SURFFMT::R5_G6_B5_UNORM )
+	{
+		if(textureFormat == VK_FORMAT_R5G6B5_UNORM_PACK16){
+			return baseTexture->width * baseTexture->height * 2;
+		}	
+		return 0;
 	}
 	else
 	{
