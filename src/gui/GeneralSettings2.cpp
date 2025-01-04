@@ -902,7 +902,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 
 		m_gpu_capture_dir = new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_DONTWRAP);
 		m_gpu_capture_dir->SetMinSize(wxSize(150, -1));
-		m_gpu_capture_dir->SetToolTip(_("Cemu will save the GPU captures done by selecting Debug -> GPU capture in the menu bar in this directory. If a debugger with support for GPU captures (like Xcode) is attached, the capture will be opened in that debugger instead."));
+		m_gpu_capture_dir->SetToolTip(_("Cemu will save the GPU captures done by selecting Debug -> GPU capture in the menu bar in this directory. If a debugger with support for GPU captures (like Xcode) is attached, the capture will be opened in that debugger instead. If such debugger is not attached, METAL_CAPTURE_ENABLED must be set to 1 as an environment variable."));
 
 		debug_row->Add(m_gpu_capture_dir, 0, wxALL | wxEXPAND, 5);
 		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
