@@ -455,7 +455,7 @@ void LatteShader_DumpShader(uint64 baseHash, uint64 auxHash, LatteDecompilerShad
 	fs::path shaderPath = ActiveSettings::GetUserDataPath("dump/shaders");
 	std::error_code ec;
 	fs::create_directories(shaderPath, ec);
-	FileStream* fs = FileStream::createFile2(shaderPath / std::format("{:016x}_{:016x}_{}.txt", baseHash, auxHash, suffix));
+	FileStream* fs = FileStream::createFile2(shaderPath / fmt::format("{:016x}_{:016x}_{}.txt", baseHash, auxHash, suffix));
 	if (fs)
 	{
 		if (shader->strBuf_shaderSource)
@@ -485,7 +485,7 @@ void LatteShader_DumpRawShader(uint64 baseHash, uint64 auxHash, uint32 type, uin
 	fs::path shaderPath = ActiveSettings::GetUserDataPath("dump/shaders");
 	std::error_code ec;
 	fs::create_directories(shaderPath, ec);
-	FileStream* fs = FileStream::createFile2(shaderPath / std::format("{:016x}_{:016x}_{}.bin", baseHash, auxHash, suffix));
+	FileStream* fs = FileStream::createFile2(shaderPath / fmt::format("{:016x}_{:016x}_{}.bin", baseHash, auxHash, suffix));
 	if (fs)
 	{
 		fs->writeData(programCode, programLen);
