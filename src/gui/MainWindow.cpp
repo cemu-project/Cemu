@@ -1013,16 +1013,10 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 	}
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE)
     {
+        cemu_assert_debug(g_renderer->GetType() == RendererAPI::Metal);
+
 #if ENABLE_METAL
-        if (g_renderer->GetType() == RendererAPI::Metal)
-        {
-            static_cast<MetalRenderer*>(g_renderer.get())->CaptureFrame();
-        }
-        else
-        {
-            wxMessageBox(_("GPU capture is only supported on Metal."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-            return;
-        }
+        static_cast<MetalRenderer*>(g_renderer.get())->CaptureFrame();
 #endif
     }
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY)
@@ -2272,7 +2266,7 @@ void MainWindow::RecreateMenu()
 	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"), wxEmptyString);
 	accurateBarriers->Check(GetConfig().vk_accurate_barriers);
 
-    auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&GPU capture (Metal)"), wxEmptyString);
+    auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, _("&GPU capture (Metal)"));
     gpuCapture->Enable(m_game_launched && g_renderer->GetType() == RendererAPI::Metal);
 
 	debugMenu->AppendSeparator();

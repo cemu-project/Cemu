@@ -188,6 +188,9 @@ MetalRenderer::MetalRenderer()
         m_copyBufferToBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
 
     utilityLibrary->release();
+
+    // HACK: for some reason, this variable ends up being initialized to some garbage data, even though its declared as bool m_captureFrame = false;
+    m_captureFrame = false;
 }
 
 MetalRenderer::~MetalRenderer()
