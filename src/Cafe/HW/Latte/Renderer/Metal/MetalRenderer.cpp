@@ -20,6 +20,9 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "Common/precompiled.h"
+#include "HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Metal/MTLCaptureManager.hpp"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
@@ -2178,6 +2181,38 @@ void MetalRenderer::StartCapture()
     auto captureManager = MTL::CaptureManager::sharedCaptureManager();
     auto desc = MTL::CaptureDescriptor::alloc()->init();
     desc->setCaptureObject(m_device);
+
+    // Check if a debugger with support for GPU capture is attached
+    if (captureManager->supportsDestination(MTL::CaptureDestinationDeveloperTools))
+    {
+        desc->setDestination(MTL::CaptureDestinationDeveloperTools);
+    }
+    else
+    {
+        if (GetConfig().gpu_capture_dir.GetValue().empty())
+        {
+            cemuLog_log(LogType::Force, "No GPU capture directory specified, cannot do a GPU capture");
+            return;
+        }
+
+        // Check if the GPU trace document destination is available
+        if (!captureManager->supportsDestination(MTL::CaptureDestinationGPUTraceDocument))
+        {
+            cemuLog_log(LogType::Force, "GPU trace document destination is not available, cannot do a GPU capture");
+            return;
+        }
+
+        // Get current date and time as a string
+        auto now = std::chrono::system_clock::now();
+        std::time_t now_time = std::chrono::system_clock::to_time_t(now);
+        std::ostringstream oss;
+        oss << std::put_time(std::localtime(&now_time), "%Y-%m-%d_%H-%M-%S");
+        std::string now_str = oss.str();
+
+        std::string capturePath = fmt::format("{}/cemu_{}.gputrace", GetConfig().gpu_capture_dir.GetValue(), now_str);
+        desc->setDestination(MTL::CaptureDestinationGPUTraceDocument);
+        desc->setOutputURL(ToNSURL(capturePath));
+    }
 
     NS::Error* error = nullptr;
     captureManager->startCapture(desc, &error);
