@@ -303,6 +303,17 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
     // Debug
     m_performanceMonitor.ResetPerFrameData();
+
+    // GPU capture
+    if (m_capturing)
+    {
+        EndCapture();
+    }
+    else if (m_captureFrame)
+    {
+        StartCapture();
+        m_captureFrame = false;
+    }
 }
 
 void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView) {
@@ -2160,4 +2171,28 @@ void MetalRenderer::EnsureImGuiBackend()
         ImGui_ImplMetal_Init(m_device);
         //ImGui_ImplMetal_CreateFontsTexture(m_device);
     }
+}
+
+void MetalRenderer::StartCapture()
+{
+    auto captureManager = MTL::CaptureManager::sharedCaptureManager();
+    auto desc = MTL::CaptureDescriptor::alloc()->init();
+    desc->setCaptureObject(m_device);
+
+    NS::Error* error = nullptr;
+    captureManager->startCapture(desc, &error);
+    if (error)
+    {
+        cemuLog_log(LogType::Force, "Failed to start GPU capture: {}", error->localizedDescription()->utf8String());
+    }
+
+    m_capturing = true;
+}
+
+void MetalRenderer::EndCapture()
+{
+    auto captureManager = MTL::CaptureManager::sharedCaptureManager();
+    captureManager->stopCapture();
+
+    m_capturing = false;
 }

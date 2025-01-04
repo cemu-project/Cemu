@@ -460,6 +460,12 @@ public:
         m_occlusionQuery.m_lastCommandBuffer = GetAndRetainCurrentCommandBufferIfNotCompleted();
     }
 
+    // GPU capture
+    void CaptureFrame()
+    {
+        m_captureFrame = true;
+    }
+
 private:
 	MetalLayerHandle m_mainLayer;
 	MetalLayerHandle m_padLayer;
@@ -533,6 +539,11 @@ private:
 	// State
 	MetalState m_state;
 
+	// GPU capture
+	bool m_captureFrame = false;
+	bool m_capturing = false;
+
+	// Helpers
 	MetalLayerHandle& GetLayer(bool mainWindow)
 	{
 	    return (mainWindow ? m_mainLayer : m_padLayer);
@@ -541,4 +552,8 @@ private:
 	void SwapBuffer(bool mainWindow);
 
 	void EnsureImGuiBackend();
+
+	// GPU capture
+	void StartCapture();
+	void EndCapture();
 };

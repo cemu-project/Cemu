@@ -1,3 +1,5 @@
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "gui/wxgui.h"
 #include "gui/MainWindow.h"
 #include "gui/guiWrapper.h"
@@ -137,6 +139,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS,
 	MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY,
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
+	MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE,
 
 	// debug->logging
 	MAINFRAME_MENU_ID_DEBUG_LOGGING0 = 21500,
@@ -212,6 +215,7 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, MainWindow::OnDebugSetting)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, MainWindow::OnDebugSetting)
 // debug -> View ...
@@ -1007,6 +1011,20 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		if(!GetConfig().vk_accurate_barriers)
 			wxMessageBox(_("Warning: Disabling the accurate barriers option will lead to flickering graphics but may improve performance. It is highly recommended to leave it turned on."), _("Accurate barriers are off"), wxOK);
 	}
+	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE)
+    {
+#if ENABLE_METAL
+        if (g_renderer->GetType() == RendererAPI::Metal)
+        {
+            static_cast<MetalRenderer*>(g_renderer.get())->CaptureFrame();
+        }
+        else
+        {
+            wxMessageBox(_("GPU capture is only supported on Metal."), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+            return;
+        }
+#endif
+    }
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY)
 		ActiveSettings::EnableAudioOnlyAux(event.IsChecked());
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_RAM)
@@ -2253,6 +2271,9 @@ void MainWindow::RecreateMenu()
 
 	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"), wxEmptyString);
 	accurateBarriers->Check(GetConfig().vk_accurate_barriers);
+
+    auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&GPU capture (Metal)"), wxEmptyString);
+    gpuCapture->Enable(m_game_launched && g_renderer->GetType() == RendererAPI::Metal);
 
 	debugMenu->AppendSeparator();
 
