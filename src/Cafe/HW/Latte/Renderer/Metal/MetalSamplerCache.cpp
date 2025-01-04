@@ -110,7 +110,8 @@ MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister
     else
     {
        	// Metal doesn't support custom border color
-        samplerDescriptor->setBorderColor(MTL::SamplerBorderColorOpaqueBlack);
+        cemuLog_logOnce(LogType::Force, "Custom border color is not supported in Metal, using transparent black instead");
+        samplerDescriptor->setBorderColor(MTL::SamplerBorderColorTransparentBlack);
     }
 
     samplerState = m_mtlr->GetDevice()->newSamplerState(samplerDescriptor);
