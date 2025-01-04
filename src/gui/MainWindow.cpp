@@ -1113,9 +1113,7 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 	{
 		try
 		{
-			// create directory
-			const fs::path path(ActiveSettings::GetUserDataPath());
-			fs::create_directories(path / "dump" / "shaders");
+			fs::create_directories(ActiveSettings::GetUserDataPath("dump/shaders"));
 		}
 		catch (const std::exception & ex)
 		{
