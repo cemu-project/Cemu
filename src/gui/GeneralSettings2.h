@@ -78,6 +78,7 @@ private:
 	// Debug
 	wxChoice* m_crash_dump;
 	wxSpinCtrl* m_gdb_port;
+	wxTextCtrl* m_gpu_capture_dir;
 
 	void OnAccountCreate(wxCommandEvent& event);
 	void OnAccountDelete(wxCommandEvent& event);
