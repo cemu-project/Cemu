@@ -575,7 +575,7 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 	debuggerState.debugSession.stepInto = false;
 	debuggerState.debugSession.stepOver = false;
 	debuggerState.debugSession.run = false;
-	while (true)
+	while (debuggerState.debugSession.isTrapped)
 	{
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		// check for step commands

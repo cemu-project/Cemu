@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.21.1)
 
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
+option(ALLOW_PORTABLE "Allow Cemu to be run in portable mode" ON)
 
 # used by CI script to set version:
 set(EMULATOR_VERSION_MAJOR "0" CACHE STRING "")
