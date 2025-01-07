@@ -120,7 +120,7 @@ This section refers to running `cmake -S...` (truncated).
 * Compiling failed during rebuild after `git pull` with an error that mentions RPATH
    * Add the following and try running the command again:
       * `-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON`
-* Environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must ve set.
+* Environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must be set.
    * Add the following and try running the command again:
       * `-DVCPKG_FORCE_SYSTEM_BINARIES=1`
 * If you are getting a random error, read the [package-name-and-platform]-out.log and [package-name-and-platform]-err.log for the actual reason to see if you might be lacking the headers from a dependency.
