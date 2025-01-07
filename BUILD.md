@@ -57,7 +57,7 @@ At Step 3 in [Build Cemu using cmake and clang](#build-cemu-using-cmake-and-clan
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Fedora and derivatives:
-`sudo dnf install bluez-libs clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel llvm nasm ninja-build perl-core systemd-devel zlib-devel zlib-static`
+`sudo dnf install bluez-libs-devel clang cmake cubeb-devel freeglut-devel git glm-devel gtk3-devel kernel-headers libgcrypt-devel libsecret-devel libtool libusb1-devel llvm nasm ninja-build perl-core systemd-devel wayland-protocols-devel zlib-devel zlib-static`
 
 ### Build Cemu
 
@@ -120,6 +120,9 @@ This section refers to running `cmake -S...` (truncated).
 * Compiling failed during rebuild after `git pull` with an error that mentions RPATH
    * Add the following and try running the command again:
       * `-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON`
+* Environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must ve set.
+   * Add the following and try running the command again:
+      * `-DVCPKG_FORCE_SYSTEM_BINARIES=1`
 * If you are getting a random error, read the [package-name-and-platform]-out.log and [package-name-and-platform]-err.log for the actual reason to see if you might be lacking the headers from a dependency.
 
 
