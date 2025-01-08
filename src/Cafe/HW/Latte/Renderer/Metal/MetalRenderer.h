@@ -125,8 +125,7 @@ struct MetalState
     MetalActiveFBOState m_lastUsedFBO;
 
     size_t m_vertexBufferOffsets[MAX_MTL_VERTEX_BUFFERS];
-    // TODO: find out what is the max number of bound textures on the Wii U
-    class LatteTextureViewMtl* m_textures[64] = {nullptr};
+    class LatteTextureViewMtl* m_textures[LATTE_NUM_MAX_TEX_UNITS] = {nullptr};
     size_t m_uniformBufferOffsets[METAL_GENERAL_SHADER_TYPE_TOTAL][MAX_MTL_BUFFERS];
 
     MTL::Viewport m_viewport;

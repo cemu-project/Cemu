@@ -1031,7 +1031,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     	    endRenderPass = CheckIfRenderPassNeedsFlush(geometryShader);
 
     	if (endRenderPass)
+        {
     	    EndEncoding();
+            // TODO: only log in debug?
+            cemuLog_logOnce(LogType::Force, "Ending render pass due to render target self-dependency\n");
+        }
 	}
 
     // Primitive type
@@ -1871,6 +1875,11 @@ bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
 		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
 		auto hostTextureUnit = relative_textureUnit;
 		auto textureDim = shader->textureUnitDim[relative_textureUnit];
+
+		// Texture is accessed as a framebuffer fetch, therefore there is no need to flush it
+		if (shader->textureRenderTargetIndex[relative_textureUnit] != 255)
+		    continue;
+
 		auto texUnitRegIndex = hostTextureUnit * 7;
 		switch (shader->shaderType)
 		{
@@ -1895,15 +1904,13 @@ bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
             continue;
 
 		LatteTexture* baseTexture = textureView->baseTexture;
-		if (!m_state.m_isFirstDrawInRenderPass)
+
+	    // If the texture is also used in the current render pass, we need to end the render pass to "flush" the texture
+		for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
 		{
-		    // If the texture is also used in the current render pass, we need to end the render pass to "flush" the texture
-			for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
-			{
-			    auto colorTarget = m_state.m_activeFBO.m_fbo->colorBuffer[i].texture;
-				if (colorTarget && colorTarget->baseTexture == baseTexture)
-				    return true;
-			}
+		    auto colorTarget = m_state.m_activeFBO.m_fbo->colorBuffer[i].texture;
+			if (colorTarget && colorTarget->baseTexture == baseTexture)
+			    return true;
 		}
 	}
 
