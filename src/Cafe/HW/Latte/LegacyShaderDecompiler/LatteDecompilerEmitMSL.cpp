@@ -2260,6 +2260,22 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		return;
 	}
 
+	// Do a framebuffer fetch if possible
+	// TODO: filter out more?
+	uint8 renderTargetIndex = shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex];
+	if (renderTargetIndex != 255)
+	{
+	    src->addFmt("col{}.", renderTargetIndex);
+		// TODO: clean up
+		std::string components[] = {"x", "y", "z", "w"};
+		for (sint32 i = 0; i < numWrittenElements; i++)
+        {
+            src->addFmt("{}", components[i]);
+        }
+		src->add(");" _CRLF);
+		return;
+	}
+
 	if (emulateCompare)
 	{
         cemu_assert_debug(!isGather);
@@ -2630,20 +2646,28 @@ static void _emitTEXGetTextureResInfoCode(LatteDecompilerShaderContext* shaderCo
 
 	// todo - mip index parameter?
 
-	auto texDim = shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex];
-
-	if (texDim == Latte::E_DIM::DIM_1D)
-		src->addFmt(" = int4(tex{}.get_width(), 1, 1, 1).", texInstruction->textureFetch.textureIndex);
-	else if (texDim == Latte::E_DIM::DIM_1D_ARRAY)
-		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_array_size(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
-	else if (texDim == Latte::E_DIM::DIM_2D || texDim == Latte::E_DIM::DIM_2D_MSAA)
-		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
-	else if (texDim == Latte::E_DIM::DIM_2D_ARRAY)
-		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), tex{}.get_array_size(), 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
+	if (shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex] != 255)
+	{
+	    // TODO: use the render target size
+	    src->addFmt(" = int4(1920, 1080, 1, 1).");
+	}
 	else
 	{
-		cemu_assert_debug(false);
-		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
+    	auto texDim = shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex];
+
+    	if (texDim == Latte::E_DIM::DIM_1D)
+    		src->addFmt(" = int4(tex{}.get_width(), 1, 1, 1).", texInstruction->textureFetch.textureIndex);
+    	else if (texDim == Latte::E_DIM::DIM_1D_ARRAY)
+    		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_array_size(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
+    	else if (texDim == Latte::E_DIM::DIM_2D || texDim == Latte::E_DIM::DIM_2D_MSAA)
+    		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
+    	else if (texDim == Latte::E_DIM::DIM_2D_ARRAY)
+    		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), tex{}.get_array_size(), 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
+    	else
+    	{
+    		cemu_assert_debug(false);
+    		src->addFmt(" = int4(tex{}.get_width(), tex{}.get_height(), 1, 1).", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex);
+    	}
 	}
 
 	for(sint32 f=0; f<4; f++)

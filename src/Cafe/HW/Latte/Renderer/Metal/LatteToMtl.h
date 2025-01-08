@@ -55,7 +55,7 @@ inline const char* GetDataTypeStr(MetalDataType dataType)
 	    return "float4";
 	default:
 	    cemu_assert_suspicious();
-		return "";
+		return "INVALID";
 	}
 }
 

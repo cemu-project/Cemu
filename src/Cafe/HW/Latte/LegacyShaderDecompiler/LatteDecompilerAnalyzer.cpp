@@ -850,6 +850,42 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			shader->textureUnitList[shader->textureUnitListCount] = i;
 			shader->textureUnitListCount++;
 		}
+		shader->textureRenderTargetIndex[i] = 255;
+	}
+	// check if textures are used as render targets
+	if (shader->shaderType == LatteConst::ShaderType::Pixel)
+	{
+	    for (sint32 i = 0; i < shader->textureUnitListCount; i++)
+        {
+            sint32 textureIndex = shader->textureUnitList[i];
+      		const auto& texRegister = texRegs[textureIndex];
+
+      		// get physical address of texture data
+      		MPTR physAddr = (texRegister.word2.get_BASE_ADDRESS() << 8);
+      		if (physAddr == MPTR_NULL)
+                continue; // invalid data
+
+            for (sint32 j = 0; j < LATTE_NUM_COLOR_TARGET; j++)
+            {
+                uint32* colorBufferRegBase = shaderContext->contextRegisters + (mmCB_COLOR0_BASE + j);
+               	uint32 regColorBufferBase = colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] & 0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
+               	uint32 regColorSize = colorBufferRegBase[mmCB_COLOR0_SIZE - mmCB_COLOR0_BASE];
+               	uint32 regColorInfo = colorBufferRegBase[mmCB_COLOR0_INFO - mmCB_COLOR0_BASE];
+               	uint32 regColorView = colorBufferRegBase[mmCB_COLOR0_VIEW - mmCB_COLOR0_BASE];
+               	// decode color buffer reg info
+               	Latte::E_HWTILEMODE colorBufferTileMode = (Latte::E_HWTILEMODE)((regColorInfo >> 8) & 0xF);
+               	uint32 numberType = (regColorInfo >> 12) & 7;
+               	Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(j, *shaderContext->contextRegistersNew);
+
+               	MPTR colorBufferPhysMem = regColorBufferBase;
+
+                if (physAddr == colorBufferPhysMem)
+                {
+                    shader->textureRenderTargetIndex[i] = j;
+                    break;
+                }
+            }
+        }
 	}
 	// for geometry shaders check the copy shader for stream writes
 	if (shader->shaderType == LatteConst::ShaderType::Geometry && shaderContext->parsedGSCopyShader->list_streamWrites.empty() == false)
