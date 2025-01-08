@@ -122,7 +122,7 @@ This section refers to running `cmake -S...` (truncated).
       * `-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON`
 * Environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must be set.
    * Execute the folowing and then try running the command again:
-      * `VCPKG_FORCE_SYSTEM_BINARIES=1`
+      * `export VCPKG_FORCE_SYSTEM_BINARIES=1`
 * If you are getting a random error, read the [package-name-and-platform]-out.log and [package-name-and-platform]-err.log for the actual reason to see if you might be lacking the headers from a dependency.
 
 
