@@ -87,6 +87,7 @@ MetalRenderer::MetalRenderer()
 
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_supportsFramebufferFetch = m_device->supportsFamily(MTL::GPUFamilyApple2);
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
@@ -584,21 +585,22 @@ void MetalRenderer::DeleteFontTextures()
 void MetalRenderer::AppendOverlayDebugInfo()
 {
     ImGui::Text("--- GPU info ---");
-    ImGui::Text("GPU                       %s", m_device->name()->utf8String());
-    ImGui::Text("Is Apple GPU              %s", (m_isAppleGPU ? "yes" : "no"));
-    ImGui::Text("Has unified memory        %s", (m_hasUnifiedMemory ? "yes" : "no"));
-    ImGui::Text("Supports Metal3           %s", (m_supportsMetal3 ? "yes" : "no"));
+    ImGui::Text("GPU                        %s", m_device->name()->utf8String());
+    ImGui::Text("Is Apple GPU               %s", (m_isAppleGPU ? "yes" : "no"));
+    ImGui::Text("Supports framebuffer fetch %s", (m_supportsFramebufferFetch ? "yes" : "no"));
+    ImGui::Text("Has unified memory         %s", (m_hasUnifiedMemory ? "yes" : "no"));
+    ImGui::Text("Supports Metal3            %s", (m_supportsMetal3 ? "yes" : "no"));
 
     ImGui::Text("--- Metal info ---");
-    ImGui::Text("Render pipeline states    %zu", m_pipelineCache->GetPipelineCacheSize());
-    ImGui::Text("Buffer allocator memory   %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
+    ImGui::Text("Render pipeline states     %zu", m_pipelineCache->GetPipelineCacheSize());
+    ImGui::Text("Buffer allocator memory    %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
-    ImGui::Text("Command buffers           %u", m_performanceMonitor.m_commandBuffers);
-    ImGui::Text("Render passes             %u", m_performanceMonitor.m_renderPasses);
-    ImGui::Text("Clears                    %u", m_performanceMonitor.m_clears);
-    ImGui::Text("Manual vertex fetch draws %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
-    ImGui::Text("Triangle fans             %u", m_performanceMonitor.m_triangleFans);
+    ImGui::Text("Command buffers            %u", m_performanceMonitor.m_commandBuffers);
+    ImGui::Text("Render passes              %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Clears                     %u", m_performanceMonitor.m_clears);
+    ImGui::Text("Manual vertex fetch draws  %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
+    ImGui::Text("Triangle fans              %u", m_performanceMonitor.m_triangleFans);
 }
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
@@ -1932,7 +1934,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		auto hostTextureUnit = relative_textureUnit;
 
 		// Don't bind textures that are accessed with a framebuffer fetch
-		if (shader->textureRenderTargetIndex[relative_textureUnit] != 255)
+		if (m_supportsFramebufferFetch && shader->textureRenderTargetIndex[relative_textureUnit] != 255)
             continue;
 
 		auto textureDim = shader->textureUnitDim[relative_textureUnit];

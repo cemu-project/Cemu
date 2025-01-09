@@ -375,6 +375,11 @@ public:
         return m_isAppleGPU;
     }
 
+    bool SupportsFramebufferFetch() const
+    {
+        return m_supportsFramebufferFetch;
+    }
+
     bool HasUnifiedMemory() const
     {
         return m_hasUnifiedMemory;
@@ -477,6 +482,7 @@ private:
 
 	// Feature support
 	bool m_isAppleGPU;
+	bool m_supportsFramebufferFetch;
 	bool m_hasUnifiedMemory;
 	bool m_supportsMetal3;
 	uint32 m_recommendedMaxVRAMUsage;

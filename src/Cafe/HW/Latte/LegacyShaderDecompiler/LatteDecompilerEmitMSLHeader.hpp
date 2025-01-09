@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common/precompiled.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "HW/Latte/Core/LatteShader.h"
 
 namespace LatteDecompiler
@@ -458,11 +458,19 @@ namespace LatteDecompiler
 				continue;
 
 			uint8 renderTargetIndex = shaderContext->shader->textureRenderTargetIndex[i];
-			if (renderTargetIndex == 255)
+			if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && renderTargetIndex != 255)
 			{
-			    src->add(", ");
+                if (!renderTargetIndexUsed[renderTargetIndex])
+				{
+			        src->addFmt(", {} col{} [[color({})]]", GetDataTypeStr(GetColorBufferDataType(renderTargetIndex, *shaderContext->contextRegistersNew)), renderTargetIndex, renderTargetIndex);
+					renderTargetIndexUsed[renderTargetIndex] = true;
+				}
+			}
+			else
+			{
+                src->add(", ");
 
-    			// Only 2D and 2D array textures can be used with comparison samplers
+    			// Only certain texture dimensions can be used with comparison samplers
     			if (shaderContext->shader->textureUsesDepthCompare[i] && IsValidDepthTextureType(shaderContext->shader->textureUnitDim[i]))
     			    src->add("depth");
     			else
@@ -498,14 +506,6 @@ namespace LatteDecompiler
     			//uint32 samplerBinding = textureBinding % 16;
     			src->addFmt(" tex{} [[texture({})]]", i, binding);
     			src->addFmt(", sampler samplr{} [[sampler({})]]", i, binding);
-			}
-			else
-			{
-			    if (!renderTargetIndexUsed[renderTargetIndex])
-				{
-			        src->addFmt(", {} col{} [[color({})]]", GetDataTypeStr(GetColorBufferDataType(renderTargetIndex, *shaderContext->contextRegistersNew)), renderTargetIndex, renderTargetIndex);
-					renderTargetIndexUsed[renderTargetIndex] = true;
-				}
 			}
 		}
 	}

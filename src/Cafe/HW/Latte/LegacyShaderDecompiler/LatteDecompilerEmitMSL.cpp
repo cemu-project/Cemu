@@ -10,7 +10,7 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/StringBuf.h"
@@ -2261,19 +2261,22 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	}
 
 	// Do a framebuffer fetch if possible
-	// TODO: filter out more?
-	uint8 renderTargetIndex = shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex];
-	if (renderTargetIndex != 255)
+	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch())
 	{
-	    src->addFmt("col{}.", renderTargetIndex);
-		// TODO: clean up
-		std::string components[] = {"x", "y", "z", "w"};
-		for (sint32 i = 0; i < numWrittenElements; i++)
-        {
-            src->addFmt("{}", components[i]);
-        }
-		src->add(");" _CRLF);
-		return;
+    	// TODO: filter out more?
+    	uint8 renderTargetIndex = shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex];
+    	if (renderTargetIndex != 255)
+    	{
+    	    src->addFmt("col{}.", renderTargetIndex);
+    		// TODO: clean up
+    		std::string components[] = {"x", "y", "z", "w"};
+    		for (sint32 i = 0; i < numWrittenElements; i++)
+            {
+                src->addFmt("{}", components[i]);
+            }
+    		src->add(");" _CRLF);
+    		return;
+    	}
 	}
 
 	if (emulateCompare)
@@ -2646,7 +2649,7 @@ static void _emitTEXGetTextureResInfoCode(LatteDecompilerShaderContext* shaderCo
 
 	// todo - mip index parameter?
 
-	if (shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex] != 255)
+	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex] != 255)
 	{
 	    // TODO: use the render target size
 	    src->addFmt(" = int4(1920, 1080, 1, 1).");
