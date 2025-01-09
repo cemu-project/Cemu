@@ -1926,6 +1926,11 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 	{
 		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
 		auto hostTextureUnit = relative_textureUnit;
+
+		// Don't bind textures that are accessed with a framebuffer fetch
+		if (shader->textureRenderTargetIndex[relative_textureUnit] != 255)
+            continue;
+
 		auto textureDim = shader->textureUnitDim[relative_textureUnit];
 		auto texUnitRegIndex = hostTextureUnit * 7;
 		switch (shader->shaderType)
