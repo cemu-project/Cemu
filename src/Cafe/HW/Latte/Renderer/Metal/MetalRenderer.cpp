@@ -1008,6 +1008,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
+    /*
     bool neverSkipAccurateBarrier = false;
 
     // "Accurate barriers" is usually enabled globally but since the CPU cost is substantial we allow users to disable it (debug -> 'Accurate barriers' option)
@@ -1037,6 +1038,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
             cemuLog_logOnce(LogType::Force, "Ending render pass due to render target self-dependency\n");
         }
 	}
+	*/
 
     // Primitive type
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
@@ -1867,6 +1869,7 @@ bool MetalRenderer::AcquireDrawable(bool mainWindow)
     return layer.AcquireDrawable();
 }
 
+/*
 bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
 {
     sint32 textureCount = shader->resourceMapping.getTextureCount();
@@ -1916,6 +1919,7 @@ bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
 
 	return false;
 }
+*/
 
 void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader)
 {

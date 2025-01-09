@@ -362,7 +362,7 @@ public:
 
     bool AcquireDrawable(bool mainWindow);
 
-    bool CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader);
+    //bool CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader);
     void BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader);
 
     void ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a);
