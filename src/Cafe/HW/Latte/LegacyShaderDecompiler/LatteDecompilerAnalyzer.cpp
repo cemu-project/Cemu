@@ -872,6 +872,14 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
             if (dim != Latte::E_DIM::DIM_2D)
                 continue;
 
+            // Check for mip level
+            // TODO: uncomment?
+            /*
+            auto lastMip = texRegister.word5.get_LAST_LEVEL();
+            if (lastMip != 0)
+                continue;
+            */
+
             // Check if the texture is used as render target
             for (sint32 j = 0; j < LATTE_NUM_COLOR_TARGET; j++)
             {
@@ -886,7 +894,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
                 // TODO: check if mip matches as well?
                 if (physAddr == colorBufferPhysMem)
                 {
-                    shader->textureRenderTargetIndex[i] = j;
+                    shader->textureRenderTargetIndex[textureIndex] = j;
                     break;
                 }
             }
