@@ -866,6 +866,13 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
       		if (physAddr == MPTR_NULL)
                 continue; // invalid data
 
+            // Check for dimension
+            auto dim = shader->textureUnitDim[textureIndex];
+            // TODO: 2D arrays could technically be supported as well
+            if (dim != Latte::E_DIM::DIM_2D)
+                continue;
+
+            // Check if the texture is used as render target
             for (sint32 j = 0; j < LATTE_NUM_COLOR_TARGET; j++)
             {
                 if (((colorBufferMask) & (1 << j)) == 0)
@@ -876,6 +883,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 
                	MPTR colorBufferPhysMem = regColorBufferBase;
 
+                // TODO: check if mip matches as well?
                 if (physAddr == colorBufferPhysMem)
                 {
                     shader->textureRenderTargetIndex[i] = j;
