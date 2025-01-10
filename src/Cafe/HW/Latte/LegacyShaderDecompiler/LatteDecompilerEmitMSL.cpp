@@ -2261,9 +2261,9 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	}
 
 	// Do a framebuffer fetch if possible
+	// TODO: support comparison samplers
 	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch())
 	{
-    	// TODO: filter out more?
     	uint8 renderTargetIndex = shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex];
     	if (renderTargetIndex != 255)
     	{
@@ -2720,23 +2720,30 @@ static void _emitTEXGetCompTexLodCode(LatteDecompilerShaderContext* shaderContex
 	src->add(" = ");
 	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
 
-	if( shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex] == Latte::E_DIM::DIM_CUBEMAP )
+	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex] != 255)
 	{
-		// 3 coordinates
-		if(shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}{}),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
-		else
-			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{}{})),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
+	    // We assume that textures accessed as framebuffer fetch are always sampled at pixel coordinates, therefore the lod would always be 0.0
+	    src->add("float4(0.0, 0.0, 0.0, 0.0)");
 	}
 	else
 	{
-		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
-		else
-			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{})),0.0,0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
-		debugBreakpoint();
+    	if (shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex] == Latte::E_DIM::DIM_CUBEMAP)
+    	{
+    		// 3 coordinates
+    		if(shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
+    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}{}), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
+    		else
+    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
+    	}
+    	else
+    	{
+    		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
+    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
+    		else
+    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
+    		debugBreakpoint();
+    	}
 	}
-
 
 	_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
 	src->add(".");
