@@ -87,7 +87,7 @@ MetalRenderer::MetalRenderer()
 
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
-    m_supportsFramebufferFetch = m_device->supportsFamily(MTL::GPUFamilyApple2);
+    m_supportsFramebufferFetch = GetConfig().framebuffer_fetch.GetValue() ? m_device->supportsFamily(MTL::GPUFamilyApple2) : false;
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();

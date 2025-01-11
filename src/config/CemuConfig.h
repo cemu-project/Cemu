@@ -527,7 +527,8 @@ struct CemuConfig
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
 	ConfigValue<uint16> gdb_port{ 1337 };
-	ConfigValue<std::string> gpu_capture_dir{};
+	ConfigValue<std::string> gpu_capture_dir{ "" };
+	ConfigValue<bool> framebuffer_fetch{ true };
 
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
