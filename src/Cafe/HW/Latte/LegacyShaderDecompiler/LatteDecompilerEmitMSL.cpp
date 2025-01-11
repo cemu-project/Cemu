@@ -2293,7 +2293,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
        	    if (isGather)
      			src->add("gather");
       		else
-                    src->add("sample");
+                src->add("sample");
        	    if (isCompare)
      			src->add("_compare");
       		src->addFmt("(samplr{}, ", texInstruction->textureFetch.textureIndex);
@@ -2456,25 +2456,25 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
     		// 1D textures don't support lod
     		if (texDim != Latte::E_DIM::DIM_1D && texDim != Latte::E_DIM::DIM_1D_ARRAY)
     		{
-      		if (texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
-      		{
-      		    src->add(", ");
-     			if (texOpcode == GPU7_TEX_INST_SAMPLE_LB)
-     			{
-        				src->addFmt("bias({})", _FormatFloatAsConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
-     			}
-     			else
-     			{
-     			    // TODO: is this correct?
-        				src->add("level(");
+          		if (texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
+          		{
+          		    src->add(", ");
+         			if (texOpcode == GPU7_TEX_INST_SAMPLE_LB)
+         			{
+                        src->addFmt("bias({})", _FormatFloatAsConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
+         			}
+         			else
+         			{
+         			    // TODO: is this correct?
+                        src->add("level(");
         				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
         				src->add(")");
-     			}
-      		}
-      		else if (texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ)
-      		{
-     			src->add(", level(0.0)");
-      		}
+         			}
+          		}
+          		else if (texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ)
+          		{
+         			src->add(", level(0.0)");
+          		}
     		}
     	}
     	// gradient parameters
