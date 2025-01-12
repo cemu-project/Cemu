@@ -681,6 +681,9 @@ VulkanRenderer::~VulkanRenderer()
 		vkDestroyDebugUtilsMessengerEXT(m_instance, m_debugCallback, nullptr);
 	}
 
+	// destroy memory manager
+	delete memoryManager;
+
 	// destroy instance, devices
 	if (m_instance != VK_NULL_HANDLE)
 	{
@@ -691,9 +694,6 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyInstance(m_instance, nullptr);
 	}
-
-	// destroy memory manager
-	delete memoryManager;
 
 	// crashes?
 	//glslang::FinalizeProcess();
@@ -3701,7 +3701,7 @@ void VulkanRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uin
 
 void VulkanRenderer::AppendOverlayDebugInfo()
 {
-	ImGui::Text("--- Vulkan info ---");
+	ImGui::Text("--- Vulkan debug info ---");
 	ImGui::Text("GfxPipelines   %u", performanceMonitor.vk.numGraphicPipelines.get());
 	ImGui::Text("DescriptorSets %u", performanceMonitor.vk.numDescriptorSets.get());
 	ImGui::Text("DS ImgSamplers %u", performanceMonitor.vk.numDescriptorSamplerTextures.get());
@@ -3719,7 +3719,7 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 
 	ImGui::Text("BeginRP/f      %u", performanceMonitor.vk.numBeginRenderpassPerFrame.get());
 	ImGui::Text("Barriers/f     %u", performanceMonitor.vk.numDrawBarriersPerFrame.get());
-	ImGui::Text("--- Cache info ---");
+	ImGui::Text("--- Cache debug info ---");
 
 	uint32 bufferCacheHeapSize = 0;
 	uint32 bufferCacheAllocationSize = 0;
@@ -3739,7 +3739,7 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::SameLine(60.0f);
 	ImGui::Text("%06uKB / %06uKB Buffers: %u", ((uint32)(totalSize - freeSize) + 1023) / 1024, ((uint32)totalSize + 1023) / 1024, (uint32)numBuffers);
 
-	memoryManager->getIndexAllocator().GetStats(numBuffers, totalSize, freeSize);
+	memoryManager->GetIndexAllocator().GetStats(numBuffers, totalSize, freeSize);
 	ImGui::Text("Index");
 	ImGui::SameLine(60.0f);
 	ImGui::Text("%06uKB / %06uKB Buffers: %u", ((uint32)(totalSize - freeSize) + 1023) / 1024, ((uint32)totalSize + 1023) / 1024, (uint32)numBuffers);
