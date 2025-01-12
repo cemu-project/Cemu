@@ -387,7 +387,7 @@ namespace nsyshid
 
 	bool InfinityBaseDevice::GetDescriptor(uint8 descType,
 										   uint8 descIndex,
-										   uint8 lang,
+										   uint16 lang,
 										   uint8* output,
 										   uint32 outputMaxLength)
 	{
@@ -450,6 +450,13 @@ namespace nsyshid
 		return true;
 	}
 
+	bool InfinityBaseDevice::SetIdle(uint8 ifIndex,
+										 uint8 reportId,
+										 uint8 duration)
+	{
+		return true;
+	}
+
 	bool InfinityBaseDevice::SetProtocol(uint8 ifIndex, uint8 protocol)
 	{
 		return true;
@@ -492,7 +499,7 @@ namespace nsyshid
 		return response;
 	}
 
-	void InfinityUSB::SendCommand(uint8* buf, sint32 originalLength)
+	void InfinityUSB::SendCommand(uint8* buf, uint32 length)
 	{
 		const uint8 command = buf[2];
 		const uint8 sequence = buf[3];

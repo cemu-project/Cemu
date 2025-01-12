@@ -463,8 +463,6 @@ add_library(CemuCafe
   OS/libs/nsyshid/BackendEmulated.h
   OS/libs/nsyshid/BackendLibusb.cpp
   OS/libs/nsyshid/BackendLibusb.h
-  OS/libs/nsyshid/BackendWindowsHID.cpp
-  OS/libs/nsyshid/BackendWindowsHID.h
   OS/libs/nsyshid/Dimensions.cpp
   OS/libs/nsyshid/Dimensions.h
   OS/libs/nsyshid/Infinity.cpp
@@ -569,15 +567,16 @@ if (ENABLE_WAYLAND)
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
 endif()
 
-if (ENABLE_NSYSHID_LIBUSB)
-	if (ENABLE_VCPKG)
-		find_package(PkgConfig REQUIRED)
-		pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
-		target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
-	else ()
-		find_package(libusb MODULE REQUIRED)
-		target_link_libraries(CemuCafe PRIVATE libusb::libusb)
-	endif ()
+if (ENABLE_VCPKG)
+  if(WIN32)
+    set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
+  endif()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+  target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
+else ()
+  find_package(libusb MODULE REQUIRED)
+  target_link_libraries(CemuCafe PRIVATE libusb::libusb)
 endif ()
 
 if (ENABLE_WXWIDGETS)
