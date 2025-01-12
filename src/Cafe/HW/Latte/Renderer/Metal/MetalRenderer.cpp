@@ -1840,7 +1840,7 @@ void MetalRenderer::ProcessFinishedCommandBuffers()
         if (CommandBufferCompleted(commandBuffer))
         {
             m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer);
-            //commandBuffer->release();
+            commandBuffer->release();
             it = m_executingCommandBuffers.erase(it);
             atLeastOneCompleted = true;
         }
