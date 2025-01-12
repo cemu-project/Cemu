@@ -338,6 +338,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 #endif
 	gdb_port = debug.get("GDBPort", 1337);
 	gpu_capture_dir = debug.get("GPUCaptureDir", "");
+	framebuffer_fetch = debug.get("FramebufferFetch", true);
 
 	// input
 	auto input = parser.get("Input");
@@ -540,7 +541,8 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	debug.set("CrashDumpUnix", crash_dump.GetValue());
 #endif
 	debug.set("GDBPort", gdb_port);
-	debug.set("GPUCaptureDir", gpu_capture_dir.GetValue());
+	debug.set("GPUCaptureDir", gpu_capture_dir);
+	debug.set("FramebufferFetch", framebuffer_fetch);
 
 	// input
 	auto input = config.set("Input");

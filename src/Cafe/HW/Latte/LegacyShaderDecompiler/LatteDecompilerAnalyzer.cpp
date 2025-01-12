@@ -9,6 +9,9 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 
+// Defined in LatteTextureLegacy.cpp
+Latte::E_GX2SURFFMT LatteTexture_ReconstructGX2Format(const Latte::LATTE_SQ_TEX_RESOURCE_WORD1_N& texUnitWord1, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N& texUnitWord4);
+
 /*
  * Return index of used color attachment based on shader pixel export index (0-7)
  */
@@ -850,6 +853,59 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			shader->textureUnitList[shader->textureUnitListCount] = i;
 			shader->textureUnitListCount++;
 		}
+		shader->textureRenderTargetIndex[i] = 255;
+	}
+	// check if textures are used as render targets
+	if (shader->shaderType == LatteConst::ShaderType::Pixel)
+	{
+	    uint8 colorBufferMask = LatteMRT::GetActiveColorBufferMask(shader, *shaderContext->contextRegistersNew);
+	    for (sint32 i = 0; i < shader->textureUnitListCount; i++)
+        {
+            sint32 textureIndex = shader->textureUnitList[i];
+      		const auto& texRegister = texRegs[textureIndex];
+
+      		// get physical address of texture data
+      		MPTR physAddr = (texRegister.word2.get_BASE_ADDRESS() << 8);
+      		if (physAddr == MPTR_NULL)
+                continue; // invalid data
+
+            // Check for dimension
+            auto dim = shader->textureUnitDim[textureIndex];
+            // TODO: 2D arrays could technically be supported as well
+            if (dim != Latte::E_DIM::DIM_2D)
+                continue;
+
+            // Check for mip level
+            // TODO: uncomment?
+            /*
+            auto lastMip = texRegister.word5.get_LAST_LEVEL();
+            // TODO: multiple mip levels could technically be supported as well
+            if (lastMip != 0)
+                continue;
+            */
+
+            Latte::E_GX2SURFFMT format = LatteTexture_ReconstructGX2Format(texRegister.word1, texRegister.word4);
+
+            // Check if the texture is used as render target
+            for (sint32 j = 0; j < LATTE_NUM_COLOR_TARGET; j++)
+            {
+                if (((colorBufferMask) & (1 << j)) == 0)
+                    continue; // color buffer not enabled
+
+                uint32* colorBufferRegBase = shaderContext->contextRegisters + (mmCB_COLOR0_BASE + j);
+               	uint32 regColorBufferBase = colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] & 0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
+
+               	MPTR colorBufferPhysMem = regColorBufferBase;
+                Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(j, *shaderContext->contextRegistersNew);
+
+                // TODO: check if mip matches as well?
+                if (physAddr == colorBufferPhysMem && format == colorBufferFormat)
+                {
+                    shader->textureRenderTargetIndex[textureIndex] = j;
+                    break;
+                }
+            }
+        }
 	}
 	// for geometry shaders check the copy shader for stream writes
 	if (shader->shaderType == LatteConst::ShaderType::Geometry && shaderContext->parsedGSCopyShader->list_streamWrites.empty() == false)

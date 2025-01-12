@@ -183,6 +183,7 @@ struct LatteDecompilerShader
 	std::bitset<LATTE_NUM_MAX_TEX_UNITS> textureUnitMask2;
 	uint16 textureUnitSamplerAssignment[LATTE_NUM_MAX_TEX_UNITS]{ 0 }; // LATTE_DECOMPILER_SAMPLER_NONE means undefined
 	bool textureUsesDepthCompare[LATTE_NUM_MAX_TEX_UNITS]{};
+	uint8 textureRenderTargetIndex[LATTE_NUM_MAX_TEX_UNITS];
 
 	// analyzer stage (pixel outputs)
 	uint32 pixelColorOutputMask{ 0 }; // from LSB to MSB, 1 bit per written output. 1 if written (indices of color attachments)

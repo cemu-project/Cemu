@@ -87,6 +87,7 @@ MetalRenderer::MetalRenderer()
 
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
+    m_supportsFramebufferFetch = GetConfig().framebuffer_fetch.GetValue() ? m_device->supportsFamily(MTL::GPUFamilyApple2) : false;
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
@@ -584,21 +585,22 @@ void MetalRenderer::DeleteFontTextures()
 void MetalRenderer::AppendOverlayDebugInfo()
 {
     ImGui::Text("--- GPU info ---");
-    ImGui::Text("GPU                       %s", m_device->name()->utf8String());
-    ImGui::Text("Is Apple GPU              %s", (m_isAppleGPU ? "yes" : "no"));
-    ImGui::Text("Has unified memory        %s", (m_hasUnifiedMemory ? "yes" : "no"));
-    ImGui::Text("Supports Metal3           %s", (m_supportsMetal3 ? "yes" : "no"));
+    ImGui::Text("GPU                        %s", m_device->name()->utf8String());
+    ImGui::Text("Is Apple GPU               %s", (m_isAppleGPU ? "yes" : "no"));
+    ImGui::Text("Supports framebuffer fetch %s", (m_supportsFramebufferFetch ? "yes" : "no"));
+    ImGui::Text("Has unified memory         %s", (m_hasUnifiedMemory ? "yes" : "no"));
+    ImGui::Text("Supports Metal3            %s", (m_supportsMetal3 ? "yes" : "no"));
 
     ImGui::Text("--- Metal info ---");
-    ImGui::Text("Render pipeline states    %zu", m_pipelineCache->GetPipelineCacheSize());
-    ImGui::Text("Buffer allocator memory   %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
+    ImGui::Text("Render pipeline states     %zu", m_pipelineCache->GetPipelineCacheSize());
+    ImGui::Text("Buffer allocator memory    %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
-    ImGui::Text("Command buffers           %u", m_performanceMonitor.m_commandBuffers);
-    ImGui::Text("Render passes             %u", m_performanceMonitor.m_renderPasses);
-    ImGui::Text("Clears                    %u", m_performanceMonitor.m_clears);
-    ImGui::Text("Manual vertex fetch draws %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
-    ImGui::Text("Triangle fans             %u", m_performanceMonitor.m_triangleFans);
+    ImGui::Text("Command buffers            %u", m_performanceMonitor.m_commandBuffers);
+    ImGui::Text("Render passes              %u", m_performanceMonitor.m_renderPasses);
+    ImGui::Text("Clears                     %u", m_performanceMonitor.m_clears);
+    ImGui::Text("Manual vertex fetch draws  %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
+    ImGui::Text("Triangle fans              %u", m_performanceMonitor.m_triangleFans);
 }
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
@@ -1008,6 +1010,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
     const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 
+    /*
     bool neverSkipAccurateBarrier = false;
 
     // "Accurate barriers" is usually enabled globally but since the CPU cost is substantial we allow users to disable it (debug -> 'Accurate barriers' option)
@@ -1031,8 +1034,13 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     	    endRenderPass = CheckIfRenderPassNeedsFlush(geometryShader);
 
     	if (endRenderPass)
+        {
     	    EndEncoding();
+            // TODO: only log in debug?
+            cemuLog_logOnce(LogType::Force, "Ending render pass due to render target self-dependency\n");
+        }
 	}
+	*/
 
     // Primitive type
     const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
@@ -1863,6 +1871,7 @@ bool MetalRenderer::AcquireDrawable(bool mainWindow)
     return layer.AcquireDrawable();
 }
 
+/*
 bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
 {
     sint32 textureCount = shader->resourceMapping.getTextureCount();
@@ -1871,6 +1880,11 @@ bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
 		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
 		auto hostTextureUnit = relative_textureUnit;
 		auto textureDim = shader->textureUnitDim[relative_textureUnit];
+
+		// Texture is accessed as a framebuffer fetch, therefore there is no need to flush it
+		if (shader->textureRenderTargetIndex[relative_textureUnit] != 255)
+		    continue;
+
 		auto texUnitRegIndex = hostTextureUnit * 7;
 		switch (shader->shaderType)
 		{
@@ -1895,20 +1909,19 @@ bool MetalRenderer::CheckIfRenderPassNeedsFlush(LatteDecompilerShader* shader)
             continue;
 
 		LatteTexture* baseTexture = textureView->baseTexture;
-		if (!m_state.m_isFirstDrawInRenderPass)
+
+	    // If the texture is also used in the current render pass, we need to end the render pass to "flush" the texture
+		for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
 		{
-		    // If the texture is also used in the current render pass, we need to end the render pass to "flush" the texture
-			for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
-			{
-			    auto colorTarget = m_state.m_activeFBO.m_fbo->colorBuffer[i].texture;
-				if (colorTarget && colorTarget->baseTexture == baseTexture)
-				    return true;
-			}
+		    auto colorTarget = m_state.m_activeFBO.m_fbo->colorBuffer[i].texture;
+			if (colorTarget && colorTarget->baseTexture == baseTexture)
+			    return true;
 		}
 	}
 
 	return false;
 }
+*/
 
 void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandEncoder, LatteDecompilerShader* shader, bool usesGeometryShader)
 {
@@ -1919,6 +1932,11 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 	{
 		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
 		auto hostTextureUnit = relative_textureUnit;
+
+		// Don't bind textures that are accessed with a framebuffer fetch
+		if (m_supportsFramebufferFetch && shader->textureRenderTargetIndex[relative_textureUnit] != 255)
+            continue;
+
 		auto textureDim = shader->textureUnitDim[relative_textureUnit];
 		auto texUnitRegIndex = hostTextureUnit * 7;
 		switch (shader->shaderType)

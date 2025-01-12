@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Common/precompiled.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "HW/Latte/Core/LatteShader.h"
 
 namespace LatteDecompiler
@@ -448,6 +448,8 @@ namespace LatteDecompiler
 
 	static void _emitTextureDefinitions(LatteDecompilerShaderContext* shaderContext)
 	{
+	    bool renderTargetIndexUsed[LATTE_NUM_COLOR_TARGET] = {false};
+
 		auto src = shaderContext->shaderSource;
 		// texture sampler definition
 		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
@@ -455,44 +457,56 @@ namespace LatteDecompiler
 			if (!shaderContext->output->textureUnitMask[i])
 				continue;
 
-			src->add(", ");
-
-			// Only 2D and 2D array textures can be used with comparison samplers
-			if (shaderContext->shader->textureUsesDepthCompare[i] && IsValidDepthTextureType(shaderContext->shader->textureUnitDim[i]))
-			    src->add("depth");
-			else
-                src->add("texture");
-
-			if (shaderContext->shader->textureIsIntegerFormat[i])
+			uint8 renderTargetIndex = shaderContext->shader->textureRenderTargetIndex[i];
+			if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && renderTargetIndex != 255)
 			{
-				// integer samplers
-				if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_1D)
-					src->add("1d<uint>");
-				else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D || shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_MSAA)
-					src->add("2d<uint>");
-				else
-					cemu_assert_unimplemented();
+                if (!renderTargetIndexUsed[renderTargetIndex])
+				{
+			        src->addFmt(", {} col{} [[color({})]]", GetDataTypeStr(GetColorBufferDataType(renderTargetIndex, *shaderContext->contextRegistersNew)), renderTargetIndex, renderTargetIndex);
+					renderTargetIndexUsed[renderTargetIndex] = true;
+				}
 			}
-			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D || shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_MSAA)
-				src->add("2d<float>");
-			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_1D)
-				src->add("1d<float>");
-			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_ARRAY)
-				src->add("2d_array<float>");
-			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_CUBEMAP)
-				src->add("cube_array<float>");
-			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_3D)
-				src->add("3d<float>");
 			else
 			{
-				cemu_assert_unimplemented();
-			}
+                src->add(", ");
 
-			uint32 binding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i];
-			//uint32 textureBinding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] % 31;
-			//uint32 samplerBinding = textureBinding % 16;
-			src->addFmt(" tex{} [[texture({})]]", i, binding);
-			src->addFmt(", sampler samplr{} [[sampler({})]]", i, binding);
+    			// Only certain texture dimensions can be used with comparison samplers
+    			if (shaderContext->shader->textureUsesDepthCompare[i] && IsValidDepthTextureType(shaderContext->shader->textureUnitDim[i]))
+    			    src->add("depth");
+    			else
+                    src->add("texture");
+
+    			if (shaderContext->shader->textureIsIntegerFormat[i])
+    			{
+    				// integer samplers
+    				if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_1D)
+    					src->add("1d<uint>");
+    				else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D || shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_MSAA)
+    					src->add("2d<uint>");
+    				else
+    					cemu_assert_unimplemented();
+    			}
+    			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D || shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_MSAA)
+    				src->add("2d<float>");
+    			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_1D)
+    				src->add("1d<float>");
+    			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_2D_ARRAY)
+    				src->add("2d_array<float>");
+    			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_CUBEMAP)
+    				src->add("cube_array<float>");
+    			else if (shaderContext->shader->textureUnitDim[i] == Latte::E_DIM::DIM_3D)
+    				src->add("3d<float>");
+    			else
+    			{
+    				cemu_assert_unimplemented();
+    			}
+
+    			uint32 binding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i];
+    			//uint32 textureBinding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] % 31;
+    			//uint32 samplerBinding = textureBinding % 16;
+    			src->addFmt(" tex{} [[texture({})]]", i, binding);
+    			src->addFmt(", sampler samplr{} [[sampler({})]]", i, binding);
+			}
 		}
 	}
 
