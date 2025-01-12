@@ -279,10 +279,10 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 #elif defined(__GNUC__) || defined(__clang__)
 #define FORCE_INLINE inline __attribute__((always_inline))
 #else
-#define FORCE_INLINE
+#define FORCE_INLINE inline
 #endif
 
-FORCE_INLINE inline int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is undefined
+FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is undefined
 {
 #if defined(_MSC_VER)
 	return _tzcnt_u32(v); // TZCNT requires BMI1. But if not supported it will execute as BSF
