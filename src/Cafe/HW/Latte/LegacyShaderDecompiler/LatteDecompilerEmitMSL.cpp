@@ -792,7 +792,7 @@ static void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, L
 				if( currentRegisterElementType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
 				{
 					// need to convert (not cast) from int bits to float
-					src->add("bitCast<float>(");
+					src->add("as_type<float>("); // TODO: correct?
 				}
 				else if( currentRegisterElementType == LATTE_DECOMPILER_DTYPE_FLOAT )
 				{
@@ -862,7 +862,7 @@ static void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, L
 				src->add(_FormatFloatAsConstant(*(float*)&constVal));
 			}
 			else
-				src->addFmt("bitCast<float>(0x{:08x})", constVal);
+				src->addFmt("as_type<float>(0x{:08x})", constVal);
 		}
 	}
 	else if( GPU7_ALU_SRC_IS_CFILE(aluInstruction->sourceOperand[operandIndex].sel) )
@@ -909,14 +909,14 @@ void _emitTypeConversionPrefixMSL(LatteDecompilerShaderContext* shaderContext, s
 		return;
 	StringBuf* src = shaderContext->shaderSource;
 	if (sourceType == LATTE_DECOMPILER_DTYPE_FLOAT && destinationType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-		src->add("bitCast<int>(");
+		src->add("as_type<int>(");
 	else if (sourceType == LATTE_DECOMPILER_DTYPE_FLOAT && destinationType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT)
-		src->add("bitCast<uint>(");
-	else if( sourceType == LATTE_DECOMPILER_DTYPE_SIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_FLOAT )
-		src->add("bitCast<float>(");
-	else if( sourceType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
+		src->add("as_type<uint>(");
+	else if (sourceType == LATTE_DECOMPILER_DTYPE_SIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_FLOAT)
+		src->add("as_type<float>(");
+	else if (sourceType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
 		src->add("int(");
-	else if( sourceType == LATTE_DECOMPILER_DTYPE_SIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT )
+	else if (sourceType == LATTE_DECOMPILER_DTYPE_SIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT)
 		src->add("uint(");
 	else
 		cemu_assert_debug(false);
@@ -1016,7 +1016,7 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 		src->add(" = ");
 		if( outputType != LATTE_DECOMPILER_DTYPE_SIGNED_INT )
 			debugBreakpoint(); // todo
-		src->add("bitCast<int>(tempResultf)");
+		src->add("as_type<int>(tempResultf)");
 		src->add(";" _CRLF);
 	}
 	else if( aluInstruction->opcode == ALU_OP2_INST_MOVA_INT )
@@ -1113,9 +1113,9 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 		src->add(");" _CRLF);
 		// INF becomes 0.0
-		src->add("if( isinf(tempResultf) == true && (bitCast<int>(tempResultf)&0x80000000) == 0 ) tempResultf = 0.0;" _CRLF);
+		src->add("if( isinf(tempResultf) == true && (as_type<int>(tempResultf)&0x80000000) == 0 ) tempResultf = 0.0;" _CRLF);
 		// -INF becomes -0.0
-		src->add("else if( isinf(tempResultf) == true && (bitCast<int>(tempResultf)&0x80000000) != 0 ) tempResultf = -0.0;" _CRLF);
+		src->add("else if( isinf(tempResultf) == true && (as_type<int>(tempResultf)&0x80000000) != 0 ) tempResultf = -0.0;" _CRLF);
 		// assign result to output
 		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
 		src->add(" = ");
@@ -1135,14 +1135,14 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 		if (aluInstruction->opcode == ALU_OP2_INST_RECIPSQRT_CLAMPED)
 		{
 			// note: if( -INF < 0.0 ) does not resolve to true
-			src->add("if( isinf(tempResultf) == true && (bitCast<int>(tempResultf)&0x80000000) != 0 ) tempResultf = -3.40282347E+38F;" _CRLF);
-			src->add("else if( isinf(tempResultf) == true && (bitCast<int>(tempResultf)&0x80000000) == 0 ) tempResultf = 3.40282347E+38F;" _CRLF);
+			src->add("if( isinf(tempResultf) == true && (as_type<int>(tempResultf)&0x80000000) != 0 ) tempResultf = -3.40282347E+38F;" _CRLF);
+			src->add("else if( isinf(tempResultf) == true && (as_type<int>(tempResultf)&0x80000000) == 0 ) tempResultf = 3.40282347E+38F;" _CRLF);
 		}
 		else if (aluInstruction->opcode == ALU_OP2_INST_RECIPSQRT_FF)
 		{
 			// untested (BotW bombs)
-			src->add("if( isinf(tempResultf) == true && (bitCast<int>(tempResultf)&0x80000000) != 0 ) tempResultf = -0.0;" _CRLF);
-			src->add("else if( isinf(tempResultf) == true && (bitCast<int>(tempResultf)&0x80000000) == 0 ) tempResultf = 0.0;" _CRLF);
+			src->add("if( isinf(tempResultf) == true && (as_type<int>(tempResultf)&0x80000000) != 0 ) tempResultf = -0.0;" _CRLF);
+			src->add("else if( isinf(tempResultf) == true && (as_type<int>(tempResultf)&0x80000000) == 0 ) tempResultf = 0.0;" _CRLF);
 		}
 		// assign result to output
 		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
@@ -1995,7 +1995,7 @@ static void _emitALUClauseCode(LatteDecompilerShaderContext* shaderContext, Latt
 			{
 				_emitInstructionOutputVariableName(shaderContext, &aluInstruction);
 				src->add(" = ");
-				src->add("bitCast<int>(bitCast<float>(");
+				src->add("as_type<int>(as_type<float>("); // TODO: correct?
 				_emitInstructionOutputVariableName(shaderContext, &aluInstruction);
 				src->add(")");
 				if( aluInstruction.omod == 1 )
@@ -2092,9 +2092,9 @@ static void _emitTEXSampleCoordInputComponent(LatteDecompilerShaderContext* shad
 	if(interpretSrcAsType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
 	{
 		if( elementSel == 4 )
-			src->add("bitCast<int>(0.0)");
+			src->add("as_type<int>(0.0)");
 		else if( elementSel == 5 )
-			src->add("bitCast<int>(1.0)");
+			src->add("as_type<int>(1.0)");
 	}
 	else if(interpretSrcAsType == LATTE_DECOMPILER_DTYPE_FLOAT )
 	{
@@ -2109,15 +2109,20 @@ static const char* _texGprAccessElemTable[8] = {"x","y","z","w","_","_","_","_"}
 
 static char* _getTexGPRAccess(LatteDecompilerShaderContext* shaderContext, sint32 gprIndex, uint32 dataType, sint8 selX, sint8 selY, sint8 selZ, sint8 selW, char* tempBuffer)
 {
-	// bitCast<float>(R{}i.w)
+	// as_type<float>(R{}i.w)
 	*tempBuffer = '\0';
-	uint8 elemCount = (selX > 0 ? 1 : 0) + (selY > 0 ? 1 : 0) + (selZ > 0 ? 1 : 0) + (selW > 0 ? 1 : 0);
+	uint8 elemCount = (selX >= 0 ? 1 : 0) + (selY >= 0 ? 1 : 0) + (selZ >= 0 ? 1 : 0) + (selW >= 0 ? 1 : 0);
 	if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
 	{
 		if (dataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
 			; // no conversion
 		else if (dataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-			strcat(tempBuffer, "bitCast<float>(");
+		{
+		    if (elemCount == 1)
+				strcat(tempBuffer, "as_type<float>(");
+			else
+			    strcat(tempBuffer, ("as_type<float" + std::to_string(elemCount) + ">(").c_str());
+		}
 		else
 			cemu_assert_unimplemented();
 		strcat(tempBuffer, _getRegisterVarName(shaderContext, gprIndex));
@@ -2221,19 +2226,29 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 		// integer samplers
 		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT) // uint to int
 		{
-			if(numWrittenElements == 1)
+			if (numWrittenElements == 1)
 				src->add(" = int(");
 			else
 				shaderContext->shaderSource->addFmt(" = int{}(", numWrittenElements);
 		}
 		else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-			src->add(" = bitCast<float>(");
+		{
+			if (numWrittenElements == 1)
+			    src->add(" = as_type<float>(");
+			else
+				shaderContext->shaderSource->addFmt(" = as_type<float{}>(", numWrittenElements);
+		}
 	}
 	else
 	{
 		// float samplers
 		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-			src->add(" = bitCast<int>(");
+		{
+			if (numWrittenElements == 1)
+			    src->add(" = as_type<int>(");
+			else
+				shaderContext->shaderSource->addFmt(" = as_type<int{}>(", numWrittenElements);
+		}
 		else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 			src->add(" = (");
 	}
@@ -2725,14 +2740,14 @@ static void _emitTEXGetCompTexLodCode(LatteDecompilerShaderContext* shaderContex
     		if(shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
     			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}{}), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
     		else
-    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
+    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, as_type<float3>({}.{}{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
     	}
     	else
     	{
     		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
     			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
     		else
-    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, bitCast<float>({}.{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
+    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, as_type<float2>({}.{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
     		debugBreakpoint();
     	}
 	}
@@ -2766,7 +2781,7 @@ static void _emitTEXSetCubemapIndexCode(LatteDecompilerShaderContext* shaderCont
 	const char* resultElemTable[4] = {"x","y","z","w"};
 
 	if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-		src->addFmt(" = bitCast<float>(R{}i.{});" _CRLF, texInstruction->srcGpr, resultElemTable[texInstruction->textureFetch.srcSel[0]]);
+		src->addFmt(" = as_type<float>(R{}i.{});" _CRLF, texInstruction->srcGpr, resultElemTable[texInstruction->textureFetch.srcSel[0]]);
 	else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 		src->addFmt(" = R{}f.{};" _CRLF, texInstruction->srcGpr, resultElemTable[texInstruction->textureFetch.srcSel[0]]);
 	else
@@ -2935,30 +2950,41 @@ static void _emitTEXVFetchCode(LatteDecompilerShaderContext* shaderContext, Latt
 
 	_writeDestMaskXYZW(shaderContext, texInstruction->dstSel);
 	const char* resultElemTable[4] = {"x","y","z","w"};
+	uint32 numWrittenElements = 0;
+	for (sint32 f=0; f<4; f++)
+	{
+		if (texInstruction->dstSel[f] < 4)
+		    numWrittenElements++;
+	}
 
 	src->add(" = ");
 
 	if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-		src->add("bitCast<int>(");
+	{
+	    if (numWrittenElements == 1)
+		    src->add("as_type<int>(");
+		else
+		    src->addFmt("as_type<int{}>(", numWrittenElements);
+	}
 	else
 		src->add("(");
 
 	src->addFmt("ubuff{}.d[", texInstruction->textureFetch.textureIndex - 0x80);
 
-	if( shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT )
+	if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
 		src->addFmt("{}.{}", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]]);
 	else
-		src->addFmt("bitCast<int>({}.{})", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]]);
+		src->addFmt("as_type<int>({}.{})", _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]]);
 	src->add("].");
 
 
-	for(sint32 f=0; f<4; f++)
+	for (sint32 f=0; f<4; f++)
 	{
-		if( texInstruction->dstSel[f] < 4 )
+		if (texInstruction->dstSel[f] < 4)
 		{
 			src->add(resultElemTable[texInstruction->dstSel[f]]);
 		}
-		else if( texInstruction->dstSel[f] == 7 )
+		else if (texInstruction->dstSel[f] == 7)
 		{
 			// masked and not written
 		}
@@ -2980,7 +3006,12 @@ static void _emitTEXReadMemCode(LatteDecompilerShaderContext* shaderContext, Lat
 	src->add(" = ");
 
 	if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-		src->add("bitCast<int>(");
+	{
+	    if (count == 1)
+			src->add("as_type<int>(");
+		else
+            src->addFmt("as_type<int{}>(", count);
+	}
 	else
 		src->add("(");
 
@@ -3008,6 +3039,7 @@ static void _emitTEXReadMemCode(LatteDecompilerShaderContext* shaderContext, Lat
 	{
 		cemu_assert_unimplemented();
 	}
+
 	if (count < readCount)
 	{
 		if (count == 1)
@@ -3796,22 +3828,6 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 		"return as_type<int>(clamp(as_type<float>(v), 0.0, 1.0));\r\n"
 	"}\r\n");
 
-	// Bit cast
-
-	// Scalar
-	fCStr_shaderSource->add(""
-	"template<typename ResultT, typename T>\r\n"
-	"ResultT bitCast(T x) {\r\n"
-		"return as_type<ResultT>(x);\r\n"
-	"}\r\n");
-
-	// Vector
-	fCStr_shaderSource->add(""
-	"template<typename ResultComponentT, typename ComponentT, unsigned int componentCount>\r\n"
-	"vec<ResultComponentT, componentCount> bitCast(vec<ComponentT, componentCount> x) {\r\n"
-		"return as_type<vec<ResultComponentT, componentCount>>(x);\r\n"
-	"}\r\n");
-
 	// mul non-ieee way (0*NaN/INF => 0.0)
 	if (shaderContext->options->strictMul)
 	{
@@ -3819,7 +3835,7 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ return mix(a*b,0.0,a==0.0||b==0.0); }" STR_LINEBREAK);
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ return mix(vec2(a*b,0.0),vec2(0.0,0.0),(equal(vec2(a),vec2(0.0,0.0))||equal(vec2(b),vec2(0.0,0.0)))).x; }" STR_LINEBREAK);
 		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){ if( a == 0.0 || b == 0.0 ) return 0.0; return a*b; }" STR_LINEBREAK);
-		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){float r = a*b;r = bitCast<float>(floatBitsToInt(r)&(((floatBitsToInt(a) != 0) && (floatBitsToInt(b) != 0))?0xFFFFFFFF:0));return r;}" STR_LINEBREAK); works
+		//fCStr_shaderSource->add("float mul_nonIEEE(float a, float b){float r = a*b;r = intBitsToFloat(floatBitsToInt(r)&(((floatBitsToInt(a) != 0) && (floatBitsToInt(b) != 0))?0xFFFFFFFF:0));return r;}" STR_LINEBREAK); works
 
 		// for "min" it used to be: float mul_nonIEEE(float a, float b){ return min(a*b,min(abs(a)*3.40282347E+38F,abs(b)*3.40282347E+38F)); }
 
@@ -4273,7 +4289,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
 				src->addFmt("{} = int4(vid, 0, 0, iid);" _CRLF, _getRegisterVarName(shaderContext, 0));
 			else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-				src->addFmt("{} = float4(vid, 0, 0, iid);" _CRLF, _getRegisterVarName(shaderContext, 0)); // TODO: bitCast<int4>(float4(vid, 0, 0, iid))?
+				src->addFmt("{} = float4(vid, 0, 0, iid);" _CRLF, _getRegisterVarName(shaderContext, 0)); // TODO: as_type<int4>(float4(vid, 0, 0, iid))?
 			else
 				cemu_assert_unimplemented();
 		}
@@ -4316,7 +4332,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 				src->addFmt("{} = pointCoord.xyxy;" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
 			else
-				src->addFmt("{} = bitCast<int>(pointCoord.xyxy);" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
+				src->addFmt("{} = as_type<int4>(pointCoord.xyxy);" _CRLF, _getRegisterVarName(shaderContext, paramGenGPRIndex));
 		}
 
 		for (sint32 i = 0; i < psInputTable->count; i++)
@@ -4333,12 +4349,12 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 					src->addFmt("{} = GET_FRAGCOORD();" _CRLF, _getRegisterVarName(shaderContext, gprIndex));
 				else
-					src->addFmt("{} = bitCast<int>(GET_FRAGCOORD());" _CRLF, _getRegisterVarName(shaderContext, gprIndex));
+					src->addFmt("{} = as_type<int4>(GET_FRAGCOORD());" _CRLF, _getRegisterVarName(shaderContext, gprIndex));
 				continue;
 			}
 
 			if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-				src->addFmt("{} = bitCast<int>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
+				src->addFmt("{} = as_type<int4>(in.passParameterSem{});" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
 			else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 				src->addFmt("{} = in.passParameterSem{};" _CRLF, _getRegisterVarName(shaderContext, gprIndex), psInputSemanticId);
 			else
@@ -4352,7 +4368,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 				if (frontFace_allBits)
 					cemu_assert_debug(false);
 				if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-					src->addFmt("{}.{} = bitCast<int>(frontFacing?1.0:0.0);" _CRLF, _getRegisterVarName(shaderContext, frontFace_regIndex), _getElementStrByIndex(frontFace_chan));
+					src->addFmt("{}.{} = as_type<int>(frontFacing ? 1.0 : 0.0);" _CRLF, _getRegisterVarName(shaderContext, frontFace_regIndex), _getElementStrByIndex(frontFace_chan));
 				else if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
 					src->addFmt("{}.{} = frontFacing ? 1.0 : 0.0;" _CRLF, _getRegisterVarName(shaderContext, frontFace_regIndex), _getElementStrByIndex(frontFace_chan));
 				else
