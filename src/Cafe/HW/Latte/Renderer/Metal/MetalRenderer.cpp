@@ -351,8 +351,8 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 	int width, height;
 	texMtl->GetEffectiveSize(width, height, 0);
 
-	uint32 bytesPerRow = GetMtlTextureBytesPerRow(texMtl->format, texMtl->IsDepth(), width);
-	uint32 size = GetMtlTextureBytesPerImage(texMtl->format, texMtl->IsDepth(), height, bytesPerRow);
+	uint32 bytesPerRow = GetMtlTextureBytesPerRow(texMtl->format, texMtl->isDepth, width);
+	uint32 size = GetMtlTextureBytesPerImage(texMtl->format, texMtl->isDepth, height, bytesPerRow);
 
 	// TODO: get a buffer from the memory manager
 	MTL::Buffer* buffer = m_device->newBuffer(size, MTL::ResourceStorageModeShared);
@@ -670,9 +670,9 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
         sliceIndex = 0;
     }
 
-    size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->GetFormat(), textureMtl->IsDepth(), width);
+    size_t bytesPerRow = GetMtlTextureBytesPerRow(textureMtl->format, textureMtl->isDepth, width);
     // No need to set bytesPerImage for 3D textures, since we always load just one slice
-    //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->IsDepth(), height, bytesPerRow);
+    //size_t bytesPerImage = GetMtlTextureBytesPerImage(textureMtl->GetFormat(), textureMtl->isDepth, height, bytesPerRow);
     //if (m_isAppleGPU)
     //{
     //    textureMtl->GetTexture()->replaceRegion(MTL::Region(0, 0, offsetZ, width, height, 1), mipIndex, sliceIndex, pixelData, bytesPerRow, 0);

@@ -17,14 +17,6 @@ public:
 	    return m_texture;
 	}
 
-	Latte::E_GX2SURFFMT GetFormat() const {
-        return m_format;
-    }
-
-    bool IsDepth() const {
-        return m_isDepth;
-    }
-
 	void AllocateOnHost() override;
 
 protected:
@@ -34,7 +26,4 @@ private:
 	class MetalRenderer* m_mtlr;
 
 	MTL::Texture* m_texture;
-
-	Latte::E_GX2SURFFMT m_format;
-	bool m_isDepth;
 };
