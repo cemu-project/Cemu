@@ -272,7 +272,7 @@ namespace nsyshid::backend::libusb
 		auto device = std::make_shared<DeviceLibusb>(m_ctx,
 													 desc.idVendor,
 													 desc.idProduct,
-													 1,
+													 0,
 													 2,
 													 0,
 													 libusb_get_bus_number(dev),
