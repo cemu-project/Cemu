@@ -13,7 +13,7 @@ namespace nsyshid::backend::libusb
 		if (m_initReturnCode < 0)
 		{
 			m_ctx = nullptr;
-			cemuLog_log(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb, return code: {}",
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb, return code: {}",
 						m_initReturnCode);
 			return;
 		}
@@ -32,13 +32,13 @@ namespace nsyshid::backend::libusb
 													   &m_hotplugCallbackHandle);
 			if (ret != LIBUSB_SUCCESS)
 			{
-				cemuLog_log(LogType::Force,
+				cemuLog_logDebug(LogType::Force,
 							"nsyshid::BackendLibusb: failed to register hotplug callback with return code {}",
 							ret);
 			}
 			else
 			{
-				cemuLog_log(LogType::Force, "nsyshid::BackendLibusb: registered hotplug callback");
+				cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: registered hotplug callback");
 				m_callbackRegistered = true;
 				m_hotplugThread = std::thread([this] {
 					while (!m_hotplugThreadStop)
@@ -50,7 +50,7 @@ namespace nsyshid::backend::libusb
 						int ret = libusb_handle_events_timeout_completed(m_ctx, &timeout, nullptr);
 						if (ret != 0)
 						{
-							cemuLog_log(LogType::Force,
+							cemuLog_logDebug(LogType::Force,
 										"nsyshid::BackendLibusb: hotplug thread: error handling events: {}",
 										ret);
 							std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -61,7 +61,7 @@ namespace nsyshid::backend::libusb
 		}
 		else
 		{
-			cemuLog_log(LogType::Force, "nsyshid::BackendLibusb: hotplug not supported by this version of libusb");
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: hotplug not supported by this version of libusb");
 		}
 	}
 
@@ -128,7 +128,7 @@ namespace nsyshid::backend::libusb
 		int ret = libusb_get_device_descriptor(dev, &desc);
 		if (ret < 0)
 		{
-			cemuLog_log(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): failed to get device descriptor");
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): failed to get device descriptor");
 			return 0;
 		}
 
@@ -136,7 +136,7 @@ namespace nsyshid::backend::libusb
 		{
 		case LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED:
 		{
-			cemuLog_log(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device arrived: {:04x}:{:04x}",
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device arrived: {:04x}:{:04x}",
 						desc.idVendor,
 						desc.idProduct);
 			auto device = CheckAndCreateDevice(dev);
@@ -164,7 +164,7 @@ namespace nsyshid::backend::libusb
 		break;
 		case LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT:
 		{
-			cemuLog_log(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device left: {:04x}:{:04x}",
+			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device left: {:04x}:{:04x}",
 						desc.idVendor,
 						desc.idProduct);
 			auto device = FindLibusbDevice(dev);
@@ -201,7 +201,7 @@ namespace nsyshid::backend::libusb
 		int ret = libusb_get_device_descriptor(dev, &desc);
 		if (ret < 0)
 		{
-			cemuLog_log(LogType::Force,
+			cemuLog_logDebug(LogType::Force,
 						"nsyshid::BackendLibusb::FindLibusbDevice(): failed to get device descriptor");
 			return nullptr;
 		}
@@ -266,7 +266,7 @@ namespace nsyshid::backend::libusb
 		}
 		if (desc.idVendor == 0x0e6f && desc.idProduct == 0x0241)
 		{
-			cemuLog_log(LogType::Force,
+			cemuLog_logDebug(LogType::Force,
 						"nsyshid::BackendLibusb::CheckAndCreateDevice(): lego dimensions portal detected");
 		}
 		auto device = std::make_shared<DeviceLibusb>(m_ctx,
@@ -406,7 +406,6 @@ namespace nsyshid::backend::libusb
 		}
 		libusb_device* dev;
 		libusb_device* found = nullptr;
-		uint8 numConfigs = 0;
 		for (int i = 0; (dev = devices[i]) != nullptr; i++)
 		{
 			struct libusb_device_descriptor desc;
@@ -426,7 +425,6 @@ namespace nsyshid::backend::libusb
 			{
 				// we found our device!
 				found = dev;
-				numConfigs = desc.bNumConfigurations;
 				break;
 			}
 		}
@@ -493,7 +491,7 @@ namespace nsyshid::backend::libusb
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
 		{
-			cemuLog_log(LogType::Force,
+			cemuLog_logDebug(LogType::Force,
 						"nsyshid::DeviceLibusb::read(): cannot read from a non-opened device\n");
 			return ReadResult::Error;
 		}
@@ -526,7 +524,7 @@ namespace nsyshid::backend::libusb
 			message->bytesRead = actualLength;
 			return ReadResult::Success;
 		}
-		cemuLog_log(LogType::Force,
+		cemuLog_logDebug(LogType::Force,
 					"nsyshid::DeviceLibusb::read(): failed at endpoint 0x{:02x} with error message: {}", this->m_libusbEndpointIn,
 					libusb_error_name(ret));
 		return ReadResult::Error;
@@ -537,7 +535,7 @@ namespace nsyshid::backend::libusb
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
 		{
-			cemuLog_log(LogType::Force,
+			cemuLog_logDebug(LogType::Force,
 						"nsyshid::DeviceLibusb::write(): cannot write to a non-opened device\n");
 			return WriteResult::Error;
 		}
@@ -566,7 +564,7 @@ namespace nsyshid::backend::libusb
 							 message->length);
 			return WriteResult::Success;
 		}
-		cemuLog_log(LogType::Force,
+		cemuLog_logDebug(LogType::Force,
 					"nsyshid::DeviceLibusb::write(): failed with error code: {}",
 					ret);
 		return WriteResult::Error;
@@ -581,7 +579,7 @@ namespace nsyshid::backend::libusb
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
 		{
-			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::getDescriptor(): device is not opened");
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::getDescriptor(): device is not opened");
 			return false;
 		}
 
@@ -709,7 +707,7 @@ namespace nsyshid::backend::libusb
 											  0);
 			if (ret != outputMaxLength)
 			{
-				cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::GetDescriptor(): Control Transfer Failed: {}", libusb_error_name(ret));
+				cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::GetDescriptor(): Control Transfer Failed: {}", libusb_error_name(ret));
 				return false;
 			}
 		}
@@ -727,8 +725,6 @@ namespace nsyshid::backend::libusb
 			return false;
 		}
 
-		std::array<uint8, 0> emptyData = {};
-
 		uint16 wValue = uint16(duration) << 8 | uint16(reportId);
 
 		// HID Set_Idle requests are handled via libusb_control_transfer
@@ -737,13 +733,13 @@ namespace nsyshid::backend::libusb
 										  HID_CLASS_SET_IDLE, // Defined in HID Class Specific Requests (7.2)
 										  wValue,
 										  ifIndex,
-										  emptyData.data(),
-										  emptyData.size(),
+										  nullptr,
+										  0,
 										  0);
 
 		if (ret != 0)
 		{
-			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::SetIdle(): Control Transfer Failed: {}", libusb_error_name(ret));
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetIdle(): Control Transfer Failed: {}", libusb_error_name(ret));
 			return false;
 		}
 		return true;
@@ -812,24 +808,22 @@ namespace nsyshid::backend::libusb
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
 		{
-			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): device is not opened");
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): device is not opened");
 			return false;
 		}
-
-		std::array<uint8, 0> emptyData = {};
 
 		int ret = libusb_control_transfer(handleLock->GetHandle(),
 										  LIBUSB_REQUEST_TYPE_CLASS | LIBUSB_RECIPIENT_INTERFACE | LIBUSB_ENDPOINT_OUT,
 										  HID_CLASS_SET_PROTOCOL, // Defined in HID Class Specific Requests (7.2)
 										  protocol,
 										  ifIndex,
-										  emptyData.data(),
-										  emptyData.size(),
+										  nullptr,
+										  0,
 										  0);
 
 		if (ret != 0)
 		{
-			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): Control Transfer Failed: {}", libusb_error_name(ret));
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetProtocol(): Control Transfer Failed: {}", libusb_error_name(ret));
 			return false;
 		}
 		return true;
@@ -840,7 +834,7 @@ namespace nsyshid::backend::libusb
 		auto handleLock = AquireHandleLock();
 		if (!handleLock->IsValid())
 		{
-			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): device is not opened");
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): device is not opened");
 			return false;
 		}
 
@@ -857,7 +851,7 @@ namespace nsyshid::backend::libusb
 
 		if (ret != message->length)
 		{
-			cemuLog_log(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): Control Transfer Failed at interface {} : {}", m_interfaceIndex, libusb_error_name(ret));
+			cemuLog_logDebug(LogType::Force, "nsyshid::DeviceLibusb::SetReport(): Control Transfer Failed at interface {} : {}", m_interfaceIndex, libusb_error_name(ret));
 			return false;
 		}
 		return true;
