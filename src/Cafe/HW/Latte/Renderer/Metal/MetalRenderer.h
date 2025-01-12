@@ -477,7 +477,7 @@ private:
 	MetalPerformanceMonitor m_performanceMonitor;
 
 	// Metal objects
-	MTL::Device* m_device;
+	MTL::Device* m_device = nullptr;
 	MTL::CommandQueue* m_commandQueue;
 
 	// Feature support

@@ -214,7 +214,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto graphic = parser.get("Graphic");
 	graphic_api = graphic.get("api", kOpenGL);
 	graphic.get("vkDevice", vk_graphic_device_uuid);
-	graphic.get("mtlDevice", mtl_graphic_device_uuid);
+	mtl_graphic_device_uuid = graphic.get("mtlDevice", 0);
 	vsync = graphic.get("VSync", 0);
 	gx2drawdone_sync = graphic.get("GX2DrawdoneSync", true);
 	upscale_filter = graphic.get("UpscaleFilter", kBicubicHermiteFilter);
