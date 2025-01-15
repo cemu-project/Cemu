@@ -123,14 +123,27 @@ public:
         }
 
         // Get the file size
+        // Use a loop to handle the case where the file size is 0 (more of a safety net)
         struct stat fileStat;
-        if (fstat(m_fd, &fileStat) == -1)
+        while (true)
         {
-            close(m_fd);
-            cemuLog_log(LogType::Force, "failed to get file size: {}", filePath);
-            return;
+            if (fstat(m_fd, &fileStat) == -1)
+            {
+                close(m_fd);
+                cemuLog_log(LogType::Force, "failed to get file size: {}", filePath);
+                return;
+            }
+            m_fileSize = fileStat.st_size;
+
+            if (m_fileSize == 0)
+            {
+                cemuLog_logOnce(LogType::Force, "file size is 0: {}", filePath);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+
+            break;
         }
-        m_fileSize = fileStat.st_size;
 
         // Memory map the file
         m_data = mmap(nullptr, m_fileSize, PROT_READ, MAP_PRIVATE, m_fd, 0);

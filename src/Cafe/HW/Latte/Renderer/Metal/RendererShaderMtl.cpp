@@ -29,7 +29,7 @@ public:
 		if (m_threadsActive.exchange(true))
 			return;
 		// create thread pool
-		const uint32 threadCount = 2;
+		const uint32 threadCount = 8;
 		for (uint32 i = 0; i < threadCount; ++i)
 			s_threads.emplace_back(&ShaderMtlThreadPool::CompilerThreadFunc, this);
 	}
@@ -128,7 +128,7 @@ void RendererShaderMtl::ShaderCacheLoading_end()
     // Close RAM filesystem
     if (s_hasRAMFilesystem)
     {
-        //executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
+        executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
         s_hasRAMFilesystem = false;
     }
 
@@ -241,7 +241,6 @@ MTL::Library* RendererShaderMtl::LibraryFromAIR(std::span<uint8> data)
     NS::Error* error = nullptr;
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(dispatchData, &error);
 	FinishCompilation();
-	printf("AIR size: %zu\n", data.size());
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create library from AIR: {}", error->localizedDescription()->utf8String());
@@ -296,17 +295,17 @@ void RendererShaderMtl::CompileInternal()
             mslFile.close();
 
             // Compile
-			executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal -Wno-unused-variable -Wno-sign-compare", baseFilename, baseFilename);
+			executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal -w", baseFilename, baseFilename);
 			executeCommand("xcrun -sdk macosx metallib -o {}.metallib {}.ir", baseFilename, baseFilename);
 
 			// Clean up
 			executeCommand("rm {}.metal", baseFilename);
 			executeCommand("rm {}.ir", baseFilename);
 
-			// Load from the newly Generated AIR
+			// Load from the newly generated AIR
 			MemoryMappedFile airFile(fmt::format("{}.metallib", baseFilename));
 			std::span<uint8> airData = std::span<uint8>(airFile.data(), airFile.size());
-			library = LibraryFromAIR(std::span<uint8>(cacheFileData.data(), cacheFileData.size()));
+			library = LibraryFromAIR(std::span<uint8>(airData.data(), airData.size()));
 
 			// Store in the cache
 			uint64 h1, h2;
