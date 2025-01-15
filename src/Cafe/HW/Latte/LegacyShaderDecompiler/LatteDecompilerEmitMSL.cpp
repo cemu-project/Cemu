@@ -33,7 +33,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
  */
 
 // local prototypes
-void _emitTypeConversionPrefixMSL(LatteDecompilerShaderContext* shaderContext, sint32 sourceType, sint32 destinationType);
+void _emitTypeConversionPrefixMSL(LatteDecompilerShaderContext* shaderContext, sint32 sourceType, sint32 destinationType, sint32 componentCount = 1);
 void _emitTypeConversionSuffixMSL(LatteDecompilerShaderContext* shaderContext, sint32 sourceType, sint32 destinationType);
 void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderContext, LatteDecompilerCFInstruction* cfInstruction, bool isSubroutine);
 
@@ -903,21 +903,32 @@ static void _emitOperandInputCode(LatteDecompilerShaderContext* shaderContext, L
 		_emitTypeConversionSuffixMSL(shaderContext, requiredType, requiredTypeOut);
 }
 
-void _emitTypeConversionPrefixMSL(LatteDecompilerShaderContext* shaderContext, sint32 sourceType, sint32 destinationType)
+void _emitTypeConversionPrefixMSL(LatteDecompilerShaderContext* shaderContext, sint32 sourceType, sint32 destinationType, sint32 componentCount)
 {
 	if( sourceType == destinationType )
 		return;
 	StringBuf* src = shaderContext->shaderSource;
-	if (sourceType == LATTE_DECOMPILER_DTYPE_FLOAT && destinationType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-		src->add("as_type<int>(");
-	else if (sourceType == LATTE_DECOMPILER_DTYPE_FLOAT && destinationType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT)
-		src->add("as_type<uint>(");
-	else if (sourceType == LATTE_DECOMPILER_DTYPE_SIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_FLOAT)
-		src->add("as_type<float>(");
-	else if (sourceType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
-		src->add("int(");
-	else if (sourceType == LATTE_DECOMPILER_DTYPE_SIGNED_INT && destinationType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT)
-		src->add("uint(");
+	if (destinationType == LATTE_DECOMPILER_DTYPE_SIGNED_INT)
+	{
+	    if (componentCount == 1)
+			src->add("as_type<int>(");
+		else
+            src->addFmt("as_type<int{}>(", componentCount);
+	}
+	else if (destinationType == LATTE_DECOMPILER_DTYPE_UNSIGNED_INT)
+	{
+	    if (componentCount == 1)
+			src->add("as_type<uint>(");
+		else
+            src->addFmt("as_type<uint{}>(", componentCount);
+	}
+	else if (destinationType == LATTE_DECOMPILER_DTYPE_FLOAT)
+	{
+	    if (componentCount == 1)
+			src->add("as_type<float>(");
+		else
+            src->addFmt("as_type<float{}>(", componentCount);
+	}
 	else
 		cemu_assert_debug(false);
 }
@@ -2880,7 +2891,7 @@ static void _emitGSReadInputVFetchCode(LatteDecompilerShaderContext* shaderConte
 	}
 
 	src->add(" = ");
-	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, shaderContext->typeTracker.defaultDataType);
+	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, shaderContext->typeTracker.defaultDataType, numWrittenElements);
 	src->add("(objectPayload.vertexOut[");
 	if (texInstruction->textureFetch.srcSel[0] >= 4)
 		cemu_assert_unimplemented();
@@ -2895,7 +2906,6 @@ static void _emitGSReadInputVFetchCode(LatteDecompilerShaderContext* shaderConte
 		if( texInstruction->dstSel[f] < 4 )
 		{
 			src->add(resultElemTable[texInstruction->dstSel[f]]);
-			numWrittenElements++;
 		}
 		else if( texInstruction->dstSel[f] == 7 )
 		{
