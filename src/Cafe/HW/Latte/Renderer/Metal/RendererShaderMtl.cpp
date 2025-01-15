@@ -128,7 +128,7 @@ void RendererShaderMtl::ShaderCacheLoading_end()
     // Close RAM filesystem
     if (s_hasRAMFilesystem)
     {
-        executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
+        //executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
         s_hasRAMFilesystem = false;
     }
 
@@ -211,50 +211,8 @@ bool RendererShaderMtl::ShouldCountCompilation() const
     return !s_isLoadingShadersMtl && m_isGameShader;
 }
 
-void RendererShaderMtl::CompileInternal()
+MTL::Library* RendererShaderMtl::LibraryFromSource()
 {
-    // First, try to retrieve the compiled shader from the AIR cache
-    if (s_isLoadingShadersMtl && (m_isGameShader && !m_isGfxPackShader) && s_airCache)
-    {
-        cemu_assert_debug(m_baseHash != 0);
-		uint64 h1, h2;
-		GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
-		std::vector<uint8> cacheFileData;
-		if (s_airCache->GetFile({ h1, h2 }, cacheFileData))
-		{
-			CompileFromAIR(std::span<uint8>(cacheFileData.data(), cacheFileData.size()));
-			FinishCompilation();
-		}
-		else
-		{
-		    // Ensure that RAM filesystem exists
-			if (!s_hasRAMFilesystem)
-            {
-                s_hasRAMFilesystem = true;
-                executeCommand("diskutil erasevolume HFS+ {} $(hdiutil attach -nomount ram://{})", METAL_AIR_CACHE_NAME, METAL_AIR_CACHE_BLOCK_COUNT);
-            }
-
-		    // The shader is not in the cache, compile it
-			std::string filename = fmt::format("{}_{}", h1, h2);
-			// TODO: store the source
-			executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal", filename, filename);
-			executeCommand("xcrun -sdk macosx metallib -o {}.metallib {}.ir", filename, filename);
-			// TODO: clean up
-
-			// Load from the newly Generated AIR
-			// std::span<uint8> airData = ;
-			//CompileFromAIR(std::span<uint8>((uint8*)cacheFileData.data(), cacheFileData.size() / sizeof(uint8)));
-			FinishCompilation();
-
-			// Store in the cache
-			uint64 h1, h2;
-			GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
-			//s_airCache->AddFile({ h1, h2 }, airData.data(), airData.size());
-		}
-
-		return;
-    }
-
     // Compile from source
     MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
     // TODO: always disable fast math for problematic shaders
@@ -266,26 +224,111 @@ void RendererShaderMtl::CompileInternal()
     NS::Error* error = nullptr;
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(m_mslCode), options, &error);
 	options->release();
+	FinishCompilation();
 	if (error)
     {
-        cemuLog_log(LogType::Force, "failed to create library: {} -> {}", error->localizedDescription()->utf8String(), m_mslCode.c_str());
-        FinishCompilation();
-        return;
+        cemuLog_log(LogType::Force, "failed to create library from source: {} -> {}", error->localizedDescription()->utf8String(), m_mslCode.c_str());
+        return nullptr;
     }
+
+    return library;
+}
+
+MTL::Library* RendererShaderMtl::LibraryFromAIR(std::span<uint8> data)
+{
+    dispatch_data_t dispatchData = dispatch_data_create(data.data(), data.size(), nullptr, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
+
+    NS::Error* error = nullptr;
+	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(dispatchData, &error);
+	FinishCompilation();
+	printf("AIR size: %zu\n", data.size());
+	if (error)
+    {
+        cemuLog_log(LogType::Force, "failed to create library from AIR: {}", error->localizedDescription()->utf8String());
+        return nullptr;
+    }
+
+    return library;
+}
+
+void RendererShaderMtl::CompileInternal()
+{
+    MTL::Library* library;
+
+    // First, try to retrieve the compiled shader from the AIR cache
+    if (s_isLoadingShadersMtl && (m_isGameShader && !m_isGfxPackShader) && s_airCache)
+    {
+        cemu_assert_debug(m_baseHash != 0);
+		uint64 h1, h2;
+		GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
+		std::vector<uint8> cacheFileData;
+		if (s_airCache->GetFile({ h1, h2 }, cacheFileData))
+		{
+			library = LibraryFromAIR(std::span<uint8>(cacheFileData.data(), cacheFileData.size()));
+		}
+		else
+		{
+		    // Ensure that RAM filesystem exists
+			static std::atomic<bool> s_creatingRAMFilesystem{false};
+			if (!s_hasRAMFilesystem)
+            {
+                if (s_creatingRAMFilesystem)
+                {
+                    while (!s_hasRAMFilesystem)
+                        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                }
+                else
+                {
+                    s_creatingRAMFilesystem = true;
+                    executeCommand("diskutil erasevolume HFS+ {} $(hdiutil attach -nomount ram://{})", METAL_AIR_CACHE_NAME, METAL_AIR_CACHE_BLOCK_COUNT);
+                    s_creatingRAMFilesystem = false;
+                }
+                s_hasRAMFilesystem = true;
+            }
+
+		    // The shader is not in the cache, compile it
+			std::string baseFilename = fmt::format("{}/{}_{}", METAL_AIR_CACHE_PATH, h1, h2);
+
+			// Source
+			std::ofstream mslFile;
+            mslFile.open(fmt::format("{}.metal", baseFilename));
+            mslFile << m_mslCode;
+            mslFile.close();
+
+            // Compile
+			executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal -Wno-unused-variable -Wno-sign-compare", baseFilename, baseFilename);
+			executeCommand("xcrun -sdk macosx metallib -o {}.metallib {}.ir", baseFilename, baseFilename);
+
+			// Clean up
+			executeCommand("rm {}.metal", baseFilename);
+			executeCommand("rm {}.ir", baseFilename);
+
+			// Load from the newly Generated AIR
+			MemoryMappedFile airFile(fmt::format("{}.metallib", baseFilename));
+			std::span<uint8> airData = std::span<uint8>(airFile.data(), airFile.size());
+			library = LibraryFromAIR(std::span<uint8>(cacheFileData.data(), cacheFileData.size()));
+
+			// Store in the cache
+			uint64 h1, h2;
+			GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
+			s_airCache->AddFile({ h1, h2 }, airData.data(), airData.size());
+		}
+    }
+    else
+    {
+        // Compile from source
+        library = LibraryFromSource();
+    }
+
+    if (!library)
+        return;
+
     m_function = library->newFunction(ToNSString("main0"));
     library->release();
-
-    FinishCompilation();
 
 	// Count shader compilation
 	if (ShouldCountCompilation())
 	    g_compiled_shaders_total++;
-}
-
-void RendererShaderMtl::CompileFromAIR(std::span<uint8> data)
-{
-    // TODO: implement this
-    printf("LOADING SHADER FROM AIR CACHE\n");
 }
 
 void RendererShaderMtl::FinishCompilation()

@@ -109,3 +109,53 @@ inline void executeCommand(fmt::format_string<T...> fmt, T&&... args) {
     if (res != 0)
         cemuLog_log(LogType::Force, "command \"{}\" failed with exit code {}", command, res);
 }
+
+class MemoryMappedFile
+{
+public:
+    MemoryMappedFile(const std::string& filePath)
+    {
+        // Open the file
+        m_fd = open(filePath.c_str(), O_RDONLY);
+        if (m_fd == -1) {
+            cemuLog_log(LogType::Force, "failed to open file: {}", filePath);
+            return;
+        }
+
+        // Get the file size
+        struct stat fileStat;
+        if (fstat(m_fd, &fileStat) == -1)
+        {
+            close(m_fd);
+            cemuLog_log(LogType::Force, "failed to get file size: {}", filePath);
+            return;
+        }
+        m_fileSize = fileStat.st_size;
+
+        // Memory map the file
+        m_data = mmap(nullptr, m_fileSize, PROT_READ, MAP_PRIVATE, m_fd, 0);
+        if (m_data == MAP_FAILED)
+        {
+            close(m_fd);
+            cemuLog_log(LogType::Force, "failed to memory map file: {}", filePath);
+            return;
+        }
+    }
+
+    ~MemoryMappedFile()
+    {
+        if (m_data && m_data != MAP_FAILED)
+            munmap(m_data, m_fileSize);
+
+        if (m_fd != -1)
+            close(m_fd);
+    }
+
+    uint8* data() const { return static_cast<uint8*>(m_data); }
+    size_t size() const { return m_fileSize; }
+
+private:
+    int m_fd = -1;
+    void* m_data = nullptr;
+    size_t m_fileSize = 0;
+};
