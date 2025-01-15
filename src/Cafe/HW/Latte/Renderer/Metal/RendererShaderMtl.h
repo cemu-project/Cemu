@@ -69,5 +69,7 @@ private:
 
 	void CompileInternal();
 
+	void CompileFromAIR(std::span<uint8> data);
+
 	void FinishCompilation();
 };

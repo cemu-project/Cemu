@@ -2,14 +2,21 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 
-//#include "Cemu/FileCache/FileCache.h"
-//#include "config/ActiveSettings.h"
+#include "Cemu/FileCache/FileCache.h"
+#include "config/ActiveSettings.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
 #include "GameProfile/GameProfile.h"
 #include "util/helpers/helpers.h"
 
+#define METAL_AIR_CACHE_NAME "Cemu_AIR_cache"
+#define METAL_AIR_CACHE_PATH "/Volumes/" METAL_AIR_CACHE_NAME
+#define METAL_AIR_CACHE_SIZE (512 * 1024 * 1024)
+#define METAL_AIR_CACHE_BLOCK_COUNT (METAL_AIR_CACHE_SIZE / 512)
+
 static bool s_isLoadingShadersMtl{false};
+static std::atomic<bool> s_hasRAMFilesystem{false};
+class FileCache* s_airCache{nullptr};
 
 extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
@@ -88,12 +95,44 @@ private:
 // TODO: find out if it would be possible to cache compiled Metal shaders
 void RendererShaderMtl::ShaderCacheLoading_begin(uint64 cacheTitleId)
 {
+    s_isLoadingShadersMtl = true;
+
+    // Open AIR cache
+    if (s_airCache)
+	{
+		delete s_airCache;
+		s_airCache = nullptr;
+	}
+	uint32 airCacheMagic = GeneratePrecompiledCacheId();
+	const std::string cacheFilename = fmt::format("{:016x}_air.bin", cacheTitleId);
+	const fs::path cachePath = ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename);
+	s_airCache = FileCache::Open(cachePath, true, airCacheMagic);
+	if (!s_airCache)
+		cemuLog_log(LogType::Force, "Unable to open AIR cache {}", cacheFilename);
+
     // Maximize shader compilation speed
     static_cast<MetalRenderer*>(g_renderer.get())->SetShouldMaximizeConcurrentCompilation(true);
 }
 
 void RendererShaderMtl::ShaderCacheLoading_end()
 {
+    s_isLoadingShadersMtl = false;
+
+    // Close the AIR cache
+    if (s_airCache)
+    {
+        delete s_airCache;
+        s_airCache = nullptr;
+    }
+
+    // Close RAM filesystem
+    if (s_hasRAMFilesystem)
+    {
+        executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
+        s_hasRAMFilesystem = false;
+    }
+
+    // Reset shader compilation speed
     static_cast<MetalRenderer*>(g_renderer.get())->SetShouldMaximizeConcurrentCompilation(false);
 }
 
@@ -174,6 +213,49 @@ bool RendererShaderMtl::ShouldCountCompilation() const
 
 void RendererShaderMtl::CompileInternal()
 {
+    // First, try to retrieve the compiled shader from the AIR cache
+    if (s_isLoadingShadersMtl && (m_isGameShader && !m_isGfxPackShader) && s_airCache)
+    {
+        cemu_assert_debug(m_baseHash != 0);
+		uint64 h1, h2;
+		GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
+		std::vector<uint8> cacheFileData;
+		if (s_airCache->GetFile({ h1, h2 }, cacheFileData))
+		{
+			CompileFromAIR(std::span<uint8>(cacheFileData.data(), cacheFileData.size()));
+			FinishCompilation();
+		}
+		else
+		{
+		    // Ensure that RAM filesystem exists
+			if (!s_hasRAMFilesystem)
+            {
+                s_hasRAMFilesystem = true;
+                executeCommand("diskutil erasevolume HFS+ {} $(hdiutil attach -nomount ram://{})", METAL_AIR_CACHE_NAME, METAL_AIR_CACHE_BLOCK_COUNT);
+            }
+
+		    // The shader is not in the cache, compile it
+			std::string filename = fmt::format("{}_{}", h1, h2);
+			// TODO: store the source
+			executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal", filename, filename);
+			executeCommand("xcrun -sdk macosx metallib -o {}.metallib {}.ir", filename, filename);
+			// TODO: clean up
+
+			// Load from the newly Generated AIR
+			// std::span<uint8> airData = ;
+			//CompileFromAIR(std::span<uint8>((uint8*)cacheFileData.data(), cacheFileData.size() / sizeof(uint8)));
+			FinishCompilation();
+
+			// Store in the cache
+			uint64 h1, h2;
+			GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
+			//s_airCache->AddFile({ h1, h2 }, airData.data(), airData.size());
+		}
+
+		return;
+    }
+
+    // Compile from source
     MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
     // TODO: always disable fast math for problematic shaders
     if (g_current_game_profile->GetFastMath())
@@ -198,6 +280,12 @@ void RendererShaderMtl::CompileInternal()
 	// Count shader compilation
 	if (ShouldCountCompilation())
 	    g_compiled_shaders_total++;
+}
+
+void RendererShaderMtl::CompileFromAIR(std::span<uint8> data)
+{
+    // TODO: implement this
+    printf("LOADING SHADER FROM AIR CACHE\n");
 }
 
 void RendererShaderMtl::FinishCompilation()

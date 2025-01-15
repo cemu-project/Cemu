@@ -2,9 +2,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/LatteTextureViewMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
-#include "Common/precompiled.h"
-#include "Metal/MTLResource.hpp"
-#include "Metal/MTLTexture.hpp"
 
 LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
@@ -12,7 +9,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 {
     MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
     desc->setStorageMode(MTL::StorageModePrivate);
-    desc->setCpuCacheMode(MTL::CPUCacheModeWriteCombined);
+    //desc->setCpuCacheMode(MTL::CPUCacheModeWriteCombined);
 
 	sint32 effectiveBaseWidth = width;
 	sint32 effectiveBaseHeight = height;
