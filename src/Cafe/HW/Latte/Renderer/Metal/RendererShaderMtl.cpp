@@ -29,7 +29,7 @@ public:
 		if (m_threadsActive.exchange(true))
 			return;
 		// create thread pool
-		const uint32 threadCount = 8;
+		const uint32 threadCount = 2;
 		for (uint32 i = 0; i < threadCount; ++i)
 			s_threads.emplace_back(&ShaderMtlThreadPool::CompilerThreadFunc, this);
 	}
@@ -295,8 +295,10 @@ void RendererShaderMtl::CompileInternal()
             mslFile.close();
 
             // Compile
-			executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal -w", baseFilename, baseFilename);
-			executeCommand("xcrun -sdk macosx metallib -o {}.metallib {}.ir", baseFilename, baseFilename);
+			if (!executeCommand("xcrun -sdk macosx metal -o {}.ir -c {}.metal -w", baseFilename, baseFilename))
+			    return;
+			if (!executeCommand("xcrun -sdk macosx metallib -o {}.metallib {}.ir", baseFilename, baseFilename))
+                return;
 
 			// Clean up
 			executeCommand("rm {}.metal", baseFilename);

@@ -103,11 +103,16 @@ inline bool FormatIsRenderable(Latte::E_GX2SURFFMT format)
 }
 
 template <typename... T>
-inline void executeCommand(fmt::format_string<T...> fmt, T&&... args) {
+inline bool executeCommand(fmt::format_string<T...> fmt, T&&... args) {
     std::string command = fmt::format(fmt, std::forward<T>(args)...);
     int res = system(command.c_str());
     if (res != 0)
+    {
         cemuLog_log(LogType::Force, "command \"{}\" failed with exit code {}", command, res);
+        return false;
+    }
+
+    return true;
 }
 
 class MemoryMappedFile
