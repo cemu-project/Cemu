@@ -11,7 +11,7 @@
 
 #define METAL_AIR_CACHE_NAME "Cemu_AIR_cache"
 #define METAL_AIR_CACHE_PATH "/Volumes/" METAL_AIR_CACHE_NAME
-#define METAL_AIR_CACHE_SIZE (512 * 1024 * 1024)
+#define METAL_AIR_CACHE_SIZE (16 * 1024 * 1024)
 #define METAL_AIR_CACHE_BLOCK_COUNT (METAL_AIR_CACHE_SIZE / 512)
 
 static bool s_isLoadingShadersMtl{false};
@@ -313,6 +313,9 @@ void RendererShaderMtl::CompileInternal()
 			uint64 h1, h2;
 			GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);
 			s_airCache->AddFile({ h1, h2 }, airData.data(), airData.size());
+
+			// Clean up
+			executeCommand("rm {}.metallib", baseFilename);
 		}
     }
     else
