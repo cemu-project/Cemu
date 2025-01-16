@@ -684,7 +684,6 @@ void GraphicPack2::LoadShaders()
 			if (filename.size() < 256 && swscanf(filename.c_str(), L"%" SCNx64 "_%" SCNx64 "_%ls", &shader_base_hash, &shader_aux_hash, shader_type) == 3)
 			{
 			    bool isMetalShader = (shader_type[2] == '_' && shader_type[3] == 'm' && shader_type[4] == 's' && shader_type[5] == 'l');
-				printf("IS METAL SHADER: %u\n", isMetalShader);
 
 				if (shader_type[0] == 'p' && shader_type[1] == 's')
 					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::PIXEL, isMetalShader));
