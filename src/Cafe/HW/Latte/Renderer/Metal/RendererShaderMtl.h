@@ -73,5 +73,7 @@ private:
 
 	void CompileInternal();
 
+	void CompileToAIR();
+
 	void FinishCompilation();
 };
