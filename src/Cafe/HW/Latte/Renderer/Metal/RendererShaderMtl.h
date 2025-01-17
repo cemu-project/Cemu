@@ -67,7 +67,13 @@ private:
 
 	bool ShouldCountCompilation() const;
 
+	MTL::Library* LibraryFromSource();
+
+	MTL::Library* LibraryFromAIR(std::span<uint8> data);
+
 	void CompileInternal();
+
+	void CompileToAIR();
 
 	void FinishCompilation();
 };

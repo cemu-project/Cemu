@@ -101,3 +101,79 @@ inline bool FormatIsRenderable(Latte::E_GX2SURFFMT format)
 {
     return !Latte::IsCompressedFormat(format);
 }
+
+template <typename... T>
+inline bool executeCommand(fmt::format_string<T...> fmt, T&&... args) {
+    std::string command = fmt::format(fmt, std::forward<T>(args)...);
+    int res = system(command.c_str());
+    if (res != 0)
+    {
+        cemuLog_log(LogType::Force, "command \"{}\" failed with exit code {}", command, res);
+        return false;
+    }
+
+    return true;
+}
+
+class MemoryMappedFile
+{
+public:
+    MemoryMappedFile(const std::string& filePath)
+    {
+        // Open the file
+        m_fd = open(filePath.c_str(), O_RDONLY);
+        if (m_fd == -1) {
+            cemuLog_log(LogType::Force, "failed to open file: {}", filePath);
+            return;
+        }
+
+        // Get the file size
+        // Use a loop to handle the case where the file size is 0 (more of a safety net)
+        struct stat fileStat;
+        while (true)
+        {
+            if (fstat(m_fd, &fileStat) == -1)
+            {
+                close(m_fd);
+                cemuLog_log(LogType::Force, "failed to get file size: {}", filePath);
+                return;
+            }
+            m_fileSize = fileStat.st_size;
+
+            if (m_fileSize == 0)
+            {
+                cemuLog_logOnce(LogType::Force, "file size is 0: {}", filePath);
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                continue;
+            }
+
+            break;
+        }
+
+        // Memory map the file
+        m_data = mmap(nullptr, m_fileSize, PROT_READ, MAP_PRIVATE, m_fd, 0);
+        if (m_data == MAP_FAILED)
+        {
+            close(m_fd);
+            cemuLog_log(LogType::Force, "failed to memory map file: {}", filePath);
+            return;
+        }
+    }
+
+    ~MemoryMappedFile()
+    {
+        if (m_data && m_data != MAP_FAILED)
+            munmap(m_data, m_fileSize);
+
+        if (m_fd != -1)
+            close(m_fd);
+    }
+
+    uint8* data() const { return static_cast<uint8*>(m_data); }
+    size_t size() const { return m_fileSize; }
+
+private:
+    int m_fd = -1;
+    void* m_data = nullptr;
+    size_t m_fileSize = 0;
+};
