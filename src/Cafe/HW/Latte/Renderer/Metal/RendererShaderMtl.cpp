@@ -35,6 +35,7 @@ public:
 			s_threads.emplace_back(&ShaderMtlThreadPool::CompilerThreadFunc, this);
 
 		// Create AIR cache thread
+		/*
 	    s_airCacheThread = new std::thread(&ShaderMtlThreadPool::AIRCacheThreadFunc, this);
 
 		// Set priority
@@ -47,6 +48,7 @@ public:
         if (pthread_setschedparam(s_airCacheThread->native_handle(), SCHED_RR, &schedParam) != 0) {
             cemuLog_log(LogType::Force, "failed to set RR thread priority");
         }
+        */
 	}
 
 	void StopThreads()
@@ -59,12 +61,14 @@ public:
 			it.join();
 		s_threads.clear();
 
+		/*
 		if (s_airCacheThread)
 		{
             s_airCacheQueueCount.increment();
     		s_airCacheThread->join();
     		delete s_airCacheThread;
 		}
+		*/
 	}
 
 	~ShaderMtlThreadPool()
@@ -101,6 +105,7 @@ public:
 		}
 	}
 
+	/*
 	void AIRCacheThreadFunc()
     {
         SetThreadName("mtlAIRCache");
@@ -128,20 +133,23 @@ public:
             job->CompileToAIR();
         }
     }
+    */
 
 	bool HasThreadsRunning() const { return m_threadsActive; }
 
 public:
 	std::vector<std::thread> s_threads;
-	std::thread* s_airCacheThread{nullptr};
+	//std::thread* s_airCacheThread{nullptr};
 
 	std::deque<RendererShaderMtl*> s_compilationQueue;
 	CounterSemaphore s_compilationQueueCount;
 	std::mutex s_compilationQueueMutex;
 
+	/*
 	std::deque<RendererShaderMtl*> s_airCacheQueue;
 	CounterSemaphore s_airCacheQueueCount;
 	std::mutex s_airCacheQueueMutex;
+	*/
 
 private:
 	std::atomic<bool> m_threadsActive;
@@ -153,6 +161,7 @@ void RendererShaderMtl::ShaderCacheLoading_begin(uint64 cacheTitleId)
     s_isLoadingShadersMtl = true;
 
     // Open AIR cache
+    /*
     if (s_airCache)
 	{
 		delete s_airCache;
@@ -164,6 +173,7 @@ void RendererShaderMtl::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	s_airCache = FileCache::Open(cachePath, true, airCacheMagic);
 	if (!s_airCache)
 		cemuLog_log(LogType::Force, "Unable to open AIR cache {}", cacheFilename);
+	*/
 
     // Maximize shader compilation speed
     static_cast<MetalRenderer*>(g_renderer.get())->SetShouldMaximizeConcurrentCompilation(true);
@@ -187,8 +197,10 @@ void RendererShaderMtl::ShaderCacheLoading_Close()
     }
 
     // Close RAM filesystem
+    /*
     if (s_hasRAMFilesystem)
         executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
+    */
 }
 
 void RendererShaderMtl::Initialize()
@@ -282,6 +294,7 @@ MTL::Library* RendererShaderMtl::LibraryFromSource()
     return library;
 }
 
+/*
 MTL::Library* RendererShaderMtl::LibraryFromAIR(std::span<uint8> data)
 {
     dispatch_data_t dispatchData = dispatch_data_create(data.data(), data.size(), nullptr, DISPATCH_DATA_DESTRUCTOR_DEFAULT);
@@ -296,12 +309,14 @@ MTL::Library* RendererShaderMtl::LibraryFromAIR(std::span<uint8> data)
 
     return library;
 }
+*/
 
 void RendererShaderMtl::CompileInternal()
 {
     MTL::Library* library = nullptr;
 
     // First, try to retrieve the compiled shader from the AIR cache
+    /*
     if (s_isLoadingShadersMtl && (m_isGameShader && !m_isGfxPackShader) && s_airCache)
     {
         cemu_assert_debug(m_baseHash != 0);
@@ -314,6 +329,7 @@ void RendererShaderMtl::CompileInternal()
 			FinishCompilation();
 		}
     }
+    */
 
     // Not in the cache, compile from source
     if (!library)
@@ -324,10 +340,12 @@ void RendererShaderMtl::CompileInternal()
             return;
 
         // Store in the AIR cache
+        /*
         shaderMtlThreadPool.s_airCacheQueueMutex.lock();
         shaderMtlThreadPool.s_airCacheQueue.push_back(this);
         shaderMtlThreadPool.s_airCacheQueueCount.increment();
         shaderMtlThreadPool.s_airCacheQueueMutex.unlock();
+        */
     }
 
     m_function = library->newFunction(ToNSString("main0"));
@@ -338,6 +356,7 @@ void RendererShaderMtl::CompileInternal()
 	    g_compiled_shaders_total++;
 }
 
+/*
 void RendererShaderMtl::CompileToAIR()
 {
     uint64 h1, h2;
@@ -375,6 +394,7 @@ void RendererShaderMtl::CompileToAIR()
 
 	FinishCompilation();
 }
+*/
 
 void RendererShaderMtl::FinishCompilation()
 {

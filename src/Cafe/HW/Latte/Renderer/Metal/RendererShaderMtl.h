@@ -69,11 +69,11 @@ private:
 
 	MTL::Library* LibraryFromSource();
 
-	MTL::Library* LibraryFromAIR(std::span<uint8> data);
+	//MTL::Library* LibraryFromAIR(std::span<uint8> data);
 
 	void CompileInternal();
 
-	void CompileToAIR();
+	//void CompileToAIR();
 
 	void FinishCompilation();
 };
