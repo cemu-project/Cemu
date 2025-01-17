@@ -428,7 +428,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 		for (const auto& presetEntry : m_presets)
 		{
 			tmp_map[presetEntry->category].emplace_back(presetEntry);
-			
+
 			for (auto& presetVar : presetEntry->variables)
 			{
 				const auto it = m_preset_vars.find(presetVar.first);
@@ -683,12 +683,14 @@ void GraphicPack2::LoadShaders()
 			wchar_t shader_type[256]{};
 			if (filename.size() < 256 && swscanf(filename.c_str(), L"%" SCNx64 "_%" SCNx64 "_%ls", &shader_base_hash, &shader_aux_hash, shader_type) == 3)
 			{
+			    bool isMetalShader = (shader_type[2] == '_' && shader_type[3] == 'm' && shader_type[4] == 's' && shader_type[5] == 'l');
+
 				if (shader_type[0] == 'p' && shader_type[1] == 's')
-					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::PIXEL));
+					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::PIXEL, isMetalShader));
 				else if (shader_type[0] == 'v' && shader_type[1] == 's')
-					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::VERTEX));
+					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::VERTEX, isMetalShader));
 				else if (shader_type[0] == 'g' && shader_type[1] == 's')
-					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::GEOMETRY));
+					m_custom_shaders.emplace_back(LoadShader(p, shader_base_hash, shader_aux_hash, GP_SHADER_TYPE::GEOMETRY, isMetalShader));
 			}
 			else if (filename == L"output.glsl")
 			{
@@ -1047,7 +1049,7 @@ bool GraphicPack2::Deactivate()
 	return true;
 }
 
-const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, uint64 shaderAuxHash, GP_SHADER_TYPE type, bool isVulkanRenderer)
+const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, uint64 shaderAuxHash, GP_SHADER_TYPE type, bool isVulkanRenderer, bool isMetalRenderer)
 {
 	for (const auto& gp : GraphicPack2::GetActiveGraphicPacks())
 	{
@@ -1057,8 +1059,11 @@ const std::string* GraphicPack2::FindCustomShaderSource(uint64 shaderBaseHash, u
 		if (it == gp->m_custom_shaders.end())
 			continue;
 
-		if(isVulkanRenderer && (*it).isPreVulkanShader)
+		if (isVulkanRenderer && (*it).isPreVulkanShader)
 			continue;
+
+		if (isMetalRenderer != (*it).isMetalShader)
+		    continue;
 
 		return &it->source;
 	}
@@ -1217,7 +1222,7 @@ void GraphicPack2::ApplyShaderPresets(std::string& shader_source) const
 	}
 }
 
-GraphicPack2::CustomShader GraphicPack2::LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type) const
+GraphicPack2::CustomShader GraphicPack2::LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type, bool isMetalShader) const
 {
 	CustomShader shader;
 
@@ -1236,6 +1241,7 @@ GraphicPack2::CustomShader GraphicPack2::LoadShader(const fs::path& path, uint64
 	shader.shader_aux_hash = shader_aux_hash;
 	shader.type = shader_type;
 	shader.isPreVulkanShader = this->m_version <= 3;
+	shader.isMetalShader = isMetalShader;
 
 	return shader;
 }
