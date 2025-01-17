@@ -3316,6 +3316,9 @@ static void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDe
 				cemu_assert_unimplemented(); // ukn
 			}
 
+			if (!shaderContext->shader->depthMask)
+			    return;
+
 			src->add("out.passDepth = ");
 			_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
 			src->add(".x");

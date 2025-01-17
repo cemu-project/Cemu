@@ -387,7 +387,7 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 	LatteDecompilerShader* shader = shaderContext->shader;
 	if( shader->shaderType == LatteConst::ShaderType::Pixel )
 	{
-		if( cfInstruction->exportType == 0 && cfInstruction->exportArrayBase < 8 )
+		if (cfInstruction->exportType == 0 && cfInstruction->exportArrayBase < 8)
 		{
 			// remember color outputs that are written
 			for(uint32 i=0; i<(cfInstruction->exportBurstCount+1); i++)
@@ -396,9 +396,10 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 				shader->pixelColorOutputMask |= (1<<colorOutputIndex);
 			}
 		}
-		else if( cfInstruction->exportType == 0 && cfInstruction->exportArrayBase == 61 )
+		else if (cfInstruction->exportType == 0 && cfInstruction->exportArrayBase == 61)
 		{
-			shader->depthWritten = true;
+		    if (LatteMRT::GetActiveDepthBufferMask(*shaderContext->contextRegistersNew))
+				shader->depthMask = true;
 		}
 		else
 			debugBreakpoint();

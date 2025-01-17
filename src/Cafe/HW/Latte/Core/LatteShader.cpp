@@ -678,6 +678,13 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
             auxHash = std::rotl<uint64>(auxHash, 7);
             auxHash += (uint64)dataType;
         }
+
+        bool hasDepthBuffer = LatteMRT::GetActiveDepthBufferMask(LatteGPUState.contextNew);
+        if (hasDepthBuffer)
+        {
+            auxHash = std::rotl<uint64>(auxHash, 5);
+            auxHash += 13u;
+        }
 	}
 #endif
 

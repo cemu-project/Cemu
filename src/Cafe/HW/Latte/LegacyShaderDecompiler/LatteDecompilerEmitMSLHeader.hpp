@@ -298,10 +298,8 @@ namespace LatteDecompiler
             }
 
             // generate depth output for pixel shader
-            if (decompilerContext->shader->depthWritten)
-            {
+            if (decompilerContext->shader->depthMask)
                 src->add("float passDepth [[depth(any)]];" _CRLF);
-            }
 
             src->add("};" _CRLF _CRLF);
 		}
