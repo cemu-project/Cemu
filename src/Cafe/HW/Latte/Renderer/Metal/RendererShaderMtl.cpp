@@ -35,7 +35,18 @@ public:
 			s_threads.emplace_back(&ShaderMtlThreadPool::CompilerThreadFunc, this);
 
 		// Create AIR cache thread
-		s_airCacheThread = new std::thread(&ShaderMtlThreadPool::AIRCacheThreadFunc, this);
+	    s_airCacheThread = new std::thread(&ShaderMtlThreadPool::AIRCacheThreadFunc, this);
+
+		// Set priority
+		sched_param schedParam;
+        schedParam.sched_priority = 20;
+        if (pthread_setschedparam(s_airCacheThread->native_handle(), SCHED_FIFO, &schedParam) != 0) {
+            cemuLog_log(LogType::Force, "failed to set FIFO thread priority");
+        }
+
+        if (pthread_setschedparam(s_airCacheThread->native_handle(), SCHED_RR, &schedParam) != 0) {
+            cemuLog_log(LogType::Force, "failed to set RR thread priority");
+        }
 	}
 
 	void StopThreads()
@@ -48,8 +59,12 @@ public:
 			it.join();
 		s_threads.clear();
 
-		s_airCacheThread->join();
-		delete s_airCacheThread;
+		if (s_airCacheThread)
+		{
+            s_airCacheQueueCount.increment();
+    		s_airCacheThread->join();
+    		delete s_airCacheThread;
+		}
 	}
 
 	~ShaderMtlThreadPool()
