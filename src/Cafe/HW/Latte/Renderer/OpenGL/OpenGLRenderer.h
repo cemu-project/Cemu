@@ -102,16 +102,21 @@ public:
 	static void SetAttributeArrayState(uint32 index, bool isEnabled, sint32 aluDivisor);
 	static void SetArrayElementBuffer(GLuint arrayElementBuffer);
 
-	// index
-	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override
+	// index (not used by OpenGL renderer yet)
+	IndexAllocation indexData_reserveIndexMemory(uint32 size) override
 	{
-		assert_dbg();
-		return nullptr;
+		cemu_assert_unimplemented();
+		return {};
 	}
 
-	void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) override
+	void indexData_releaseIndexMemory(IndexAllocation& allocation) override
 	{
-		assert_dbg();
+		cemu_assert_unimplemented();
+	}
+
+	void indexData_uploadIndexMemory(IndexAllocation& allocation) override
+	{
+		cemu_assert_unimplemented();
 	}
 
 	// uniform

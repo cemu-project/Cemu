@@ -11,7 +11,6 @@
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/ActiveSettings.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "gui/guiWrapper.h"
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
