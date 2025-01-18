@@ -32,11 +32,11 @@ void VKRSynchronizedRingAllocator::allocateAdditionalUploadBuffer(uint32 sizeReq
 	newBuffer.writeIndex = 0;
 	newBuffer.basePtr = nullptr;
 	if (m_bufferType == VKR_BUFFER_TYPE::STAGING)
-		m_vkrMemMgr->CreateBuffer2(bufferAllocSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
 	else if (m_bufferType == VKR_BUFFER_TYPE::INDEX)
-		m_vkrMemMgr->CreateBuffer2(bufferAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
 	else if (m_bufferType == VKR_BUFFER_TYPE::STRIDE)
-		m_vkrMemMgr->CreateBuffer2(bufferAllocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
 	else
 		cemu_assert_debug(false);
 
@@ -327,11 +327,11 @@ VKRBuffer* VKRBuffer::Create(VKR_BUFFER_TYPE bufferType, size_t bufferSize, VkMe
 	VkDeviceMemory bufferMemory;
 	bool allocSuccess;
 	if (bufferType == VKR_BUFFER_TYPE::STAGING)
-		allocSuccess = memMgr->CreateBuffer2(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, buffer, bufferMemory);
+		allocSuccess = memMgr->CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, buffer, bufferMemory);
 	else if (bufferType == VKR_BUFFER_TYPE::INDEX)
-		allocSuccess = memMgr->CreateBuffer2(bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, properties, buffer, bufferMemory);
+		allocSuccess = memMgr->CreateBuffer(bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, properties, buffer, bufferMemory);
 	else if (bufferType == VKR_BUFFER_TYPE::STRIDE)
-		allocSuccess = memMgr->CreateBuffer2(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, properties, buffer, bufferMemory);
+		allocSuccess = memMgr->CreateBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, properties, buffer, bufferMemory);
 	else
 		cemu_assert_debug(false);
 	if (!allocSuccess)
@@ -380,7 +380,7 @@ uint32 VkBufferChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAl
 	return allocationSize;
 }
 
-bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const
+bool VKRMemoryManager::FindMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
@@ -458,7 +458,7 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	return total;
 }
 
-bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+bool VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -467,7 +467,7 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if (vkCreateBuffer(m_vkr->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer2)");
+		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer)");
 		return false;
 	}
 
@@ -477,7 +477,7 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	if (!FindMemoryType2(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
+	if (!FindMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
@@ -490,7 +490,7 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	if (vkBindBufferMemory(m_vkr->GetLogicalDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
-		cemuLog_log(LogType::Force, "Failed to bind buffer (CreateBuffer2)");
+		cemuLog_log(LogType::Force, "Failed to bind buffer (CreateBuffer)");
 		return false;
 	}
 	return true;
@@ -512,7 +512,7 @@ bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSiz
 
 	if (vkCreateBuffer(m_vkr->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer2)");
+		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer)");
 		return false;
 	}
 
@@ -533,7 +533,7 @@ bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSiz
 
 	allocInfo.pNext = &importHostMem;
 
-	if (!FindMemoryType2(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
+	if (!FindMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
