@@ -328,8 +328,9 @@ public:
 
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
 
-	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
-	void indexData_uploadIndexMemory(uint32 offset, uint32 size) override;
+	IndexAllocation indexData_reserveIndexMemory(uint32 size) override;
+	void indexData_releaseIndexMemory(IndexAllocation& allocation) override;
+	void indexData_uploadIndexMemory(IndexAllocation& allocation) override;
 
 	// externally callable
 	void GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, sint32 width, sint32 height, FormatInfoVK* formatInfoOut);

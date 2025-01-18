@@ -178,3 +178,7 @@ endif()
 if(WIN32)
 	target_link_libraries(CemuGui PRIVATE bthprops)
 endif()
+
+if(ALLOW_PORTABLE)
+	target_compile_definitions(CemuGui PRIVATE CEMU_ALLOW_PORTABLE)
+endif ()

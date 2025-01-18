@@ -357,18 +357,20 @@ PipelineInfo* VulkanRenderer::draw_getOrCreateGraphicsPipeline(uint32 indexCount
 	return draw_createGraphicsPipeline(indexCount);
 }
 
-void* VulkanRenderer::indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex)
+Renderer::IndexAllocation VulkanRenderer::indexData_reserveIndexMemory(uint32 size)
 {
-	auto& indexAllocator = this->memoryManager->getIndexAllocator();
-	auto resv = indexAllocator.AllocateBufferMemory(size, 32);
-	offset = resv.bufferOffset;
-	bufferIndex = resv.bufferIndex;
-	return resv.memPtr;
+	VKRSynchronizedHeapAllocator::AllocatorReservation* resv = memoryManager->GetIndexAllocator().AllocateBufferMemory(size, 32);
+	return { resv->memPtr, resv };
 }
 
-void VulkanRenderer::indexData_uploadIndexMemory(uint32 offset, uint32 size)
+void VulkanRenderer::indexData_releaseIndexMemory(IndexAllocation& allocation)
 {
-	// does nothing since the index buffer memory is coherent
+	memoryManager->GetIndexAllocator().FreeReservation((VKRSynchronizedHeapAllocator::AllocatorReservation*)allocation.rendererInternal);
+}
+
+void VulkanRenderer::indexData_uploadIndexMemory(IndexAllocation& allocation)
+{
+	memoryManager->GetIndexAllocator().FlushReservation((VKRSynchronizedHeapAllocator::AllocatorReservation*)allocation.rendererInternal);
 }
 
 float s_vkUniformData[512 * 4];
@@ -1403,14 +1405,15 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 	uint32 hostIndexCount;
 	uint32 indexMin = 0;
 	uint32 indexMax = 0;
-	uint32 indexBufferOffset = 0;
-	uint32 indexBufferIndex = 0;
-	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexBufferOffset, indexBufferIndex);
-
+	Renderer::IndexAllocation indexAllocation;
+	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexAllocation);
+	VKRSynchronizedHeapAllocator::AllocatorReservation* indexReservation = (VKRSynchronizedHeapAllocator::AllocatorReservation*)indexAllocation.rendererInternal;
 	// update index binding
 	bool isPrevIndexData = false;
 	if (hostIndexType != INDEX_TYPE::NONE)
 	{
+		uint32 indexBufferIndex = indexReservation->bufferIndex;
+		uint32 indexBufferOffset = indexReservation->bufferOffset;
 		if (m_state.activeIndexBufferOffset != indexBufferOffset || m_state.activeIndexBufferIndex != indexBufferIndex || m_state.activeIndexType != hostIndexType)
 		{
 			m_state.activeIndexType = hostIndexType;
@@ -1423,7 +1426,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 				vkType = VK_INDEX_TYPE_UINT32;
 			else
 				cemu_assert(false);
-			vkCmdBindIndexBuffer(m_state.currentCommandBuffer, memoryManager->getIndexAllocator().GetBufferByIndex(indexBufferIndex), indexBufferOffset, vkType);
+			vkCmdBindIndexBuffer(m_state.currentCommandBuffer, indexReservation->vkBuffer, indexBufferOffset, vkType);
 		}
 		else
 			isPrevIndexData = true;

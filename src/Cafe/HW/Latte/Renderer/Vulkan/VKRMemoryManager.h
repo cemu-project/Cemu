@@ -2,6 +2,36 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "util/ChunkedHeap/ChunkedHeap.h"
+#include "util/helpers/MemoryPool.h"
+
+enum class VKR_BUFFER_TYPE
+{
+	STAGING, // staging upload buffer
+	INDEX, // buffer for index data
+	STRIDE, // buffer for stride-adjusted vertex data
+};
+
+class VKRBuffer
+{
+  public:
+	static VKRBuffer* Create(VKR_BUFFER_TYPE bufferType, size_t bufferSize, VkMemoryPropertyFlags properties);
+	~VKRBuffer();
+
+	VkBuffer GetVkBuffer() const { return m_buffer; }
+	VkDeviceMemory GetVkBufferMemory() const { return m_bufferMemory; }
+
+	uint8* GetPtr() const { return m_mappedMemory; }
+
+	bool RequiresFlush() const { return m_requiresFlush; }
+
+  private:
+	VKRBuffer(VkBuffer buffer, VkDeviceMemory bufferMem) : m_buffer(buffer), m_bufferMemory(bufferMem) { };
+
+	VkBuffer m_buffer;
+	VkDeviceMemory m_bufferMemory;
+	uint8* m_mappedMemory;
+	bool m_requiresFlush{false};
+};
 
 struct VkImageMemAllocation
 {
@@ -14,18 +44,16 @@ struct VkImageMemAllocation
 	uint32 getAllocationSize() { return allocationSize; }
 };
 
-class VkTextureChunkedHeap : private ChunkedHeap
+class VkTextureChunkedHeap : private ChunkedHeap<>
 {
 public:
-	VkTextureChunkedHeap(class VKRMemoryManager* memoryManager, uint32 typeFilter, VkDevice device) : m_vkrMemoryManager(memoryManager), m_typeFilter(typeFilter), m_device(device) { };
+	VkTextureChunkedHeap(class VKRMemoryManager* memoryManager, uint32 typeFilter) : m_vkrMemoryManager(memoryManager), m_typeFilter(typeFilter) { };
 	~VkTextureChunkedHeap();
 
 	struct ChunkInfo
 	{
 		VkDeviceMemory mem;
 	};
-
-	uint32 allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize) override;
 
 	CHAddr allocMem(uint32 size, uint32 alignment)
 	{
@@ -44,11 +72,6 @@ public:
 		this->free(addr);
 	}
 
-	void setDevice(VkDevice dev)
-	{
-		m_device = dev;
-	}
-
 	VkDeviceMemory getChunkMem(uint32 index)
 	{
 		if (index >= m_list_chunkInfo.size())
@@ -58,28 +81,73 @@ public:
 
 	void getStatistics(uint32& totalHeapSize, uint32& allocatedBytes) const
 	{
-		totalHeapSize = numHeapBytes;
-		allocatedBytes = numAllocatedBytes;
+		totalHeapSize = m_numHeapBytes;
+		allocatedBytes = m_numAllocatedBytes;
 	}
 
-	VkDevice m_device;
+  private:
+	uint32 allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize) override;
+
 	uint32 m_typeFilter{ 0xFFFFFFFF };
 	class VKRMemoryManager* m_vkrMemoryManager;
 	std::vector<ChunkInfo> m_list_chunkInfo;
+};
+
+class VkBufferChunkedHeap : private ChunkedHeap<>
+{
+  public:
+	VkBufferChunkedHeap(VKR_BUFFER_TYPE bufferType, size_t minimumBufferAllocationSize) : m_bufferType(bufferType), m_minimumBufferAllocationSize(minimumBufferAllocationSize) { };
+	~VkBufferChunkedHeap();
+
+	using ChunkedHeap::alloc;
+	using ChunkedHeap::free;
+
+	uint8* GetChunkPtr(uint32 index) const
+	{
+		if (index >= m_chunkBuffers.size())
+			return nullptr;
+		return m_chunkBuffers[index]->GetPtr();
+	}
+
+	void GetChunkVkMemInfo(uint32 index, VkBuffer& buffer, VkDeviceMemory& mem)
+	{
+		if (index >= m_chunkBuffers.size())
+		{
+			buffer = VK_NULL_HANDLE;
+			mem = VK_NULL_HANDLE;
+			return;
+		}
+		buffer = m_chunkBuffers[index]->GetVkBuffer();
+		mem = m_chunkBuffers[index]->GetVkBufferMemory();
+	}
+
+	void GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const
+	{
+		numBuffers = m_chunkBuffers.size();
+		totalBufferSize = m_numHeapBytes;
+		freeBufferSize = m_numHeapBytes - m_numAllocatedBytes;
+	}
+
+	bool RequiresFlush(uint32 index) const
+	{
+		if (index >= m_chunkBuffers.size())
+			return false;
+		return m_chunkBuffers[index]->RequiresFlush();
+	}
+
+  private:
+	uint32 allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize) override;
+
+	VKR_BUFFER_TYPE m_bufferType;
+	std::vector<VKRBuffer*> m_chunkBuffers;
+	size_t m_minimumBufferAllocationSize;
 };
 
 // a circular ring-buffer which tracks and releases memory per command-buffer
 class VKRSynchronizedRingAllocator
 {
 public:
-	enum class BUFFER_TYPE
-	{
-		STAGING, // staging upload buffer
-		INDEX, // buffer for index data
-		STRIDE, // buffer for stride-adjusted vertex data
-	};
-
-	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer, class VKRMemoryManager* vkMemoryManager, BUFFER_TYPE bufferType, uint32 minimumBufferAllocSize) : m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
+	VKRSynchronizedRingAllocator(class VulkanRenderer* vkRenderer, class VKRMemoryManager* vkMemoryManager, VKR_BUFFER_TYPE bufferType, uint32 minimumBufferAllocSize) : m_vkr(vkRenderer), m_vkrMemMgr(vkMemoryManager), m_bufferType(bufferType), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
 	VKRSynchronizedRingAllocator(const VKRSynchronizedRingAllocator&) = delete; // disallow copy
 	~VKRSynchronizedRingAllocator();
 
@@ -128,11 +196,51 @@ private:
 
 	const class VulkanRenderer* m_vkr;
 	const class VKRMemoryManager* m_vkrMemMgr;
-	const BUFFER_TYPE m_bufferType;
+	const VKR_BUFFER_TYPE m_bufferType;
 	const uint32 m_minimumBufferAllocSize;
 
 	std::vector<AllocatorBuffer_t> m_buffers;
 
+};
+
+// heap style allocator with released memory being freed after the current command buffer finishes
+class VKRSynchronizedHeapAllocator
+{
+	struct TrackedAllocation
+	{
+		TrackedAllocation(CHAddr allocation) : allocation(allocation) {};
+		CHAddr allocation;
+	};
+
+  public:
+	VKRSynchronizedHeapAllocator(class VKRMemoryManager* vkMemoryManager, VKR_BUFFER_TYPE bufferType, size_t minimumBufferAllocSize);
+	VKRSynchronizedHeapAllocator(const VKRSynchronizedHeapAllocator&) = delete; // disallow copy
+
+	struct AllocatorReservation
+	{
+		VkBuffer vkBuffer;
+		VkDeviceMemory vkMem;
+		uint8* memPtr;
+		uint32 bufferOffset;
+		uint32 size;
+		uint32 bufferIndex;
+	};
+
+	AllocatorReservation* AllocateBufferMemory(uint32 size, uint32 alignment);
+	void FreeReservation(AllocatorReservation* uploadReservation);
+	void FlushReservation(AllocatorReservation* uploadReservation);
+
+	void CleanupBuffer(uint64 latestFinishedCommandBufferId);
+
+	void GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const;
+  private:
+	const class VKRMemoryManager* m_vkrMemMgr;
+	VkBufferChunkedHeap m_chunkedHeap;
+	// allocations
+	std::vector<TrackedAllocation> m_activeAllocations;
+	MemoryPool<AllocatorReservation> m_poolAllocatorReservation{32};
+	// release queue
+	std::unordered_map<uint64, std::vector<CHAddr>> m_releaseQueue;
 };
 
 void LatteIndices_invalidateAll();
@@ -142,9 +250,9 @@ class VKRMemoryManager
 	friend class VKRSynchronizedRingAllocator;
 public:
 	VKRMemoryManager(class VulkanRenderer* renderer) :
-			m_stagingBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STAGING, 32u * 1024 * 1024),
-			m_indexBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::INDEX, 4u * 1024 * 1024),
-			m_vertexStrideMetalBuffer(renderer, this, VKRSynchronizedRingAllocator::BUFFER_TYPE::STRIDE, 4u * 1024 * 1024)
+			m_stagingBuffer(renderer, this, VKR_BUFFER_TYPE::STAGING, 32u * 1024 * 1024),
+			m_indexBuffer(this, VKR_BUFFER_TYPE::INDEX, 4u * 1024 * 1024),
+			m_vertexStrideMetalBuffer(renderer, this, VKR_BUFFER_TYPE::STRIDE, 4u * 1024 * 1024)
 	{
 		m_vkr = renderer;
 	}
@@ -169,7 +277,7 @@ public:
 	}
 
 	VKRSynchronizedRingAllocator& getStagingAllocator() { return m_stagingBuffer; }; // allocator for texture/attribute/uniform uploads
-	VKRSynchronizedRingAllocator& getIndexAllocator() { return m_indexBuffer; }; // allocator for index data
+	VKRSynchronizedHeapAllocator& GetIndexAllocator() { return m_indexBuffer; }; // allocator for index data
 	VKRSynchronizedRingAllocator& getMetalStrideWorkaroundAllocator() { return m_vertexStrideMetalBuffer; }; // allocator for stride-adjusted vertex data
 
 	void cleanupBuffers(uint64 latestFinishedCommandBufferId)
@@ -204,6 +312,6 @@ public:
 	private:
 		class VulkanRenderer* m_vkr;
 		VKRSynchronizedRingAllocator m_stagingBuffer;
-		VKRSynchronizedRingAllocator m_indexBuffer;
+		VKRSynchronizedHeapAllocator m_indexBuffer;
 		VKRSynchronizedRingAllocator m_vertexStrideMetalBuffer;
 };
