@@ -271,8 +271,9 @@ public:
 	void draw_handleSpecialState5();
 
 	// index
-	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
-	void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) override;
+	IndexAllocation indexData_reserveIndexMemory(uint32 size) override;
+	void indexData_releaseIndexMemory(IndexAllocation& allocation) override;
+	void indexData_uploadIndexMemory(IndexAllocation& allocation) override;
 
 	// occlusion queries
 	LatteQueryObject* occlusionQuery_create() override;

@@ -15,8 +15,8 @@
 #define METAL_AIR_CACHE_BLOCK_COUNT (METAL_AIR_CACHE_SIZE / 512)
 
 static bool s_isLoadingShadersMtl{false};
-static bool s_hasRAMFilesystem{false};
-class FileCache* s_airCache{nullptr};
+//static bool s_hasRAMFilesystem{false};
+//class FileCache* s_airCache{nullptr};
 
 extern std::atomic_int g_compiled_shaders_total;
 extern std::atomic_int g_compiled_shaders_async;
@@ -190,6 +190,7 @@ void RendererShaderMtl::ShaderCacheLoading_end()
 void RendererShaderMtl::ShaderCacheLoading_Close()
 {
     // Close the AIR cache
+    /*
     if (s_airCache)
     {
         delete s_airCache;
@@ -197,7 +198,6 @@ void RendererShaderMtl::ShaderCacheLoading_Close()
     }
 
     // Close RAM filesystem
-    /*
     if (s_hasRAMFilesystem)
         executeCommand("diskutil eject {}", METAL_AIR_CACHE_PATH);
     */

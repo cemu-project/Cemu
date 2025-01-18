@@ -73,7 +73,7 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
     if (m_bufferCacheMode == BufferCacheMode::DevicePrivate)
     {
-        auto allocation = m_tempBufferAllocator.GetBufferAllocation(size);
+        auto allocation = m_tempBufferAllocator.GetAllocation(size);
         auto buffer = m_tempBufferAllocator.GetBufferOutsideOfCommandBuffer(allocation.bufferIndex);
         memcpy((uint8*)buffer->contents() + allocation.offset, data, size);
 
@@ -82,8 +82,8 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
         m_mtlr->CopyBufferToBuffer(buffer, allocation.offset, m_bufferCache, offset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);
 
-        // Make sure the buffer has the right command buffer
-        m_tempBufferAllocator.GetBuffer(allocation.bufferIndex); // TODO: make a helper function for this
+        // Mark buffer as used
+        m_tempBufferAllocator.MarkBufferAsUsed(allocation.bufferIndex);
 
         // We can now safely unlock the buffer
         m_tempBufferAllocator.UnlockBuffer(allocation.bufferIndex);

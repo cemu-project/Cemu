@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Common/precompiled.h"
-#include "Metal/MTLResource.hpp"
+#include "util/helpers/MemoryPool.h"
+
 #include <utility>
 
 struct MetalBufferRange
@@ -54,7 +54,7 @@ public:
         return m_buffers[bufferIndex].m_buffer;
     }
 
-    MetalBufferAllocation GetBufferAllocation(size_t size)
+    MetalBufferAllocation GetAllocation(size_t size)
     {
         // Align the size
         size = Align(size, 128);
@@ -119,29 +119,6 @@ public:
         m_mtlr->GetPerformanceMonitor().m_bufferAllocatorMemory += allocationSize;
 
         return allocation;
-    }
-
-    void FreeAllocation(MetalBufferAllocation& allocation)
-    {
-        MetalBufferRange range;
-        range.offset = allocation.offset;
-        range.size = allocation.size;
-
-        allocation.offset = INVALID_OFFSET;
-
-        // Find the correct position to insert the free range
-        auto& buffer = m_buffers[allocation.bufferIndex];
-        for (uint32 i = 0; i < buffer.m_freeRanges.size(); i++)
-        {
-            auto& freeRange = buffer.m_freeRanges[i];
-            if (freeRange.offset + freeRange.size == range.offset)
-            {
-                freeRange.size += range.size;
-                return;
-            }
-        }
-
-        buffer.m_freeRanges.push_back(range);
     }
 
 protected:
@@ -276,7 +253,7 @@ public:
         m_executingCommandBuffers.erase(it);
     }
 
-    MTL::Buffer* GetBuffer(uint32 bufferIndex)
+    void MarkBufferAsUsed(uint32 bufferIndex)
     {
         cemu_assert_debug(m_activeCommandBuffer);
 
@@ -287,13 +264,61 @@ public:
             buffer.m_data.m_commandBufferCount++;
             buffer.m_data.m_lastCommandBuffer = m_activeCommandBuffer;
         }
+    }
 
-        return buffer.m_buffer;
+    MTL::Buffer* GetBuffer(uint32 bufferIndex)
+    {
+        MarkBufferAsUsed(bufferIndex);
+
+        return m_buffers[bufferIndex].m_buffer;
     }
 
     MTL::Buffer* GetBufferOutsideOfCommandBuffer(uint32 bufferIndex)
     {
         return m_buffers[bufferIndex].m_buffer;
+    }
+
+    MetalBufferAllocation* GetAllocationPtr(size_t size)
+    {
+        MetalBufferAllocation* allocation = m_poolAllocatorReservation.allocObj();
+        *allocation = GetAllocation(size);
+
+        LockBuffer(allocation->bufferIndex);
+
+        return allocation;
+    }
+
+    void FreeAllocation(MetalBufferAllocation& allocation)
+    {
+        // TODO
+        /*
+        MetalBufferRange range;
+        range.offset = allocation.offset;
+        range.size = allocation.size;
+
+        allocation.offset = INVALID_OFFSET;
+
+        // Find the correct position to insert the free range
+        auto& buffer = m_buffers[allocation.bufferIndex];
+        for (uint32 i = 0; i < buffer.m_freeRanges.size(); i++)
+        {
+            auto& freeRange = buffer.m_freeRanges[i];
+            if (freeRange.offset + freeRange.size == range.offset)
+            {
+                freeRange.size += range.size;
+                return;
+            }
+        }
+
+        buffer.m_freeRanges.push_back(range);
+        */
+        UnlockBuffer(allocation.bufferIndex);
+    }
+
+    void FreeAllocation(MetalBufferAllocation* allocation)
+    {
+        FreeAllocation(*allocation);
+        m_poolAllocatorReservation.freeObj(allocation);
     }
 
     /*
@@ -349,6 +374,8 @@ private:
 
     std::map<MTL::CommandBuffer*, std::vector<uint32>> m_executingCommandBuffers;
     std::map<MTL::CommandBuffer*, std::vector<uint32>>::iterator m_activeCommandBufferIt;
+
+    MemoryPool<MetalBufferAllocation> m_poolAllocatorReservation{32};
 
     uint16 m_framesSinceBackBufferAccess = 0;
 };
