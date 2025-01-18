@@ -288,8 +288,6 @@ public:
 		m_vertexStrideMetalBuffer.CleanupBuffer(latestFinishedCommandBufferId);
 	}
 
-	// memory helpers
-	uint32_t FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 	bool FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const; // searches for exact properties. Can gracefully fail without throwing exception (returns false)
 	std::vector<uint32> FindMemoryTypes(uint32_t typeFilter, VkMemoryPropertyFlags properties) const;
 
@@ -300,7 +298,6 @@ public:
 	// buffer management
 	size_t GetTotalMemoryForBufferType(VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, size_t minimumBufferSize = 16 * 1024 * 1024);
 
-	void CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
 	bool CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const; // same as CreateBuffer but doesn't throw exception on failure
 	bool CreateBufferFromHostMemory(void* hostPointer, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const;
 

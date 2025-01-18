@@ -32,11 +32,11 @@ void VKRSynchronizedRingAllocator::allocateAdditionalUploadBuffer(uint32 sizeReq
 	newBuffer.writeIndex = 0;
 	newBuffer.basePtr = nullptr;
 	if (m_bufferType == VKR_BUFFER_TYPE::STAGING)
-		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer2(bufferAllocSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
 	else if (m_bufferType == VKR_BUFFER_TYPE::INDEX)
-		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer2(bufferAllocSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
 	else if (m_bufferType == VKR_BUFFER_TYPE::STRIDE)
-		m_vkrMemMgr->CreateBuffer(bufferAllocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
+		m_vkrMemMgr->CreateBuffer2(bufferAllocSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, newBuffer.vk_buffer, newBuffer.vk_mem);
 	else
 		cemu_assert_debug(false);
 
@@ -380,20 +380,6 @@ uint32 VkBufferChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAl
 	return allocationSize;
 }
 
-uint32_t VKRMemoryManager::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
-{
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
-
-	for (uint32 i = 0; i < memProperties.memoryTypeCount; i++)
-	{
-		if ((typeFilter & (1 << i)) != 0 && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			return i;
-	}
-	m_vkr->UnrecoverableError(fmt::format("failed to find suitable memory type ({0:#08x} {1:#08x})", typeFilter, properties).c_str());
-	return 0;
-}
-
 bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
@@ -401,7 +387,7 @@ bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags 
 
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 	{
-		if (typeFilter & (1 << i) && memProperties.memoryTypes[i].propertyFlags == properties)
+		if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 		{
 			memoryIndex = i;
 			return true;
@@ -470,30 +456,6 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	}
 
 	return total;
-}
-
-void VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
-{
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.usage = usage;
-	bufferInfo.size = size;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(m_vkr->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-		m_vkr->UnrecoverableError("Failed to create buffer");
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_vkr->GetLogicalDevice(), buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-		m_vkr->UnrecoverableError("Failed to allocate buffer memory");
-	if (vkBindBufferMemory(m_vkr->GetLogicalDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
-		m_vkr->UnrecoverableError("Failed to bind buffer memory");
 }
 
 bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
