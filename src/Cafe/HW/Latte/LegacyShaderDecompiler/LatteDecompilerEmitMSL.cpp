@@ -2295,6 +2295,10 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	}
 	else
 	{
+	    // sample_compare returns a float, need to convert to float4
+	    if (isCompare)
+			src->addFmt("float4(");
+
     	if (emulateCompare)
     	{
             cemu_assert_debug(!isGather);
@@ -2306,24 +2310,24 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
     	if (!emulateCompare)
     	{
     	    src->add(".");
-       	if (isRead)
-       	{
-      		if (hasOffset)
-     			cemu_assert_unimplemented();
-      		src->add("read(");
-      		unnormalizationHandled = true;
-      		useTexelCoordinates = true;
-       	}
-       	else
-       	{
-       	    if (isGather)
-     			src->add("gather");
-      		else
-                src->add("sample");
-       	    if (isCompare)
-     			src->add("_compare");
-      		src->addFmt("(samplr{}, ", texInstruction->textureFetch.textureIndex);
-       	}
+           	if (isRead)
+           	{
+          		if (hasOffset)
+         			cemu_assert_unimplemented();
+          		src->add("read(");
+          		unnormalizationHandled = true;
+          		useTexelCoordinates = true;
+           	}
+           	else
+           	{
+           	    if (isGather)
+         			src->add("gather");
+          		else
+                    src->add("sample");
+           	    if (isCompare)
+         			src->add("_compare");
+          		src->addFmt("(samplr{}, ", texInstruction->textureFetch.textureIndex);
+           	}
     	}
     	else
     	{
@@ -2555,65 +2559,63 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
         src->add(")");
     }
 
-	// sample_compare doesn't return a float
-    if (!isCompare)
-    {
-    	if( texOpcode == GPU7_TEX_INST_SAMPLE_C || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
-    	{
-    		src->add(".");
+    if (isCompare)
+        src->add(")");
 
-    		if (numWrittenElements > 1)
-    		{
-    			// result is copied into multiple channels
-    			for (sint32 f = 0; f < numWrittenElements; f++)
-    			{
-    				cemu_assert_debug(texInstruction->dstSel[f] == 0); // only x component is defined
-    				src->add("x");
-    			}
-    		}
-    		else
-    		{
-    		    src->add("x");
-    		}
-        }
-        else
-        {
-      		src->add(".");
-      		for (sint32 f = 0; f < 4; f++)
-      		{
-     			if( texInstruction->dstSel[f] < 4 )
-     			{
-    				uint8 elemIndex = texInstruction->dstSel[f];
-    				if (isGather)
+   	if (texOpcode == GPU7_TEX_INST_SAMPLE_C || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ)
+   	{
+  		src->add(".");
+
+  		if (numWrittenElements > 1)
+  		{
+ 			// result is copied into multiple channels
+ 			for (sint32 f = 0; f < numWrittenElements; f++)
+ 			{
+				cemu_assert_debug(texInstruction->dstSel[f] == 0); // only x component is defined
+				src->add("x");
+ 			}
+  		}
+  		else
+  		{
+  		    src->add("x");
+  		}
+    }
+    else
+    {
+  		src->add(".");
+  		for (sint32 f = 0; f < 4; f++)
+  		{
+ 			if (texInstruction->dstSel[f] < 4)
+ 			{
+				uint8 elemIndex = texInstruction->dstSel[f];
+				if (isGather)
+				{
+    				// 's textureGather() and GPU7's FETCH4 instruction have a different order of elements
+    				// xyzw: top-left, top-right, bottom-right, bottom-left
+    				// textureGather	xyzw
+    				// fetch4			yzxw
+    				// translate index from fetch4 to textureGather order
+    				static uint8 fetchToGather[4] =
     				{
-        				// 's textureGather() and GPU7's FETCH4 instruction have a different order of elements
-        				// xyzw: top-left, top-right, bottom-right, bottom-left
-        				// textureGather	xyzw
-        				// fetch4			yzxw
-        				// translate index from fetch4 to textureGather order
-        				static uint8 fetchToGather[4] =
-        				{
-          						2, // x -> z
-          						0, // y -> x
-          						1, // z -> y
-          						3, // w -> w
-        				};
-        				elemIndex = fetchToGather[elemIndex];
-    				}
-    				src->add(resultElemTable[elemIndex]);
-    				numWrittenElements++;
-     			}
-     			else if( texInstruction->dstSel[f] == 7 )
-     			{
-    				// masked and not written
-     			}
-     			else
-     			{
-    				cemu_assert_unimplemented();
-     			}
-      		}
-        }
-	}
+      						2, // x -> z
+      						0, // y -> x
+      						1, // z -> y
+      						3, // w -> w
+    				};
+    				elemIndex = fetchToGather[elemIndex];
+				}
+				src->add(resultElemTable[elemIndex]);
+ 			}
+ 			else if (texInstruction->dstSel[f] == 7)
+ 			{
+				// masked and not written
+ 			}
+ 			else
+ 			{
+				cemu_assert_unimplemented();
+ 			}
+  		}
+    }
 	src->add(");");
 
 	// debug
