@@ -7,19 +7,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
 
-struct MetalBufferAllocation
-{
-    void* data;
-    uint32 bufferIndex;
-    size_t offset = INVALID_OFFSET;
-    size_t size;
-
-    bool IsValid() const
-    {
-        return offset != INVALID_OFFSET;
-    }
-};
-
 enum MetalGeneralShaderType
 {
     METAL_GENERAL_SHADER_TYPE_VERTEX,
@@ -271,8 +258,9 @@ public:
 	void draw_handleSpecialState5();
 
 	// index
-	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
-	void indexData_uploadIndexMemory(uint32 bufferIndex, uint32 offset, uint32 size) override;
+	IndexAllocation indexData_reserveIndexMemory(uint32 size) override;
+	void indexData_releaseIndexMemory(IndexAllocation& allocation) override;
+	void indexData_uploadIndexMemory(IndexAllocation& allocation) override;
 
 	// occlusion queries
 	LatteQueryObject* occlusionQuery_create() override;
@@ -294,14 +282,14 @@ public:
         return (m_currentCommandBuffer.m_commandBuffer && !m_currentCommandBuffer.m_commited);
     }
 
-	MTL::CommandBuffer* GetCurrentCommandBuffer()
+	MTL::CommandBuffer* GetCurrentCommandBuffer() const
     {
         cemu_assert_debug(m_currentCommandBuffer.m_commandBuffer);
 
         return m_currentCommandBuffer.m_commandBuffer;
     }
 
-    MTL::CommandBuffer* GetAndRetainCurrentCommandBufferIfNotCompleted()
+    MTL::CommandBuffer* GetAndRetainCurrentCommandBufferIfNotCompleted() const
     {
         // The command buffer has been commited and has finished execution
         if (m_currentCommandBuffer.m_commited && m_executingCommandBuffers.size() == 0)

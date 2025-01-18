@@ -7,27 +7,28 @@
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_bufferAllocator(metalRenderer, m_mtlr->GetOptimalBufferStorageMode()), m_framePersistentBufferAllocator(metalRenderer, MTL::ResourceStorageModePrivate), m_tempBufferAllocator(metalRenderer) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_stagingAllocator(m_mtlr, m_mtlr->GetOptimalBufferStorageMode(), 32u * 1024 * 1024), m_indexAllocator(m_mtlr, m_mtlr->GetOptimalBufferStorageMode(), 4u * 1024 * 1024) {}
     ~MetalMemoryManager();
 
-    MetalDefaultBufferAllocator& GetBufferAllocator()
+    MetalSynchronizedRingAllocator& GetStagingAllocator()
     {
-        return m_bufferAllocator;
+        return m_stagingAllocator;
     }
 
-    MetalDefaultBufferAllocator& GetFramePersistentBufferAllocator()
+    MetalSynchronizedHeapAllocator& GetIndexAllocator()
     {
-        return m_framePersistentBufferAllocator;
-    }
-
-    MetalTemporaryBufferAllocator& GetTemporaryBufferAllocator()
-    {
-        return m_tempBufferAllocator;
+        return m_indexAllocator;
     }
 
     MTL::Buffer* GetBufferCache()
     {
         return m_bufferCache;
+    }
+
+    void CleanupBuffers(MTL::CommandBuffer* latestFinishedCommandBuffer)
+    {
+        m_stagingAllocator.CleanupBuffer(latestFinishedCommandBuffer);
+        m_indexAllocator.CleanupBuffer(latestFinishedCommandBuffer);
     }
 
     // Texture upload buffer
@@ -65,9 +66,8 @@ private:
 
     std::vector<uint8> m_textureUploadBuffer;
 
-    MetalDefaultBufferAllocator m_bufferAllocator;
-    MetalDefaultBufferAllocator m_framePersistentBufferAllocator;
-    MetalTemporaryBufferAllocator m_tempBufferAllocator;
+    MetalSynchronizedRingAllocator m_stagingAllocator;
+    MetalSynchronizedHeapAllocator m_indexAllocator;
 
     MTL::Buffer* m_bufferCache = nullptr;
     BufferCacheMode m_bufferCacheMode;

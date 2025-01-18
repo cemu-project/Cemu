@@ -3,8 +3,6 @@
 class MetalPerformanceMonitor
 {
 public:
-    size_t m_bufferAllocatorMemory = 0;
-
     // Per frame data
     uint32 m_commandBuffers = 0;
     uint32 m_renderPasses = 0;

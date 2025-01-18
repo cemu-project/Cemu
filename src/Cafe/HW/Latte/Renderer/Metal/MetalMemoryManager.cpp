@@ -73,20 +73,15 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
     if (m_bufferCacheMode == BufferCacheMode::DevicePrivate)
     {
-        auto allocation = m_tempBufferAllocator.GetBufferAllocation(size);
-        auto buffer = m_tempBufferAllocator.GetBufferOutsideOfCommandBuffer(allocation.bufferIndex);
-        memcpy((uint8*)buffer->contents() + allocation.offset, data, size);
+        auto blitCommandEncoder = m_mtlr->GetBlitCommandEncoder();
 
-        // Lock the buffer to make sure it's not deallocated before the copy is done
-        m_tempBufferAllocator.LockBuffer(allocation.bufferIndex);
+        auto allocation = m_stagingAllocator.AllocateBufferMemory(size, 1);
+        memcpy(allocation.memPtr, data, size);
+        m_stagingAllocator.FlushReservation(allocation);
 
-        m_mtlr->CopyBufferToBuffer(buffer, allocation.offset, m_bufferCache, offset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);
+        blitCommandEncoder->copyFromBuffer(allocation.mtlBuffer, allocation.bufferOffset, m_bufferCache, offset, size);
 
-        // Make sure the buffer has the right command buffer
-        m_tempBufferAllocator.GetBuffer(allocation.bufferIndex); // TODO: make a helper function for this
-
-        // We can now safely unlock the buffer
-        m_tempBufferAllocator.UnlockBuffer(allocation.bufferIndex);
+        //m_mtlr->CopyBufferToBuffer(allocation.mtlBuffer, allocation.bufferOffset, m_bufferCache, offset, size, ALL_MTL_RENDER_STAGES, ALL_MTL_RENDER_STAGES);
     }
     else
     {
