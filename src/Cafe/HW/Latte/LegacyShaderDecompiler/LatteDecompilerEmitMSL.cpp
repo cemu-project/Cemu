@@ -450,9 +450,23 @@ static void _emitRegisterAccessCode(LatteDecompilerShaderContext* shaderContext,
 	StringBuf* src = shaderContext->shaderSource;
 	sint32 registerElementDataType = shaderContext->typeTracker.defaultDataType;
 	cemu_assert_debug(gprIndex >= 0 && gprIndex <= 127);
+
+	sint32 channelArray[4];
+	channelArray[0] = channel0;
+	channelArray[1] = channel1;
+	channelArray[2] = channel2;
+	channelArray[3] = channel3;
+
+	sint32 numComponents = 0;
+	for (sint32 i = 0; i < 4; i++)
+	{
+		if (channelArray[i] >= 0 && channelArray[i] <= 3)
+		    numComponents++;
+	}
+
 	if (dataType >= 0)
 	{
-		_emitTypeConversionPrefixMSL(shaderContext, registerElementDataType, dataType);
+		_emitTypeConversionPrefixMSL(shaderContext, registerElementDataType, dataType, numComponents);
 	}
 	if (shaderContext->typeTracker.useArrayGPRs)
 		src->add("R");
@@ -463,12 +477,6 @@ static void _emitRegisterAccessCode(LatteDecompilerShaderContext* shaderContext,
 		src->addFmt("[{}]", gprIndex);
 
 	src->add(".");
-
-	sint32 channelArray[4];
-	channelArray[0] = channel0;
-	channelArray[1] = channel1;
-	channelArray[2] = channel2;
-	channelArray[3] = channel3;
 
 	for (sint32 i = 0; i < 4; i++)
 	{
@@ -2807,7 +2815,7 @@ static void _emitTEXGetGradientsHV(LatteDecompilerShaderContext* shaderContext, 
 	sint32 componentCount = 0;
 	for (sint32 i = 0; i < 4; i++)
 	{
-		if(texInstruction->dstSel[i] == 7)
+		if (texInstruction->dstSel[i] == 7)
 			continue;
 		componentCount++;
 	}
@@ -2840,10 +2848,10 @@ static void _emitTEXGetGradientsHV(LatteDecompilerShaderContext* shaderContext, 
 
 	src->add(" = ");
 
-	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
+	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType, componentCount);
 
 	src->addFmt("{}(", funcName);
-	_emitRegisterAccessCode(shaderContext, texInstruction->srcGpr, (componentCount >= 1) ? texInstruction->textureFetch.srcSel[0] : -1, (componentCount >= 2) ? texInstruction->textureFetch.srcSel[1] : -1, (componentCount >= 3) ? texInstruction->textureFetch.srcSel[2] : -1, (componentCount >= 4)?texInstruction->textureFetch.srcSel[3]:-1, LATTE_DECOMPILER_DTYPE_FLOAT);
+	_emitRegisterAccessCode(shaderContext, texInstruction->srcGpr, (componentCount >= 1) ? texInstruction->textureFetch.srcSel[0] : -1, (componentCount >= 2) ? texInstruction->textureFetch.srcSel[1] : -1, (componentCount >= 3) ? texInstruction->textureFetch.srcSel[2] : -1, (componentCount >= 4) ? texInstruction->textureFetch.srcSel[3] : -1, LATTE_DECOMPILER_DTYPE_FLOAT);
 
 	src->add(")");
 
