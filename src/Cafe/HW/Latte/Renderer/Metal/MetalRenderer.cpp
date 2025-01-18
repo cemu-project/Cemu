@@ -16,11 +16,10 @@
 
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
-#include "Cemu/Logging/CemuDebugLogging.h"
+#include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Common/precompiled.h"
 #include "HW/Latte/Renderer/Metal/MetalBufferAllocator.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "config/CemuConfig.h"
@@ -588,7 +587,6 @@ void MetalRenderer::AppendOverlayDebugInfo()
 
     ImGui::Text("--- Metal info ---");
     ImGui::Text("Render pipeline states     %zu", m_pipelineCache->GetPipelineCacheSize());
-    ImGui::Text("Buffer allocator memory    %zuMB", m_performanceMonitor.m_bufferAllocatorMemory / 1024 / 1024);
 
     ImGui::Text("--- Metal info (per frame) ---");
     ImGui::Text("Command buffers            %u", m_performanceMonitor.m_commandBuffers);
@@ -596,6 +594,31 @@ void MetalRenderer::AppendOverlayDebugInfo()
     ImGui::Text("Clears                     %u", m_performanceMonitor.m_clears);
     ImGui::Text("Manual vertex fetch draws  %u (mesh draws: %u)", m_performanceMonitor.m_manualVertexFetchDraws, m_performanceMonitor.m_meshDraws);
     ImGui::Text("Triangle fans              %u", m_performanceMonitor.m_triangleFans);
+
+    ImGui::Text("--- Cache debug info ---");
+
+	uint32 bufferCacheHeapSize = 0;
+	uint32 bufferCacheAllocationSize = 0;
+	uint32 bufferCacheNumAllocations = 0;
+
+	LatteBufferCache_getStats(bufferCacheHeapSize, bufferCacheAllocationSize, bufferCacheNumAllocations);
+
+	ImGui::Text("Buffer");
+	ImGui::SameLine(60.0f);
+	ImGui::Text("%06uKB / %06uKB Allocs: %u", (uint32)(bufferCacheAllocationSize + 1023) / 1024, ((uint32)bufferCacheHeapSize + 1023) / 1024, (uint32)bufferCacheNumAllocations);
+
+	uint32 numBuffers;
+	size_t totalSize, freeSize;
+
+	m_memoryManager->GetStagingAllocator().GetStats(numBuffers, totalSize, freeSize);
+	ImGui::Text("Staging");
+	ImGui::SameLine(60.0f);
+	ImGui::Text("%06uKB / %06uKB Buffers: %u", ((uint32)(totalSize - freeSize) + 1023) / 1024, ((uint32)totalSize + 1023) / 1024, (uint32)numBuffers);
+
+	m_memoryManager->GetIndexAllocator().GetStats(numBuffers, totalSize, freeSize);
+	ImGui::Text("Index");
+	ImGui::SameLine(60.0f);
+	ImGui::Text("%06uKB / %06uKB Buffers: %u", ((uint32)(totalSize - freeSize) + 1023) / 1024, ((uint32)totalSize + 1023) / 1024, (uint32)numBuffers);
 }
 
 void MetalRenderer::renderTarget_setViewport(float x, float y, float width, float height, float nearZ, float farZ, bool halfZ)
