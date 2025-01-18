@@ -222,9 +222,9 @@ void MetalSynchronizedHeapAllocator::CleanupBuffer(MTL::CommandBuffer* latestFin
         return;
 
     // release allocations
-	for(auto& addr : it->second)
+	for (auto& addr : it->second)
 		m_chunkedHeap.free(addr);
-	it = m_releaseQueue.erase(it);
+	m_releaseQueue.erase(it);
 }
 
 void MetalSynchronizedHeapAllocator::GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const

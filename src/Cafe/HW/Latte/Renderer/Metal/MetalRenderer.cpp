@@ -1816,7 +1816,6 @@ void MetalRenderer::CommitCommandBuffer()
 void MetalRenderer::ProcessFinishedCommandBuffers()
 {
     // Check for finished command buffers
-    bool atLeastOneCompleted = false;
     for (auto it = m_executingCommandBuffers.begin(); it != m_executingCommandBuffers.end();)
     {
         auto commandBuffer = *it;
@@ -1825,17 +1824,12 @@ void MetalRenderer::ProcessFinishedCommandBuffers()
             m_memoryManager->CleanupBuffers(commandBuffer);
             commandBuffer->release();
             it = m_executingCommandBuffers.erase(it);
-            atLeastOneCompleted = true;
         }
         else
         {
             ++it;
         }
     }
-
-    // Invalidate indices if at least one command buffer has completed
-    if (atLeastOneCompleted)
-        LatteIndices_invalidateAll();
 }
 
 bool MetalRenderer::AcquireDrawable(bool mainWindow)
