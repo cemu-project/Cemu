@@ -7,7 +7,7 @@
 class MetalMemoryManager
 {
 public:
-    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_stagingAllocator(m_mtlr/*, m_mtlr->GetOptimalBufferStorageMode()*/, 32u * 1024 * 1024), m_indexAllocator(m_mtlr/*, m_mtlr->GetOptimalBufferStorageMode()*/, 4u * 1024 * 1024) {}
+    MetalMemoryManager(class MetalRenderer* metalRenderer) : m_mtlr{metalRenderer}, m_stagingAllocator(m_mtlr, m_mtlr->GetOptimalBufferStorageMode(), 32u * 1024 * 1024), m_indexAllocator(m_mtlr, m_mtlr->GetOptimalBufferStorageMode(), 4u * 1024 * 1024) {}
     ~MetalMemoryManager();
 
     MetalSynchronizedRingAllocator& GetStagingAllocator()

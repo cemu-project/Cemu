@@ -9,7 +9,7 @@ MetalBufferChunkedHeap::~MetalBufferChunkedHeap()
 uint32 MetalBufferChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize)
 {
 	size_t allocationSize = std::max<size_t>(m_minimumBufferAllocationSize, minimumAllocationSize);
-	MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(allocationSize, MTL::ResourceStorageModeShared);
+	MTL::Buffer* buffer = m_mtlr->GetDevice()->newBuffer(allocationSize, m_options);
 	cemu_assert_debug(buffer);
 	cemu_assert_debug(m_chunkBuffers.size() == chunkIndex);
 	m_chunkBuffers.emplace_back(buffer);
@@ -36,7 +36,7 @@ void MetalSynchronizedRingAllocator::allocateAdditionalUploadBuffer(uint32 sizeR
 	AllocatorBuffer_t newBuffer{};
 	newBuffer.writeIndex = 0;
 	newBuffer.basePtr = nullptr;
-	newBuffer.mtlBuffer = m_mtlr->GetDevice()->newBuffer(bufferAllocSize, MTL::ResourceStorageModeShared);
+	newBuffer.mtlBuffer = m_mtlr->GetDevice()->newBuffer(bufferAllocSize, m_options);
 	newBuffer.basePtr = (uint8*)newBuffer.mtlBuffer->contents();
 	newBuffer.size = bufferAllocSize;
 	newBuffer.index = (uint32)m_buffers.size();
@@ -105,16 +105,10 @@ MetalSynchronizedRingAllocator::AllocatorReservation_t MetalSynchronizedRingAllo
 
 void MetalSynchronizedRingAllocator::FlushReservation(AllocatorReservation_t& uploadReservation)
 {
-    /*
-	cemu_assert_debug(m_bufferType == VKR_BUFFER_TYPE::STAGING); // only the staging buffer isn't coherent
-	// todo - use nonCoherentAtomSize for flush size (instead of hardcoded constant)
-	VkMappedMemoryRange flushedRange{};
-	flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-	flushedRange.memory = uploadReservation.vkMem;
-	flushedRange.offset = uploadReservation.bufferOffset;
-	flushedRange.size = uploadReservation.size;
-	vkFlushMappedMemoryRanges(m_vkr->GetLogicalDevice(), 1, &flushedRange);
-	*/
+    if (RequiresFlush())
+    {
+        uploadReservation.mtlBuffer->didModifyRange(NS::Range(uploadReservation.bufferOffset, uploadReservation.size));
+    }
 }
 
 void MetalSynchronizedRingAllocator::CleanupBuffer(MTL::CommandBuffer* latestFinishedCommandBuffer)
@@ -172,9 +166,6 @@ void MetalSynchronizedRingAllocator::GetStats(uint32& numBuffers, size_t& totalB
 
 /* MetalSynchronizedHeapAllocator */
 
-MetalSynchronizedHeapAllocator::MetalSynchronizedHeapAllocator(class MetalRenderer* mtlRenderer, size_t minimumBufferAllocSize)
-	: m_mtlr(mtlRenderer), m_chunkedHeap(m_mtlr, minimumBufferAllocSize) {};
-
 MetalSynchronizedHeapAllocator::AllocatorReservation* MetalSynchronizedHeapAllocator::AllocateBufferMemory(uint32 size, uint32 alignment)
 {
 	CHAddr addr = m_chunkedHeap.alloc(size, alignment);
@@ -202,17 +193,10 @@ void MetalSynchronizedHeapAllocator::FreeReservation(AllocatorReservation* uploa
 
 void MetalSynchronizedHeapAllocator::FlushReservation(AllocatorReservation* uploadReservation)
 {
-    /*
-	if (m_chunkedHeap.RequiresFlush(uploadReservation->bufferIndex))
+	if (m_chunkedHeap.RequiresFlush())
 	{
-		VkMappedMemoryRange flushedRange{};
-		flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		flushedRange.memory = uploadReservation->vkMem;
-		flushedRange.offset = uploadReservation->bufferOffset;
-		flushedRange.size = uploadReservation->size;
-		vkFlushMappedMemoryRanges(VulkanRenderer::GetInstance()->GetLogicalDevice(), 1, &flushedRange);
+	    uploadReservation->mtlBuffer->didModifyRange(NS::Range(uploadReservation->bufferOffset, uploadReservation->size));
 	}
-	*/
 }
 
 void MetalSynchronizedHeapAllocator::CleanupBuffer(MTL::CommandBuffer* latestFinishedCommandBuffer)

@@ -1,15 +1,24 @@
 #pragma once
 
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Metal/MTLResource.hpp"
 #include "util/ChunkedHeap/ChunkedHeap.h"
 #include "util/helpers/MemoryPool.h"
 
 #include <utility>
 
+inline MTL::ResourceOptions GetResourceOptions(MTL::ResourceOptions options)
+{
+    if (options & MTL::ResourceStorageModeShared || options & MTL::ResourceStorageModeManaged)
+        options |= MTL::ResourceCPUCacheModeWriteCombined;
+
+    return options;
+}
+
 class MetalBufferChunkedHeap : private ChunkedHeap<>
 {
   public:
-	MetalBufferChunkedHeap(const class MetalRenderer* mtlRenderer, size_t minimumBufferAllocationSize) : m_mtlr(mtlRenderer), m_minimumBufferAllocationSize(minimumBufferAllocationSize) { };
+	MetalBufferChunkedHeap(const class MetalRenderer* mtlRenderer, MTL::ResourceOptions options, size_t minimumBufferAllocationSize) : m_mtlr(mtlRenderer), m_options(GetResourceOptions(options)), m_minimumBufferAllocationSize(minimumBufferAllocationSize) { };
 	~MetalBufferChunkedHeap();
 
 	using ChunkedHeap::alloc;
@@ -30,6 +39,11 @@ class MetalBufferChunkedHeap : private ChunkedHeap<>
         return m_chunkBuffers[index];
     }
 
+    bool RequiresFlush() const
+    {
+        return m_options & MTL::ResourceStorageModeManaged;
+    }
+
 	void GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const
 	{
 		numBuffers = m_chunkBuffers.size();
@@ -42,15 +56,17 @@ class MetalBufferChunkedHeap : private ChunkedHeap<>
 
 	const class MetalRenderer* m_mtlr;
 
-	std::vector<MTL::Buffer*> m_chunkBuffers;
+	MTL::ResourceOptions m_options;
 	size_t m_minimumBufferAllocationSize;
+
+	std::vector<MTL::Buffer*> m_chunkBuffers;
 };
 
 // a circular ring-buffer which tracks and releases memory per command-buffer
 class MetalSynchronizedRingAllocator
 {
 public:
-	MetalSynchronizedRingAllocator(class MetalRenderer* mtlRenderer, uint32 minimumBufferAllocSize) : m_mtlr(mtlRenderer), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
+	MetalSynchronizedRingAllocator(class MetalRenderer* mtlRenderer, MTL::ResourceOptions options, uint32 minimumBufferAllocSize) : m_mtlr(mtlRenderer), m_options(GetResourceOptions(options)), m_minimumBufferAllocSize(minimumBufferAllocSize) {};
 	MetalSynchronizedRingAllocator(const MetalSynchronizedRingAllocator&) = delete; // disallow copy
 
 	struct BufferSyncPoint_t
@@ -88,6 +104,11 @@ public:
 	void CleanupBuffer(MTL::CommandBuffer* latestFinishedCommandBuffer);
 	MTL::Buffer* GetBufferByIndex(uint32 index) const;
 
+    bool RequiresFlush() const
+    {
+        return m_options & MTL::ResourceStorageModeManaged;
+    }
+
 	void GetStats(uint32& numBuffers, size_t& totalBufferSize, size_t& freeBufferSize) const;
 
 private:
@@ -95,6 +116,8 @@ private:
 	void addUploadBufferSyncPoint(AllocatorBuffer_t& buffer, uint32 offset);
 
 	const class MetalRenderer* m_mtlr;
+
+	MTL::ResourceOptions m_options;
 	const uint32 m_minimumBufferAllocSize;
 
 	std::vector<AllocatorBuffer_t> m_buffers;
@@ -110,7 +133,7 @@ class MetalSynchronizedHeapAllocator
 	};
 
   public:
-	MetalSynchronizedHeapAllocator(class MetalRenderer* mtlRenderer, size_t minimumBufferAllocSize);
+	MetalSynchronizedHeapAllocator(class MetalRenderer* mtlRenderer, MTL::ResourceOptions options, size_t minimumBufferAllocSize) : m_mtlr(mtlRenderer), m_chunkedHeap(m_mtlr, options, minimumBufferAllocSize) {}
 	MetalSynchronizedHeapAllocator(const MetalSynchronizedHeapAllocator&) = delete; // disallow copy
 
 	struct AllocatorReservation

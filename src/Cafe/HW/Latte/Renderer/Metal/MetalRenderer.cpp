@@ -702,6 +702,7 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     // Allocate a temporary buffer
     auto& bufferAllocator = m_memoryManager->GetStagingAllocator();
     auto allocation = bufferAllocator.AllocateBufferMemory(compressedImageSize, 1);
+    bufferAllocator.FlushReservation(allocation);
 
     // Copy the data to the temporary buffer
     memcpy(allocation.memPtr, pixelData, compressedImageSize);
@@ -2092,12 +2093,11 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 
 		size_t size = shader->uniform.uniformRangeSize;
 		auto& bufferAllocator = m_memoryManager->GetStagingAllocator();
-		auto supportBuffer = bufferAllocator.AllocateBufferMemory(size, 1);
-		memcpy(supportBuffer.memPtr, supportBufferData, size);
-		//if (!HasUnifiedMemory())
-		//    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
+		auto allocation = bufferAllocator.AllocateBufferMemory(size, 1);
+		memcpy(allocation.memPtr, supportBufferData, size);
+		bufferAllocator.FlushReservation(allocation);
 
-		SetBuffer(renderCommandEncoder, mtlShaderType, supportBuffer.mtlBuffer, supportBuffer.bufferOffset, shader->resourceMapping.uniformVarsBufferBindingPoint);
+		SetBuffer(renderCommandEncoder, mtlShaderType, allocation.mtlBuffer, allocation.bufferOffset, shader->resourceMapping.uniformVarsBufferBindingPoint);
 	}
 
 	// Uniform buffers

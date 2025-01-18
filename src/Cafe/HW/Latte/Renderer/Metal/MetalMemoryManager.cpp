@@ -77,6 +77,7 @@ void MetalMemoryManager::UploadToBufferCache(const void* data, size_t offset, si
 
         auto allocation = m_stagingAllocator.AllocateBufferMemory(size, 1);
         memcpy(allocation.memPtr, data, size);
+        m_stagingAllocator.FlushReservation(allocation);
 
         blitCommandEncoder->copyFromBuffer(allocation.mtlBuffer, allocation.bufferOffset, m_bufferCache, offset, size);
 
