@@ -7,19 +7,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
 
-struct MetalBufferAllocation
-{
-    void* data;
-    uint32 bufferIndex;
-    size_t offset = INVALID_OFFSET;
-    size_t size;
-
-    bool IsValid() const
-    {
-        return offset != INVALID_OFFSET;
-    }
-};
-
 enum MetalGeneralShaderType
 {
     METAL_GENERAL_SHADER_TYPE_VERTEX,
@@ -295,14 +282,14 @@ public:
         return (m_currentCommandBuffer.m_commandBuffer && !m_currentCommandBuffer.m_commited);
     }
 
-	MTL::CommandBuffer* GetCurrentCommandBuffer()
+	MTL::CommandBuffer* GetCurrentCommandBuffer() const
     {
         cemu_assert_debug(m_currentCommandBuffer.m_commandBuffer);
 
         return m_currentCommandBuffer.m_commandBuffer;
     }
 
-    MTL::CommandBuffer* GetAndRetainCurrentCommandBufferIfNotCompleted()
+    MTL::CommandBuffer* GetAndRetainCurrentCommandBufferIfNotCompleted() const
     {
         // The command buffer has been commited and has finished execution
         if (m_currentCommandBuffer.m_commited && m_executingCommandBuffers.size() == 0)

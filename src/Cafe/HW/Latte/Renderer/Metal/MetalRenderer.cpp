@@ -21,8 +21,8 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Common/precompiled.h"
+#include "HW/Latte/Renderer/Metal/MetalBufferAllocator.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
-#include "Metal/MTLCaptureManager.hpp"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
@@ -191,6 +191,7 @@ MetalRenderer::MetalRenderer()
     utilityLibrary->release();
 
     // HACK: for some reason, this variable ends up being initialized to some garbage data, even though its declared as bool m_captureFrame = false;
+    m_occlusionQuery.m_lastCommandBuffer = nullptr;
     m_captureFrame = false;
 }
 
@@ -301,12 +302,6 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 
     // Reset the command buffers (they are released by TemporaryBufferAllocator)
     CommitCommandBuffer();
-
-    // Release frame persistent buffers
-    m_memoryManager->GetFramePersistentBufferAllocator().ResetAllocations();
-
-    // Unlock all temporary buffers
-    m_memoryManager->GetTemporaryBufferAllocator().EndFrame();
 
     // Debug
     m_performanceMonitor.ResetPerFrameData();
@@ -682,17 +677,16 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     auto blitCommandEncoder = GetBlitCommandEncoder();
 
     // Allocate a temporary buffer
-    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-    auto allocation = bufferAllocator.GetAllocation(compressedImageSize);
-    auto buffer = bufferAllocator.GetBuffer(allocation.bufferIndex);
+    auto& bufferAllocator = m_memoryManager->GetStagingAllocator();
+    auto allocation = bufferAllocator.AllocateBufferMemory(compressedImageSize, 1);
 
     // Copy the data to the temporary buffer
-    memcpy(allocation.data, pixelData, compressedImageSize);
+    memcpy(allocation.memPtr, pixelData, compressedImageSize);
     //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
 
     // TODO: specify blit options when copying to a depth stencil texture?
     // Copy the data from the temporary buffer to the texture
-    blitCommandEncoder->copyFromBuffer(buffer, allocation.offset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
+    blitCommandEncoder->copyFromBuffer(allocation.mtlBuffer, allocation.bufferOffset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
     //}
 }
 
@@ -1069,7 +1063,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	uint32 indexMax = 0;
 	Renderer::IndexAllocation indexAllocation;
 	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexAllocation);
-	MetalBufferAllocation* indexAllocationMtl = static_cast<MetalBufferAllocation*>(indexAllocation.rendererInternal);
+	auto indexAllocationMtl = static_cast<MetalSynchronizedHeapAllocator::AllocatorReservation*>(indexAllocation.rendererInternal);
 
 	// Buffer cache
 	if (m_memoryManager->UseHostMemoryForCache())
@@ -1308,17 +1302,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	BindStageResources(renderCommandEncoder, pixelShader, usesGeometryShader);
 
 	// Draw
-	MTL::Buffer* indexBuffer = nullptr;
-	if (hostIndexType != INDEX_TYPE::NONE)
-	{
-	    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-	    indexBuffer = bufferAllocator.GetBuffer(indexAllocationMtl->bufferIndex);
-	}
-
 	if (usesGeometryShader)
 	{
-	    if (indexBuffer)
-		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexBuffer, indexAllocationMtl->offset, vertexShader->resourceMapping.indexBufferBinding);
+	    if (hostIndexType != INDEX_TYPE::NONE)
+		    SetBuffer(renderCommandEncoder, METAL_SHADER_TYPE_OBJECT, indexAllocationMtl->mtlBuffer, indexAllocationMtl->bufferOffset, vertexShader->resourceMapping.indexBufferBinding);
 
 		uint8 hostIndexTypeU8 = (uint8)hostIndexType;
 		renderCommandEncoder->setObjectBytes(&hostIndexTypeU8, sizeof(hostIndexTypeU8), vertexShader->resourceMapping.indexTypeBinding);
@@ -1346,10 +1333,10 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	}
 	else
 	{
-        if (indexBuffer)
+        if (hostIndexType != INDEX_TYPE::NONE)
        	{
        	    auto mtlIndexType = GetMtlIndexType(hostIndexType);
-      		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexBuffer, indexAllocationMtl->offset, instanceCount, baseVertex, baseInstance);
+      		renderCommandEncoder->drawIndexedPrimitives(mtlPrimitiveType, hostIndexCount, mtlIndexType, indexAllocationMtl->mtlBuffer, indexAllocationMtl->bufferOffset, instanceCount, baseVertex, baseInstance);
        	}
        	else
        	{
@@ -1491,25 +1478,19 @@ void MetalRenderer::draw_handleSpecialState5()
 
 Renderer::IndexAllocation MetalRenderer::indexData_reserveIndexMemory(uint32 size)
 {
-    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-    auto allocation = bufferAllocator.GetAllocationPtr(size);
+    auto allocation = m_memoryManager->GetIndexAllocator().AllocateBufferMemory(size, 128);
 
-    return {allocation->data, allocation};
+    return {allocation->memPtr, allocation};
 }
 
 void MetalRenderer::indexData_releaseIndexMemory(IndexAllocation& allocation)
 {
-    auto allocationMtl = static_cast<MetalBufferAllocation*>(allocation.rendererInternal);
-
-    auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-    bufferAllocator.FreeAllocation(allocationMtl);
+    m_memoryManager->GetIndexAllocator().FreeReservation(static_cast<MetalSynchronizedHeapAllocator::AllocatorReservation*>(allocation.rendererInternal));
 }
 
 void MetalRenderer::indexData_uploadIndexMemory(IndexAllocation& allocation)
 {
-    // TODO: uncomment
-    //auto& bufferAllocator = m_memoryManager->GetBufferAllocator();
-    //bufferAllocator.FlushAllocation(static_cast<MetalBufferAllocation*>(allocation.rendererInternal));
+    m_memoryManager->GetIndexAllocator().FlushReservation(static_cast<MetalSynchronizedHeapAllocator::AllocatorReservation*>(allocation.rendererInternal));
 }
 
 LatteQueryObject* MetalRenderer::occlusionQuery_create() {
@@ -1646,9 +1627,6 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
 
 		m_recordedDrawcalls = 0;
 		m_commitTreshold = m_defaultCommitTreshlod;
-
-		// Notify memory manager about the new command buffer
-        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(mtlCommandBuffer);
 
         // Debug
         m_performanceMonitor.m_commandBuffers++;
@@ -1830,8 +1808,6 @@ void MetalRenderer::CommitCommandBuffer()
 
         m_executingCommandBuffers.push_back(mtlCommandBuffer);
 
-        m_memoryManager->GetTemporaryBufferAllocator().SetActiveCommandBuffer(nullptr);
-
         // Debug
         //m_commandQueue->insertDebugCaptureBoundary();
     }
@@ -1846,7 +1822,7 @@ void MetalRenderer::ProcessFinishedCommandBuffers()
         auto commandBuffer = *it;
         if (CommandBufferCompleted(commandBuffer))
         {
-            m_memoryManager->GetTemporaryBufferAllocator().CommandBufferFinished(commandBuffer);
+            m_memoryManager->CleanupBuffers(commandBuffer);
             commandBuffer->release();
             it = m_executingCommandBuffers.erase(it);
             atLeastOneCompleted = true;
@@ -2098,14 +2074,13 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		}
 
 		size_t size = shader->uniform.uniformRangeSize;
-		auto& bufferAllocator = m_memoryManager->GetTemporaryBufferAllocator();
-		auto supportBuffer = bufferAllocator.GetAllocation(size);
-		memcpy(supportBuffer.data, supportBufferData, size);
-		auto buffer = bufferAllocator.GetBuffer(supportBuffer.bufferIndex);
+		auto& bufferAllocator = m_memoryManager->GetStagingAllocator();
+		auto supportBuffer = bufferAllocator.AllocateBufferMemory(size, 1);
+		memcpy(supportBuffer.memPtr, supportBufferData, size);
 		//if (!HasUnifiedMemory())
 		//    buffer->didModifyRange(NS::Range(supportBuffer.offset, size));
 
-		SetBuffer(renderCommandEncoder, mtlShaderType, buffer, supportBuffer.offset, shader->resourceMapping.uniformVarsBufferBindingPoint);
+		SetBuffer(renderCommandEncoder, mtlShaderType, supportBuffer.mtlBuffer, supportBuffer.bufferOffset, shader->resourceMapping.uniformVarsBufferBindingPoint);
 	}
 
 	// Uniform buffers
