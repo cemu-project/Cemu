@@ -903,7 +903,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 
             auto tileMode = texRegister.word0.get_TILE_MODE();
             if (Latte::TM_IsMacroTiled(tileMode))
-                physAddr &= 0x700;
+                physAddr &= ~0x700;
 
             // Check for dimension
             auto dim = shader->textureUnitDim[textureIndex];
