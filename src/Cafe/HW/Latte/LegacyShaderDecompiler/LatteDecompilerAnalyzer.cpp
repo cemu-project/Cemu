@@ -511,7 +511,7 @@ namespace LatteDecompiler
 		// for Vulkan we use consecutive indices
 		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 		{
-			if (!decompilerContext->output->textureUnitMask[i])
+			if (!decompilerContext->output->textureUnitMask[i] || decompilerContext->shader->textureRenderTargetIndex[i] != 255)
 				continue;
 			decompilerContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] = decompilerContext->currentTextureBindingPointMTL;
 			decompilerContext->currentTextureBindingPointMTL++;
