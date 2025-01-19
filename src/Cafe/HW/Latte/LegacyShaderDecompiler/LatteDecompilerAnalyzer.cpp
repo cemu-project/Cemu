@@ -8,6 +8,8 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Common/MemPtr.h"
+#include "HW/Latte/ISA/LatteReg.h"
 
 // Defined in LatteTextureLegacy.cpp
 Latte::E_GX2SURFFMT LatteTexture_ReconstructGX2Format(const Latte::LATTE_SQ_TEX_RESOURCE_WORD1_N& texUnitWord1, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N& texUnitWord4);
@@ -859,7 +861,36 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 	// check if textures are used as render targets
 	if (shader->shaderType == LatteConst::ShaderType::Pixel)
 	{
-	    uint8 colorBufferMask = LatteMRT::GetActiveColorBufferMask(shader, *shaderContext->contextRegistersNew);
+		struct {
+		    sint32 index;
+		    MPTR physAddr;
+			Latte::E_GX2SURFFMT format;
+		} colorBuffers[LATTE_NUM_COLOR_TARGET]{};
+
+        uint8 colorBufferMask = LatteMRT::GetActiveColorBufferMask(shader, *shaderContext->contextRegistersNew);
+        sint32 colorBufferCount = 0;
+		for (sint32 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+        {
+            auto& colorBuffer = colorBuffers[colorBufferCount];
+            if (((colorBufferMask) & (1 << i)) == 0)
+                continue; // color buffer not enabled
+
+            uint32* colorBufferRegBase = shaderContext->contextRegisters + (mmCB_COLOR0_BASE + i);
+           	uint32 regColorBufferBase = colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] & 0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
+
+            uint32 regColorInfo = colorBufferRegBase[mmCB_COLOR0_INFO - mmCB_COLOR0_BASE];
+
+           	MPTR colorBufferPhysMem = regColorBufferBase;
+            Latte::E_HWTILEMODE colorBufferTileMode = (Latte::E_HWTILEMODE)((regColorInfo >> 8) & 0xF);
+            if (Latte::TM_IsMacroTiled(colorBufferTileMode))
+          		colorBufferPhysMem &= ~0x700;
+
+            Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(i, *shaderContext->contextRegistersNew);
+
+            colorBuffer = {i, colorBufferPhysMem, colorBufferFormat};
+            colorBufferCount++;
+        }
+
 	    for (sint32 i = 0; i < shader->textureUnitListCount; i++)
         {
             sint32 textureIndex = shader->textureUnitList[i];
@@ -892,27 +923,14 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
             Latte::E_GX2SURFFMT format = LatteTexture_ReconstructGX2Format(texRegister.word1, texRegister.word4);
 
             // Check if the texture is used as render target
-            for (sint32 j = 0; j < LATTE_NUM_COLOR_TARGET; j++)
+            for (sint32 j = 0; j < colorBufferCount; j++)
             {
-                if (((colorBufferMask) & (1 << j)) == 0)
-                    continue; // color buffer not enabled
-
-                uint32* colorBufferRegBase = shaderContext->contextRegisters + (mmCB_COLOR0_BASE + j);
-               	uint32 regColorBufferBase = colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] & 0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
-
-                uint32 regColorInfo = colorBufferRegBase[mmCB_COLOR0_INFO - mmCB_COLOR0_BASE];
-
-               	MPTR colorBufferPhysMem = regColorBufferBase;
-                Latte::E_HWTILEMODE colorBufferTileMode = (Latte::E_HWTILEMODE)((regColorInfo >> 8) & 0xF);
-                if (Latte::TM_IsMacroTiled(colorBufferTileMode))
-              		colorBufferPhysMem &= ~0x700;
-
-                Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(j, *shaderContext->contextRegistersNew);
+                const auto& colorBuffer = colorBuffers[j];
 
                 // TODO: check if mip matches as well?
-                if (physAddr == colorBufferPhysMem && format == colorBufferFormat)
+                if (physAddr == colorBuffer.physAddr && format == colorBuffer.format)
                 {
-                    shader->textureRenderTargetIndex[textureIndex] = j;
+                    shader->textureRenderTargetIndex[textureIndex] = colorBuffer.index;
                     break;
                 }
             }

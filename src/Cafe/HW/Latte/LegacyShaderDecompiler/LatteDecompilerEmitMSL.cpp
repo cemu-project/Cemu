@@ -2299,6 +2299,7 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
 	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && renderTargetIndex != 255)
 	{
 	    // TODO: support comparison samplers
+		// TODO: support swizzling
    	    src->addFmt("col{}", renderTargetIndex);
 	}
 	else
