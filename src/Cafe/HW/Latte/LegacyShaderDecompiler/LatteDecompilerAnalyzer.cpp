@@ -870,6 +870,10 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
       		if (physAddr == MPTR_NULL)
                 continue; // invalid data
 
+            auto tileMode = texRegister.word0.get_TILE_MODE();
+            if (Latte::TM_IsMacroTiled(tileMode))
+                physAddr &= 0x700;
+
             // Check for dimension
             auto dim = shader->textureUnitDim[textureIndex];
             // TODO: 2D arrays could technically be supported as well
@@ -896,7 +900,13 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
                 uint32* colorBufferRegBase = shaderContext->contextRegisters + (mmCB_COLOR0_BASE + j);
                	uint32 regColorBufferBase = colorBufferRegBase[mmCB_COLOR0_BASE - mmCB_COLOR0_BASE] & 0xFFFFFF00; // the low 8 bits are ignored? How to Survive seems to rely on this
 
+                uint32 regColorInfo = colorBufferRegBase[mmCB_COLOR0_INFO - mmCB_COLOR0_BASE];
+
                	MPTR colorBufferPhysMem = regColorBufferBase;
+                Latte::E_HWTILEMODE colorBufferTileMode = (Latte::E_HWTILEMODE)((regColorInfo >> 8) & 0xF);
+                if (Latte::TM_IsMacroTiled(colorBufferTileMode))
+              		colorBufferPhysMem &= ~0x700;
+
                 Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(j, *shaderContext->contextRegistersNew);
 
                 // TODO: check if mip matches as well?
