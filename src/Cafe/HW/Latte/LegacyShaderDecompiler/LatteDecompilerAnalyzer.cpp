@@ -865,6 +865,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		    sint32 index;
 		    MPTR physAddr;
 			Latte::E_GX2SURFFMT format;
+			Latte::E_HWTILEMODE tileMode;
 		} colorBuffers[LATTE_NUM_COLOR_TARGET]{};
 
         uint8 colorBufferMask = LatteMRT::GetActiveColorBufferMask(shader, *shaderContext->contextRegistersNew);
@@ -882,12 +883,10 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 
            	MPTR colorBufferPhysMem = regColorBufferBase;
             Latte::E_HWTILEMODE colorBufferTileMode = (Latte::E_HWTILEMODE)((regColorInfo >> 8) & 0xF);
-            if (Latte::TM_IsMacroTiled(colorBufferTileMode))
-          		colorBufferPhysMem &= ~0x700;
 
             Latte::E_GX2SURFFMT colorBufferFormat = LatteMRT::GetColorBufferFormat(i, *shaderContext->contextRegistersNew);
 
-            colorBuffer = {i, colorBufferPhysMem, colorBufferFormat};
+            colorBuffer = {i, colorBufferPhysMem, colorBufferFormat, colorBufferTileMode};
             colorBufferCount++;
         }
 
@@ -902,8 +901,6 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
                 continue; // invalid data
 
             auto tileMode = texRegister.word0.get_TILE_MODE();
-            if (Latte::TM_IsMacroTiled(tileMode))
-                physAddr &= ~0x700;
 
             // Check for dimension
             auto dim = shader->textureUnitDim[textureIndex];
@@ -927,8 +924,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
             {
                 const auto& colorBuffer = colorBuffers[j];
 
-                // TODO: check if mip matches as well?
-                if (physAddr == colorBuffer.physAddr && format == colorBuffer.format)
+                if (physAddr == colorBuffer.physAddr && format == colorBuffer.format && tileMode == colorBuffer.tileMode)
                 {
                     shader->textureRenderTargetIndex[textureIndex] = colorBuffer.index;
                     break;
