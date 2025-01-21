@@ -542,6 +542,47 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		audio_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
 	}
 
+	{
+		auto box = new wxStaticBox(audio_panel, wxID_ANY, _("Trap Team Portal"));
+		auto box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
+
+		auto portal_audio_row = new wxFlexGridSizer(0, 3, 0, 0);
+		portal_audio_row->SetFlexibleDirection(wxBOTH);
+		portal_audio_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+		portal_audio_row->Add(new wxStaticText(box, wxID_ANY, _("Device")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_portal_device = new wxChoice(box, wxID_ANY, wxDefaultPosition);
+		m_portal_device->SetMinSize(wxSize(300, -1));
+		m_portal_device->SetToolTip(_("Select the active audio output device for Wii U GamePad"));
+		portal_audio_row->Add(m_portal_device, 0, wxEXPAND | wxALL, 5);
+		portal_audio_row->AddSpacer(0);
+
+		m_portal_device->Bind(wxEVT_CHOICE, &GeneralSettings2::OnAudioDeviceSelected, this);
+
+		const wxString audio_channel_drc_choices[] = { _("Mono") }; // mono for now only
+
+		portal_audio_row->Add(new wxStaticText(box, wxID_ANY, _("Channels")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_portal_channels = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(audio_channel_drc_choices), audio_channel_drc_choices);
+
+		m_portal_channels->SetSelection(0); // set default to mono
+
+		m_portal_channels->Bind(wxEVT_CHOICE, &GeneralSettings2::OnAudioChannelsSelected, this);
+		portal_audio_row->Add(m_portal_channels, 0, wxEXPAND | wxALL, 5);
+		portal_audio_row->AddSpacer(0);
+
+		portal_audio_row->Add(new wxStaticText(box, wxID_ANY, _("Volume")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_portal_volume = new wxSlider(box, wxID_ANY, 100, 0, 100);
+		portal_audio_row->Add(m_portal_volume, 0, wxEXPAND | wxALL, 5);
+		auto audio_pad_volume_text = new wxStaticText(box, wxID_ANY, "100%");
+		portal_audio_row->Add(audio_pad_volume_text, 0, wxALIGN_CENTER_VERTICAL | wxALL | wxALIGN_RIGHT, 5);
+
+		m_portal_volume->Bind(wxEVT_SLIDER, &GeneralSettings2::OnSliderChangedPercent, this, wxID_ANY, wxID_ANY, new wxControlObject(audio_pad_volume_text));
+		m_portal_volume->Bind(wxEVT_SLIDER, &GeneralSettings2::OnVolumeChanged, this);
+
+		box_sizer->Add(portal_audio_row, 1, wxEXPAND, 5);
+		audio_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
+	}
+
 	audio_panel->SetSizerAndFit(audio_panel_sizer);
 	return audio_panel;
 }
@@ -989,10 +1030,12 @@ void GeneralSettings2::StoreConfig()
 	config.pad_channels = kStereo; // (AudioChannels)m_pad_channels->GetSelection();
 	//config.input_channels =  (AudioChannels)m_input_channels->GetSelection();
 	config.input_channels = kMono; // (AudioChannels)m_input_channels->GetSelection();
+	config.portal_channels = kMono; // (AudioChannels)m_portal_channels->GetSelection();
 	
 	config.tv_volume = m_tv_volume->GetValue();
 	config.pad_volume = m_pad_volume->GetValue();
 	config.input_volume = m_input_volume->GetValue();
+	config.portal_volume = m_portal_volume->GetValue();
 
 	config.tv_device.clear();
 	const auto tv_device = m_tv_device->GetSelection();
@@ -1019,6 +1062,15 @@ void GeneralSettings2::StoreConfig()
 		const auto* device_description = (wxDeviceDescription*)m_input_device->GetClientObject(input_device);
 		if (device_description)
 			config.input_device = device_description->GetDescription()->GetIdentifier();
+	}
+
+	config.portal_device.clear();
+	const auto portal_device = m_portal_device->GetSelection();
+	if (portal_device != wxNOT_FOUND && portal_device != 0 && m_portal_device->HasClientObjectData())
+	{
+		const auto* device_description = (wxDeviceDescription*)m_portal_device->GetClientObject(portal_device);
+		if (device_description)
+			config.portal_device = device_description->GetDescription()->GetIdentifier();
 	}
 
 	// graphics
@@ -1195,10 +1247,12 @@ void GeneralSettings2::UpdateAudioDeviceList()
 	m_tv_device->Clear();
 	m_pad_device->Clear();
 	m_input_device->Clear();
+	m_portal_device->Clear();
 
 	m_tv_device->Append(_("Disabled"));
 	m_pad_device->Append(_("Disabled"));
 	m_input_device->Append(_("Disabled"));
+	m_portal_device->Append(_("Disabled"));
 
 	const auto audio_api = (IAudioAPI::AudioAPI)GetConfig().audio_api;
 	const auto devices = IAudioAPI::GetDevices(audio_api);
@@ -1206,6 +1260,7 @@ void GeneralSettings2::UpdateAudioDeviceList()
 	{
 		m_tv_device->Append(device->GetName(), new wxDeviceDescription(device));
 		m_pad_device->Append(device->GetName(), new wxDeviceDescription(device));
+		m_portal_device->Append(device->GetName(), new wxDeviceDescription(device));
 	}
 
 	const auto input_audio_api = IAudioInputAPI::Cubeb; //(IAudioAPI::AudioAPI)GetConfig().input_audio_api;
@@ -1224,6 +1279,8 @@ void GeneralSettings2::UpdateAudioDeviceList()
 	m_pad_device->SetSelection(0);
 
 	m_input_device->SetSelection(0);
+
+	m_portal_device->SetSelection(0);
 
 	// todo reset global instance of audio device
 }
@@ -1658,6 +1715,7 @@ void GeneralSettings2::ApplyConfig()
 	m_pad_channels->SetSelection(0);
 	//m_input_channels->SetSelection(config.pad_channels);
 	m_input_channels->SetSelection(0);
+	m_portal_channels->SetSelection(0);
 	
 	SendSliderEvent(m_tv_volume, config.tv_volume);
 
@@ -1707,6 +1765,22 @@ void GeneralSettings2::ApplyConfig()
 	}
 	else
 		m_input_device->SetSelection(0);
+
+	SendSliderEvent(m_portal_volume, config.portal_volume);
+	if (!config.portal_device.empty() && m_portal_device->HasClientObjectData())
+	{
+		for (uint32 i = 0; i < m_portal_device->GetCount(); ++i)
+		{
+			const auto device_description = (wxDeviceDescription*)m_portal_device->GetClientObject(i);
+			if (device_description && config.portal_device == device_description->GetDescription()->GetIdentifier())
+			{
+				m_portal_device->SetSelection(i);
+				break;
+			}
+		}
+	}
+	else
+		m_portal_device->SetSelection(0);
 
 	// account
 	UpdateOnlineAccounts();
@@ -1866,6 +1940,42 @@ void GeneralSettings2::UpdateAudioDevice()
 			}
 		}
 	}
+
+	// skylander portal audio device
+	{
+		const auto selection = m_portal_device->GetSelection();
+		if (selection == wxNOT_FOUND)
+		{
+			cemu_assert_debug(false);
+			return;
+		}
+
+		g_portalAudio.reset();
+
+		if (m_portal_device->HasClientObjectData())
+		{
+			const auto description = (wxDeviceDescription*)m_portal_device->GetClientObject(selection);
+			if (description)
+			{
+				sint32 channels;
+				if (m_game_launched && g_portalAudio)
+					channels = g_portalAudio->GetChannels();
+				else
+					channels = 1;
+					
+				try
+				{
+					g_portalAudio = IAudioAPI::CreateDevice((IAudioAPI::AudioAPI)config.audio_api, description->GetDescription(), 8000, 1, 32, 16);
+					g_portalAudio->SetVolume(m_portal_volume->GetValue());
+				}
+				catch (std::runtime_error& ex)
+				{
+					cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
+				}
+			}
+		}
+
+	}
 }
 
 void GeneralSettings2::OnAudioDeviceSelected(wxCommandEvent& event)
@@ -1894,6 +2004,13 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 			return;
 		
 		config.pad_channels = (AudioChannels)obj->GetSelection();
+	}
+	else if (obj == m_portal_channels)
+	{
+		if (config.portal_channels == (AudioChannels)obj->GetSelection())
+			return;
+		
+		config.portal_channels = (AudioChannels)obj->GetSelection();
 	}
 	else
 		cemu_assert_debug(false);
