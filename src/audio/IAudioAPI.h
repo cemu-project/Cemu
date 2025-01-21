@@ -4,6 +4,8 @@
 #include <mmreg.h>
 #endif
 
+#include "config/CemuConfig.h"
+
 class IAudioAPI
 {
 	friend class GeneralSettings2;
@@ -29,6 +31,13 @@ public:
 	};
 
 	using DeviceDescriptionPtr = std::shared_ptr<DeviceDescription>;
+
+	enum AudioType
+	{
+		TV = 0,
+		Gamepad,
+		Portal
+	};
 
 	enum AudioAPI
 	{
@@ -62,8 +71,8 @@ public:
 	static void InitializeStatic();
 	static bool IsAudioAPIAvailable(AudioAPI api);
 
-	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(bool TV, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample);
-	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(bool TV, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
+	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample);
+	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
 	static std::unique_ptr<IAudioAPI> CreateDevice(AudioAPI api, const DeviceDescriptionPtr& device, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
 	static std::vector<DeviceDescriptionPtr> GetDevices(AudioAPI api);
 
@@ -84,6 +93,8 @@ protected:
 private:
 	static uint32 s_audioDelay;
 	void InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample);
+	static AudioChannels AudioTypeToChannels(AudioType type);
+	static std::wstring GetDeviceFromType(AudioType type);
 	
 };
 
