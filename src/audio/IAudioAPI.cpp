@@ -13,6 +13,7 @@
 std::shared_mutex g_audioMutex;
 AudioAPIPtr g_tvAudio;
 AudioAPIPtr g_padAudio;
+AudioAPIPtr g_portalAudio;
 std::atomic_int32_t g_padVolume = 0;
 
 uint32 IAudioAPI::s_audioDelay = 2;
