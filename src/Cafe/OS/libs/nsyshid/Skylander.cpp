@@ -566,28 +566,9 @@ namespace nsyshid
 
 		if (!g_portalAudio)
 		{
-			auto& config = GetConfig();
-			auto& selectedDevice = L"default";
-
-			const auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
-			IAudioAPI::DeviceDescriptionPtr device_description;
-			if (IAudioAPI::IsAudioAPIAvailable(audio_api))
-			{
-				auto devices = IAudioAPI::GetDevices(audio_api);
-				const auto it = std::find_if(devices.begin(), devices.end(), [&selectedDevice](const auto& d) {
-					return d->GetIdentifier() == selectedDevice;
-				});
-				if (it != devices.end())
-				{
-					device_description = *it;
-				}
-			}
-			if (!device_description)
-				throw std::runtime_error("failed to find selected device while trying to create audio device");
-			
 			// Portal audio is mono channel, 16 bit audio.
 			// Audio is unsigned 16 bit, supplied as 64 bytes which is 32 samples per block
-			g_portalAudio = IAudioAPI::CreateDevice((IAudioAPI::AudioAPI)GetConfig().audio_api, device_description, 8000, 1, 32, 16);
+			g_portalAudio = IAudioAPI::CreateDeviceFromConfig(IAudioAPI::AudioType::Portal, 8000, 32, 16);
 		}
 		std::array<sint16, 32> mono_samples;
 		for (unsigned int i = 0; i < mono_samples.size(); ++i)
