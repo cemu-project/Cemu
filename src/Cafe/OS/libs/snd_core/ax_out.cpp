@@ -462,6 +462,14 @@ namespace snd_core
 			else
 				g_padAudio->Stop();
 		}
+
+		if (g_portalAudio)
+		{
+			if (isPlaying)
+				g_portalAudio->Play();
+			else
+				g_portalAudio->Stop();
+		}
 	}
 
 	// called periodically to check for AX updates

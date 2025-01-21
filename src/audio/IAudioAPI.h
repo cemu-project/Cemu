@@ -93,3 +93,5 @@ extern AudioAPIPtr g_tvAudio;
 
 extern AudioAPIPtr g_padAudio;
 extern std::atomic_int32_t g_padVolume;
+
+extern AudioAPIPtr g_portalAudio;
