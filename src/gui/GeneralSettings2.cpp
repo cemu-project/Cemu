@@ -1183,10 +1183,15 @@ void GeneralSettings2::OnVolumeChanged(wxCommandEvent& event)
 				g_padVolume = event.GetInt();
 			}
 		}
-		else
+		else if (event.GetEventObject() == m_tv_volume)
 		{
 			if (g_tvAudio)
 				g_tvAudio->SetVolume(event.GetInt());
+		}
+		else
+		{
+			if(g_portalAudio)
+				g_portalAudio->SetVolume(event.GetInt());
 		}
 	}
 	
