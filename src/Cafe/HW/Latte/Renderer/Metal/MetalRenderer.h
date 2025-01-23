@@ -358,6 +358,11 @@ public:
     void CopyBufferToBuffer(MTL::Buffer* src, uint32 srcOffset, MTL::Buffer* dst, uint32 dstOffset, uint32 size, MTL::RenderStages after, MTL::RenderStages before);
 
     // Getters
+    bool GetPositionInvariance() const
+    {
+        return m_positionInvariance;
+    }
+
     bool IsAppleGPU() const
     {
         return m_isAppleGPU;
@@ -463,6 +468,9 @@ private:
 	MetalLayerHandle m_padLayer;
 
 	MetalPerformanceMonitor m_performanceMonitor;
+
+	// Options
+	bool m_positionInvariance;
 
 	// Metal objects
 	MTL::Device* m_device = nullptr;

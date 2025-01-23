@@ -2,8 +2,8 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 
-#include "Cemu/FileCache/FileCache.h"
-#include "config/ActiveSettings.h"
+//#include "Cemu/FileCache/FileCache.h"
+//#include "config/ActiveSettings.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
 #include "GameProfile/GameProfile.h"
@@ -279,8 +279,12 @@ MTL::Library* RendererShaderMtl::LibraryFromSource()
     MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
     if (g_current_game_profile->GetFastMath())
         options->setFastMathEnabled(true);
-    if (g_current_game_profile->GetPositionInvariance())
+
+    if (m_mtlr->GetPositionInvariance())
+    {
+        // TODO: filter out based on GPU state
         options->setPreserveInvariance(true);
+    }
 
     NS::Error* error = nullptr;
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(m_mslCode), options, &error);

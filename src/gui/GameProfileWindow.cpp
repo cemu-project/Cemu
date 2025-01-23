@@ -132,21 +132,21 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 		wxString math_values[] = { _("false"), _("true") };
 		m_fast_math = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(math_values), math_values);
-		m_fast_math->SetToolTip(_("Enables fast math for all shaders. May (rarely) cause graphical bugs.\n\nMetal only\n\nRecommended: true"));
+		m_fast_math->SetToolTip(_("EXPERT OPTION\nEnables fast math for all shaders. May (rarely) cause graphical bugs.\n\nMetal only\n\nRecommended: true"));
 		first_row->Add(m_fast_math, 0, wxALL, 5);
 
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Buffer cache mode")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		wxString cache_values[] = { _("device private"), _("device shared"), _("host") };
+		wxString cache_values[] = { _("auto"), _("device private"), _("device shared"), _("host") };
 		m_buffer_cache_mode = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(cache_values), cache_values);
-		m_buffer_cache_mode->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: device private"));
+		m_buffer_cache_mode->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: auto"));
 		first_row->Add(m_buffer_cache_mode, 0, wxALL, 5);
 
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Position invariance")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		wxString pos_values[] = { _("false"), _("true") };
+		wxString pos_values[] = { _("auto"), _("false"), _("true") };
 		m_position_invariance = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(pos_values), pos_values);
-		m_position_invariance->SetToolTip(_("Disables most optimizations for vertex positions. May fix polygon cutouts in some games.\n\nMetal only\n\nRecommended: false"));
+		m_position_invariance->SetToolTip(_("EXPERT OPTION\nDisables most optimizations for vertex positions. May fix polygon cutouts or flickering in some games.\n\nMetal only\n\nRecommended: auto"));
 		first_row->Add(m_position_invariance, 0, wxALL, 5);
 
 		/*first_row->Add(new wxStaticText(panel, wxID_ANY, _("GPU buffer cache accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
@@ -357,11 +357,11 @@ void GameProfileWindow::SaveProfile()
 
 	// gpu
 	m_game_profile.m_accurateShaderMul = (AccurateShaderMulOption)m_shader_mul_accuracy->GetSelection();
-	m_game_profile.m_fastMath = (bool)m_fast_math->GetSelection();
-	m_game_profile.m_bufferCacheMode = (BufferCacheMode)m_buffer_cache_mode->GetSelection();
-	m_game_profile.m_positionInvariance = (bool)m_position_invariance->GetSelection();
 	if (m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::False && m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::True)
 		m_game_profile.m_accurateShaderMul = AccurateShaderMulOption::True; // force a legal value
+	m_game_profile.m_fastMath = (bool)m_fast_math->GetSelection();
+	m_game_profile.m_bufferCacheMode = (BufferCacheMode)m_buffer_cache_mode->GetSelection();
+	m_game_profile.m_positionInvariance = (PositionInvariance)m_position_invariance->GetSelection();
 
 	if (m_graphic_api->GetSelection() == 0)
 		m_game_profile.m_graphics_api = {};

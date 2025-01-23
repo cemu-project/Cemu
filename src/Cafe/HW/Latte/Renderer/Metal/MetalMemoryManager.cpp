@@ -2,9 +2,11 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalVoidVertexPipeline.h"
 
+#include "CafeSystem.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/precompiled.h"
 #include "HW/MMU/MMU.h"
+#include "config/CemuConfig.h"
 
 MetalMemoryManager::~MetalMemoryManager()
 {
@@ -35,6 +37,31 @@ void MetalMemoryManager::InitBufferCache(size_t size)
     cemu_assert_debug(!m_bufferCache);
 
     m_bufferCacheMode = g_current_game_profile->GetBufferCacheMode();
+
+    if (m_bufferCacheMode == BufferCacheMode::Auto)
+    {
+        // TODO: do this for all unified memory systems?
+        if (m_mtlr->IsAppleGPU())
+        {
+            switch (CafeSystem::GetForegroundTitleId())
+            {
+            // The Legend of Zelda: Wind Waker HD
+            case 0x0005000010143600: // EUR
+            case 0x0005000010143500: // USA
+            case 0x0005000010143400: // JPN
+                // TODO: use host instead?
+                m_bufferCacheMode = BufferCacheMode::DeviceShared;
+                break;
+            default:
+                m_bufferCacheMode = BufferCacheMode::DevicePrivate;
+                break;
+            }
+        }
+        else
+        {
+            m_bufferCacheMode = BufferCacheMode::DevicePrivate;
+        }
+    }
 
     // First, try to import the host memory as a buffer
     if (m_bufferCacheMode == BufferCacheMode::Host)
