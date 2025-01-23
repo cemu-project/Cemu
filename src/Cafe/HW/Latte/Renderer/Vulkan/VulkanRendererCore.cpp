@@ -900,6 +900,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 				}
 			}
 		}
+
 		VKRObjectSampler* samplerObj = VKRObjectSampler::GetOrCreateSampler(&samplerInfo);
 		vkObjDS->addRef(samplerObj);
 		info.sampler = samplerObj->GetSampler();
@@ -1163,28 +1164,17 @@ void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkD
 	const auto geometryShader = LatteSHRC_GetActiveGeometryShader();
 	const auto pixelShader = LatteSHRC_GetActivePixelShader();
 
-
-	if (vertexShader)
-	{
-		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, vertexShader);
+	auto prepareShaderDescriptors = [this, &pipeline_info](LatteDecompilerShader* shader) -> VkDescriptorSetInfo* {
+		if (!shader)
+			return nullptr;
+		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, shader);
 		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		vertexDS = descriptorSetInfo;
-	}
+		return descriptorSetInfo;
+	};
 
-	if (pixelShader)
-	{
-		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, pixelShader);
-		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		pixelDS = descriptorSetInfo;
-
-	}
-
-	if (geometryShader)
-	{
-		auto descriptorSetInfo = draw_getOrCreateDescriptorSet(pipeline_info, geometryShader);
-		descriptorSetInfo->m_vkObjDescriptorSet->flagForCurrentCommandBuffer();
-		geometryDS = descriptorSetInfo;
-	}
+	vertexDS = prepareShaderDescriptors(vertexShader);
+	pixelDS = prepareShaderDescriptors(pixelShader);
+	geometryDS = prepareShaderDescriptors(geometryShader);
 }
 
 void VulkanRenderer::draw_updateVkBlendConstants()

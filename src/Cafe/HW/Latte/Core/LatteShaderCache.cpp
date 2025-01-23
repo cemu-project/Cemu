@@ -485,6 +485,9 @@ void LatteShaderCache_Load()
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
 
 	g_bootSndPlayer.FadeOutSound();
+
+	if(Latte_GetStopSignal())
+		LatteThread_Exit();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
@@ -625,8 +628,6 @@ void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId)
 	g_shaderCacheLoaderState.loadedPipelines = 0;
 	LatteShaderCache_ShowProgress(LatteShaderCache_updatePipelineLoadingProgress, true);
 	pipelineCache.EndLoading();
-    if(Latte_GetStopSignal())
-        LatteThread_Exit();
 }
 
 bool LatteShaderCache_updatePipelineLoadingProgress()
