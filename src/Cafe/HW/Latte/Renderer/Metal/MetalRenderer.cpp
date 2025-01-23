@@ -76,9 +76,9 @@ MetalRenderer::MetalRenderer()
         case 0x00050000101C9300: // JPN
         // Ninja Gaiden 3: Razor's Edge
         case 0x0005000010110B00: // EUR
+        case 0x0005000010139B00: // EUR (TODO: check)
         case 0x0005000010110A00: // USA
         case 0x0005000010110900: // JPN
-        case 0x0005000010139B00: // EUR (TODO: check)
         // Bayonetta 2
         case 0x0005000010172700: // EUR
         case 0x0005000010172600: // USA

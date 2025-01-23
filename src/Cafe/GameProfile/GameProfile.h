@@ -58,7 +58,7 @@ private:
 	std::optional<GraphicAPI> m_graphics_api{};
 	AccurateShaderMulOption m_accurateShaderMul = AccurateShaderMulOption::True;
 	bool m_fastMath = true;
-	BufferCacheMode m_bufferCacheMode = BufferCacheMode::DevicePrivate;
+	BufferCacheMode m_bufferCacheMode = BufferCacheMode::Auto;
 	PositionInvariance m_positionInvariance = PositionInvariance::Auto;
 	std::optional<PrecompiledShaderOption> m_precompiledShaders{};
 	// cpu settings

@@ -126,11 +126,12 @@ ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, A
 
 enum class BufferCacheMode
 {
+    Auto,
     DevicePrivate,
     DeviceShared,
     Host,
 };
-ENABLE_ENUM_ITERATORS(BufferCacheMode, BufferCacheMode::DevicePrivate, BufferCacheMode::Host);
+ENABLE_ENUM_ITERATORS(BufferCacheMode, BufferCacheMode::Auto, BufferCacheMode::Host);
 
 enum class PositionInvariance
 {
@@ -244,6 +245,7 @@ struct fmt::formatter<BufferCacheMode> : formatter<string_view> {
 		string_view name;
 		switch (c)
 		{
+		case BufferCacheMode::Auto: name = "auto"; break;
 		case BufferCacheMode::DevicePrivate: name = "device private"; break;
 		case BufferCacheMode::DeviceShared: name = "device shared"; break;
 		case BufferCacheMode::Host: name = "host"; break;

@@ -227,7 +227,7 @@ bool GameProfile::Load(uint64_t title_id)
 
 			gameProfile_loadEnumOption(iniParser, "accurateShaderMul", m_accurateShaderMul);
 			gameProfile_loadBooleanOption2(iniParser, "fastMath", m_fastMath);
-			gameProfile_loadEnumOption(iniParser, "bufferCacheMode", m_bufferCacheMode);
+			gameProfile_loadEnumOption(iniParser, "bufferCacheMode2", m_bufferCacheMode);
 			gameProfile_loadEnumOption(iniParser, "positionInvariance2", m_positionInvariance);
 
 			// legacy support
@@ -295,25 +295,23 @@ void GameProfile::Save(uint64_t title_id)
 
 #define WRITE_OPTIONAL_ENTRY(__NAME) if (m_##__NAME) fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME.value()).c_str());
 #define WRITE_ENTRY(__NAME) fs->writeLine(fmt::format("{} = {}", #__NAME, m_##__NAME).c_str());
+#define WRITE_ENTRY_NUMBERED(__NAME, __NUM) fs->writeLine(fmt::format("{} = {}", #__NAME #__NUM, m_##__NAME).c_str());
 
 	fs->writeLine("[General]");
 	WRITE_OPTIONAL_ENTRY(loadSharedLibraries);
 	WRITE_ENTRY(startWithPadView);
-
 	fs->writeLine("");
-
 
 	fs->writeLine("[CPU]");
 	WRITE_OPTIONAL_ENTRY(cpuMode);
 	WRITE_ENTRY(threadQuantum);
-
 	fs->writeLine("");
 
 	fs->writeLine("[Graphics]");
 	WRITE_ENTRY(accurateShaderMul);
 	WRITE_ENTRY(fastMath);
-	WRITE_ENTRY(bufferCacheMode);
-	WRITE_ENTRY(positionInvariance);
+	WRITE_ENTRY_NUMBERED(bufferCacheMode, 2);
+	WRITE_ENTRY_NUMBERED(positionInvariance, 2);
 	WRITE_OPTIONAL_ENTRY(precompiledShaders);
 	WRITE_OPTIONAL_ENTRY(graphics_api);
 	fs->writeLine("");
@@ -344,7 +342,7 @@ void GameProfile::ResetOptional()
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fastMath = true;
-	m_bufferCacheMode = BufferCacheMode::DevicePrivate;
+	m_bufferCacheMode = BufferCacheMode::Auto;
 	m_positionInvariance = PositionInvariance::Auto;
 	// cpu settings
 	m_threadQuantum = kThreadQuantumDefault;
@@ -367,7 +365,7 @@ void GameProfile::Reset()
 	// graphic settings
 	m_accurateShaderMul = AccurateShaderMulOption::True;
 	m_fastMath = true;
-	m_bufferCacheMode = BufferCacheMode::DevicePrivate;
+	m_bufferCacheMode = BufferCacheMode::Auto;
 	m_positionInvariance = PositionInvariance::Auto;
 	m_precompiledShaders = PrecompiledShaderOption::Auto;
 	// cpu settings
