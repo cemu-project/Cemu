@@ -327,6 +327,7 @@ void GameProfile::Save(uint64_t title_id)
 
 #undef WRITE_OPTIONAL_ENTRY
 #undef WRITE_ENTRY
+#undef WRITE_ENTRY_NUMBERED
 
 	delete fs;
 }

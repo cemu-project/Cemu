@@ -137,7 +137,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Buffer cache mode")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		wxString cache_values[] = { _("device private"), _("device shared"), _("host") };
+		wxString cache_values[] = { _("auto"), _("device private"), _("device shared"), _("host") };
 		m_buffer_cache_mode = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(cache_values), cache_values);
 		m_buffer_cache_mode->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: device private"));
 		first_row->Add(m_buffer_cache_mode, 0, wxALL, 5);
