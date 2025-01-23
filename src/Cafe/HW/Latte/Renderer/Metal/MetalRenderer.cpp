@@ -94,6 +94,11 @@ MetalRenderer::MetalRenderer()
         case 0x0005000010136A00: // EUR
         case 0x0005000010136B00: // EUR
         case 0x000500001011C500: // USA (TODO: check)
+        // Wonderful 101
+        case 0x0005000010135300: // EUR
+        case 0x000500001012DC00: // USA
+        case 0x0005000010116300: // JPN
+        case 0x0005000010185600: // JPN
             m_positionInvariance = true;
             break;
         default:
