@@ -132,6 +132,14 @@ enum class BufferCacheMode
 };
 ENABLE_ENUM_ITERATORS(BufferCacheMode, BufferCacheMode::DevicePrivate, BufferCacheMode::Host);
 
+enum class PositionInvariance
+{
+    Auto,
+    False,
+    True,
+};
+ENABLE_ENUM_ITERATORS(PositionInvariance, PositionInvariance::False, PositionInvariance::True);
+
 enum class CPUMode
 {
 	SinglecoreInterpreter = 0,
@@ -239,6 +247,21 @@ struct fmt::formatter<BufferCacheMode> : formatter<string_view> {
 		case BufferCacheMode::DevicePrivate: name = "device private"; break;
 		case BufferCacheMode::DeviceShared: name = "device shared"; break;
 		case BufferCacheMode::Host: name = "host"; break;
+		default: name = "unknown"; break;
+		}
+		return formatter<string_view>::format(name, ctx);
+	}
+};
+template <>
+struct fmt::formatter<PositionInvariance> : formatter<string_view> {
+	template <typename FormatContext>
+	auto format(const PositionInvariance c, FormatContext &ctx) const {
+		string_view name;
+		switch (c)
+		{
+		case PositionInvariance::Auto: name = "auto"; break;
+		case PositionInvariance::False: name = "false"; break;
+		case PositionInvariance::True: name = "true"; break;
 		default: name = "unknown"; break;
 		}
 		return formatter<string_view>::format(name, ctx);

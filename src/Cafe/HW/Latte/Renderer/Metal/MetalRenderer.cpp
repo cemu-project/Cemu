@@ -17,6 +17,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
+#include "CafeSystem.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
@@ -54,6 +55,59 @@ std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
 
 MetalRenderer::MetalRenderer()
 {
+    // Options
+
+    // Position invariance
+    switch (g_current_game_profile->GetPositionInvariance())
+    {
+    case PositionInvariance::Auto:
+        switch (CafeSystem::GetForegroundTitleId())
+        {
+        // Minecraft: Story Mode
+        case 0x000500001020A300: // EUR
+        case 0x00050000101E0100: // USA
+        //case 0x000500001020a200: // USA
+        // Resident Evil: Revelations
+        case 0x000500001012B400: // EUR
+        case 0x000500001012CF00: // USA
+        // The Legend of Zelda: Breath of the Wild
+        case 0x00050000101C9500: // EUR
+        case 0x00050000101C9400: // USA
+        case 0x00050000101C9300: // JPN
+        // Ninja Gaiden 3: Razor's Edge
+        case 0x0005000010110B00: // EUR
+        case 0x0005000010110A00: // USA
+        case 0x0005000010110900: // JPN
+        case 0x0005000010139B00: // EUR (TODO: check)
+        // Bayonetta 2
+        case 0x0005000010172700: // EUR
+        case 0x0005000010172600: // USA
+        // LEGO STAR WARS: The Force Awakens
+        case 0x00050000101DAA00: // EUR
+        case 0x00050000101DAB00: // USA
+        // Bayonetta
+        case 0x0005000010157F00: // EUR
+        case 0x0005000010157E00: // USA
+        case 0x000500001014DB00: // JPN
+        // Disney Planes
+        case 0x0005000010136900: // EUR
+        case 0x0005000010136A00: // EUR
+        case 0x0005000010136B00: // EUR
+        case 0x000500001011C500: // USA (TODO: check)
+            m_positionInvariance = true;
+            break;
+        default:
+            m_positionInvariance = false;
+            break;
+        }
+    case PositionInvariance::False:
+        m_positionInvariance = false;
+        break;
+    case PositionInvariance::True:
+        m_positionInvariance = true;
+        break;
+    }
+
     // Pick a device
     auto& config = GetConfig();
     const bool hasDeviceSet = config.mtl_graphic_device_uuid != 0;

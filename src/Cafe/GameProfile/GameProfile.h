@@ -33,7 +33,7 @@ public:
 	[[nodiscard]] const AccurateShaderMulOption& GetAccurateShaderMul() const { return m_accurateShaderMul; }
 	[[nodiscard]] bool GetFastMath() const { return m_fastMath; }
 	[[nodiscard]] BufferCacheMode GetBufferCacheMode() const { return m_bufferCacheMode; }
-	[[nodiscard]] bool GetPositionInvariance() const { return m_positionInvariance; }
+	[[nodiscard]] PositionInvariance GetPositionInvariance() const { return m_positionInvariance; }
 	[[nodiscard]] const std::optional<PrecompiledShaderOption>& GetPrecompiledShadersState() const { return m_precompiledShaders; }
 
 	[[nodiscard]] uint32 GetThreadQuantum() const { return m_threadQuantum; }
@@ -59,7 +59,7 @@ private:
 	AccurateShaderMulOption m_accurateShaderMul = AccurateShaderMulOption::True;
 	bool m_fastMath = true;
 	BufferCacheMode m_bufferCacheMode = BufferCacheMode::DevicePrivate;
-	bool m_positionInvariance = false;
+	PositionInvariance m_positionInvariance = PositionInvariance::Auto;
 	std::optional<PrecompiledShaderOption> m_precompiledShaders{};
 	// cpu settings
 	uint32 m_threadQuantum = kThreadQuantumDefault; // values: 20000 45000 60000 80000 100000
