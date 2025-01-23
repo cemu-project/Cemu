@@ -340,6 +340,7 @@ void RendererShaderMtl::CompileInternal()
     {
         // Compile from source
         library = LibraryFromSource();
+        FinishCompilation();
         if (!library)
             return;
 

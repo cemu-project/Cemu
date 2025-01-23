@@ -49,6 +49,7 @@ std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
         MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
         result.emplace_back(std::string(device->name()->utf8String()), device->registryID());
     }
+    devices->release();
 
     return result;
 }
@@ -130,6 +131,7 @@ MetalRenderer::MetalRenderer()
                 break;
             }
         }
+        devices->release();
     }
 
     if (!m_device)
