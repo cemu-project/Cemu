@@ -147,7 +147,7 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T&
 		}
 
 		// test enum name
-		if(boost::iequals(fmt::format("{}", fmt::underlying(v)), *option_value))
+		if(boost::iequals(fmt::format("{}", v), *option_value))
 		{
 			option = v;
 			return true;
