@@ -1856,7 +1856,7 @@ void MetalRenderer::EndEncoding()
     if (m_commandEncoder)
     {
         m_commandEncoder->endEncoding();
-        //m_commandEncoder->release();
+        m_commandEncoder->release();
         m_commandEncoder = nullptr;
         m_encoderType = MetalEncoderType::None;
 

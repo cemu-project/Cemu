@@ -28,6 +28,7 @@ MTL::RenderPipelineState* MetalOutputShaderCache::GetPipeline(RendererOutputShad
 
     NS::Error* error = nullptr;
     renderPipelineState = m_mtlr->GetDevice()->newRenderPipelineState(renderPipelineDescriptor, &error);
+    renderPipelineDescriptor->release();
     if (error)
     {
         cemuLog_log(LogType::Force, "error creating output render pipeline state: {}", error->localizedDescription()->utf8String());
