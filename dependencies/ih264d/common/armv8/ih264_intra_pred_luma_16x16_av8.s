@@ -53,11 +53,7 @@
 .text
 .p2align 2
 .include "ih264_neon_macros.s"
-#ifdef __APPLE__
-.extern _ih264_gai1_intrapred_luma_plane_coeffs
-#else
 .extern ih264_gai1_intrapred_luma_plane_coeffs
-#endif
 
 
 
@@ -437,7 +433,7 @@ ih264_intra_pred_luma_16x16_mode_plane_av8:
     ld1       {v2.2s}, [x1], x8
 #ifdef __APPLE__
     adrp      x7, _ih264_gai1_intrapred_luma_plane_coeffs@GOTPAGE
-    ldr       x7, [x7, _ih264_gai1_intrapred_luma_plane_coeffs@GOTPAGEOFF]
+    ldr       x7, [x7, #_ih264_gai1_intrapred_luma_plane_coeffs@GOTPAGEOFF]
 #else
     adrp      x7, :got:ih264_gai1_intrapred_luma_plane_coeffs
     ldr       x7, [x7, #:got_lo12:ih264_gai1_intrapred_luma_plane_coeffs]

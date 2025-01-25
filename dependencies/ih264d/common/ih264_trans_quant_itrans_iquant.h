@@ -39,13 +39,9 @@
 /*****************************************************************************/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
-#ifdef __APPLE__
-#define av8(name) name __asm__(#name)
-#else
-#define av8(name) name
-#endif
 
-typedef void ih264_resi_trans_dctrans_quant_ft(UWORD8*pu1_src,
+
+typedef void _ih264_resi_trans_dctrans_quant_ft(UWORD8*pu1_src,
                                        UWORD8 *pu1_pred,
                                        WORD16 *pi2_out,
                                        WORD32 src_strd,
@@ -57,7 +53,9 @@ typedef void ih264_resi_trans_dctrans_quant_ft(UWORD8*pu1_src,
                                        UWORD32 u4_round_fact,
                                        UWORD8 *pu1_nnz);
 
-typedef void ih264_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
+#define ih264_resi_trans_dctrans_quant_ft(arg) _ih264_resi_trans_dctrans_quant_ft arg __asm__(#arg);
+
+typedef void _ih264_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           UWORD8 *pu1_pred,
                                           UWORD8 *pu1_out,
                                           WORD32 src_strd,
@@ -68,6 +66,8 @@ typedef void ih264_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           UWORD32 qp_div,
                                           UWORD32 pi4_cntrl,
                                           WORD32 *pi4_tmp);
+
+#define ih264_idctrans_iquant_itrans_recon_ft(arg) _ih264_pad arg __asm__(#arg);
 
 
 /*Function prototype declarations*/
@@ -83,7 +83,9 @@ typedef void ih264_resi_trans_quant_ft(UWORD8*pu1_src,
                                        UWORD8 *pu1_nnz,
                                        WORD16 *pi2_alt_dc_addr);
 
-typedef void ih264_luma_16x16_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
+#define ih264_pad(arg) _ih264_pad arg __asm__(#arg);
+
+typedef void _ih264_luma_16x16_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD8 *pu1_pred,
                                                           WORD16 *pi2_out,
                                                           WORD32 src_strd,
@@ -96,7 +98,9 @@ typedef void ih264_luma_16x16_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD8 *pu1_nnz,
                                                           UWORD32 u4_dc_flag);
 
-typedef void ih264_chroma_8x8_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
+#define ih264_luma_16x16_resi_trans_dctrans_quant_ft(arg) _ih264_luma_16x16_resi_trans_dctrans_quant_ft arg __asm__(#arg);
+
+typedef void _ih264_chroma_8x8_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD8 *pu1_pred,
                                                           WORD16 *pi2_out,
                                                           WORD32 src_strd,
@@ -108,7 +112,9 @@ typedef void ih264_chroma_8x8_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD32 u4_round_factor,
                                                           UWORD8 *pu1_nnz);
 
-typedef void ih264_iquant_itrans_recon_ft(WORD16 *pi2_src,
+#define ih264_chroma_8x8_resi_trans_dctrans_quant_ft(arg) _ih264_chroma_8x8_resi_trans_dctrans_quant_ft arg __asm__(#arg);
+
+typedef void _ih264_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           UWORD8 *pu1_pred,
                                           UWORD8 *pu1_out,
                                           WORD32 pred_strd,
@@ -120,8 +126,10 @@ typedef void ih264_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           WORD32 iq_start_idx,
                                           WORD16 *pi2_dc_ld_addr);
 
+#define ih264_iquant_itrans_recon_ft(arg) _ih264_iquant_itrans_recon_ft arg __asm__(#arg);
 
-typedef void ih264_iquant_itrans_recon_chroma_ft(WORD16 *pi2_src,
+
+typedef void _ih264_iquant_itrans_recon_chroma_ft(WORD16 *pi2_src,
                                                  UWORD8 *pu1_pred,
                                                  UWORD8 *pu1_out,
                                                  WORD32 pred_strd,
@@ -132,8 +140,10 @@ typedef void ih264_iquant_itrans_recon_chroma_ft(WORD16 *pi2_src,
                                                  WORD16 *pi2_tmp,
                                                  WORD16 *pi2_dc_src);
 
+#define ih264_iquant_itrans_recon_chroma_ft(arg) _ih264_iquant_itrans_recon_chroma_ft arg __asm__(#arg);
 
-typedef void ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
+
+typedef void _ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD8 *pu1_pred,
                                                               UWORD8 *pu1_out,
                                                               WORD32 src_strd,
@@ -146,7 +156,9 @@ typedef void ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD32 u4_dc_trans_flag,
                                                               WORD32 *pi4_tmp);
 
-typedef void ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
+#define ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(arg) _ih264_luma_16x16_idctrans_iquant_itrans_recon_ft arg __asm__(#arg);
+
+typedef void _ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD8 *pu1_pred,
                                                               UWORD8 *pu1_out,
                                                               WORD32 src_strd,
@@ -158,79 +170,85 @@ typedef void ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD32 pi4_cntrl,
                                                               WORD32 *pi4_tmp);
 
-typedef void ih264_ihadamard_scaling_ft(WORD16* pi2_src,
+#define ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(arg) _ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft arg __asm__(#arg);
+
+typedef void _ih264_ihadamard_scaling_ft(WORD16* pi2_src,
                                         WORD16* pi2_out,
                                         const UWORD16 *pu2_iscal_mat,
                                         const UWORD16 *pu2_weigh_mat,
                                         UWORD32 u4_qp_div_6,
                                         WORD32* pi4_tmp);
 
-typedef void ih264_hadamard_quant_ft(WORD16 *pi2_src, WORD16 *pi2_dst,
+#define ih264_ihadamard_scaling_ft(arg) _ih264_ihadamard_scaling_ft arg __asm__(#arg);
+
+typedef void _ih264_hadamard_quant_ft(WORD16 *pi2_src, WORD16 *pi2_dst,
                                     const UWORD16 *pu2_scale_matrix,
                                     const UWORD16 *pu2_threshold_matrix, UWORD32 u4_qbits,
                                     UWORD32 u4_round_factor,UWORD8  *pu1_nnz);
 
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_4x4;
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_chroma_4x4;
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_8x8;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_dc;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_dc;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_dc;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_4x4;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_2x2_uv;
-ih264_hadamard_quant_ft ih264_hadamard_quant_4x4;
-ih264_hadamard_quant_ft ih264_hadamard_quant_2x2_uv;
+#define ih264_hadamard_quant_ft(arg) _ih264_hadamard_quant_ft arg __asm__(#arg);
+
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_4x4);
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_chroma_4x4);
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_8x8);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_dc);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_dc);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_dc);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_4x4);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_2x2_uv);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_4x4);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_2x2_uv);
 
 /*A9 Declarations*/
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_4x4_a9;
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_chroma_4x4_a9;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_a9;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_a9;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_dc_a9;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_dc_a9;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_a9;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_dc_a9;
-ih264_luma_16x16_resi_trans_dctrans_quant_ft ih264_luma_16x16_resi_trans_dctrans_quant_a9;
-ih264_chroma_8x8_resi_trans_dctrans_quant_ft ih264_chroma_8x8_resi_trans_dctrans_quant_a9;
-ih264_luma_16x16_idctrans_iquant_itrans_recon_ft ih264_luma_16x16_idctrans_iquant_itrans_recon_a9;
-ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft ih264_chroma_8x8_idctrans_iquant_itrans_recon_a9;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_4x4_a9;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_2x2_uv_a9;
-ih264_hadamard_quant_ft ih264_hadamard_quant_4x4_a9;
-ih264_hadamard_quant_ft ih264_hadamard_quant_2x2_uv_a9;
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_4x4_a9);
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_chroma_4x4_a9);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_a9);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_a9);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_dc_a9);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_dc_a9);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_a9);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_dc_a9);
+ih264_luma_16x16_resi_trans_dctrans_quant_ft(ih264_luma_16x16_resi_trans_dctrans_quant_a9);
+ih264_chroma_8x8_resi_trans_dctrans_quant_ft(ih264_chroma_8x8_resi_trans_dctrans_quant_a9);
+ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(ih264_luma_16x16_idctrans_iquant_itrans_recon_a9);
+ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(ih264_chroma_8x8_idctrans_iquant_itrans_recon_a9);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_4x4_a9);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_2x2_uv_a9);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_4x4_a9);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_2x2_uv_a9);
 
 /*Av8 Declarations*/
-ih264_resi_trans_quant_ft av8(ih264_resi_trans_quant_4x4_av8);
-ih264_resi_trans_quant_ft av8(ih264_resi_trans_quant_chroma_4x4_av8);
-ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_4x4_av8);
-ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_8x8_av8);
-ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_4x4_dc_av8);
-ih264_iquant_itrans_recon_ft av8(ih264_iquant_itrans_recon_8x8_dc_av8);
-ih264_iquant_itrans_recon_chroma_ft av8(ih264_iquant_itrans_recon_chroma_4x4_av8);
-ih264_iquant_itrans_recon_chroma_ft av8(ih264_iquant_itrans_recon_chroma_4x4_dc_av8);
-ih264_ihadamard_scaling_ft av8(ih264_ihadamard_scaling_4x4_av8);
-ih264_ihadamard_scaling_ft av8(ih264_ihadamard_scaling_2x2_uv_av8);
-ih264_hadamard_quant_ft av8(ih264_hadamard_quant_4x4_av8);
-ih264_hadamard_quant_ft av8(ih264_hadamard_quant_2x2_uv_av8);
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_4x4_av8);
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_chroma_4x4_av8);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_av8);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_av8);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_dc_av8);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_dc_av8);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_av8);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_dc_av8);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_4x4_av8);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_2x2_uv_av8);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_4x4_av8);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_2x2_uv_av8);
 
 /*SSSE3 Declarations*/
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_ssse3;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_ssse3;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_dc_ssse3;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_8x8_dc_ssse3;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_dc_ssse3;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_4x4_ssse3;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_2x2_uv_ssse3;
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_ssse3);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_ssse3);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_dc_ssse3);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_8x8_dc_ssse3);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_dc_ssse3);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_4x4_ssse3);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_2x2_uv_ssse3);
 /*SSSE42 Declarations*/
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_4x4_sse42;
-ih264_resi_trans_quant_ft ih264_resi_trans_quant_chroma_4x4_sse42;
-ih264_iquant_itrans_recon_ft ih264_iquant_itrans_recon_4x4_sse42;
-ih264_iquant_itrans_recon_chroma_ft ih264_iquant_itrans_recon_chroma_4x4_sse42;
-ih264_ihadamard_scaling_ft ih264_ihadamard_scaling_4x4_sse42;
-ih264_hadamard_quant_ft ih264_hadamard_quant_4x4_sse42;
-ih264_hadamard_quant_ft ih264_hadamard_quant_2x2_uv_sse42;
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_4x4_sse42);
+ih264_resi_trans_quant_ft(ih264_resi_trans_quant_chroma_4x4_sse42);
+ih264_iquant_itrans_recon_ft(ih264_iquant_itrans_recon_4x4_sse42);
+ih264_iquant_itrans_recon_chroma_ft(ih264_iquant_itrans_recon_chroma_4x4_sse42);
+ih264_ihadamard_scaling_ft(ih264_ihadamard_scaling_4x4_sse42);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_4x4_sse42);
+ih264_hadamard_quant_ft(ih264_hadamard_quant_2x2_uv_sse42);
 
 #endif /* IH264_TRANS_QUANT_H_ */

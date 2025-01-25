@@ -53,13 +53,10 @@
 .text
 .p2align 2
 .include "ih264_neon_macros.s"
-#ifdef __APPLE__
-.extern _ih264_gai1_intrapred_chroma_plane_coeffs1
-.extern _ih264_gai1_intrapred_chroma_plane_coeffs2
-#else
+
 .extern ih264_gai1_intrapred_chroma_plane_coeffs1
 .extern ih264_gai1_intrapred_chroma_plane_coeffs2
-#endif
+
 
 
 ///**
