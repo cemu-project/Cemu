@@ -64,6 +64,11 @@ MetalRenderer::MetalRenderer()
     case PositionInvariance::Auto:
         switch (CafeSystem::GetForegroundTitleId())
         {
+        // Mario Kart 9
+        case 0x000500001010ED00: // EUR
+        case 0x000500001010EC00: // USA
+        case 0x000500001010EB00: // JPN
+        case 0x0005000010183A00: // JPN (TODO: check)
         // Minecraft: Story Mode
         case 0x000500001020A300: // EUR
         case 0x00050000101E0100: // USA
