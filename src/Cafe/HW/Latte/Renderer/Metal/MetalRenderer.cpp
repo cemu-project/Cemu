@@ -698,6 +698,7 @@ void MetalRenderer::rendertarget_deleteCachedFBO(LatteCachedFBO* cfbo)
 void MetalRenderer::rendertarget_bindFramebufferObject(LatteCachedFBO* cfbo)
 {
 	m_state.m_activeFBO = {(CachedFBOMtl*)cfbo, MetalAttachmentsInfo((CachedFBOMtl*)cfbo)};
+	m_state.m_fboChanged = true;
 }
 
 void* MetalRenderer::texture_acquireTextureUploadBuffer(uint32 size)
@@ -1732,6 +1733,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::
 // Some render passes clear the attachments, forceRecreate is supposed to be used in those cases
 MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecreate)
 {
+    bool fboChanged = m_state.m_fboChanged;
+    m_state.m_fboChanged = false;
+
     // Check if we need to begin a new render pass
     if (m_commandEncoder)
     {
@@ -1739,24 +1743,28 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
         {
             if (m_encoderType == MetalEncoderType::Render)
             {
-                bool needsNewRenderPass = (m_state.m_lastUsedFBO.m_fbo == nullptr);
-                if (!needsNewRenderPass)
+                bool needsNewRenderPass = false;
+                if (fboChanged)
                 {
-                    for (uint8 i = 0; i < 8; i++)
+                    needsNewRenderPass = (m_state.m_lastUsedFBO.m_fbo == nullptr);
+                    if (!needsNewRenderPass)
                     {
-                        if (m_state.m_activeFBO.m_fbo->colorBuffer[i].texture && m_state.m_activeFBO.m_fbo->colorBuffer[i].texture != m_state.m_lastUsedFBO.m_fbo->colorBuffer[i].texture)
+                        for (uint8 i = 0; i < 8; i++)
                         {
-                            needsNewRenderPass = true;
-                            break;
+                            if (m_state.m_activeFBO.m_fbo->colorBuffer[i].texture && m_state.m_activeFBO.m_fbo->colorBuffer[i].texture != m_state.m_lastUsedFBO.m_fbo->colorBuffer[i].texture)
+                            {
+                                needsNewRenderPass = true;
+                                break;
+                            }
                         }
                     }
-                }
 
-                if (!needsNewRenderPass)
-                {
-                    if (m_state.m_activeFBO.m_fbo->depthBuffer.texture && (m_state.m_activeFBO.m_fbo->depthBuffer.texture != m_state.m_lastUsedFBO.m_fbo->depthBuffer.texture || ( m_state.m_activeFBO.m_fbo->depthBuffer.hasStencil && !m_state.m_lastUsedFBO.m_fbo->depthBuffer.hasStencil)))
+                    if (!needsNewRenderPass)
                     {
-                        needsNewRenderPass = true;
+                        if (m_state.m_activeFBO.m_fbo->depthBuffer.texture && (m_state.m_activeFBO.m_fbo->depthBuffer.texture != m_state.m_lastUsedFBO.m_fbo->depthBuffer.texture || ( m_state.m_activeFBO.m_fbo->depthBuffer.hasStencil && !m_state.m_lastUsedFBO.m_fbo->depthBuffer.hasStencil)))
+                        {
+                            needsNewRenderPass = true;
+                        }
                     }
                 }
 

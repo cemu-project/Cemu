@@ -111,6 +111,7 @@ struct MetalState
     MetalActiveFBOState m_activeFBO;
     // If the FBO changes, but it's the same FBO as the last one with some omitted attachments, this FBO doesn't change
     MetalActiveFBOState m_lastUsedFBO;
+    bool m_fboChanged = false;
 
     size_t m_vertexBufferOffsets[MAX_MTL_VERTEX_BUFFERS];
     class LatteTextureViewMtl* m_textures[LATTE_NUM_MAX_TEX_UNITS * 3] = {nullptr};
