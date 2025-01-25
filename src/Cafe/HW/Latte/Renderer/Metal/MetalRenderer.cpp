@@ -62,11 +62,6 @@ MetalRenderer::MetalRenderer()
     case PositionInvariance::Auto:
         switch (CafeSystem::GetForegroundTitleId())
         {
-        // Mario Kart 9
-        case 0x000500001010ED00: // EUR
-        case 0x000500001010EC00: // USA
-        case 0x000500001010EB00: // JPN
-        case 0x0005000010183A00: // JPN (TODO: check)
         // Minecraft: Story Mode
         case 0x000500001020A300: // EUR
         case 0x00050000101E0100: // USA
@@ -83,6 +78,11 @@ MetalRenderer::MetalRenderer()
         case 0x0005000010139B00: // EUR (TODO: check)
         case 0x0005000010110A00: // USA
         case 0x0005000010110900: // JPN
+        // Mario Kart 8
+        case 0x000500001010ED00: // EUR
+        case 0x000500001010EC00: // USA
+        case 0x000500001010EB00: // JPN
+        case 0x0005000010183A00: // JPN (TODO: check)
         // Bayonetta 2
         case 0x0005000010172700: // EUR
         case 0x0005000010172600: // USA
@@ -95,14 +95,14 @@ MetalRenderer::MetalRenderer()
         case 0x000500001014DB00: // JPN
         // Disney Planes
         case 0x0005000010136900: // EUR
-        case 0x0005000010136A00: // EUR
-        case 0x0005000010136B00: // EUR
+        case 0x0005000010136A00: // EUR (TODO: check)
+        case 0x0005000010136B00: // EUR (TODO: check)
         case 0x000500001011C500: // USA (TODO: check)
         // Wonderful 101
         case 0x0005000010135300: // EUR
         case 0x000500001012DC00: // USA
         case 0x0005000010116300: // JPN
-        case 0x0005000010185600: // JPN
+        case 0x0005000010185600: // JPN (TODO: check)
             m_positionInvariance = true;
             break;
         default:
