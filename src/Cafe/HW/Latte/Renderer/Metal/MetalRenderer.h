@@ -6,6 +6,7 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
+#include "Foundation/NSAutoreleasePool.hpp"
 
 enum MetalGeneralShaderType
 {
@@ -526,6 +527,9 @@ private:
         bool m_active = false;
         MTL::CommandBuffer* m_lastCommandBuffer = nullptr;
 	} m_occlusionQuery;
+
+	// Autorelease pool
+	NS::AutoreleasePool* m_autoreleasePool;
 
 	// Active objects
 	MetalCommandBuffer m_currentCommandBuffer{};

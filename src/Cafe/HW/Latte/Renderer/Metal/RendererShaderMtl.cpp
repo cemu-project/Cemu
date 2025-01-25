@@ -276,7 +276,7 @@ bool RendererShaderMtl::ShouldCountCompilation() const
 MTL::Library* RendererShaderMtl::LibraryFromSource()
 {
     // Compile from source
-    MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
+    NS_STACK_SCOPED MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
     if (g_current_game_profile->GetFastMath())
         options->setFastMathEnabled(true);
 
@@ -288,7 +288,6 @@ MTL::Library* RendererShaderMtl::LibraryFromSource()
 
     NS::Error* error = nullptr;
 	MTL::Library* library = m_mtlr->GetDevice()->newLibrary(ToNSString(m_mslCode), options, &error);
-	options->release();
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create library from source: {} -> {}", error->localizedDescription()->utf8String(), m_mslCode.c_str());

@@ -7,7 +7,7 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
 	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth), m_mtlr(mtlRenderer)
 {
-    MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
     desc->setStorageMode(MTL::StorageModePrivate);
     //desc->setCpuCacheMode(MTL::CPUCacheModeWriteCombined);
 
@@ -83,7 +83,6 @@ LatteTextureMtl::LatteTextureMtl(class MetalRenderer* mtlRenderer, Latte::E_DIM 
 	desc->setUsage(usage);
 
 	m_texture = mtlRenderer->GetDevice()->newTexture(desc);
-	desc->release();
 }
 
 LatteTextureMtl::~LatteTextureMtl()

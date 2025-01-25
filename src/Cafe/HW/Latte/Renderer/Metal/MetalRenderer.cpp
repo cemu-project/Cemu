@@ -21,7 +21,6 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "HW/Latte/Renderer/Metal/MetalBufferAllocator.h"
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
@@ -41,7 +40,7 @@ void LatteDraw_handleSpecialState8_clearAsDepth();
 
 std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
 {
-    auto devices = MTL::CopyAllDevices();
+    NS_STACK_SCOPED auto devices = MTL::CopyAllDevices();
     std::vector<MetalRenderer::DeviceInfo> result;
     result.reserve(devices->count());
     for (uint32 i = 0; i < devices->count(); i++)
@@ -49,7 +48,6 @@ std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
         MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
         result.emplace_back(std::string(device->name()->utf8String()), device->registryID());
     }
-    devices->release();
 
     return result;
 }
@@ -126,7 +124,7 @@ MetalRenderer::MetalRenderer()
     // If a device is set, try to find it
     if (hasDeviceSet)
     {
-        auto devices = MTL::CopyAllDevices();
+        NS_STACK_SCOPED auto devices = MTL::CopyAllDevices();
         for (uint32 i = 0; i < devices->count(); i++)
         {
             MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
@@ -136,7 +134,6 @@ MetalRenderer::MetalRenderer()
                 break;
             }
         }
-        devices->release();
     }
 
     if (!m_device)
@@ -167,7 +164,7 @@ MetalRenderer::MetalRenderer()
     m_event = m_device->newEvent();
 
     // Resources
-    MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
 #ifdef CEMU_DEBUG_ASSERT
     samplerDescriptor->setLabel(GetLabel("Nearest sampler state", samplerDescriptor));
 #endif
@@ -179,10 +176,9 @@ MetalRenderer::MetalRenderer()
     samplerDescriptor->setLabel(GetLabel("Linear sampler state", samplerDescriptor));
 #endif
     m_linearSampler = m_device->newSamplerState(samplerDescriptor);
-    samplerDescriptor->release();
 
     // Null resources
-    MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::TextureDescriptor* textureDescriptor = MTL::TextureDescriptor::alloc()->init();
     textureDescriptor->setTextureType(MTL::TextureType1D);
     textureDescriptor->setWidth(1);
     textureDescriptor->setUsage(MTL::TextureUsageShaderRead);
@@ -198,7 +194,6 @@ MetalRenderer::MetalRenderer()
 #ifdef CEMU_DEBUG_ASSERT
     m_nullTexture2D->setLabel(GetLabel("Null texture 2D", m_nullTexture2D));
 #endif
-    textureDescriptor->release();
 
     m_memoryManager = new MetalMemoryManager(this);
     m_outputShaderCache = new MetalOutputShaderCache(this);
@@ -233,27 +228,23 @@ MetalRenderer::MetalRenderer()
 
     // Create the library
     NS::Error* error = nullptr;
-	MTL::Library* utilityLibrary = m_device->newLibrary(ToNSString(utilityShaderSource), nullptr, &error);
+	NS_STACK_SCOPED MTL::Library* utilityLibrary = m_device->newLibrary(ToNSString(utilityShaderSource), nullptr, &error);
 	if (error)
     {
         cemuLog_log(LogType::Force, "failed to create utility library (error: {})", error->localizedDescription()->utf8String());
     }
 
     // Pipelines
-    MTL::Function* vertexFullscreenFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
-    MTL::Function* fragmentCopyDepthToColorFunction = utilityLibrary->newFunction(ToNSString("fragmentCopyDepthToColor"));
+    NS_STACK_SCOPED MTL::Function* vertexFullscreenFunction = utilityLibrary->newFunction(ToNSString("vertexFullscreen"));
+    NS_STACK_SCOPED MTL::Function* fragmentCopyDepthToColorFunction = utilityLibrary->newFunction(ToNSString("fragmentCopyDepthToColor"));
 
     m_copyDepthToColorDesc = MTL::RenderPipelineDescriptor::alloc()->init();
     m_copyDepthToColorDesc->setVertexFunction(vertexFullscreenFunction);
     m_copyDepthToColorDesc->setFragmentFunction(fragmentCopyDepthToColorFunction);
-    vertexFullscreenFunction->release();
-    fragmentCopyDepthToColorFunction->release();
 
     // Void vertex pipelines
     if (m_isAppleGPU)
         m_copyBufferToBufferPipeline = new MetalVoidVertexPipeline(this, utilityLibrary, "vertexCopyBufferToBuffer");
-
-    utilityLibrary->release();
 
     // HACK: for some reason, this variable ends up being initialized to some garbage data, even though its declared as bool m_captureFrame = false;
     m_occlusionQuery.m_lastCommandBuffer = nullptr;
@@ -414,13 +405,12 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 	uint32 bytesPerRow = GetMtlTextureBytesPerRow(texMtl->format, texMtl->isDepth, width);
 	uint32 size = GetMtlTextureBytesPerImage(texMtl->format, texMtl->isDepth, height, bytesPerRow);
 
-	// TODO: get a buffer from the memory manager
-	MTL::Buffer* buffer = m_device->newBuffer(size, MTL::ResourceStorageModeShared);
-
 	auto blitCommandEncoder = GetBlitCommandEncoder();
-	blitCommandEncoder->copyFromTexture(texMtl->GetTexture(), 0, 0, MTL::Origin(0, 0, 0), MTL::Size(width, height, 1), buffer, 0, bytesPerRow, 0);
 
-	uint8* bufferPtr = (uint8*)buffer->contents();
+	auto& bufferAllocator = m_memoryManager->GetStagingAllocator();
+	auto buffer = bufferAllocator.AllocateBufferMemory(size, 1);
+
+	blitCommandEncoder->copyFromTexture(texMtl->GetTexture(), 0, 0, MTL::Origin(0, 0, 0), MTL::Size(width, height, 1), buffer.mtlBuffer, buffer.bufferOffset, bytesPerRow, 0);
 
 	bool formatValid = true;
 	std::vector<uint8> rgb_data;
@@ -431,7 +421,7 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 	switch (pixelFormat)
 	{
 	case MTL::PixelFormatRGBA8Unorm:
-		for (auto ptr = bufferPtr; ptr < bufferPtr + size; ptr += 4)
+		for (auto ptr = buffer.memPtr; ptr < buffer.memPtr + size; ptr += 4)
 		{
 			rgb_data.emplace_back(*ptr);
 			rgb_data.emplace_back(*(ptr + 1));
@@ -439,7 +429,7 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 		}
 		break;
 	case MTL::PixelFormatRGBA8Unorm_sRGB:
-		for (auto ptr = bufferPtr; ptr < bufferPtr + size; ptr += 4)
+		for (auto ptr = buffer.memPtr; ptr < buffer.memPtr + size; ptr += 4)
 		{
 			rgb_data.emplace_back(SRGBComponentToRGB(*ptr));
 			rgb_data.emplace_back(SRGBComponentToRGB(*(ptr + 1)));
@@ -451,8 +441,6 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 		formatValid = false;
 		break;
 	}
-
-	buffer->release();
 
 	if (formatValid)
 		SaveScreenshot(rgb_data, width, height, !padView);
@@ -470,14 +458,13 @@ void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutput
     // Create render pass
     auto& layer = GetLayer(!padView);
 
-    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
     auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
     colorAttachment->setTexture(layer.GetDrawable()->texture());
     colorAttachment->setLoadAction(clearBackground ? MTL::LoadActionClear : MTL::LoadActionLoad);
     colorAttachment->setStoreAction(MTL::StoreActionStore);
 
     auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
-    renderPassDescriptor->release();
 
     // Get a render pipeline
 
@@ -557,7 +544,7 @@ bool MetalRenderer::ImguiBegin(bool mainWindow)
 	auto& layer = GetLayer(mainWindow);
 
 	// Render pass descriptor
-	MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+	NS_STACK_SCOPED MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
     auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
     colorAttachment->setTexture(layer.GetDrawable()->texture());
     colorAttachment->setLoadAction(MTL::LoadActionLoad);
@@ -570,7 +557,6 @@ bool MetalRenderer::ImguiBegin(bool mainWindow)
 
 	if (m_encoderType != MetalEncoderType::Render)
 	    GetTemporaryRenderCommandEncoder(renderPassDescriptor);
-	renderPassDescriptor->release();
 
 	return true;
 }
@@ -605,7 +591,7 @@ ImTextureID MetalRenderer::GenerateTexture(const std::vector<uint8>& data, const
 			tmp[(i * 4) + 3] = 0xFF;
 		}
 
-		MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
+		NS_STACK_SCOPED MTL::TextureDescriptor* desc = MTL::TextureDescriptor::alloc()->init();
 		desc->setTextureType(MTL::TextureType2D);
 		desc->setPixelFormat(MTL::PixelFormatRGBA8Unorm);
 		desc->setWidth(size.x);
@@ -614,7 +600,6 @@ ImTextureID MetalRenderer::GenerateTexture(const std::vector<uint8>& data, const
 		desc->setUsage(MTL::TextureUsageShaderRead);
 
 		MTL::Texture* texture = m_device->newTexture(desc);
-		desc->release();
 
 		// TODO: do a GPU copy?
 		texture->replaceRegion(MTL::Region(0, 0, size.x, size.y), 0, 0, tmp.data(), size.x * 4, 0);
@@ -768,11 +753,8 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     // Allocate a temporary buffer
     auto& bufferAllocator = m_memoryManager->GetStagingAllocator();
     auto allocation = bufferAllocator.AllocateBufferMemory(compressedImageSize, 1);
-    bufferAllocator.FlushReservation(allocation);
-
-    // Copy the data to the temporary buffer
     memcpy(allocation.memPtr, pixelData, compressedImageSize);
-    //buffer->didModifyRange(NS::Range(allocation.offset, allocation.size));
+    bufferAllocator.FlushReservation(allocation);
 
     // TODO: specify blit options when copying to a depth stencil texture?
     // Copy the data from the temporary buffer to the texture
@@ -804,7 +786,7 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
 
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
 
-    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
     if (clearDepth)
     {
         auto depthAttachment = renderPassDescriptor->depthAttachment();
@@ -827,7 +809,6 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
     }
 
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
-    renderPassDescriptor->release();
     EndEncoding();
 
     // Debug
@@ -2195,7 +2176,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 
 void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
 {
-    MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
     auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
     colorAttachment->setTexture(mtlTexture);
     colorAttachment->setClearColor(MTL::ClearColor(r, g, b, a));
@@ -2205,7 +2186,6 @@ void MetalRenderer::ClearColorTextureInternal(MTL::Texture* mtlTexture, sint32 s
     colorAttachment->setLevel(mipIndex);
 
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
-    renderPassDescriptor->release();
     EndEncoding();
 
     // Debug

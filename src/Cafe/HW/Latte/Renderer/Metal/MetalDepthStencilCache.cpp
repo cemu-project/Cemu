@@ -25,7 +25,7 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
 	auto depthFunc = lcr.DB_DEPTH_CONTROL.get_Z_FUNC();
 	bool depthWriteEnable = lcr.DB_DEPTH_CONTROL.get_Z_WRITE_ENABLE();
 
-	MTL::DepthStencilDescriptor* desc = MTL::DepthStencilDescriptor::alloc()->init();
+	NS_STACK_SCOPED MTL::DepthStencilDescriptor* desc = MTL::DepthStencilDescriptor::alloc()->init();
 	if (depthEnable)
 	{
 	    desc->setDepthWriteEnabled(depthWriteEnable);
@@ -52,7 +52,7 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     	uint32 stencilCompareMaskBack = lcr.DB_STENCILREFMASK_BF.get_STENCILMASK_B();
     	uint32 stencilWriteMaskBack = lcr.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 
-    	MTL::StencilDescriptor* frontStencil = MTL::StencilDescriptor::alloc()->init();
+    	NS_STACK_SCOPED MTL::StencilDescriptor* frontStencil = MTL::StencilDescriptor::alloc()->init();
     	frontStencil->setReadMask(stencilCompareMaskFront);
     	frontStencil->setWriteMask(stencilWriteMaskFront);
     	frontStencil->setStencilCompareFunction(GetMtlCompareFunc(frontStencilFunc));
@@ -61,7 +61,7 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
     	frontStencil->setDepthStencilPassOperation(GetMtlStencilOp(frontStencilZPass));
     	desc->setFrontFaceStencil(frontStencil);
 
-    	MTL::StencilDescriptor* backStencil = MTL::StencilDescriptor::alloc()->init();
+    	NS_STACK_SCOPED MTL::StencilDescriptor* backStencil = MTL::StencilDescriptor::alloc()->init();
     	if (backStencilEnable)
     	{
            	backStencil->setReadMask(stencilCompareMaskBack);
@@ -81,13 +81,9 @@ MTL::DepthStencilState* MetalDepthStencilCache::GetDepthStencilState(const Latte
            	backStencil->setDepthStencilPassOperation(GetMtlStencilOp(frontStencilZPass));
     	}
     	desc->setBackFaceStencil(backStencil);
-
-        frontStencil->release();
-        backStencil->release();
 	}
 
 	depthStencilState = m_mtlr->GetDevice()->newDepthStencilState(desc);
-	desc->release();
 
 	return depthStencilState;
 }

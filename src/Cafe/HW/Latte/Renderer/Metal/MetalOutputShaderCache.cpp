@@ -21,14 +21,13 @@ MTL::RenderPipelineState* MetalOutputShaderCache::GetPipeline(RendererOutputShad
     auto vertexShaderMtl = static_cast<RendererShaderMtl*>(shader->GetVertexShader())->GetFunction();
     auto fragmentShaderMtl = static_cast<RendererShaderMtl*>(shader->GetFragmentShader())->GetFunction();
 
-    auto renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
+    NS_STACK_SCOPED auto renderPipelineDescriptor = MTL::RenderPipelineDescriptor::alloc()->init();
     renderPipelineDescriptor->setVertexFunction(vertexShaderMtl);
     renderPipelineDescriptor->setFragmentFunction(fragmentShaderMtl);
     renderPipelineDescriptor->colorAttachments()->object(0)->setPixelFormat(usesSRGB ? MTL::PixelFormatBGRA8Unorm_sRGB : MTL::PixelFormatBGRA8Unorm);
 
     NS::Error* error = nullptr;
     renderPipelineState = m_mtlr->GetDevice()->newRenderPipelineState(renderPipelineDescriptor, &error);
-    renderPipelineDescriptor->release();
     if (error)
     {
         cemuLog_log(LogType::Force, "error creating output render pipeline state: {}", error->localizedDescription()->utf8String());

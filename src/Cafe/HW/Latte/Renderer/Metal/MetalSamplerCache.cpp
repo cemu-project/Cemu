@@ -21,7 +21,7 @@ MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister
 	// Sampler state
 	const _LatteRegisterSetSampler* samplerWords = lcr.SQ_TEX_SAMPLER + samplerIndex;
 
-    MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
+    NS_STACK_SCOPED MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
 
     // lod
     uint32 iMinLOD = samplerWords->WORD1.get_MIN_LOD();
@@ -115,7 +115,6 @@ MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister
     }
 
     samplerState = m_mtlr->GetDevice()->newSamplerState(samplerDescriptor);
-    samplerDescriptor->release();
 
     return samplerState;
 }

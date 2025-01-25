@@ -413,7 +413,7 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
     // Vertex descriptor
     if (!fetchShader->mtlFetchVertexManually)
     {
-    	MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
+    	NS_STACK_SCOPED MTL::VertexDescriptor* vertexDescriptor = MTL::VertexDescriptor::alloc()->init();
     	for (auto& bufferGroup : fetchShader->bufferGroups)
     	{
     		std::optional<LatteConst::VertexFetchType2> fetchType;
@@ -476,7 +476,6 @@ void MetalPipelineCompiler::InitFromStateRender(const LatteFetchShader* fetchSha
     	}
 
     	desc->setVertexDescriptor(vertexDescriptor);
-        vertexDescriptor->release();
     }
 
 	SetFragmentState(desc, lastUsedAttachmentsInfo, activeAttachmentsInfo, m_rasterizationEnabled, lcr);
