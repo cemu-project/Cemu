@@ -109,6 +109,7 @@ MetalRenderer::MetalRenderer()
             m_positionInvariance = false;
             break;
         }
+        break;
     case PositionInvariance::False:
         m_positionInvariance = false;
         break;
