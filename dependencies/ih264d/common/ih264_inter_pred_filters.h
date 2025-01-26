@@ -109,7 +109,11 @@ typedef void _ih264_inter_pred_luma_ft(UWORD8 *pu1_src,
                                       UWORD8* pu1_tmp,
                                       WORD32 dydx);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_inter_pred_luma_ft(arg) _ih264_inter_pred_luma_ft arg __asm__(#arg);
+#else
+#define ih264_inter_pred_luma_ft(arg) _ih264_inter_pred_luma_ft arg;
+#endif
 
 typedef void _ih264_interleave_copy_ft(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
@@ -118,7 +122,11 @@ typedef void _ih264_interleave_copy_ft(UWORD8 *pu1_src,
                                       WORD32 ht,
                                       WORD32 wd);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_interleave_copy_ft(arg) _ih264_interleave_copy_ft arg __asm__(#arg);
+#else
+#define ih264_interleave_copy_ft(arg) _ih264_interleave_copy_ft arg;
+#endif
 
 typedef void _ih264_inter_pred_luma_bilinear_ft(UWORD8 *pu1_src1,
                                                UWORD8 *pu1_src2,
@@ -129,7 +137,11 @@ typedef void _ih264_inter_pred_luma_bilinear_ft(UWORD8 *pu1_src1,
                                                WORD32 height,
                                                WORD32 width);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_inter_pred_luma_bilinear_ft(arg) _ih264_inter_pred_luma_bilinear_ft arg __asm__(#arg);
+#else
+#define ih264_inter_pred_luma_bilinear_ft(arg) _ih264_inter_pred_luma_bilinear_ft arg;
+#endif
 
 typedef void _ih264_inter_pred_chroma_ft(UWORD8 *pu1_src,
                                         UWORD8 *pu1_dst,
@@ -140,7 +152,11 @@ typedef void _ih264_inter_pred_chroma_ft(UWORD8 *pu1_src,
                                         WORD32 ht,
                                         WORD32 wd);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_inter_pred_chroma_ft(arg) _ih264_inter_pred_chroma_ft arg __asm__(#arg);
+#else
+#define ih264_inter_pred_chroma_ft(arg) _ih264_inter_pred_chroma_ft arg;
+#endif
 
 /* No NEON Declarations */
 

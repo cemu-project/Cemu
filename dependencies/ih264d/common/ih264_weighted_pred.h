@@ -77,7 +77,11 @@ typedef void _ih264_default_weighted_pred_ft(UWORD8 *puc_src1,
                                             WORD32 ht,
                                             WORD32 wd);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_default_weighted_pred_ft(arg) _ih264_default_weighted_pred_ft arg __asm__(#arg);
+#else
+#define ih264_default_weighted_pred_ft(arg) _ih264_default_weighted_pred_ft arg;
+#endif
 
 typedef void _ih264_weighted_pred_ft(UWORD8 *puc_src,
                                     UWORD8 *puc_dst,
@@ -89,7 +93,11 @@ typedef void _ih264_weighted_pred_ft(UWORD8 *puc_src,
                                     WORD32 ht,
                                     WORD32 wd);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_weighted_pred_ft(arg) _ih264_weighted_pred_ft arg __asm__(#arg);
+#else
+#define ih264_weighted_pred_ft(arg) _ih264_weighted_pred_ft arg;
+#endif
 
 typedef void _ih264_weighted_bi_pred_ft(UWORD8 *puc_src1,
                                        UWORD8 *puc_src2,
@@ -105,7 +113,11 @@ typedef void _ih264_weighted_bi_pred_ft(UWORD8 *puc_src1,
                                        WORD32 ht,
                                        WORD32 wd);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_weighted_bi_pred_ft(arg) _ih264_weighted_bi_pred_ft arg __asm__(#arg);
+#else
+#define ih264_weighted_bi_pred_ft(arg) _ih264_weighted_bi_pred_ft arg;
+#endif
 
 /* No NEON Declarations */
 

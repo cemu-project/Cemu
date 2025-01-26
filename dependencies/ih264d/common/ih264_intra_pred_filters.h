@@ -68,7 +68,11 @@ typedef void _ih264_intra_pred_ref_filtering_ft(UWORD8 *pu1_left,
                                                WORD32 left_strd,
                                                WORD32 ngbr_avail);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_intra_pred_ref_filtering_ft(arg) _ih264_intra_pred_ref_filtering_ft arg __asm__(#arg);
+#else
+#define ih264_intra_pred_ref_filtering_ft(arg) _ih264_intra_pred_ref_filtering_ft arg __asm__(#arg);
+#endif
 
 typedef void _ih264_intra_pred_luma_ft(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
@@ -76,7 +80,11 @@ typedef void _ih264_intra_pred_luma_ft(UWORD8 *pu1_src,
                                       WORD32 dst_strd,
                                       WORD32 ngbr_avail);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_intra_pred_luma_ft(arg) _ih264_intra_pred_luma_ft arg __asm__(#arg);
+#else
+#define ih264_intra_pred_luma_ft(arg) _ih264_intra_pred_luma_ft arg;
+#endif
 
 /* No Neon Definitions */
 
@@ -133,7 +141,7 @@ ih264_intra_pred_luma_ft(ih264_intra_pred_luma_16x16_mode_plane);
 /* Chroma 8x8 Intra pred filters */
 
 typedef _ih264_intra_pred_luma_ft _ih264_intra_pred_chroma_ft;
-#define ih264_intra_pred_chroma_ft(arg) _ih264_intra_pred_chroma_ft arg __asm__(#arg);
+#define ih264_intra_pred_chroma_ft(arg) ih264_intra_pred_luma_ft(arg);
 
 ih264_intra_pred_chroma_ft(ih264_intra_pred_chroma_8x8_mode_dc);
 

@@ -42,7 +42,11 @@
 /*****************************************************************************/
 
 typedef void _ih264_pad(UWORD8 *, WORD32, WORD32, WORD32);
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_pad(arg) _ih264_pad arg __asm__(#arg);
+#else
+#define ih264_pad(arg) _ih264_pad arg;
+#endif
 
 /* C function declarations */
 ih264_pad(ih264_pad_top);

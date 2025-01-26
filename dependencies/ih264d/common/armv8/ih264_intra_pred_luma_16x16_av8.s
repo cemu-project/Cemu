@@ -431,7 +431,7 @@ ih264_intra_pred_luma_16x16_mode_plane_av8:
     mov       x10, x1                   //top_left
     mov       x4, #-1
     ld1       {v2.2s}, [x1], x8
-#ifdef __APPLE__
+#if defined(__APPLE__) && defined(__aarch64__)
     adrp      x7, _ih264_gai1_intrapred_luma_plane_coeffs@GOTPAGE
     ldr       x7, [x7, #_ih264_gai1_intrapred_luma_plane_coeffs@GOTPAGEOFF]
 #else

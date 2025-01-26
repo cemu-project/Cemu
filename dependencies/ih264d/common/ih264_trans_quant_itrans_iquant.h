@@ -53,7 +53,11 @@ typedef void _ih264_resi_trans_dctrans_quant_ft(UWORD8*pu1_src,
                                        UWORD32 u4_round_fact,
                                        UWORD8 *pu1_nnz);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_resi_trans_dctrans_quant_ft(arg) _ih264_resi_trans_dctrans_quant_ft arg __asm__(#arg);
+#else
+#define ih264_resi_trans_dctrans_quant_ft(arg) _ih264_resi_trans_dctrans_quant_ft arg;
+#endif
 
 typedef void _ih264_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           UWORD8 *pu1_pred,
@@ -67,11 +71,15 @@ typedef void _ih264_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           UWORD32 pi4_cntrl,
                                           WORD32 *pi4_tmp);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_idctrans_iquant_itrans_recon_ft(arg) _ih264_pad arg __asm__(#arg);
+#else
+#define ih264_idctrans_iquant_itrans_recon_ft(arg) _ih264_pad arg;
+#endif
 
 
 /*Function prototype declarations*/
-typedef void ih264_resi_trans_quant_ft(UWORD8*pu1_src,
+typedef void _ih264_resi_trans_quant_ft(UWORD8*pu1_src,
                                        UWORD8 *pu1_pred,
                                        WORD16 *pi2_out,
                                        WORD32 src_strd,
@@ -83,7 +91,11 @@ typedef void ih264_resi_trans_quant_ft(UWORD8*pu1_src,
                                        UWORD8 *pu1_nnz,
                                        WORD16 *pi2_alt_dc_addr);
 
-#define ih264_pad(arg) _ih264_pad arg __asm__(#arg);
+#if defined(__APPLE__) && defined(__aarch64__)
+#define ih264_resi_trans_quant_ft(arg) _ih264_resi_trans_quant_ft arg __asm__(#arg);
+#else
+#define ih264_resi_trans_quant_ft(arg) _ih264_resi_trans_quant_ft arg;
+#endif
 
 typedef void _ih264_luma_16x16_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD8 *pu1_pred,
@@ -98,7 +110,11 @@ typedef void _ih264_luma_16x16_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD8 *pu1_nnz,
                                                           UWORD32 u4_dc_flag);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_luma_16x16_resi_trans_dctrans_quant_ft(arg) _ih264_luma_16x16_resi_trans_dctrans_quant_ft arg __asm__(#arg);
+#else
+#define ih264_luma_16x16_resi_trans_dctrans_quant_ft(arg) _ih264_luma_16x16_resi_trans_dctrans_quant_ft arg;
+#endif
 
 typedef void _ih264_chroma_8x8_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD8 *pu1_pred,
@@ -112,7 +128,11 @@ typedef void _ih264_chroma_8x8_resi_trans_dctrans_quant_ft(UWORD8 *pu1_src,
                                                           UWORD32 u4_round_factor,
                                                           UWORD8 *pu1_nnz);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_chroma_8x8_resi_trans_dctrans_quant_ft(arg) _ih264_chroma_8x8_resi_trans_dctrans_quant_ft arg __asm__(#arg);
+#else
+#define ih264_chroma_8x8_resi_trans_dctrans_quant_ft(arg) _ih264_chroma_8x8_resi_trans_dctrans_quant_ft arg;
+#endif
 
 typedef void _ih264_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           UWORD8 *pu1_pred,
@@ -126,7 +146,11 @@ typedef void _ih264_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                           WORD32 iq_start_idx,
                                           WORD16 *pi2_dc_ld_addr);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_iquant_itrans_recon_ft(arg) _ih264_iquant_itrans_recon_ft arg __asm__(#arg);
+#else
+#define ih264_iquant_itrans_recon_ft(arg) _ih264_iquant_itrans_recon_ft arg;
+#endif
 
 
 typedef void _ih264_iquant_itrans_recon_chroma_ft(WORD16 *pi2_src,
@@ -140,7 +164,11 @@ typedef void _ih264_iquant_itrans_recon_chroma_ft(WORD16 *pi2_src,
                                                  WORD16 *pi2_tmp,
                                                  WORD16 *pi2_dc_src);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_iquant_itrans_recon_chroma_ft(arg) _ih264_iquant_itrans_recon_chroma_ft arg __asm__(#arg);
+#else
+#define ih264_iquant_itrans_recon_chroma_ft(arg) _ih264_iquant_itrans_recon_chroma_ft arg;
+#endif
 
 
 typedef void _ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
@@ -156,7 +184,11 @@ typedef void _ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD32 u4_dc_trans_flag,
                                                               WORD32 *pi4_tmp);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(arg) _ih264_luma_16x16_idctrans_iquant_itrans_recon_ft arg __asm__(#arg);
+#else
+#define ih264_luma_16x16_idctrans_iquant_itrans_recon_ft(arg) _ih264_luma_16x16_idctrans_iquant_itrans_recon_ft arg;
+#endif
 
 typedef void _ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD8 *pu1_pred,
@@ -170,7 +202,11 @@ typedef void _ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(WORD16 *pi2_src,
                                                               UWORD32 pi4_cntrl,
                                                               WORD32 *pi4_tmp);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(arg) _ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft arg __asm__(#arg);
+#else
+#define ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft(arg) _ih264_chroma_8x8_idctrans_iquant_itrans_recon_ft arg;
+#endif
 
 typedef void _ih264_ihadamard_scaling_ft(WORD16* pi2_src,
                                         WORD16* pi2_out,
@@ -179,14 +215,22 @@ typedef void _ih264_ihadamard_scaling_ft(WORD16* pi2_src,
                                         UWORD32 u4_qp_div_6,
                                         WORD32* pi4_tmp);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_ihadamard_scaling_ft(arg) _ih264_ihadamard_scaling_ft arg __asm__(#arg);
+#else
+#define ih264_ihadamard_scaling_ft(arg) _ih264_ihadamard_scaling_ft arg;
+#endif
 
 typedef void _ih264_hadamard_quant_ft(WORD16 *pi2_src, WORD16 *pi2_dst,
                                     const UWORD16 *pu2_scale_matrix,
                                     const UWORD16 *pu2_threshold_matrix, UWORD32 u4_qbits,
                                     UWORD32 u4_round_factor,UWORD8  *pu1_nnz);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_hadamard_quant_ft(arg) _ih264_hadamard_quant_ft arg __asm__(#arg);
+#else
+#define ih264_hadamard_quant_ft(arg) _ih264_hadamard_quant_ft arg;
+#endif
 
 ih264_resi_trans_quant_ft(ih264_resi_trans_quant_4x4);
 ih264_resi_trans_quant_ft(ih264_resi_trans_quant_chroma_4x4);
