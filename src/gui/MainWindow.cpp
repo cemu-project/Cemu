@@ -484,20 +484,20 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
-		CafeSystem::STATUS_CODE r = CafeSystem::PrepareForegroundTitle(baseTitleId);
-		if (r == CafeSystem::STATUS_CODE::INVALID_RPX)
+		CafeSystem::PREPARE_STATUS_CODE r = CafeSystem::PrepareForegroundTitle(baseTitleId);
+		if (r == CafeSystem::PREPARE_STATUS_CODE::INVALID_RPX)
 		{
 			cemu_assert_debug(false);
 			return false;
 		}
-		else if (r == CafeSystem::STATUS_CODE::UNABLE_TO_MOUNT)
+		else if (r == CafeSystem::PREPARE_STATUS_CODE::UNABLE_TO_MOUNT)
 		{
 			wxString t = _("Unable to mount title.\nMake sure the configured game paths are still valid and refresh the game list.\n\nFile which failed to load:\n");
 			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
-		else if (r != CafeSystem::STATUS_CODE::SUCCESS)
+		else if (r != CafeSystem::PREPARE_STATUS_CODE::SUCCESS)
 		{
 			wxString t = _("Failed to launch game.");
 			t.append(_pathToUtf8(launchPath));
@@ -512,8 +512,8 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 		CafeTitleFileType fileType = DetermineCafeSystemFileType(launchPath);
 		if (fileType == CafeTitleFileType::RPX || fileType == CafeTitleFileType::ELF)
 		{
-			CafeSystem::STATUS_CODE r = CafeSystem::PrepareForegroundTitleFromStandaloneRPX(launchPath);
-			if (r != CafeSystem::STATUS_CODE::SUCCESS)
+			CafeSystem::PREPARE_STATUS_CODE r = CafeSystem::PrepareForegroundTitleFromStandaloneRPX(launchPath);
+			if (r != CafeSystem::PREPARE_STATUS_CODE::SUCCESS)
 			{
 				cemu_assert_debug(false); // todo
 				wxString t = _("Failed to launch executable. Path: ");
@@ -1114,9 +1114,7 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 	{
 		try
 		{
-			// create directory
-			const fs::path path(ActiveSettings::GetUserDataPath());
-			fs::create_directories(path / "dump" / "shaders");
+			fs::create_directories(ActiveSettings::GetUserDataPath("dump/shaders"));
 		}
 		catch (const std::exception & ex)
 		{

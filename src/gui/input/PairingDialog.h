@@ -17,7 +17,7 @@ private:
         Pairing,
         Finished,
         NoBluetoothAvailable,
-        BluetoothFailed,
+	  	SearchFailed,
         PairingFailed,
         BluetoothUnusable
     };

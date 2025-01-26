@@ -1,5 +1,6 @@
 #pragma once
 #include "Cemu/ncrypto/ncrypto.h"
+#include "openssl/evp.h"
 
 struct FSTFileHandle
 {
@@ -45,6 +46,7 @@ public:
 	~FSTVolume();
 
 	uint32 GetFileCount() const;
+	bool HasCorruption() const { return m_detectedCorruption; }
 
 	bool OpenFile(std::string_view path, FSTFileHandle& fileHandleOut, bool openOnlyFiles = false);
 
@@ -86,15 +88,25 @@ private:
 	enum class ClusterHashMode : uint8
 	{
 		RAW = 0, // raw data + encryption, no hashing?
-		RAW2 = 1, // raw data + encryption, with hash stored in tmd?
+	  	RAW_STREAM = 1, // raw data + encryption, with hash stored in tmd?
 		HASH_INTERLEAVED = 2, // hashes + raw interleaved in 0x10000 blocks (0x400 bytes of hashes at the beginning, followed by 0xFC00 bytes of data)
 	};
 
 	struct FSTCluster
 	{
+		FSTCluster() : singleHashCtx(nullptr, &EVP_MD_CTX_free) {}
+
 		uint32 offset;
 		uint32 size;
 		ClusterHashMode hashMode;
+		// extra data if TMD is available
+		bool hasContentHash;
+		uint8 contentHash32[32];
+		bool contentHashIsSHA1; // if true then it's SHA1 (with extra bytes zeroed out), otherwise it's SHA256
+		uint64 contentSize; // size of the content (in blocks)
+		// hash context for single hash mode (content hash must be available)
+		std::unique_ptr<EVP_MD_CTX, decltype(&EVP_MD_CTX_free)> singleHashCtx; // unique_ptr to make this move-only
+		uint32 singleHashNumBlocksHashed{0};
 	};
 
 	struct FSTEntry
@@ -164,16 +176,29 @@ private:
 	bool m_sourceIsOwned{};
 	uint32 m_sectorSize{}; // for cluster offsets
 	uint32 m_offsetFactor{}; // for file offsets
+	bool m_hashIsDisabled{}; // disables hash verification (for all clusters of this volume?)
 	std::vector<FSTCluster> m_cluster;
 	std::vector<FSTEntry> m_entries;
 	std::vector<char> m_nameStringTable;
 	NCrypto::AesKey m_partitionTitlekey;
+	bool m_detectedCorruption{false};
 
-	/* Cache for decrypted hashed blocks */
+	bool HashIsDisabled() const
+	{
+		return m_hashIsDisabled;
+	}
+
+	/* Cache for decrypted raw and hashed blocks */
+	std::unordered_map<uint64, struct FSTCachedRawBlock*> m_cacheDecryptedRawBlocks;
 	std::unordered_map<uint64, struct FSTCachedHashedBlock*> m_cacheDecryptedHashedBlocks;
 	uint64 m_cacheAccessCounter{};
 
+	void DetermineUnhashedBlockIV(uint32 clusterIndex, uint32 blockIndex, uint8 ivOut[16]);
+
+	struct FSTCachedRawBlock* GetDecryptedRawBlock(uint32 clusterIndex, uint32 blockIndex);
 	struct FSTCachedHashedBlock* GetDecryptedHashedBlock(uint32 clusterIndex, uint32 blockIndex);
+
+	void TrimCacheIfRequired(struct FSTCachedRawBlock** droppedRawBlock, struct FSTCachedHashedBlock** droppedHashedBlock);
 
 	/* File reading */
 	uint32 ReadFile_HashModeRaw(uint32 clusterIndex, FSTEntry& entry, uint32 readOffset, uint32 readSize, void* dataOut);
@@ -185,7 +210,10 @@ private:
 		/* +0x00 */ uint32be magic;
 		/* +0x04 */ uint32be offsetFactor;
 		/* +0x08 */ uint32be numCluster;
-		/* +0x0C */ uint32be ukn0C;
+		/* +0x0C */ uint8be hashIsDisabled;
+		/* +0x0D */ uint8be ukn0D;
+		/* +0x0E */ uint8be ukn0E;
+		/* +0x0F */ uint8be ukn0F;
 		/* +0x10 */ uint32be ukn10;
 		/* +0x14 */ uint32be ukn14;
 		/* +0x18 */ uint32be ukn18;
@@ -262,8 +290,8 @@ private:
 
 	static_assert(sizeof(FSTHeader_FileEntry) == 0x10);
 
-	static FSTVolume* OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode);
-	static FSTVolume* OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode);
+	static FSTVolume* OpenFST(FSTDataSource* dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode, NCrypto::TMDParser* optionalTMD);
+	static FSTVolume* OpenFST(std::unique_ptr<FSTDataSource> dataSource, uint64 fstOffset, uint32 fstSize, NCrypto::AesKey* partitionTitleKey, ClusterHashMode fstHashMode, NCrypto::TMDParser* optionalTMD);
 	static bool ProcessFST(FSTHeader_FileEntry* fileTable, uint32 numFileEntries, uint32 numCluster, std::vector<char>& nameStringTable, std::vector<FSTEntry>& fstEntries);
 
 	bool MatchFSTEntryName(FSTEntry& entry, std::string_view comparedName)

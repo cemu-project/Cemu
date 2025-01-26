@@ -632,7 +632,7 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 
 	const auto persistent_id = (uint32)(uintptr_t)m_save_account_list->GetClientData(selection_index);
 
-	wxFileDialog path_dialog(this, _("Select a target file to export the save entry"), entry->path.string(), wxEmptyString,
+	wxFileDialog path_dialog(this, _("Select a target file to export the save entry"), wxHelper::FromPath(entry->path), wxEmptyString,
 		fmt::format("{}|*.zip", _("Exported save entry (*.zip)")), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().IsEmpty())
 		return;

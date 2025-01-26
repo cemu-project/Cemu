@@ -9,32 +9,45 @@
 #include <wx/msgdlg.h>
 
 #include "Cafe/OS/libs/coreinit/coreinit_FS.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
 
 namespace nn
 {
 namespace erreula
 {
-#define RESULTTYPE_NONE		0
-#define RESULTTYPE_FINISH	1
-#define RESULTTYPE_NEXT		2
-#define RESULTTYPE_JUMP		3
-#define RESULTTYPE_PASSWORD 4
 
-#define ERRORTYPE_CODE 0
-#define ERRORTYPE_TEXT 1
-#define ERRORTYPE_TEXT_ONE_BUTTON 2
-#define ERRORTYPE_TEXT_TWO_BUTTON 3
-
-#define ERREULA_STATE_HIDDEN		0
-#define ERREULA_STATE_APPEARING		1
-#define ERREULA_STATE_VISIBLE		2
-#define ERREULA_STATE_DISAPPEARING	3
-
-	struct AppearArg_t
+	enum class ErrorDialogType : uint32
 	{
-		AppearArg_t() = default;
-		AppearArg_t(const AppearArg_t& o)
+		Code = 0,
+		Text = 1,
+		TextOneButton = 2,
+		TextTwoButton = 3
+	};
+
+	static const sint32 FADE_TIME = 80;
+
+	enum class ErrEulaState : uint32
+	{
+		Hidden = 0,
+		Appearing = 1,
+		Visible = 2,
+		Disappearing = 3
+	};
+
+	enum class ResultType : uint32
+	{
+		None = 0,
+		Finish = 1,
+		Next = 2,
+		Jump = 3,
+		Password = 4
+	};
+
+	struct AppearError
+	{
+		AppearError() = default;
+		AppearError(const AppearError& o)
 		{
 			errorType = o.errorType;
 			screenType = o.screenType;
@@ -49,7 +62,7 @@ namespace erreula
 			drawCursor = o.drawCursor;
 		}
 
-		uint32be errorType;
+		betype<ErrorDialogType> errorType;
 		uint32be screenType;
 		uint32be controllerType;
 		uint32be holdType;
@@ -63,7 +76,9 @@ namespace erreula
 		bool drawCursor{};
 	};
 
-	static_assert(sizeof(AppearArg_t) == 0x2C); // maybe larger
+	using AppearArg = AppearError;
+
+	static_assert(sizeof(AppearError) == 0x2C); // maybe larger
 
 	struct HomeNixSignArg_t
 	{
@@ -80,6 +95,132 @@ namespace erreula
 
 	static_assert(sizeof(ControllerInfo_t) == 0x14); // maybe larger
 
+	class ErrEulaInstance
+	{
+	  public:
+		enum class BUTTON_SELECTION : uint32
+		{
+			NONE = 0xFFFFFFFF,
+			LEFT = 0,
+			RIGHT = 1,
+		};
+
+		void Init()
+		{
+			m_buttonSelection = BUTTON_SELECTION::NONE;
+			m_resultCode = -1;
+			m_resultCodeForLeftButton = 0;
+			m_resultCodeForRightButton = 0;
+			SetState(ErrEulaState::Hidden);
+		}
+
+		void DoAppearError(AppearArg* arg)
+		{
+			m_buttonSelection = BUTTON_SELECTION::NONE;
+			m_resultCode = -1;
+			m_resultCodeForLeftButton = -1;
+			m_resultCodeForRightButton = -1;
+			// for standard dialog its 0 and 1?
+			m_resultCodeForLeftButton = 0;
+			m_resultCodeForRightButton = 1;
+			SetState(ErrEulaState::Appearing);
+		}
+
+		void DoDisappearError()
+		{
+			if(m_state != ErrEulaState::Visible)
+				return;
+			SetState(ErrEulaState::Disappearing);
+		}
+
+		void DoCalc()
+		{
+			// appearing and disappearing state will automatically advance after some time
+			if (m_state == ErrEulaState::Appearing || m_state == ErrEulaState::Disappearing)
+			{
+				uint32 elapsedTick = coreinit::OSGetTime() - m_lastStateChange;
+				if (elapsedTick > coreinit::EspressoTime::ConvertMsToTimerTicks(FADE_TIME))
+				{
+					SetState(m_state == ErrEulaState::Appearing ? ErrEulaState::Visible : ErrEulaState::Hidden);
+				}
+			}
+		}
+
+		bool IsDecideSelectButtonError() const
+		{
+			return m_buttonSelection != BUTTON_SELECTION::NONE;
+		}
+
+		bool IsDecideSelectLeftButtonError() const
+		{
+			return m_buttonSelection != BUTTON_SELECTION::LEFT;
+		}
+
+		bool IsDecideSelectRightButtonError() const
+		{
+			return m_buttonSelection != BUTTON_SELECTION::RIGHT;
+		}
+
+		void SetButtonSelection(BUTTON_SELECTION selection)
+		{
+			cemu_assert_debug(m_buttonSelection == BUTTON_SELECTION::NONE);
+			m_buttonSelection = selection;
+			cemu_assert_debug(selection == BUTTON_SELECTION::LEFT || selection == BUTTON_SELECTION::RIGHT);
+			m_resultCode = selection == BUTTON_SELECTION::LEFT ? m_resultCodeForLeftButton : m_resultCodeForRightButton;
+		}
+
+		ErrEulaState GetState() const
+		{
+			return m_state;
+		}
+
+		sint32 GetResultCode() const
+		{
+			return m_resultCode;
+		}
+
+		ResultType GetResultType() const
+		{
+		  if(m_resultCode == -1)
+			  return ResultType::None;
+		  if(m_resultCode < 10)
+			  return ResultType::Finish;
+		  if(m_resultCode >= 9999)
+			  return ResultType::Next;
+		  if(m_resultCode == 40)
+			  return ResultType::Password;
+		  return ResultType::Jump;
+		}
+
+		float GetFadeTransparency() const
+		{
+			if(m_state == ErrEulaState::Appearing || m_state == ErrEulaState::Disappearing)
+			{
+				uint32 elapsedTick = coreinit::OSGetTime() - m_lastStateChange;
+				if(m_state == ErrEulaState::Appearing)
+					return std::min<float>(1.0f, (float)elapsedTick / (float)coreinit::EspressoTime::ConvertMsToTimerTicks(FADE_TIME));
+				else
+					return std::max<float>(0.0f, 1.0f - (float)elapsedTick / (float)coreinit::EspressoTime::ConvertMsToTimerTicks(FADE_TIME));
+			}
+			return 1.0f;
+		}
+
+	  private:
+		void SetState(ErrEulaState state)
+		{
+			m_state = state;
+			m_lastStateChange = coreinit::OSGetTime();
+		}
+
+		ErrEulaState m_state;
+		uint32 m_lastStateChange;
+
+		/* +0x30 */ betype<sint32> m_resultCode;
+		/* +0x239C */ betype<BUTTON_SELECTION> m_buttonSelection;
+		/* +0x23A0 */ betype<sint32> m_resultCodeForLeftButton;
+		/* +0x23A4 */ betype<sint32> m_resultCodeForRightButton;
+	};
+
 	struct ErrEula_t
 	{
 		SysAllocator<coreinit::OSMutex> mutex;
@@ -87,17 +228,11 @@ namespace erreula
 		uint32 langType;
 		MEMPTR<coreinit::FSClient_t> fsClient;
 
-		AppearArg_t currentDialog;
-		uint32 state;
-		bool buttonPressed;
-		bool rightButtonPressed;
+		std::unique_ptr<ErrEulaInstance> errEulaInstance;
 
+		AppearError currentDialog;
 		bool homeNixSignVisible;
-
-		std::chrono::steady_clock::time_point stateTimer{};
 	} g_errEula = {};
-
-
 	
 	std::wstring GetText(uint16be* text)
 	{
@@ -113,22 +248,61 @@ namespace erreula
 	}
 	
 
-	void export_ErrEulaCreate(PPCInterpreter_t* hCPU)
+	void ErrEulaCreate(void* workmem, uint32 regionType, uint32 langType, coreinit::FSClient_t* fsClient)
 	{
-		ppcDefineParamMEMPTR(thisptr, uint8, 0);
-		ppcDefineParamU32(regionType, 1);
-		ppcDefineParamU32(langType, 2);
-		ppcDefineParamMEMPTR(fsClient, coreinit::FSClient_t, 3);
-
 		coreinit::OSLockMutex(&g_errEula.mutex);
 
 		g_errEula.regionType = regionType;
 		g_errEula.langType = langType;
 		g_errEula.fsClient = fsClient;
+		cemu_assert_debug(!g_errEula.errEulaInstance);
+		g_errEula.errEulaInstance = std::make_unique<ErrEulaInstance>();
+		g_errEula.errEulaInstance->Init();
 
 		coreinit::OSUnlockMutex(&g_errEula.mutex);
+	}
 
-		osLib_returnFromFunction(hCPU, 0);
+	void ErrEulaDestroy()
+	{
+		g_errEula.errEulaInstance.reset();
+	}
+
+	// check if any dialog button was selected
+	bool IsDecideSelectButtonError()
+	{
+		if(!g_errEula.errEulaInstance)
+			return false;
+		return g_errEula.errEulaInstance->IsDecideSelectButtonError();
+	}
+
+	// check if left dialog button was selected
+	bool IsDecideSelectLeftButtonError()
+	{
+		if(!g_errEula.errEulaInstance)
+			return false;
+		return g_errEula.errEulaInstance->IsDecideSelectLeftButtonError();
+	}
+
+	// check if right dialog button was selected
+	bool IsDecideSelectRightButtonError()
+	{
+		if(!g_errEula.errEulaInstance)
+			return false;
+		return g_errEula.errEulaInstance->IsDecideSelectRightButtonError();
+	}
+
+	sint32 GetResultCode()
+	{
+		if(!g_errEula.errEulaInstance)
+			return -1;
+		return g_errEula.errEulaInstance->GetResultCode();
+	}
+
+	ResultType GetResultType()
+	{
+		if(!g_errEula.errEulaInstance)
+			return ResultType::None;
+		return g_errEula.errEulaInstance->GetResultType();
 	}
 
 	void export_AppearHomeNixSign(PPCInterpreter_t* hCPU)
@@ -137,28 +311,24 @@ namespace erreula
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	void export_AppearError(PPCInterpreter_t* hCPU)
+	void ErrEulaAppearError(AppearArg* arg)
 	{
-		ppcDefineParamMEMPTR(arg, AppearArg_t, 0);
-
-		g_errEula.currentDialog = *arg.GetPtr();
-		g_errEula.state = ERREULA_STATE_APPEARING;
-		g_errEula.buttonPressed = false;
-		g_errEula.rightButtonPressed = false;
-
-		g_errEula.stateTimer = tick_cached();
-
-		osLib_returnFromFunction(hCPU, 0);
+		g_errEula.currentDialog = *arg;
+		if(g_errEula.errEulaInstance)
+			g_errEula.errEulaInstance->DoAppearError(arg);
 	}
 
-	void export_GetStateErrorViewer(PPCInterpreter_t* hCPU)
+	void ErrEulaDisappearError()
 	{
-		osLib_returnFromFunction(hCPU, g_errEula.state);
+		if(g_errEula.errEulaInstance)
+			g_errEula.errEulaInstance->DoDisappearError();
 	}
-	void export_DisappearError(PPCInterpreter_t* hCPU)
+
+	ErrEulaState ErrEulaGetStateErrorViewer()
 	{
-		g_errEula.state = ERREULA_STATE_HIDDEN;
-		osLib_returnFromFunction(hCPU, 0);
+		if(!g_errEula.errEulaInstance)
+			return ErrEulaState::Hidden;
+		return g_errEula.errEulaInstance->GetState();
 	}
 
 	void export_ChangeLang(PPCInterpreter_t* hCPU)
@@ -166,27 +336,6 @@ namespace erreula
 		ppcDefineParamU32(langType, 0);
 		g_errEula.langType = langType;
 		osLib_returnFromFunction(hCPU, 0);
-	}
-
-	void export_IsDecideSelectButtonError(PPCInterpreter_t* hCPU)
-	{
-		if (g_errEula.buttonPressed)
-			cemuLog_logDebug(LogType::Force, "IsDecideSelectButtonError: TRUE");
-		osLib_returnFromFunction(hCPU, g_errEula.buttonPressed);
-	}
-
-	void export_IsDecideSelectLeftButtonError(PPCInterpreter_t* hCPU)
-	{
-		if (g_errEula.buttonPressed)
-			cemuLog_logDebug(LogType::Force, "IsDecideSelectLeftButtonError: TRUE");
-		osLib_returnFromFunction(hCPU, g_errEula.buttonPressed);
-	}
-
-	void export_IsDecideSelectRightButtonError(PPCInterpreter_t* hCPU)
-	{
-		if (g_errEula.rightButtonPressed)
-			cemuLog_logDebug(LogType::Force, "IsDecideSelectRightButtonError: TRUE");
-		osLib_returnFromFunction(hCPU, g_errEula.rightButtonPressed);
 	}
 
 	void export_IsAppearHomeNixSign(PPCInterpreter_t* hCPU)
@@ -200,61 +349,19 @@ namespace erreula
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	void export_GetResultType(PPCInterpreter_t* hCPU)
+	void ErrEulaCalc(ControllerInfo_t* controllerInfo)
 	{
-		uint32 result = RESULTTYPE_NONE;
-		if (g_errEula.buttonPressed || g_errEula.rightButtonPressed)
-		{
-			cemuLog_logDebug(LogType::Force, "GetResultType: FINISH");
-			result = RESULTTYPE_FINISH;
-		}
-
-		osLib_returnFromFunction(hCPU, result);
-	}
-
-	void export_Calc(PPCInterpreter_t* hCPU)
-	{
-		ppcDefineParamMEMPTR(controllerInfo, ControllerInfo_t, 0);
-		// TODO: check controller buttons bla to accept dialog?
-		osLib_returnFromFunction(hCPU, 0);
+		if(g_errEula.errEulaInstance)
+			g_errEula.errEulaInstance->DoCalc();
 	}
 
 	void render(bool mainWindow)
 	{
-		if(g_errEula.state == ERREULA_STATE_HIDDEN)
+		if(!g_errEula.errEulaInstance)
 			return;
-
-		if(g_errEula.state == ERREULA_STATE_APPEARING)
-		{
-			if(std::chrono::duration_cast<std::chrono::milliseconds>(tick_cached() - g_errEula.stateTimer).count() <= 1000)
-			{
-				return;
-			}
-
-			g_errEula.state = ERREULA_STATE_VISIBLE;
-			g_errEula.stateTimer = tick_cached();
-		}
-		/*else if(g_errEula.state == STATE_VISIBLE)
-		{
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(tick_cached() - g_errEula.stateTimer).count() >= 1000)
-			{
-				g_errEula.state = STATE_DISAPPEARING;
-				g_errEula.stateTimer = tick_cached();
-				return;
-			}
-		}*/
-		else if(g_errEula.state == ERREULA_STATE_DISAPPEARING)
-		{
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(tick_cached() - g_errEula.stateTimer).count() >= 2000)
-			{
-				g_errEula.state = ERREULA_STATE_HIDDEN;
-				g_errEula.stateTimer = tick_cached();
-			}
-
+		if(g_errEula.errEulaInstance->GetState() != ErrEulaState::Visible && g_errEula.errEulaInstance->GetState() != ErrEulaState::Appearing && g_errEula.errEulaInstance->GetState() != ErrEulaState::Disappearing)
 			return;
-		}
-		
-		const AppearArg_t& appearArg = g_errEula.currentDialog;
+		const AppearError& appearArg = g_errEula.currentDialog;
 		std::string text;
 		const uint32 errorCode = (uint32)appearArg.errorCode;
 		if (errorCode != 0)
@@ -276,17 +383,28 @@ namespace erreula
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(0.9f);
 		ImGui::PushFont(font);
-		
+
 		std::string title;
 		if (appearArg.title)
 			title = boost::nowide::narrow(GetText(appearArg.title.GetPtr()));
-		if(title.empty()) // ImGui doesn't allow empty titles, so set one if appearArg.title is not set or empty
+		if (title.empty()) // ImGui doesn't allow empty titles, so set one if appearArg.title is not set or empty
 			title = "ErrEula";
+
+		float fadeTransparency = 1.0f;
+		if (g_errEula.errEulaInstance->GetState() == ErrEulaState::Appearing || g_errEula.errEulaInstance->GetState() == ErrEulaState::Disappearing)
+		{
+			fadeTransparency = g_errEula.errEulaInstance->GetFadeTransparency();
+		}
+
+		float originalAlpha = ImGui::GetStyle().Alpha;
+		ImGui::GetStyle().Alpha = fadeTransparency;
+		ImGui::SetNextWindowBgAlpha(0.9f * fadeTransparency);
 		if (ImGui::Begin(title.c_str(), nullptr, kPopupFlags))
 		{
 			const float startx = ImGui::GetWindowSize().x / 2.0f;
+			bool hasLeftButtonPressed = false, hasRightButtonPressed = false;
 
-			switch ((uint32)appearArg.errorType)
+			switch (appearArg.errorType)
 			{
 			default:
 			{
@@ -294,11 +412,10 @@ namespace erreula
 				ImGui::TextUnformatted(text.c_str(), text.c_str() + text.size());
 				ImGui::Spacing();
 				ImGui::SetCursorPosX(startx - 50);
-				g_errEula.buttonPressed |= ImGui::Button("OK", {100, 0});
-				
+				hasLeftButtonPressed = ImGui::Button("OK", {100, 0});
 				break;
 			}
-			case ERRORTYPE_TEXT:
+			case ErrorDialogType::Text:
 			{
 				std::string txtTmp = "Unknown Error";
 				if (appearArg.text)
@@ -309,10 +426,10 @@ namespace erreula
 				ImGui::Spacing();
 					
 				ImGui::SetCursorPosX(startx - 50);
-				g_errEula.buttonPressed |= ImGui::Button("OK", { 100, 0 });
+				hasLeftButtonPressed = ImGui::Button("OK", { 100, 0 });
 				break;
 			}
-			case ERRORTYPE_TEXT_ONE_BUTTON:
+			case ErrorDialogType::TextOneButton:
 			{
 				std::string txtTmp = "Unknown Error";
 				if (appearArg.text)
@@ -328,10 +445,10 @@ namespace erreula
 
 				float width = std::max(100.0f, ImGui::CalcTextSize(button1.c_str()).x + 10.0f);
 				ImGui::SetCursorPosX(startx - (width / 2.0f));
-				g_errEula.buttonPressed |= ImGui::Button(button1.c_str(), { width, 0 });
+				hasLeftButtonPressed = ImGui::Button(button1.c_str(), { width, 0 });
 				break;
 			}
-			case ERRORTYPE_TEXT_TWO_BUTTON:
+			case ErrorDialogType::TextTwoButton:
 			{
 				std::string txtTmp = "Unknown Error";
 				if (appearArg.text)
@@ -352,42 +469,52 @@ namespace erreula
 				float width2 = std::max(100.0f, ImGui::CalcTextSize(button2.c_str()).x + 10.0f);
 				ImGui::SetCursorPosX(startx - (width1 / 2.0f) - (width2 / 2.0f) - 10);
 					
-				g_errEula.buttonPressed |= ImGui::Button(button1.c_str(), { width1, 0 });
+				hasLeftButtonPressed = ImGui::Button(button1.c_str(), { width1, 0 });
 				ImGui::SameLine();
 					
-				g_errEula.rightButtonPressed |= ImGui::Button(button2.c_str(), { width2, 0 });
+				hasRightButtonPressed = ImGui::Button(button2.c_str(), { width2, 0 });
 				break;
 			}
+			}
+			if (!g_errEula.errEulaInstance->IsDecideSelectButtonError())
+			{
+				if (hasLeftButtonPressed)
+					g_errEula.errEulaInstance->SetButtonSelection(ErrEulaInstance::BUTTON_SELECTION::LEFT);
+				if (hasRightButtonPressed)
+					g_errEula.errEulaInstance->SetButtonSelection(ErrEulaInstance::BUTTON_SELECTION::RIGHT);
 			}
 		}
 		ImGui::End();
 		ImGui::PopFont();
-
-		if(g_errEula.buttonPressed || g_errEula.rightButtonPressed)
-		{
-			g_errEula.state = ERREULA_STATE_DISAPPEARING;
-			g_errEula.stateTimer = tick_cached();
-		}
+		ImGui::GetStyle().Alpha = originalAlpha;
 	}
 
 	void load()
 	{
+		g_errEula.errEulaInstance.reset();
+
 		OSInitMutexEx(&g_errEula.mutex, nullptr);
 
-		//osLib_addFunction("erreula", "ErrEulaCreate__3RplFPUcQ3_2nn7erreula10", export_ErrEulaCreate); // copy ctor?
-		osLib_addFunction("erreula", "ErrEulaCreate__3RplFPUcQ3_2nn7erreula10RegionTypeQ3_2nn7erreula8LangTypeP8FSClient", export_ErrEulaCreate);
+		cafeExportRegisterFunc(ErrEulaCreate, "erreula", "ErrEulaCreate__3RplFPUcQ3_2nn7erreula10RegionTypeQ3_2nn7erreula8LangTypeP8FSClient", LogType::Placeholder);
+		cafeExportRegisterFunc(ErrEulaDestroy, "erreula", "ErrEulaDestroy__3RplFv", LogType::Placeholder);
+
+		cafeExportRegisterFunc(IsDecideSelectButtonError, "erreula", "ErrEulaIsDecideSelectButtonError__3RplFv", LogType::Placeholder);
+		cafeExportRegisterFunc(IsDecideSelectLeftButtonError, "erreula", "ErrEulaIsDecideSelectLeftButtonError__3RplFv", LogType::Placeholder);
+		cafeExportRegisterFunc(IsDecideSelectRightButtonError, "erreula", "ErrEulaIsDecideSelectRightButtonError__3RplFv", LogType::Placeholder);
+
+		cafeExportRegisterFunc(GetResultCode, "erreula", "ErrEulaGetResultCode__3RplFv", LogType::Placeholder);
+		cafeExportRegisterFunc(GetResultType, "erreula", "ErrEulaGetResultType__3RplFv", LogType::Placeholder);
+
+		cafeExportRegisterFunc(ErrEulaAppearError, "erreula", "ErrEulaAppearError__3RplFRCQ3_2nn7erreula9AppearArg", LogType::Placeholder);
+		cafeExportRegisterFunc(ErrEulaDisappearError, "erreula", "ErrEulaDisappearError__3RplFv", LogType::Placeholder);
+		cafeExportRegisterFunc(ErrEulaGetStateErrorViewer, "erreula", "ErrEulaGetStateErrorViewer__3RplFv", LogType::Placeholder);
+
+		cafeExportRegisterFunc(ErrEulaCalc, "erreula", "ErrEulaCalc__3RplFRCQ3_2nn7erreula14ControllerInfo", LogType::Placeholder);
+
 		osLib_addFunction("erreula", "ErrEulaAppearHomeNixSign__3RplFRCQ3_2nn7erreula14HomeNixSignArg", export_AppearHomeNixSign);
-		osLib_addFunction("erreula", "ErrEulaAppearError__3RplFRCQ3_2nn7erreula9AppearArg", export_AppearError);
-		osLib_addFunction("erreula", "ErrEulaGetStateErrorViewer__3RplFv", export_GetStateErrorViewer);
 		osLib_addFunction("erreula", "ErrEulaChangeLang__3RplFQ3_2nn7erreula8LangType", export_ChangeLang);
-		osLib_addFunction("erreula", "ErrEulaIsDecideSelectButtonError__3RplFv", export_IsDecideSelectButtonError);
-		osLib_addFunction("erreula", "ErrEulaCalc__3RplFRCQ3_2nn7erreula14ControllerInfo", export_Calc);
-		osLib_addFunction("erreula", "ErrEulaIsDecideSelectLeftButtonError__3RplFv", export_IsDecideSelectLeftButtonError);
-		osLib_addFunction("erreula", "ErrEulaIsDecideSelectRightButtonError__3RplFv", export_IsDecideSelectRightButtonError);
 		osLib_addFunction("erreula", "ErrEulaIsAppearHomeNixSign__3RplFv", export_IsAppearHomeNixSign);
 		osLib_addFunction("erreula", "ErrEulaDisappearHomeNixSign__3RplFv", export_DisappearHomeNixSign);
-		osLib_addFunction("erreula", "ErrEulaGetResultType__3RplFv", export_GetResultType);
-		osLib_addFunction("erreula", "ErrEulaDisappearError__3RplFv", export_DisappearError);
 	}
 }
 }

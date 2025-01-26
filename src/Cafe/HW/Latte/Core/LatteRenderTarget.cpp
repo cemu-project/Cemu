@@ -11,7 +11,6 @@
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/ActiveSettings.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "gui/guiWrapper.h"
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
@@ -933,13 +932,6 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	if (shader == nullptr)
 	{
 		sint32 scaling_filter = downscaling ? GetConfig().downscale_filter : GetConfig().upscale_filter;
-		
-		if (g_renderer->GetType() == RendererAPI::Vulkan)
-		{
-			// force linear or nearest neighbor filter
-			if(scaling_filter != kLinearFilter && scaling_filter != kNearestNeighborFilter)
-				scaling_filter = kLinearFilter;
-		}
 
 		if (scaling_filter == kLinearFilter)
 		{
@@ -957,7 +949,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 			else
 				shader = RendererOutputShader::s_bicubic_shader;
 
-			filter = LatteTextureView::MagFilter::kNearestNeighbor;
+			filter = LatteTextureView::MagFilter::kLinear;
 		}
 		else if (scaling_filter == kBicubicHermiteFilter)
 		{

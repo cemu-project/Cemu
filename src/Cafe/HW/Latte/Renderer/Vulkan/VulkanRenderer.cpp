@@ -439,7 +439,7 @@ VulkanRenderer::VulkanRenderer()
 	GetDeviceFeatures();
 
 	// init memory manager
-	memoryManager = new VKRMemoryManager(this);
+	memoryManager.reset(new VKRMemoryManager(this));
 
 	try
 	{
@@ -577,15 +577,15 @@ VulkanRenderer::VulkanRenderer()
 	void* bufferPtr;
 	// init ringbuffer for uniform vars
 	m_uniformVarBufferMemoryIsCoherent = false;
-	if (memoryManager->CreateBuffer2(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
+	if (memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
 		m_uniformVarBufferMemoryIsCoherent = true;
-	else if (memoryManager->CreateBuffer2(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
+	else if (memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
 		m_uniformVarBufferMemoryIsCoherent = true; // unified memory
-	else if (memoryManager->CreateBuffer2(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
+	else if (memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
 		m_uniformVarBufferMemoryIsCoherent = true;
 	else
 	{
-		memoryManager->CreateBuffer2(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory);
+		memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory);
 	}
 
 	if (!m_uniformVarBufferMemoryIsCoherent)
@@ -628,6 +628,31 @@ VulkanRenderer::~VulkanRenderer()
 	m_pipeline_cache_semaphore.notify();
 	m_pipeline_cache_save_thread.join();
 
+	vkDestroyPipelineCache(m_logicalDevice, m_pipeline_cache, nullptr);
+
+	if(!m_backbufferBlitDescriptorSetCache.empty())
+	{
+		std::vector<VkDescriptorSet> freeVector;
+		freeVector.reserve(m_backbufferBlitDescriptorSetCache.size());
+		std::transform(m_backbufferBlitDescriptorSetCache.begin(), m_backbufferBlitDescriptorSetCache.end(), std::back_inserter(freeVector), [](auto& i) {
+		  return i.second;
+		});
+		vkFreeDescriptorSets(m_logicalDevice, m_descriptorPool, freeVector.size(), freeVector.data());
+	}
+
+	vkDestroyDescriptorPool(m_logicalDevice, m_descriptorPool, nullptr);
+
+	for(auto& i : m_backbufferBlitPipelineCache)
+	{
+		vkDestroyPipeline(m_logicalDevice, i.second, nullptr);
+	}
+	m_backbufferBlitPipelineCache = {};
+
+	if(m_occlusionQueries.queryPool != VK_NULL_HANDLE)
+		vkDestroyQueryPool(m_logicalDevice, m_occlusionQueries.queryPool, nullptr);
+
+	vkDestroyDescriptorSetLayout(m_logicalDevice, m_swapchainDescriptorSetLayout, nullptr);
+
 	// shut down imgui
 	ImGui_ImplVulkan_Shutdown();
 
@@ -640,10 +665,6 @@ VulkanRenderer::~VulkanRenderer()
 	memoryManager->DeleteBuffer(m_xfbRingBuffer, m_xfbRingBufferMemory);
 	memoryManager->DeleteBuffer(m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults);
 	memoryManager->DeleteBuffer(m_bufferCache, m_bufferCacheMemory);
-	// texture memory
-	// todo
-	// upload buffers
-	// todo
 
 	m_padSwapchainInfo = nullptr;
 	m_mainSwapchainInfo = nullptr;
@@ -666,11 +687,19 @@ VulkanRenderer::~VulkanRenderer()
 		it = VK_NULL_HANDLE;
 	}
 
+	for(auto& sem : m_commandBufferSemaphores)
+	{
+		vkDestroySemaphore(m_logicalDevice, sem, nullptr);
+		sem = VK_NULL_HANDLE;
+	}
+
 	if (m_pipelineLayout != VK_NULL_HANDLE)
 		vkDestroyPipelineLayout(m_logicalDevice, m_pipelineLayout, nullptr);
 
 	if (m_commandPool != VK_NULL_HANDLE)
 		vkDestroyCommandPool(m_logicalDevice, m_commandPool, nullptr);
+
+	VKRObjectSampler::DestroyCache();
 
 	// destroy debug callback
 	if (m_debugCallback)
@@ -678,6 +707,12 @@ VulkanRenderer::~VulkanRenderer()
 		PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
 		vkDestroyDebugUtilsMessengerEXT(m_instance, m_debugCallback, nullptr);
 	}
+
+	while(!m_destructionQueue.empty())
+		ProcessDestructionQueue();
+
+	// destroy memory manager
+	memoryManager.reset();
 
 	// destroy instance, devices
 	if (m_instance != VK_NULL_HANDLE)
@@ -689,9 +724,6 @@ VulkanRenderer::~VulkanRenderer()
 
 		vkDestroyInstance(m_instance, nullptr);
 	}
-
-	// destroy memory manager
-	delete memoryManager;
 
 	// crashes?
 	//glslang::FinalizeProcess();
@@ -823,7 +855,14 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 			VkMemoryAllocateInfo allocInfo{};
 			allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 			allocInfo.allocationSize = memRequirements.size;
-			allocInfo.memoryTypeIndex = memoryManager->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+			uint32 memIndex;
+			bool foundMemory = memoryManager->FindMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memIndex);
+			if(!foundMemory)
+			{
+				cemuLog_log(LogType::Force, "Screenshot request failed due to incompatible vulkan memory types.");
+				return;
+			}
+			allocInfo.memoryTypeIndex = memIndex;
 
 			if (vkAllocateMemory(m_logicalDevice, &allocInfo, nullptr, &imageMemory) != VK_SUCCESS)
 			{
@@ -1606,6 +1645,7 @@ void VulkanRenderer::Initialize()
 
 void VulkanRenderer::Shutdown()
 {
+	DeleteFontTextures();
 	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
@@ -1806,7 +1846,6 @@ void VulkanRenderer::ImguiEnd()
 	vkCmdEndRenderPass(m_state.currentCommandBuffer);
 }
 
-std::vector<LatteTextureVk*> g_imgui_textures; // TODO manage better
 ImTextureID VulkanRenderer::GenerateTexture(const std::vector<uint8>& data, const Vector2i& size)
 {
 	try
@@ -1836,6 +1875,7 @@ void VulkanRenderer::DeleteTexture(ImTextureID id)
 
 void VulkanRenderer::DeleteFontTextures()
 {
+	WaitDeviceIdle();
 	ImGui_ImplVulkan_DestroyFontsTexture();
 }
 
@@ -1874,7 +1914,7 @@ void VulkanRenderer::InitFirstCommandBuffer()
 	vkResetFences(m_logicalDevice, 1, &m_cmd_buffer_fences[m_commandBufferIndex]);
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	vkBeginCommandBuffer(m_state.currentCommandBuffer, &beginInfo);
 
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);
@@ -1996,7 +2036,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	vkBeginCommandBuffer(m_state.currentCommandBuffer, &beginInfo);
 
 	// make sure some states are set for this command buffer
@@ -2517,9 +2557,8 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	hash += (uint64)(chainInfo.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
-	static std::unordered_map<uint64, VkPipeline> s_pipeline_cache;
-	const auto it = s_pipeline_cache.find(hash);
-	if (it != s_pipeline_cache.cend())
+	const auto it = m_backbufferBlitPipelineCache.find(hash);
+	if (it != m_backbufferBlitPipelineCache.cend())
 		return it->second;
 
 	std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
@@ -2581,10 +2620,18 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	colorBlending.blendConstants[2] = 0.0f;
 	colorBlending.blendConstants[3] = 0.0f;
 
+	VkPushConstantRange pushConstantRange{
+		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+		.offset = 0,
+		.size = 3 * sizeof(float) * 2 // 3 vec2's
+	};
+
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
 	pipelineLayoutInfo.pSetLayouts = &descriptorLayout;
+	pipelineLayoutInfo.pushConstantRangeCount = 1;
+	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
 	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
 	if (result != VK_SUCCESS)
@@ -2615,7 +2662,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 		throw std::runtime_error(fmt::format("Failed to create graphics pipeline: {}", result));
 	}
 
-	s_pipeline_cache[hash] = pipeline;
+	m_backbufferBlitPipelineCache[hash] = pipeline;
 	m_pipeline_cache_semaphore.notify();
 
 	return pipeline;
@@ -2912,9 +2959,6 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	LatteTextureViewVk* texViewVk = (LatteTextureViewVk*)texView;
 	draw_endRenderPass();
 
-	if (clearBackground)
-		ClearColorbuffer(padView);
-
 	// barrier for input texture
 	VkMemoryBarrier memoryBarrier{};
 	memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -2951,10 +2995,39 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	vkCmdBeginRenderPass(m_state.currentCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+	if (clearBackground)
+	{
+		VkClearAttachment clearAttachment{};
+		clearAttachment.clearValue = {0,0,0,0};
+		clearAttachment.colorAttachment = 0;
+		clearAttachment.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		VkClearRect clearExtent = {{{0,0},chainInfo.m_actualExtent}, 0, 1};
+		vkCmdClearAttachments(m_state.currentCommandBuffer, 1, &clearAttachment, 1, &clearExtent);
+	}
+
 	vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 	m_state.currentPipeline = pipeline;
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet, 0, nullptr);
+
+	// update push constants
+	Vector2f pushData[3];
+
+	// textureSrcResolution
+	sint32 effectiveWidth, effectiveHeight;
+	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
+	pushData[0] = {(float)effectiveWidth, (float)effectiveHeight};
+
+	// nativeResolution
+	pushData[1] = {
+		(float)texViewVk->baseTexture->width,
+		(float)texViewVk->baseTexture->height,
+	};
+
+	// outputResolution
+	pushData[2] = {(float)imageWidth,(float)imageHeight};
+
+	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float) * 2 * 3, &pushData);
 
 	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);
 
@@ -2996,9 +3069,8 @@ VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorS
 	hash += (uint64)texViewVk->GetViewRGBA();
 	hash += (uint64)texViewVk->GetDefaultTextureSampler(useLinearTexFilter);
 
-	static std::unordered_map<uint64, VkDescriptorSet> s_set_cache;
-	const auto it = s_set_cache.find(hash);
-	if (it != s_set_cache.cend())
+	const auto it = m_backbufferBlitDescriptorSetCache.find(hash);
+	if (it != m_backbufferBlitDescriptorSetCache.cend())
 		return it->second;
 
 	VkDescriptorSetAllocateInfo allocInfo = {};
@@ -3029,7 +3101,7 @@ VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorS
 	vkUpdateDescriptorSets(m_logicalDevice, 1, &descriptorWrites, 0, nullptr);
 	performanceMonitor.vk.numDescriptorSamplerTextures.increment();
 
-	s_set_cache[hash] = result;
+	m_backbufferBlitDescriptorSetCache[hash] = result;
 	return result;
 }
 
@@ -3162,7 +3234,8 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 	performanceMonitor.vk.numDescriptorDynUniformBuffers.decrement(statsNumDynUniformBuffers);
 	performanceMonitor.vk.numDescriptorStorageBuffers.decrement(statsNumStorageBuffers);
 
-	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_vkObjDescriptorSet);
+	auto renderer = VulkanRenderer::GetInstance();
+	renderer->ReleaseDestructibleObject(m_vkObjDescriptorSet);
 	m_vkObjDescriptorSet = nullptr;
 }
 
@@ -3672,7 +3745,7 @@ void VulkanRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uin
 
 void VulkanRenderer::AppendOverlayDebugInfo()
 {
-	ImGui::Text("--- Vulkan info ---");
+	ImGui::Text("--- Vulkan debug info ---");
 	ImGui::Text("GfxPipelines   %u", performanceMonitor.vk.numGraphicPipelines.get());
 	ImGui::Text("DescriptorSets %u", performanceMonitor.vk.numDescriptorSets.get());
 	ImGui::Text("DS ImgSamplers %u", performanceMonitor.vk.numDescriptorSamplerTextures.get());
@@ -3680,6 +3753,7 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::Text("DS StorageBuf  %u", performanceMonitor.vk.numDescriptorStorageBuffers.get());
 	ImGui::Text("Images         %u", performanceMonitor.vk.numImages.get());
 	ImGui::Text("ImageView      %u", performanceMonitor.vk.numImageViews.get());
+	ImGui::Text("ImageSampler   %u", performanceMonitor.vk.numSamplers.get());
 	ImGui::Text("RenderPass     %u", performanceMonitor.vk.numRenderPass.get());
 	ImGui::Text("Framebuffer    %u", performanceMonitor.vk.numFramebuffer.get());
 	m_spinlockDestructionQueue.lock();
@@ -3689,7 +3763,7 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 
 	ImGui::Text("BeginRP/f      %u", performanceMonitor.vk.numBeginRenderpassPerFrame.get());
 	ImGui::Text("Barriers/f     %u", performanceMonitor.vk.numDrawBarriersPerFrame.get());
-	ImGui::Text("--- Cache info ---");
+	ImGui::Text("--- Cache debug info ---");
 
 	uint32 bufferCacheHeapSize = 0;
 	uint32 bufferCacheAllocationSize = 0;
@@ -3709,7 +3783,7 @@ void VulkanRenderer::AppendOverlayDebugInfo()
 	ImGui::SameLine(60.0f);
 	ImGui::Text("%06uKB / %06uKB Buffers: %u", ((uint32)(totalSize - freeSize) + 1023) / 1024, ((uint32)totalSize + 1023) / 1024, (uint32)numBuffers);
 
-	memoryManager->getIndexAllocator().GetStats(numBuffers, totalSize, freeSize);
+	memoryManager->GetIndexAllocator().GetStats(numBuffers, totalSize, freeSize);
 	ImGui::Text("Index");
 	ImGui::SameLine(60.0f);
 	ImGui::Text("%06uKB / %06uKB Buffers: %u", ((uint32)(totalSize - freeSize) + 1023) / 1024, ((uint32)totalSize + 1023) / 1024, (uint32)numBuffers);
@@ -3725,7 +3799,7 @@ void VKRDestructibleObject::flagForCurrentCommandBuffer()
 
 bool VKRDestructibleObject::canDestroy()
 {
-	if (refCount > 0)
+	if (m_refCount > 0)
 		return false;
 	return VulkanRenderer::GetInstance()->HasCommandBufferFinished(m_lastCmdBufferId);
 }
@@ -3764,6 +3838,111 @@ VKRObjectTextureView::~VKRObjectTextureView()
 		vkDestroySampler(logicalDevice, m_textureDefaultSampler[1], nullptr);
 	vkDestroyImageView(logicalDevice, m_textureImageView, nullptr);
 	performanceMonitor.vk.numImageViews.decrement();
+}
+
+static uint64 CalcHashSamplerCreateInfo(const VkSamplerCreateInfo& info)
+{
+	uint64 h = 0xcbf29ce484222325ULL;
+	auto fnvHashCombine = [](uint64_t &h, auto val) {
+		using T = decltype(val);
+		static_assert(sizeof(T) <= 8);
+		uint64_t val64 = 0;
+		std::memcpy(&val64, &val, sizeof(val));
+		h ^= val64;
+		h *= 0x100000001b3ULL;
+	};
+	cemu_assert_debug(info.sType == VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO);
+	fnvHashCombine(h, info.flags);
+	fnvHashCombine(h, info.magFilter);
+	fnvHashCombine(h, info.minFilter);
+	fnvHashCombine(h, info.mipmapMode);
+	fnvHashCombine(h, info.addressModeU);
+	fnvHashCombine(h, info.addressModeV);
+	fnvHashCombine(h, info.addressModeW);
+	fnvHashCombine(h, info.mipLodBias);
+	fnvHashCombine(h, info.anisotropyEnable);
+	if(info.anisotropyEnable == VK_TRUE)
+		fnvHashCombine(h, info.maxAnisotropy);
+	fnvHashCombine(h, info.compareEnable);
+	if(info.compareEnable == VK_TRUE)
+		fnvHashCombine(h, info.compareOp);
+	fnvHashCombine(h, info.minLod);
+	fnvHashCombine(h, info.maxLod);
+	fnvHashCombine(h, info.borderColor);
+	fnvHashCombine(h, info.unnormalizedCoordinates);
+	// handle custom border color
+	VkBaseOutStructure* ext = (VkBaseOutStructure*)info.pNext;
+	while(ext)
+	{
+		if(ext->sType == VK_STRUCTURE_TYPE_SAMPLER_CUSTOM_BORDER_COLOR_CREATE_INFO_EXT)
+		{
+			auto* extInfo = (VkSamplerCustomBorderColorCreateInfoEXT*)ext;
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[0]);
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[1]);
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[2]);
+			fnvHashCombine(h, extInfo->customBorderColor.uint32[3]);
+		}
+		else
+		{
+			cemu_assert_unimplemented();
+		}
+		ext = ext->pNext;
+	}
+	return h;
+}
+
+std::unordered_map<uint64, VKRObjectSampler*> VKRObjectSampler::s_samplerCache;
+
+VKRObjectSampler::VKRObjectSampler(VkSamplerCreateInfo* samplerInfo)
+{
+	auto* vulkanRenderer = VulkanRenderer::GetInstance();
+	if (vkCreateSampler(vulkanRenderer->GetLogicalDevice(), samplerInfo, nullptr, &m_sampler) != VK_SUCCESS)
+		vulkanRenderer->UnrecoverableError("Failed to create texture sampler");
+	performanceMonitor.vk.numSamplers.increment();
+	m_hash = CalcHashSamplerCreateInfo(*samplerInfo);
+}
+
+VKRObjectSampler::~VKRObjectSampler()
+{
+	vkDestroySampler(VulkanRenderer::GetInstance()->GetLogicalDevice(), m_sampler, nullptr);
+	performanceMonitor.vk.numSamplers.decrement();
+	// remove from cache
+	auto it = s_samplerCache.find(m_hash);
+	if(it != s_samplerCache.end())
+		s_samplerCache.erase(it);
+}
+
+void VKRObjectSampler::RefCountReachedZero()
+{
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(this);
+}
+
+VKRObjectSampler* VKRObjectSampler::GetOrCreateSampler(VkSamplerCreateInfo* samplerInfo)
+{
+	auto* vulkanRenderer = VulkanRenderer::GetInstance();
+	uint64 hash = CalcHashSamplerCreateInfo(*samplerInfo);
+	auto it = s_samplerCache.find(hash);
+	if (it != s_samplerCache.end())
+	{
+		auto* sampler = it->second;
+		return sampler;
+	}
+	auto* sampler = new VKRObjectSampler(samplerInfo);
+	s_samplerCache[hash] = sampler;
+	return sampler;
+}
+
+void VKRObjectSampler::DestroyCache()
+{
+	// assuming all other objects which depend on vkSampler are destroyed, this cache should also have been emptied already
+	// but just to be sure lets still clear the cache
+	cemu_assert_debug(s_samplerCache.empty());
+	for(auto& sampler : s_samplerCache)
+	{
+		cemu_assert_debug(sampler.second->m_refCount == 0);
+		delete sampler.second;
+	}
+	s_samplerCache.clear();
 }
 
 VKRObjectRenderPass::VKRObjectRenderPass(AttachmentInfo_t& attachmentInfo, sint32 colorAttachmentCount)

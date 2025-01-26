@@ -114,6 +114,7 @@ void debugger_updateExecutionBreakpoint(uint32 address, bool forceRestore = fals
 
 void debugger_createPatch(uint32 address, std::span<uint8> patchData);
 bool debugger_hasPatch(uint32 address);
+void debugger_removePatch(uint32 address);
 
 void debugger_forceBreak(); // force breakpoint at the next possible instruction
 bool debugger_isTrapped();
