@@ -148,6 +148,19 @@ MetalRenderer::MetalRenderer()
         m_device = MTL::CreateSystemDefaultDevice();
     }
 
+    // Vendor
+    const char* deviceName = m_device->name()->utf8String();
+    if (memcmp(deviceName, "Apple", 5) == 0)
+        m_vendor = GfxVendor::Apple;
+    else if (memcmp(deviceName, "AMD", 3) == 0)
+        m_vendor = GfxVendor::AMD;
+    else if (memcmp(deviceName, "Intel", 5) == 0)
+        m_vendor = GfxVendor::Intel;
+    else if (memcmp(deviceName, "NVIDIA", 6) == 0)
+        m_vendor = GfxVendor::Nvidia;
+    else
+        m_vendor = GfxVendor::Generic;
+
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
     m_supportsFramebufferFetch = GetConfig().framebuffer_fetch.GetValue() ? m_device->supportsFamily(MTL::GPUFamilyApple2) : false;
