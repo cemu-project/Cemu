@@ -48,14 +48,22 @@ typedef void _ih264_deblk_edge_bslt4_ft(UWORD8 *pu1_src,
                                        UWORD32 u4_bs,
                                        const UWORD8 *pu1_cliptab );
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg __asm__(#arg);
+#else
+#define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg __asm__(#arg);
+#endif
 
 typedef void _ih264_deblk_edge_bs4_ft(UWORD8 *pu1_src,
                                      WORD32 src_strd,
                                      WORD32 alpha,
                                      WORD32 beta );
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_deblk_edge_bs4_ft(arg) _ih264_deblk_edge_bs4_ft arg __asm__(#arg);
+#else
+#define ih264_deblk_edge_bs4_ft(arg) _ih264_deblk_edge_bs4_ft arg;
+#endif
 
 typedef void _ih264_deblk_chroma_edge_bslt4_ft(UWORD8 *pu1_src,
                                               WORD32 src_strd,
@@ -67,7 +75,11 @@ typedef void _ih264_deblk_chroma_edge_bslt4_ft(UWORD8 *pu1_src,
                                               const UWORD8 *pu1_cliptab_cb,
                                               const UWORD8 *pu1_cliptab_cr);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_deblk_chroma_edge_bslt4_ft(arg) _ih264_deblk_chroma_edge_bslt4_ft arg __asm__(#arg);
+#else
+#define ih264_deblk_chroma_edge_bslt4_ft(arg) _ih264_deblk_chroma_edge_bslt4_ft arg;
+#endif
 
 typedef void _ih264_deblk_chroma_edge_bs4_ft(UWORD8 *pu1_src,
                                             WORD32 src_strd,
@@ -76,9 +88,11 @@ typedef void _ih264_deblk_chroma_edge_bs4_ft(UWORD8 *pu1_src,
                                             WORD32 alpha_cr,
                                             WORD32 beta_cr);
 
+#if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_deblk_chroma_edge_bs4_ft(arg) _ih264_deblk_chroma_edge_bs4_ft arg __asm__(#arg);
-
-
+#else
+#define ih264_deblk_chroma_edge_bs4_ft(arg) _ih264_deblk_chroma_edge_bs4_ft arg;
+#endif
 
 ih264_deblk_edge_bs4_ft(ih264_deblk_luma_horz_bs4);
 ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4);
