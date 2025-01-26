@@ -42,7 +42,6 @@ namespace MemMapper
 
 	void* AllocateMemory(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags, bool fromReservation)
 	{
-
 		void* r;
 		if(fromReservation)
 		{
