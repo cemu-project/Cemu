@@ -3,20 +3,7 @@
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 
-inline const char* BorderColorToStr(MTL::SamplerBorderColor borderColor)
-{
-    switch (borderColor)
-    {
-    case MTL::SamplerBorderColorTransparentBlack:
-        return "transparent black";
-    case MTL::SamplerBorderColorOpaqueBlack:
-        return "opaque black";
-    case MTL::SamplerBorderColorOpaqueWhite:
-        return "opaque white";
-    }
-}
-
-MTL::SamplerBorderColor GetBorderColor(LatteConst::ShaderType shaderType, uint32 stageSamplerIndex, const _LatteRegisterSetSampler* samplerWords, bool logWorkaround)
+MTL::SamplerBorderColor GetBorderColor(LatteConst::ShaderType shaderType, uint32 stageSamplerIndex, const _LatteRegisterSetSampler* samplerWords, bool logWorkaround = false)
 {
     auto borderType = samplerWords->WORD0.get_BORDER_COLOR_TYPE();
 
@@ -58,7 +45,33 @@ MTL::SamplerBorderColor GetBorderColor(LatteConst::ShaderType shaderType, uint32
 		}
 
 		if (logWorkaround)
-		    cemuLog_log(LogType::Force, "Custom border color ({}, {}, {}, {}) is not supported on Metal, using {} instead", r, g, b, a, BorderColorToStr(borderColor));
+		{
+		    float newR, newG, newB, newA;
+			switch (borderColor)
+			{
+			case MTL::SamplerBorderColorTransparentBlack:
+                newR = 0.0f;
+                newG = 0.0f;
+                newB = 0.0f;
+                newA = 0.0f;
+                break;
+            case MTL::SamplerBorderColorOpaqueBlack:
+                newR = 0.0f;
+                newG = 0.0f;
+                newB = 0.0f;
+                newA = 1.0f;
+                break;
+            case MTL::SamplerBorderColorOpaqueWhite:
+                newR = 1.0f;
+                newG = 1.0f;
+                newB = 1.0f;
+                newA = 1.0f;
+                break;
+            }
+
+            if (r != newR || g != newG || b != newB || a != newA)
+                cemuLog_log(LogType::Force, "Custom border color ({}, {}, {}, {}) is not supported on Metal, using ({}, {}, {}, {}) instead", r, g, b, a, newR, newG, newB, newA);
+		}
     }
 
     return borderColor;
@@ -183,7 +196,7 @@ uint64 MetalSamplerCache::CalculateSamplerHash(const LatteContextRegister& lcr, 
     hash = std::rotl<uint64>(hash, 17);
     hash += (uint64)samplerWords->WORD2.getRawValue();
 
-    auto borderColor = GetBorderColor(shaderType, stageSamplerIndex, samplerWords, true);
+    auto borderColor = GetBorderColor(shaderType, stageSamplerIndex, samplerWords);
 
     hash = std::rotl<uint64>(hash, 5);
     hash += (uint64)borderColor;
