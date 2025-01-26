@@ -2049,8 +2049,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		MTL::SamplerState* sampler;
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
 		{
-    		uint32 samplerIndex = stageSamplerIndex + LatteDecompiler_getTextureSamplerBaseIndex(shader->shaderType);
-    		sampler = m_samplerCache->GetSamplerState(LatteGPUState.contextNew, samplerIndex);
+    		sampler = m_samplerCache->GetSamplerState(LatteGPUState.contextNew, shader->shaderType, stageSamplerIndex);
 		}
 		else
 		{
