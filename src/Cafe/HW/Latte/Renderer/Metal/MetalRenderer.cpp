@@ -62,42 +62,47 @@ MetalRenderer::MetalRenderer()
     case PositionInvariance::Auto:
         switch (CafeSystem::GetForegroundTitleId())
         {
-        // Minecraft: Story Mode
-        case 0x000500001020A300: // EUR
-        case 0x00050000101E0100: // USA
-        //case 0x000500001020a200: // USA
-        // Resident Evil: Revelations
-        case 0x000500001012B400: // EUR
-        case 0x000500001012CF00: // USA
-        // The Legend of Zelda: Breath of the Wild
-        case 0x00050000101C9500: // EUR
-        case 0x00050000101C9400: // USA
-        case 0x00050000101C9300: // JPN
-        // Ninja Gaiden 3: Razor's Edge
-        case 0x0005000010110B00: // EUR
-        case 0x0005000010139B00: // EUR (TODO: check)
-        case 0x0005000010110A00: // USA
-        case 0x0005000010110900: // JPN
-        // Mario Kart 8
-        case 0x000500001010ED00: // EUR
-        case 0x000500001010EC00: // USA
-        case 0x000500001010EB00: // JPN
-        case 0x0005000010183A00: // JPN (TODO: check)
-        // Bayonetta 2
-        case 0x0005000010172700: // EUR
-        case 0x0005000010172600: // USA
-        // LEGO STAR WARS: The Force Awakens
-        case 0x00050000101DAA00: // EUR
-        case 0x00050000101DAB00: // USA
         // Bayonetta
         case 0x0005000010157F00: // EUR
         case 0x0005000010157E00: // USA
         case 0x000500001014DB00: // JPN
+        // Bayonetta 2
+        case 0x0005000010172700: // EUR
+        case 0x0005000010172600: // USA
         // Disney Planes
         case 0x0005000010136900: // EUR
         case 0x0005000010136A00: // EUR (TODO: check)
         case 0x0005000010136B00: // EUR (TODO: check)
         case 0x000500001011C500: // USA (TODO: check)
+        // LEGO STAR WARS: The Force Awakens
+        case 0x00050000101DAA00: // EUR
+        case 0x00050000101DAB00: // USA
+        // Mario Kart 8
+        case 0x000500001010ED00: // EUR
+        case 0x000500001010EC00: // USA
+        case 0x000500001010EB00: // JPN
+        case 0x0005000010183A00: // JPN (TODO: check)
+        // Minecraft: Story Mode
+        case 0x000500001020A300: // EUR
+        case 0x00050000101E0100: // USA
+        //case 0x000500001020a200: // USA
+        // Ninja Gaiden 3: Razor's Edge
+        case 0x0005000010110B00: // EUR
+        case 0x0005000010139B00: // EUR (TODO: check)
+        case 0x0005000010110A00: // USA
+        case 0x0005000010110900: // JPN
+        // Resident Evil: Revelations
+        case 0x000500001012B400: // EUR
+        case 0x000500001012CF00: // USA
+        // Star Fox Zero
+        case 0x00050000101B0500: // EUR
+        case 0x0005000010201C00: // EUR (TODO: check)
+        case 0x00050000101B0400: // USA
+        case 0x0005000010201B00: // USA (TODO: check)
+        // The Legend of Zelda: Breath of the Wild
+        case 0x00050000101C9500: // EUR
+        case 0x00050000101C9400: // USA
+        case 0x00050000101C9300: // JPN
         // Wonderful 101
         case 0x0005000010135300: // EUR
         case 0x000500001012DC00: // USA
