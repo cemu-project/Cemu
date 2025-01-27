@@ -21,15 +21,16 @@ public:
 
 	RendererShader* GetVertexShader() const
 	{
-		return m_vertex_shader;
+		return m_vertex_shader.get();
 	}
 
 	RendererShader* GetFragmentShader() const
 	{
-		return m_fragment_shader;
+		return m_fragment_shader.get();
 	}
 
 	static void InitializeStatic();
+	static void ShutdownStatic();
 
 	static RendererOutputShader* s_copy_shader;
 	static RendererOutputShader* s_copy_shader_ud;
@@ -47,8 +48,8 @@ public:
 	static std::string PrependFragmentPreamble(const std::string& shaderSrc);
 
 protected:
-	RendererShader* m_vertex_shader;
-	RendererShader* m_fragment_shader;
+	std::unique_ptr<RendererShader> m_vertex_shader;
+	std::unique_ptr<RendererShader> m_fragment_shader;
 
 	struct UniformLocations
 	{

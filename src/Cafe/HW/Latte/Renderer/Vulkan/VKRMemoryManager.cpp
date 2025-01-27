@@ -4,6 +4,14 @@
 
 /* VKRSynchronizedMemoryBuffer */
 
+VKRSynchronizedRingAllocator::~VKRSynchronizedRingAllocator()
+{
+	for(auto& buf : m_buffers)
+	{
+		m_vkrMemMgr->DeleteBuffer(buf.vk_buffer, buf.vk_mem);
+	}
+}
+
 void VKRSynchronizedRingAllocator::addUploadBufferSyncPoint(AllocatorBuffer_t& buffer, uint32 offset)
 {
 	auto cmdBufferId = m_vkr->GetCurrentCommandBufferId();
@@ -233,6 +241,15 @@ void VKRSynchronizedHeapAllocator::GetStats(uint32& numBuffers, size_t& totalBuf
 
 /* VkTextureChunkedHeap */
 
+VkTextureChunkedHeap::~VkTextureChunkedHeap()
+{
+	VkDevice device = VulkanRenderer::GetInstance()->GetLogicalDevice();
+	for (auto& i : m_list_chunkInfo)
+	{
+		vkFreeMemory(device, i.mem, nullptr);
+	}
+}
+
 uint32 VkTextureChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAllocationSize)
 {
 	cemu_assert_debug(m_list_chunkInfo.size() == chunkIndex);
@@ -310,11 +327,11 @@ VKRBuffer* VKRBuffer::Create(VKR_BUFFER_TYPE bufferType, size_t bufferSize, VkMe
 	VkDeviceMemory bufferMemory;
 	bool allocSuccess;
 	if (bufferType == VKR_BUFFER_TYPE::STAGING)
-		allocSuccess = memMgr->CreateBuffer2(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, buffer, bufferMemory);
+		allocSuccess = memMgr->CreateBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, properties, buffer, bufferMemory);
 	else if (bufferType == VKR_BUFFER_TYPE::INDEX)
-		allocSuccess = memMgr->CreateBuffer2(bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, properties, buffer, bufferMemory);
+		allocSuccess = memMgr->CreateBuffer(bufferSize, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, properties, buffer, bufferMemory);
 	else if (bufferType == VKR_BUFFER_TYPE::STRIDE)
-		allocSuccess = memMgr->CreateBuffer2(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, properties, buffer, bufferMemory);
+		allocSuccess = memMgr->CreateBuffer(bufferSize, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, properties, buffer, bufferMemory);
 	else
 		cemu_assert_debug(false);
 	if (!allocSuccess)
@@ -363,28 +380,14 @@ uint32 VkBufferChunkedHeap::allocateNewChunk(uint32 chunkIndex, uint32 minimumAl
 	return allocationSize;
 }
 
-uint32_t VKRMemoryManager::FindMemoryType(uint32_t typeFilter, VkMemoryPropertyFlags properties) const
-{
-	VkPhysicalDeviceMemoryProperties memProperties;
-	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
-
-	for (uint32 i = 0; i < memProperties.memoryTypeCount; i++)
-	{
-		if ((typeFilter & (1 << i)) != 0 && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			return i;
-	}
-	m_vkr->UnrecoverableError(fmt::format("failed to find suitable memory type ({0:#08x} {1:#08x})", typeFilter, properties).c_str());
-	return 0;
-}
-
-bool VKRMemoryManager::FindMemoryType2(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const
+bool VKRMemoryManager::FindMemoryType(uint32 typeFilter, VkMemoryPropertyFlags properties, uint32& memoryIndex) const
 {
 	VkPhysicalDeviceMemoryProperties memProperties;
 	vkGetPhysicalDeviceMemoryProperties(m_vkr->GetPhysicalDevice(), &memProperties);
 
 	for (uint32_t i = 0; i < memProperties.memoryTypeCount; i++)
 	{
-		if (typeFilter & (1 << i) && memProperties.memoryTypes[i].propertyFlags == properties)
+		if (typeFilter & (1 << i) && (memProperties.memoryTypes[i].propertyFlags & properties) == properties)
 		{
 			memoryIndex = i;
 			return true;
@@ -455,31 +458,7 @@ size_t VKRMemoryManager::GetTotalMemoryForBufferType(VkBufferUsageFlags usage, V
 	return total;
 }
 
-void VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
-{
-	VkBufferCreateInfo bufferInfo{};
-	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-	bufferInfo.usage = usage;
-	bufferInfo.size = size;
-	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	if (vkCreateBuffer(m_vkr->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-		m_vkr->UnrecoverableError("Failed to create buffer");
-
-	VkMemoryRequirements memRequirements;
-	vkGetBufferMemoryRequirements(m_vkr->GetLogicalDevice(), buffer, &memRequirements);
-
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memRequirements.size;
-	allocInfo.memoryTypeIndex = FindMemoryType(memRequirements.memoryTypeBits, properties);
-
-	if (vkAllocateMemory(m_vkr->GetLogicalDevice(), &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-		m_vkr->UnrecoverableError("Failed to allocate buffer memory");
-	if (vkBindBufferMemory(m_vkr->GetLogicalDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
-		m_vkr->UnrecoverableError("Failed to bind buffer memory");
-}
-
-bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
+bool VKRMemoryManager::CreateBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) const
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -488,7 +467,7 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	if (vkCreateBuffer(m_vkr->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer2)");
+		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer)");
 		return false;
 	}
 
@@ -498,7 +477,7 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	VkMemoryAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocInfo.allocationSize = memRequirements.size;
-	if (!FindMemoryType2(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
+	if (!FindMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
@@ -511,7 +490,7 @@ bool VKRMemoryManager::CreateBuffer2(VkDeviceSize size, VkBufferUsageFlags usage
 	if (vkBindBufferMemory(m_vkr->GetLogicalDevice(), buffer, bufferMemory, 0) != VK_SUCCESS)
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
-		cemuLog_log(LogType::Force, "Failed to bind buffer (CreateBuffer2)");
+		cemuLog_log(LogType::Force, "Failed to bind buffer (CreateBuffer)");
 		return false;
 	}
 	return true;
@@ -533,7 +512,7 @@ bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSiz
 
 	if (vkCreateBuffer(m_vkr->GetLogicalDevice(), &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer2)");
+		cemuLog_log(LogType::Force, "Failed to create buffer (CreateBuffer)");
 		return false;
 	}
 
@@ -554,7 +533,7 @@ bool VKRMemoryManager::CreateBufferFromHostMemory(void* hostPointer, VkDeviceSiz
 
 	allocInfo.pNext = &importHostMem;
 
-	if (!FindMemoryType2(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
+	if (!FindMemoryType(memRequirements.memoryTypeBits, properties, allocInfo.memoryTypeIndex))
 	{
 		vkDestroyBuffer(m_vkr->GetLogicalDevice(), buffer, nullptr);
 		return false;
@@ -598,7 +577,7 @@ VkImageMemAllocation* VKRMemoryManager::imageMemoryAllocate(VkImage image)
 		map_textureHeap.emplace(typeFilter, texHeap);
 	}
 	else
-		texHeap = it->second;
+		texHeap = it->second.get();
 
 	// alloc mem from heap
 	uint32 allocationSize = (uint32)memRequirements.size;

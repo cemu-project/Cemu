@@ -35,7 +35,7 @@ jobs:
           -o cemu.pot
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: POT file
           path: ./cemu.pot

@@ -502,6 +502,9 @@ void LatteShaderCache_Load()
 		g_renderer->DeleteTexture(g_shaderCacheLoaderState.textureDRCId);
 
 	g_bootSndPlayer.FadeOutSound();
+
+	if(Latte_GetStopSignal())
+		LatteThread_Exit();
 }
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
@@ -651,8 +654,6 @@ void LatteShaderCache_LoadPipelineCache(uint64 cacheTitleId)
 	else if (g_renderer->GetType() == RendererAPI::Metal)
 		MetalPipelineCache::GetInstance().EndLoading();
 #endif
-    if(Latte_GetStopSignal())
-        LatteThread_Exit();
 }
 
 bool LatteShaderCache_updatePipelineLoadingProgress()
