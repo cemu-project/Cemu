@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/Renderer/Renderer.h"
 #include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
@@ -543,20 +544,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 
 	    if (!usesGeometryShader)
 		{
-      		// Rasterization
-      		bool rasterizationEnabled = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
-
-      		// HACK
-      		if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-     			rasterizationEnabled = true;
-
-      		const auto& polygonControlReg = LatteGPUState.contextNew.PA_SU_SC_MODE_CNTL;
-      		uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-      		uint32 cullBack = polygonControlReg.get_CULL_BACK();
-      		if (cullFront && cullBack)
-      		    rasterizationEnabled = false;
-
-      		if (rasterizationEnabled)
+      		if (LatteGPUState.contextNew.IsRasterizationEnabled())
       		    vsHash += 51ULL;
 
             // Vertex fetch

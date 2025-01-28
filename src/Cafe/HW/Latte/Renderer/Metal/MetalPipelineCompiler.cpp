@@ -295,19 +295,7 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
     m_usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
 
     // Rasterization
-	m_rasterizationEnabled = !lcr.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
-
-	// HACK
-	// TODO: include this in the hash?
-	if (!lcr.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-		m_rasterizationEnabled = true;
-
-	// Culling both front and back faces effectively disables rasterization
-	const auto& polygonControlReg = lcr.PA_SU_SC_MODE_CNTL;
-	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-	uint32 cullBack = polygonControlReg.get_CULL_BACK();
-	if (cullFront && cullBack)
-	    m_rasterizationEnabled = false;
+	m_rasterizationEnabled = lcr.IsRasterizationEnabled();
 
     // Shaders
     m_vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);

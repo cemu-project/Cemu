@@ -1065,15 +1065,7 @@ void MetalRenderer::draw_beginSequence()
 	LatteRenderTarget_updateViewport();
 	LatteRenderTarget_updateScissorBox();
 
-	// check for conditions which would turn the drawcalls into no-ops
-	bool rasterizerEnable = !LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
-
-	// GX2SetSpecialState(0, true) enables DX_RASTERIZATION_KILL, but still expects depth writes to happen? -> Research which stages are disabled by DX_RASTERIZATION_KILL exactly
-	// for now we use a workaround:
-	if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-		rasterizerEnable = true;
-
-	if (!rasterizerEnable && !streamoutEnable)
+	if (!LatteGPUState.contextNew.IsRasterizationEnabled() && !streamoutEnable)
 		m_state.m_skipDrawSequence = true;
 }
 

@@ -3938,21 +3938,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     bool fetchVertexManually = (usesGeometryShader || (shaderContext->fetchShader && shaderContext->fetchShader->mtlFetchVertexManually));
 
     // Rasterization
-    rasterizationEnabled = true;
-    if (shader->shaderType == LatteConst::ShaderType::Vertex && !usesGeometryShader)
-    {
-        rasterizationEnabled = !shaderContext->contextRegistersNew->PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
-
-    	// HACK
-    	if (!shaderContext->contextRegistersNew->PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
-    		rasterizationEnabled = true;
-
-    	const auto& polygonControlReg = shaderContext->contextRegistersNew->PA_SU_SC_MODE_CNTL;
-    	uint32 cullFront = polygonControlReg.get_CULL_FRONT();
-    	uint32 cullBack = polygonControlReg.get_CULL_BACK();
-    	if (cullFront && cullBack)
-    	    rasterizationEnabled = false;
-    }
+    rasterizationEnabled = shaderContext->contextRegistersNew->IsRasterizationEnabled();
 
 	StringBuf* src = new StringBuf(1024*1024*12); // reserve 12MB for generated source (we resize-to-fit at the end)
 	shaderContext->shaderSource = src;
