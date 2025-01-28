@@ -4140,7 +4140,11 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
             if (usesGeometryShader)
             {
            	    // Calculate the imaginary vertex id
-           	    src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
+                LattePrimitiveMode vsOutPrimType = shaderContext->contextRegistersNew->VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
+                if (PrimitiveRequiresConnection(vsOutPrimType))
+           	        src->add("uint vid = tig + tid;" _CRLF);
+                else
+       	            src->add("uint vid = tig * VERTICES_PER_VERTEX_PRIMITIVE + tid;" _CRLF);
           		src->add("uint iid = vid / supportBuffer.verticesPerInstance;" _CRLF);
                 src->add("vid %= supportBuffer.verticesPerInstance;" _CRLF);
 

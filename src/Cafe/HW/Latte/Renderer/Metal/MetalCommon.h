@@ -117,6 +117,7 @@ inline bool executeCommand(fmt::format_string<T...> fmt, T&&... args) {
     return true;
 }
 
+/*
 class MemoryMappedFile
 {
 public:
@@ -179,3 +180,33 @@ private:
     void* m_data = nullptr;
     size_t m_fileSize = 0;
 };
+*/
+
+inline uint32 GetVerticesPerPrimitive(LattePrimitiveMode primitiveMode)
+{
+    switch (primitiveMode)
+    {
+    case LattePrimitiveMode::POINTS:
+        return 1;
+    case LattePrimitiveMode::LINES:
+        return 2;
+    case LattePrimitiveMode::LINE_STRIP:
+        // Same as line, but requires connection
+        return 2;
+    case LattePrimitiveMode::TRIANGLES:
+        return 3;
+    case LattePrimitiveMode::RECTS:
+        return 3;
+    default:
+        cemuLog_log(LogType::Force, "Unimplemented primitive type {}", primitiveMode);
+        return 0;
+    }
+}
+
+inline bool PrimitiveRequiresConnection(LattePrimitiveMode primitiveMode)
+{
+    if (primitiveMode == LattePrimitiveMode::LINE_STRIP)
+        return true;
+    else
+        return false;
+}

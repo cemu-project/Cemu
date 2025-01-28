@@ -2,7 +2,7 @@
 
 #include "Common/precompiled.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteShader.h"
 
 namespace LatteDecompiler
 {
@@ -363,27 +363,10 @@ namespace LatteDecompiler
 
         if ((decompilerContext->options->usesGeometryShader || isRectVertexShader) && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
         {
-            LattePrimitiveMode vsOutPrimType = static_cast<LattePrimitiveMode>(decompilerContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]);
-            uint32 gsOutPrimType = decompilerContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE];
+            LattePrimitiveMode vsOutPrimType = decompilerContext->contextRegistersNew->VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
+            src->addFmt("#define VERTICES_PER_VERTEX_PRIMITIVE {}" _CRLF, GetVerticesPerPrimitive(vsOutPrimType));
 
-            switch (vsOutPrimType)
-            {
-            case LattePrimitiveMode::POINTS:
-                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 1" _CRLF);
-                break;
-            case LattePrimitiveMode::LINES:
-                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 2" _CRLF);
-                break;
-            case LattePrimitiveMode::TRIANGLES:
-                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 3" _CRLF);
-                break;
-            case LattePrimitiveMode::RECTS:
-                src->add("#define VERTICES_PER_VERTEX_PRIMITIVE 3" _CRLF);
-                break;
-            default:
-                cemuLog_log(LogType::Force, "Unknown vertex out primitive type {}", vsOutPrimType);
-                break;
-            }
+            uint32 gsOutPrimType = decompilerContext->contextRegisters[mmVGT_GS_OUT_PRIM_TYPE];
             if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
             {
                 switch (gsOutPrimType)

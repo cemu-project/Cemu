@@ -1132,7 +1132,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	*/
 
     // Primitive type
-    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(LatteGPUState.contextRegister[mmVGT_PRIMITIVE_TYPE]);
+    const LattePrimitiveMode primitiveMode = LatteGPUState.contextNew.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
     auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
     bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
@@ -1394,25 +1394,14 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 		renderCommandEncoder->setObjectBytes(&hostIndexTypeU8, sizeof(hostIndexTypeU8), vertexShader->resourceMapping.indexTypeBinding);
         encoderState.m_buffers[METAL_SHADER_TYPE_OBJECT][vertexShader->resourceMapping.indexTypeBinding] = {nullptr};
 
-		uint32 verticesPerPrimitive = 0;
-		switch (primitiveMode)
-        {
-        case LattePrimitiveMode::POINTS:
-            verticesPerPrimitive = 1;
-            break;
-        case LattePrimitiveMode::LINES:
-            verticesPerPrimitive = 2;
-            break;
-        case LattePrimitiveMode::TRIANGLES:
-        case LattePrimitiveMode::RECTS:
-            verticesPerPrimitive = 3;
-            break;
-        default:
-            cemuLog_log(LogType::Force, "unimplemented geometry shader primitive mode {}", (uint32)primitiveMode);
-            break;
-        }
+		uint32 verticesPerPrimitive = GetVerticesPerPrimitive(primitiveMode);
+		uint32 threadgroupCount = count * instanceCount;
+		if (PrimitiveRequiresConnection(primitiveMode))
+		    threadgroupCount -= verticesPerPrimitive - 1;
+		else
+		    threadgroupCount /= verticesPerPrimitive;
 
-		renderCommandEncoder->drawMeshThreadgroups(MTL::Size(count * instanceCount / verticesPerPrimitive, 1, 1), MTL::Size(verticesPerPrimitive, 1, 1), MTL::Size(1, 1, 1));
+		renderCommandEncoder->drawMeshThreadgroups(MTL::Size(threadgroupCount, 1, 1), MTL::Size(verticesPerPrimitive, 1, 1), MTL::Size(1, 1, 1));
 	}
 	else
 	{
