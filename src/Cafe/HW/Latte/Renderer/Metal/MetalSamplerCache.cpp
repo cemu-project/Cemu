@@ -86,32 +86,22 @@ MetalSamplerCache::~MetalSamplerCache()
     m_samplerCache.clear();
 }
 
-MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister& lcr, LatteConst::ShaderType shaderType, uint32 stageSamplerIndex)
+MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister& lcr, LatteConst::ShaderType shaderType, uint32 stageSamplerIndex, const _LatteRegisterSetSampler* samplerWords)
 {
-    uint32 samplerIndex = stageSamplerIndex + LatteDecompiler_getTextureSamplerBaseIndex(shaderType);
-
-    uint64 stateHash = CalculateSamplerHash(lcr, shaderType, stageSamplerIndex, samplerIndex);
+    uint64 stateHash = CalculateSamplerHash(lcr, shaderType, stageSamplerIndex, samplerWords);
     auto& samplerState = m_samplerCache[stateHash];
     if (samplerState)
         return samplerState;
 
 	// Sampler state
-	const _LatteRegisterSetSampler* samplerWords = lcr.SQ_TEX_SAMPLER + samplerIndex;
+
 
     NS_STACK_SCOPED MTL::SamplerDescriptor* samplerDescriptor = MTL::SamplerDescriptor::alloc()->init();
 
     // lod
     uint32 iMinLOD = samplerWords->WORD1.get_MIN_LOD();
     uint32 iMaxLOD = samplerWords->WORD1.get_MAX_LOD();
-    sint32 iLodBias = samplerWords->WORD1.get_LOD_BIAS();
-
-    // TODO: uncomment
-    // apply relative lod bias from graphic pack
-    //if (baseTexture->overwriteInfo.hasRelativeLodBias)
-    //    iLodBias += baseTexture->overwriteInfo.relativeLodBias;
-    // apply absolute lod bias from graphic pack
-    //if (baseTexture->overwriteInfo.hasLodBias)
-    //    iLodBias = baseTexture->overwriteInfo.lodBias;
+    //sint32 iLodBias = samplerWords->WORD1.get_LOD_BIAS();
 
     auto filterMip = samplerWords->WORD0.get_MIP_FILTER();
     if (filterMip == Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_Z_FILTER::NONE)
@@ -160,10 +150,6 @@ MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister
 
     auto maxAniso = samplerWords->WORD0.get_MAX_ANISO_RATIO();
 
-    // TODO: uncomment
-    //if (baseTexture->overwriteInfo.anisotropicLevel >= 0)
-    //    maxAniso = baseTexture->overwriteInfo.anisotropicLevel;
-
     if (maxAniso > 0)
         samplerDescriptor->setMaxAnisotropy(1 << maxAniso);
 
@@ -184,10 +170,8 @@ MTL::SamplerState* MetalSamplerCache::GetSamplerState(const LatteContextRegister
     return samplerState;
 }
 
-uint64 MetalSamplerCache::CalculateSamplerHash(const LatteContextRegister& lcr, LatteConst::ShaderType shaderType, uint32 stageSamplerIndex, uint32 samplerIndex)
+uint64 MetalSamplerCache::CalculateSamplerHash(const LatteContextRegister& lcr, LatteConst::ShaderType shaderType, uint32 stageSamplerIndex, const _LatteRegisterSetSampler* samplerWords)
 {
-    const _LatteRegisterSetSampler* samplerWords = lcr.SQ_TEX_SAMPLER + samplerIndex;
-
     uint64 hash = 0;
     hash = std::rotl<uint64>(hash, 17);
     hash += (uint64)samplerWords->WORD0.getRawValue();

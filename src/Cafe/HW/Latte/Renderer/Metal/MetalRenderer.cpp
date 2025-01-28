@@ -2068,7 +2068,22 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		MTL::SamplerState* sampler;
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
 		{
-    		sampler = m_samplerCache->GetSamplerState(LatteGPUState.contextNew, shader->shaderType, stageSamplerIndex);
+		    uint32 samplerIndex = stageSamplerIndex + LatteDecompiler_getTextureSamplerBaseIndex(shader->shaderType);
+			_LatteRegisterSetSampler* samplerWords = LatteGPUState.contextNew.SQ_TEX_SAMPLER + samplerIndex;
+
+			// Overwriting
+
+            // Lod bias
+            //if (baseTexture->overwriteInfo.hasLodBias)
+            //    samplerWords->WORD1.set_LOD_BIAS(baseTexture->overwriteInfo.lodBias);
+            //else if (baseTexture->overwriteInfo.hasRelativeLodBias)
+            //    samplerWords->WORD1.set_LOD_BIAS(samplerWords->WORD1.get_LOD_BIAS() + baseTexture->overwriteInfo.relativeLodBias);
+
+            // Max anisotropy
+            if (baseTexture->overwriteInfo.anisotropicLevel >= 0)
+                samplerWords->WORD0.set_MAX_ANISO_RATIO(baseTexture->overwriteInfo.anisotropicLevel);
+
+    		sampler = m_samplerCache->GetSamplerState(LatteGPUState.contextNew, shader->shaderType, stageSamplerIndex, samplerWords);
 		}
 		else
 		{
