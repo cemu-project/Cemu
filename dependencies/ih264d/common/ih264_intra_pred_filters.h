@@ -71,7 +71,7 @@ typedef void _ih264_intra_pred_ref_filtering_ft(UWORD8 *pu1_left,
 #if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_intra_pred_ref_filtering_ft(arg) _ih264_intra_pred_ref_filtering_ft arg __asm__(#arg);
 #else
-#define ih264_intra_pred_ref_filtering_ft(arg) _ih264_intra_pred_ref_filtering_ft arg __asm__(#arg);
+#define ih264_intra_pred_ref_filtering_ft(arg) _ih264_intra_pred_ref_filtering_ft arg;
 #endif
 
 typedef void _ih264_intra_pred_luma_ft(UWORD8 *pu1_src,
