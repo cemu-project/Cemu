@@ -51,7 +51,7 @@ typedef void _ih264_deblk_edge_bslt4_ft(UWORD8 *pu1_src,
 #if defined(__APPLE__) && defined(__aarch64__)
 #define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg __asm__(#arg);
 #else
-#define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg __asm__(#arg);
+#define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg;
 #endif
 
 typedef void _ih264_deblk_edge_bs4_ft(UWORD8 *pu1_src,
