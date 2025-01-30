@@ -40,12 +40,12 @@ namespace coreinit
 
 		inline TimerTicks ConvertNsToTimerTicks(uint64 ns)
 		{
-			return ((GetTimerClock() / 31250LL) * ((TimerTicks)ns) / 32000LL);
+			return static_cast<TimerTicks>((static_cast<uint64>(GetTimerClock()) / 31250ULL) * (ns) / 32000ULL);
 		}
 
 		inline TimerTicks ConvertMsToTimerTicks(uint64 ms)
 		{
-			return (TimerTicks)ms * GetTimerClock() / 1000LL;
+			return static_cast<TimerTicks>(ms * static_cast<uint64>(GetTimerClock()) / 1000ULL);
 		}
 	};
 
