@@ -95,6 +95,7 @@ private:
 	void InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample);
 	static AudioChannels AudioTypeToChannels(AudioType type);
 	static std::wstring GetDeviceFromType(AudioType type);
+	static sint32 GetVolumeFromType(AudioType type);
 	
 };
 

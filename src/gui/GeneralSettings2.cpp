@@ -559,17 +559,6 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 
 		m_portal_device->Bind(wxEVT_CHOICE, &GeneralSettings2::OnAudioDeviceSelected, this);
 
-		const wxString audio_channel_drc_choices[] = { _("Mono") }; // mono for now only
-
-		portal_audio_row->Add(new wxStaticText(box, wxID_ANY, _("Channels")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_portal_channels = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(audio_channel_drc_choices), audio_channel_drc_choices);
-
-		m_portal_channels->SetSelection(0); // set default to mono
-
-		m_portal_channels->Bind(wxEVT_CHOICE, &GeneralSettings2::OnAudioChannelsSelected, this);
-		portal_audio_row->Add(m_portal_channels, 0, wxEXPAND | wxALL, 5);
-		portal_audio_row->AddSpacer(0);
-
 		portal_audio_row->Add(new wxStaticText(box, wxID_ANY, _("Volume")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_portal_volume = new wxSlider(box, wxID_ANY, 100, 0, 100);
 		portal_audio_row->Add(m_portal_volume, 0, wxEXPAND | wxALL, 5);
@@ -1030,7 +1019,6 @@ void GeneralSettings2::StoreConfig()
 	config.pad_channels = kStereo; // (AudioChannels)m_pad_channels->GetSelection();
 	//config.input_channels =  (AudioChannels)m_input_channels->GetSelection();
 	config.input_channels = kMono; // (AudioChannels)m_input_channels->GetSelection();
-	config.portal_channels = kMono; // (AudioChannels)m_portal_channels->GetSelection();
 	
 	config.tv_volume = m_tv_volume->GetValue();
 	config.pad_volume = m_pad_volume->GetValue();
@@ -1720,7 +1708,6 @@ void GeneralSettings2::ApplyConfig()
 	m_pad_channels->SetSelection(0);
 	//m_input_channels->SetSelection(config.pad_channels);
 	m_input_channels->SetSelection(0);
-	m_portal_channels->SetSelection(0);
 	
 	SendSliderEvent(m_tv_volume, config.tv_volume);
 
@@ -1975,7 +1962,7 @@ void GeneralSettings2::UpdateAudioDevice()
 				}
 				catch (std::runtime_error& ex)
 				{
-					cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
+					cemuLog_log(LogType::Force, "can't initialize portal audio: {}", ex.what());
 				}
 			}
 		}
@@ -2009,13 +1996,6 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 			return;
 		
 		config.pad_channels = (AudioChannels)obj->GetSelection();
-	}
-	else if (obj == m_portal_channels)
-	{
-		if (config.portal_channels == (AudioChannels)obj->GetSelection())
-			return;
-		
-		config.portal_channels = (AudioChannels)obj->GetSelection();
 	}
 	else
 		cemu_assert_debug(false);
