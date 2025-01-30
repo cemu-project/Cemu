@@ -520,7 +520,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	audio.set("TVChannels", tv_channels);
 	audio.set("PadChannels", pad_channels);
 	audio.set("InputChannels", input_channels);
-	audio.set("InputChannels", portal_channels);
+	audio.set("PortalChannels", portal_channels);
 	audio.set("TVVolume", tv_volume);
 	audio.set("PadVolume", pad_volume);
 	audio.set("InputVolume", input_volume);
