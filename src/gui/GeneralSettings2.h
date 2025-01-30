@@ -64,7 +64,7 @@ private:
 	wxChoice* m_audio_api;
 	wxSlider *m_audio_latency;
 	wxSlider *m_tv_volume, *m_pad_volume, *m_input_volume, *m_portal_volume;
-	wxChoice *m_tv_channels, *m_pad_channels, *m_input_channels, *m_portal_channels;
+	wxChoice *m_tv_channels, *m_pad_channels, *m_input_channels;
 	wxChoice *m_tv_device, *m_pad_device, *m_input_device, *m_portal_device;
 
 	// Account

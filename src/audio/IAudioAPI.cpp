@@ -129,6 +129,7 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint3
 
 	audioAPIDev = CreateDevice(audio_api, device_description, rate, channels, samples_per_block, bits_per_sample);
 	audioAPIDev->SetVolume(TV ? config.tv_volume : config.pad_volume);
+
 	return audioAPIDev;
 }
 
@@ -220,7 +221,7 @@ AudioChannels IAudioAPI::AudioTypeToChannels(AudioType type)
 	case Gamepad:
 		return config.pad_channels;
 	case Portal:
-		return config.portal_channels;
+		return kMono;
 	default:
 		return kMono;
 	}
@@ -239,5 +240,21 @@ std::wstring IAudioAPI::GetDeviceFromType(AudioType type)
 		return config.portal_device;
 	default:
 		return L"";
+	}
+}
+
+sint32 IAudioAPI::GetVolumeFromType(AudioType type)
+{
+	auto& config = GetConfig();
+	switch (type)
+	{
+	case TV:
+		return config.tv_volume;
+	case Gamepad:
+		return config.pad_volume;
+	case Portal:
+		return config.portal_volume;
+	default:
+		return 0;
 	}
 }
