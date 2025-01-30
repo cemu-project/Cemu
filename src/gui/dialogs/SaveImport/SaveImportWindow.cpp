@@ -304,7 +304,7 @@ void SaveImportWindow::OnImport(wxCommandEvent& event)
 					auto new_node = info_node.append_child("account");
 					new_node.append_attribute("persistentId").set_value(new_persistend_id_string.c_str());
 					auto timestamp = new_node.append_child("timestamp");
-					timestamp.text().set(fmt::format("{:016x}", coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK).c_str()); // TODO time not initialized yet?
+					timestamp.text().set(fmt::format("{:016x}", coreinit::OSGetTime() / ESPRESSO_TIMER_CLOCK).c_str()); // TODO time not initialized yet?
 					
 					if(!doc.save_file(saveinfo.c_str()))
 						cemuLog_log(LogType::Force, "couldn't insert save entry in saveinfo.xml: {}", _pathToUtf8(saveinfo));

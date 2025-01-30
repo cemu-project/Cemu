@@ -322,7 +322,7 @@ uint64 _prevReturnedGPUTime = 0;
 
 uint64 Latte_GetTime()
 {
-	uint64 gpuTime = coreinit::coreinit_getTimerTick();
+	uint64 gpuTime = coreinit::OSGetSystemTime();
 	gpuTime *= 20000ULL;
 	if (gpuTime <= _prevReturnedGPUTime)
 		gpuTime = _prevReturnedGPUTime + 1; // avoid ever returning identical timestamps

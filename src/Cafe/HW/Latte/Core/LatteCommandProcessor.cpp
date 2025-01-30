@@ -799,7 +799,7 @@ LatteCMDPtr LatteCP_itHLESampleTimer(LatteCMDPtr cmd, uint32 nWords)
 {
 	cemu_assert_debug(nWords == 1);
 	MPTR timerMPTR = (MPTR)LatteReadCMD();
-	memory_writeU64(timerMPTR, coreinit::coreinit_getTimerTick());
+	memory_writeU64(timerMPTR, coreinit::OSGetSystemTime());
 	return cmd;
 }
 

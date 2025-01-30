@@ -50,15 +50,11 @@ namespace coreinit
 	};
 
 	void OSTicksToCalendarTime(uint64 ticks, OSCalendarTime_t* calenderStruct);
+
+	uint64 OSGetSystemTime();
 	uint64 OSGetTime();
-
-	uint64 coreinit_getOSTime();
-	uint64 coreinit_getTimerTick();
-
-	static uint64 OSGetSystemTime()
-	{
-		return coreinit_getTimerTick();
-	}
+	uint32 OSGetSystemTick();
+	uint32 OSGetTick();
 
 	void InitializeTimeAndCalendar();
 };
