@@ -54,6 +54,7 @@ const wxString kDirectSound("DirectSound");
 const wxString kXAudio27("XAudio2.7");
 const wxString kXAudio2("XAudio2");
 const wxString kCubeb("Cubeb");
+const wxString kOpenAL("OpenAL");
 
 const wxString kPropertyPersistentId("PersistentId");
 const wxString kPropertyMiiName("MiiName");
@@ -398,6 +399,8 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 			m_audio_api->Append(kXAudio2);
 		if (IAudioAPI::IsAudioAPIAvailable(IAudioAPI::Cubeb))
 			m_audio_api->Append(kCubeb);
+		if (IAudioAPI::IsAudioAPIAvailable(IAudioAPI::OpenAL))
+			m_audio_api->Append(kOpenAL);
 
 		m_audio_api->SetSelection(0);
 		m_audio_api->SetToolTip(_("Select one of the available audio back ends"));
@@ -982,6 +985,8 @@ void GeneralSettings2::StoreConfig()
 		config.audio_api = IAudioAPI::XAudio2;
 	else if (m_audio_api->GetStringSelection() == kCubeb)
 		config.audio_api = IAudioAPI::Cubeb;
+	else if (m_audio_api->GetStringSelection() == kOpenAL)
+		config.audio_api = IAudioAPI::OpenAL;
 
 	config.audio_delay = m_audio_latency->GetValue();
 	config.tv_channels = (AudioChannels)m_tv_channels->GetSelection();
@@ -1650,6 +1655,8 @@ void GeneralSettings2::ApplyConfig()
 		m_audio_api->SetStringSelection(kXAudio2);
 	else if(config.audio_api == IAudioAPI::Cubeb)
 		m_audio_api->SetStringSelection(kCubeb);
+	else if (config.audio_api == IAudioAPI::OpenAL)
+		m_audio_api->SetStringSelection(kOpenAL);
 
 	SendSliderEvent(m_audio_latency, config.audio_delay);
 
@@ -1741,6 +1748,8 @@ void GeneralSettings2::OnAudioAPISelected(wxCommandEvent& event)
 		api = IAudioAPI::XAudio2;
 	else if (m_audio_api->GetStringSelection() == kCubeb)
 		api = IAudioAPI::Cubeb;
+	else if (m_audio_api->GetStringSelection() == kOpenAL)
+		api = IAudioAPI::OpenAL;
 	else
 	{
 		wxFAIL_MSG("invalid audio api selected!");

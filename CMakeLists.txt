@@ -123,6 +123,7 @@ if (WIN32)
 	option(ENABLE_XAUDIO "Enables the xaudio backend" ON)
 endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
+option(ENABLE_OPENAL "Enabled OpenAL backend" ON)
 
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
@@ -218,6 +219,10 @@ if (ENABLE_CUBEB)
 		add_library(cubeb::cubeb ALIAS cubeb)
 	endif()
 	add_compile_definitions("HAS_CUBEB=1")
+endif()
+
+if (ENABLE_OPENAL)
+	add_compile_definitions("HAS_OPENAL=1")
 endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)

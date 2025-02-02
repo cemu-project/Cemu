@@ -36,6 +36,7 @@ public:
 		XAudio27,
 		XAudio2,
 		Cubeb,
+		OpenAL,
 
 		AudioAPIEnd,
 	};

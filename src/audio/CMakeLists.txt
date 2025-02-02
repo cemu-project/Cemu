@@ -34,6 +34,15 @@ if(ENABLE_CUBEB)
 	#add_compile_definitions(HAS_CUBEB)
 endif()
 
+IF(ENABLE_OPENAL)
+	target_sources(CemuAudio PRIVATE
+		OpenALAPI.cpp
+		OpenALAPI.h
+		OpenALLoader.cpp
+		OpenALLoader.h
+	)
+endif()
+
 target_include_directories(CemuAudio PUBLIC "../")
 
 target_link_libraries(CemuAudio PRIVATE

@@ -25,6 +25,7 @@
     "boost-property-tree",
     "boost-static-string",
     "boost-random",
+    "boost-dll",
     "fmt",
     "hidapi",
     "libpng",

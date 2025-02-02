@@ -9,6 +9,9 @@
 #if HAS_CUBEB
 #include "CubebAPI.h"
 #endif
+#if HAS_OPENAL
+#include "OpenALAPI.h"
+#endif
 
 std::shared_mutex g_audioMutex;
 AudioAPIPtr g_tvAudio;
@@ -36,6 +39,7 @@ void IAudioAPI::PrintLogging()
 	}
 
 	cemuLog_log(LogType::Force, "Cubeb: {}", s_availableApis[Cubeb] ? "available" : "not supported");
+	cemuLog_log(LogType::Force, "OpenAL: {}", s_availableApis[OpenAL] ? "available" : "not supported");
 }
 
 void IAudioAPI::InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_sample)
@@ -85,6 +89,9 @@ void IAudioAPI::InitializeStatic()
 #endif
 #if HAS_CUBEB
 	s_availableApis[Cubeb] = CubebAPI::InitializeStatic();
+#endif
+#if HAS_OPENAL
+	s_availableApis[OpenAL] = OpenALAPI::InitializeStatic();
 #endif
 }
 
@@ -163,6 +170,14 @@ AudioAPIPtr IAudioAPI::CreateDevice(AudioAPI api, const DeviceDescriptionPtr& de
         return std::make_unique<CubebAPI>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
     }
 #endif
+#if HAS_OPENAL
+	case OpenAL:
+	{
+		const auto tmp = std::dynamic_pointer_cast<OpenALAPI::OpenALDeviceDescription>(device);
+		return std::make_unique<OpenALAPI>(tmp->GetIdentifier(), samplerate, channels, samples_per_block, bits_per_sample);
+		break;
+	}
+#endif
 	default:
 		throw std::runtime_error(fmt::format("invalid audio api: {}", api));
 	}
@@ -193,6 +208,12 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> IAudioAPI::GetDevices(AudioAPI api)
 	case Cubeb:
 	{
 		return CubebAPI::GetDevices();
+	}
+#endif
+#if HAS_OPENAL
+	case OpenAL:
+	{
+		return OpenALAPI::GetDevices();
 	}
 #endif
 	default:
