@@ -192,3 +192,41 @@ Then install the dependencies:
 
 If CMake complains about Cemu already being compiled or another similar error, try deleting the `CMakeCache.txt` file inside the `build` folder and retry building.
 
+## CMake configure flags
+Some flags can be passed during CMake configure to customise which features are enabled on build.
+
+Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -DENABLE_VULKAN=OFF`
+
+### All platforms
+| Flag               |   | Description                                                                 | Default | Note               |
+|--------------------|:--|-----------------------------------------------------------------------------|---------|--------------------|
+| ALLOW_PORTABLE     |   | Allow Cemu to use the `portable` directory to store configs and data        | ON      |                    |
+| CEMU_CXX_FLAGS     |   | Flags passed straight to the compiler, e.g. `-march=native`, `-Wall`, `/W3` | ""      |                    |
+| ENABLE_CUBEB       |   | Enable cubeb audio backend                                                  | ON      |                    |
+| ENABLE_DISCORD_RPC |   | Enable Discord Rich presence support                                        | ON      |                    |
+| ENABLE_OPENGL      |   | Enable OpenGL graphics backend                                              | ON      | Currently required |
+| ENABLE_HIDAPI      |   | Enable HIDAPI (used for Wiimote controller API)                             | ON      |                    |
+| ENABLE_SDL         |   | Enable SDLController controller API                                         | ON      | Currently required |
+| ENABLE_VCPKG       |   | Use VCPKG package manager to obtain dependencies                            | ON      |                    |
+| ENABLE_VULKAN      |   | Enable the Vulkan graphics backend                                          | ON      |                    |
+| ENABLE_WXWIDGETS   |   | Enable wxWidgets UI                                                         | ON      | Currently required |
+
+### Windows
+| Flag               | Description                       | Default | Note               |
+|--------------------|-----------------------------------|---------|--------------------|
+| ENABLE_DIRECTAUDIO | Enable DirectAudio audio backend  | ON      | Currently required |
+| ENABLE_DIRECTINPUT | Enable DirectInput controller API | ON      | Currently required |
+| ENABLE_XAUDIO      | Enable XAudio audio backend       | ON      |                    |
+| ENABLE_XINPUT      | Enable XInput controller API      | ON      |                    |
+
+### Linux
+| Flag                  | Description                                        | Default |
+|-----------------------|----------------------------------------------------|---------|
+| ENABLE_BLUEZ          | Build with Bluez (used for Wiimote controller API) | ON      |
+| ENABLE_FERAL_GAMEMODE | Enable Feral Interactive GameMode support          | ON      |
+| ENABLE_WAYLAND        | Enable Wayland support                             | ON      |
+
+### macOS
+| Flag         | Description                                    | Default |
+|--------------|------------------------------------------------|---------|
+| MACOS_BUNDLE | MacOS executable will be an application bundle | OFF     |
