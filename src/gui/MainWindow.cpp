@@ -157,6 +157,8 @@ wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_GAMELIST_REFRESH, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_RECREATE_CANVAS, wxCommandEvent);
+wxDEFINE_EVENT(wxEVT_OPEN_LOGGING_WINDOW, wxCommandEvent);
+wxDEFINE_EVENT(wxEVT_OPEN_DEBUG_WINDOWS, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_TIMER(MAINFRAME_ID_TIMER1, MainWindow::OnTimer)
@@ -304,6 +306,8 @@ MainWindow::MainWindow()
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
     auto load_file = LaunchSettings::GetLoadFile();
     auto load_title_id = LaunchSettings::GetLoadTitleID();
+	auto open_log_window = LaunchSettings::OpenLogWindowOnLaunch();
+	auto open_debug_window = LaunchSettings::OpenDebugWindowOnLaunch();
     bool quick_launch = false;
 
     if (load_file)
@@ -360,6 +364,19 @@ MainWindow::MainWindow()
     {
             g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
     }
+
+	if(open_log_window)
+	{
+		wxCommandEvent event(wxEVT_OPEN_LOGGING_WINDOW);
+		OnLoggingWindow(event);
+	}
+
+	if (open_debug_window)
+	{
+		wxCommandEvent event(wxEVT_OPEN_DEBUG_WINDOWS);
+		OnDebugViewPPCDebugger(event);
+	}
+
 }
 
 MainWindow::~MainWindow()
