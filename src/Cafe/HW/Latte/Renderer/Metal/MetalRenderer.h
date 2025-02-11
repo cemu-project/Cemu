@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalOutputShaderCache.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalAttachmentsInfo.h"
-#include "Foundation/NSAutoreleasePool.hpp"
 
 enum MetalGeneralShaderType
 {
@@ -385,6 +384,11 @@ public:
         return m_supportsMetal3;
     }
 
+    bool SupportsMeshShaders() const
+    {
+        return m_supportsMeshShaders;
+    }
+
     //MTL::StorageMode GetOptimalTextureStorageMode() const
     //{
     //    return (m_isAppleGPU ? MTL::StorageModeShared : MTL::StorageModePrivate);
@@ -483,6 +487,7 @@ private:
 	bool m_supportsFramebufferFetch;
 	bool m_hasUnifiedMemory;
 	bool m_supportsMetal3;
+	bool m_supportsMeshShaders;
 	uint32 m_recommendedMaxVRAMUsage;
 	MetalPixelFormatSupport m_pixelFormatSupport;
 

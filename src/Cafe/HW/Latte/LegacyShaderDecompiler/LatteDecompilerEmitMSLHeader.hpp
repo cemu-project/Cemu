@@ -6,7 +6,7 @@
 
 namespace LatteDecompiler
 {
-	static void _emitUniformVariables(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader)
+	static void _emitUniformVariables(LatteDecompilerShaderContext* decompilerContext, bool usesGeometryShader)
 	{
 	    auto src = decompilerContext->shaderSource;
 
@@ -87,7 +87,7 @@ namespace LatteDecompiler
 		}
 		// define verticesPerInstance + streamoutBufferBaseX
 		if ((shader->shaderType == LatteConst::ShaderType::Vertex &&
-		    (decompilerContext->options->usesGeometryShader || isRectVertexShader)) ||
+		    usesGeometryShader) ||
 	        (decompilerContext->analyzer.useSSBOForStreamout &&
 			(shader->shaderType == LatteConst::ShaderType::Vertex && !decompilerContext->options->usesGeometryShader) ||
 			(shader->shaderType == LatteConst::ShaderType::Geometry)))
@@ -270,7 +270,7 @@ namespace LatteDecompiler
 		src->add("};" _CRLF _CRLF);
 	}
 
-	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool fetchVertexManually, bool rasterizationEnabled)
+	static void _emitInputsAndOutputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool usesGeometryShader, bool fetchVertexManually, bool rasterizationEnabled)
 	{
 		auto src = decompilerContext->shaderSource;
 
@@ -304,7 +304,7 @@ namespace LatteDecompiler
             src->add("};" _CRLF _CRLF);
 		}
 
-		if (!decompilerContext->options->usesGeometryShader)
+		if (!usesGeometryShader || isRectVertexShader)
 		{
     		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && rasterizationEnabled)
     			_emitVSOutputs(decompilerContext, isRectVertexShader);
@@ -357,11 +357,11 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool fetchVertexManually, bool rasterizationEnabled)
+	static void emitHeader(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool usesGeometryShader, bool fetchVertexManually, bool rasterizationEnabled)
 	{
 	    auto src = decompilerContext->shaderSource;
 
-        if ((decompilerContext->options->usesGeometryShader || isRectVertexShader) && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
+        if (usesGeometryShader && (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry))
         {
             LattePrimitiveMode vsOutPrimType = decompilerContext->contextRegistersNew->VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
             src->addFmt("#define VERTICES_PER_VERTEX_PRIMITIVE {}" _CRLF, GetVerticesPerPrimitive(vsOutPrimType));
@@ -399,11 +399,11 @@ namespace LatteDecompiler
 		if(dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// start of shader inputs/outputs, predetermined by Cemu. Do not touch" _CRLF);
 		// uniform variables
-		_emitUniformVariables(decompilerContext, isRectVertexShader);
+		_emitUniformVariables(decompilerContext, usesGeometryShader);
 		// uniform buffers
 		_emitUniformBuffers(decompilerContext);
 		// inputs and outputs
-		_emitInputsAndOutputs(decompilerContext, isRectVertexShader, fetchVertexManually, rasterizationEnabled);
+		_emitInputsAndOutputs(decompilerContext, isRectVertexShader, usesGeometryShader, fetchVertexManually, rasterizationEnabled);
 
 		if (dump_shaders_enabled)
 			decompilerContext->shaderSource->add("// end of shader inputs/outputs" _CRLF);
@@ -491,14 +491,14 @@ namespace LatteDecompiler
 		}
 	}
 
-	static void emitInputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool fetchVertexManually)
+	static void emitInputs(LatteDecompilerShaderContext* decompilerContext, bool isRectVertexShader, bool usesGeometryShader, bool fetchVertexManually)
 	{
 	    auto src = decompilerContext->shaderSource;
 
 		switch (decompilerContext->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
-		    if (decompilerContext->options->usesGeometryShader || isRectVertexShader)
+		    if (usesGeometryShader)
 			{
                 src->add("object_data ObjectPayload& objectPayload [[payload]]");
                 src->add(", mesh_grid_properties meshGridProperties");

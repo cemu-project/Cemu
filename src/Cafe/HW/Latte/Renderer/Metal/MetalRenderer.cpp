@@ -21,7 +21,6 @@
 #include "Cemu/Logging/CemuLogging.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "config/CemuConfig.h"
 #include "gui/guiWrapper.h"
 
@@ -171,6 +170,7 @@ MetalRenderer::MetalRenderer()
     m_supportsFramebufferFetch = GetConfig().framebuffer_fetch.GetValue() ? m_device->supportsFamily(MTL::GPUFamilyApple2) : false;
     m_hasUnifiedMemory = m_device->hasUnifiedMemory();
     m_supportsMetal3 = m_device->supportsFamily(MTL::GPUFamilyMetal3);
+    m_supportsMeshShaders = (m_supportsMetal3 && m_vendor != GfxVendor::Intel); // Intel GPUs have issues with mesh shaders
     m_recommendedMaxVRAMUsage = m_device->recommendedMaxWorkingSetSize();
     m_pixelFormatSupport = MetalPixelFormatSupport(m_device);
 
@@ -1134,9 +1134,11 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
     // Primitive type
     const LattePrimitiveMode primitiveMode = LatteGPUState.contextNew.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
     auto mtlPrimitiveType = GetMtlPrimitiveType(primitiveMode);
-    bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
 
-    bool usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+    bool usesGeometryShader = UseGeometryShader(LatteGPUState.contextNew, geometryShader != nullptr);
+    if (usesGeometryShader && !m_supportsMeshShaders)
+        return;
+
     bool fetchVertexManually = (usesGeometryShader || fetchShader->mtlFetchVertexManually);
 
 	// Index buffer
@@ -1293,7 +1295,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// todo - how does culling behave with rects?
 	// right now we just assume that their winding is always CW
-	if (isPrimitiveRect)
+	if (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS)
 	{
 		if (frontFace == Latte::LATTE_PA_SU_SC_MODE_CNTL::E_FRONTFACE::CW)
 			cullFront = cullBack;
@@ -1380,7 +1382,7 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 
 	// Uniform buffers, textures and samplers
 	BindStageResources(renderCommandEncoder, vertexShader, usesGeometryShader);
-	if (geometryShader)
+	if (usesGeometryShader && geometryShader)
 	    BindStageResources(renderCommandEncoder, geometryShader, usesGeometryShader);
 	BindStageResources(renderCommandEncoder, pixelShader, usesGeometryShader);
 

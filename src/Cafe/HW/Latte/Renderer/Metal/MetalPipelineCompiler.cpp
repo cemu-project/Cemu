@@ -283,16 +283,15 @@ MetalPipelineCompiler::~MetalPipelineCompiler()
 
     m_binaryArchiveURL->release();
     */
-    m_pipelineDescriptor->release();
+    if (m_pipelineDescriptor)
+        m_pipelineDescriptor->release();
 }
 
 void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, const LatteDecompilerShader* vertexShader, const LatteDecompilerShader* geometryShader, const LatteDecompilerShader* pixelShader, const MetalAttachmentsInfo& lastUsedAttachmentsInfo, const MetalAttachmentsInfo& activeAttachmentsInfo, const LatteContextRegister& lcr)
 {
-    // Check if the pipeline uses a geometry shader
-    const LattePrimitiveMode primitiveMode = static_cast<LattePrimitiveMode>(lcr.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE());
-    bool isPrimitiveRect = (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
-
-    m_usesGeometryShader = (geometryShader != nullptr || isPrimitiveRect);
+    m_usesGeometryShader = UseGeometryShader(lcr, geometryShader != nullptr);
+    if (m_usesGeometryShader && !m_mtlr->SupportsMeshShaders())
+        return;
 
     // Rasterization
 	m_rasterizationEnabled = lcr.IsRasterizationEnabled();
@@ -301,7 +300,7 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
     m_vertexShaderMtl = static_cast<RendererShaderMtl*>(vertexShader->shader);
     if (geometryShader)
         m_geometryShaderMtl = static_cast<RendererShaderMtl*>(geometryShader->shader);
-    else if (isPrimitiveRect)
+    else if (UseRectEmulation(lcr))
         m_geometryShaderMtl = rectsEmulationGS_generate(m_mtlr, vertexShader, lcr);
     else
         m_geometryShaderMtl = nullptr;
@@ -315,6 +314,9 @@ void MetalPipelineCompiler::InitFromState(const LatteFetchShader* fetchShader, c
 
 bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool showInOverlay)
 {
+    if (m_usesGeometryShader && !m_mtlr->SupportsMeshShaders())
+        return false;
+
     if (forceCompile)
 	{
 		// if some shader stages are not compiled yet, compile them now
