@@ -318,9 +318,25 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	const char* cstr = m_glslCode.c_str();
 	Shader.setStrings(&cstr, 1);
 	Shader.setEnvInput(glslang::EShSourceGlsl, state, glslang::EShClientVulkan, 100);
-	Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_1);
 
+	uint32 apiVersion = VK_API_VERSION_1_1;
+	vkEnumerateInstanceVersion(&apiVersion);
+
+	if (VK_API_VERSION_MAJOR(apiVersion) == 1 || VK_API_VERSION_MINOR(apiVersion) == 1)
+	{
+	Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_1);
 	Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_3);
+	}
+	else if (VK_API_VERSION_MAJOR(apiVersion) == 1 || VK_API_VERSION_MINOR(apiVersion) == 2)
+	{
+	Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_2);
+	Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_5);
+	}
+	else if (VK_API_VERSION_MAJOR(apiVersion) == 1 || VK_API_VERSION_MINOR(apiVersion) >= 3)
+	{
+	Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_3);
+	Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_6);
+	}
 
 	TBuiltInResource Resources = GetDefaultBuiltInResource();
 	std::string PreprocessedGLSL;
