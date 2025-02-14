@@ -74,7 +74,10 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 	po::options_description hidden{ "Hidden options" };
 	hidden.add_options()
 		("nsight", po::value<bool>()->implicit_value(true), "NSight debugging options")
-		("legacy", po::value<bool>()->implicit_value(true), "Intel legacy graphic mode");
+		("legacy", po::value<bool>()->implicit_value(true), "Intel legacy graphic mode")
+		("logs", po::value<bool>()->implicit_value(true), "Opens the log window on launch")
+		("debug", po::value<bool>()->implicit_value(true), "Opens the debugger window on launch");
+
 
 	po::options_description extractor{ "Extractor tool" };
 	extractor.add_options()
@@ -176,6 +179,12 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		
 		if (vm.count("enable-gdbstub"))
 			s_enable_gdbstub = vm["enable-gdbstub"].as<bool>();
+
+		if (vm.count("logs"))
+			s_open_log_window_on_launch = vm["logs"].as<bool>();
+
+		if (vm.count("debug"))
+			s_open_debug_window_on_launch = vm["debug"].as<bool>();
 
 		std::wstring extract_path, log_path;
 		std::string output_path;
