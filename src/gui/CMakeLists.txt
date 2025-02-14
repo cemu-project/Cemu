@@ -1,4 +1,4 @@
-add_library(CemuGui 
+add_library(CemuGui
   canvas/IRenderCanvas.h
   canvas/OpenGLCanvas.cpp
   canvas/OpenGLCanvas.h
@@ -128,6 +128,13 @@ add_library(CemuGui
   wxgui.h
   wxHelper.h
 )
+
+if(ENABLE_METAL)
+    target_sources(CemuGui PRIVATE
+        canvas/MetalCanvas.cpp
+        canvas/MetalCanvas.h
+    )
+endif()
 
 set_property(TARGET CemuGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
