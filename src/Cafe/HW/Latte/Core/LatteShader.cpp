@@ -510,7 +510,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	vsHash += tmp;
 
 	auto primitiveType = LatteGPUState.contextNew.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
-	// TODO: include always in the hash in case of geometry shader or rect shader
+	// TODO: include always in the hash in case of geometry shader or rect shader on Metal
 	if (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS)
 	{
 		vsHash += 13ULL;
@@ -528,7 +528,9 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 #if ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
-	    if (usesGeometryShader || _activeFetchShader->mtlFetchVertexManually)
+	    bool isRectVertexShader = (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
+
+	    if ((usesGeometryShader || isRectVertexShader) || _activeFetchShader->mtlFetchVertexManually)
 		{
       		for (sint32 g = 0; g < _activeFetchShader->bufferGroups.size(); g++)
             {
@@ -542,7 +544,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
             }
 		}
 
-	    if (!usesGeometryShader)
+	    if (!(usesGeometryShader || isRectVertexShader))
 		{
       		if (LatteGPUState.contextNew.IsRasterizationEnabled())
       		    vsHash += 51ULL;

@@ -210,3 +210,12 @@ inline bool PrimitiveRequiresConnection(LattePrimitiveMode primitiveMode)
     else
         return false;
 }
+
+inline bool UseRectEmulation(const LatteContextRegister& lcr) {
+    const LattePrimitiveMode primitiveMode = lcr.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
+    return (primitiveMode == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
+}
+
+inline bool UseGeometryShader(const LatteContextRegister& lcr, bool hasGeometryShader) {
+    return hasGeometryShader || UseRectEmulation(lcr);
+}

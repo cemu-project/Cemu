@@ -10,6 +10,9 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Common/MemPtr.h"
 #include "HW/Latte/ISA/LatteReg.h"
+#if ENABLE_METAL
+#include "HW/Latte/Renderer/Metal/MetalCommon.h"
+#endif
 
 // Defined in LatteTextureLegacy.cpp
 Latte::E_GX2SURFFMT LatteTexture_ReconstructGX2Format(const Latte::LATTE_SQ_TEX_RESOURCE_WORD1_N& texUnitWord1, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N& texUnitWord4);
@@ -557,9 +560,9 @@ namespace LatteDecompiler
 		}
 		if (g_renderer->GetType() == RendererAPI::Metal)
 		{
-            bool isRectVertexShader = (static_cast<LattePrimitiveMode>(decompilerContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
+            bool usesGeometryShader = UseGeometryShader(*decompilerContext->contextRegistersNew, decompilerContext->options->usesGeometryShader);
 
-		    if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && (decompilerContext->options->usesGeometryShader || isRectVertexShader))
+		    if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && usesGeometryShader)
 				decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance
 		}
 	}

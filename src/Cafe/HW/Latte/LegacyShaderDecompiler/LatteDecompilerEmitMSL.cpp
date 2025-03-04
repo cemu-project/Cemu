@@ -3933,8 +3933,8 @@ static void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* sh
 
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader)
 {
-    bool isRectVertexShader = (static_cast<LattePrimitiveMode>(shaderContext->contextRegisters[mmVGT_PRIMITIVE_TYPE]) == LattePrimitiveMode::RECTS);
-    bool usesGeometryShader = (shaderContext->options->usesGeometryShader || isRectVertexShader);
+    bool isRectVertexShader = UseRectEmulation(*shaderContext->contextRegistersNew);
+    bool usesGeometryShader = UseGeometryShader(*shaderContext->contextRegistersNew, shaderContext->options->usesGeometryShader);
     bool fetchVertexManually = (usesGeometryShader || (shaderContext->fetchShader && shaderContext->fetchShader->mtlFetchVertexManually));
 
     // Rasterization
@@ -3953,7 +3953,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
     src->add("#include <metal_stdlib>" _CRLF);
     src->add("using namespace metal;" _CRLF);
 	// header part (definitions for inputs and outputs)
-	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader, fetchVertexManually, rasterizationEnabled);
+	LatteDecompiler::emitHeader(shaderContext, isRectVertexShader, usesGeometryShader, fetchVertexManually, rasterizationEnabled);
 	// helper functions
 	LatteDecompiler_emitHelperFunctions(shaderContext, src);
 	const char* functionType = "";
@@ -4131,7 +4131,7 @@ void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, 
 	}
 	// start of main
 	src->addFmt("{} {} main0(", functionType, outputTypeName);
-	LatteDecompiler::emitInputs(shaderContext, isRectVertexShader, fetchVertexManually);
+	LatteDecompiler::emitInputs(shaderContext, isRectVertexShader, usesGeometryShader, fetchVertexManually);
 	src->add(") {" _CRLF);
 	if (fetchVertexManually && (shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Geometry))
 	{
