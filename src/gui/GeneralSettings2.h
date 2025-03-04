@@ -53,7 +53,7 @@ private:
 	// Graphics
 	wxChoice* m_graphic_api, * m_graphic_device;
 	wxChoice* m_vsync;
-	wxCheckBox *m_async_compile, *m_gx2drawdone_sync;
+	wxCheckBox *m_async_compile, *m_gx2drawdone_sync, *m_force_mesh_shaders;
 	wxRadioBox* m_upscale_filter, *m_downscale_filter, *m_fullscreen_scaling;
 	wxChoice* m_overlay_position, *m_notification_position, *m_overlay_scale, *m_notification_scale;
 	wxCheckBox* m_controller_profile_name, *m_controller_low_battery, *m_shader_compiling, *m_friends_data;

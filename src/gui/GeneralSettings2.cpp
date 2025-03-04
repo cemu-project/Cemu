@@ -367,6 +367,10 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_gx2drawdone_sync->SetToolTip(_("If synchronization is requested by the game, the emulated CPU will wait for the GPU to finish all operations.\nThis is more accurate behavior, but may cause lower performance"));
 		graphic_misc_row->Add(m_gx2drawdone_sync, 0, wxALL, 5);
 
+		m_force_mesh_shaders = new wxCheckBox(box, wxID_ANY, _("Force mesh shaders"));
+		m_force_mesh_shaders->SetToolTip(_("Force mesh shaders on all GPUs that support them. Mesh shaders are disabled by default on Intel GPUs due to potential stability issues"));
+		graphic_misc_row->Add(m_force_mesh_shaders, 0, wxALL, 5);
+
 		box_sizer->Add(graphic_misc_row, 1, wxEXPAND, 5);
 		graphics_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
 	}
@@ -1100,6 +1104,7 @@ void GeneralSettings2::StoreConfig()
 
 	config.vsync = m_vsync->GetSelection();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
+	config.force_mesh_shaders = m_force_mesh_shaders->IsChecked();
 	config.async_compile = m_async_compile->IsChecked();
 
 	config.upscale_filter = m_upscale_filter->GetSelection();
@@ -1580,12 +1585,14 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_gx2drawdone_sync->Enable();
 		m_async_compile->Disable();
+		m_force_mesh_shaders->Disable();
 	}
 	else if (m_graphic_api->GetSelection() == 1)
 	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
+		m_force_mesh_shaders->Disable();
 
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
@@ -1623,11 +1630,10 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		// Metal
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
+		m_force_mesh_shaders->Enable();
 
-		// TODO: vsync options
 		m_vsync->AppendString(_("Off"));
-		m_vsync->AppendString(_("Double buffering"));
-		m_vsync->AppendString(_("Triple buffering"));
+		m_vsync->AppendString(_("On"));
 
 		m_vsync->Select(selection);
 
@@ -1708,6 +1714,7 @@ void GeneralSettings2::ApplyConfig()
 	m_vsync->SetSelection(config.vsync);
 	m_async_compile->SetValue(config.async_compile);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
+	m_force_mesh_shaders->SetValue(config.force_mesh_shaders);
 	m_upscale_filter->SetSelection(config.upscale_filter);
 	m_downscale_filter->SetSelection(config.downscale_filter);
 	m_fullscreen_scaling->SetSelection(config.fullscreen_scaling);

@@ -222,6 +222,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen_scaling = graphic.get("FullscreenScaling", kKeepAspectRatio);
 	async_compile = graphic.get("AsyncCompile", async_compile);
 	vk_accurate_barriers = graphic.get("vkAccurateBarriers", true); // this used to be "VulkanAccurateBarriers" but because we changed the default to true in 1.27.1 the option name had to be changed
+	force_mesh_shaders = graphic.get("ForceMeshShaders", false);
 
 	auto overlay_node = graphic.get("Overlay");
 	if(overlay_node.valid())
@@ -477,6 +478,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	graphic.set("mtlDevice", mtl_graphic_device_uuid);
 	graphic.set("VSync", vsync);
 	graphic.set("GX2DrawdoneSync", gx2drawdone_sync);
+	graphic.set("ForceMeshShaders", force_mesh_shaders);
 	//graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());
 	graphic.set("UpscaleFilter", upscale_filter);
 	graphic.set("DownscaleFilter", downscale_filter);
