@@ -480,8 +480,8 @@ struct CemuConfig
 	sint32 audio_api = 0;
 	sint32 audio_delay = 2;
 	AudioChannels tv_channels = kStereo, pad_channels = kStereo, input_channels = kMono;
-	sint32 tv_volume = 50, pad_volume = 0, input_volume = 50;
-	std::wstring tv_device{ L"default" }, pad_device, input_device;
+	sint32 tv_volume = 50, pad_volume = 0, input_volume = 50, portal_volume = 50;
+	std::wstring tv_device{ L"default" }, pad_device, input_device, portal_device;
 
 	// account
 	struct
