@@ -102,9 +102,9 @@ if (MACOS_BUNDLE)
 	endforeach(folder)
 
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx/debug/lib/libusb-1.0.0.dylib")
+	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/lib/libusb-1.0.0.dylib")
 	else()
-	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx/lib/libusb-1.0.0.dylib")
+	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/libusb-1.0.0.dylib")
 	endif()
 
 	add_custom_command (TARGET CemuBin POST_BUILD

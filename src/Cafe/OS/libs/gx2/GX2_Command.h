@@ -6,9 +6,9 @@ struct GX2WriteGatherPipeState
 {
 	uint8* gxRingBuffer;
 	// each core has it's own write gatherer and display list state (writing)
-	uint8* writeGatherPtrGxBuffer[Espresso::CORE_COUNT];
-	uint8** writeGatherPtrWrite[Espresso::CORE_COUNT];
-	uint8* writeGatherPtrDisplayList[Espresso::CORE_COUNT];
+	std::atomic<uint8*> writeGatherPtrGxBuffer[Espresso::CORE_COUNT];
+	std::atomic<uint8*>* writeGatherPtrWrite[Espresso::CORE_COUNT];
+	std::atomic<uint8*> writeGatherPtrDisplayList[Espresso::CORE_COUNT];
 	MPTR displayListStart[Espresso::CORE_COUNT];
 	uint32 displayListMaxSize[Espresso::CORE_COUNT];
 };
@@ -75,10 +75,10 @@ template <typename ...Targs>
 inline void gx2WriteGather_submit(Targs... args)
 {
 	uint32 coreIndex = PPCInterpreter_getCurrentCoreIndex();
-	if (gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == nullptr)
+	if (*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex] == nullptr)
 		return;
 
-	uint32be* writePtr = (uint32be*)(*gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]);
+	uint32be* writePtr = (uint32be*)gx2WriteGatherPipe.writeGatherPtrWrite[coreIndex]->load();
 	gx2WriteGather_submit_(coreIndex, writePtr, std::forward<Targs>(args)...);
 }
 

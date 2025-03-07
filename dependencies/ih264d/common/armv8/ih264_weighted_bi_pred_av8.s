@@ -142,14 +142,22 @@ ih264_weighted_bi_pred_luma_av8:
     sxtw      x4, w4
     sxtw      x5, w5
     stp       x19, x20, [sp, #-16]!
+#ifndef __APPLE__
     ldr       w8, [sp, #80]             //Load wt2 in w8
     ldr       w9, [sp, #88]             //Load ofst1 in w9
-    add       w6, w6, #1                //w6  = log_WD + 1
-    neg       w10, w6                   //w10 = -(log_WD + 1)
-    dup       v0.8h, w10                //Q0  = -(log_WD + 1) (32-bit)
     ldr       w10, [sp, #96]            //Load ofst2 in w10
     ldr       w11, [sp, #104]           //Load ht in w11
     ldr       w12, [sp, #112]           //Load wd in w12
+#else
+    ldr       w8, [sp, #80]             //Load wd in w8
+    ldr       w9, [sp, #84]             //Load ht in w9
+    ldr       w10, [sp, #88]            //Load offst2 in w10
+    ldr       w11,  [sp, #92]           //Load offst1 in w11
+    ldr       w12,  [sp, #96]           //Load offst1 in w12
+#endif
+    add       w6, w6, #1                //w6  = log_WD + 1
+    neg       w10, w6                   //w10 = -(log_WD + 1)
+    dup       v0.8h, w10                //Q0  = -(log_WD + 1) (32-bit)
     add       w9, w9, #1                //w9 = ofst1 + 1
     add       w9, w9, w10               //w9 = ofst1 + ofst2 + 1
     mov       v2.s[0], w7
@@ -424,17 +432,24 @@ ih264_weighted_bi_pred_chroma_av8:
     sxtw      x5, w5
     stp       x19, x20, [sp, #-16]!
 
-
+#ifndef __APPLE__
     ldr       w8, [sp, #80]             //Load wt2 in w8
+    ldr       w9, [sp, #88]             //Load ofst1 in w9
+    ldr       w10, [sp, #96]            //Load ofst2 in w10
+    ldr       w11, [sp, #104]           //Load ht in w11
+    ldr       w12, [sp, #112]           //Load wd in w12
+#else
+    ldr       w8, [sp, #80]             //Load wd in w8
+    ldr       w9, [sp, #84]             //Load ht in w9
+    ldr       w10, [sp, #88]            //Load offst2 in w10
+    ldr       w11,  [sp, #92]           //Load offst1 in w11
+    ldr       w12,  [sp, #96]           //Load offst1 in w12
+#endif
     dup       v4.4s, w8                 //Q2 = (wt2_u, wt2_v) (32-bit)
     dup       v2.4s, w7                 //Q1 = (wt1_u, wt1_v) (32-bit)
     add       w6, w6, #1                //w6  = log_WD + 1
-    ldr       w9, [sp, #88]             //Load ofst1 in w9
-    ldr       w10, [sp, #96]            //Load ofst2 in w10
     neg       w20, w6                   //w20 = -(log_WD + 1)
     dup       v0.8h, w20                //Q0  = -(log_WD + 1) (16-bit)
-    ldr       w11, [sp, #104]           //Load ht in x11
-    ldr       w12, [sp, #112]           //Load wd in x12
     dup       v20.8h, w9                //0ffset1
     dup       v21.8h, w10               //0ffset2
     srhadd    v6.8b, v20.8b, v21.8b
