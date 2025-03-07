@@ -202,14 +202,14 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 		auto it = debuggerState.breakpoints.begin();
 		std::advance(it, index);
 
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new comment."), wxString::Format(_("Set comment for breakpoint at address %08x"), address), (*it)->comment);
-		if (set_value_dialog.ShowModal() == wxID_OK)
+		const wxString dialogTitle = (*it)->bpType == DEBUGGER_BP_T_LOGGING ? _("Enter a new logging message") : _("Enter a new comment");
+		const wxString dialogMessage = (*it)->bpType == DEBUGGER_BP_T_LOGGING ? _("Set logging message when code at address %08x is ran.\nUse placeholders like {r3} or {f3} to log register values") : _("Set comment for breakpoint at address %08x");
+		wxTextEntryDialog set_comment_dialog(this, dialogMessage, dialogTitle, (*it)->comment);
+		if (set_comment_dialog.ShowModal() == wxID_OK)
 		{
-			(*it)->comment = set_value_dialog.GetValue().ToStdWstring();
-			m_breakpoints->SetItem(index, ColumnComment, set_value_dialog.GetValue());
+			(*it)->comment = set_comment_dialog.GetValue().ToStdWstring();
+			m_breakpoints->SetItem(index, ColumnComment, set_comment_dialog.GetValue());
 		}
-
-		return;
 	}
 }
 

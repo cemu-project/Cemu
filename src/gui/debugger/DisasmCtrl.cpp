@@ -538,7 +538,7 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 	auto optVirtualAddress = LinePixelPosToAddress(position.y);
 	switch (key_code)
 	{
-	case WXK_F9:
+		case WXK_F9:
 		{
 			if (optVirtualAddress)
 			{
@@ -549,7 +549,7 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 			}
 			return;
 		}
-	case 'G':
+		case 'G':
 		{
 			if(IsKeyDown(WXK_CONTROL))
 			{
@@ -686,6 +686,7 @@ void DisasmCtrl::OnContextMenu(const wxPoint& position, uint32 line)
 	// show dialog
 	wxMenu menu;
 	menu.Append(IDContextMenu_ToggleBreakpoint, _("Toggle breakpoint"));
+	menu.Append(IDContextMenu_ToggleLoggingBreakpoint, _("Toggle logging point"));
 	if(debugger_hasPatch(virtualAddress))
 		menu.Append(IDContextMenu_RestoreOriginalInstructions, _("Restore original instructions"));
 	menu.AppendSeparator();
@@ -703,6 +704,13 @@ void DisasmCtrl::OnContextMenuEntryClicked(wxCommandEvent& event)
 		case IDContextMenu_ToggleBreakpoint:
 		{
 			debugger_toggleExecuteBreakpoint(m_contextMenuAddress);
+			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
+			wxPostEvent(this->m_parent, evt);
+			break;
+		}
+		case IDContextMenu_ToggleLoggingBreakpoint:
+		{
+			debugger_toggleLoggingBreakpoint(m_contextMenuAddress);
 			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
 			wxPostEvent(this->m_parent, evt);
 			break;

@@ -8,6 +8,7 @@ class DisasmCtrl : public TextList
 	enum
 	{
 		IDContextMenu_ToggleBreakpoint = wxID_HIGHEST + 1,
+		IDContextMenu_ToggleLoggingBreakpoint,
 		IDContextMenu_RestoreOriginalInstructions,
 		IDContextMenu_CopyAddress,
 		IDContextMenu_CopyUnrelocatedAddress,
