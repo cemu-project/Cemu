@@ -27,6 +27,9 @@ public:
 
 	static bool ForceInterpreter() { return s_force_interpreter; };
 
+	static bool OpenLogWindowOnLaunch() { return s_open_log_window_on_launch; };
+	static bool OpenDebugWindowOnLaunch() { return s_open_debug_window_on_launch; };
+
 	static std::optional<uint32> GetPersistentId() { return s_persistent_id; }
 
 private:
@@ -41,6 +44,9 @@ private:
 	inline static bool s_nsight_mode = false;
 
 	inline static bool s_force_interpreter = false;
+
+	inline static bool s_open_log_window_on_launch = false;
+	inline static bool s_open_debug_window_on_launch = false;
 	
 	inline static std::optional<uint32> s_persistent_id{};
 
