@@ -30,8 +30,8 @@ L2CapWiimote::L2CapWiimote(int recvFd, int sendFd, bdaddr_t addr)
 
 L2CapWiimote::~L2CapWiimote()
 {
-	close(m_controlFd);
 	close(m_dataFd);
+	close(m_controlFd);
 	const auto& b = m_addr.b;
 	cemuLog_logDebug(LogType::Force, "Wiimote at {:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x} disconnected", b[5], b[4], b[3], b[2], b[1], b[0]);
 
@@ -101,8 +101,8 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 			const auto& b = addr.b;
 			cemuLog_logDebug(LogType::Force, "Failed to connect recv socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
 							 b[5], b[4], b[3], b[2], b[1], b[0], strerror(errno));
-			close(controlFd);
 			close(dataFd);
+			close(controlFd);
 			continue;
 		}
 		outDevices.emplace_back(std::make_shared<L2CapWiimote>(controlFd, dataFd, addr));
