@@ -23,8 +23,8 @@ static bool AttemptSetNonBlock(int sockFd)
 	return fcntl(sockFd, F_SETFL, fcntl(sockFd, F_GETFL) | O_NONBLOCK) == 0;
 }
 
-L2CapWiimote::L2CapWiimote(int recvFd, int sendFd, bdaddr_t addr)
-	: m_controlFd(recvFd), m_dataFd(sendFd), m_addr(addr)
+L2CapWiimote::L2CapWiimote(int controlFd, int dataFd, bdaddr_t addr)
+	: m_controlFd(controlFd), m_dataFd(dataFd), m_addr(addr)
 {
 }
 
@@ -65,19 +65,19 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 		auto controlFd = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP);
 		if (controlFd < 0)
 		{
-			cemuLog_logDebug(LogType::Force, "Failed to open send socket: {}", strerror(errno));
+			cemuLog_logDebug(LogType::Force, "Failed to open control socket: {}", strerror(errno));
 			continue;
 		}
 
-		sockaddr_l2 sendAddr{};
-		sendAddr.l2_family = AF_BLUETOOTH;
-		sendAddr.l2_psm = htobs(0x11);
-		sendAddr.l2_bdaddr = addr;
+		sockaddr_l2 controlAddr{};
+		controlAddr.l2_family = AF_BLUETOOTH;
+		controlAddr.l2_psm = htobs(0x11);
+		controlAddr.l2_bdaddr = addr;
 
-		if (!AttemptConnect(controlFd, sendAddr) || !AttemptSetNonBlock(controlFd))
+		if (!AttemptConnect(controlFd, controlAddr) || !AttemptSetNonBlock(controlFd))
 		{
 			const auto& b = addr.b;
-			cemuLog_logDebug(LogType::Force, "Failed to connect send socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
+			cemuLog_logDebug(LogType::Force, "Failed to connect control socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
 							 b[5], b[4], b[3], b[2], b[1], b[0], strerror(errno));
 			close(controlFd);
 			continue;
@@ -87,19 +87,19 @@ std::vector<WiimoteDevicePtr> L2CapWiimote::get_devices()
 		auto dataFd = socket(PF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP);
 		if (dataFd < 0)
 		{
-			cemuLog_logDebug(LogType::Force, "Failed to open recv socket: {}", strerror(errno));
+			cemuLog_logDebug(LogType::Force, "Failed to open data socket: {}", strerror(errno));
 			close(controlFd);
 			continue;
 		}
-		sockaddr_l2 recvAddr{};
-		recvAddr.l2_family = AF_BLUETOOTH;
-		recvAddr.l2_psm = htobs(0x13);
-		recvAddr.l2_bdaddr = addr;
+		sockaddr_l2 dataAddr{};
+		dataAddr.l2_family = AF_BLUETOOTH;
+		dataAddr.l2_psm = htobs(0x13);
+		dataAddr.l2_bdaddr = addr;
 
-		if (!AttemptConnect(dataFd, recvAddr) || !AttemptSetNonBlock(dataFd))
+		if (!AttemptConnect(dataFd, dataAddr) || !AttemptSetNonBlock(dataFd))
 		{
 			const auto& b = addr.b;
-			cemuLog_logDebug(LogType::Force, "Failed to connect recv socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
+			cemuLog_logDebug(LogType::Force, "Failed to connect data socket to '{:02x}:{:02x}:{:02x}:{:02x}:{:02x}:{:02x}': {}",
 							 b[5], b[4], b[3], b[2], b[1], b[0], strerror(errno));
 			close(dataFd);
 			close(controlFd);
