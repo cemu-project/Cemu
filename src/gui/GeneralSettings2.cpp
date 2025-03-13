@@ -10,6 +10,7 @@
 #include <wx/collpane.h>
 #include <wx/clrpicker.h>
 #include <wx/cshelp.h>
+#include <wx/textctrl.h>
 #include <wx/textdlg.h>
 #include <wx/hyperlink.h>
 
@@ -27,6 +28,9 @@
 
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#if ENABLE_METAL
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#endif
 #include "Cafe/Account/Account.h"
 
 #include <boost/tokenizer.hpp>
@@ -93,6 +97,19 @@ private:
 	VulkanRenderer::DeviceInfo m_device_info;
 };
 
+#if ENABLE_METAL
+class wxMetalUUID : public wxClientData
+{
+public:
+	wxMetalUUID(const MetalRenderer::DeviceInfo& info)
+		: m_device_info(info) {}
+	const MetalRenderer::DeviceInfo& GetDeviceInfo() const { return m_device_info; }
+
+private:
+	MetalRenderer::DeviceInfo m_device_info;
+};
+#endif
+
 class wxAccountData : public wxClientData
 {
 public:
@@ -101,7 +118,7 @@ public:
 
 	Account& GetAccount() { return m_account; }
 	const Account& GetAccount() const { return m_account; }
-	
+
 private:
 	Account m_account;
 };
@@ -311,12 +328,14 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		row->Add(new wxStaticText(box, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		sint32 api_size = 1;
-		wxString choices[2] = { "OpenGL" };
+		wxString choices[3] = { "OpenGL" };
 		if (g_vulkan_available)
 		{
-			choices[1] = "Vulkan";
-			api_size = 2;
+			choices[api_size++] = "Vulkan";
 		}
+#if ENABLE_METAL
+        choices[api_size++] = "Metal";
+#endif
 
 		m_graphic_api = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, api_size, choices);
 		m_graphic_api->SetSelection(0);
@@ -347,6 +366,10 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_gx2drawdone_sync = new wxCheckBox(box, wxID_ANY, _("Full sync at GX2DrawDone()"));
 		m_gx2drawdone_sync->SetToolTip(_("If synchronization is requested by the game, the emulated CPU will wait for the GPU to finish all operations.\nThis is more accurate behavior, but may cause lower performance"));
 		graphic_misc_row->Add(m_gx2drawdone_sync, 0, wxALL, 5);
+
+		m_force_mesh_shaders = new wxCheckBox(box, wxID_ANY, _("Force mesh shaders"));
+		m_force_mesh_shaders->SetToolTip(_("Force mesh shaders on all GPUs that support them. Mesh shaders are disabled by default on Intel GPUs due to potential stability issues"));
+		graphic_misc_row->Add(m_force_mesh_shaders, 0, wxALL, 5);
 
 		box_sizer->Add(graphic_misc_row, 1, wxEXPAND, 5);
 		graphics_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -763,7 +786,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		auto* row = new wxFlexGridSizer(0, 2, 0, 0);
 		row->SetFlexibleDirection(wxBOTH);
 		row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
-		
+
 		const wxImage tmp = wxBITMAP_PNG_FROM_DATA(PNG_ERROR).ConvertToImage();
 		m_validate_online = new wxBitmapButton(box, wxID_ANY, tmp.Scale(16, 16));
 		m_validate_online->Bind(wxEVT_BUTTON, &GeneralSettings2::OnShowOnlineValidator, this);
@@ -773,7 +796,7 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 		row->Add(m_online_status, 1, wxALL | wxALIGN_CENTRE_VERTICAL, 5);
 
 		box_sizer->Add(row, 1, wxEXPAND, 5);
-		
+
 		auto* tutorial_link = new wxHyperlinkCtrl(box, wxID_ANY, _("Online play tutorial"), "https://cemu.info/online-guide");
 		box_sizer->Add(tutorial_link, 0, wxALL, 5);
 
@@ -876,6 +899,33 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
 	}
 
+	{
+		auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
+		debug_row->SetFlexibleDirection(wxBOTH);
+		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("GPU capture save directory"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+		m_gpu_capture_dir = new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_DONTWRAP);
+		m_gpu_capture_dir->SetMinSize(wxSize(150, -1));
+		m_gpu_capture_dir->SetToolTip(_("Cemu will save the GPU captures done by selecting Debug -> GPU capture in the menu bar in this directory. If a debugger with support for GPU captures (like Xcode) is attached, the capture will be opened in that debugger instead. If such debugger is not attached, METAL_CAPTURE_ENABLED must be set to 1 as an environment variable."));
+
+		debug_row->Add(m_gpu_capture_dir, 0, wxALL | wxEXPAND, 5);
+		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
+	}
+
+	{
+		auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
+		debug_row->SetFlexibleDirection(wxBOTH);
+		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+		m_framebuffer_fetch = new wxCheckBox(panel, wxID_ANY, _("Framebuffer fetch"));
+		m_framebuffer_fetch->SetToolTip(_("Enable framebuffer fetch for eligible textures on supported devices."));
+
+		debug_row->Add(m_framebuffer_fetch, 0, wxALL | wxEXPAND, 5);
+		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
+	}
+
 	panel->SetSizerAndFit(debug_panel_sizer);
 
 	return panel;
@@ -891,14 +941,14 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 
 	notebook->AddPage(AddGeneralPage(notebook), _("General"));
 	notebook->AddPage(AddGraphicsPage(notebook), _("Graphics"));
-	notebook->AddPage(AddAudioPage(notebook), _("Audio"));	
+	notebook->AddPage(AddAudioPage(notebook), _("Audio"));
 	notebook->AddPage(AddOverlayPage(notebook), _("Overlay"));
 	notebook->AddPage(AddAccountPage(notebook), _("Account"));
 	notebook->AddPage(AddDebugPage(notebook), _("Debug"));
 
 	Bind(wxEVT_CLOSE_WINDOW, &GeneralSettings2::OnClose, this);
 
-	// 
+	//
 
 	sizer->Add(notebook, 1, wxEXPAND | wxALL, 5);
 
@@ -913,7 +963,7 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 
 	ApplyConfig();
 	HandleGraphicsApiSelection();
-	
+
 	DisableSettings(game_launched);
 }
 
@@ -925,7 +975,7 @@ uint32 GeneralSettings2::GetSelectedAccountPersistentId()
 	return dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(active_account))->GetAccount().GetPersistentId();
 }
 
-void GeneralSettings2::StoreConfig() 
+void GeneralSettings2::StoreConfig()
 {
 	auto* app = (CemuApp*)wxTheApp;
 	auto& config = GetConfig();
@@ -945,7 +995,6 @@ void GeneralSettings2::StoreConfig()
 	{
 		ScreenSaver::SetInhibit(config.disable_screensaver);
 	}
-
 
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
 	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
@@ -989,7 +1038,7 @@ void GeneralSettings2::StoreConfig()
 	config.pad_channels = kStereo; // (AudioChannels)m_pad_channels->GetSelection();
 	//config.input_channels =  (AudioChannels)m_input_channels->GetSelection();
 	config.input_channels = kMono; // (AudioChannels)m_input_channels->GetSelection();
-	
+
 	config.tv_volume = m_tv_volume->GetValue();
 	config.pad_volume = m_pad_volume->GetValue();
 	config.input_volume = m_input_volume->GetValue();
@@ -1025,26 +1074,43 @@ void GeneralSettings2::StoreConfig()
 	config.graphic_api = (GraphicAPI)m_graphic_api->GetSelection();
 
 	selection = m_graphic_device->GetSelection();
-	if(selection != wxNOT_FOUND)
+	if (config.graphic_api == GraphicAPI::kVulkan)
 	{
-		const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
-		if(info)
-			config.graphic_device_uuid = info->GetDeviceInfo().uuid;
-		else
-			config.graphic_device_uuid = {};
+    	if (selection != wxNOT_FOUND)
+    	{
+    		const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
+    		if (info)
+    			config.vk_graphic_device_uuid = info->GetDeviceInfo().uuid;
+    		else
+    			config.vk_graphic_device_uuid = {};
+    	}
+    	else
+    		config.vk_graphic_device_uuid = {};
 	}
-	else
-		config.graphic_device_uuid = {};
-	
+	else if (config.graphic_api == GraphicAPI::kMetal)
+	{
+        if (selection != wxNOT_FOUND)
+    	{
+    		const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
+    		if (info)
+    			config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+    		else
+    			config.mtl_graphic_device_uuid = {};
+    	}
+    	else
+    		config.mtl_graphic_device_uuid = {};
+	}
+
 
 	config.vsync = m_vsync->GetSelection();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
+	config.force_mesh_shaders = m_force_mesh_shaders->IsChecked();
 	config.async_compile = m_async_compile->IsChecked();
-	
+
 	config.upscale_filter = m_upscale_filter->GetSelection();
 	config.downscale_filter = m_downscale_filter->GetSelection();
 	config.fullscreen_scaling = m_fullscreen_scaling->GetSelection();
-	
+
 	config.overlay.position = (ScreenPosition)m_overlay_position->GetSelection(); wxASSERT((int)config.overlay.position <= (int)ScreenPosition::kBottomRight);
 	config.overlay.text_color = m_overlay_font_color->GetColour().GetRGBA();
 	config.overlay.text_scale = m_overlay_scale->GetSelection() * 25 + 50;
@@ -1071,6 +1137,8 @@ void GeneralSettings2::StoreConfig()
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
 	config.gdb_port = m_gdb_port->GetValue();
+	config.gpu_capture_dir = m_gpu_capture_dir->GetValue().utf8_string();
+	config.framebuffer_fetch = m_framebuffer_fetch->IsChecked();
 
 	g_config.Save();
 }
@@ -1102,7 +1170,7 @@ void GeneralSettings2::ValidateConfig()
 
 void GeneralSettings2::DisableSettings(bool game_launched)
 {
-	
+
 }
 
 void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
@@ -1113,7 +1181,7 @@ void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
 
 void GeneralSettings2::OnVolumeChanged(wxCommandEvent& event)
 {
-	
+
 	if(event.GetEventObject() == m_input_volume)
 	{
 		std::shared_lock lock(g_audioInputMutex);
@@ -1137,7 +1205,7 @@ void GeneralSettings2::OnVolumeChanged(wxCommandEvent& event)
 				g_tvAudio->SetVolume(event.GetInt());
 		}
 	}
-	
+
 
 	event.Skip();
 }
@@ -1150,7 +1218,7 @@ void GeneralSettings2::OnInputVolumeChanged(wxCommandEvent& event)
 		g_padAudio->SetInputVolume(event.GetInt());
 		g_padVolume = event.GetInt();
 	}
-		
+
 	event.Skip();
 }
 
@@ -1228,7 +1296,7 @@ void GeneralSettings2::UpdateAudioDeviceList()
 	// todo reset global instance of audio device
 }
 
-void GeneralSettings2::ResetAccountInformation() 
+void GeneralSettings2::ResetAccountInformation()
 {
 	m_account_grid->SetSplitterPosition(100);
 	m_active_account->SetSelection(0);
@@ -1256,7 +1324,7 @@ void GeneralSettings2::OnAccountCreate(wxCommandEvent& event)
 	Account account(dialog.GetPersistentId(), dialog.GetMiiName().ToStdWstring());
 	account.Save();
 	Account::RefreshAccounts();
-	
+
 	const int index = m_active_account->Append(account.ToString(), new wxAccountData(account));
 
 	// update ui
@@ -1265,7 +1333,7 @@ void GeneralSettings2::OnAccountCreate(wxCommandEvent& event)
 
 	m_create_account->Enable(m_active_account->GetCount() < 0xC);
 	m_delete_account->Enable(m_active_account->GetCount() > 1);
-	
+
 	// send main window event
 	wxASSERT(GetParent());
 	wxCommandEvent refresh_event(wxEVT_ACCOUNTLIST_REFRESH);
@@ -1295,7 +1363,7 @@ void GeneralSettings2::OnAccountDelete(wxCommandEvent& event)
 		return;
 
 	// todo: ask if saves should be deleted too?
-	
+
 	const fs::path path = account.GetFileName();
 	try
 	{
@@ -1313,7 +1381,7 @@ void GeneralSettings2::OnAccountDelete(wxCommandEvent& event)
 		SystemException sys(ex);
 		cemuLog_log(LogType::Force, sys.what());
 	}
-	
+
 }
 
 void GeneralSettings2::OnAccountSettingsChanged(wxPropertyGridEvent& event)
@@ -1368,7 +1436,7 @@ void GeneralSettings2::OnAccountSettingsChanged(wxPropertyGridEvent& event)
 	else if (property->GetName() == kPropertyEmail)
 	{
 		account.SetEmail(value.As<wxString>().ToStdString());
-		
+
 	}
 	else if (property->GetName() == kPropertyCountry)
 	{
@@ -1376,7 +1444,7 @@ void GeneralSettings2::OnAccountSettingsChanged(wxPropertyGridEvent& event)
 	}
 	else
 		cemu_assert_debug(false);
-	
+
 	account.Save();
 	Account::RefreshAccounts(); // refresh internal account list
 	UpdateAccountInformation(); // refresh on invalid values
@@ -1416,7 +1484,7 @@ void GeneralSettings2::UpdateAccountInformation()
 	gender_property->SetChoiceSelection(std::min(gender_property->GetChoices().GetCount() - 1, (uint32)account.GetGender()));
 
 	m_account_grid->GetProperty(kPropertyEmail)->SetValueFromString(std::string{ account.GetEmail() });
-	
+
 	auto* country_property = dynamic_cast<wxEnumProperty*>(m_account_grid->GetProperty(kPropertyCountry));
 	wxASSERT(country_property);
 	int index = (country_property)->GetIndexForValue(account.GetCountry());
@@ -1500,9 +1568,9 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 	int selection = m_vsync->GetSelection();
 	if(selection == wxNOT_FOUND)
 		selection = GetConfig().vsync;
-		
+
 	m_vsync->Clear();
-	if(m_graphic_api->GetSelection() == 0)
+	if (m_graphic_api->GetSelection() == 0)
 	{
 		// OpenGL
 		m_vsync->AppendString(_("Off"));
@@ -1517,12 +1585,14 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_gx2drawdone_sync->Enable();
 		m_async_compile->Disable();
+		m_force_mesh_shaders->Disable();
 	}
-	else
+	else if (m_graphic_api->GetSelection() == 1)
 	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
+		m_force_mesh_shaders->Disable();
 
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
@@ -1532,7 +1602,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 #endif
 
 		m_vsync->Select(selection);
-		
+
 		m_graphic_device->Enable();
 		auto devices = VulkanRenderer::GetDevices();
 		m_graphic_device->Clear();
@@ -1547,13 +1617,49 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 			const auto& config = GetConfig();
 			for(size_t i = 0; i < devices.size(); ++i)
 			{
-				if(config.graphic_device_uuid == devices[i].uuid)
+				if(config.vk_graphic_device_uuid == devices[i].uuid)
 				{
 					m_graphic_device->SetSelection(i);
 					break;
 				}
 			}
 		}
+	}
+	else
+	{
+		// Metal
+		m_gx2drawdone_sync->Disable();
+		m_async_compile->Enable();
+		m_force_mesh_shaders->Enable();
+
+		m_vsync->AppendString(_("Off"));
+		m_vsync->AppendString(_("On"));
+
+		m_vsync->Select(selection);
+
+		m_graphic_device->Enable();
+		auto devices = MetalRenderer::GetDevices();
+		m_graphic_device->Clear();
+#if ENABLE_METAL
+		if(!devices.empty())
+		{
+			for (const auto& device : devices)
+			{
+				m_graphic_device->Append(device.name, new wxMetalUUID(device));
+			}
+			m_graphic_device->SetSelection(0);
+
+			const auto& config = GetConfig();
+			for (size_t i = 0; i < devices.size(); ++i)
+			{
+				if (config.mtl_graphic_device_uuid == devices[i].uuid)
+				{
+					m_graphic_device->SetSelection(i);
+					break;
+				}
+			}
+		}
+#endif
 	}
 }
 
@@ -1608,6 +1714,7 @@ void GeneralSettings2::ApplyConfig()
 	m_vsync->SetSelection(config.vsync);
 	m_async_compile->SetValue(config.async_compile);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
+	m_force_mesh_shaders->SetValue(config.force_mesh_shaders);
 	m_upscale_filter->SetSelection(config.upscale_filter);
 	m_downscale_filter->SetSelection(config.downscale_filter);
 	m_fullscreen_scaling->SetSelection(config.fullscreen_scaling);
@@ -1658,7 +1765,7 @@ void GeneralSettings2::ApplyConfig()
 	m_pad_channels->SetSelection(0);
 	//m_input_channels->SetSelection(config.pad_channels);
 	m_input_channels->SetSelection(0);
-	
+
 	SendSliderEvent(m_tv_volume, config.tv_volume);
 
 	if (!config.tv_device.empty() && m_tv_device->HasClientObjectData())
@@ -1675,7 +1782,7 @@ void GeneralSettings2::ApplyConfig()
 	}
 	else
 		m_tv_device->SetSelection(0);
-	
+
 	SendSliderEvent(m_pad_volume, config.pad_volume);
 	if (!config.pad_device.empty() && m_pad_device->HasClientObjectData())
 	{
@@ -1728,6 +1835,8 @@ void GeneralSettings2::ApplyConfig()
 	// debug
 	m_crash_dump->SetSelection((int)config.crash_dump.GetValue());
 	m_gdb_port->SetValue(config.gdb_port.GetValue());
+	m_gpu_capture_dir->SetValue(wxHelper::FromUtf8(config.gpu_capture_dir.GetValue()));
+	m_framebuffer_fetch->SetValue(config.framebuffer_fetch);
 }
 
 void GeneralSettings2::OnAudioAPISelected(wxCommandEvent& event)
@@ -1795,7 +1904,7 @@ void GeneralSettings2::UpdateAudioDevice()
 			}
 		}
 	}
-	
+
 	// pad audio device
 	{
 		const auto selection = m_pad_device->GetSelection();
@@ -1885,14 +1994,14 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 	{
 		if (config.tv_channels == (AudioChannels)obj->GetSelection())
 			return;
-		
+
 		config.tv_channels = (AudioChannels)obj->GetSelection();
 	}
 	else if (obj == m_pad_channels)
 	{
 		if (config.pad_channels == (AudioChannels)obj->GetSelection())
 			return;
-		
+
 		config.pad_channels = (AudioChannels)obj->GetSelection();
 	}
 	else
@@ -2035,23 +2144,23 @@ void GeneralSettings2::OnShowOnlineValidator(wxCommandEvent& event)
 	const auto selection = m_active_account->GetSelection();
 	if (selection == wxNOT_FOUND)
 		return;
-	
+
 	const auto* obj = dynamic_cast<wxAccountData*>(m_active_account->GetClientObject(selection));
 	wxASSERT(obj);
 	const auto& account = obj->GetAccount();
-	
+
 	const auto validator = account.ValidateOnlineFiles();
 	if (validator) // everything valid? shouldn't happen
 		return;
-	
+
 	wxString err;
 	err << _("The following error(s) have been found:") << '\n';
-	
+
 	if (validator.otp == OnlineValidator::FileState::Missing)
 		err << _("otp.bin missing in Cemu directory") << '\n';
 	else if(validator.otp == OnlineValidator::FileState::Corrupted)
 		err << _("otp.bin is invalid") << '\n';
-	
+
 	if (validator.seeprom == OnlineValidator::FileState::Missing)
 		err << _("seeprom.bin missing in Cemu directory") << '\n';
 	else if(validator.seeprom == OnlineValidator::FileState::Corrupted)

@@ -22,6 +22,8 @@ class FileStream
 	bool SetEndOfFile();
 	void extract(std::vector<uint8>& data);
 
+	void Flush();
+
 	// reading
 	uint32 readData(void* data, uint32 length);
 	bool readU64(uint64& v);
