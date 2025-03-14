@@ -1365,112 +1365,112 @@ typedef struct _DecStruct
     UWORD8 *pu1_mv_bank_buf_base;
     UWORD8 *pu1_init_dpb_base;
 
-    ih264_default_weighted_pred_ft *pf_default_weighted_pred_luma;
+    _ih264_default_weighted_pred_ft *pf_default_weighted_pred_luma;
 
-    ih264_default_weighted_pred_ft *pf_default_weighted_pred_chroma;
+    _ih264_default_weighted_pred_ft *pf_default_weighted_pred_chroma;
 
-    ih264_weighted_pred_ft *pf_weighted_pred_luma;
+    _ih264_weighted_pred_ft *pf_weighted_pred_luma;
 
-    ih264_weighted_pred_ft *pf_weighted_pred_chroma;
+    _ih264_weighted_pred_ft *pf_weighted_pred_chroma;
 
-    ih264_weighted_bi_pred_ft *pf_weighted_bi_pred_luma;
+    _ih264_weighted_bi_pred_ft *pf_weighted_bi_pred_luma;
 
-    ih264_weighted_bi_pred_ft *pf_weighted_bi_pred_chroma;
+    _ih264_weighted_bi_pred_ft *pf_weighted_bi_pred_chroma;
 
-    ih264_pad *pf_pad_top;
-    ih264_pad *pf_pad_bottom;
-    ih264_pad *pf_pad_left_luma;
-    ih264_pad *pf_pad_left_chroma;
-    ih264_pad *pf_pad_right_luma;
-    ih264_pad *pf_pad_right_chroma;
+    _ih264_pad *pf_pad_top;
+    _ih264_pad *pf_pad_bottom;
+    _ih264_pad *pf_pad_left_luma;
+    _ih264_pad *pf_pad_left_chroma;
+    _ih264_pad *pf_pad_right_luma;
+    _ih264_pad *pf_pad_right_chroma;
 
-    ih264_inter_pred_chroma_ft *pf_inter_pred_chroma;
+    _ih264_inter_pred_chroma_ft *pf_inter_pred_chroma;
 
-    ih264_inter_pred_luma_ft *apf_inter_pred_luma[16];
+    _ih264_inter_pred_luma_ft *apf_inter_pred_luma[16];
 
-    ih264_intra_pred_luma_ft *apf_intra_pred_luma_16x16[4];
+    _ih264_intra_pred_luma_ft *apf_intra_pred_luma_16x16[4];
 
-    ih264_intra_pred_luma_ft *apf_intra_pred_luma_8x8[9];
+    _ih264_intra_pred_luma_ft *apf_intra_pred_luma_8x8[9];
 
-    ih264_intra_pred_luma_ft *apf_intra_pred_luma_4x4[9];
+    _ih264_intra_pred_luma_ft *apf_intra_pred_luma_4x4[9];
 
-    ih264_intra_pred_ref_filtering_ft *pf_intra_pred_ref_filtering;
+    _ih264_intra_pred_ref_filtering_ft *pf_intra_pred_ref_filtering;
 
-    ih264_intra_pred_chroma_ft *apf_intra_pred_chroma[4];
+    _ih264_intra_pred_chroma_ft *apf_intra_pred_chroma[4];
 
-    ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_4x4;
+    _ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_4x4;
 
-    ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_4x4_dc;
+    _ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_4x4_dc;
 
-    ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_8x8;
+    _ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_8x8;
 
-    ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_8x8_dc;
+    _ih264_iquant_itrans_recon_ft *pf_iquant_itrans_recon_luma_8x8_dc;
 
-    ih264_iquant_itrans_recon_chroma_ft *pf_iquant_itrans_recon_chroma_4x4;
+    _ih264_iquant_itrans_recon_chroma_ft *pf_iquant_itrans_recon_chroma_4x4;
 
-    ih264_iquant_itrans_recon_chroma_ft *pf_iquant_itrans_recon_chroma_4x4_dc;
+    _ih264_iquant_itrans_recon_chroma_ft *pf_iquant_itrans_recon_chroma_4x4_dc;
 
-    ih264_ihadamard_scaling_ft *pf_ihadamard_scaling_4x4;
+    _ih264_ihadamard_scaling_ft *pf_ihadamard_scaling_4x4;
 
     /**
      * deblock vertical luma edge with blocking strength 4
      */
-    ih264_deblk_edge_bs4_ft *pf_deblk_luma_vert_bs4;
+    _ih264_deblk_edge_bs4_ft *pf_deblk_luma_vert_bs4;
 
     /**
      * deblock vertical luma edge with blocking strength less than 4
      */
-    ih264_deblk_edge_bslt4_ft *pf_deblk_luma_vert_bslt4;
+    _ih264_deblk_edge_bslt4_ft *pf_deblk_luma_vert_bslt4;
 
     /**
      * deblock vertical luma edge with blocking strength 4 for mbaff
      */
-    ih264_deblk_edge_bs4_ft *pf_deblk_luma_vert_bs4_mbaff;
+    _ih264_deblk_edge_bs4_ft *pf_deblk_luma_vert_bs4_mbaff;
 
     /**
      * deblock vertical luma edge with blocking strength less than 4 for mbaff
      */
-    ih264_deblk_edge_bslt4_ft *pf_deblk_luma_vert_bslt4_mbaff;
+    _ih264_deblk_edge_bslt4_ft *pf_deblk_luma_vert_bslt4_mbaff;
 
     /**
      * deblock vertical chroma edge with blocking strength 4
      */
-    ih264_deblk_chroma_edge_bs4_ft *pf_deblk_chroma_vert_bs4;
+    _ih264_deblk_chroma_edge_bs4_ft *pf_deblk_chroma_vert_bs4;
 
     /**
      * deblock vertical chroma edge with blocking strength less than 4
      */
-    ih264_deblk_chroma_edge_bslt4_ft *pf_deblk_chroma_vert_bslt4;
+    _ih264_deblk_chroma_edge_bslt4_ft *pf_deblk_chroma_vert_bslt4;
 
     /**
      * deblock vertical chroma edge with blocking strength 4 for mbaff
      */
-    ih264_deblk_chroma_edge_bs4_ft *pf_deblk_chroma_vert_bs4_mbaff;
+    _ih264_deblk_chroma_edge_bs4_ft *pf_deblk_chroma_vert_bs4_mbaff;
 
     /**
      * deblock vertical chroma edge with blocking strength less than 4 for mbaff
      */
-    ih264_deblk_chroma_edge_bslt4_ft *pf_deblk_chroma_vert_bslt4_mbaff;
+    _ih264_deblk_chroma_edge_bslt4_ft *pf_deblk_chroma_vert_bslt4_mbaff;
 
     /**
      * deblock horizontal luma edge with blocking strength 4
      */
-    ih264_deblk_edge_bs4_ft *pf_deblk_luma_horz_bs4;
+    _ih264_deblk_edge_bs4_ft *pf_deblk_luma_horz_bs4;
 
     /**
      * deblock horizontal luma edge with blocking strength less than 4
      */
-    ih264_deblk_edge_bslt4_ft *pf_deblk_luma_horz_bslt4;
+    _ih264_deblk_edge_bslt4_ft *pf_deblk_luma_horz_bslt4;
 
     /**
      * deblock horizontal chroma edge with blocking strength 4
      */
-    ih264_deblk_chroma_edge_bs4_ft *pf_deblk_chroma_horz_bs4;
+    _ih264_deblk_chroma_edge_bs4_ft *pf_deblk_chroma_horz_bs4;
 
     /**
      * deblock horizontal chroma edge with blocking strength less than 4
      */
-    ih264_deblk_chroma_edge_bslt4_ft *pf_deblk_chroma_horz_bslt4;
+    _ih264_deblk_chroma_edge_bslt4_ft *pf_deblk_chroma_horz_bslt4;
 
 
 } dec_struct_t;
