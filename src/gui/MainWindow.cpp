@@ -1437,13 +1437,27 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
-	const auto code = event.GetKeyCode();
-	if (code == WXK_ESCAPE)
-		SetFullScreen(false);
-	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
-		SetFullScreen(!IsFullScreen());
-	else if (code == WXK_F12)
-		g_window_info.has_screenshot_request = true; // async screenshot request
+	switch (event.GetKeyCode())
+	{
+		case WXK_ESCAPE:
+			ShowFullScreen(false);
+			break;
+		case WXK_RETURN:
+			if (!event.AltDown())
+				break;
+		case WXK_F11: // waterfall
+			ShowFullScreen(!IsFullScreen());
+			break;
+		case WXK_F12:
+			g_window_info.has_screenshot_request = true; // async screenshot request
+			break;
+		case WXK_SPACE:
+			/* if cpu speed >4x -> set to 1x and vice versa */
+			ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);
+			break;
+		default:
+			break;
+	}
 }
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
