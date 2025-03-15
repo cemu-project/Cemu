@@ -1,4 +1,5 @@
 #include "input/api/Controller.h"
+#include "config/CemuConfig.h"
 
 #include "gui/guiWrapper.h"
 
@@ -66,6 +67,7 @@ const ControllerState& ControllerBase::update_state()
 
 
 #undef APPLY_AXIS_BUTTON
+
 
 	m_last_state = std::move(result);
 	return m_last_state;

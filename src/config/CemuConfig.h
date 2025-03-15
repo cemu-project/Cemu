@@ -191,6 +191,48 @@ enum class CrashDump
 ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
 #endif
 
+typedef union
+{
+	struct
+	{
+		uint16 key : 13; // enough bits for all keycodes
+		uint16 alt : 1;
+		uint16 ctrl : 1;
+		uint16 shift : 1;
+	};
+	uint16 raw;
+} uKeyboardHotkey;
+
+typedef sint16 ControllerHotkey_t;
+
+struct sHotkeyCfg
+{
+	static constexpr uint8 keyboardNone{WXK_NONE};
+
+	uKeyboardHotkey keyboard{keyboardNone};
+
+	/* for defaults */
+	sHotkeyCfg(const uKeyboardHotkey& keyboard = {WXK_NONE}) :
+		keyboard(keyboard){};
+
+	/* for reading from xml */
+	sHotkeyCfg(const char* xml_values)
+	{
+		std::istringstream iss(xml_values);
+		iss >> keyboard.raw;
+	}
+};
+
+template <>
+struct fmt::formatter<sHotkeyCfg> : formatter<string_view>
+{
+	template <typename FormatContext>
+	auto format(const sHotkeyCfg c, FormatContext &ctx) const {
+		std::string xml_values = fmt::format("{}", c.keyboard.raw);
+		return formatter<string_view>::format(xml_values, ctx);
+	}
+};
+
 template <>
 struct fmt::formatter<const PrecompiledShaderOption> : formatter<string_view> {
 	template <typename FormatContext>
@@ -498,6 +540,15 @@ struct CemuConfig
 		ConfigValue<std::string> host{"127.0.0.1"};
 		ConfigValue<uint16> port{ 26760 };
 	}dsu_client{};
+
+	// hotkeys
+	struct
+	{
+		sHotkeyCfg toggleFullscreen;
+		sHotkeyCfg toggleFullscreenAlt;
+		sHotkeyCfg exitFullscreen;
+		sHotkeyCfg takeScreenshot;
+	} hotkeys{};
 
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
