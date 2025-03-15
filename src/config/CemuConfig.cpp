@@ -343,6 +343,13 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	dsu_client.host = dsuc.get_attribute("host", dsu_client.host);
 	dsu_client.port = dsuc.get_attribute("port", dsu_client.port);
 
+	// hotkeys
+	auto xml_hotkeys = parser.get("Hotkeys");
+	hotkeys.exitFullscreen.raw = xml_hotkeys.get("ExitFullscreen", WXK_ESCAPE);
+	hotkeys.toggleFullscreen.raw = xml_hotkeys.get("ToggleFullscreen", WXK_F11);
+	hotkeys.toggleFullscreenAlt.raw = xml_hotkeys.get("ToggleFullscreenAlt", uHotkey{WXK_CONTROL_M, true}.raw); // ALT+ENTER
+	hotkeys.takeScreenshot.raw = xml_hotkeys.get("TakeScreenshot", WXK_F12);
+
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");
 	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
@@ -543,6 +550,13 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto dsuc = input.set("DSUC");
 	dsuc.set_attribute("host", dsu_client.host);
 	dsuc.set_attribute("port", dsu_client.port);
+
+	// hotkeys
+	auto xml_hotkeys = config.set("Hotkeys");
+	xml_hotkeys.set("ExitFullscreen", hotkeys.exitFullscreen.raw);
+	xml_hotkeys.set("ToggleFullscreen", hotkeys.toggleFullscreen.raw);
+	xml_hotkeys.set("ToggleFullscreenAlt", hotkeys.toggleFullscreenAlt.raw);
+	xml_hotkeys.set("TakeScreenshot", hotkeys.takeScreenshot.raw);
 
 	// emulated usb devices
 	auto usbdevices = config.set("EmulatedUsbDevices");
