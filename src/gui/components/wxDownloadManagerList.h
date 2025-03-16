@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-class wxDownloadManagerList : public wxListCtrl
+class wxDownloadManagerList : public wxListView
 {
 	friend class TitleManager;
 public:

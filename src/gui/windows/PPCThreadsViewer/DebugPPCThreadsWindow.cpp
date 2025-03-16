@@ -9,6 +9,7 @@
 
 #include <cinttypes>
 #include <helpers/wxHelpers.h>
+#include <wx/listctrl.h>
 
 enum
 {
@@ -42,7 +43,7 @@ DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
 	wxFrame::SetBackgroundColour(*wxWHITE);
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
-	m_thread_list = new wxListCtrl(this, GPLIST_ID, wxPoint(0, 0), wxSize(930, 240), wxLC_REPORT);
+	m_thread_list = new wxListView(this, GPLIST_ID, wxPoint(0, 0), wxSize(930, 240), wxLC_REPORT);
 
 	m_thread_list->SetFont(wxFont(8, wxFONTFAMILY_MODERN, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Courier New")); //wxSystemSettings::GetFont(wxSYS_OEM_FIXED_FONT));
 
@@ -169,7 +170,7 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 	wxWindowUpdateLocker lock(m_thread_list);
 
 	long selected_thread = 0;
-	const int selection = m_thread_list->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const int selection = m_thread_list->GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 		selected_thread = m_thread_list->GetItemData(selection);
 
@@ -267,12 +268,15 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 
             m_thread_list->SetItem(i, 12, tempStr);
 
-            if(selected_thread != 0 && selected_thread == (long)threadItrMPTR)
-                m_thread_list->SetItemState(i, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED, wxLIST_STATE_FOCUSED | wxLIST_STATE_SELECTED);
-        }
-        srwlock_activeThreadList.UnlockWrite();
-        __OSUnlockScheduler();
-    }
+			if (selected_thread != 0 && selected_thread == (long)threadItrMPTR)
+			{
+				m_thread_list->Select(i);
+				m_thread_list->Focus(i);
+			}
+		}
+		srwlock_activeThreadList.UnlockWrite();
+		__OSUnlockScheduler();
+	}
 
 	m_thread_list->SetScrollPos(0, scrollPos, true);
 }
@@ -436,12 +440,11 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 	if (itemIndex == wxNOT_FOUND)
 		return;
 	// select item
-	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_FOCUSED, wxLIST_STATE_FOCUSED);
-	long sel = m_thread_list->GetNextItem(-1, wxLIST_NEXT_ALL,
-										  wxLIST_STATE_SELECTED);
+	m_thread_list->Focus(itemIndex);
+	long sel = m_thread_list->GetFirstSelected();
 	if (sel != wxNOT_FOUND)
-		m_thread_list->SetItemState(sel, 0, wxLIST_STATE_SELECTED);
-	m_thread_list->SetItemState(itemIndex, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+		m_thread_list->Select(sel, false);
+	m_thread_list->Select(itemIndex);
 	// check if thread is still on the list of active threads
 	MPTR threadMPTR = (MPTR)m_thread_list->GetItemData(itemIndex);
 	__OSLockScheduler();

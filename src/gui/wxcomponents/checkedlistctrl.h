@@ -72,7 +72,7 @@ DECLARE_EXPORTED_EVENT_TYPE(WXEXPORT, wxEVT_COMMAND_LIST_ITEM_UNCHECKED, -1);
 
 //! This is the class which performs all transactions with the server.
 //! It uses the wxSocket facilities.
-class wxCheckedListCtrl : public wxListCtrl
+class wxCheckedListCtrl : public wxListView
 {
 protected:
 
@@ -85,7 +85,7 @@ protected:
 
 public:
     wxCheckedListCtrl()
-        : wxListCtrl(), m_imageList(16, 16, TRUE) {}
+        : wxListView(), m_imageList(16, 16, TRUE) {}
 
     wxCheckedListCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
                         const wxPoint& pt = wxDefaultPosition,
@@ -93,7 +93,7 @@ public:
                         long style = wxCLC_CHECK_WHEN_SELECTING,
                         const wxValidator& validator = wxDefaultValidator,
                         const wxString& name = wxListCtrlNameStr)
-                        : wxListCtrl(), m_imageList(16, 16, TRUE)
+                        : wxListView(), m_imageList(16, 16, TRUE)
         { Create(parent, id, pt, sz, style, validator, name); }
 
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY,
