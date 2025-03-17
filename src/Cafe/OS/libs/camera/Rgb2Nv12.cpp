@@ -51,7 +51,7 @@ void Rgb2Nv12(const uint8* rgbImage,
 			  unsigned nv12Pitch)
 {
 	cemu_assert_debug(!((imageWidth | imageHeight) & 1));
-	unsigned char* UV = outNv12Image + imageWidth * imageHeight;
+	unsigned char* UV = outNv12Image + nv12Pitch * imageHeight;
 
 	for (auto row = 0u; row < imageHeight; row += 2)
 	{
