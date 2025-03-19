@@ -7,11 +7,11 @@ wxFrame* s_main_window = nullptr;
 
 static auto& cfg_hotkeys = GetConfig().hotkeys;
 static const std::unordered_map<uHotkey*, std::function<void(void)>> cfg_hotkey_to_func_map{
-	{&cfg_hotkeys.toggle_fastforward, [](void) {ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);}},
 	{&cfg_hotkeys.toggle_fullscreen, [](void) { s_main_window->ShowFullScreen(!s_main_window->IsFullScreen()); }},
 	{&cfg_hotkeys.toggle_fullscreen_alt, [](void) { s_main_window->ShowFullScreen(!s_main_window->IsFullScreen()); }},
 	{&cfg_hotkeys.exit_fullscreen, [](void) { s_main_window->ShowFullScreen(false); }},
 	{&cfg_hotkeys.take_screenshot, [](void) { g_window_info.has_screenshot_request = true; }},
+	{&cfg_hotkeys.toggle_fastforward, [](void) { ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1); }},
 };
 
 struct HotkeyEntry
@@ -38,6 +38,7 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 
 	create_hotkey("Toggle fullscreen", cfg_hotkeys.toggle_fullscreen);
 	create_hotkey("Take screenshot", cfg_hotkeys.take_screenshot);
+	create_hotkey("Toggle fast-forward", cfg_hotkeys.toggle_fastforward);
 
 	m_sizer->SetSizeHints(this);
 }
