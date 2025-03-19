@@ -349,6 +349,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	hotkeys.toggleFullscreen.raw = xml_hotkeys.get("ToggleFullscreen", WXK_F11);
 	hotkeys.toggleFullscreenAlt.raw = xml_hotkeys.get("ToggleFullscreenAlt", uHotkey{WXK_CONTROL_M, true}.raw); // ALT+ENTER
 	hotkeys.takeScreenshot.raw = xml_hotkeys.get("TakeScreenshot", WXK_F12);
+	hotkeys.toggleFastForward.raw = xml_hotkeys.get("ToggleFastforward", WXK_NONE);
 
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");
@@ -557,6 +558,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	xml_hotkeys.set("ToggleFullscreen", hotkeys.toggleFullscreen.raw);
 	xml_hotkeys.set("ToggleFullscreenAlt", hotkeys.toggleFullscreenAlt.raw);
 	xml_hotkeys.set("TakeScreenshot", hotkeys.takeScreenshot.raw);
+	xml_hotkeys.set("ToggleFastForward", hotkeys.toggleFastForward.raw);
 
 	// emulated usb devices
 	auto usbdevices = config.set("EmulatedUsbDevices");
