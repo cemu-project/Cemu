@@ -84,6 +84,7 @@ struct LatteShaderPSInputTable
 	}
 };
 
+void LatteShader_CreatePSInputTable(LatteShaderPSInputTable* psInputTable, uint32* contextRegisters);
 void LatteShader_UpdatePSInputs(uint32* contextRegisters);
 LatteShaderPSInputTable* LatteSHRC_GetPSInputTable();
 

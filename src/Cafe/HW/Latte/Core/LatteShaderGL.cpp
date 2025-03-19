@@ -26,7 +26,7 @@ bool gxShader_checkIfSuccessfullyLinked(GLuint glProgram)
 
 void LatteShader_prepareSeparableUniforms(LatteDecompilerShader* shader)
 {
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
+	if (g_renderer->GetType() != RendererAPI::OpenGL)
 		return;
 
 	auto shaderGL = (RendererShaderGL*)shader->shader;
