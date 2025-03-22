@@ -14,7 +14,7 @@ class GameProfile
 	friend class GameProfileWindow;
 
 public:
-	static const uint32 kThreadQuantumDefault = 45000;
+	static constexpr uint32 kThreadQuantumDefault = 45000;
 
 	bool Load(uint64_t title_id);
 	void Save(uint64_t title_id);

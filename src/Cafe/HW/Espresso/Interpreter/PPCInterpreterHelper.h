@@ -34,7 +34,7 @@ static inline bool ppc_carry_3(uint32 a, uint32 b, uint32 c)
 
 #define PPC_getBits(__value, __index, __bitCount) ((__value>>(31-__index))&((1<<__bitCount)-1))
 
-const static float LD_SCALE[] = {
+constexpr static float LD_SCALE[] = {
 1.000000f, 0.500000f, 0.250000f, 0.125000f, 0.062500f, 0.031250f, 0.015625f,
 0.007813f, 0.003906f, 0.001953f, 0.000977f, 0.000488f, 0.000244f, 0.000122f,
 0.000061f, 0.000031f, 0.000015f, 0.000008f, 0.000004f, 0.000002f, 0.000001f,
@@ -46,7 +46,7 @@ const static float LD_SCALE[] = {
 8192.000000f, 4096.000000f, 2048.000000f, 1024.000000f, 512.000000f, 256.000000f, 128.000000f, 64.000000f, 32.000000f,
 16.000000f, 8.000000f, 4.000000f, 2.000000f };
 
-const static float ST_SCALE[] = {
+constexpr static float ST_SCALE[] = {
 1.000000f, 2.000000f, 4.000000f, 8.000000f,
 16.000000f, 32.000000f, 64.000000f, 128.000000f,
 256.000000f, 512.000000f, 1024.000000f, 2048.000000f,

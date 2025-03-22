@@ -77,25 +77,25 @@ namespace iosu
 
 	struct TaskSetting
 	{
-		static const uint32 kBossCode = 0x7C0;
-		static const uint32 kBossCodeLen = 0x20;
+		static constexpr uint32 kBossCode = 0x7C0;
+		static constexpr uint32 kBossCodeLen = 0x20;
 
-		static const uint32 kURL = 0x48;
-		static const uint32 kURLLen = 0x100;
+		static constexpr uint32 kURL = 0x48;
+		static constexpr uint32 kURLLen = 0x100;
 
-		static const uint32 kClientCert = 0x41;
-		static const uint32 kCACert = 0x188;
+		static constexpr uint32 kClientCert = 0x41;
+		static constexpr uint32 kCACert = 0x188;
 
-		static const uint32 kServiceToken = 0x590;
-		static const uint32 kServiceTokenLen = 0x200;
+		static constexpr uint32 kServiceToken = 0x590;
+		static constexpr uint32 kServiceTokenLen = 0x200;
 
-		static const uint32 kDirectorySizeLimit = 0x7F0;
-		static const uint32 kDirectoryName = 0x7C8;
-		static const uint32 kDirectoryNameLen = 0x8;
+		static constexpr uint32 kDirectorySizeLimit = 0x7F0;
+		static constexpr uint32 kDirectoryName = 0x7C8;
+		static constexpr uint32 kDirectoryNameLen = 0x8;
 
-		static const uint32 kFileName = 0x7D0;
-		static const uint32 kNbdlFileName = 0x7F8;
-		static const uint32 kFileNameLen = 0x20;
+		static constexpr uint32 kFileName = 0x7D0;
+		static constexpr uint32 kNbdlFileName = 0x7F8;
+		static constexpr uint32 kFileNameLen = 0x20;
 
 		std::array<uint8, 0x1000> settings;
 		uint32be taskType; // +0x1000
@@ -419,7 +419,7 @@ namespace iosu
 		return true;
 	}
 
-	const uint64 kTimeStampConvertSeconds = 946684800ULL;
+	constexpr uint64 kTimeStampConvertSeconds = 946684800ULL;
 	BossStorageFadEntry* boss_storage_fad_find_entry(BossStorageFadFile& fad_file, uint32 data_id)
 	{
 		for (auto& entry : fad_file.entries)

@@ -802,7 +802,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			auto filterZ = samplerWords->WORD0.get_Z_FILTER();
 			// todo: z-filter for texture array samplers is customizable for GPU7 but OpenGL/Vulkan doesn't expose this functionality?
 
-			static const VkSamplerAddressMode s_vkClampTable[] = {
+			static constexpr VkSamplerAddressMode s_vkClampTable[] = {
 				VK_SAMPLER_ADDRESS_MODE_REPEAT, // WRAP
 				VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, // MIRROR
 				VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, // CLAMP_LAST_TEXEL
@@ -841,7 +841,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 
 			// depth compare
 			uint8 depthCompareMode = shader->textureUsesDepthCompare[relative_textureUnit] ? 1 : 0;
-			static const VkCompareOp s_vkCompareOps[]
+			static constexpr VkCompareOp s_vkCompareOps[]
 			{
 				VK_COMPARE_OP_NEVER,
 				VK_COMPARE_OP_LESS,

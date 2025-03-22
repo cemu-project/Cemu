@@ -465,14 +465,14 @@ LatteCMDPtr LatteCP_itWaitRegMem(LatteCMDPtr cmd, uint32 nWords)
 
 	uint32* fencePtr = (uint32*)memory_getPointerFromPhysicalOffset(physAddr);
 
-	const uint32 GPU7_WAIT_MEM_OP_ALWAYS = 0;
-	const uint32 GPU7_WAIT_MEM_OP_LESS = 1;
-	const uint32 GPU7_WAIT_MEM_OP_LEQUAL = 2;
-	const uint32 GPU7_WAIT_MEM_OP_EQUAL = 3;
-	const uint32 GPU7_WAIT_MEM_OP_NOTEQUAL = 4;
-	const uint32 GPU7_WAIT_MEM_OP_GEQUAL = 5;
-	const uint32 GPU7_WAIT_MEM_OP_GREATER = 6;
-	const uint32 GPU7_WAIT_MEM_OP_NEVER = 7;
+	constexpr uint32 GPU7_WAIT_MEM_OP_ALWAYS = 0;
+	constexpr uint32 GPU7_WAIT_MEM_OP_LESS = 1;
+	constexpr uint32 GPU7_WAIT_MEM_OP_LEQUAL = 2;
+	constexpr uint32 GPU7_WAIT_MEM_OP_EQUAL = 3;
+	constexpr uint32 GPU7_WAIT_MEM_OP_NOTEQUAL = 4;
+	constexpr uint32 GPU7_WAIT_MEM_OP_GEQUAL = 5;
+	constexpr uint32 GPU7_WAIT_MEM_OP_GREATER = 6;
+	constexpr uint32 GPU7_WAIT_MEM_OP_NEVER = 7;
 
 	LatteCP_signalEnterWait();
 

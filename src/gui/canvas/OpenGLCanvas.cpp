@@ -6,7 +6,7 @@
 #include "Common/GLInclude/GLInclude.h"
 #include <wx/glcanvas.h> // this includes GL/gl.h, avoid using this in a header because it would contaminate our own OpenGL definitions (GLInclude)
 
-static const int g_gl_attribute_list[] =
+static constexpr int g_gl_attribute_list[] =
 {
 	WX_GL_RGBA,
 	WX_GL_DOUBLEBUFFER,

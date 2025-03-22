@@ -3,12 +3,12 @@
 #include "nexFriends.h"
 #include "Cafe/CafeSystem.h"
 
-static const int NOTIFICATION_SRV_FRIEND_OFFLINE = 0x0A; // the opposite event (friend online) is notified via _PRESENCE_CHANGE
-static const int NOTIFICATION_SRV_FRIEND_PRESENCE_CHANGE = 0x18;
+static constexpr int NOTIFICATION_SRV_FRIEND_OFFLINE = 0x0A; // the opposite event (friend online) is notified via _PRESENCE_CHANGE
+static constexpr int NOTIFICATION_SRV_FRIEND_PRESENCE_CHANGE = 0x18;
 
-static const int NOTIFICATION_SRV_FRIEND_REMOVED = 0x1A; // also used to indicate that an incoming friend request was canceled
-static const int NOTIFICATION_SRV_FRIEND_REQUEST_INCOMING = 0x1B; // someone sent a friend request to us
-static const int NOTIFICATION_SRV_FRIEND_ADDED = 0x1E; // not sent when friend request is accepted locally
+static constexpr int NOTIFICATION_SRV_FRIEND_REMOVED = 0x1A; // also used to indicate that an incoming friend request was canceled
+static constexpr int NOTIFICATION_SRV_FRIEND_REQUEST_INCOMING = 0x1B; // someone sent a friend request to us
+static constexpr int NOTIFICATION_SRV_FRIEND_ADDED = 0x1E; // not sent when friend request is accepted locally
 
 void NexFriends::processServerNotification_friendOffline(uint32 pid)
 {

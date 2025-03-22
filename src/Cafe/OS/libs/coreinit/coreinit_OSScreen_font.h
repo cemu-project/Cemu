@@ -1,6 +1,6 @@
 
 // font 'More Perfect DOS VGA' 20pts
-const uint8 osscreenBitmapFont[] =
+constexpr uint8 osscreenBitmapFont[] =
 {
 // @0 '!' (14 pixels wide)
 0x00, 0x00, //               

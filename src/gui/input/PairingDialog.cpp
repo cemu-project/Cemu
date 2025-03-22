@@ -134,7 +134,7 @@ void PairingDialog::WorkerThread()
 	const std::wstring wiimoteName = L"Nintendo RVL-CNT-01";
 	const std::wstring wiiUProControllerName = L"Nintendo RVL-CNT-01-UC";
 
-	const GUID bthHidGuid = {0x00001124, 0x0000, 0x1000, {0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB}};
+	constexpr GUID bthHidGuid = {0x00001124, 0x0000, 0x1000, {0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB}};
 
 	const BLUETOOTH_FIND_RADIO_PARAMS radioFindParams =
 		{

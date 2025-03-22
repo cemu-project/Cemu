@@ -73,7 +73,7 @@ namespace nsyshid
 		return _lastGeneratedHidHandle;
 	}
 
-	const int HID_MAX_NUM_DEVICES = 128;
+	constexpr int HID_MAX_NUM_DEVICES = 128;
 
 	SysAllocator<HID_t, HID_MAX_NUM_DEVICES> HIDPool;
 	std::queue<size_t> HIDPoolIndexQueue;
@@ -119,8 +119,8 @@ namespace nsyshid
 		HIDPoolIndexQueue.push(index);
 	}
 
-	const int HID_CALLBACK_DETACH = 0;
-	const int HID_CALLBACK_ATTACH = 1;
+	constexpr int HID_CALLBACK_DETACH = 0;
+	constexpr int HID_CALLBACK_ATTACH = 1;
 
 	uint32 DoAttachCallback(HIDClient_t* hidClient, const std::shared_ptr<Device>& device)
 	{

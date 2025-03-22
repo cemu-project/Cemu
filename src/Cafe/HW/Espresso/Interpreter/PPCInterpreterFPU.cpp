@@ -9,10 +9,10 @@
 #include <limits>
 #include <array>
 
-const int ieee_double_e_bits = 11; // exponent bits
-const int ieee_double_m_bits = 52; // mantissa bits
+constexpr int ieee_double_e_bits = 11; // exponent bits
+constexpr int ieee_double_m_bits = 52; // mantissa bits
 
-const int espresso_frsqrte_i_bits = 5; // index bits (the highest bit is the LSB of the exponent)
+constexpr int espresso_frsqrte_i_bits = 5; // index bits (the highest bit is the LSB of the exponent)
 
 typedef struct
 {
@@ -89,8 +89,8 @@ double frsqrte_espresso(double input)
 	return *(double*)&x;
 }
 
-const int espresso_fres_i_bits = 5; // index bits
-const int espresso_fres_s_bits = 10; // step multiplier bits
+constexpr int espresso_fres_i_bits = 5; // index bits
+constexpr int espresso_fres_s_bits = 10; // step multiplier bits
 
 typedef struct
 {

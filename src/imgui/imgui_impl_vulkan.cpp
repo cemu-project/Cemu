@@ -135,7 +135,7 @@ void main()
     gl_Position = vec4(aPos * pc.uScale + pc.uTranslate, 0, 1);
 }
 */
-static uint32_t __glsl_shader_vert_spv[] =
+static constexpr uint32_t __glsl_shader_vert_spv[] =
 {
     0x07230203,0x00010000,0x00080001,0x0000002e,0x00000000,0x00020011,0x00000001,0x0006000b,
     0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,
@@ -192,7 +192,7 @@ void main()
     fColor = In.Color * texture(sTexture, In.UV.st);
 }
 */
-static uint32_t __glsl_shader_frag_spv[] =
+static constexpr uint32_t __glsl_shader_frag_spv[] =
 {
     0x07230203,0x00010000,0x00080001,0x0000001e,0x00000000,0x00020011,0x00000001,0x0006000b,
     0x00000001,0x4c534c47,0x6474732e,0x3035342e,0x00000000,0x0003000e,0x00000000,0x00000001,

@@ -168,11 +168,11 @@ uint32 iosuAct_getAccountIdOfCurrentAccount()
 
 // IOSU act API interface
 
-static const auto ACTResult_Ok = 0;
-static const auto ACTResult_InvalidValue = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_ACT, 0x12F00); // 0xC0712F00
-static const auto ACTResult_OutOfRange = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_ACT, 0x12D80); // 0xC0712D80
-static const auto ACTResult_AccountDoesNotExist = BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, NN_ACT_RESULT_ACCOUNT_DOES_NOT_EXIST); // 0xA071F480
-static const auto ACTResult_NotANetworkAccount = BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, 0x1FE80); // 0xA071FE80
+static constexpr auto ACTResult_Ok = 0;
+static constexpr auto ACTResult_InvalidValue = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_ACT, 0x12F00); // 0xC0712F00
+static constexpr auto ACTResult_OutOfRange = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_ACT, 0x12D80); // 0xC0712D80
+static constexpr auto ACTResult_AccountDoesNotExist = BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, NN_ACT_RESULT_ACCOUNT_DOES_NOT_EXIST); // 0xA071F480
+static constexpr auto ACTResult_NotANetworkAccount = BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, 0x1FE80); // 0xA071FE80
 
 nnResult ServerActErrorCodeToNNResult(NAPI::ACT_ERROR_CODE ec)
 {

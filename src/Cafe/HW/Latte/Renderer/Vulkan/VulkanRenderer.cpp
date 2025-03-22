@@ -39,7 +39,7 @@
 
 extern std::atomic_int g_compiling_pipelines;
 
-const  std::vector<const char*> kOptionalDeviceExtensions =
+const std::vector<const char*> kOptionalDeviceExtensions =
 {
 	VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME,
 	VK_NV_FILL_RECTANGLE_EXTENSION_NAME,
@@ -1074,7 +1074,7 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 		SaveScreenshot(rgb_data, width, height, !padView);
 }
 
-static const float kQueuePriority = 1.0f;
+static constexpr float kQueuePriority = 1.0f;
 
 std::vector<VkDeviceQueueCreateInfo> VulkanRenderer::CreateQueueCreateInfos(const std::set<sint32>& uniqueQueueFamilies) const
 {
@@ -2000,7 +2000,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 
 	// wait for previous command buffer semaphore
 	VkSemaphore prevSem = GetLastSubmittedCmdBufferSemaphore();
-	const VkPipelineStageFlags semWaitStageMask[2] = { VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
+	constexpr VkPipelineStageFlags semWaitStageMask[2] = { VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
 	VkSemaphore waitSemArray[2];
 	submitInfo.waitSemaphoreCount = 0;
 	if (m_numSubmittedCmdBuffers > 0)
@@ -3512,7 +3512,7 @@ LatteTextureReadbackInfo* VulkanRenderer::texture_createReadback(LatteTextureVie
 
 	const uint32 linearImageSize = result->GetImageSize();
 	const uint32 uploadSize = (linearImageSize == 0) ? memRequirements.size : linearImageSize;
-	const uint32 uploadAlignment = 256; // todo - use Vk optimalBufferCopyOffsetAlignment
+	constexpr uint32 uploadAlignment = 256; // todo - use Vk optimalBufferCopyOffsetAlignment
 	m_textureReadbackBufferWriteIndex = (m_textureReadbackBufferWriteIndex + uploadAlignment - 1) & ~(uploadAlignment - 1);
 
 	if ((m_textureReadbackBufferWriteIndex + uploadSize + 256) > TEXTURE_READBACK_SIZE)

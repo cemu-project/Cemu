@@ -395,7 +395,7 @@ bool LatteMRT::GetActiveDepthBufferMask(const LatteContextRegister& lcr)
 	return depthBufferMask;
 }
 
-const uint32 _colorBufferFormatBits[] =
+constexpr uint32 _colorBufferFormatBits[] =
 {
 	0, // 0
 	0x200, // 1

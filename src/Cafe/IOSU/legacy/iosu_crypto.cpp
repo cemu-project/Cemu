@@ -466,7 +466,7 @@ struct
 	const int id;
 	const wchar_t name[256];
 	const wchar_t key[256];
-} const g_certificates[] = {
+} constexpr g_certificates[] = {
 	// NINTENDO CLIENT CERTS
 	{ 1, L"ccerts/WIIU_COMMON_1_CERT.der", L"ccerts/WIIU_COMMON_1_RSA_KEY.aes" },
 	{ 3, L"ccerts/WIIU_ACCOUNT_1_CERT.der", L"ccerts/WIIU_ACCOUNT_1_RSA_KEY.aes" },

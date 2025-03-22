@@ -4,7 +4,7 @@
 
 namespace snd_core
 {
-	const int AX_AUX_FRAME_COUNT = 2;
+	constexpr int AX_AUX_FRAME_COUNT = 2;
 
 	// old (deprecated) style AUX callbacks
 	MPTR __AXOldAuxDRCCallbackFunc[AX_AUX_BUS_COUNT * 2];

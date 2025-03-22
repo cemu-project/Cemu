@@ -28,7 +28,7 @@ private:
 	// each texture view holds one Vulkan image view per swizzle mask. Image views are only instantiated when requested via GetViewRGBA/GetSamplerView
 	// since a large majority of texture views will only have 1 or 2 instantiated image views, we use a small fixed-size cache
 	// and only allocate the larger map (m_fallbackCache) if necessary
-	inline static const uint32 CACHE_EMPTY_ENTRY = 0xFFFFFFFF;
+	inline static constexpr uint32 CACHE_EMPTY_ENTRY = 0xFFFFFFFF;
 
 	uint32 m_smallCacheSwizzle0 = { CACHE_EMPTY_ENTRY };
 	uint32 m_smallCacheSwizzle1 = { CACHE_EMPTY_ENTRY };

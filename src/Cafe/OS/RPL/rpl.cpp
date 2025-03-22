@@ -1435,7 +1435,7 @@ void RPLLoader_BeginCemuhookCRC(RPLModule* rpl)
 	}
 	// init patches CRC
 	rpl->patchCRC = 0;
-	static const uint8 rplMagic[4] = { 0x7F, 'R', 'P', 'X' };
+	static constexpr uint8 rplMagic[4] = { 0x7F, 'R', 'P', 'X' };
 	rpl->patchCRC = crc32_calc(rpl->patchCRC, rplMagic, sizeof(rplMagic));
 	sint32 sectionCount = rpl->rplHeader.sectionTableEntryCount;
 	rpl->patchCRC = crc32_calc(rpl->patchCRC, &sectionCount, sizeof(sectionCount));

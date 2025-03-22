@@ -36,7 +36,7 @@ namespace CemuGL
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
 
-static const int TEXBUFFER_SIZE = 1024 * 1024 * 32; // 32MB
+static constexpr int TEXBUFFER_SIZE = 1024 * 1024 * 32; // 32MB
 
 struct
 {
@@ -56,7 +56,7 @@ struct
 	GLuint clearFBO;
 }glRendererState;
 
-static const GLenum glDepthFuncTable[] =
+static constexpr GLenum glDepthFuncTable[] =
 {
 	GL_NEVER,
 	GL_LESS,
@@ -68,7 +68,7 @@ static const GLenum glDepthFuncTable[] =
 	GL_ALWAYS
 };
 
-static const GLenum glAlphaTestFunc[] =
+static constexpr GLenum glAlphaTestFunc[] =
 {
 	GL_NEVER,
 	GL_LESS,
@@ -728,7 +728,7 @@ void OpenGLRenderer::renderstate_setAlwaysWriteDepth()
 	prevDepthFunc = Latte::LATTE_DB_DEPTH_CONTROL::E_ZFUNC::ALWAYS;
 }
 
-static const GLuint table_glBlendSrcDst[] =
+static constexpr GLuint table_glBlendSrcDst[] =
 {
 	/* 0x00 */ GL_ZERO,
 	/* 0x01 */ GL_ONE,
@@ -776,7 +776,7 @@ static GLuint GetGLBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR ble
 	return table_glBlendSrcDst[blendFactorU];
 }
 
-static const GLuint table_glBlendCombine[] =
+static constexpr GLuint table_glBlendCombine[] =
 {
 	GL_FUNC_ADD,
 	GL_FUNC_SUBTRACT,

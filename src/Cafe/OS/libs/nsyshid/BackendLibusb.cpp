@@ -501,7 +501,7 @@ namespace nsyshid::backend::libusb
 			ClaimAllInterfaces(i);
 		}
 
-		const unsigned int timeout = 50;
+		constexpr unsigned int timeout = 50;
 		int actualLength = 0;
 		int ret = 0;
 		do

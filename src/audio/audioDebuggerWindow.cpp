@@ -144,7 +144,7 @@ AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 	wxFrame::SetBackgroundColour(*wxWHITE);
 
 	// start refresh timer
-	static const int INTERVAL = 100; // milliseconds
+	static constexpr int INTERVAL = 100; // milliseconds
 	refreshTimer = new wxTimer(this, REFRESH_TIMER_ID);
 	refreshTimer->Start(INTERVAL);
 }
