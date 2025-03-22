@@ -25,7 +25,7 @@ namespace erreula
 		TextTwoButton = 3
 	};
 
-	static const sint32 FADE_TIME = 80;
+	static constexpr sint32 FADE_TIME = 80;
 
 	enum class ErrEulaState : uint32
 	{
@@ -375,7 +375,7 @@ namespace erreula
 		if (!font)
 			return;
 
-		const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
+		constexpr auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
 
 		auto& io = ImGui::GetIO();
 		ImVec2 position = { io.DisplaySize.x / 2.0f, io.DisplaySize.y / 2.0f };

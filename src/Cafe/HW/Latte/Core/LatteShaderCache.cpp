@@ -281,14 +281,14 @@ void LatteShaderCache_finish()
 uint32 LatteShaderCache_getShaderCacheExtraVersion(uint64 titleId)
 {
 	// encode the titleId in the version to prevent users from swapping caches between titles
-	const uint32 cacheFileVersion = 1;
+	constexpr uint32 cacheFileVersion = 1;
 	uint32 extraVersion = ((uint32)(titleId >> 32) + ((uint32)titleId) * 3) + cacheFileVersion + 0xe97af1ad;
 	return extraVersion;
 }
 
 uint32 LatteShaderCache_getPipelineCacheExtraVersion(uint64 titleId)
 {
-	const uint32 cacheFileVersion = 1;
+	constexpr uint32 cacheFileVersion = 1;
 	uint32 extraVersion = ((uint32)(titleId >> 32) + ((uint32)titleId) * 3) + cacheFileVersion;
 	return extraVersion;
 }
@@ -296,7 +296,7 @@ uint32 LatteShaderCache_getPipelineCacheExtraVersion(uint64 titleId)
 void LatteShaderCache_drawBackgroundImage(ImTextureID texture, int width, int height)
 {
 	// clear framebuffers and clean up
-	const auto kPopupFlags =
+	constexpr auto kPopupFlags =
 			ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings |
 			ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize |
 			ImGuiWindowFlags_NoBringToFrontOnFocus;
@@ -492,8 +492,8 @@ void LatteShaderCache_Load()
 
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines)
 {
-	const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize;
-	const auto textColor = 0xFF888888;
+	constexpr auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav | ImGuiWindowFlags_AlwaysAutoResize;
+	constexpr auto textColor = 0xFF888888;
 	
 	auto lastFrameUpdate = tick_cached();
 

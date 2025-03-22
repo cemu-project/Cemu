@@ -69,7 +69,7 @@ namespace coreinit
 	}
 
 
-	inline const uint64 DAY_BIAS_2000 = 0xB2575;
+	inline constexpr uint64 DAY_BIAS_2000 = 0xB2575;
 
 	uint64 OSCalendarTimeToTicks(OSCalendarTime_t *calendar)
 	{
