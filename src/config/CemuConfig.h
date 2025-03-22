@@ -191,6 +191,18 @@ enum class CrashDump
 ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
 #endif
 
+typedef union
+{
+	struct
+	{
+		uint16_t key : 13; // enough bits for all keycodes
+		uint16_t alt : 1;
+		uint16_t ctrl : 1;
+		uint16_t shift : 1;
+	};
+	uint16_t raw;
+} uHotkey;
+
 template <>
 struct fmt::formatter<const PrecompiledShaderOption> : formatter<string_view> {
 	template <typename FormatContext>
@@ -498,6 +510,16 @@ struct CemuConfig
 		ConfigValue<std::string> host{"127.0.0.1"};
 		ConfigValue<uint16> port{ 26760 };
 	}dsu_client{};
+
+	// hotkeys
+	struct
+	{
+		uHotkey toggle_fullscreen{};
+		uHotkey toggle_fullscreen_alt{};
+		uHotkey exit_fullscreen{};
+		uHotkey take_screenshot{};
+		uHotkey toggle_fastforward{};
+	} hotkeys{};
 
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
