@@ -231,8 +231,7 @@ endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
 
-add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL)
-set_target_properties(openpnp-capture PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "")
+add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL SYSTEM)
 
 find_package(ZArchive)
 if (NOT ZArchive_FOUND)

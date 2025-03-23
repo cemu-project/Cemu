@@ -20,4 +20,5 @@
 	shallow = true
 [submodule "dependencies/openpnp-capture"]
 	path = dependencies/openpnp-capture
-	url = https://github.com/openpnp/openpnp-capture
+	url = https://github.com/capitalistspz/openpnp-capture
+	branch = dev
