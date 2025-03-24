@@ -154,7 +154,7 @@ namespace camera
 				coreinit::OSSleepTicks(Espresso::TIMER_CLOCK / (s_instance.fps - 1));
 			}
 		}
-		cemuLog_logDebug(LogType::Force, "Camera Worker Thread Exited");
+		coreinit::OSExitThread(0);
 	}
 
 	sint32 CAMGetMemReq(CAMImageInfo*)
@@ -191,7 +191,7 @@ namespace camera
 		cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
 		cemu_assert_debug(initInfo->workMemorySize != 0);
 		cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
-
+		s_instance.isExiting = false;
 		s_instance.fps = initInfo->fps == CAMFps::_15 ? 15 : 30;
 		s_instance.initialized = true;
 		s_instance.eventCallback = initInfo->callback;
@@ -261,6 +261,7 @@ namespace camera
 		if (s_instance.isOpen)
 			CAMClose(camHandle);
 		coreinit::OSSignalEvent(s_cameraOpenEvent.GetPtr());
+		coreinit::OSJoinThread(s_cameraWorkerThread, nullptr);
 		s_instance.initialized = false;
 	}
 
