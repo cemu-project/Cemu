@@ -9,6 +9,7 @@
 #include "util/helpers/ringbuffer.h"
 #include "camera/CameraManager.h"
 #include "Cafe/HW/Espresso/Const.h"
+#include "Common/CafeString.h"
 
 namespace camera
 {
@@ -114,6 +115,8 @@ namespace camera
 	SysAllocator<CAMDecodeEventParam> s_cameraEventData;
 	SysAllocator<OSThread_t> s_cameraWorkerThread;
 	SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
+	SysAllocator<CafeString<22>> s_cameraWorkerThreadNameBuffer;
+
 	SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
 
 	void WorkerThread(PPCInterpreter_t*)
@@ -200,7 +203,9 @@ namespace camera
 			s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThread), 0, nullptr,
 			s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(), s_cameraWorkerThreadStack.GetByteSize(),
 			0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
-		coreinit::OSResumeThread(s_cameraWorkerThread);
+		s_cameraWorkerThreadNameBuffer->assign("CameraWorkerThread");
+		coreinit::OSSetThreadName(s_cameraWorkerThread.GetPtr(), s_cameraWorkerThreadNameBuffer->c_str());
+		coreinit::OSResumeThread(s_cameraWorkerThread.GetPtr());
 		return 0;
 	}
 
