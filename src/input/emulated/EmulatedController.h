@@ -127,7 +127,7 @@ using EmulatedControllerPtr = std::shared_ptr<EmulatedController>;
 template <>
 struct fmt::formatter<EmulatedController::Type> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(EmulatedController::Type v, FormatContext& ctx) {
+	auto format(EmulatedController::Type v, FormatContext& ctx) const {
 		switch (v)
 		{
 		case EmulatedController::Type::VPAD: return formatter<string_view>::format("Wii U Gamepad", ctx);

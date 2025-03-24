@@ -70,6 +70,7 @@ struct SwapchainInfoVk
 	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSwapchainKHR m_swapchain{};
 	Vector2i m_desiredExtent{};
+	VkExtent2D m_actualExtent{};
 	uint32 swapchainImageIndex = (uint32)-1;
 	uint64 m_presentId = 1;
 	uint64 m_queueDepth = 0; // number of frames with pending presentation requests
@@ -92,5 +93,4 @@ private:
 	VkSemaphore m_currentSemaphore = VK_NULL_HANDLE;
 
 	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
-	VkExtent2D m_actualExtent{};
 };

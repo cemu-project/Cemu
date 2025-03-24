@@ -114,7 +114,7 @@ CubebAPI::~CubebAPI()
 bool CubebAPI::NeedAdditionalBlocks() const
 {
 	std::shared_lock lock(m_mutex);
-	return m_buffer.size() < s_audioDelay * m_bytesPerBlock;
+	return m_buffer.size() < GetAudioDelay() * m_bytesPerBlock;
 }
 
 bool CubebAPI::FeedBlock(sint16* data)
@@ -183,16 +183,16 @@ void CubebAPI::Destroy()
 
 std::vector<IAudioAPI::DeviceDescriptionPtr> CubebAPI::GetDevices()
 {
-	cubeb_device_collection devices;
-	if (cubeb_enumerate_devices(s_context, CUBEB_DEVICE_TYPE_OUTPUT, &devices) != CUBEB_OK)
-		return {};
-
 	std::vector<DeviceDescriptionPtr> result;
-	result.reserve(devices.count + 1); // Reserve space for the default device
-
 	// Add the default device to the list
 	auto defaultDevice = std::make_shared<CubebDeviceDescription>(nullptr, "default", L"Default Device");
 	result.emplace_back(defaultDevice);
+
+	cubeb_device_collection devices;
+	if (cubeb_enumerate_devices(s_context, CUBEB_DEVICE_TYPE_OUTPUT, &devices) != CUBEB_OK)
+		return result;
+
+	result.reserve(devices.count + 1); // The default device already occupies one element
 
 	for (size_t i = 0; i < devices.count; ++i)
 	{

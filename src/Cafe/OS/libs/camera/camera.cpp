@@ -179,7 +179,7 @@ namespace camera
 			*error = CAMStatus::DeviceInUse;
 			return -1;
 		}
-
+    
 		if (!initInfo || !initInfo->workMemoryData ||
 			!match_any_of(initInfo->forceDisplay, CAMForceDisplay::None, CAMForceDisplay::DRC) ||
 			!match_any_of(initInfo->fps, CAMFps::_15, CAMFps::_30) ||

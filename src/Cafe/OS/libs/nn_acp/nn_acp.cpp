@@ -315,7 +315,7 @@ namespace acp
 		ppcDefineParamU32BEPtr(timestamp64, 0);
 		ppcDefineParamU32BEPtr(ukn, 1); // probably timezone or offset? Could also be a bool for success/failed
 
-		uint64 t = coreinit::coreinit_getOSTime() + (uint64)((sint64)(ppcCyclesSince2000_UTC - ppcCyclesSince2000) / 20LL);
+		uint64 t = coreinit::OSGetTime() + (uint64)((sint64)(ppcCyclesSince2000_UTC - ppcCyclesSince2000) / 20LL);
 
 		timestamp64[0] = (uint32)(t >> 32);
 		timestamp64[1] = (uint32)(t & 0xFFFFFFFF);

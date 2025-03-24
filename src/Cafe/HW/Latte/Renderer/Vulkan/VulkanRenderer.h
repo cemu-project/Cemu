@@ -137,8 +137,8 @@ class VulkanRenderer : public Renderer
 public:
 
 	// memory management
-	VKRMemoryManager* memoryManager{};
-	VKRMemoryManager* GetMemoryManager() const { return memoryManager; };
+	std::unique_ptr<VKRMemoryManager> memoryManager;
+	VKRMemoryManager* GetMemoryManager() const { return memoryManager.get(); };
 
 	VkSupportedFormatInfo_t m_supportedFormatInfo;
 
@@ -328,8 +328,9 @@ public:
 
 	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
 
-	void* indexData_reserveIndexMemory(uint32 size, uint32& offset, uint32& bufferIndex) override;
-	void indexData_uploadIndexMemory(uint32 offset, uint32 size) override;
+	IndexAllocation indexData_reserveIndexMemory(uint32 size) override;
+	void indexData_releaseIndexMemory(IndexAllocation& allocation) override;
+	void indexData_uploadIndexMemory(IndexAllocation& allocation) override;
 
 	// externally callable
 	void GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, sint32 width, sint32 height, FormatInfoVK* formatInfoOut);
@@ -582,6 +583,8 @@ private:
 	std::shared_mutex m_pipeline_cache_save_mutex;
 	std::thread m_pipeline_cache_save_thread;
 	VkPipelineCache m_pipeline_cache{ nullptr };
+	std::unordered_map<uint64, VkPipeline> m_backbufferBlitPipelineCache;
+	std::unordered_map<uint64, VkDescriptorSet> m_backbufferBlitDescriptorSetCache;
 	VkPipelineLayout m_pipelineLayout{nullptr};
 	VkCommandPool m_commandPool{ nullptr };
 	
@@ -591,6 +594,7 @@ private:
 	bool m_uniformVarBufferMemoryIsCoherent{false};
 	uint8* m_uniformVarBufferPtr = nullptr;
 	uint32 m_uniformVarBufferWriteIndex = 0;
+	uint32 m_uniformVarBufferReadIndex = 0;
 
 	// transform feedback ringbuffer
 	VkBuffer m_xfbRingBuffer = VK_NULL_HANDLE;
@@ -637,6 +641,7 @@ private:
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)
 	size_t m_commandBufferIDOfPrevFrame = 0;
+	std::array<size_t, kCommandBufferPoolSize> m_cmdBufferUniformRingbufIndices {}; // index in the uniform ringbuffer
 	std::array<VkFence, kCommandBufferPoolSize> m_cmd_buffer_fences;
 	std::array<VkCommandBuffer, kCommandBufferPoolSize> m_commandBuffers;
 	std::array<VkSemaphore, kCommandBufferPoolSize> m_commandBufferSemaphores;
@@ -659,7 +664,7 @@ private:
 		uint32 uniformVarBufferOffset[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT];
 		struct  
 		{
-			uint32 unformBufferOffset[LATTE_NUM_MAX_UNIFORM_BUFFERS];
+			uint32 uniformBufferOffset[LATTE_NUM_MAX_UNIFORM_BUFFERS];
 		}shaderUB[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT];
 	}dynamicOffsetInfo{};
 
@@ -857,7 +862,7 @@ private:
 		memBarrier.pNext = nullptr;
 
 		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
 
 		memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
 		memBarrier.dstAccessMask = 0;

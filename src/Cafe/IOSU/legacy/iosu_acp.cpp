@@ -469,7 +469,7 @@ namespace iosu
 				entry->ukn0C = 0;
 				entry->sizeA = _swapEndianU64(0); // ukn
 				entry->sizeB = _swapEndianU64(dirSize);
-				entry->time = _swapEndianU64((coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK));
+				entry->time = _swapEndianU64((coreinit::OSGetTime() / ESPRESSO_TIMER_CLOCK));
 				sprintf(entry->path, "%susr/save/%08x/%08x/meta/", devicePath, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF));
 				count++;
 			}
@@ -504,7 +504,7 @@ namespace iosu
 					entry->ukn0C = 0;
 					entry->sizeA = _swapEndianU64(0);
 					entry->sizeB = _swapEndianU64(0);
-					entry->time = _swapEndianU64((coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK));
+					entry->time = _swapEndianU64((coreinit::OSGetTime() / ESPRESSO_TIMER_CLOCK));
 					sprintf(entry->path, "%susr/save/%08x/%08x/meta/", devicePath, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF));
 					count++;
 				}
@@ -584,7 +584,7 @@ namespace iosu
 
 		uint64 _ACPGetTimestamp()
 		{
-			return coreinit::coreinit_getOSTime() / ESPRESSO_TIMER_CLOCK;
+			return coreinit::OSGetTime() / ESPRESSO_TIMER_CLOCK;
 		}
 
 		nnResult ACPUpdateSaveTimeStamp(uint32 persistentId, uint64 titleId, ACPDeviceType deviceType)

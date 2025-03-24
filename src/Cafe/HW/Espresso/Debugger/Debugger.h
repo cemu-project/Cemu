@@ -100,8 +100,8 @@ extern debuggerState_t debuggerState;
 // new API
 DebuggerBreakpoint* debugger_getFirstBP(uint32 address);
 void debugger_createCodeBreakpoint(uint32 address, uint8 bpType);
-void debugger_createExecuteBreakpoint(uint32 address);
 void debugger_toggleExecuteBreakpoint(uint32 address); // create/remove execute breakpoint
+void debugger_toggleLoggingBreakpoint(uint32 address); // create/remove logging breakpoint
 void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* bp);
 
 void debugger_createMemoryBreakpoint(uint32 address, bool onRead, bool onWrite);
@@ -114,6 +114,7 @@ void debugger_updateExecutionBreakpoint(uint32 address, bool forceRestore = fals
 
 void debugger_createPatch(uint32 address, std::span<uint8> patchData);
 bool debugger_hasPatch(uint32 address);
+void debugger_removePatch(uint32 address);
 
 void debugger_forceBreak(); // force breakpoint at the next possible instruction
 bool debugger_isTrapped();

@@ -102,7 +102,7 @@ private:
 	std::condition_variable m_writer_cond;
 
 	uint32 m_uid;
-	boost::asio::io_service m_io_service;
+	boost::asio::io_context m_io_service;
 	boost::asio::ip::udp::endpoint m_receiver_endpoint;
 	boost::asio::ip::udp::socket m_socket;
 

@@ -334,45 +334,63 @@ void nnNfpExport_MountRom(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NFP, 0));
 }
 
-typedef struct
+namespace nn::nfp
 {
-	/* +0x00 */ uint8 characterId[3];
-	/* +0x03 */ uint8 amiiboSeries;
-	/* +0x04 */ uint16be number;
-	/* +0x06 */ uint8 nfpType;
-	/* +0x07 */ uint8 unused[0x2F];
-}nfpRomInfo_t;
-
-static_assert(offsetof(nfpRomInfo_t, amiiboSeries) == 0x3, "nfpRomInfo.seriesId has invalid offset");
-static_assert(offsetof(nfpRomInfo_t, number) == 0x4, "nfpRomInfo.number has invalid offset");
-static_assert(offsetof(nfpRomInfo_t, nfpType) == 0x6, "nfpRomInfo.nfpType has invalid offset");
-static_assert(sizeof(nfpRomInfo_t) == 0x36, "nfpRomInfo_t has invalid size");
-
-void nnNfpExport_GetNfpRomInfo(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::NN_NFP, "GetNfpRomInfo(0x{:08x})", hCPU->gpr[3]);
-	ppcDefineParamStructPtr(romInfo, nfpRomInfo_t, 0);
-
-	nnNfpLock();
-	if (nfp_data.hasActiveAmiibo == false)
+	struct RomInfo
 	{
-		nnNfpUnlock();
-		osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0)); // todo: Return correct error code
-		return;
+		/* +0x00 */ uint8 characterId[3];
+		/* +0x03 */ uint8 amiiboSeries;
+		/* +0x04 */ uint16be number;
+		/* +0x06 */ uint8 nfpType;
+		/* +0x07 */ uint8 unused[0x2F];
+	};
+
+	static_assert(offsetof(RomInfo, amiiboSeries) == 0x3);
+	static_assert(offsetof(RomInfo, number) == 0x4);
+	static_assert(offsetof(RomInfo, nfpType) == 0x6);
+	static_assert(sizeof(RomInfo) == 0x36);
+
+	using ReadOnlyInfo = RomInfo; // same layout
+
+	void GetRomInfo(RomInfo* romInfo)
+	{
+		cemu_assert_debug(nfp_data.hasActiveAmiibo);
+		memset(romInfo, 0x00, sizeof(RomInfo));
+		romInfo->characterId[0] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.gameAndCharacterId[0];
+		romInfo->characterId[1] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.gameAndCharacterId[1];
+		romInfo->characterId[2] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.characterVariation; // guessed
+		romInfo->amiiboSeries = nfp_data.amiiboNFCData.amiiboIdentificationBlock.amiiboSeries; // guessed
+		romInfo->number = *(uint16be*)nfp_data.amiiboNFCData.amiiboIdentificationBlock.amiiboModelNumber; // guessed
+		romInfo->nfpType = nfp_data.amiiboNFCData.amiiboIdentificationBlock.amiiboFigureType; // guessed
+		memset(romInfo->unused, 0x00, sizeof(romInfo->unused));
 	}
-	memset(romInfo, 0x00, sizeof(nfpRomInfo_t));
 
-	romInfo->characterId[0] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.gameAndCharacterId[0];
-	romInfo->characterId[1] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.gameAndCharacterId[1];
-	romInfo->characterId[2] = nfp_data.amiiboNFCData.amiiboIdentificationBlock.characterVariation; // guessed
+	nnResult GetNfpRomInfo(RomInfo* romInfo)
+	{
+		nnNfpLock();
+		if (nfp_data.hasActiveAmiibo == false)
+		{
+			nnNfpUnlock();
+			return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0); // todo: Return correct error code
+		}
+		GetRomInfo(romInfo);
+		nnNfpUnlock();
+		return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NFP, 0);
+	}
 
-	romInfo->amiiboSeries = nfp_data.amiiboNFCData.amiiboIdentificationBlock.amiiboSeries; // guessed
-	romInfo->number = *(uint16be*)nfp_data.amiiboNFCData.amiiboIdentificationBlock.amiiboModelNumber; // guessed
-	romInfo->nfpType = nfp_data.amiiboNFCData.amiiboIdentificationBlock.amiiboFigureType; // guessed
-
-	nnNfpUnlock();
-	osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NFP, 0));
-}
+	nnResult GetNfpReadOnlyInfo(ReadOnlyInfo* readOnlyInfo)
+	{
+		nnNfpLock();
+		if (nfp_data.hasActiveAmiibo == false)
+		{
+			nnNfpUnlock();
+			return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NFP, 0); // todo: Return correct error code
+		}
+		GetRomInfo(readOnlyInfo);
+		nnNfpUnlock();
+		return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NFP, 0);
+	}
+};
 
 typedef struct  
 {
@@ -880,13 +898,13 @@ void nnNfp_update()
 	if (amiiboElapsedTouchTime >= 1500)
 	{
 		nnNfp_unloadAmiibo();
+		if (nfp_data.deactivateEvent)
+		{
+			coreinit::OSEvent* osEvent = (coreinit::OSEvent*)memory_getPointerFromVirtualOffset(nfp_data.deactivateEvent);
+			coreinit::OSSignalEvent(osEvent);
+		}
 	}
 	nnNfpUnlock();
-	if (nfp_data.deactivateEvent)
-	{
-		coreinit::OSEvent* osEvent = (coreinit::OSEvent*)memory_getPointerFromVirtualOffset(nfp_data.deactivateEvent);
-		coreinit::OSSignalEvent(osEvent);
-	}
 }
 
 void nnNfpExport_GetNfpState(PPCInterpreter_t* hCPU)
@@ -1001,8 +1019,6 @@ namespace nn::nfp
 		osLib_addFunction("nn_nfp", "Mount__Q2_2nn3nfpFv", nnNfpExport_Mount);
 		osLib_addFunction("nn_nfp", "MountRom__Q2_2nn3nfpFv", nnNfpExport_MountRom);
 		osLib_addFunction("nn_nfp", "Unmount__Q2_2nn3nfpFv", nnNfpExport_Unmount);
-
-		osLib_addFunction("nn_nfp", "GetNfpRomInfo__Q2_2nn3nfpFPQ3_2nn3nfp7RomInfo", nnNfpExport_GetNfpRomInfo);
 		osLib_addFunction("nn_nfp", "GetNfpCommonInfo__Q2_2nn3nfpFPQ3_2nn3nfp10CommonInfo", nnNfpExport_GetNfpCommonInfo);
 		osLib_addFunction("nn_nfp", "GetNfpRegisterInfo__Q2_2nn3nfpFPQ3_2nn3nfp12RegisterInfo", nnNfpExport_GetNfpRegisterInfo);
 
@@ -1028,7 +1044,9 @@ namespace nn::nfp
 	{
 		nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc
 
-		cafeExportRegisterFunc(nn::nfp::GetErrorCode, "nn_nfp", "GetErrorCode__Q2_2nn3nfpFRCQ2_2nn6Result", LogType::Placeholder);
+		cafeExportRegisterFunc(nn::nfp::GetErrorCode, "nn_nfp", "GetErrorCode__Q2_2nn3nfpFRCQ2_2nn6Result", LogType::NN_NFP);
+		cafeExportRegisterFunc(nn::nfp::GetNfpRomInfo, "nn_nfp", "GetNfpRomInfo__Q2_2nn3nfpFPQ3_2nn3nfp7RomInfo", LogType::NN_NFP);
+		cafeExportRegisterFunc(nn::nfp::GetNfpReadOnlyInfo, "nn_nfp", "GetNfpReadOnlyInfo__Q2_2nn3nfpFPQ3_2nn3nfp12ReadOnlyInfo", LogType::NN_NFP);
 	}
 
 }

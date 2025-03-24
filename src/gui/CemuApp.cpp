@@ -88,12 +88,14 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Windo
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
 	fs::path portablePath = exePath.parent_path() / "portable";
 	data_path = exePath.parent_path(); // the data path is always the same as the exe path
-	if (fs::exists(portablePath, ec))
+#ifdef CEMU_ALLOW_PORTABLE
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
 	}
 	else
+#endif
 	{
 		fs::path roamingPath = GetAppDataRoamingPath() / "Cemu";
 		user_data_path = config_path = cache_path = roamingPath;
@@ -124,12 +126,13 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 	fs::path portablePath = exePath.parent_path() / "portable";
 	// GetExecutablePath returns the AppImage's temporary mount location
 	wxString appImagePath;
-	if (wxGetEnv(("APPIMAGE"), &appImagePath))
+	if (wxGetEnv("APPIMAGE", &appImagePath))
 	{
 		exePath = wxHelper::MakeFSPath(appImagePath);
 		portablePath = exePath.parent_path() / "portable";
 	}
-	if (fs::exists(portablePath, ec))
+#ifdef CEMU_ALLOW_PORTABLE
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
@@ -137,6 +140,7 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for Linux
 		data_path = exePath.parent_path();
 	}
 	else
+#endif
 	{
 		SetAppName("Cemu");
 		wxString appName = GetAppName();
@@ -167,16 +171,18 @@ void CemuApp::DeterminePaths(std::set<fs::path>& failedWriteAccess) // for MacOS
 	fs::path user_data_path, config_path, cache_path, data_path;
 	auto standardPaths = wxStandardPaths::Get();
 	fs::path exePath(wxHelper::MakeFSPath(standardPaths.GetExecutablePath()));
-        // If run from an app bundle, use its parent directory
-        fs::path appPath = exePath.parent_path().parent_path().parent_path();
-        fs::path portablePath = appPath.extension() == ".app" ? appPath.parent_path() / "portable" : exePath.parent_path() / "portable";
-	if (fs::exists(portablePath, ec))
+    // If run from an app bundle, use its parent directory
+	fs::path appPath = exePath.parent_path().parent_path().parent_path();
+	fs::path portablePath = appPath.extension() == ".app" ? appPath.parent_path() / "portable" : exePath.parent_path() / "portable";
+#ifdef CEMU_ALLOW_PORTABLE
+	if (fs::is_directory(portablePath, ec))
 	{
 		isPortable = true;
 		user_data_path = config_path = cache_path = portablePath;
 		data_path = exePath.parent_path();
 	}
 	else
+#endif
 	{
 		SetAppName("Cemu");
 		wxString appName = GetAppName();
@@ -233,6 +239,12 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 			GetConfig().mlc_path = "";
 			g_config.Save();
 		}
+	}
+	else
+	{
+		// default path is not writeable. Just let the user know and quit. Unsure if it would be a good idea to ask the user to choose an alternative path instead
+		wxMessageBox(formatWxString(_("Cemu failed to write to the default mlc directory.\nThe path is:\n{}"), wxHelper::FromPath(mlc)), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+		exit(0);
 	}
 }
 
@@ -507,6 +519,13 @@ bool CemuApp::CreateDefaultMLCFiles(const fs::path& mlc)
 			file.flush();
 			file.close();
 		}
+		// create a dummy file in the mlc folder to check if it's writable
+		const auto dummyFile = fs::path(mlc).append("writetestdummy");
+		std::ofstream file(dummyFile);
+		if (!file.is_open())
+			return false;
+		file.close();
+		fs::remove(dummyFile);
 	}
 	catch (const std::exception& ex)
 	{

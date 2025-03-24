@@ -76,6 +76,30 @@ struct CopySurfacePipelineInfo
 	CopySurfacePipelineInfo() = default;
 	CopySurfacePipelineInfo(VkDevice device) : m_device(device) {}
 	CopySurfacePipelineInfo(const CopySurfacePipelineInfo& info) = delete;
+	~CopySurfacePipelineInfo()
+	{
+		auto renderer = VulkanRenderer::GetInstance();
+		renderer->ReleaseDestructibleObject(vkObjRenderPass);
+		renderer->ReleaseDestructibleObject(vkObjPipeline);
+
+		for(auto& i : map_framebuffers)
+		{
+			for(auto& fb : i.second.m_array)
+			{
+				renderer->ReleaseDestructibleObject(fb->vkObjFramebuffer);
+				renderer->ReleaseDestructibleObject(fb->vkObjImageView);
+			}
+		}
+
+		for(auto& i : map_descriptors)
+		{
+			for(auto& descriptor : i.second.m_array)
+			{
+				renderer->ReleaseDestructibleObject(descriptor->vkObjImageView);
+				renderer->ReleaseDestructibleObject(descriptor->vkObjDescriptorSet);
+			}
+		}
+	}
 
 	VkDevice m_device = nullptr;
 
@@ -842,5 +866,9 @@ void VulkanRenderer::surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTextur
 
 void VulkanRenderer::surfaceCopy_cleanup()
 {
-	// todo - release m_copySurfacePipelineCache etc
+	for(auto& i : m_copySurfacePipelineCache)
+	{
+		delete i.second;
+	}
+	m_copySurfacePipelineCache = {};
 }

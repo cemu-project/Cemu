@@ -564,7 +564,7 @@ namespace nsyshid
 
 	bool SkylanderPortalDevice::GetDescriptor(uint8 descType,
 											  uint8 descIndex,
-											  uint8 lang,
+											  uint16 lang,
 											  uint8* output,
 											  uint32 outputMaxLength)
 	{
@@ -583,7 +583,7 @@ namespace nsyshid
 		*(uint8*)(currentWritePtr + 7) = 0x80;		// bmAttributes
 		*(uint8*)(currentWritePtr + 8) = 0xFA;		// MaxPower
 		currentWritePtr = currentWritePtr + 9;
-		// configuration descriptor
+		// interface descriptor
 		*(uint8*)(currentWritePtr + 0) = 9;	   // bLength
 		*(uint8*)(currentWritePtr + 1) = 0x04; // bDescriptorType
 		*(uint8*)(currentWritePtr + 2) = 0;	   // bInterfaceNumber
@@ -594,7 +594,7 @@ namespace nsyshid
 		*(uint8*)(currentWritePtr + 7) = 0;	   // bInterfaceProtocol
 		*(uint8*)(currentWritePtr + 8) = 0;	   // iInterface
 		currentWritePtr = currentWritePtr + 9;
-		// configuration descriptor
+		// HID descriptor
 		*(uint8*)(currentWritePtr + 0) = 9;			// bLength
 		*(uint8*)(currentWritePtr + 1) = 0x21;		// bDescriptorType
 		*(uint16be*)(currentWritePtr + 2) = 0x0111; // bcdHID
@@ -608,7 +608,7 @@ namespace nsyshid
 		*(uint8*)(currentWritePtr + 1) = 0x05;	  // bDescriptorType
 		*(uint8*)(currentWritePtr + 2) = 0x81;	  // bEndpointAddress
 		*(uint8*)(currentWritePtr + 3) = 0x03;	  // bmAttributes
-		*(uint16be*)(currentWritePtr + 4) = 0x40; // wMaxPacketSize
+		*(uint16be*)(currentWritePtr + 4) = 0x0040; // wMaxPacketSize
 		*(uint8*)(currentWritePtr + 6) = 0x01;	  // bInterval
 		currentWritePtr = currentWritePtr + 7;
 		// endpoint descriptor 2
@@ -616,7 +616,7 @@ namespace nsyshid
 		*(uint8*)(currentWritePtr + 1) = 0x05;	  // bDescriptorType
 		*(uint8*)(currentWritePtr + 2) = 0x02;	  // bEndpointAddress
 		*(uint8*)(currentWritePtr + 3) = 0x03;	  // bmAttributes
-		*(uint16be*)(currentWritePtr + 4) = 0x40; // wMaxPacketSize
+		*(uint16be*)(currentWritePtr + 4) = 0x0040; // wMaxPacketSize
 		*(uint8*)(currentWritePtr + 6) = 0x01;	  // bInterval
 		currentWritePtr = currentWritePtr + 7;
 
@@ -627,6 +627,13 @@ namespace nsyshid
 		return true;
 	}
 
+	bool SkylanderPortalDevice::SetIdle(uint8 ifIndex,
+									 uint8 reportId,
+									 uint8 duration)
+	{
+		return true;
+	}
+
 	bool SkylanderPortalDevice::SetProtocol(uint8 ifIndex, uint8 protocol)
 	{
 		return true;
@@ -634,12 +641,12 @@ namespace nsyshid
 
 	bool SkylanderPortalDevice::SetReport(ReportMessage* message)
 	{
-		g_skyportal.ControlTransfer(message->originalData, message->originalLength);
+		g_skyportal.ControlTransfer(message->data, message->length);
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		return true;
 	}
 
-	void SkylanderUSB::ControlTransfer(uint8* buf, sint32 originalLength)
+	void SkylanderUSB::ControlTransfer(uint8* buf, uint32 length)
 	{
 		std::array<uint8, 64> interruptResponse = {};
 		switch (buf[0])

@@ -46,6 +46,8 @@ public:
 	static const std::vector<DeviceDescriptionPtr>& GetDevices() { return s_devices;	}
 
 private:
+	uint32 GetQueuedBuffers() const;
+
 	static const std::vector<DeviceDescriptionPtr>& RefreshDevices();
 
 	struct XAudioDeleter

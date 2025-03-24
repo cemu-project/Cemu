@@ -86,6 +86,8 @@ private:
 	void OnMoveIP(wxCommandEvent& event);
 	void OnNotifyModuleLoaded(wxCommandEvent& event);
 	void OnNotifyModuleUnloaded(wxCommandEvent& event);
+	// events from DisasmCtrl
+	void OnDisasmCtrlGotoAddress(wxCommandEvent& event);
 
 	void CreateMenuBar();
 	void UpdateModuleLabel(uint32 address = 0);

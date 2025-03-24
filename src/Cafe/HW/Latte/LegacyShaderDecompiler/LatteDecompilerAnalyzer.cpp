@@ -140,6 +140,8 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP2_INST_SUB_INT:
 		case ALU_OP2_INST_MAX_INT:
 		case ALU_OP2_INST_MIN_INT:
+		case ALU_OP2_INST_MAX_UINT:
+		case ALU_OP2_INST_MIN_UINT:
 		case ALU_OP2_INST_SETE_INT:
 		case ALU_OP2_INST_SETGT_INT:
 		case ALU_OP2_INST_SETGE_INT:
