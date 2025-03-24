@@ -209,10 +209,12 @@ namespace camera
 	{
 		if (camHandle != CAM_HANDLE)
 			return CAMStatus::InvalidHandle;
-		std::scoped_lock lock(s_instance.mutex);
-		if (!s_instance.initialized || !s_instance.isOpen)
-			return CAMStatus::Uninitialized;
-		s_instance.isOpen = false;
+		{
+			std::scoped_lock lock(s_instance.mutex);
+			if (!s_instance.initialized || !s_instance.isOpen)
+				return CAMStatus::Uninitialized;
+			s_instance.isOpen = false;
+		}
 		s_instance.updateThread.join();
 		CameraManager::instance().Close();
 		return CAMStatus::Success;
