@@ -3,13 +3,13 @@
 #include "camera.h"
 
 #include "Cafe/OS/RPL/rpl.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "util/helpers/helpers.h"
 
 #include "util/helpers/ringbuffer.h"
 #include "camera/CameraManager.h"
+#include "Cafe/HW/Espresso/Const.h"
+
 namespace camera
 {
 	constexpr unsigned CAMERA_WIDTH = 640;
@@ -103,59 +103,58 @@ namespace camera
 		bool initialized = false;
 		bool shouldTriggerCallback = false;
 		std::atomic_bool isOpen = false;
+		std::atomic_bool isExiting = false;
+		bool isWorking = false;
+		unsigned fps = 30;
 		MEMPTR<void> eventCallback = nullptr;
 		RingBuffer<MEMPTR<uint8_t>, 20> inTargetBuffers{};
 		RingBuffer<MEMPTR<uint8_t>, 20> outTargetBuffers{};
-		std::thread updateThread;
 	} s_instance;
 
 	SysAllocator<CAMDecodeEventParam> s_cameraEventData;
-	SysAllocator<coreinit::OSAlarm_t> s_cameraAlarm;
+	SysAllocator<OSThread_t> s_cameraWorkerThread;
+	SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
+	SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
 
-	void UpdateLoop()
-	{
-		while (s_instance.isOpen)
-		{
-			{
-				std::scoped_lock lock(s_instance.mutex);
-				auto surfaceBuffer = s_instance.inTargetBuffers.Pop();
-				if (surfaceBuffer.IsNull())
-				{
-					continue;
-				}
-				CameraManager::instance().GetNV12Data(surfaceBuffer.GetPtr());
-				s_instance.outTargetBuffers.Push(surfaceBuffer);
-			}
-		}
-	}
-
-	void AlarmCallback(PPCInterpreter_t*)
+	void WorkerThread(PPCInterpreter_t*)
 	{
 		s_cameraEventData->type = CAMEventType::Decode;
 		s_cameraEventData->channel = 0;
+		s_cameraEventData->data = nullptr;
+		s_cameraEventData->errored = false;
+		PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
 
-		if (s_instance.shouldTriggerCallback)
+		while (!s_instance.isExiting)
 		{
-			s_instance.shouldTriggerCallback = false;
-			s_cameraEventData->data = nullptr;
-			s_cameraEventData->errored = false;
-		}
-		else if (s_instance.isOpen)
-		{
-			if (auto buffer = s_instance.outTargetBuffers.Pop())
+			coreinit::OSWaitEvent(s_cameraOpenEvent);
+			while (true)
 			{
-				s_cameraEventData->data = buffer;
-				s_cameraEventData->errored = false;
+				if (!s_instance.isOpen || s_instance.isExiting)
+				{
+					// Fill leftover buffers before stopping
+					if (!s_instance.inTargetBuffers.HasData())
+						break;
+				}
+				s_cameraEventData->type = CAMEventType::Decode;
+				s_cameraEventData->channel = 0;
+
+				auto surfaceBuffer = s_instance.inTargetBuffers.Pop();
+				if (surfaceBuffer.IsNull())
+				{
+					s_cameraEventData->data = nullptr;
+					s_cameraEventData->errored = true;
+				}
+				else
+				{
+					CameraManager::instance().GetNV12Data(surfaceBuffer.GetPtr());
+					s_cameraEventData->data = surfaceBuffer;
+					s_cameraEventData->errored = false;
+				}
 				PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
-			}
-			else
-			{
-				s_cameraEventData->data = nullptr;
-				s_cameraEventData->errored = true;
+				coreinit::OSSleepTicks(Espresso::TIMER_CLOCK / (s_instance.fps - 1));
 			}
 		}
-		else
-			return;
+		cemuLog_logDebug(LogType::Force, "Camera Worker Thread Exited");
 	}
 
 	sint32 CAMGetMemReq(CAMImageInfo*)
@@ -179,7 +178,7 @@ namespace camera
 			*error = CAMStatus::DeviceInUse;
 			return -1;
 		}
-    
+
 		if (!initInfo || !initInfo->workMemoryData ||
 			!match_any_of(initInfo->forceDisplay, CAMForceDisplay::None, CAMForceDisplay::DRC) ||
 			!match_any_of(initInfo->fps, CAMFps::_15, CAMFps::_30) ||
@@ -193,15 +192,15 @@ namespace camera
 		cemu_assert_debug(initInfo->workMemorySize != 0);
 		cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
 
-		auto frameRate = initInfo->fps == CAMFps::_15 ? 15 : 30;
+		s_instance.fps = initInfo->fps == CAMFps::_15 ? 15 : 30;
 		s_instance.initialized = true;
-		s_instance.shouldTriggerCallback = true;
 		s_instance.eventCallback = initInfo->callback;
-		coreinit::OSCreateAlarm(s_cameraAlarm.GetPtr());
-		coreinit::OSSetPeriodicAlarm(s_cameraAlarm.GetPtr(),
-									 coreinit::OSGetTime(),
-									 coreinit::EspressoTime::GetTimerClock() / frameRate,
-									 RPLLoader_MakePPCCallable(AlarmCallback));
+		coreinit::OSInitEvent(s_cameraOpenEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+		coreinit::__OSCreateThreadType(
+			s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThread), 0, nullptr,
+			s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(), s_cameraWorkerThreadStack.GetByteSize(),
+			0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
+		coreinit::OSResumeThread(s_cameraWorkerThread);
 		return 0;
 	}
 
@@ -215,7 +214,6 @@ namespace camera
 				return CAMStatus::Uninitialized;
 			s_instance.isOpen = false;
 		}
-		s_instance.updateThread.join();
 		CameraManager::instance().Close();
 		return CAMStatus::Success;
 	}
@@ -231,10 +229,10 @@ namespace camera
 			return CAMStatus::DeviceInUse;
 		if (!CameraManager::instance().Open(false))
 			return CAMStatus::UVCError;
+		s_instance.isOpen = true;
+		coreinit::OSSignalEvent(s_cameraOpenEvent);
 		s_instance.inTargetBuffers.Clear();
 		s_instance.outTargetBuffers.Clear();
-		s_instance.isOpen = true;
-		s_instance.updateThread = std::thread(UpdateLoop);
 		return CAMStatus::Success;
 	}
 
@@ -259,11 +257,11 @@ namespace camera
 		std::scoped_lock lock(s_instance.mutex);
 		if (!s_instance.initialized)
 			return;
+		s_instance.isExiting = true;
 		if (s_instance.isOpen)
 			CAMClose(camHandle);
+		coreinit::OSSignalEvent(s_cameraOpenEvent.GetPtr());
 		s_instance.initialized = false;
-		s_instance.shouldTriggerCallback = false;
-		coreinit::OSCancelAlarm(s_cameraAlarm);
 	}
 
 	void reset()
