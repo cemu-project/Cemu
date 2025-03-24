@@ -46,6 +46,7 @@ add_subdirectory(Cemu)
 add_subdirectory(config)
 add_subdirectory(input)
 add_subdirectory(audio)
+add_subdirectory(camera)
 add_subdirectory(util)
 add_subdirectory(imgui)
 add_subdirectory(resource)
@@ -119,6 +120,7 @@ set_target_properties(CemuBin PROPERTIES
 target_link_libraries(CemuBin PRIVATE
 	CemuAudio
 	CemuCafe
+	CemuCamera
 	CemuCommon
 	CemuComponents
 	CemuConfig

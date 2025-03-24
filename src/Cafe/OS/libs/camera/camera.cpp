@@ -2,23 +2,20 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "camera.h"
 
-#include "Rgb2Nv12.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "util/helpers/helpers.h"
 
-#include <util/helpers/ringbuffer.h>
-#include <openpnp-capture.h>
-
+#include "util/helpers/ringbuffer.h"
+#include "camera/CameraManager.h"
 namespace camera
 {
-	constexpr static size_t g_width = 640;
-	constexpr static size_t g_height = 480;
-	constexpr static size_t g_pitch = 768;
+	constexpr unsigned CAMERA_WIDTH = 640;
+	constexpr unsigned CAMERA_HEIGHT = 480;
 
-	enum class CAMError : sint32
+	enum class CAMStatus : sint32
 	{
 		Success = 0,
 		InvalidArg = -1,
@@ -27,7 +24,7 @@ namespace camera
 		InsufficientMemory = -5,
 		NotReady = -6,
 		Uninitialized = -8,
-		DeviceInitFailed = -9,
+		UVCError = -9,
 		DecoderInitFailed = -10,
 		DeviceInUse = -12,
 		DecoderSessionFailed = -13,
@@ -68,7 +65,7 @@ namespace camera
 	{
 		CAMImageInfo imageInfo;
 		uint32be workMemorySize;
-		MEMPTR<void> workMemory;
+		MEMPTR<void> workMemoryData;
 		MEMPTR<void> callback;
 		betype<CAMForceDisplay> forceDisplay;
 		betype<CAMFps> fps;
@@ -79,8 +76,8 @@ namespace camera
 
 	struct CAMTargetSurface
 	{
-		/* +0x00 */ sint32be surfaceSize;
-		/* +0x04 */ MEMPTR<void> surfacePtr;
+		/* +0x00 */ sint32be size;
+		/* +0x04 */ MEMPTR<uint8_t> data;
 		/* +0x08 */ uint32be height;
 		/* +0x0C */ uint32be width;
 		/* +0x10 */ uint32be ukn10;
@@ -92,149 +89,74 @@ namespace camera
 	struct CAMDecodeEventParam
 	{
 		betype<CAMEventType> type;
-		MEMPTR<void> buffer;
+		MEMPTR<void> data;
 		uint32be channel;
 		uint32be errored;
 	};
 	static_assert(sizeof(CAMDecodeEventParam) == 0x10);
 
-	std::recursive_mutex g_cameraMutex;
+	constexpr static int32_t CAM_HANDLE = 0;
 
-	SysAllocator<CAMDecodeEventParam> g_cameraEventData;
-	SysAllocator<coreinit::OSAlarm_t> g_cameraAlarm;
-
-	void DecodeAlarmCallback(PPCInterpreter_t*);
-
-	class CAMInstance
+	struct
 	{
-		constexpr static auto nv12BufferSize = g_pitch * g_height * 3 / 2;
+		std::recursive_mutex mutex{};
+		bool initialized = false;
+		bool shouldTriggerCallback = false;
+		std::atomic_bool isOpen = false;
+		MEMPTR<void> eventCallback = nullptr;
+		RingBuffer<MEMPTR<uint8_t>, 20> inTargetBuffers{};
+		RingBuffer<MEMPTR<uint8_t>, 20> outTargetBuffers{};
+		std::thread updateThread;
+	} s_instance;
 
-	  public:
-		CAMInstance(CAMFps frameRate, MEMPTR<void> callbackPtr)
-			: m_capCtx(Cap_createContext()),
-			  m_capNv12Buffer(new uint8_t[nv12BufferSize]),
-			  m_frameRate(30),
-			  m_callbackPtr(callbackPtr)
-		{
-			if (callbackPtr.IsNull() || frameRate != CAMFps::_15 && frameRate != CAMFps::_30)
-				throw CAMError::InvalidArg;
-			coreinit::OSCreateAlarm(g_cameraAlarm.GetPtr());
-			coreinit::OSSetPeriodicAlarm(g_cameraAlarm.GetPtr(),
-										 coreinit::OSGetTime(),
-										 coreinit::EspressoTime::GetTimerClock() / m_frameRate,
-										 RPLLoader_MakePPCCallable(DecodeAlarmCallback));
-		}
-		~CAMInstance()
-		{
-			m_capWorker.request_stop();
-			m_capWorker.join();
-			coreinit::OSCancelAlarm(g_cameraAlarm.GetPtr());
-			Cap_releaseContext(m_capCtx);
-		}
+	SysAllocator<CAMDecodeEventParam> s_cameraEventData;
+	SysAllocator<coreinit::OSAlarm_t> s_cameraAlarm;
 
-		void OnAlarm()
+	void UpdateLoop()
+	{
+		while (s_instance.isOpen)
 		{
-			const auto surface = m_targetSurfaceQueue.Pop();
-			if (surface.IsNull())
-				return;
 			{
-				std::scoped_lock lock(m_callbackMutex);
-				std::memcpy(surface->surfacePtr.GetPtr(), m_capNv12Buffer.get(), nv12BufferSize);
-			}
-			g_cameraEventData->type = CAMEventType::Decode;
-			g_cameraEventData->buffer = surface->surfacePtr;
-			g_cameraEventData->channel = 0;
-			g_cameraEventData->errored = false;
-			PPCCoreCallback(m_callbackPtr, g_cameraEventData.GetPtr());
-		}
-
-		void Worker(std::stop_token stopToken, CapFormatID formatId)
-		{
-			SetThreadName("CAMWorker");
-			const auto stream = Cap_openStream(m_capCtx, m_capDeviceId, formatId);
-			constexpr static auto rgbBufferSize = g_width * g_height * 3;
-			auto rgbBuffer = std::make_unique<uint8[]>(rgbBufferSize);
-			while (!stopToken.stop_requested())
-			{
-				if (!m_opened)
+				std::scoped_lock lock(s_instance.mutex);
+				auto surfaceBuffer = s_instance.inTargetBuffers.Pop();
+				if (surfaceBuffer.IsNull())
 				{
-					std::this_thread::sleep_for(std::chrono::milliseconds(20));
-					std::this_thread::yield();
 					continue;
 				}
-				auto res = Cap_captureFrame(m_capCtx, stream, rgbBuffer.get(), rgbBufferSize);
-				if (res == CAPRESULT_OK)
-				{
-					std::scoped_lock lock(m_callbackMutex);
-					Rgb2Nv12(rgbBuffer.get(), g_width, g_height, m_capNv12Buffer.get(), g_pitch);
-				}
+				CameraManager::instance().GetNV12Data(surfaceBuffer.GetPtr());
+				s_instance.outTargetBuffers.Push(surfaceBuffer);
 			}
-			Cap_closeStream(m_capCtx, stream);
+
 		}
+	}
 
-		CAMError Open()
-		{
-			if (m_opened)
-				return CAMError::DeviceInUse;
-			const auto formatCount = Cap_getNumFormats(m_capCtx, m_capDeviceId);
-			int formatId = -1;
-			for (auto i = 0; i < formatCount; ++i)
-			{
-				CapFormatInfo formatInfo;
-				Cap_getFormatInfo(m_capCtx, m_capDeviceId, i, &formatInfo);
-				if (formatInfo.width == g_width && formatInfo.height == g_height && formatInfo.fps == m_frameRate)
-				{
-					formatId = i;
-					break;
-				}
-			}
-			if (formatId == -1)
-			{
-				cemuLog_log(LogType::Force, "camera: Open failed, {}x{} @ {} fps not supported by host camera", g_width, g_height, m_frameRate);
-				return CAMError::DeviceInitFailed;
-			}
-			m_targetSurfaceQueue.Clear();
-			m_opened = true;
-			m_capWorker = std::jthread(&CAMInstance::Worker, this, formatId);
-			return CAMError::Success;
-		}
-
-		CAMError Close()
-		{
-			m_opened = false;
-			return CAMError::Success;
-		}
-
-		CAMError SubmitTargetSurface(MEMPTR<CAMTargetSurface> surface)
-		{
-			cemu_assert(surface->surfaceSize >= nv12BufferSize);
-			if (!m_opened)
-				return CAMError::NotReady;
-			if (!m_targetSurfaceQueue.Push(surface))
-				return CAMError::SurfaceQueueFull;
-			cemuLog_logDebug(LogType::Force, "camera: surface {} submitted", surface->surfacePtr);
-			return CAMError::Success;
-		}
-
-	  private:
-		CapContext m_capCtx;
-		CapDeviceID m_capDeviceId = 0;
-		std::unique_ptr<uint8[]> m_capNv12Buffer;
-		std::jthread m_capWorker;
-		std::mutex m_callbackMutex{};
-		uint32 m_frameRate;
-		MEMPTR<void> m_callbackPtr;
-		RingBuffer<MEMPTR<CAMTargetSurface>, 20> m_targetSurfaceQueue{};
-		std::atomic_bool m_opened = false;
-	};
-	std::optional<CAMInstance> g_camInstance;
-
-	void DecodeAlarmCallback(PPCInterpreter_t*)
+	void AlarmCallback(PPCInterpreter_t*)
 	{
-		std::scoped_lock camLock(g_cameraMutex);
-		if (!g_camInstance)
+		s_cameraEventData->type = CAMEventType::Decode;
+		s_cameraEventData->channel = 0;
+
+		if (s_instance.shouldTriggerCallback)
+		{
+			s_instance.shouldTriggerCallback = false;
+			s_cameraEventData->data = nullptr;
+			s_cameraEventData->errored = false;
+		}
+		else if (s_instance.isOpen)
+		{
+			if (auto buffer = s_instance.outTargetBuffers.Pop())
+			{
+				s_cameraEventData->data = buffer;
+				s_cameraEventData->errored = false;
+				PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
+			}
+			else
+			{
+				s_cameraEventData->data = nullptr;
+				s_cameraEventData->errored = true;
+			}
+		}
+		else
 			return;
-		g_camInstance->OnAlarm();
 	}
 
 	sint32 CAMGetMemReq(CAMImageInfo*)
@@ -242,76 +164,110 @@ namespace camera
 		return 1 * 1024; // always return 1KB
 	}
 
-	CAMError CAMCheckMemSegmentation(void* base, uint32 size)
+	CAMStatus CAMCheckMemSegmentation(void* base, uint32 size)
 	{
-		return CAMError::Success; // always return success
+		if (!base || size == 0)
+			return CAMStatus::InvalidArg;
+		return CAMStatus::Success;
 	}
 
-	sint32 CAMInit(uint32 cameraId, CAMInitInfo_t* camInitInfo, betype<CAMError>* error)
+	sint32 CAMInit(uint32 cameraId, CAMInitInfo_t* initInfo, betype<CAMStatus>* error)
 	{
-		if (g_camInstance)
+		*error = CAMStatus::Success;
+		std::scoped_lock lock(s_instance.mutex);
+		if (s_instance.initialized)
 		{
-			*error = CAMError::DeviceInUse;
+			*error = CAMStatus::DeviceInUse;
 			return -1;
 		}
-		std::unique_lock _lock(g_cameraMutex);
-		const auto& [t, height, width] = camInitInfo->imageInfo;
-		cemu_assert(width == g_width && height == g_height);
-		try
+
+		if (!initInfo || !initInfo->workMemoryData ||
+			!match_any_of(initInfo->forceDisplay, CAMForceDisplay::None, CAMForceDisplay::DRC) ||
+			!match_any_of(initInfo->fps, CAMFps::_15, CAMFps::_30) ||
+			initInfo->imageInfo.type != CAMImageType::Default)
 		{
-			g_camInstance.emplace(camInitInfo->fps, camInitInfo->callback);
-		}
-		catch (CAMError e)
-		{
-			*error = e;
+			*error = CAMStatus::InvalidArg;
 			return -1;
 		}
-		*error = CAMError::Success;
+
+		cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
+		cemu_assert_debug(initInfo->workMemorySize != 0);
+		cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
+
+		auto frameRate = initInfo->fps == CAMFps::_15 ? 15 : 30;
+		s_instance.initialized = true;
+		s_instance.shouldTriggerCallback = true;
+		s_instance.eventCallback = initInfo->callback;
+		coreinit::OSCreateAlarm(s_cameraAlarm.GetPtr());
+		coreinit::OSSetPeriodicAlarm(s_cameraAlarm.GetPtr(),
+									 coreinit::OSGetTime(),
+									 coreinit::EspressoTime::GetTimerClock() / frameRate,
+									 RPLLoader_MakePPCCallable(AlarmCallback));
 		return 0;
+	}
+
+	CAMStatus CAMClose(sint32 camHandle)
+	{
+		if (camHandle != CAM_HANDLE)
+			return CAMStatus::InvalidHandle;
+		std::scoped_lock lock(s_instance.mutex);
+		if (!s_instance.initialized || !s_instance.isOpen)
+			return CAMStatus::Uninitialized;
+		s_instance.isOpen = false;
+		s_instance.updateThread.join();
+		CameraManager::instance().Close();
+		return CAMStatus::Success;
+	}
+
+	CAMStatus CAMOpen(sint32 camHandle)
+	{
+		if (camHandle != CAM_HANDLE)
+			return CAMStatus::InvalidHandle;
+		auto lock = std::scoped_lock(s_instance.mutex);
+		if (!s_instance.initialized)
+			return CAMStatus::Uninitialized;
+		if (s_instance.isOpen)
+			return CAMStatus::DeviceInUse;
+		if (!CameraManager::instance().Open(false))
+			return CAMStatus::UVCError;
+		s_instance.inTargetBuffers.Clear();
+		s_instance.outTargetBuffers.Clear();
+		s_instance.isOpen = true;
+		s_instance.updateThread = std::thread(UpdateLoop);
+		return CAMStatus::Success;
+	}
+
+	CAMStatus CAMSubmitTargetSurface(sint32 camHandle, CAMTargetSurface* targetSurface)
+	{
+		if (camHandle != CAM_HANDLE)
+			return CAMStatus::InvalidHandle;
+		if (!targetSurface || targetSurface->data.IsNull() || targetSurface->size < 1)
+			return CAMStatus::InvalidArg;
+		auto lock = std::scoped_lock(s_instance.mutex);
+		if (!s_instance.initialized)
+			return CAMStatus::Uninitialized;
+		if (!s_instance.inTargetBuffers.Push(targetSurface->data))
+			return CAMStatus::SurfaceQueueFull;
+		return CAMStatus::Success;
 	}
 
 	void CAMExit(sint32 camHandle)
 	{
-		if (camHandle != 0 || !g_camInstance)
+		if (camHandle != CAM_HANDLE)
 			return;
-		g_camInstance.reset();
-	}
-
-	CAMError CAMClose(sint32 camHandle)
-	{
-		if (camHandle != 0)
-			return CAMError::InvalidHandle;
-		std::scoped_lock lock(g_cameraMutex);
-		if (!g_camInstance)
-			return CAMError::Uninitialized;
-		return g_camInstance->Close();
-	}
-
-	CAMError CAMOpen(sint32 camHandle)
-	{
-		if (camHandle != 0)
-			return CAMError::InvalidHandle;
-		auto lock = std::scoped_lock(g_cameraMutex);
-		if (!g_camInstance)
-			return CAMError::Uninitialized;
-		return g_camInstance->Open();
-	}
-
-	CAMError CAMSubmitTargetSurface(sint32 camHandle, CAMTargetSurface* targetSurface)
-	{
-		if (camHandle != 0)
-			return CAMError::InvalidHandle;
-		if (!targetSurface || targetSurface->surfacePtr.IsNull() || targetSurface->surfaceSize < 1)
-			return CAMError::InvalidArg;
-		auto lock = std::scoped_lock(g_cameraMutex);
-		if (!g_camInstance)
-			return CAMError::Uninitialized;
-		return g_camInstance->SubmitTargetSurface(targetSurface);
+		std::scoped_lock lock(s_instance.mutex);
+		if (!s_instance.initialized)
+			return;
+		if (s_instance.isOpen)
+			CAMClose(camHandle);
+		s_instance.initialized = false;
+		s_instance.shouldTriggerCallback = false;
+		coreinit::OSCancelAlarm(s_cameraAlarm);
 	}
 
 	void reset()
 	{
-		g_camInstance.reset();
+		CAMExit(0);
 	}
 
 	void load()
