@@ -1,8 +1,8 @@
 #pragma once
 #include <shared_mutex>
-
 #include <openpnp-capture.h>
 #include "util/helpers/Singleton.h"
+
 class CameraManager : public Singleton<CameraManager>
 {
 	CapContext m_ctx;
@@ -14,7 +14,8 @@ class CameraManager : public Singleton<CameraManager>
 	std::thread m_captureThread;
 	std::atomic_bool m_capturing;
 	mutable std::shared_mutex m_mutex;
-public:
+
+  public:
 	CameraManager();
 	~CameraManager();
 
@@ -24,6 +25,7 @@ public:
 	void Close();
 
 	void GetNV12Data(uint8_t* nv12Buffer) const;
-private:
+
+  private:
 	void CaptureWorker();
 };

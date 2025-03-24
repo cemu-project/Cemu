@@ -126,7 +126,6 @@ namespace camera
 				CameraManager::instance().GetNV12Data(surfaceBuffer.GetPtr());
 				s_instance.outTargetBuffers.Push(surfaceBuffer);
 			}
-
 		}
 	}
 
