@@ -56,21 +56,23 @@ bool CameraManager::Open(bool weak)
 		m_stream = stream;
 		m_captureThread = std::thread(&CameraManager::CaptureWorker, this);
 	}
-	else if (!weak)
+	if (!weak)
 		m_refCount += 1;
 	return true;
 }
 void CameraManager::Close()
 {
-	std::scoped_lock lock(m_mutex);
-	if (m_refCount == 0)
-		return;
-	m_refCount -= 1;
-	if (m_refCount != 0)
-		return;
-	Cap_closeStream(m_ctx, *m_stream);
-	m_stream = std::nullopt;
-	m_capturing = false;
+	{
+		std::scoped_lock lock(m_mutex);
+		if (m_refCount == 0)
+			return;
+		m_refCount -= 1;
+		if (m_refCount != 0)
+			return;
+		Cap_closeStream(m_ctx, *m_stream);
+		m_stream = std::nullopt;
+		m_capturing = false;
+	}
 	m_captureThread.join();
 }
 
