@@ -76,7 +76,7 @@ void CameraManager::Close()
 	m_captureThread.join();
 }
 
-void CameraManager::GetNV12Data(uint8_t* nv12Buffer) const
+void CameraManager::FillNV12Buffer(uint8* nv12Buffer) const
 {
 	std::shared_lock lock(m_mutex);
 	std::ranges::copy(m_nv12Buffer, nv12Buffer);

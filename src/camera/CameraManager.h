@@ -24,7 +24,7 @@ class CameraManager : public Singleton<CameraManager>
 	bool Open(bool weak);
 	void Close();
 
-	void GetNV12Data(uint8_t* nv12Buffer) const;
+	void FillNV12Buffer(uint8* nv12Buffer) const;
 
   private:
 	void CaptureWorker();
