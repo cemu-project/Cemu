@@ -1446,14 +1446,14 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
-	uHotkey hotkey{};
+	uKeyboardHotkey hotkey{};
 	hotkey.key = event.GetKeyCode();
 	hotkey.alt = event.AltDown();
 	hotkey.ctrl = event.ControlDown();
 	hotkey.shift = event.ShiftDown();
-	const auto& hotkeyMap = HotkeySettings::s_hotkeyToFuncMap;
-	const auto it = hotkeyMap.find(hotkey.raw);
-	if (it != hotkeyMap.end())
+	const auto& hotkey_map = HotkeySettings::s_keyboardHotkeyToFuncMap;
+	const auto it = hotkey_map.find(hotkey.raw);
+	if (it != hotkey_map.end())
 		it->second();
 }
 

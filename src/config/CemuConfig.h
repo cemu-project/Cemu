@@ -195,13 +195,42 @@ typedef union
 {
 	struct
 	{
-		uint16_t key : 13; // enough bits for all keycodes
-		uint16_t alt : 1;
-		uint16_t ctrl : 1;
-		uint16_t shift : 1;
+		uint16 key : 13; // enough bits for all keycodes
+		uint16 alt : 1;
+		uint16 ctrl : 1;
+		uint16 shift : 1;
 	};
-	uint16_t raw;
-} uHotkey;
+	uint16 raw;
+} uKeyboardHotkey;
+
+typedef sint16 ControllerHotkey_t;
+
+struct sHotkeyCfg
+{
+	uKeyboardHotkey keyboard{WXK_NONE};
+	ControllerHotkey_t controller{-1}; // -1 = disabled
+
+	/* for defaults */
+	sHotkeyCfg(const uKeyboardHotkey& keyboard = {WXK_NONE}, const ControllerHotkey_t& controller = {-1}) :
+		keyboard(keyboard), controller(controller) {};
+
+	/* for reading from xml */
+	sHotkeyCfg(const char* xml_values)
+	{
+		std::istringstream iss(xml_values);
+		iss >> keyboard.raw >> controller;
+	}
+};
+
+template <>
+struct fmt::formatter<sHotkeyCfg> : formatter<string_view>
+{
+	template <typename FormatContext>
+	auto format(const sHotkeyCfg c, FormatContext &ctx) const {
+		std::string xml_values = fmt::format("{} {}", c.keyboard.raw, c.controller);
+		return formatter<string_view>::format(xml_values, ctx);
+	}
+};
 
 template <>
 struct fmt::formatter<const PrecompiledShaderOption> : formatter<string_view> {
@@ -514,11 +543,12 @@ struct CemuConfig
 	// hotkeys
 	struct
 	{
-		uHotkey toggleFullscreen{};
-		uHotkey toggleFullscreenAlt{};
-		uHotkey exitFullscreen{};
-		uHotkey takeScreenshot{};
-		uHotkey toggleFastForward{};
+		sHotkeyCfg modifiers;
+		sHotkeyCfg toggleFullscreen;
+		sHotkeyCfg toggleFullscreenAlt;
+		sHotkeyCfg exitFullscreen;
+		sHotkeyCfg takeScreenshot;
+		sHotkeyCfg toggleFastForward;
 	} hotkeys{};
 
 	// debug

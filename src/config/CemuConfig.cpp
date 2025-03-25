@@ -345,11 +345,12 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	// hotkeys
 	auto xml_hotkeys = parser.get("Hotkeys");
-	hotkeys.exitFullscreen.raw = xml_hotkeys.get("ExitFullscreen", WXK_ESCAPE);
-	hotkeys.toggleFullscreen.raw = xml_hotkeys.get("ToggleFullscreen", WXK_F11);
-	hotkeys.toggleFullscreenAlt.raw = xml_hotkeys.get("ToggleFullscreenAlt", uHotkey{WXK_CONTROL_M, true}.raw); // ALT+ENTER
-	hotkeys.takeScreenshot.raw = xml_hotkeys.get("TakeScreenshot", WXK_F12);
-	hotkeys.toggleFastForward.raw = xml_hotkeys.get("ToggleFastforward", WXK_NONE);
+	hotkeys.modifiers = xml_hotkeys.get("modifiers", sHotkeyCfg{});
+	hotkeys.exitFullscreen = xml_hotkeys.get("ExitFullscreen", sHotkeyCfg{uKeyboardHotkey{WXK_ESCAPE}});
+	hotkeys.toggleFullscreen = xml_hotkeys.get("ToggleFullscreen", sHotkeyCfg{uKeyboardHotkey{WXK_F11}});
+	hotkeys.toggleFullscreenAlt = xml_hotkeys.get("ToggleFullscreenAlt", sHotkeyCfg{uKeyboardHotkey{WXK_CONTROL_M, true}}); // ALT+ENTER
+	hotkeys.takeScreenshot = xml_hotkeys.get("TakeScreenshot", sHotkeyCfg{uKeyboardHotkey{WXK_F12}});
+	hotkeys.toggleFastForward = xml_hotkeys.get("ToggleFastForward", sHotkeyCfg{});
 
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");
@@ -554,11 +555,12 @@ void CemuConfig::Save(XMLConfigParser& parser)
 
 	// hotkeys
 	auto xml_hotkeys = config.set("Hotkeys");
-	xml_hotkeys.set("ExitFullscreen", hotkeys.exitFullscreen.raw);
-	xml_hotkeys.set("ToggleFullscreen", hotkeys.toggleFullscreen.raw);
-	xml_hotkeys.set("ToggleFullscreenAlt", hotkeys.toggleFullscreenAlt.raw);
-	xml_hotkeys.set("TakeScreenshot", hotkeys.takeScreenshot.raw);
-	xml_hotkeys.set("ToggleFastForward", hotkeys.toggleFastForward.raw);
+	xml_hotkeys.set("modifiers", hotkeys.modifiers);
+	xml_hotkeys.set("ExitFullscreen", hotkeys.exitFullscreen);
+	xml_hotkeys.set("ToggleFullscreen", hotkeys.toggleFullscreen);
+	xml_hotkeys.set("ToggleFullscreenAlt", hotkeys.toggleFullscreenAlt);
+	xml_hotkeys.set("TakeScreenshot", hotkeys.takeScreenshot);
+	xml_hotkeys.set("ToggleFastForward", hotkeys.toggleFastForward);
 
 	// emulated usb devices
 	auto usbdevices = config.set("EmulatedUsbDevices");

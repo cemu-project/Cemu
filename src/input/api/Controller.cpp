@@ -1,4 +1,6 @@
 #include "input/api/Controller.h"
+#include "config/CemuConfig.h"
+#include "gui/input/HotkeySettings.h"
 
 #include "gui/guiWrapper.h"
 
@@ -66,6 +68,22 @@ const ControllerState& ControllerBase::update_state()
 
 
 #undef APPLY_AXIS_BUTTON
+
+	/* hotkey capturing */
+	const auto& hotkey_mod = HotkeySettings::s_cfgHotkeys.modifiers.controller;
+	if ((hotkey_mod >= 0) && result.buttons.GetButtonState(hotkey_mod)) {
+		const auto& hotkey_map = HotkeySettings::s_controllerHotkeyToFuncMap;
+		for (const auto& button_id : result.buttons.GetButtonList()) {
+			const auto it = hotkey_map.find(button_id);
+			if (it == hotkey_map.end())
+				continue;
+			/* only capture clicks */
+			if (m_last_state.buttons.GetButtonState(button_id))
+				break;
+			it->second();
+			break;
+		}
+	}
 
 	m_last_state = std::move(result);
 	return m_last_state;

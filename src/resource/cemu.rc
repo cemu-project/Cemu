@@ -37,6 +37,7 @@ X_SETTINGS              ICON                    "resource\\icons8_automatic_26_x
 
 X_GAME_PROFILE          ICON                    "resource\\icons8-compose-filled-50.ico"
 
+X_HOTKEY_SETTINGS       ICON                    "resource\\icons8_hotkeys.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
