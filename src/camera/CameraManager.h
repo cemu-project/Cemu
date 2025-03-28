@@ -19,7 +19,7 @@ class CameraManager : public Singleton<CameraManager>
 	CameraManager();
 	~CameraManager();
 
-	void SetDevice(unsigned deviceNo);
+	void SetDevice(uint32 deviceNo);
 
 	bool Open(bool weak);
 	void Close();

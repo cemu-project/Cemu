@@ -12,6 +12,7 @@ CameraManager::CameraManager()
 	  m_nv12Buffer(CAMERA_PITCH * CAMERA_HEIGHT * 3 / 2),
 	  m_refCount(0)
 {
+	// Set default device if it exists
 	if (Cap_getDeviceCount(m_ctx) > 0)
 		m_device = 0;
 }
@@ -21,7 +22,7 @@ CameraManager::~CameraManager()
 	Cap_releaseContext(m_ctx);
 }
 
-void CameraManager::SetDevice(unsigned deviceNo)
+void CameraManager::SetDevice(uint32 deviceNo)
 {
 	std::scoped_lock lock(m_mutex);
 	if (m_device == deviceNo)
