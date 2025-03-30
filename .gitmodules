@@ -21,4 +21,4 @@
 [submodule "dependencies/openpnp-capture"]
 	path = dependencies/openpnp-capture
 	url = https://github.com/capitalistspz/openpnp-capture
-	branch = dev
+	branch = dev-no-explicit-shared
