@@ -14,6 +14,7 @@ const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> HotkeySettings:
 	{&s_cfgHotkeys.toggleFullscreenAlt, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
 	{&s_cfgHotkeys.exitFullscreen, [](void) { s_mainWindow->ShowFullScreen(false); }},
 	{&s_cfgHotkeys.takeScreenshot, [](void) { g_window_info.has_screenshot_request = true; }},
+	{&s_cfgHotkeys.toggleFastForward, [](void) { ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1); }},
 };
 
 struct HotkeyEntry
@@ -57,6 +58,7 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 	/* hotkeys */
 	CreateHotkeyRow("Toggle fullscreen", s_cfgHotkeys.toggleFullscreen);
 	CreateHotkeyRow("Take screenshot", s_cfgHotkeys.takeScreenshot);
+	CreateHotkeyRow("Toggle fast-forward", s_cfgHotkeys.toggleFastForward);
 
 	m_controllerTimer = new wxTimer(this);
 	Bind(wxEVT_TIMER, &HotkeySettings::OnControllerTimer, this);
