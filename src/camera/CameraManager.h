@@ -1,5 +1,7 @@
 #pragma once
-#include <shared_mutex>
+#include <atomic>
+#include <mutex>
+#include <thread>
 #include <openpnp-capture.h>
 #include "util/helpers/Singleton.h"
 
@@ -13,19 +15,32 @@ class CameraManager : public Singleton<CameraManager>
 	int m_refCount;
 	std::thread m_captureThread;
 	std::atomic_bool m_capturing;
-	mutable std::shared_mutex m_mutex;
+	std::atomic_bool m_running;
+	mutable std::recursive_mutex m_mutex;
 
   public:
+	constexpr static uint32 DEVICE_NONE = std::numeric_limits<uint32>::max();
+	struct DeviceInfo
+	{
+		std::string uniqueId;
+		std::string name;
+	};
 	CameraManager();
 	~CameraManager();
 
 	void SetDevice(uint32 deviceNo);
+	std::vector<DeviceInfo> EnumerateDevices();
+	void SaveDevice();
 
-	bool Open(bool weak);
+	void Open();
 	void Close();
-
 	void FillNV12Buffer(uint8* nv12Buffer) const;
+	void FillRGBBuffer(uint8* rgbBuffer) const;
 
   private:
+	std::optional<CapFormatID> FindCorrectFormat();
+	void ResetBuffers();
 	void CaptureWorker();
+	void OpenStream();
+	void CloseStream();
 };

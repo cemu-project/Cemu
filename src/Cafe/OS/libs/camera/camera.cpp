@@ -234,8 +234,7 @@ namespace camera
 			return CAM_STATUS_UNINITIALIZED;
 		if (s_instance.isOpen)
 			return CAM_STATUS_DEVICE_IN_USE;
-		if (!CameraManager::instance().Open(false))
-			return CAM_STATUS_UVC_ERROR;
+		CameraManager::instance().Open();
 		s_instance.isOpen = true;
 		coreinit::OSSignalEvent(s_cameraOpenEvent);
 		s_instance.inTargetBuffers.Clear();

@@ -499,6 +499,9 @@ struct CemuConfig
 		ConfigValue<uint16> port{ 26760 };
 	}dsu_client{};
 
+	// camera
+	ConfigValue<std::string> camera_id;
+
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
 	ConfigValue<uint16> gdb_port{ 1337 };

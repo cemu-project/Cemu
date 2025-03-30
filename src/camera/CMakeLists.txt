@@ -9,3 +9,7 @@ set_property(TARGET CemuCamera PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<C
 
 target_include_directories(CemuCamera PUBLIC "../")
 target_link_libraries(CemuCamera PRIVATE CemuCommon CemuUtil PUBLIC openpnp-capture)
+
+if (ENABLE_WXWIDGETS)
+  target_link_libraries(CemuCamera PRIVATE wx::base)
+endif()
