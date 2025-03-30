@@ -62,9 +62,9 @@ std::vector<CameraManager::DeviceInfo> CameraManager::EnumerateDevices()
 		const auto name = Cap_getDeviceName(m_ctx, deviceNo);
 
 		if (name)
-			infos.emplace_back(DeviceInfo{uniqueId, fmt::format("{}: {}", deviceNo + 1, name)});
+			infos.emplace_back(DeviceInfo{std::string(uniqueId), fmt::format("{}: {}", deviceNo + 1, name)});
 		else
-			infos.emplace_back(DeviceInfo(uniqueId, fmt::format("{}: Unknown", deviceNo + 1)));
+			infos.emplace_back(DeviceInfo(std::string(uniqueId), fmt::format("{}: Unknown", deviceNo + 1)));
 	}
 	return infos;
 }
