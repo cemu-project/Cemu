@@ -67,6 +67,7 @@ std::vector<CameraManager::DeviceInfo> CameraManager::EnumerateDevices()
 			info.name = fmt::format("{}: {}", deviceNo + 1, name);
 		else
 			info.name = fmt::format("{}: Unknown", deviceNo + 1);
+		infos.push_back(info);
 	}
 	return infos;
 }
