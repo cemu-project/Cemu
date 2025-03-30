@@ -345,6 +345,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	// hotkeys
 	auto xml_hotkeys = parser.get("Hotkeys");
+	hotkeys.modifiers = xml_hotkeys.get("modifiers", sHotkeyCfg{});
 	hotkeys.exitFullscreen = xml_hotkeys.get("ExitFullscreen", sHotkeyCfg{uKeyboardHotkey{WXK_ESCAPE}});
 	hotkeys.toggleFullscreen = xml_hotkeys.get("ToggleFullscreen", sHotkeyCfg{uKeyboardHotkey{WXK_F11}});
 	hotkeys.toggleFullscreenAlt = xml_hotkeys.get("ToggleFullscreenAlt", sHotkeyCfg{uKeyboardHotkey{WXK_CONTROL_M, true}}); // ALT+ENTER
@@ -553,6 +554,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 
 	// hotkeys
 	auto xml_hotkeys = config.set("Hotkeys");
+	xml_hotkeys.set("modifiers", hotkeys.modifiers);
 	xml_hotkeys.set("ExitFullscreen", hotkeys.exitFullscreen);
 	xml_hotkeys.set("ToggleFullscreen", hotkeys.toggleFullscreen);
 	xml_hotkeys.set("ToggleFullscreenAlt", hotkeys.toggleFullscreenAlt);

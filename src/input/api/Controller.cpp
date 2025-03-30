@@ -1,5 +1,6 @@
 #include "input/api/Controller.h"
 #include "config/CemuConfig.h"
+#include "gui/input/HotkeySettings.h"
 
 #include "gui/guiWrapper.h"
 
@@ -68,6 +69,7 @@ const ControllerState& ControllerBase::update_state()
 
 #undef APPLY_AXIS_BUTTON
 
+	HotkeySettings::CaptureInput(result, m_last_state);
 
 	m_last_state = std::move(result);
 	return m_last_state;
