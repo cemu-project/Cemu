@@ -20,8 +20,7 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 	{
 		auto* topSizer = new wxBoxSizer(wxHORIZONTAL);
 		{
-			wxString choices[] = {_("None")};
-			m_cameraChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, {300, -1}, 1, choices);
+			m_cameraChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, {300, -1});
 			m_cameraChoice->Bind(wxEVT_CHOICE, &CameraSettingsWindow::OnSelectCameraChoice, this);
 
 			m_refreshButton = new wxButton(this, wxID_ANY, wxString::FromUTF8("⟳"));
@@ -38,7 +37,8 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 		rootSizer->Add(m_imageWindow, wxEXPAND);
 	}
 	SetSizerAndFit(rootSizer);
-	CameraManager::instance().Open();
+	CameraManager::Init();
+	CameraManager::Open();
 	m_imageUpdateTimer.Bind(wxEVT_TIMER, &CameraSettingsWindow::UpdateImage, this);
 	m_imageUpdateTimer.Start(33, wxTIMER_CONTINUOUS);
 	this->Bind(wxEVT_CLOSE_WINDOW, &CameraSettingsWindow::OnClose, this);
@@ -49,14 +49,14 @@ void CameraSettingsWindow::OnSelectCameraChoice(wxCommandEvent&)
 	if (selection < 0)
 		return;
 	if (selection == 0)
-		CameraManager::instance().SetDevice(CameraManager::DEVICE_NONE);
+		CameraManager::SetDevice(CameraManager::DEVICE_NONE);
 	else
-		CameraManager::instance().SetDevice(selection - 1);
+		CameraManager::SetDevice(selection - 1);
 }
 void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
 {
 	wxArrayString choices = {_("None")};
-	for (const auto& entry : CameraManager::instance().EnumerateDevices())
+	for (const auto& entry : CameraManager::EnumerateDevices())
 	{
 		choices.push_back(entry.name);
 	}
@@ -66,7 +66,7 @@ void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
 }
 void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
 {
-	CameraManager::instance().FillRGBBuffer(m_imageBuffer.data());
+	CameraManager::FillRGBBuffer(m_imageBuffer.data());
 
 	wxNativePixelData data{m_imageBitmap};
 	if (!data)
@@ -92,7 +92,7 @@ void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
 }
 void CameraSettingsWindow::OnClose(wxCloseEvent& event)
 {
-	CameraManager::instance().Close();
-	CameraManager::instance().SaveDevice();
+	CameraManager::Close();
+	CameraManager::SaveDevice();
 	event.Skip();
 }

@@ -146,7 +146,7 @@ namespace camera
 				}
 				else
 				{
-					CameraManager::instance().FillNV12Buffer(surfaceBuffer.GetPtr());
+					CameraManager::FillNV12Buffer(surfaceBuffer.GetPtr());
 					s_cameraEventData->data = surfaceBuffer;
 					s_cameraEventData->errored = false;
 				}
@@ -189,6 +189,7 @@ namespace camera
 			*error = CAM_STATUS_INVALID_ARG;
 			return -1;
 		}
+		CameraManager::Init();
 
 		cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
 		cemu_assert_debug(initInfo->workMemorySize != 0);
@@ -221,7 +222,7 @@ namespace camera
 				return CAM_STATUS_UNINITIALIZED;
 			s_instance.isOpen = false;
 		}
-		CameraManager::instance().Close();
+		CameraManager::Close();
 		return CAM_STATUS_SUCCESS;
 	}
 
@@ -234,7 +235,7 @@ namespace camera
 			return CAM_STATUS_UNINITIALIZED;
 		if (s_instance.isOpen)
 			return CAM_STATUS_DEVICE_IN_USE;
-		CameraManager::instance().Open();
+		CameraManager::Open();
 		s_instance.isOpen = true;
 		coreinit::OSSignalEvent(s_cameraOpenEvent);
 		s_instance.inTargetBuffers.Clear();
