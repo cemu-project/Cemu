@@ -61,6 +61,7 @@
 #include "gamemode_client.h"
 #endif
 
+#include "CameraSettingsWindow.h"
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -91,6 +92,7 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_GENERAL2,
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
+	MAINFRAME_MENU_ID_OPTIONS_CAMERA,
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_12 = 20350 + 11,
@@ -186,6 +188,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_AUDIO, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
+EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_CAMERA, MainWindow::OnOptionsInput)
 // tools menu
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
@@ -920,6 +923,12 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 		frame->ShowModal();
 		frame->Destroy();
 		break;
+	}
+	case MAINFRAME_MENU_ID_OPTIONS_CAMERA:
+	{
+		auto* frame = new CameraSettingsWindow(this);
+		frame->ShowModal();
+		frame->Destroy();
 	}
 
 	}
@@ -2159,6 +2168,7 @@ void MainWindow::RecreateMenu()
 	optionsMenu->AppendSeparator();
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_CAMERA, _("&Camera settings"));
 
 	optionsMenu->AppendSeparator();
 	optionsMenu->AppendSubMenu(m_optionsAccountMenu, _("&Active account"));
