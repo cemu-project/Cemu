@@ -51,7 +51,7 @@ struct LatteDecompilerShaderResourceMapping
 		std::fill(uniformBuffersBindingPoint, uniformBuffersBindingPoint + LATTE_NUM_MAX_UNIFORM_BUFFERS, -1);
 		std::fill(attributeMapping, attributeMapping + LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS, -1);
 	}
-	static const sint8 UNUSED_BINDING = -1;
+	static constexpr sint8 UNUSED_BINDING = -1;
 	// most of this is for Vulkan
 	sint8 setIndex{};
 	// texture

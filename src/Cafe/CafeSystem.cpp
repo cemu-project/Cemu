@@ -158,7 +158,7 @@ void LoadMainExecutable()
 	}
 	currentUpdatedApplicationHash = generateHashFromRawRPXData(rpxData, rpxSize);
 	// determine if this file is an ELF
-	const uint8 elfHeaderMagic[9] = { 0x7F,0x45,0x4C,0x46,0x01,0x02,0x01,0x00,0x00 };
+	constexpr uint8 elfHeaderMagic[9] = { 0x7F,0x45,0x4C,0x46,0x01,0x02,0x01,0x00,0x00 };
 	if (rpxSize >= 10 && memcmp(rpxData, elfHeaderMagic, sizeof(elfHeaderMagic)) == 0)
 	{
 		// ELF
