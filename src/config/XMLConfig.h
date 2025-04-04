@@ -7,6 +7,9 @@
 #include <string>
 #include <mutex>
 
+template <typename T>
+concept HasConstCharConstructor = requires { T(std::declval<const char*>()); };
+
 class XMLConfigParser
 {
 public:
@@ -43,7 +46,7 @@ public:
 			return element->Int64Text(default_value);
 		else if constexpr (std::is_same_v<T, uint64>) // doesnt support real uint64...
 			return (uint64)element->Int64Text((sint64)default_value);
-		else if constexpr (std::is_same_v<T, const char*> || std::is_same_v<T, std::string>)
+		else if constexpr (std::is_same_v<T, const char*> || std::is_same_v<T, std::string> || HasConstCharConstructor<T>)
 		{
 			const char* text = element->GetText();
 			return text ? text : default_value;
