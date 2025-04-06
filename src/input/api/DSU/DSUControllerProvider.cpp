@@ -78,9 +78,7 @@ bool DSUControllerProvider::connect()
 		using namespace boost::asio;
 
 		ip::udp::resolver resolver(m_io_service);
-		const ip::udp::resolver::query query(ip::udp::v4(), get_settings().ip, fmt::format("{}", get_settings().port),
-		                                     ip::udp::resolver::query::canonical_name);
-		m_receiver_endpoint = *resolver.resolve(query);
+		m_receiver_endpoint = *resolver.resolve(get_settings().ip, fmt::format("{}", get_settings().port)).cbegin();
 
 		if (m_socket.is_open())
 			m_socket.close();
@@ -250,7 +248,7 @@ MotionSample DSUControllerProvider::get_motion_sample(uint8_t index) const
 
 void DSUControllerProvider::reader_thread()
 {
-	SetThreadName("DSUControllerProvider::reader_thread");
+	SetThreadName("DSU-reader");
 	bool first_read = true;
 	while (m_running.load(std::memory_order_relaxed))
 	{
@@ -383,7 +381,7 @@ void DSUControllerProvider::reader_thread()
 
 void DSUControllerProvider::writer_thread()
 {
-	SetThreadName("DSUControllerProvider::writer_thread");
+	SetThreadName("DSU-writer");
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		std::unique_lock lock(m_writer_mutex);

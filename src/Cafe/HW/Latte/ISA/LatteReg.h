@@ -345,6 +345,11 @@ namespace Latte
 		return IsCompressedFormat((Latte::E_HWSURFFMT)((uint32)format & 0x3F));
 	}
 
+	inline bool IsMSAA(Latte::E_DIM dim)
+	{
+		return dim == E_DIM::DIM_2D_MSAA || dim == E_DIM::DIM_2D_ARRAY_MSAA;
+	}
+
 	enum GPU_LIMITS
 	{
 		NUM_VERTEX_BUFFERS = 16,

@@ -1,4 +1,6 @@
+#include <util/helpers/helpers.h>
 #include "iosu_pdm.h"
+#include "Cafe/CafeSystem.h"
 #include "config/ActiveSettings.h"
 #include "Common/FileStream.h"
 #include "util/helpers/Semaphore.h"
@@ -17,7 +19,8 @@ namespace iosu
 {
 	namespace pdm
 	{
-		std::mutex sDiaryLock;
+		std::recursive_mutex sPlaystatsLock;
+		std::recursive_mutex sDiaryLock;
 
 		fs::path GetPDFile(const char* filename)
 		{
@@ -80,14 +83,16 @@ namespace iosu
 			static_assert((NUM_PLAY_STATS_ENTRIES * sizeof(PlayStatsEntry)) == 0x1400);
 		}
 
-		void LoadPlaystats()
+		void OpenPlaystats()
 		{
+			std::unique_lock _l(sPlaystatsLock);
 			PlayStats.numEntries = 0;
 			for (size_t i = 0; i < NUM_PLAY_STATS_ENTRIES; i++)
 			{
 				auto& e = PlayStats.entry[i];
 				memset(&e, 0, sizeof(PlayStatsEntry));
 			}
+			cemu_assert_debug(!PlayStats.fs);
 			PlayStats.fs = FileStream::openFile2(GetPDFile("PlayStats.dat"), true);
 			if (!PlayStats.fs)
 			{
@@ -98,18 +103,39 @@ namespace iosu
 			{
 				delete PlayStats.fs;
 				PlayStats.fs = nullptr;
-				cemuLog_log(LogType::Force, "PlayStats.dat malformed");
+				cemuLog_log(LogType::Force, "PlayStats.dat malformed. Time tracking wont be used");
 				// dont delete the existing file in case it could still be salvaged (todo) and instead just dont track play time
 				return;
 			}
+			PlayStats.numEntries = 0;
 			PlayStats.fs->readData(&PlayStats.numEntries, sizeof(uint32be));
 			if (PlayStats.numEntries > NUM_PLAY_STATS_ENTRIES)
 				PlayStats.numEntries = NUM_PLAY_STATS_ENTRIES;
 			PlayStats.fs->readData(PlayStats.entry, NUM_PLAY_STATS_ENTRIES * 20);
 		}
 
+		void ClosePlaystats()
+		{
+			std::unique_lock _l(sPlaystatsLock);
+			if (PlayStats.fs)
+			{
+				delete PlayStats.fs;
+				PlayStats.fs = nullptr;
+			}
+		}
+
+		void UnloadPlaystats()
+		{
+			std::unique_lock _l(sPlaystatsLock);
+			cemu_assert_debug(!PlayStats.fs); // unloading expects that file is closed
+			PlayStats.numEntries = 0;
+			for(auto& it : PlayStats.entry)
+				it = PlayStatsEntry{};
+		}
+
 		PlayStatsEntry* PlayStats_GetEntry(uint64 titleId)
 		{
+			std::unique_lock _l(sPlaystatsLock);
 			uint32be titleIdHigh = (uint32)(titleId>>32);
 			uint32be titleIdLow = (uint32)(titleId & 0xFFFFFFFF);
 			size_t numEntries = PlayStats.numEntries;
@@ -121,7 +147,7 @@ namespace iosu
 			return nullptr;
 		}
 
-		void PlayStats_WriteEntry(PlayStatsEntry* entry, bool writeEntryCount = false)
+		void PlayStats_WriteEntryNoLock(PlayStatsEntry* entry, bool writeEntryCount = false)
 		{
 			if (!PlayStats.fs)
 				return;
@@ -141,8 +167,15 @@ namespace iosu
 			}
 		}
 
+		void PlayStats_WriteEntry(PlayStatsEntry* entry, bool writeEntryCount = false)
+		{
+			std::unique_lock _l(sPlaystatsLock);
+			PlayStats_WriteEntryNoLock(entry, writeEntryCount);
+		}
+
 		PlayStatsEntry* PlayStats_CreateEntry(uint64 titleId)
 		{
+			std::unique_lock _l(sPlaystatsLock);
 			bool entryCountChanged = false;
 			PlayStatsEntry* newEntry;
 			if(PlayStats.numEntries < NUM_PLAY_STATS_ENTRIES)
@@ -168,7 +201,7 @@ namespace iosu
 			newEntry->numTimesLaunched = 1;
 			newEntry->totalMinutesPlayed = 0;
 			newEntry->ukn12 = 0;
-			PlayStats_WriteEntry(newEntry, entryCountChanged);
+			PlayStats_WriteEntryNoLock(newEntry, entryCountChanged);
 			return newEntry;
 		}
 
@@ -176,6 +209,7 @@ namespace iosu
 		// if it does not exist it creates a new entry with first and last played set to today
 		PlayStatsEntry* PlayStats_BeginNewTracking(uint64 titleId)
 		{
+			std::unique_lock _l(sPlaystatsLock);
 			PlayStatsEntry* entry = PlayStats_GetEntry(titleId);
 			if (entry)
 			{
@@ -189,11 +223,12 @@ namespace iosu
 
 		void PlayStats_CountAdditionalMinutes(PlayStatsEntry* entry, uint32 additionalMinutes)
 		{
+			std::unique_lock _l(sPlaystatsLock);
 			if (additionalMinutes == 0)
 				return;
 			entry->totalMinutesPlayed += additionalMinutes;
 			entry->mostRecentDayIndex = GetTodaysDayIndex();
-			PlayStats_WriteEntry(entry);
+			PlayStats_WriteEntryNoLock(entry);
 		}
 
 		struct PlayDiaryHeader
@@ -218,6 +253,7 @@ namespace iosu
 		void CreatePlayDiary()
 		{
 			MakeDirectory();
+			cemu_assert_debug(!PlayDiaryData.fs);
 			PlayDiaryData.fs = FileStream::createFile2(GetPDFile("PlayDiary.dat"));
 			if (!PlayDiaryData.fs)
 			{
@@ -230,7 +266,7 @@ namespace iosu
 				PlayDiaryData.fs->writeData(&PlayDiaryData.header, sizeof(PlayDiaryHeader));
 		}
 
-		void LoadPlayDiary()
+		void OpenPlayDiary()
 		{
 			std::unique_lock _lock(sDiaryLock);
 			cemu_assert_debug(!PlayDiaryData.fs);
@@ -266,6 +302,26 @@ namespace iosu
 				PlayDiaryData.entry[readEntries].ukn0E = 0;
 				readEntries++;
 			}
+		}
+
+		void ClosePlayDiary()
+		{
+			std::unique_lock _lock(sDiaryLock);
+			if (PlayDiaryData.fs)
+			{
+				delete PlayDiaryData.fs;
+				PlayDiaryData.fs = nullptr;
+			}
+		}
+
+		void UnloadDiaryData()
+		{
+			std::unique_lock _lock(sDiaryLock);
+			cemu_assert_debug(!PlayDiaryData.fs); // unloading expects that file is closed
+			PlayDiaryData.header.readIndex = 0;
+			PlayDiaryData.header.writeIndex = 0;
+			for (auto& it : PlayDiaryData.entry)
+				it = PlayDiaryEntry{};
 		}
 
 		uint32 GetDiaryEntries(uint8 accountSlot, PlayDiaryEntry* diaryEntries, uint32 maxEntries)
@@ -332,6 +388,7 @@ namespace iosu
 
 		void TimeTrackingThread(uint64 titleId)
 		{
+			SetThreadName("PlayDiaryThread");
 			PlayStatsEntry* playStatsEntry = PlayStats_BeginNewTracking(titleId);
 
 			auto startTime = std::chrono::steady_clock::now();
@@ -352,25 +409,59 @@ namespace iosu
 			}
 		}
 
-		void Initialize()
+		class : public ::IOSUModule
 		{
-			// todo - add support for per-account handling
-			LoadPlaystats();
-			LoadPlayDiary();
-		}
-		
-		void StartTrackingTime(uint64 titleId)
-		{
-			sPDMRequestExitThread = false;
-			sPDMTimeTrackingThread = std::thread(TimeTrackingThread, titleId);
-		}
+			void PDMLoadAll()
+			{
+				OpenPlaystats();
+				OpenPlayDiary();
+			}
 
-		void Stop()
+			void PDMUnloadAll()
+			{
+				UnloadPlaystats();
+				UnloadDiaryData();
+			}
+
+			void PDMCloseAll()
+			{
+				ClosePlaystats();
+				ClosePlayDiary();
+			}
+
+			void SystemLaunch() override
+			{
+				// todo - add support for per-account handling
+				PDMLoadAll();
+				PDMCloseAll(); // close the files again, user may mess with MLC files or change MLC path while no game is running
+			}
+			void SystemExit() override
+			{
+				PDMCloseAll();
+				PDMUnloadAll();
+			}
+			void TitleStart() override
+			{
+				// reload data and keep files open
+				PDMUnloadAll();
+				PDMLoadAll();
+				auto titleId = CafeSystem::GetForegroundTitleId();
+				sPDMRequestExitThread = false;
+				sPDMTimeTrackingThread = std::thread(TimeTrackingThread, titleId);
+			}
+			void TitleStop() override
+			{
+				sPDMRequestExitThread.store(true);
+				sPDMSem.increment();
+				if(sPDMTimeTrackingThread.joinable())
+					sPDMTimeTrackingThread.join();
+				PDMCloseAll();
+			}
+		}sIOSUModuleNNPDM;
+
+		IOSUModule* GetModule()
 		{
-			sPDMRequestExitThread.store(true);
-			sPDMSem.increment();
-            if(sPDMTimeTrackingThread.joinable())
-    			sPDMTimeTrackingThread.join();
+			return static_cast<IOSUModule*>(&sIOSUModuleNNPDM);
 		}
 
 	};

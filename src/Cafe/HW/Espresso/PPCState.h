@@ -213,7 +213,7 @@ void PPCTimer_start();
 // core info and control
 extern uint32 ppcThreadQuantum;
 
-uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
+uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset);
 uint8* PPCInterpreterGetStackPointer();
 void PPCInterpreterModifyStackPointer(sint32 offset);
 
@@ -230,7 +230,7 @@ static inline float flushDenormalToZero(float f)
 typedef void(*HLECALL)(PPCInterpreter_t* hCPU);
 
 typedef sint32 HLEIDX;
-HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall);
+HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall, std::string hleName);
 HLECALL PPCInterpreter_getHLECall(HLEIDX funcIndex);
 
 // HLE scheduler

@@ -6,8 +6,6 @@
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 #include "ExceptionHandler.h"
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 bool crashLogCreated = false;
 
 bool CrashLog_Create()
@@ -97,7 +95,7 @@ void ExceptionHandler_LogGeneralInfo()
         MPTR currentStackVAddr = hCPU->gpr[1];
         CrashLog_WriteLine("");
         CrashLog_WriteHeader("PPC stack trace");
-        DebugLogStackTrace(currentThread, currentStackVAddr);
+        DebugLogStackTrace(currentThread, currentStackVAddr, true);
 
         // stack dump
         CrashLog_WriteLine("");
@@ -155,7 +153,7 @@ void ExceptionHandler_LogGeneralInfo()
         const char* threadName = "NULL";
         if (!threadItrBE->threadName.IsNull())
             threadName = threadItrBE->threadName.GetPtr();
-        sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s", threadItrMPTR, _swapEndianU32(threadItrBE->entrypoint), threadItrBE->context.srr0, _swapEndianU32(threadItrBE->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
+        sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s", threadItrMPTR, threadItrBE->entrypoint.GetMPTR(), threadItrBE->context.srr0, _swapEndianU32(threadItrBE->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
         // write line to log
         CrashLog_WriteLine(dumpLine);
     }

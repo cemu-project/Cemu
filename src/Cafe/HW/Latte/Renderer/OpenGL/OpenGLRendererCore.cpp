@@ -912,6 +912,21 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	{
 		beginPerfMonProfiling(performanceMonitor.gpuTime_dcStageShaderAndUniformMgr);
 		LatteSHRC_UpdateActiveShaders();
+		LatteDecompilerShader* vs = (LatteDecompilerShader*)LatteSHRC_GetActiveVertexShader();
+		LatteDecompilerShader* gs = (LatteDecompilerShader*)LatteSHRC_GetActiveGeometryShader();
+		LatteDecompilerShader* ps = (LatteDecompilerShader*)LatteSHRC_GetActivePixelShader();
+		if (vs)
+			shader_bind(vs->shader);
+		else
+			shader_unbind(RendererShader::ShaderType::kVertex);
+		if (ps && LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] == 0)
+			shader_bind(ps->shader);
+		else
+			shader_unbind(RendererShader::ShaderType::kFragment);
+		if (gs)
+			shader_bind(gs->shader);
+		else
+			shader_unbind(RendererShader::ShaderType::kGeometry);
 		endPerfMonProfiling(performanceMonitor.gpuTime_dcStageShaderAndUniformMgr);
 	}
 	if (LatteGPUState.activeShaderHasError)
@@ -935,7 +950,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	bool streamoutEnable = LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] != 0;
 	if (streamoutEnable)
 	{
-		if (glBeginTransformFeedback == nullptr || LatteGPUState.glVendor == GLVENDOR_INTEL_NOLEGACY)
+		if (glBeginTransformFeedback == nullptr)
 		{
 			cemu_assert_debug(false);
 			return; // transform feedback not supported
@@ -1327,7 +1342,7 @@ uint32 _correctTextureCompSelGL(Latte::E_GX2SURFFMT format, uint32 compSel)
 	return compSel;
 }
 
-#define quickBindTexture() 		if( textureIsActive == false ) { g_renderer->texture_bindAndActivate(hostTextureView, hostTextureUnit); textureIsActive = true; }
+#define quickBindTexture() 		if( textureIsActive == false ) { texture_bindAndActivate(hostTextureView, hostTextureUnit); textureIsActive = true; }
 
 uint32 _getGLMinFilter(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_XY_FILTER filterMin, Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_Z_FILTER filterMip)
 {
@@ -1350,11 +1365,9 @@ uint32 _getGLMinFilter(Latte::LATTE_SQ_TEX_SAMPLER_WORD0_0::E_XY_FILTER filterMi
 /*
 * Update channel swizzling and other texture settings for a texture unit
 * hostTextureView is the texture unit view used on the host side
-* The baseGX2TexUnit parameter is used to identify the shader stage in which this texture is accessed
 */
 void OpenGLRenderer::renderstate_updateTextureSettingsGL(LatteDecompilerShader* shaderContext, LatteTextureView* _hostTextureView, uint32 hostTextureUnit, const Latte::LATTE_SQ_TEX_RESOURCE_WORD4_N texUnitWord4, uint32 texUnitIndex, bool isDepthSampler)
 {
-	// todo - this is OpenGL-specific, decouple this from the renderer-neutral backend
 	auto hostTextureView = (LatteTextureViewGL*)_hostTextureView;
 
 	LatteTexture* baseTexture = hostTextureView->baseTexture;

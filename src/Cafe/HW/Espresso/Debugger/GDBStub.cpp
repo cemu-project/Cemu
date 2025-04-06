@@ -263,6 +263,14 @@ bool GDBServer::Initialize()
 		return false;
 	}
 
+	int nodelayEnabled = TRUE;
+	if (setsockopt(m_server_socket, IPPROTO_TCP, TCP_NODELAY, (char*)&nodelayEnabled, sizeof(nodelayEnabled)) == SOCKET_ERROR)
+	{
+		closesocket(m_server_socket);
+		m_server_socket = INVALID_SOCKET;
+		return false;
+	}
+
 	memset(&m_server_addr, 0, sizeof(m_server_addr));
 	m_server_addr.sin_family = AF_INET;
 	m_server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -289,7 +297,7 @@ bool GDBServer::Initialize()
 
 void GDBServer::ThreadFunc()
 {
-	SetThreadName("GDBServer::ThreadFunc");
+	SetThreadName("GDBServer");
 
 	while (!m_stopRequested)
 	{
@@ -356,7 +364,7 @@ void GDBServer::ThreadFunc()
 				}
 				char checkSumStr[2];
 				receiveMessage(checkSumStr, 2);
-				uint32_t checkSum = std::stoi(checkSumStr, nullptr, 16);
+				uint32_t checkSum = std::stoi(std::string(checkSumStr, sizeof(checkSumStr)), nullptr, 16);
 				assert((checkedSum & 0xFF) == checkSum);
 
 				HandleCommand(message);

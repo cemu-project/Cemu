@@ -60,6 +60,8 @@
 #define ALU_OP2_INST_SUB_INT		(0x035) // integer instruction
 #define ALU_OP2_INST_MAX_INT		(0x036) // integer instruction
 #define ALU_OP2_INST_MIN_INT		(0x037) // integer instruction
+#define ALU_OP2_INST_MAX_UINT		(0x038) // integer instruction
+#define ALU_OP2_INST_MIN_UINT		(0x039) // integer instruction
 #define ALU_OP2_INST_SETE_INT		(0x03A) // integer instruction
 #define ALU_OP2_INST_SETGT_INT		(0x03B) // integer instruction
 #define ALU_OP2_INST_SETGE_INT		(0x03C) // integer instruction

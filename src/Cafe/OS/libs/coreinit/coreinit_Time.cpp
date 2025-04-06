@@ -3,39 +3,32 @@
 
 namespace coreinit
 {
-
-	uint64 coreinit_getTimerTick()
+	uint64 coreinit_GetMFTB()
 	{
 		// bus clock is 1/5th of core clock
 		// timer clock is 1/4th of bus clock
 		return PPCInterpreter_getMainCoreCycleCounter() / 20ULL;
 	}
 
-	uint64 coreinit_getOSTime()
+	uint64 OSGetSystemTime()
 	{
-		return coreinit_getTimerTick() + ppcCyclesSince2000TimerClock;
+		return coreinit_GetMFTB();
 	}
 
-	void export_OSGetTick(PPCInterpreter_t* hCPU)
+	uint64 OSGetTime()
 	{
-		uint64 osTime = coreinit_getOSTime();
-		osLib_returnFromFunction(hCPU, (uint32)osTime);
+		return OSGetSystemTime() + ppcCyclesSince2000TimerClock;
 	}
 
-	void export_OSGetTime(PPCInterpreter_t* hCPU)
+	uint32 OSGetSystemTick()
 	{
-		uint64 osTime = coreinit_getOSTime();
-		osLib_returnFromFunction64(hCPU, osTime);
+		return static_cast<uint32>(coreinit_GetMFTB());
 	}
 
-	void export_OSGetSystemTime(PPCInterpreter_t* hCPU)
+	uint32 OSGetTick()
 	{
-		osLib_returnFromFunction64(hCPU, coreinit_getTimerTick());
-	}
-
-	void export_OSGetSystemTick(PPCInterpreter_t* hCPU)
-	{
-		osLib_returnFromFunction(hCPU, (uint32)coreinit_getTimerTick());
+		uint64 osTime = OSGetTime();
+		return static_cast<uint32>(osTime);
 	}
 
 	uint32 getLeapDaysUntilYear(uint32 year)
@@ -360,14 +353,13 @@ namespace coreinit
 
 	void InitializeTimeAndCalendar()
 	{
-		osLib_addFunction("coreinit", "OSGetTime", export_OSGetTime);
-		osLib_addFunction("coreinit", "OSGetSystemTime", export_OSGetSystemTime);
-		osLib_addFunction("coreinit", "OSGetTick", export_OSGetTick);
-		osLib_addFunction("coreinit", "OSGetSystemTick", export_OSGetSystemTick);
+		cafeExportRegister("coreinit", OSGetTime, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSGetSystemTime, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSGetTick, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSGetSystemTick, LogType::Placeholder);
 
 		cafeExportRegister("coreinit", OSTicksToCalendarTime, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSCalendarTimeToTicks, LogType::Placeholder);
-
 
 		//timeTest();
 	}

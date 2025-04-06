@@ -1,9 +1,9 @@
 #pragma once
 
-#include <vector>
-
 uint32 coreinit_allocFromSysArea(uint32 size, uint32 alignment);
 class SysAllocatorBase;
+
+#define SYSALLOCATOR_GUARDS		0	// if 1, create a magic constant at the top of each memory allocation which is used to check for memory corruption
 
 class SysAllocatorContainer
 {
@@ -29,9 +29,7 @@ private:
 	virtual void Initialize() = 0;
 };
 
-
-
-template<typename T, size_t count = 1, size_t alignment = 8>
+template<typename T, size_t count = 1, size_t alignment = 32>
 class SysAllocator : public SysAllocatorBase
 {
 public:
@@ -68,11 +66,17 @@ public:
 
 	T* GetPtr() const
 	{
+#if SYSALLOCATOR_GUARDS
+		cemu_assert(*(uint32*)((uint8*)m_sysMem.GetPtr()+(sizeof(T) * count)) == 0x112A33C4);
+#endif
 		return m_sysMem.GetPtr();
 	}
 
 	uint32 GetMPTR() const
 	{
+#if SYSALLOCATOR_GUARDS
+		cemu_assert(*(uint32*)((uint8*)m_sysMem.GetPtr()+(sizeof(T) * count)) == 0x112A33C4);
+#endif
 		return m_sysMem.GetMPTR();
 	}
 
@@ -130,11 +134,17 @@ private:
 	{
 		if (m_sysMem.GetMPTR() != 0)
 			return;
-
 		// alloc mem
-		m_sysMem = { coreinit_allocFromSysArea(sizeof(T) * count, alignment) };
+		uint32 guardSize = 0;
+#if SYSALLOCATOR_GUARDS
+		guardSize = 4;
+#endif
+		m_sysMem = { coreinit_allocFromSysArea(sizeof(T) * count + guardSize, alignment) };
 		// copy temp buffer to mem and clear it
 		memcpy(m_sysMem.GetPtr(), m_tempData.data(), sizeof(T)*count);
+#if SYSALLOCATOR_GUARDS
+		*(uint32*)((uint8*)m_sysMem.GetPtr()+(sizeof(T) * count)) = 0x112A33C4;
+#endif
 		m_tempData.clear();
 	}
 
@@ -197,9 +207,8 @@ private:
 	{
 		if (m_sysMem.GetMPTR() != 0)
 			return;
-
 		// alloc mem
-		m_sysMem = { coreinit_allocFromSysArea(sizeof(T), 8) };
+		m_sysMem = { coreinit_allocFromSysArea(sizeof(T), 32) };
 		// copy temp buffer to mem and clear it
 		*m_sysMem = m_tempData;
 	}

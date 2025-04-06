@@ -56,6 +56,12 @@ add_executable(CemuBin
 	mainLLE.cpp
 )
 
+if(MSVC AND MSVC_VERSION EQUAL 1940)
+	# workaround for an msvc issue on VS 17.10 where generated ILK files are too large
+	# see https://developercommunity.visualstudio.com/t/After-updating-to-VS-1710-the-size-of-/10665511
+	set_target_properties(CemuBin PROPERTIES LINK_FLAGS "/INCREMENTAL:NO")
+endif()
+
 if(WIN32)
 	target_sources(CemuBin PRIVATE
 	resource/cemu.rc
@@ -76,11 +82,13 @@ if (MACOS_BUNDLE)
 	set(MACOSX_BUNDLE_ICON_FILE "cemu.icns")
 	set(MACOSX_BUNDLE_GUI_IDENTIFIER "info.cemu.Cemu")
 	set(MACOSX_BUNDLE_BUNDLE_NAME "Cemu")
-	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${CMAKE_PROJECT_VERSION})
-	set(MACOSX_BUNDLE_BUNDLE_VERSION ${CMAKE_PROJECT_VERSION})
-	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2023 Cemu Project")
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${EMULATOR_VERSION_MAJOR}.${EMULATOR_VERSION_MINOR}.${EMULATOR_VERSION_PATCH}")
+	set(MACOSX_BUNDLE_BUNDLE_VERSION "${EMULATOR_VERSION_MAJOR}.${EMULATOR_VERSION_MINOR}.${EMULATOR_VERSION_PATCH}")
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2024 Cemu Project")
 
 	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
+ 	set(MACOSX_MINIMUM_SYSTEM_VERSION "12.0")
+  	set(MACOSX_BUNDLE_TYPE_EXTENSION "wua")
 
 	set_target_properties(CemuBin PROPERTIES
 		MACOSX_BUNDLE true
@@ -93,11 +101,18 @@ if (MACOS_BUNDLE)
 			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/SharedSupport/${folder}")
 	endforeach(folder)
 
-	add_custom_command (TARGET CemuBin POST_BUILD
-		COMMAND ${CMAKE_COMMAND} ARGS -E copy "/usr/local/lib/libMoltenVK.dylib" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/Frameworks/libMoltenVK.dylib")
+	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx/debug/lib/libusb-1.0.0.dylib")
+	else()
+	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx/lib/libusb-1.0.0.dylib")
+	endif()
 
 	add_custom_command (TARGET CemuBin POST_BUILD
-		COMMAND bash -c "install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}")
+		COMMAND ${CMAKE_COMMAND} ARGS -E copy "/usr/local/lib/libMoltenVK.dylib" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/Frameworks/libMoltenVK.dylib"
+		COMMAND ${CMAKE_COMMAND} ARGS -E copy "${LIBUSB_PATH}" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/Frameworks/libusb-1.0.0.dylib"
+		COMMAND ${CMAKE_COMMAND} ARGS -E copy "${CMAKE_SOURCE_DIR}/src/resource/update.sh" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/update.sh"
+		COMMAND bash -c "install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}"
+		COMMAND bash -c "install_name_tool -change ${LIBUSB_PATH} @executable_path/../Frameworks/libusb-1.0.0.dylib ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}")
 endif()
 
 set_target_properties(CemuBin PROPERTIES

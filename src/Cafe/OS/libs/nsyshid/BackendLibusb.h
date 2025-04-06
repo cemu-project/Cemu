@@ -1,15 +1,20 @@
-#ifndef CEMU_NSYSHID_BACKEND_LIBUSB_H
-#define CEMU_NSYSHID_BACKEND_LIBUSB_H
-
 #include "nsyshid.h"
-
-#if NSYSHID_ENABLE_BACKEND_LIBUSB
 
 #include <libusb-1.0/libusb.h>
 #include "Backend.h"
 
 namespace nsyshid::backend::libusb
 {
+	enum : uint8
+	{
+		HID_CLASS_GET_REPORT   = 0x01,
+		HID_CLASS_GET_IDLE     = 0x02,
+		HID_CLASS_GET_PROTOCOL = 0x03,
+		HID_CLASS_SET_REPORT   = 0x09,
+		HID_CLASS_SET_IDLE     = 0x0A,
+		HID_CLASS_SET_PROTOCOL = 0x0B
+	};
+
 	class BackendLibusb : public nsyshid::Backend {
 	  public:
 		BackendLibusb();
@@ -44,6 +49,11 @@ namespace nsyshid::backend::libusb
 										bool& endpointOutFound, uint8& endpointOut, uint16& endpointOutMaxPacketSize);
 	};
 
+	template<typename T>
+	using UniquePtr = std::unique_ptr<T, void (*)(T*)>;
+
+	using ConfigDescriptor = UniquePtr<libusb_config_descriptor>;
+
 	class DeviceLibusb : public nsyshid::Device {
 	  public:
 		DeviceLibusb(libusb_context* ctx,
@@ -53,7 +63,8 @@ namespace nsyshid::backend::libusb
 					 uint8 interfaceSubClass,
 					 uint8 protocol,
 					 uint8 libusbBusNumber,
-					 uint8 libusbDeviceAddress);
+					 uint8 libusbDeviceAddress,
+					 std::vector<ConfigDescriptor> configs);
 
 		~DeviceLibusb() override;
 
@@ -63,19 +74,27 @@ namespace nsyshid::backend::libusb
 
 		bool IsOpened() override;
 
-		ReadResult Read(uint8* data, sint32 length, sint32& bytesRead) override;
+		ReadResult Read(ReadMessage* message) override;
 
-		WriteResult Write(uint8* data, sint32 length, sint32& bytesWritten) override;
+		WriteResult Write(WriteMessage* message) override;
 
 		bool GetDescriptor(uint8 descType,
 						   uint8 descIndex,
-						   uint8 lang,
+						   uint16 lang,
 						   uint8* output,
 						   uint32 outputMaxLength) override;
 
-		bool SetProtocol(uint32 ifIndex, uint32 protocol) override;
+		bool SetIdle(uint8 ifIndex,
+					 uint8 reportId,
+					 uint8 duration) override;
 
-		bool SetReport(uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength) override;
+		bool SetProtocol(uint8 ifIndex, uint8 protocol) override;
+
+		int ClaimAllInterfaces(uint8 config_num);
+		int ReleaseAllInterfaces(uint8 config_num);
+		int ReleaseAllInterfacesForCurrentConfig();
+
+		bool SetReport(ReportMessage* message) override;
 
 		uint8 m_libusbBusNumber;
 		uint8 m_libusbDeviceAddress;
@@ -92,6 +111,7 @@ namespace nsyshid::backend::libusb
 		std::atomic<sint32> m_handleInUseCounter;
 		std::condition_variable m_handleInUseCounterDecremented;
 		libusb_device_handle* m_libusbHandle;
+		std::vector<ConfigDescriptor> m_config_descriptors;
 
 		class HandleLock {
 		  public:
@@ -123,7 +143,3 @@ namespace nsyshid::backend::libusb
 		std::unique_ptr<HandleLock> AquireHandleLock();
 	};
 } // namespace nsyshid::backend::libusb
-
-#endif // NSYSHID_ENABLE_BACKEND_LIBUSB
-
-#endif // CEMU_NSYSHID_BACKEND_LIBUSB_H

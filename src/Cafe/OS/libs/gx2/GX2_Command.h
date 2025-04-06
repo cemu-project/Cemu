@@ -84,8 +84,6 @@ inline void gx2WriteGather_submit(Targs... args)
 
 namespace GX2
 {
-
-	bool GX2WriteGather_isDisplayListActive();
 	uint32 GX2WriteGather_getReadWriteDistance();
 	void GX2WriteGather_checkAndInsertWrapAroundMark();
 
@@ -95,6 +93,8 @@ namespace GX2
 
 	void GX2CallDisplayList(MPTR addr, uint32 size);
 	void GX2DirectCallDisplayList(void* addr, uint32 size);
+
+	bool GX2GetDisplayListWriteStatus();
 
 	void GX2Init_writeGather();
     void GX2CommandInit();

@@ -14,6 +14,21 @@
 
 namespace NAPI
 {
+	std::string _getACTUrl(NetworkService service)
+	{
+		switch (service)
+		{
+		case NetworkService::Nintendo:
+			return NintendoURLs::ACTURL;
+		case NetworkService::Pretendo:
+			return PretendoURLs::ACTURL;
+		case NetworkService::Custom:
+			return GetNetworkConfig().urls.ACT.GetValue();
+		default:
+			return NintendoURLs::ACTURL;
+		}
+	}
+
 	struct ACTOauthToken : public _NAPI_CommonResultACT
 	{
 		std::string token;
@@ -91,7 +106,7 @@ namespace NAPI
 
 	struct OAuthTokenCacheEntry 
 	{
-		OAuthTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, std::string_view token, std::string_view refreshToken, uint64 expiresIn) : accountId(accountId), passwordHash(passwordHash), token(token), refreshToken(refreshToken)
+		OAuthTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, std::string_view token, std::string_view refreshToken, uint64 expiresIn, NetworkService service) : accountId(accountId), passwordHash(passwordHash), token(token), refreshToken(refreshToken), service(service)
 		{
 			expires = HighResolutionTimer::now().getTickInSeconds() + expiresIn;
 		};
@@ -107,10 +122,10 @@ namespace NAPI
 		}
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
-
 		std::string token;
 		std::string refreshToken;
 		uint64 expires;
+		NetworkService service;
 	};
 
 	std::vector<OAuthTokenCacheEntry> g_oauthTokenCache;
@@ -122,11 +137,12 @@ namespace NAPI
 		ACTOauthToken result{};
 		
 		// check cache first
+		NetworkService service = authInfo.GetService();
 		g_oauthTokenCacheMtx.lock();
 		auto cacheItr = g_oauthTokenCache.begin();
 		while (cacheItr != g_oauthTokenCache.end())
 		{
-			if (cacheItr->CheckIfSameAccount(authInfo))
+			if (cacheItr->CheckIfSameAccount(authInfo) && cacheItr->service == service)
 			{
 				if (cacheItr->CheckIfExpired())
 				{
@@ -145,7 +161,7 @@ namespace NAPI
 		// token not cached, request from server via oauth2
 		CurlRequestHelper req;
 
-		req.initate(fmt::format("{}/v1/api/oauth20/access_token/generate", LaunchSettings::GetActURLPrefix()), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/oauth20/access_token/generate", _getACTUrl(authInfo.GetService())), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -220,7 +236,7 @@ namespace NAPI
 		if (expiration > 0)
 		{
 			g_oauthTokenCacheMtx.lock();
-			g_oauthTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, result.token, result.refreshToken, expiration);
+			g_oauthTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, result.token, result.refreshToken, expiration, service);
 			g_oauthTokenCacheMtx.unlock();
 		}
 		return result;
@@ -230,14 +246,13 @@ namespace NAPI
 	{
 		CurlRequestHelper req;
 
-		req.initate(fmt::format("{}/v1/api/people/@me/profile", LaunchSettings::GetActURLPrefix()), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/people/@me/profile", _getACTUrl(authInfo.GetService())), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 
 		// get oauth2 token
 		ACTOauthToken oauthToken = ACT_GetOauthToken_WithCache(authInfo, 0x0005001010001C00, 0x0001C);
-		
 
 		cemu_assert_unimplemented();
 		return true;
@@ -245,15 +260,16 @@ namespace NAPI
 
 	struct NexTokenCacheEntry
 	{
-		NexTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, uint32 gameServerId, ACTNexToken& nexToken) : accountId(accountId), passwordHash(passwordHash), nexToken(nexToken), gameServerId(gameServerId) {};
+		NexTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, NetworkService networkService, uint32 gameServerId, ACTNexToken& nexToken) : accountId(accountId), passwordHash(passwordHash), networkService(networkService), nexToken(nexToken), gameServerId(gameServerId) {};
 
 		bool IsMatch(const AuthInfo& authInfo, const uint32 gameServerId) const
 		{
-			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && this->gameServerId == gameServerId;
+			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && authInfo.GetService() == networkService && this->gameServerId == gameServerId;
 		}
 
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
+		NetworkService networkService;
 		uint32 gameServerId;
 
 		ACTNexToken nexToken;
@@ -297,7 +313,7 @@ namespace NAPI
 		}
 		// do request
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/v1/api/provider/nex_token/@me?game_server_id={:08X}", LaunchSettings::GetActURLPrefix(), serverId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/provider/nex_token/@me?game_server_id={:08X}", _getACTUrl(authInfo.GetService()), serverId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -358,7 +374,7 @@ namespace NAPI
 		std::string_view port = tokenNode.child_value("port");
 		std::string_view token = tokenNode.child_value("token");
 
-		std::memset(&result.nexToken, 0, sizeof(result.nexToken));
+		memset(&result.nexToken, 0, sizeof(ACTNexToken));
 		if (host.size() > 15)
 			cemuLog_log(LogType::Force, "NexToken response: host field too long");
 		if (nex_password.size() > 64)
@@ -374,21 +390,21 @@ namespace NAPI
 		result.nexToken.port = (uint16)StringHelpers::ToInt(port);
 		result.apiError = NAPI_RESULT::SUCCESS;
 		g_nexTokenCacheMtx.lock();
-		g_nexTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, serverId, result.nexToken);
+		g_nexTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, authInfo.GetService(), serverId, result.nexToken);
 		g_nexTokenCacheMtx.unlock();
 		return result;
 	}
 
 	struct IndependentTokenCacheEntry
 	{
-		IndependentTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, std::string_view clientId, std::string_view independentToken, sint64 expiresIn) : accountId(accountId), passwordHash(passwordHash), clientId(clientId), independentToken(independentToken)
+		IndependentTokenCacheEntry(std::string_view accountId, std::array<uint8, 32>& passwordHash, NetworkService networkService, std::string_view clientId, std::string_view independentToken, sint64 expiresIn) : accountId(accountId), passwordHash(passwordHash), networkService(networkService), clientId(clientId), independentToken(independentToken)
 		{
 			expires = HighResolutionTimer::now().getTickInSeconds() + expiresIn;
 		};
 
 		bool IsMatch(const AuthInfo& authInfo, const std::string_view clientId) const
 		{
-			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && this->clientId == clientId;
+			return authInfo.accountId == accountId && authInfo.passwordHash == passwordHash && authInfo.GetService() == networkService && this->clientId == clientId;
 		}
 
 		bool CheckIfExpired() const
@@ -398,6 +414,7 @@ namespace NAPI
 
 		std::string accountId;
 		std::array<uint8, 32> passwordHash;
+		NetworkService networkService;
 		std::string clientId;
 		sint64 expires;
 
@@ -449,7 +466,7 @@ namespace NAPI
 		}
 		// do request
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/v1/api/provider/service_token/@me?client_id={}", LaunchSettings::GetActURLPrefix(), clientId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/provider/service_token/@me?client_id={}", _getACTUrl(authInfo.GetService()), clientId), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);
@@ -494,7 +511,7 @@ namespace NAPI
 		result.apiError = NAPI_RESULT::SUCCESS;
 
 		g_IndependentTokenCacheMtx.lock();
-		g_IndependentTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, clientId, result.token, 3600);
+		g_IndependentTokenCache.emplace_back(authInfo.accountId, authInfo.passwordHash, authInfo.GetService(), clientId, result.token, 3600);
 		g_IndependentTokenCacheMtx.unlock();
 		return result;
 	}
@@ -520,7 +537,7 @@ namespace NAPI
 		}
 		// do request
 		CurlRequestHelper req;
-		req.initate(fmt::format("{}/v1/api/admin/mapped_ids?input_type=user_id&output_type=pid&input={}", LaunchSettings::GetActURLPrefix(), nnid), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
+		req.initate(authInfo.GetService(), fmt::format("{}/v1/api/admin/mapped_ids?input_type=user_id&output_type=pid&input={}", _getACTUrl(authInfo.GetService()), nnid), CurlRequestHelper::SERVER_SSL_CONTEXT::ACT);
 		_ACTSetCommonHeaderParameters(req, authInfo);
 		_ACTSetDeviceParameters(req, authInfo);
 		_ACTSetRegionAndCountryParameters(req, authInfo);

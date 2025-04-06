@@ -245,18 +245,13 @@ static void check_vk_result(VkResult err)
 
 static void CreateOrResizeBuffer(VkBuffer& buffer, VkDeviceMemory& buffer_memory, VkDeviceSize& p_buffer_size, size_t new_size, VkBufferUsageFlagBits usage)
 {
-	VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance();
-
-    ImGui_ImplVulkan_InitInfo* v = &g_VulkanInitInfo;
+	ImGui_ImplVulkan_InitInfo* v = &g_VulkanInitInfo;
+	vkDeviceWaitIdle(v->Device); // make sure previously created buffer is not in use anymore
     VkResult err;
 	if (buffer != VK_NULL_HANDLE)
-	{
-		vkRenderer->destroyBuffer(buffer);
-	}
+		vkDestroyBuffer(v->Device, buffer, v->Allocator);
 	if (buffer_memory != VK_NULL_HANDLE)
-	{
-		vkRenderer->destroyDeviceMemory(buffer_memory);
-	}
+		vkFreeMemory(v->Device, buffer_memory, v->Allocator);
     VkDeviceSize vertex_buffer_size_aligned = ((new_size - 1) / g_BufferMemoryAlignment + 1) * g_BufferMemoryAlignment;
     VkBufferCreateInfo buffer_info = {};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -470,6 +465,15 @@ void ImGui_ImplVulkan_DestroyFontsTexture()
 	if (g_FontView)             { vkDestroyImageView(v->Device, g_FontView, v->Allocator); g_FontView = VK_NULL_HANDLE; }
     if (g_FontImage)            { vkDestroyImage(v->Device, g_FontImage, v->Allocator); g_FontImage = VK_NULL_HANDLE; }
     if (g_FontMemory)           { vkFreeMemory(v->Device, g_FontMemory, v->Allocator); g_FontMemory = VK_NULL_HANDLE; }
+
+	ImGuiIO& io = ImGui::GetIO();
+	auto texture = io.Fonts->TexID;
+	if(texture != (ImTextureID)nullptr)
+	{
+		ImGui_ImplVulkan_DeleteTexture(texture);
+		delete (ImGuiTexture*)texture;
+		io.Fonts->TexID = nullptr;
+	}
 }
 
 bool ImGui_ImplVulkan_CreateFontsTexture(VkCommandBuffer command_buffer)

@@ -205,7 +205,11 @@ namespace NCrypto
 	CafeConsoleRegion SEEPROM_GetRegion();
 	std::string GetRegionAsString(CafeConsoleRegion regionCode);
 	const char* GetCountryAsString(sint32 index); // returns NN if index is not valid or known
+	size_t GetCountryCount();
 	bool SEEPROM_IsPresent();
+	bool OTP_IsPresent();
+
+	bool HasDataForConsoleCert();
 
 	void unitTests();
 }

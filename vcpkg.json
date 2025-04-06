@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "b81bc3a83fdbdffe80325eeabb2ec735a1f3c29d",
+  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
   "dependencies": [
     "pugixml",
     "zlib",
@@ -26,10 +26,7 @@
     "boost-static-string",
     "boost-random",
     "fmt",
-    {
-      "name": "hidapi",
-      "platform": "!windows"
-    },
+    "hidapi",
     "libpng",
     "glm",
     {
@@ -47,6 +44,22 @@
       "default-features": false,
       "features": [ "openssl" ]
     },
+    {
+      "name": "dbus",
+      "default-features": false,
+      "platform": "linux"
+    },
+    {
+      "name": "tiff",
+      "default-features": false,
+      "features": ["jpeg", "zip"]
+    },
     "libusb"
+  ],
+  "overrides": [
+    {
+      "name": "sdl2",
+      "version": "2.30.3"
+    }
   ]
 }

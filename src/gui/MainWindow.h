@@ -21,6 +21,8 @@ class DebuggerWindow2;
 struct GameEntry;
 class DiscordPresence;
 class TitleManager;
+class GraphicPacksWindow2;
+class EmulatedUSBDeviceFrame;
 class wxLaunchGameEvent;
 
 wxDECLARE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
@@ -92,7 +94,7 @@ public:
 	void OnMouseWheel(wxMouseEvent& event);
 	void OnClose(wxCloseEvent& event);
 	void OnFileMenu(wxCommandEvent& event);
-	void OnOpenCemuFolder(wxCommandEvent& event);
+	void OnOpenFolder(wxCommandEvent& event);
 	void OnLaunchFromFile(wxLaunchGameEvent& event);
 	void OnInstallUpdate(wxCommandEvent& event);
 	void OnFileExit(wxCommandEvent& event);
@@ -101,7 +103,6 @@ public:
 	void OnAccountSelect(wxCommandEvent& event);
 	void OnConsoleLanguage(wxCommandEvent& event);
 	void OnHelpAbout(wxCommandEvent& event);
-	void OnHelpGettingStarted(wxCommandEvent& event);
 	void OnHelpUpdate(wxCommandEvent& event);
 	void OnDebugSetting(wxCommandEvent& event);
 	void OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event);
@@ -124,6 +125,7 @@ public:
 	void OnSetWindowTitle(wxCommandEvent& event);
 
 	void OnKeyUp(wxKeyEvent& event);
+	void OnKeyDown(wxKeyEvent& event);
 	void OnChar(wxKeyEvent& event);
 
 	void OnToolsInput(wxCommandEvent& event);
@@ -145,8 +147,8 @@ public:
 
 private:
 	void RecreateMenu();
+	void UpdateChildWindowTitleRunningState();
 	static wxString GetInitialWindowTitle();
-	void ShowGettingStartedDialog();
 
 	bool InstallUpdate(const fs::path& metaFilePath);
 
@@ -161,8 +163,9 @@ private:
 
 	MemorySearcherTool* m_toolWindow = nullptr;
 	TitleManager* m_title_manager = nullptr;
+	EmulatedUSBDeviceFrame* m_usb_devices = nullptr;
 	PadViewFrame* m_padView = nullptr;
-	wxWindow* m_graphic_pack_window = nullptr;
+	GraphicPacksWindow2* m_graphic_pack_window = nullptr;
 
 	wxTimer* m_timer;
 	wxPoint m_mouse_position{};

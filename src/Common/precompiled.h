@@ -274,6 +274,25 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 	#define NOEXPORT __attribute__ ((visibility ("hidden")))
 #endif
 
+#if defined(_MSC_VER)
+#define FORCE_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define FORCE_INLINE inline __attribute__((always_inline))
+#else
+#define FORCE_INLINE inline
+#endif
+
+FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is undefined
+{
+#if defined(_MSC_VER)
+	return _tzcnt_u32(v); // TZCNT requires BMI1. But if not supported it will execute as BSF
+#elif defined(__GNUC__) || defined(__clang__)
+	return __builtin_ctz(v);
+#else
+	return std::countr_zero(v);
+#endif
+}
+
 // On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
 #if defined(__aarch64__)
 
@@ -394,16 +413,10 @@ void vectorRemoveByIndex(std::vector<T>& vec, const size_t index)
     vec.erase(vec.begin() + index);
 }
 
-template<typename T1, typename T2>
-int match_any_of(T1 value, T2 compareTo)
+template<typename T1, typename... Types>
+bool match_any_of(T1&& value, Types&&... others)
 {
-    return value == compareTo;
-}
-
-template<typename T1, typename T2, typename... Types>
-bool match_any_of(T1 value, T2 compareTo, Types&&... others)
-{
-    return value == compareTo || match_any_of(value, others...);
+    return ((value == others) || ...);
 }
 
 // we cache the frequency in a static variable
@@ -501,13 +514,6 @@ bool future_is_ready(std::future<T>& f)
 #endif
 }
 
-// replace with std::scope_exit once available
-struct scope_exit
-{
-	std::function<void()> f_;
-	explicit scope_exit(std::function<void()> f) noexcept : f_(std::move(f)) {}
-	~scope_exit() { if (f_) f_(); }
-};
 
 // helper function to cast raw pointers to std::atomic
 // this is technically not legal but works on most platforms as long as alignment restrictions are met and the implementation of atomic doesnt come with additional members
@@ -515,6 +521,8 @@ struct scope_exit
 template<typename T>
 std::atomic<T>* _rawPtrToAtomic(T* ptr)
 {
+	static_assert(sizeof(T) == sizeof(std::atomic<T>));
+	cemu_assert_debug((reinterpret_cast<std::uintptr_t>(ptr) % alignof(std::atomic<T>)) == 0);
     return reinterpret_cast<std::atomic<T>*>(ptr);
 }
 
@@ -552,6 +560,9 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 
+// PPC stack trace printer
+void DebugLogStackTrace(struct OSThread_t* thread, MPTR sp, bool printSymbols = false);
+
 // generic formatter for enums (to underlying)
 template <typename Enum>
 	requires std::is_enum_v<Enum>
@@ -575,13 +586,34 @@ struct fmt::formatter<betype<T>> : fmt::formatter<T>
 	}
 };
 
-// useful C++23 stuff that isn't yet widely supported
-
-// std::to_underlying
+// useful future C++ stuff
 namespace stdx
 {
+	// std::to_underlying
     template <typename EnumT, typename = std::enable_if_t < std::is_enum<EnumT>{} >>
         constexpr std::underlying_type_t<EnumT> to_underlying(EnumT e) noexcept {
         return static_cast<std::underlying_type_t<EnumT>>(e);
     };
+
+	// std::scope_exit
+	template <typename Fn>
+	class scope_exit
+	{
+		Fn m_func;
+		bool m_released = false;
+	public:
+		explicit scope_exit(Fn&& f) noexcept
+			: m_func(std::forward<Fn>(f))
+		{}
+		~scope_exit()
+		{
+			if (!m_released) m_func();
+		}
+		scope_exit(scope_exit&& other) noexcept
+			: m_func(std::move(other.m_func)), m_released(std::exchange(other.m_released, true))
+		{}
+		scope_exit(const scope_exit&) = delete;
+		scope_exit& operator=(scope_exit) = delete;
+		void release() { m_released = true;}
+	};
 }

@@ -1,9 +1,11 @@
 #include "HidapiWiimote.h"
+#include <cwchar>
 
 static constexpr uint16 WIIMOTE_VENDOR_ID = 0x057e;
 static constexpr uint16 WIIMOTE_PRODUCT_ID = 0x0306;
 static constexpr uint16 WIIMOTE_MP_PRODUCT_ID = 0x0330;
 static constexpr uint16 WIIMOTE_MAX_INPUT_REPORT_LENGTH = 22;
+static constexpr auto PRO_CONTROLLER_NAME = L"Nintendo RVL-CNT-01-UC";
 
 HidapiWiimote::HidapiWiimote(hid_device* dev, std::string_view path)
  : m_handle(dev), m_path(path) {
@@ -30,6 +32,8 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
     for (auto it = device_enumeration; it != nullptr; it = it->next){
         if (it->product_id != WIIMOTE_PRODUCT_ID && it->product_id != WIIMOTE_MP_PRODUCT_ID)
             continue;
+        if (std::wcscmp(it->product_string, PRO_CONTROLLER_NAME) == 0)
+            continue;
         auto dev = hid_open_path(it->path);
         if (!dev){
             cemuLog_logDebug(LogType::Force, "Unable to open Wiimote device at {}: {}", it->path, boost::nowide::narrow(hid_error(nullptr)));
@@ -43,8 +47,11 @@ std::vector<WiimoteDevicePtr> HidapiWiimote::get_devices() {
     return wiimote_devices;
 }
 
-bool HidapiWiimote::operator==(WiimoteDevice& o) const  {
-    return static_cast<HidapiWiimote const&>(o).m_path == m_path;
+bool HidapiWiimote::operator==(const WiimoteDevice& rhs) const  {
+    auto other = dynamic_cast<const HidapiWiimote*>(&rhs);
+	if (!other)
+		return false;
+	return m_path == other->m_path;
 }
 
 HidapiWiimote::~HidapiWiimote() {

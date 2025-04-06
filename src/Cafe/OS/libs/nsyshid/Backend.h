@@ -1,5 +1,4 @@
-#ifndef CEMU_NSYSHID_BACKEND_H
-#define CEMU_NSYSHID_BACKEND_H
+#pragma once
 
 #include <list>
 #include <memory>
@@ -23,12 +22,59 @@ namespace nsyshid
 		/* +0x12 */ uint16be maxPacketSizeTX;
 	} HID_t;
 
+	struct TransferCommand
+	{
+		uint8* data;
+		uint32 length;
+
+		TransferCommand(uint8* data, uint32 length)
+			: data(data), length(length)
+		{
+		}
+		virtual ~TransferCommand() = default;
+	};
+
+	struct ReadMessage final : TransferCommand
+	{
+		sint32 bytesRead;
+
+		ReadMessage(uint8* data, uint32 length, sint32 bytesRead)
+			: bytesRead(bytesRead), TransferCommand(data, length)
+		{
+		}
+		using TransferCommand::TransferCommand;
+	};
+
+	struct WriteMessage final : TransferCommand
+	{
+		sint32 bytesWritten;
+
+		WriteMessage(uint8* data, uint32 length, sint32 bytesWritten)
+			: bytesWritten(bytesWritten), TransferCommand(data, length)
+		{
+		}
+		using TransferCommand::TransferCommand;
+	};
+
+	struct ReportMessage final : TransferCommand
+	{
+		uint8 reportType;
+		uint8 reportId;
+
+		ReportMessage(uint8 reportType, uint8 reportId, uint8* data, uint32 length)
+			: reportType(reportType), reportId(reportId), TransferCommand(data, length)
+		{
+		}
+		using TransferCommand::TransferCommand;
+	};
+
 	static_assert(offsetof(HID_t, vendorId) == 0x8, "");
 	static_assert(offsetof(HID_t, productId) == 0xA, "");
 	static_assert(offsetof(HID_t, ifIndex) == 0xC, "");
 	static_assert(offsetof(HID_t, protocol) == 0xE, "");
 
-	class Device {
+	class Device
+	{
 	  public:
 		Device() = delete;
 
@@ -69,7 +115,7 @@ namespace nsyshid
 			ErrorTimeout,
 		};
 
-		virtual ReadResult Read(uint8* data, sint32 length, sint32& bytesRead) = 0;
+		virtual ReadResult Read(ReadMessage* message) = 0;
 
 		enum class WriteResult
 		{
@@ -78,20 +124,25 @@ namespace nsyshid
 			ErrorTimeout,
 		};
 
-		virtual WriteResult Write(uint8* data, sint32 length, sint32& bytesWritten) = 0;
+		virtual WriteResult Write(WriteMessage* message) = 0;
 
 		virtual bool GetDescriptor(uint8 descType,
 								   uint8 descIndex,
-								   uint8 lang,
+								   uint16 lang,
 								   uint8* output,
 								   uint32 outputMaxLength) = 0;
 
-		virtual bool SetProtocol(uint32 ifIndef, uint32 protocol) = 0;
+		virtual bool SetIdle(uint8 ifIndex,
+							 uint8 reportId,
+							 uint8 duration) = 0;
 
-		virtual bool SetReport(uint8* reportData, sint32 length, uint8* originalData, sint32 originalLength) = 0;
+		virtual bool SetProtocol(uint8 ifIndex, uint8 protocol) = 0;
+
+		virtual bool SetReport(ReportMessage* message) = 0;
 	};
 
-	class Backend {
+	class Backend
+	{
 	  public:
 		Backend();
 
@@ -121,6 +172,8 @@ namespace nsyshid
 
 		std::shared_ptr<Device> FindDevice(std::function<bool(const std::shared_ptr<Device>&)> isWantedDevice);
 
+		bool FindDeviceById(uint16 vendorId, uint16 productId);
+
 		bool IsDeviceWhitelisted(uint16 vendorId, uint16 productId);
 
 		// called from OnAttach() - attach devices that your backend can see here
@@ -137,5 +190,3 @@ namespace nsyshid
 		void AttachDefaultBackends();
 	}
 } // namespace nsyshid
-
-#endif // CEMU_NSYSHID_BACKEND_H

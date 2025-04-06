@@ -114,13 +114,13 @@ void* ATTR_MS_ABI PPCRecompiler_virtualHLE(PPCInterpreter_t* hCPU, uint32 hleFun
 
 void ATTR_MS_ABI PPCRecompiler_getTBL(PPCInterpreter_t* hCPU, uint32 gprIndex)
 {
-	uint64 coreTime = coreinit::coreinit_getTimerTick();
+	uint64 coreTime = coreinit::OSGetSystemTime();
 	hCPU->gpr[gprIndex] = (uint32)(coreTime&0xFFFFFFFF);
 }
 
 void ATTR_MS_ABI PPCRecompiler_getTBU(PPCInterpreter_t* hCPU, uint32 gprIndex)
 {
-	uint64 coreTime = coreinit::coreinit_getTimerTick();
+	uint64 coreTime = coreinit::OSGetSystemTime();
 	hCPU->gpr[gprIndex] = (uint32)((coreTime>>32)&0xFFFFFFFF);
 }
 

@@ -33,8 +33,8 @@ XAudio27API::XAudio27API(uint32 device_id, uint32 samplerate, uint32 channels, u
 	m_wfx.Format.nChannels = channels;
 	m_wfx.Format.nSamplesPerSec = samplerate;
 	m_wfx.Format.wBitsPerSample = bits_per_sample;
-	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels × wBitsPerSample) / 8
-	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec × nBlockAlign.
+	m_wfx.Format.nBlockAlign = (m_wfx.Format.nChannels * m_wfx.Format.wBitsPerSample) / 8; // must equal (nChannels Ã— wBitsPerSample) / 8
+	m_wfx.Format.nAvgBytesPerSec = m_wfx.Format.nSamplesPerSec * m_wfx.Format.nBlockAlign; // must equal nSamplesPerSec Ã— nBlockAlign.
 	m_wfx.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE) - sizeof(WAVEFORMATEX);
 
 	m_wfx.SubFormat = KSDATAFORMAT_SUBTYPE_PCM;
@@ -199,9 +199,7 @@ bool XAudio27API::FeedBlock(sint16* data)
 	// check if we queued too many blocks
 	if(m_blocks_queued >= kBlockCount)
 	{
-		XAUDIO2_VOICE_STATE state{};
-		m_source_voice->GetState(&state);
-		m_blocks_queued = state.BuffersQueued;
+		m_blocks_queued = GetQueuedBuffers();
 
 		if (m_blocks_queued >= kBlockCount)
 		{
@@ -222,7 +220,14 @@ bool XAudio27API::FeedBlock(sint16* data)
 	return true;
 }
 
+uint32 XAudio27API::GetQueuedBuffers() const
+{
+	XAUDIO2_VOICE_STATE state{};
+	m_source_voice->GetState(&state);
+	return state.BuffersQueued;
+}
+
 bool XAudio27API::NeedAdditionalBlocks() const
 {
-	return m_blocks_queued < s_audioDelay;
+	return GetQueuedBuffers() < GetAudioDelay();
 }

@@ -71,19 +71,8 @@ void PatchErrorHandler::showStageErrorMessageBox()
 // returns true if at least one file was found even if it could not be successfully parsed
 bool GraphicPack2::LoadCemuPatches()
 {
-	// todo - once we have updated to C++20 we can replace these with the new std::string functions
-	auto startsWith = [](const std::wstring& str, const std::wstring& prefix)
-	{
-		return str.size() >= prefix.size() && 0 == str.compare(0, prefix.size(), prefix);
-	};
-
-	auto endsWith = [](const std::wstring& str, const std::wstring& suffix)
-	{
-		return str.size() >= suffix.size() && 0 == str.compare(str.size() - suffix.size(), suffix.size(), suffix);
-	};
-
 	bool foundPatches = false;
-	fs::path path(_utf8ToPath(m_filename));
+	fs::path path(m_rulesPath);
 	path.remove_filename();
 	for (auto& p : fs::directory_iterator(path))
 	{
@@ -129,7 +118,7 @@ void GraphicPack2::LoadPatchFiles()
 	if (LoadCemuPatches())
 		return; // exit if at least one Cemu style patch file was found
 	// fall back to Cemuhook patches.txt to guarantee backward compatibility
-	fs::path path(_utf8ToPath(m_filename));
+	fs::path path(m_rulesPath);
 	path.remove_filename();
 	path.append("patches.txt");
 	FileStream* patchFile = FileStream::openFile2(path);

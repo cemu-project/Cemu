@@ -106,7 +106,7 @@ nexService::nexService()
 
 nexService::nexService(prudpClient* con) : nexService()
 {
-	if (con->isConnected() == false)
+	if (con->IsConnected() == false)
 		cemu_assert_suspicious();
 	this->conNexService = con;
 	bufferReceive = std::vector<uint8>(1024 * 4);
@@ -160,11 +160,10 @@ bool nexService::isMarkedForDestruction()
 
 void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* parameter, void(*nexServiceResponse)(nexService* nex, nexServiceResponse_t* serviceResponse), void* custom, bool callHandlerIfError)
 {
-	// add to queue
 	queuedRequest_t queueRequest = { 0 };
 	queueRequest.protocolId = protocolId;
 	queueRequest.methodId = methodId;
-	queueRequest.parameterData = std::vector<uint8>(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
+	queueRequest.parameterData.assign(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
 	queueRequest.nexServiceResponse = nexServiceResponse;
 	queueRequest.custom = custom;
 	queueRequest.callHandlerIfError = callHandlerIfError;
@@ -175,11 +174,10 @@ void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* 
 
 void nexService::callMethod(uint8 protocolId, uint32 methodId, nexPacketBuffer* parameter, std::function<void(nexServiceResponse_t*)> cb, bool callHandlerIfError)
 {
-	// add to queue
 	queuedRequest_t queueRequest = { 0 };
 	queueRequest.protocolId = protocolId;
 	queueRequest.methodId = methodId;
-	queueRequest.parameterData = std::vector<uint8>(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
+	queueRequest.parameterData.assign(parameter->getDataPtr(), parameter->getDataPtr() + parameter->getWriteIndex());
 	queueRequest.nexServiceResponse = nullptr;
 	queueRequest.cb2 = cb;
 	queueRequest.callHandlerIfError = callHandlerIfError;
@@ -193,7 +191,7 @@ void nexService::processQueuedRequest(queuedRequest_t* queuedRequest)
 	uint32 callId = _currentCallId;
 	_currentCallId++;
 	// check state of connection
-	if (conNexService->getConnectionState() != prudpClient::STATE_CONNECTED)
+	if (conNexService->GetConnectionState() != prudpClient::ConnectionState::Connected)
 	{
 		nexServiceResponse_t response = { 0 };
 		response.isSuccessful = false;
@@ -216,7 +214,7 @@ void nexService::processQueuedRequest(queuedRequest_t* queuedRequest)
 		assert_dbg();
 	memcpy((packetBuffer + 0x0D), &queuedRequest->parameterData.front(), queuedRequest->parameterData.size());
 	sint32 length = 0xD + (sint32)queuedRequest->parameterData.size();
-	conNexService->sendDatagram(packetBuffer, length, true);
+	conNexService->SendDatagram(packetBuffer, length, true);
 	// remember request
 	nexActiveRequestInfo_t requestInfo = { 0 };
 	requestInfo.callId = callId;
@@ -301,13 +299,13 @@ void nexService::registerForAsyncProcessing()
 void nexService::updateTemporaryConnections()
 {
 	// check for connection
-	conNexService->update();
-	if (conNexService->isConnected())
+	conNexService->Update();
+	if (conNexService->IsConnected())
 	{
 		if (connectionState == STATE_CONNECTING)
 			connectionState = STATE_CONNECTED;
 	}
-	if (conNexService->getConnectionState() == prudpClient::STATE_DISCONNECTED)
+	if (conNexService->GetConnectionState() == prudpClient::ConnectionState::Disconnected)
 		connectionState = STATE_DISCONNECTED;
 }
 
@@ -358,18 +356,18 @@ void nexService::sendRequestResponse(nexServiceRequest_t* request, uint32 errorC
 	// update length field
 	*(uint32*)response.getDataPtr() = response.getWriteIndex()-4;
 	if(request->nex->conNexService)
-		request->nex->conNexService->sendDatagram(response.getDataPtr(), response.getWriteIndex(), true);
+		request->nex->conNexService->SendDatagram(response.getDataPtr(), response.getWriteIndex(), true);
 }
 
 void nexService::updateNexServiceConnection()
 {
-	if (conNexService->getConnectionState() == prudpClient::STATE_DISCONNECTED)
+	if (conNexService->GetConnectionState() == prudpClient::ConnectionState::Disconnected)
 	{
 		this->connectionState = STATE_DISCONNECTED;
 		return;
 	}
-	conNexService->update();
-	sint32 datagramLen = conNexService->receiveDatagram(bufferReceive);
+	conNexService->Update();
+	sint32 datagramLen = conNexService->ReceiveDatagram(bufferReceive);
 	if (datagramLen > 0)
 	{
 		if (nexIsRequest(&bufferReceive[0], datagramLen))
@@ -456,12 +454,12 @@ bool _extractStationUrlParamValue(const char* urlStr, const char* paramName, cha
 	return false;
 }
 
-void nexServiceAuthentication_parseStationURL(char* urlStr, stationUrl_t* stationUrl)
+void nexServiceAuthentication_parseStationURL(char* urlStr, prudpStationUrl* stationUrl)
 {
 	// example:
 	// prudps:/address=34.210.xxx.xxx;port=60181;CID=1;PID=2;sid=1;stream=10;type=2
 
-	memset(stationUrl, 0, sizeof(stationUrl_t));
+	memset(stationUrl, 0, sizeof(prudpStationUrl));
 
 	char optionValue[128];
 	if (_extractStationUrlParamValue(urlStr, "address", optionValue, sizeof(optionValue)))
@@ -501,7 +499,7 @@ typedef struct
 	sint32 kerberosTicketSize;
 	uint8 kerberosTicket2[4096];
 	sint32 kerberosTicket2Size;
-	stationUrl_t server;
+	prudpStationUrl server;
 	// progress info
 	bool hasError;
 	bool done;
@@ -613,18 +611,18 @@ void nexServiceSecure_handleResponse_RegisterEx(nexService* nex, nexServiceRespo
 	return;
 }
 
-nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* accessKey, const char* nexToken)
+nexService* nex_secureLogin(prudpAuthServerInfo* authServerInfo, const char* accessKey, const char* nexToken)
 {
 	prudpClient* prudpSecureSock = new prudpClient(authServerInfo->server.ip, authServerInfo->server.port, accessKey, authServerInfo);
 	// wait until connected
 	while (true)
 	{
-		prudpSecureSock->update();
-		if (prudpSecureSock->isConnected())
+		prudpSecureSock->Update();
+		if (prudpSecureSock->IsConnected())
 		{
 			break;
 		}
-		if (prudpSecureSock->getConnectionState() == prudpClient::STATE_DISCONNECTED)
+		if (prudpSecureSock->GetConnectionState() == prudpClient::ConnectionState::Disconnected)
 		{
 			// timeout or disconnected
 			cemuLog_log(LogType::Force, "NEX: Secure login connection time-out");
@@ -640,7 +638,7 @@ nexService* nex_secureLogin(authServerInfo_t* authServerInfo, const char* access
 	nexPacketBuffer packetBuffer(tempNexBufferArray, sizeof(tempNexBufferArray), true);
 	
 	char clientStationUrl[256];
-	sprintf(clientStationUrl, "prudp:/port=%u;natf=0;natm=0;pmp=0;sid=15;type=2;upnp=0", (uint32)nex->getPRUDPConnection()->getSourcePort());
+	sprintf(clientStationUrl, "prudp:/port=%u;natf=0;natm=0;pmp=0;sid=15;type=2;upnp=0", (uint32)nex->getPRUDPConnection()->GetSourcePort());
 	// station url list
 	packetBuffer.writeU32(1);
 	packetBuffer.writeString(clientStationUrl);
@@ -739,9 +737,9 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 		return nullptr;
 	}
 	// auth info
-	auto authServerInfo = std::make_unique<authServerInfo_t>();
+	auto authServerInfo = std::make_unique<prudpAuthServerInfo>();
 	// decrypt ticket
-	RC4Ctx_t rc4Ticket;
+	RC4Ctx rc4Ticket;
 	RC4_initCtx(&rc4Ticket, kerberosKey, 16);
 	RC4_transform(&rc4Ticket, nexAuthService.kerberosTicket2, nexAuthService.kerberosTicket2Size - 16, nexAuthService.kerberosTicket2);
 	nexPacketBuffer packetKerberosTicket(nexAuthService.kerberosTicket2, nexAuthService.kerberosTicket2Size - 16, false);
@@ -758,7 +756,7 @@ nexService* nex_establishSecureConnection(uint32 authServerIp, uint16 authServer
 
 	memcpy(authServerInfo->kerberosKey, kerberosKey, 16);
 	memcpy(authServerInfo->secureKey, secureKey, 16);
-	memcpy(&authServerInfo->server, &nexAuthService.server, sizeof(stationUrl_t));
+	memcpy(&authServerInfo->server, &nexAuthService.server, sizeof(prudpStationUrl));
 	authServerInfo->userPid = pid;
 
 	return nex_secureLogin(authServerInfo.get(), accessKey, nexToken);

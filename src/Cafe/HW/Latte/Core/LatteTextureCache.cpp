@@ -316,7 +316,7 @@ void LatteTexture_Delete(LatteTexture* texture)
 		delete[] texture->sliceMipInfo;
 		texture->sliceMipInfo = nullptr;
 	}
-	g_renderer->texture_destroy(texture);
+	delete texture;
 }
 
 /*

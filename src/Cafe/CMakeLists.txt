@@ -10,6 +10,7 @@ add_library(CemuCafe
   Filesystem/fscDeviceRedirect.cpp
   Filesystem/fscDeviceWua.cpp
   Filesystem/fscDeviceWud.cpp
+  Filesystem/fscDeviceWuhb.cpp
   Filesystem/fsc.h
   Filesystem/FST/FST.cpp
   Filesystem/FST/FST.h
@@ -18,6 +19,9 @@ add_library(CemuCafe
   Filesystem/FST/KeyCache.h
   Filesystem/WUD/wud.cpp
   Filesystem/WUD/wud.h
+  Filesystem/WUHB/RomFSStructs.h
+  Filesystem/WUHB/WUHBReader.cpp
+  Filesystem/WUHB/WUHBReader.h
   GamePatch.cpp
   GamePatch.h
   GameProfile/GameProfile.cpp
@@ -40,6 +44,7 @@ add_library(CemuCafe
   HW/Espresso/Debugger/DebugSymbolStorage.h
   HW/Espresso/Debugger/GDBStub.h
   HW/Espresso/Debugger/GDBStub.cpp
+  HW/Espresso/Debugger/GDBBreakpoints.cpp
   HW/Espresso/Debugger/GDBBreakpoints.h
   HW/Espresso/EspressoISA.h
   HW/Espresso/Interpreter/PPCInterpreterALU.hpp
@@ -213,6 +218,8 @@ add_library(CemuCafe
   HW/SI/SI.cpp
   HW/SI/si.h
   HW/VI/VI.cpp
+  IOSU/ccr_nfc/iosu_ccr_nfc.cpp
+  IOSU/ccr_nfc/iosu_ccr_nfc.h
   IOSU/fsa/fsa_types.h
   IOSU/fsa/iosu_fsa.cpp
   IOSU/fsa/iosu_fsa.h
@@ -367,12 +374,24 @@ add_library(CemuCafe
   OS/libs/gx2/GX2_Texture.h
   OS/libs/gx2/GX2_TilingAperture.cpp
   OS/libs/h264_avc/H264Dec.cpp
+  OS/libs/h264_avc/H264DecBackendAVC.cpp
   OS/libs/h264_avc/h264dec.h
+  OS/libs/h264_avc/H264DecInternal.h
   OS/libs/h264_avc/parser
   OS/libs/h264_avc/parser/H264Parser.cpp
   OS/libs/h264_avc/parser/H264Parser.h
   OS/libs/mic/mic.cpp
   OS/libs/mic/mic.h
+  OS/libs/nfc/ndef.cpp
+  OS/libs/nfc/ndef.h
+  OS/libs/nfc/nfc.cpp
+  OS/libs/nfc/nfc.h
+  OS/libs/nfc/stream.cpp
+  OS/libs/nfc/stream.h
+  OS/libs/nfc/TagV0.cpp
+  OS/libs/nfc/TagV0.h
+  OS/libs/nfc/TLV.cpp
+  OS/libs/nfc/TLV.h
   OS/libs/nlibcurl/nlibcurl.cpp
   OS/libs/nlibcurl/nlibcurlDebug.hpp
   OS/libs/nlibcurl/nlibcurl.h
@@ -403,6 +422,8 @@ add_library(CemuCafe
   OS/libs/nn_ndm/nn_ndm.h
   OS/libs/nn_spm/nn_spm.cpp
   OS/libs/nn_spm/nn_spm.h
+  OS/libs/nn_sl/nn_sl.cpp
+  OS/libs/nn_sl/nn_sl.h
   OS/libs/nn_nfp/AmiiboCrypto.h
   OS/libs/nn_nfp/nn_nfp.cpp
   OS/libs/nn_nfp/nn_nfp.h
@@ -438,14 +459,22 @@ add_library(CemuCafe
   OS/libs/nsyshid/AttachDefaultBackends.cpp
   OS/libs/nsyshid/Whitelist.cpp
   OS/libs/nsyshid/Whitelist.h
+  OS/libs/nsyshid/BackendEmulated.cpp
+  OS/libs/nsyshid/BackendEmulated.h
   OS/libs/nsyshid/BackendLibusb.cpp
   OS/libs/nsyshid/BackendLibusb.h
-  OS/libs/nsyshid/BackendWindowsHID.cpp
-  OS/libs/nsyshid/BackendWindowsHID.h
+  OS/libs/nsyshid/Dimensions.cpp
+  OS/libs/nsyshid/Dimensions.h
+  OS/libs/nsyshid/Infinity.cpp
+  OS/libs/nsyshid/Infinity.h
+  OS/libs/nsyshid/Skylander.cpp
+  OS/libs/nsyshid/Skylander.h
   OS/libs/nsyskbd/nsyskbd.cpp
   OS/libs/nsyskbd/nsyskbd.h
   OS/libs/nsysnet/nsysnet.cpp
   OS/libs/nsysnet/nsysnet.h
+  OS/libs/ntag/ntag.cpp
+  OS/libs/ntag/ntag.h
   OS/libs/padscore/padscore.cpp
   OS/libs/padscore/padscore.h
   OS/libs/proc_ui/proc_ui.cpp
@@ -501,6 +530,12 @@ set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CON
 
 target_include_directories(CemuCafe PUBLIC "../")
 
+if (glslang_VERSION VERSION_LESS "15.0.0")
+	set(glslang_target "glslang::SPIRV")
+else()
+	set(glslang_target "glslang")
+endif()
+
 target_link_libraries(CemuCafe PRIVATE
 	CemuAsm
 	CemuAudio
@@ -516,7 +551,7 @@ target_link_libraries(CemuCafe PRIVATE
 	Boost::nowide
 	CURL::libcurl
 	fmt::fmt
-	glslang::SPIRV
+	${glslang_target}
 	ih264d
 	OpenSSL::Crypto
 	OpenSSL::SSL
@@ -532,15 +567,16 @@ if (ENABLE_WAYLAND)
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
 endif()
 
-if (ENABLE_NSYSHID_LIBUSB)
-	if (ENABLE_VCPKG)
-		find_package(libusb CONFIG REQUIRED)
-		target_include_directories(CemuCafe PRIVATE ${LIBUSB_INCLUDE_DIRS})
-		target_link_libraries(CemuCafe PRIVATE ${LIBUSB_LIBRARIES})
-	else ()
-		find_package(libusb MODULE REQUIRED)
-		target_link_libraries(CemuCafe PRIVATE libusb::libusb)
-	endif ()
+if (ENABLE_VCPKG)
+  if(WIN32)
+    set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
+  endif()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+  target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
+else ()
+  find_package(libusb MODULE REQUIRED)
+  target_link_libraries(CemuCafe PRIVATE libusb::libusb)
 endif ()
 
 if (ENABLE_WXWIDGETS)

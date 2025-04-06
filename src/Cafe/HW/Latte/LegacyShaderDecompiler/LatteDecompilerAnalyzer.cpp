@@ -140,6 +140,8 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP2_INST_SUB_INT:
 		case ALU_OP2_INST_MAX_INT:
 		case ALU_OP2_INST_MIN_INT:
+		case ALU_OP2_INST_MAX_UINT:
+		case ALU_OP2_INST_MIN_UINT:
 		case ALU_OP2_INST_SETE_INT:
 		case ALU_OP2_INST_SETGT_INT:
 		case ALU_OP2_INST_SETGE_INT:
@@ -441,7 +443,8 @@ void LatteDecompiler_analyzeSubroutine(LatteDecompilerShaderContext* shaderConte
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 		}
@@ -685,7 +688,8 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			shaderContext->analyzer.modifiesPixelActiveState = true;
 			shaderContext->analyzer.hasLoops = true;
@@ -787,7 +791,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			continue;
 		LatteDecompilerShader::QuickBufferEntry entry;
 		entry.index = i;
-		entry.size = shaderContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE) * 16;
+		entry.size = shaderContext->analyzer.uniformBufferAccessTracker[i].DetermineSize(shaderContext->shaderBaseHash, LATTE_GLSL_DYNAMIC_UNIFORM_BLOCK_SIZE) * 16;
 		shader->list_quickBufferList.push_back(entry);
 	}
 	// get dimension of each used texture
@@ -929,7 +933,8 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 			if (cfCurrentStackDepth < 0)
 				debugBreakpoint();
 		}
-		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END)
+		else if (cfInstruction.type == GPU7_CF_INST_LOOP_START_DX10 || cfInstruction.type == GPU7_CF_INST_LOOP_END ||
+				 cfInstruction.type == GPU7_CF_INST_LOOP_START_NO_AL)
 		{
 			// no effect on stack depth
 			cfInstruction.activeStackDepth = cfCurrentStackDepth;

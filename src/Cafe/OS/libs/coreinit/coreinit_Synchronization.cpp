@@ -73,8 +73,6 @@ namespace coreinit
 		}
 	}
 
-	uint64 coreinit_getOSTime();
-
 	bool OSWaitEventWithTimeout(OSEvent* event, uint64 timeout)
 	{
 		__OSLockScheduler();
@@ -95,14 +93,14 @@ namespace coreinit
 
 			// workaround for a bad implementation in some Unity games (like Qube Directors Cut, see FEventWiiU::Wait)
 			// where the the return value of OSWaitEventWithTimeout is ignored and instead the game measures the elapsed time to determine if a timeout occurred
-			timeout = timeout * 98ULL / 100ULL; // 98% (we want the function to return slightly before the actual timeout)
+			if (timeout < 0x00FFFFFFFFFFFFFFULL)
+				timeout = timeout * 98ULL / 100ULL; // 98% (we want the function to return slightly before the actual timeout)
 
 			WaitEventWithTimeoutData data;
 			data.thread = OSGetCurrentThread();
 			data.threadQueue = &event->threadQueue;
 			data.hasTimeout = false;
-
-			auto hostAlarm = coreinit::OSHostAlarmCreate(coreinit::coreinit_getOSTime() + coreinit::EspressoTime::ConvertNsToTimerTicks(timeout), 0, _OSWaitEventWithTimeoutHandler, &data);
+			auto hostAlarm = coreinit::OSHostAlarmCreate(OSGetTime() + coreinit::EspressoTime::ConvertNsToTimerTicks(timeout), 0, _OSWaitEventWithTimeoutHandler, &data);
 			event->threadQueue.queueAndWait(OSGetCurrentThread());
 			coreinit::OSHostAlarmDestroy(hostAlarm);
 			if (data.hasTimeout)
@@ -310,7 +308,7 @@ namespace coreinit
 			currentThread->mutexQueue.removeMutex(mutex);
 			mutex->owner = nullptr;
 			if (!mutex->threadQueue.isEmpty())
-				mutex->threadQueue.wakeupSingleThreadWaitQueue(true);
+				mutex->threadQueue.wakeupSingleThreadWaitQueue(true, true);
 		}
 		// currentThread->cancelState = currentThread->cancelState & ~0x10000;
 	}

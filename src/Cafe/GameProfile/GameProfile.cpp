@@ -140,7 +140,7 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T&
 	for(const T& v : T())
 	{
 		// test integer option
-		if (boost::iequals(fmt::format("{}", static_cast<typename std::underlying_type<T>::type>(v)), *option_value))
+		if (boost::iequals(fmt::format("{}", fmt::underlying(v)), *option_value))
 		{
 			option = v;
 			return true;
@@ -209,7 +209,7 @@ bool GameProfile::Load(uint64_t title_id)
 		m_gameName = std::string(game_name.begin(), game_name.end());
 		trim(m_gameName.value());
 	}
-	IniParser iniParser(*profileContents, gameProfilePath.string());
+	IniParser iniParser(*profileContents, _pathToUtf8(gameProfilePath));
 	// parse ini
 	while (iniParser.NextSection())
 	{

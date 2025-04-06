@@ -3,12 +3,21 @@
 
 namespace coreinit
 {
+	enum class SysMessageId : uint32
+	{
+		MsgAcquireForeground = 0xFACEF000,
+		MsgReleaseForeground = 0xFACEBACC,
+		MsgExit = 0xD1E0D1E0,
+		HomeButtonDenied = 0xCCC0FFEE,
+		NetIoStartOrStop = 0xAAC0FFEE,
+	};
+
 	struct OSMessage
 	{
-		MPTR           message;
-		uint32         data0;
-		uint32         data1;
-		uint32         data2;
+		uint32be		message;
+		uint32be		data0;
+		uint32be		data1;
+		uint32be		data2;
 	};
 
 	struct OSMessageQueue
@@ -35,6 +44,8 @@ namespace coreinit
 	bool OSReceiveMessage(OSMessageQueue* msgQueue, OSMessage* msg, uint32 flags);
 	bool OSPeekMessage(OSMessageQueue* msgQueue, OSMessage* msg);
 	sint32 OSSendMessage(OSMessageQueue* msgQueue, OSMessage* msg, uint32 flags);
+
+	OSMessageQueue* OSGetSystemMessageQueue();
 
 	void InitializeMessageQueue();
 };

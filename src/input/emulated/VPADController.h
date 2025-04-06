@@ -66,6 +66,8 @@ public:
 
 	bool is_mic_active() { return m_mic_active; }
 	bool is_screen_active() { return m_screen_active; }
+	bool is_screen_active_toggle() { return m_screen_active_toggle; }
+	void set_screen_toggle(bool toggle) {m_screen_active_toggle = toggle;}
 
 	static std::string_view get_button_name(ButtonId id);
 
@@ -86,9 +88,13 @@ public:
 
 	bool set_default_mapping(const std::shared_ptr<ControllerBase>& controller) override;
 
+	void load(const pugi::xml_node& node) override;
+	void save(pugi::xml_node& node) override;
+
 private:
 	bool m_mic_active = false;
 	bool m_screen_active = false;
+	bool m_screen_active_toggle = false;
 	uint32be m_last_holdvalue = 0;
 
 	std::chrono::high_resolution_clock::time_point m_last_hold_change{}, m_last_pulse{};

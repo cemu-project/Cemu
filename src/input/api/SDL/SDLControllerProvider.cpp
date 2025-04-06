@@ -124,7 +124,7 @@ MotionSample SDLControllerProvider::motion_sample(int diid)
 
 void SDLControllerProvider::event_thread()
 {
-	SetThreadName("SDLControllerProvider::event_thread");
+	SetThreadName("SDL_events");
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		SDL_Event event{};

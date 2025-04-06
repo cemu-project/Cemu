@@ -6,14 +6,14 @@
 class LatteTextureGL : public LatteTexture
 {
 public:
-	LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
+	LatteTextureGL(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
 		uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
 
 	~LatteTextureGL();
 
-	static void GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget);
+	void AllocateOnHost() override;
 
-	void InitTextureState() override;
+	static void GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget, bool createForTargetType);
 
 protected:
 	LatteTextureView* CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount) override;
@@ -25,7 +25,6 @@ public:
 		sint32 glSuppliedFormat;
 		sint32 glSuppliedFormatType;
 		bool glIsCompressed;
-		bool hasStencil{};
 		bool isUsingAlternativeFormat{};
 
 		void setFormat(sint32 glInternalFormat, sint32 glSuppliedFormat, sint32 glSuppliedFormatType)
@@ -34,15 +33,6 @@ public:
 			this->glSuppliedFormat = glSuppliedFormat;
 			this->glSuppliedFormatType = glSuppliedFormatType;
 			this->glIsCompressed = false;
-		}
-
-		void setDepthFormat(sint32 glInternalFormat, sint32 glSuppliedFormat, sint32 glSuppliedFormatType, bool hasStencil)
-		{
-			this->glInternalFormat = glInternalFormat;
-			this->glSuppliedFormat = glSuppliedFormat;
-			this->glSuppliedFormatType = glSuppliedFormatType;
-			this->glIsCompressed = false;
-			this->hasStencil = hasStencil;
 		}
 
 		void setCompressed(sint32 glInternalFormat, sint32 glSuppliedFormat, sint32 glSuppliedFormatType)

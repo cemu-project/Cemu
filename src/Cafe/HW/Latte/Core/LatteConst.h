@@ -82,8 +82,6 @@
 #define GLVENDOR_UNKNOWN			(0)
 #define GLVENDOR_AMD				(1)	 // AMD/ATI
 #define GLVENDOR_NVIDIA				(2)
-#define GLVENDOR_INTEL_LEGACY		(3)
-#define GLVENDOR_INTEL_NOLEGACY		(4)
 #define GLVENDOR_INTEL				(5)
 #define GLVENDOR_APPLE				(6)
 

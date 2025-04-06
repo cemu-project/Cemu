@@ -141,6 +141,14 @@ private:
 
 void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx);
 
+// called whenever the GPU runs out of commands or hits a wait condition (semaphores, HLE waits)
+void LatteCP_signalEnterWait()
+{
+	// based on the assumption that games won't do a rugpull and swap out buffer data in the middle of an uninterrupted sequence of drawcalls,
+	// we only flush caches when the GPU goes idle or has to wait for any operation
+	LatteIndices_invalidateAll();
+}
+
 /*
 * Read a U32 from the command buffer
 * If no data is available then wait in a busy loop
@@ -466,6 +474,8 @@ LatteCMDPtr LatteCP_itWaitRegMem(LatteCMDPtr cmd, uint32 nWords)
 	const uint32 GPU7_WAIT_MEM_OP_GREATER = 6;
 	const uint32 GPU7_WAIT_MEM_OP_NEVER = 7;
 
+	LatteCP_signalEnterWait();
+
 	bool stalls = false;
 	if ((word0 & 0x10) != 0)
 	{
@@ -475,17 +485,44 @@ LatteCMDPtr LatteCP_itWaitRegMem(LatteCMDPtr cmd, uint32 nWords)
 		{
 			uint32 fenceMemValue = _swapEndianU32(*fencePtr);
 			fenceMemValue &= fenceMask;
-			if (compareOp == GPU7_WAIT_MEM_OP_GEQUAL)
+			if (compareOp == GPU7_WAIT_MEM_OP_LESS)
 			{
-				// greater or equal
-				if (fenceMemValue >= fenceValue)
+				if (fenceMemValue < fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_LEQUAL)
+			{
+				if (fenceMemValue <= fenceValue)
 					break;
 			}
 			else if (compareOp == GPU7_WAIT_MEM_OP_EQUAL)
 			{
-				// equal
 				if (fenceMemValue == fenceValue)
 					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_NOTEQUAL)
+			{
+				if (fenceMemValue != fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_GEQUAL)
+			{
+				if (fenceMemValue >= fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_GREATER)
+			{
+				if (fenceMemValue > fenceValue)
+					break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_ALWAYS)
+			{
+				break;
+			}
+			else if (compareOp == GPU7_WAIT_MEM_OP_NEVER)
+			{
+				cemuLog_logOnce(LogType::Force, "Latte: WAIT_MEM_OP_NEVER encountered");
+				break;
 			}
 			else
 				assert_dbg();
@@ -567,6 +604,7 @@ LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 	else if(SEM_SIGNAL == 7)
 	{
 		// wait
+		LatteCP_signalEnterWait();
 		size_t loopCount = 0;
 		while (true)
 		{
@@ -761,7 +799,7 @@ LatteCMDPtr LatteCP_itHLESampleTimer(LatteCMDPtr cmd, uint32 nWords)
 {
 	cemu_assert_debug(nWords == 1);
 	MPTR timerMPTR = (MPTR)LatteReadCMD();
-	memory_writeU64(timerMPTR, coreinit::coreinit_getTimerTick());
+	memory_writeU64(timerMPTR, coreinit::OSGetSystemTime());
 	return cmd;
 }
 
@@ -864,8 +902,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 	cemu_assert_debug(nWords == 23);
 	uint32 clearMask = LatteReadCMD(); // color (1), depth (2), stencil (4)
 	// color buffer
-	MPTR colorBufferMPTR = LatteReadCMD(); // MPTR for color buffer (physical address)
-	MPTR colorBufferFormat = LatteReadCMD(); // format for color buffer
+	MPTR colorBufferMPTR = LatteReadCMD(); // physical address for color buffer
+	Latte::E_GX2SURFFMT colorBufferFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
 	Latte::E_HWTILEMODE colorBufferTilemode = (Latte::E_HWTILEMODE)LatteReadCMD();
 	uint32 colorBufferWidth = LatteReadCMD();
 	uint32 colorBufferHeight = LatteReadCMD();
@@ -873,8 +911,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 	uint32 colorBufferViewFirstSlice = LatteReadCMD();
 	uint32 colorBufferViewNumSlice = LatteReadCMD();
 	// depth buffer
-	MPTR depthBufferMPTR = LatteReadCMD(); // MPTR for depth buffer (physical address)
-	MPTR depthBufferFormat = LatteReadCMD(); // format for depth buffer
+	MPTR depthBufferMPTR = LatteReadCMD(); // physical address for depth buffer
+	Latte::E_GX2SURFFMT depthBufferFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
 	Latte::E_HWTILEMODE depthBufferTileMode = (Latte::E_HWTILEMODE)LatteReadCMD();
 	uint32 depthBufferWidth = LatteReadCMD();
 	uint32 depthBufferHeight = LatteReadCMD();
@@ -893,8 +931,8 @@ LatteCMDPtr LatteCP_itHLEClearColorDepthStencil(LatteCMDPtr cmd, uint32 nWords)
 
 	LatteRenderTarget_itHLEClearColorDepthStencil(
 		clearMask, 
-		colorBufferMPTR, colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferViewFirstSlice, colorBufferViewNumSlice, 
-		depthBufferMPTR, depthBufferFormat, depthBufferTileMode, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferViewFirstSlice, depthBufferViewNumSlice, 
+		colorBufferMPTR, colorBufferFormat, colorBufferTilemode, colorBufferWidth, colorBufferHeight, colorBufferPitch, colorBufferViewFirstSlice, colorBufferViewNumSlice,
+		depthBufferMPTR, depthBufferFormat, depthBufferTileMode, depthBufferWidth, depthBufferHeight, depthBufferPitch, depthBufferViewFirstSlice, depthBufferViewNumSlice,
 		r, g, b, a,
 		clearDepth, clearStencil);
 	return cmd;
@@ -1278,11 +1316,13 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				}
 				case IT_HLE_TRIGGER_SCANBUFFER_SWAP:
 				{
+					LatteCP_signalEnterWait();
 					LatteCP_itHLESwapScanBuffer(cmdData, nWords);
 					break;
 				}
 				case IT_HLE_WAIT_FOR_FLIP:
 				{
+					LatteCP_signalEnterWait();
 					LatteCP_itHLEWaitForFlip(cmdData, nWords);
 					break;
 				}
@@ -1567,12 +1607,14 @@ void LatteCP_ProcessRingbuffer()
 			}
 			case IT_HLE_TRIGGER_SCANBUFFER_SWAP:
 			{
+				LatteCP_signalEnterWait();
 				LatteCP_itHLESwapScanBuffer(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 64;
 				break;
 			}
 			case IT_HLE_WAIT_FOR_FLIP:
 			{
+				LatteCP_signalEnterWait();
 				LatteCP_itHLEWaitForFlip(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 1;
 				break;

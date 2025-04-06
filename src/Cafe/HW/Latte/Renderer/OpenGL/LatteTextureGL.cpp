@@ -5,34 +5,16 @@
 
 #include "config/LaunchSettings.h"
 
-GLuint texIdPool[64];
-sint32 texIdPoolIndex = 64;
-
-static GLuint _genTextureHandleGL()
-{
-	if (texIdPoolIndex == 64)
-	{
-		glGenTextures(64, texIdPool);
-		texIdPoolIndex = 0;
-	}
-	texIdPoolIndex++;
-	return texIdPool[texIdPoolIndex - 1];
-}
-
-LatteTextureGL::LatteTextureGL(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
+LatteTextureGL::LatteTextureGL(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
-	: LatteTexture(textureUnit, dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth)
+	: LatteTexture(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth)
 {
-	GenerateEmptyTextureFromGX2Dim(dim, this->glId_texture, this->glTexTarget);
+	GenerateEmptyTextureFromGX2Dim(dim, this->glId_texture, this->glTexTarget, true);
 	// set format info
 	FormatInfoGL glFormatInfo;
-	GetOpenGLFormatInfo(isDepth, format, dim, &glFormatInfo);
+	GetOpenGLFormatInfo(isDepth, overwriteInfo.hasFormatOverwrite ? (Latte::E_GX2SURFFMT)overwriteInfo.format : format, dim, &glFormatInfo);
 	this->glInternalFormat = glFormatInfo.glInternalFormat;
 	this->isAlternativeFormat = glFormatInfo.isUsingAlternativeFormat;
-	this->hasStencil = glFormatInfo.hasStencil; // todo - should get this from the GX2 format?
-	// bind texture
-	g_renderer->texture_bindAndActivateRawTex(this, textureUnit);
-	LatteTextureGL::InitTextureState();
 	// set debug name
 	bool useGLDebugNames = false;
 #ifdef CEMU_DEBUG_ASSERT
@@ -54,9 +36,8 @@ LatteTextureGL::~LatteTextureGL()
 	catchOpenGLError();
 }
 
-void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget)
+void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& texId, GLint& texTarget, bool createForTargetType)
 {
-	texId = _genTextureHandleGL();
 	if (dim == Latte::E_DIM::DIM_2D)
 		texTarget = GL_TEXTURE_2D;
 	else if (dim == Latte::E_DIM::DIM_1D)
@@ -73,23 +54,15 @@ void LatteTextureGL::GenerateEmptyTextureFromGX2Dim(Latte::E_DIM dim, GLuint& te
 	{
 		cemu_assert_unimplemented();
 	}
+	if(createForTargetType)
+		texId = glCreateTextureWrapper(texTarget); // initializes the texture to texTarget (equivalent to calling glGenTextures + glBindTexture)
+	else
+		glGenTextures(1, &texId);
 }
 
 LatteTextureView* LatteTextureGL::CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
 {
 	return new LatteTextureViewGL(this, dim, format, firstMip, mipCount, firstSlice, sliceCount);
-}
-
-void  LatteTextureGL::InitTextureState()
-{
-	// init texture with some default parameters (todo - this shouldn't be necessary if we properly set parameters when a texture is used)
-	catchOpenGLError();
-	glTexParameteri(glTexTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(glTexTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(glTexTarget, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(glTexTarget, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(glTexTarget, GL_TEXTURE_COMPARE_MODE, GL_NONE);
-	catchOpenGLError();
 }
 
 void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT format, Latte::E_DIM dim, FormatInfoGL* formatInfoOut)
@@ -100,34 +73,34 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	{
 		if (format == Latte::E_GX2SURFFMT::D24_S8_UNORM)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8, true);
+			formatInfoOut->setFormat(GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL, GL_UNSIGNED_INT_24_8);
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D24_S8_FLOAT)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, true);
+			formatInfoOut->setFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 			formatInfoOut->markAsAlternativeFormat();
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D32_S8_FLOAT)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV, true);
+			formatInfoOut->setFormat(GL_DEPTH32F_STENCIL8, GL_DEPTH_STENCIL, GL_FLOAT_32_UNSIGNED_INT_24_8_REV);
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D32_FLOAT)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT, false);
+			formatInfoOut->setFormat(GL_DEPTH_COMPONENT32F, GL_DEPTH_COMPONENT, GL_FLOAT);
 			return;
 		}
 		else if (format == Latte::E_GX2SURFFMT::D16_UNORM)
 		{
-			formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, false);
+			formatInfoOut->setFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT);
 			return;
 		}
 		// unsupported depth format
 		cemuLog_log(LogType::Force, "OpenGL: Unsupported texture depth format 0x{:04x}", (uint32)format);
 		// use placeholder format
-		formatInfoOut->setDepthFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT, false);
+		formatInfoOut->setFormat(GL_DEPTH_COMPONENT16, GL_DEPTH_COMPONENT, GL_UNSIGNED_SHORT);
 		formatInfoOut->markAsAlternativeFormat();
 		return;
 	}
@@ -137,10 +110,6 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	sint32 glInternalFormat;
 	sint32 glSuppliedFormat;
 	sint32 glSuppliedFormatType;
-	// check if compressed textures should be used
-	bool allowCompressedGLFormat = true;
-	if (LatteGPUState.glVendor == GLVENDOR_INTEL_LEGACY)
-		allowCompressedGLFormat = false; // compressed formats seem to cause more harm than good on Intel
 	// get format information
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
 	{
@@ -176,20 +145,11 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	else if (format == Latte::E_GX2SURFFMT::BC1_UNORM ||
 		format == Latte::E_GX2SURFFMT::BC1_SRGB)
 	{
-		if (allowCompressedGLFormat)
-		{
-			if (format == Latte::E_GX2SURFFMT::BC1_SRGB)
-				formatInfoOut->setCompressed(GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, -1, -1);
-			else
-				formatInfoOut->setCompressed(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, -1, -1);
-			return;
-		}
+		if (format == Latte::E_GX2SURFFMT::BC1_SRGB)
+			formatInfoOut->setCompressed(GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, -1, -1);
 		else
-		{
-			formatInfoOut->setFormat(GL_RGBA16F, GL_RGBA, GL_FLOAT);
-			formatInfoOut->markAsAlternativeFormat();
-			return;
-		}
+			formatInfoOut->setCompressed(GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, -1, -1);
+		return;
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC2_UNORM || format == Latte::E_GX2SURFFMT::BC2_SRGB)
 	{
@@ -200,28 +160,18 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC3_UNORM || format == Latte::E_GX2SURFFMT::BC3_SRGB)
 	{
-		if (allowCompressedGLFormat)
-		{
-			if (format == Latte::E_GX2SURFFMT::BC3_SRGB)
-				formatInfoOut->setCompressed(GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, -1, -1);
-			else
-				formatInfoOut->setCompressed(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, -1, -1);
-			return;
-		}
+		if (format == Latte::E_GX2SURFFMT::BC3_SRGB)
+			formatInfoOut->setCompressed(GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, -1, -1);
 		else
-		{
-			// todo: SRGB support
-			formatInfoOut->setFormat(GL_RGBA16F, GL_RGBA, GL_FLOAT);
-			formatInfoOut->markAsAlternativeFormat();
-			return;
-		}
+			formatInfoOut->setCompressed(GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, -1, -1);
+		return;
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC4_UNORM || format == Latte::E_GX2SURFFMT::BC4_SNORM)
 	{
+		bool allowCompressed = true;
 		if (dim != Latte::E_DIM::DIM_2D && dim != Latte::E_DIM::DIM_2D_ARRAY)
-			allowCompressedGLFormat = false; // RGTC1 does not support non-2D textures
-
-		if (allowCompressedGLFormat)
+			allowCompressed = false; // RGTC1 does not support non-2D textures
+		if (allowCompressed)
 		{
 			if (format == Latte::E_GX2SURFFMT::BC4_UNORM)
 				formatInfoOut->setCompressed(GL_COMPRESSED_RED_RGTC1, -1, -1);
@@ -238,20 +188,11 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC5_UNORM || format == Latte::E_GX2SURFFMT::BC5_SNORM)
 	{
-		if (allowCompressedGLFormat)
-		{
-			if (format == Latte::E_GX2SURFFMT::BC5_SNORM)
-				formatInfoOut->setCompressed(GL_COMPRESSED_SIGNED_RG_RGTC2, -1, -1);
-			else
-				formatInfoOut->setCompressed(GL_COMPRESSED_RG_RGTC2, -1, -1);
-			return;
-		}
+		if (format == Latte::E_GX2SURFFMT::BC5_SNORM)
+			formatInfoOut->setCompressed(GL_COMPRESSED_SIGNED_RG_RGTC2, -1, -1);
 		else
-		{
-			formatInfoOut->setFormat(GL_RG16F, GL_RG, GL_FLOAT);
-			formatInfoOut->markAsAlternativeFormat();
-			return;
-		}
+			formatInfoOut->setCompressed(GL_COMPRESSED_RG_RGTC2, -1, -1);
+		return;
 	}
 	else if (format == Latte::E_GX2SURFFMT::R32_FLOAT)
 	{
@@ -507,4 +448,50 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	formatInfoOut->glSuppliedFormatType = glSuppliedFormatType;
 	formatInfoOut->glIsCompressed = glIsCompressed;
 	formatInfoOut->isUsingAlternativeFormat = isUsingAlternativeFormat;
+}
+
+void LatteTextureGL::AllocateOnHost()
+{
+	auto hostTexture = this;
+	cemu_assert_debug(hostTexture->isDataDefined == false);
+	sint32 effectiveBaseWidth = hostTexture->width;
+	sint32 effectiveBaseHeight = hostTexture->height;
+	sint32 effectiveBaseDepth = hostTexture->depth;
+	if (hostTexture->overwriteInfo.hasResolutionOverwrite)
+	{
+		effectiveBaseWidth = hostTexture->overwriteInfo.width;
+		effectiveBaseHeight = hostTexture->overwriteInfo.height;
+		effectiveBaseDepth = hostTexture->overwriteInfo.depth;
+	}
+	// calculate mip count
+	sint32 mipLevels = std::min(hostTexture->mipLevels, hostTexture->maxPossibleMipLevels);
+	mipLevels = std::max(mipLevels, 1);
+	// create immutable storage
+	if (hostTexture->dim == Latte::E_DIM::DIM_2D || hostTexture->dim == Latte::E_DIM::DIM_2D_MSAA)
+	{
+		cemu_assert_debug(effectiveBaseDepth == 1);
+		glTextureStorage2DWrapper(GL_TEXTURE_2D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight);
+	}
+	else if (hostTexture->dim == Latte::E_DIM::DIM_1D)
+	{
+		cemu_assert_debug(effectiveBaseHeight == 1);
+		cemu_assert_debug(effectiveBaseDepth == 1);
+		glTextureStorage1DWrapper(GL_TEXTURE_1D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth);
+	}
+	else if (hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY || hostTexture->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
+	{
+		glTextureStorage3DWrapper(GL_TEXTURE_2D_ARRAY, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+	}
+	else if (hostTexture->dim == Latte::E_DIM::DIM_3D)
+	{
+		glTextureStorage3DWrapper(GL_TEXTURE_3D, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, std::max(1, effectiveBaseDepth));
+	}
+	else if (hostTexture->dim == Latte::E_DIM::DIM_CUBEMAP)
+	{
+		glTextureStorage3DWrapper(GL_TEXTURE_CUBE_MAP_ARRAY, hostTexture->glId_texture, mipLevels, hostTexture->glInternalFormat, effectiveBaseWidth, effectiveBaseHeight, effectiveBaseDepth);
+	}
+	else
+	{
+		cemu_assert_unimplemented();
+	}
 }

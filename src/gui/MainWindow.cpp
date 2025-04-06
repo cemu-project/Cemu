@@ -12,7 +12,7 @@
 #include "audio/audioDebuggerWindow.h"
 #include "gui/canvas/OpenGLCanvas.h"
 #include "gui/canvas/VulkanCanvas.h"
-#include "Cafe/OS/libs/nn_nfp/nn_nfp.h"
+#include "Cafe/OS/libs/nfc/nfc.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
 #include "gui/debugger/DebuggerWindow2.h"
 #include "util/helpers/helpers.h"
@@ -30,6 +30,7 @@
 #include "Cafe/Filesystem/FST/FST.h"
 
 #include "gui/TitleManager.h"
+#include "gui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
 
 #include "Cafe/CafeSystem.h"
 
@@ -75,6 +76,8 @@ enum
 	MAINFRAME_MENU_ID_FILE_LOAD = 20100,
 	MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE,
 	MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER,
+	MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER,
+	MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER,
 	MAINFRAME_MENU_ID_FILE_EXIT,
 	MAINFRAME_MENU_ID_FILE_END_EMULATION,
 	MAINFRAME_MENU_ID_FILE_RECENT_0,
@@ -109,6 +112,7 @@ enum
 	MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER = 20600,
 	MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER,
 	MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER,
+	MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES,
 	// cpu
 	// cpu->timer speed
 	MAINFRAME_MENU_ID_TIMER_SPEED_1X = 20700,
@@ -146,8 +150,6 @@ enum
 	// help
 	MAINFRAME_MENU_ID_HELP_ABOUT = 21700,
 	MAINFRAME_MENU_ID_HELP_UPDATE,
-	MAINFRAME_MENU_ID_HELP_GETTING_STARTED,
-
 	// custom
 	MAINFRAME_ID_TIMER1 = 21800,
 };
@@ -166,7 +168,9 @@ EVT_MOVE(MainWindow::OnMove)
 // file menu
 EVT_MENU(MAINFRAME_MENU_ID_FILE_LOAD, MainWindow::OnFileMenu)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, MainWindow::OnInstallUpdate)
-EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, MainWindow::OnOpenCemuFolder)
+EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, MainWindow::OnOpenFolder)
+EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, MainWindow::OnOpenFolder)
+EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, MainWindow::OnOpenFolder)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_EXIT, MainWindow::OnFileExit)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_END_EMULATION, MainWindow::OnFileMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_FILE_RECENT_0 + 0, MAINFRAME_MENU_ID_FILE_RECENT_LAST, MainWindow::OnFileMenu)
@@ -186,6 +190,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
+EVT_MENU(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, MainWindow::OnToolsInput)
 // cpu menu
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
@@ -220,7 +225,6 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, MainWindow::OnDebugView
 // help menu
 EVT_MENU(MAINFRAME_MENU_ID_HELP_ABOUT, MainWindow::OnHelpAbout)
 EVT_MENU(MAINFRAME_MENU_ID_HELP_UPDATE, MainWindow::OnHelpUpdate)
-EVT_MENU(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, MainWindow::OnHelpGettingStarted)
 // misc
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_GAMELIST_REFRESH, MainWindow::OnRequestGameListRefresh)
 
@@ -259,7 +263,7 @@ public:
 			return false;
 		uint32 nfcError;
 		std::string path = filenames[0].utf8_string();
-		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError))
+		if (nfc::TouchTagFromFile(_utf8ToPath(path), &nfcError))
 		{
 			GetConfig().AddRecentNfcFile(path);
 			m_window->UpdateNFCMenu();
@@ -267,10 +271,10 @@ public:
 		}
 		else
 		{
-			if (nfcError == NFC_ERROR_NO_ACCESS)
+			if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-			else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-				wxMessageBox(_("Not a valid NFC NTAG215 file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+			else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+				wxMessageBox(_("Not a valid NFC file"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
 	}
@@ -413,25 +417,6 @@ wxString MainWindow::GetInitialWindowTitle()
 	return BUILD_VERSION_WITH_NAME_STRING;
 }
 
-void MainWindow::ShowGettingStartedDialog()
-{
-	GettingStartedDialog dia(this);
-	dia.ShowModal();
-	if (dia.HasGamePathChanged() || dia.HasMLCChanged())
-		m_game_list->ReloadGameEntries();
-		
-	TogglePadView();
-	
-	auto& config = GetConfig();
-	m_padViewMenuItem->Check(config.pad_open.GetValue());
-	m_fullscreenMenuItem->Check(config.fullscreen.GetValue());
-}
-
-namespace coreinit
-{
-	void OSSchedulerEnd();
-};
-
 void MainWindow::OnClose(wxCloseEvent& event)
 {
 	wxTheClipboard->Flush();
@@ -500,20 +485,20 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
-		CafeSystem::STATUS_CODE r = CafeSystem::PrepareForegroundTitle(baseTitleId);
-		if (r == CafeSystem::STATUS_CODE::INVALID_RPX)
+		CafeSystem::PREPARE_STATUS_CODE r = CafeSystem::PrepareForegroundTitle(baseTitleId);
+		if (r == CafeSystem::PREPARE_STATUS_CODE::INVALID_RPX)
 		{
 			cemu_assert_debug(false);
 			return false;
 		}
-		else if (r == CafeSystem::STATUS_CODE::UNABLE_TO_MOUNT)
+		else if (r == CafeSystem::PREPARE_STATUS_CODE::UNABLE_TO_MOUNT)
 		{
 			wxString t = _("Unable to mount title.\nMake sure the configured game paths are still valid and refresh the game list.\n\nFile which failed to load:\n");
 			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
-		else if (r != CafeSystem::STATUS_CODE::SUCCESS)
+		else if (r != CafeSystem::PREPARE_STATUS_CODE::SUCCESS)
 		{
 			wxString t = _("Failed to launch game.");
 			t.append(_pathToUtf8(launchPath));
@@ -528,8 +513,8 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 		CafeTitleFileType fileType = DetermineCafeSystemFileType(launchPath);
 		if (fileType == CafeTitleFileType::RPX || fileType == CafeTitleFileType::ELF)
 		{
-			CafeSystem::STATUS_CODE r = CafeSystem::PrepareForegroundTitleFromStandaloneRPX(launchPath);
-			if (r != CafeSystem::STATUS_CODE::SUCCESS)
+			CafeSystem::PREPARE_STATUS_CODE r = CafeSystem::PrepareForegroundTitleFromStandaloneRPX(launchPath);
+			if (r != CafeSystem::PREPARE_STATUS_CODE::SUCCESS)
 			{
 				cemu_assert_debug(false); // todo
 				wxString t = _("Failed to launch executable. Path: ");
@@ -623,6 +608,7 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	CreateCanvas();
 	CafeSystem::LaunchForegroundTitle();
 	RecreateMenu();
+	UpdateChildWindowTitleRunningState();
 
 	return true;
 }
@@ -640,16 +626,18 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	if (menuId == MAINFRAME_MENU_ID_FILE_LOAD)
 	{
 		const auto wildcard = formatWxString(
-			"{}|*.wud;*.wux;*.wua;*.iso;*.rpx;*.elf;title.tmd"
+			"{}|*.wud;*.wux;*.wua;*.wuhb;*.iso;*.rpx;*.elf;title.tmd"
 			"|{}|*.wud;*.wux;*.iso"
 			"|{}|title.tmd"
 			"|{}|*.wua"
+			"|{}|*.wuhb"
 			"|{}|*.rpx;*.elf"
 			"|{}|*",
-			_("All Wii U files (*.wud, *.wux, *.wua, *.iso, *.rpx, *.elf)"),
+			_("All Wii U files (*.wud, *.wux, *.wua, *.wuhb, *.iso, *.rpx, *.elf)"),
 			_("Wii U image (*.wud, *.wux, *.iso, *.wad)"),
 			_("Wii U NUS content"),
 			_("Wii U archive (*.wua)"),
+			_("Wii U homebrew bundle (*.wuhb)"),
 			_("Wii U executable (*.rpx, *.elf)"),
 			_("All files (*.*)")
 		);
@@ -681,12 +669,21 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 		RecreateMenu();
         CreateGameListAndStatusBar();
         DoLayout();
+		UpdateChildWindowTitleRunningState();
 	}
 }
 
-void MainWindow::OnOpenCemuFolder(wxCommandEvent& event)
+void MainWindow::OnOpenFolder(wxCommandEvent& event)
 {
-	wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetUserDataPath()));
+	const auto id = event.GetId();
+	if(id == MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER)
+		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetUserDataPath()));
+	else if(id == MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER)
+		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetMlcPath()));
+	else if (id == MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER)
+		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetCachePath("shaderCache")));
+
+
 }
 
 void MainWindow::OnInstallUpdate(wxCommandEvent& event)
@@ -740,12 +737,12 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			return;
 		wxString wxStrFilePath = openFileDialog.GetPath();
 		uint32 nfcError;
-		if (nnNfp_touchNfcTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
+		if (nfc::TouchTagFromFile(_utf8ToPath(wxStrFilePath.utf8_string()), &nfcError) == false)
 		{
-			if (nfcError == NFC_ERROR_NO_ACCESS)
+			if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 				wxMessageBox(_("Cannot open file"));
-			else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-				wxMessageBox(_("Not a valid NFC NTAG215 file"));
+			else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+				wxMessageBox(_("Not a valid NFC file"));
 		}
 		else
 		{
@@ -763,12 +760,12 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 			if (!path.empty())
 			{
 				uint32 nfcError = 0;
-				if (nnNfp_touchNfcTagFromFile(_utf8ToPath(path), &nfcError) == false)
+				if (nfc::TouchTagFromFile(_utf8ToPath(path), &nfcError) == false)
 				{
-					if (nfcError == NFC_ERROR_NO_ACCESS)
+					if (nfcError == NFC_TOUCH_TAG_ERROR_NO_ACCESS)
 						wxMessageBox(_("Cannot open file"));
-					else if (nfcError == NFC_ERROR_INVALID_FILE_FORMAT)
-						wxMessageBox(_("Not a valid NFC NTAG215 file"));
+					else if (nfcError == NFC_TOUCH_TAG_ERROR_INVALID_FILE_FORMAT)
+						wxMessageBox(_("Not a valid NFC file"));
 				}
 				else
 				{
@@ -939,38 +936,6 @@ void MainWindow::OnAccountSelect(wxCommandEvent& event)
 	g_config.Save();
 }
 
-//void MainWindow::OnConsoleRegion(wxCommandEvent& event)
-//{
-//	switch (event.GetId())
-//	{
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_AUTO:
-//		GetConfig().console_region = ConsoleRegion::Auto;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_JPN:
-//		GetConfig().console_region = ConsoleRegion::JPN;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_USA:
-//		GetConfig().console_region = ConsoleRegion::USA;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_EUR:
-//		GetConfig().console_region = ConsoleRegion::EUR;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_CHN:
-//		GetConfig().console_region = ConsoleRegion::CHN;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_KOR:
-//		GetConfig().console_region = ConsoleRegion::KOR;
-//		break;
-//	case MAINFRAME_MENU_ID_OPTIONS_REGION_TWN:
-//		GetConfig().console_region = ConsoleRegion::TWN;
-//		break;
-//	default:
-//		cemu_assert_debug(false);
-//	}
-//	
-//	g_config.Save();
-//}
-
 void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 {
 	switch (event.GetId())
@@ -1014,8 +979,11 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 	default:
 		cemu_assert_debug(false);
 	}
-	m_game_list->DeleteCachedStrings();
-	m_game_list->ReloadGameEntries(false);
+	if (m_game_list)
+	{
+		m_game_list->DeleteCachedStrings();
+		m_game_list->ReloadGameEntries(false);
+	}
 	g_config.Save();
 }
 
@@ -1152,9 +1120,7 @@ void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
 	{
 		try
 		{
-			// create directory
-			const fs::path path(ActiveSettings::GetUserDataPath());
-			fs::create_directories(path / "dump" / "shaders");
+			fs::create_directories(ActiveSettings::GetUserDataPath("dump/shaders"));
 		}
 		catch (const std::exception & ex)
 		{
@@ -1480,6 +1446,19 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 		g_window_info.has_screenshot_request = true; // async screenshot request
 }
 
+void MainWindow::OnKeyDown(wxKeyEvent& event)
+{
+	if ((event.AltDown() && event.GetKeyCode() == WXK_F4) || 
+		(event.CmdDown() && event.GetKeyCode() == 'Q'))
+	{
+		Close(true);
+	}
+	else
+	{
+		event.Skip();
+	}
+}
+
 void MainWindow::OnChar(wxKeyEvent& event)
 {
 	if (swkbd_hasKeyboardInputHook())
@@ -1522,6 +1501,29 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 				});
 			m_title_manager->Show();
 		}
+		break;
+	}
+	case MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES:
+	{
+		if (m_usb_devices)
+		{
+			m_usb_devices->Show(true);
+			m_usb_devices->Raise();
+			m_usb_devices->SetFocus();
+		}
+		else
+		{
+			m_usb_devices = new EmulatedUSBDeviceFrame(this);
+			m_usb_devices->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event)
+				{
+					if (event.CanVeto()) {
+						m_usb_devices->Show(false);
+						event.Veto();
+					}
+				});
+			m_usb_devices->Show(true);
+		}
+		break;
 	}
 	break;
 	}
@@ -1585,6 +1587,7 @@ void MainWindow::CreateCanvas()
 
 	// key events
 	m_render_canvas->Bind(wxEVT_KEY_UP, &MainWindow::OnKeyUp, this);
+	m_render_canvas->Bind(wxEVT_KEY_DOWN, &MainWindow::OnKeyDown, this);
 	m_render_canvas->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
 
 	m_render_canvas->SetDropTarget(new wxAmiiboDropTarget(this));
@@ -1751,7 +1754,7 @@ void MainWindow::UpdateNFCMenu()
 		if (entry.empty())
 			continue;
 		
-		if (!fs::exists(entry))
+		if (!fs::exists(_utf8ToPath(entry)))
 			continue;
 		
 		if (recentFileIndex == 0)
@@ -2015,7 +2018,7 @@ public:
 			, "Faris Leonhart", "MahvZero", "PlaguedGuardian", "Stuffie", "CaptainLester", "Qtech", "Zaurexus", "Leonidas", "Artifesto"
 			, "Alca259", "SirWestofAsh", "Loli Co.", "The Technical Revolutionary", "MegaYama", "mitori", "Seymordius", "Adrian Josh Cruz", "Manuel Hoenings", "Just A Jabb"
 			, "pgantonio", "CannonXIII", "Lonewolf00708", "AlexsDesign.com", "NoskLo", "MrSirHaku", "xElite_V AKA William H. Johnson", "Zalnor", "Pig", "James \"SE4LS\"", "DairyOrange", "Horoko Lawrence", "bloodmc", "Officer Jenny", "Quasar", "Postposterous", "Jake Jackson", "Kaydax", "CthePredatorG"
-			, "Hengi", "Pyrochaser"};
+			, "Hengi", "Pyrochaser", "luma.x3"};
 
 		wxString nameListLeft, nameListRight;
 		for (size_t i = 0; i < patreonSupporterNames.size(); i++)
@@ -2053,11 +2056,6 @@ void MainWindow::OnHelpUpdate(wxCommandEvent& event)
 {
 	CemuUpdateWindow test(this);
 	test.ShowModal();
-}
-
-void MainWindow::OnHelpGettingStarted(wxCommandEvent& event)
-{
-	ShowGettingStartedDialog();
 }
 
 void MainWindow::RecreateMenu()
@@ -2107,6 +2105,8 @@ void MainWindow::RecreateMenu()
 	}
 
 	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("&Open Cemu folder"));
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, _("&Open MLC folder"));
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, _("Open &shader cache folder"));
 	m_fileMenu->AppendSeparator();
 
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
@@ -2139,6 +2139,14 @@ void MainWindow::RecreateMenu()
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_PORTUGUESE, _("&Portuguese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::PT);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_RUSSIAN, _("&Russian"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::RU);
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::TW);
+	if(IsGameLaunched())
+	{
+		auto items = optionsConsoleLanguageMenu->GetMenuItems();
+		for (auto& item : items)
+		{
+			item->Enable(false);
+		}
+	}
 
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu();
@@ -2163,6 +2171,7 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
+	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, _("&Emulated USB Devices"));
 
 	m_menuBar->Append(toolsMenu, _("&Tools"));
 
@@ -2188,22 +2197,35 @@ void MainWindow::RecreateMenu()
 	m_menuBar->Append(nfcMenu, _("&NFC"));
 	m_nfcMenuSeparator0 = nullptr;
 	// debug->logging submenu
-	wxMenu* debugLoggingMenu = new wxMenu;
+	wxMenu* debugLoggingMenu = new wxMenu();
 
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::APIErrors), _("&Invalid API usage"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::APIErrors));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("&Coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("&Coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("&Coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("&Coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("&Coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("&NN NFP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("&GX2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("&Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("&Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("&Socket API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("&Save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("&H264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
+	debugLoggingMenu->AppendSeparator();
+
+	wxMenu* logCosModulesMenu = new wxMenu();
+	logCosModulesMenu->AppendCheckItem(0, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
+	logCosModulesMenu->AppendSeparator();
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("nn_save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("nn_nfp API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_FP), _("nn_fp API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_FP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::PRUDP), _("nn_fp PRUDP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::PRUDP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_BOSS), _("nn_boss API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_BOSS));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NFC), _("nfc API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NFC));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NTAG), _("ntag API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NTAG));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("nsysnet API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("h264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("gx2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
+
+	debugLoggingMenu->AppendSubMenu(logCosModulesMenu, _("&CafeOS modules logging"));
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Patches));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));
@@ -2256,10 +2278,11 @@ void MainWindow::RecreateMenu()
 	// help menu
 	wxMenu* helpMenu = new wxMenu();
 	m_check_update_menu = helpMenu->Append(MAINFRAME_MENU_ID_HELP_UPDATE, _("&Check for updates"));
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-	m_check_update_menu->Enable(false);
+#if BOOST_OS_LINUX
+	if (!std::getenv("APPIMAGE")) {
+		m_check_update_menu->Enable(false);
+	}
 #endif
-	helpMenu->Append(MAINFRAME_MENU_ID_HELP_GETTING_STARTED, _("&Getting started"));
 	helpMenu->AppendSeparator();
 	helpMenu->Append(MAINFRAME_MENU_ID_HELP_ABOUT, _("&About Cemu"));
 
@@ -2286,6 +2309,14 @@ void MainWindow::RecreateMenu()
 	// hide new menu in fullscreen
 	if (IsFullScreen())
 		SetMenuVisible(false);
+}
+
+void MainWindow::UpdateChildWindowTitleRunningState()
+{
+	const bool running = CafeSystem::IsTitleRunning();
+
+	if(m_graphic_pack_window)
+		m_graphic_pack_window->UpdateTitleRunning(running);
 }
 
 void MainWindow::RestoreSettingsAfterGameExited()

@@ -4,6 +4,7 @@
 #include <wx/filepicker.h>
 #include <wx/statbox.h>
 #include <wx/msgdlg.h>
+#include <wx/radiobox.h>
 
 #include "config/ActiveSettings.h"
 #include "gui/CemuApp.h"
@@ -11,7 +12,6 @@
 #include "gui/GraphicPacksWindow2.h"
 #include "gui/input/InputSettings2.h"
 #include "config/CemuConfig.h"
-#include "config/PermanentConfig.h"
 
 #include "Cafe/TitleList/TitleList.h"
 
@@ -21,75 +21,100 @@
 
 #include "wxHelper.h"
 
+wxDEFINE_EVENT(EVT_REFRESH_FIRST_PAGE, wxCommandEvent); // used to refresh the first page after the language change
+
 wxPanel* GettingStartedDialog::CreatePage1()
 {
-	auto* result = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
+	auto* mainPanel = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 	auto* page1_sizer = new wxBoxSizer(wxVERTICAL);
 	{
 		auto* sizer = new wxBoxSizer(wxHORIZONTAL);
-
-		sizer->Add(new wxStaticBitmap(result, wxID_ANY, wxICON(M_WND_ICON128)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-		auto* m_staticText11 = new wxStaticText(result, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"), wxDefaultPosition, wxDefaultSize, 0);
-		m_staticText11->Wrap(-1);
-		sizer->Add(m_staticText11, 0, wxALL, 5);
-
+		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, wxICON(M_WND_ICON128)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_page1.staticText11 = new wxStaticText(mainPanel, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"), wxDefaultPosition, wxDefaultSize, 0);
+		m_page1.staticText11->Wrap(-1);
+		sizer->Add(m_page1.staticText11, 0, wxALL, 5);
 		page1_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
 	}
 
+	if(ActiveSettings::IsPortableMode())
 	{
-		m_mlc_box_sizer = new wxStaticBoxSizer(wxVERTICAL, result, _("mlc01 path"));
-		m_mlc_box_sizer->Add(new wxStaticText(m_mlc_box_sizer->GetStaticBox(), wxID_ANY, _("The mlc path is the root folder of the emulated Wii U internal flash storage. It contains all your saves, installed updates and DLCs.\nIt is strongly recommend that you create a dedicated folder for it (example: C:\\wiiu\\mlc\\) \nIf left empty, the mlc folder will be created inside the Cemu folder.")), 0, wxALL, 5);
+		m_page1.portableModeInfoText = new wxStaticText(mainPanel, wxID_ANY, _("Cemu is running in portable mode"));
+		m_page1.portableModeInfoText->Show(true);
+		page1_sizer->Add(m_page1.portableModeInfoText, 0, wxALL, 5);
 
-		m_prev_mlc_warning = new wxStaticText(m_mlc_box_sizer->GetStaticBox(), wxID_ANY, _("A custom mlc path from a previous Cemu installation has been found and filled in."));
-		m_prev_mlc_warning->SetForegroundColour(*wxRED);
-		m_prev_mlc_warning->Show(false);
-		m_mlc_box_sizer->Add(m_prev_mlc_warning, 0, wxALL, 5);
-		
-		auto* mlc_path_sizer = new wxBoxSizer(wxHORIZONTAL);
-		mlc_path_sizer->Add(new wxStaticText(m_mlc_box_sizer->GetStaticBox(), wxID_ANY, _("Custom mlc01 path")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-		// workaround since we can't specify our own browse label? >> _("Browse")
-		m_mlc_folder = new wxDirPickerCtrl(m_mlc_box_sizer->GetStaticBox(), wxID_ANY, wxEmptyString, _("Select a folder"), wxDefaultPosition, wxDefaultSize, wxDIRP_DEFAULT_STYLE);
-		auto tTest1 = m_mlc_folder->GetTextCtrl();
-       if(m_mlc_folder->HasTextCtrl())
-       {
-           m_mlc_folder->GetTextCtrl()->SetEditable(false);
-           m_mlc_folder->GetTextCtrl()->Bind(wxEVT_CHAR, &GettingStartedDialog::OnMLCPathChar, this);
-       }
-		mlc_path_sizer->Add(m_mlc_folder, 1, wxALL, 5);
-
-		mlc_path_sizer->Add(new wxStaticText(m_mlc_box_sizer->GetStaticBox(), wxID_ANY, _("(optional)")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-		m_mlc_box_sizer->Add(mlc_path_sizer, 0, wxEXPAND, 5);
-
-		page1_sizer->Add(m_mlc_box_sizer, 0, wxALL | wxEXPAND, 5);
 	}
 
+	// language selection
+#if 0
 	{
-		auto* sizer = new wxStaticBoxSizer(wxVERTICAL, result, _("Game paths"));
+		m_page1.languageBoxSizer = new wxStaticBoxSizer(wxVERTICAL, mainPanel, _("Language"));
+		m_page1.languageText = new wxStaticText(m_page1.languageBoxSizer->GetStaticBox(), wxID_ANY, _("Select the language you want to use in Cemu"));
+		m_page1.languageBoxSizer->Add(m_page1.languageText, 0, wxALL, 5);
 
-		sizer->Add(new wxStaticText(sizer->GetStaticBox(), wxID_ANY, _("The game path is scanned by Cemu to locate your games. We recommend creating a dedicated directory in which\nyou place all your Wii U games. (example: C:\\wiiu\\games\\)\n\nYou can also set additional paths in the general settings of Cemu.")), 0, wxALL, 5);
+		wxString language_choices[] = { _("Default") };
+		wxChoice* m_language = new wxChoice(m_page1.languageBoxSizer->GetStaticBox(), wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(language_choices), language_choices);
+		m_language->SetSelection(0);
+
+		for (const auto& language : wxGetApp().GetLanguages())
+		{
+			m_language->Append(language->DescriptionNative);
+		}
+
+		m_language->SetSelection(0);
+		m_page1.languageBoxSizer->Add(m_language, 0, wxALL | wxEXPAND, 5);
+
+		page1_sizer->Add(m_page1.languageBoxSizer, 0, wxALL | wxEXPAND, 5);
+
+		m_language->Bind(wxEVT_CHOICE, [this, m_language](const auto&)
+		{
+			const auto language = m_language->GetStringSelection();
+			auto selection = m_language->GetSelection();
+			if (selection == 0)
+				GetConfig().language = wxLANGUAGE_DEFAULT;
+			else
+			{
+				auto* app = (CemuApp*)wxTheApp;
+				const auto language = m_language->GetStringSelection();
+				for (const auto& lang : app->GetLanguages())
+				{
+					if (lang->DescriptionNative == language)
+					{
+						app->LocalizeUI(static_cast<wxLanguage>(lang->Language));
+						wxCommandEvent event(EVT_REFRESH_FIRST_PAGE);
+						wxPostEvent(this, event);
+						break;
+					}
+				}
+			}
+		});
+	}
+#endif
+
+	{
+		m_page1.gamePathBoxSizer = new wxStaticBoxSizer(wxVERTICAL, mainPanel, _("Game paths"));
+		m_page1.gamePathText = new wxStaticText(m_page1.gamePathBoxSizer->GetStaticBox(), wxID_ANY, _("The game path is scanned by Cemu to automatically locate your games, game updates and DLCs. We recommend creating a dedicated directory in which\nyou place all your Wii U game files. Additional paths can be set later in Cemu's general settings. All common Wii U game formats are supported by Cemu."));
+		m_page1.gamePathBoxSizer->Add(m_page1.gamePathText, 0, wxALL, 5);
 
 		auto* game_path_sizer = new wxBoxSizer(wxHORIZONTAL);
 
-		game_path_sizer->Add(new wxStaticText(sizer->GetStaticBox(), wxID_ANY, _("Game path")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_page1.gamePathText2 = new wxStaticText(m_page1.gamePathBoxSizer->GetStaticBox(), wxID_ANY, _("Game path"));
+		game_path_sizer->Add(m_page1.gamePathText2, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		m_game_path = new wxDirPickerCtrl(sizer->GetStaticBox(), wxID_ANY, wxEmptyString, _("Select a folder"));
-		game_path_sizer->Add(m_game_path, 1, wxALL, 5);
+		m_page1.gamePathPicker = new wxDirPickerCtrl(m_page1.gamePathBoxSizer->GetStaticBox(), wxID_ANY, wxEmptyString, _("Select a folder"));
+		game_path_sizer->Add(m_page1.gamePathPicker, 1, wxALL, 5);
 
-		sizer->Add(game_path_sizer, 0, wxEXPAND, 5);
+		m_page1.gamePathBoxSizer->Add(game_path_sizer, 0, wxEXPAND, 5);
 
-		page1_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
+		page1_sizer->Add(m_page1.gamePathBoxSizer, 0, wxALL | wxEXPAND, 5);
 	}
 
 	{
-		auto* sizer = new wxStaticBoxSizer(wxVERTICAL, result, _("Graphic packs"));
+		auto* sizer = new wxStaticBoxSizer(wxVERTICAL, mainPanel, _("Graphic packs && mods"));
 
-		sizer->Add(new wxStaticText(sizer->GetStaticBox(), wxID_ANY, _("Graphic packs improve games by offering the possibility to change resolution, tweak FPS or add other visual or gameplay modifications.\nDownload the community graphic packs to get started.\n")), 0, wxALL, 5);
+		sizer->Add(new wxStaticText(sizer->GetStaticBox(), wxID_ANY, _("Graphic packs improve games by offering the ability to change resolution, increase FPS, tweak visuals or add gameplay modifications.\nGet started by opening the graphic packs configuration window.\n")), 0, wxALL, 5);
 
-		auto* download_gp = new wxButton(sizer->GetStaticBox(), wxID_ANY, _("Download community graphic packs"));
-		download_gp->Bind(wxEVT_BUTTON, &GettingStartedDialog::OnDownloadGPs, this);
+		auto* download_gp = new wxButton(sizer->GetStaticBox(), wxID_ANY, _("Download and configure graphic packs"));
+		download_gp->Bind(wxEVT_BUTTON, &GettingStartedDialog::OnConfigureGPs, this);
 		sizer->Add(download_gp, 0, wxALIGN_CENTER | wxALL, 5);
 
 		page1_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
@@ -102,16 +127,15 @@ wxPanel* GettingStartedDialog::CreatePage1()
 		sizer->SetFlexibleDirection(wxBOTH);
 		sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_ALL);
 
-		auto* next = new wxButton(result, wxID_ANY, _("Next"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* next = new wxButton(mainPanel, wxID_ANY, _("Next"), wxDefaultPosition, wxDefaultSize, 0);
 		next->Bind(wxEVT_BUTTON, [this](const auto&){m_notebook->SetSelection(1); });
 		sizer->Add(next, 0, wxALIGN_BOTTOM | wxALIGN_RIGHT | wxALL, 5);
 
 		page1_sizer->Add(sizer, 1, wxEXPAND, 5);
 	}
 
-
-	result->SetSizer(page1_sizer);
-	return result;
+	mainPanel->SetSizer(page1_sizer);
+	return mainPanel;
 }
 
 wxPanel* GettingStartedDialog::CreatePage2()
@@ -138,18 +162,19 @@ wxPanel* GettingStartedDialog::CreatePage2()
 		option_sizer->SetFlexibleDirection(wxBOTH);
 		option_sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		m_fullscreen = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Start games with fullscreen"));
-		option_sizer->Add(m_fullscreen, 0, wxALL, 5);
+		m_page2.fullscreenCheckbox = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Start games with fullscreen"));
+		option_sizer->Add(m_page2.fullscreenCheckbox, 0, wxALL, 5);
 
-		m_separate = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Open separate pad screen"));
-		option_sizer->Add(m_separate, 0, wxALL, 5);
+		m_page2.separateCheckbox = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Open separate pad screen"));
+		option_sizer->Add(m_page2.separateCheckbox, 0, wxALL, 5);
 
-		m_update = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Automatically check for updates"));
-		option_sizer->Add(m_update, 0, wxALL, 5);
-#if BOOST_OS_LINUX || BOOST_OS_MACOS
-		m_update->Disable();
+		m_page2.updateCheckbox = new wxCheckBox(sizer->GetStaticBox(), wxID_ANY, _("Automatically check for updates"));
+		option_sizer->Add(m_page2.updateCheckbox, 0, wxALL, 5);
+#if BOOST_OS_LINUX 
+		if (!std::getenv("APPIMAGE")) {
+			m_page2.updateCheckbox->Disable();
+		} 
 #endif
-
 		sizer->Add(option_sizer, 1, wxEXPAND, 5);
 		page2_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
 	}
@@ -160,10 +185,6 @@ wxPanel* GettingStartedDialog::CreatePage2()
 		sizer->AddGrowableRow(0);
 		sizer->SetFlexibleDirection(wxBOTH);
 		sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_ALL);
-
-		m_dont_show = new wxCheckBox(result, wxID_ANY, _("Don't show this again"));
-		m_dont_show->SetValue(true);
-		sizer->Add(m_dont_show, 0, wxALIGN_BOTTOM | wxALL, 5);
 
 		auto* previous = new wxButton(result, wxID_ANY, _("Previous"));
 		previous->Bind(wxEVT_BUTTON, [this](const auto&) {m_notebook->SetSelection(0); });
@@ -183,23 +204,9 @@ wxPanel* GettingStartedDialog::CreatePage2()
 void GettingStartedDialog::ApplySettings()
 {
 	auto& config = GetConfig();
-	m_fullscreen->SetValue(config.fullscreen.GetValue());
-	m_update->SetValue(config.check_update.GetValue());
-	m_separate->SetValue(config.pad_open.GetValue());
-	m_dont_show->SetValue(true); // we want it always enabled by default
-   	m_mlc_folder->SetPath(config.mlc_path.GetValue());
-
-	try
-	{
-		const auto pconfig = PermanentConfig::Load();
-		if(!pconfig.custom_mlc_path.empty())
-		{
-   			m_mlc_folder->SetPath(wxString::FromUTF8(pconfig.custom_mlc_path));
-			m_prev_mlc_warning->Show(true);
-		}
-	}
-	catch (const PSDisabledException&) {}
-	catch (...)	{}
+	m_page2.fullscreenCheckbox->SetValue(config.fullscreen.GetValue());
+	m_page2.updateCheckbox->SetValue(config.check_update.GetValue());
+	m_page2.separateCheckbox->SetValue(config.pad_open.GetValue());
 }
 
 void GettingStartedDialog::UpdateWindowSize()
@@ -218,46 +225,25 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 	event.Skip();
 
 	auto& config = GetConfig();
-	config.fullscreen = m_fullscreen->GetValue();
-	config.check_update = m_update->GetValue();
-	config.pad_open = m_separate->GetValue();
-	config.did_show_graphic_pack_download = m_dont_show->GetValue();
+	config.fullscreen = m_page2.fullscreenCheckbox->GetValue();
+	config.check_update = m_page2.updateCheckbox->GetValue();
+	config.pad_open = m_page2.separateCheckbox->GetValue();
 
-	const fs::path gamePath = wxHelper::MakeFSPath(m_game_path->GetPath());
-	if (!gamePath.empty() && fs::exists(gamePath))
+	const fs::path gamePath = wxHelper::MakeFSPath(m_page1.gamePathPicker->GetPath());
+	std::error_code ec;
+	if (!gamePath.empty() && fs::exists(gamePath, ec))
 	{
 		const auto it = std::find(config.game_paths.cbegin(), config.game_paths.cend(), gamePath);
 		if (it == config.game_paths.cend())
 		{
 			config.game_paths.emplace_back(_pathToUtf8(gamePath));
-			m_game_path_changed = true;
 		}
 	}
-
-    const fs::path mlcPath = wxHelper::MakeFSPath(m_mlc_folder->GetPath());
-	if(config.mlc_path.GetValue() != mlcPath && (mlcPath.empty() || fs::exists(mlcPath)))
-	{
-		config.SetMLCPath(mlcPath, false);
-		m_mlc_changed = true;
-	}
-	
-	g_config.Save();
-
-	if(m_mlc_changed)
-		CemuApp::CreateDefaultFiles();
-
-	CafeTitleList::ClearScanPaths();
-	for (auto& it : GetConfig().game_paths)
-		CafeTitleList::AddScanPath(_utf8ToPath(it));
-	CafeTitleList::Refresh();
 }
-
 
 GettingStartedDialog::GettingStartedDialog(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Getting started"), wxDefaultPosition, { 740,530 }, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
-	//this->SetSizeHints(wxDefaultSize, { 740,530 });
-
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	m_notebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
@@ -273,24 +259,18 @@ GettingStartedDialog::GettingStartedDialog(wxWindow* parent)
 	this->SetSizer(sizer);
 	this->Centre(wxBOTH);
 	this->Bind(wxEVT_CLOSE_WINDOW, &GettingStartedDialog::OnClose, this);
-	
+
 	ApplySettings();
 	UpdateWindowSize();
 }
 
-void GettingStartedDialog::OnDownloadGPs(wxCommandEvent& event)
+void GettingStartedDialog::OnConfigureGPs(wxCommandEvent& event)
 {
 	DownloadGraphicPacksWindow dialog(this);
 	dialog.ShowModal();
-
 	GraphicPacksWindow2::RefreshGraphicPacks();
-
-	wxMessageDialog ask_dialog(this, _("Do you want to view the downloaded graphic packs?"), _("Graphic packs"), wxCENTRE | wxYES_NO);
-	if (ask_dialog.ShowModal() == wxID_YES)
-	{
-		GraphicPacksWindow2 window(this, 0);
-		window.ShowModal();
-	}
+	GraphicPacksWindow2 window(this, 0);
+	window.ShowModal();
 }
 
 void GettingStartedDialog::OnInputSettings(wxCommandEvent& event)
@@ -298,20 +278,3 @@ void GettingStartedDialog::OnInputSettings(wxCommandEvent& event)
 	InputSettings2 dialog(this);
 	dialog.ShowModal();
 }
-
-void GettingStartedDialog::OnMLCPathChar(wxKeyEvent& event)
-{
-	//if (LaunchSettings::GetMLCPath().has_value())
-	//	return;
-
-	if (event.GetKeyCode() == WXK_DELETE || event.GetKeyCode() == WXK_BACK)
-	{
-		m_mlc_folder->GetTextCtrl()->SetValue(wxEmptyString);
-		if(m_prev_mlc_warning->IsShown())
-		{
-			m_prev_mlc_warning->Show(false);
-			UpdateWindowSize();
-		}	
-	}
-}
-

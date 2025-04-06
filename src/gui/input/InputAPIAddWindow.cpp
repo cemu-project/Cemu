@@ -114,6 +114,11 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 	this->Bind(wxControllersRefreshed, &InputAPIAddWindow::on_controllers_refreshed, this);
 }
 
+InputAPIAddWindow::~InputAPIAddWindow()
+{
+	discard_thread_result();
+}
+
 void InputAPIAddWindow::on_add_button(wxCommandEvent& event)
 {
 	const auto selection = m_input_api->GetSelection();
@@ -159,6 +164,8 @@ std::unique_ptr<ControllerProviderSettings> InputAPIAddWindow::get_settings() co
 
 void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
 {
+	discard_thread_result();
+
 	if (m_input_api->GetSelection() == wxNOT_FOUND)
 		return;
 
@@ -239,19 +246,25 @@ void InputAPIAddWindow::on_controller_dropdown(wxCommandEvent& event)
 	m_controller_list->Append(_("Searching for controllers..."), (wxClientData*)nullptr);
 	m_controller_list->SetSelection(wxNOT_FOUND);
 
-	std::thread([this, provider, selected_uuid]()
+	m_search_thread_data = std::make_unique<AsyncThreadData>();
+	std::thread([this, provider, selected_uuid](std::shared_ptr<AsyncThreadData> data)
 	{
 		auto available_controllers = provider->get_controllers();
 
-		wxCommandEvent event(wxControllersRefreshed);
-		event.SetEventObject(m_controller_list);
-		event.SetClientObject(new wxCustomData(std::move(available_controllers)));
-		event.SetInt(provider->api());
-		event.SetString(selected_uuid);
-		wxPostEvent(this, event);
-
-		m_search_running = false;
-	}).detach();
+		{
+			std::lock_guard lock{data->mutex};
+			if(!data->discardResult)
+			{
+				wxCommandEvent event(wxControllersRefreshed);
+				event.SetEventObject(m_controller_list);
+				event.SetClientObject(new wxCustomData(std::move(available_controllers)));
+				event.SetInt(provider->api());
+				event.SetString(selected_uuid);
+				wxPostEvent(this, event);
+				m_search_running = false;
+			}
+		}
+	}, m_search_thread_data).detach();
 }
 
 void InputAPIAddWindow::on_controller_selected(wxCommandEvent& event)
@@ -299,5 +312,15 @@ void InputAPIAddWindow::on_controllers_refreshed(wxCommandEvent& event)
 			controllers->SetSelection(index);
 			item_selected = true;
 		}
+	}
+}
+
+void InputAPIAddWindow::discard_thread_result()
+{
+	m_search_running = false;
+	if(m_search_thread_data)
+	{
+		std::lock_guard lock{m_search_thread_data->mutex};
+		m_search_thread_data->discardResult = true;
 	}
 }

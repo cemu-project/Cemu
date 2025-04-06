@@ -256,10 +256,8 @@ namespace nn
 				this->flags = 0;
 				memset(this->titleText, 0, sizeof(this->titleText));
 				memset(this->description, 0, sizeof(this->description));
-				int v2 = 0;
-				do
-					memset(this->searchKeys[v2++], 0, sizeof(this->searchKeys[v2++]));
-				while (v2 < 5);
+				for (int i = 0; i < 5; i++)
+					memset(this->searchKeys[i], 0, sizeof(this->searchKeys[0]));
 			}
 			static UploadCommunityDataParam* __ctor(UploadCommunityDataParam* _this)
 			{

@@ -11,6 +11,8 @@
 #include "coreinit_IPC.h"
 #include "Cafe/Filesystem/fsc.h"
 #include "coreinit_IPCBuf.h"
+#include "Cafe/CafeSystem.h"
+#include "Cafe/TitleList/TitleInfo.h"
 
 #define FS_CB_PLACEHOLDER_FINISHCMD (MPTR)(0xF122330E)
 
@@ -54,7 +56,7 @@ namespace coreinit
 		OSUnlockMutex(&s_fsGlobalMutex);
 	}
 
-	void _debugVerifyCommand(const char* stage, FSCmdBlockBody_t* fsCmdBlockBody);
+	void _debugVerifyCommand(const char* stage, FSCmdBlockBody* fsCmdBlockBody);
 
 	bool sFSInitialized = true; // this should be false but it seems like some games rely on FSInit being called before main()? Twilight Princess for example reads files before it calls FSInit
 	bool sFSShutdown = false;
@@ -94,6 +96,14 @@ namespace coreinit
 		// so we can just hard code it. Other mount types are not (yet) supported.
 		if (mountSourceType == MOUNT_TYPE::SD)
 		{
+			// check for SD card permissions (from cos.xml)
+			// One Piece relies on failing here, otherwise it will call FSGetMountSource in an infinite loop
+			CosCapabilityBitsFS perms = static_cast<CosCapabilityBitsFS>(CafeSystem::GetForegroundTitleCosCapabilities(CosCapabilityGroup::FS));
+			if(!HAS_FLAG(perms, CosCapabilityBitsFS::SDCARD_MOUNT))
+			{
+				cemuLog_logOnce(LogType::Force, "Title is trying to access SD card mount info without having SD card permissions. This may not be a bug");
+				return FS_RESULT::END_ITERATION;
+			}
 			mountSourceInfo->sourceType = 0;
 			strcpy(mountSourceInfo->path, "/sd");
 			return FS_RESULT::SUCCESS;
@@ -184,12 +194,12 @@ namespace coreinit
 	}
 
 	// return the aligned FSClientBody struct inside a FSClient struct
-	FSCmdBlockBody_t* __FSGetCmdBlockBody(FSCmdBlock_t* fsCmdBlock)
+	FSCmdBlockBody* __FSGetCmdBlockBody(FSCmdBlock_t* fsCmdBlock)
 	{
 		// align pointer to 64 bytes
 		if (fsCmdBlock == nullptr)
 			return nullptr;
-		FSCmdBlockBody_t* fsCmdBlockBody = (FSCmdBlockBody_t*)(((uintptr_t)fsCmdBlock + 0x3F) & ~0x3F);
+		FSCmdBlockBody* fsCmdBlockBody = (FSCmdBlockBody*)(((uintptr_t)fsCmdBlock + 0x3F) & ~0x3F);
 		fsCmdBlockBody->selfCmdBlock = fsCmdBlock;
 		return fsCmdBlockBody;
 	}
@@ -251,8 +261,8 @@ namespace coreinit
 		fsCmdQueueBE->numCommandsInFlight = 0;
 		fsCmdQueueBE->numMaxCommandsInFlight = numMaxCommandsInFlight;
 		coreinit::OSFastMutex_Init(&fsCmdQueueBE->fastMutex, nullptr);
-		fsCmdQueueBE->firstMPTR = _swapEndianU32(0);
-		fsCmdQueueBE->lastMPTR = _swapEndianU32(0);
+		fsCmdQueueBE->first = nullptr;
+		fsCmdQueueBE->last = nullptr;
 	}
 
 	void FSInit()
@@ -372,74 +382,71 @@ namespace coreinit
 
 	Semaphore g_semaphoreQueuedCmds;
 
-	void __FSQueueCmdByPriority(FSCmdQueue* fsCmdQueueBE, FSCmdBlockBody_t* fsCmdBlockBody, bool stopAtEqualPriority)
+	void __FSQueueCmdByPriority(FSCmdQueue* fsCmdQueueBE, FSCmdBlockBody* fsCmdBlockBody, bool stopAtEqualPriority)
 	{
-		MPTR fsCmdBlockBodyMPTR = memory_getVirtualOffsetFromPointer(fsCmdBlockBody);
-		if (_swapEndianU32(fsCmdQueueBE->firstMPTR) == MPTR_NULL)
+		if (!fsCmdQueueBE->first)
 		{
 			// queue is currently empty
-			cemu_assert(fsCmdQueueBE->lastMPTR == MPTR_NULL);
-			fsCmdQueueBE->firstMPTR = _swapEndianU32(fsCmdBlockBodyMPTR);
-			fsCmdQueueBE->lastMPTR = _swapEndianU32(fsCmdBlockBodyMPTR);
-			fsCmdBlockBody->nextMPTR = _swapEndianU32(MPTR_NULL);
-			fsCmdBlockBody->previousMPTR = _swapEndianU32(MPTR_NULL);
+			cemu_assert(!fsCmdQueueBE->last);
+			fsCmdQueueBE->first = fsCmdBlockBody;
+			fsCmdQueueBE->last = fsCmdBlockBody;
+			fsCmdBlockBody->next = nullptr;
+			fsCmdBlockBody->previous = nullptr;
 			return;
 		}
 		// iterate from last to first element as long as iterated priority is lower
-		FSCmdBlockBody_t* fsCmdBlockBodyItrPrev = NULL;
-		FSCmdBlockBody_t* fsCmdBlockBodyItr = (FSCmdBlockBody_t*)memory_getPointerFromVirtualOffsetAllowNull(_swapEndianU32(fsCmdQueueBE->lastMPTR));
+		FSCmdBlockBody* fsCmdBlockBodyItrPrev = nullptr;
+		FSCmdBlockBody* fsCmdBlockBodyItr = fsCmdQueueBE->last;
 		while (true)
 		{
-			if (fsCmdBlockBodyItr == NULL)
+			if (!fsCmdBlockBodyItr)
 			{
 				// insert at the head of the list
-				fsCmdQueueBE->firstMPTR = _swapEndianU32(fsCmdBlockBodyMPTR);
-				fsCmdBlockBody->nextMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsCmdBlockBodyItrPrev));
-				fsCmdBlockBody->previousMPTR = _swapEndianU32(MPTR_NULL);
-				fsCmdBlockBodyItrPrev->previousMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsCmdBlockBody));
+				fsCmdQueueBE->first = fsCmdBlockBody;
+				fsCmdBlockBody->next = fsCmdBlockBodyItrPrev;
+				fsCmdBlockBody->previous = nullptr;
+				fsCmdBlockBodyItrPrev->previous = fsCmdBlockBody;
 				return;
 			}
 			// compare priority
 			if ((stopAtEqualPriority && fsCmdBlockBodyItr->priority >= fsCmdBlockBody->priority) || (stopAtEqualPriority == false && fsCmdBlockBodyItr->priority > fsCmdBlockBody->priority))
 			{
 				// insert cmd here
-				if (fsCmdBlockBodyItrPrev != NULL)
+				if (fsCmdBlockBodyItrPrev)
 				{
-					fsCmdBlockBody->nextMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsCmdBlockBodyItrPrev));
+					fsCmdBlockBody->next = fsCmdBlockBodyItrPrev;
 				}
 				else
 				{
-					fsCmdBlockBody->nextMPTR = _swapEndianU32(MPTR_NULL);
-					fsCmdQueueBE->lastMPTR = _swapEndianU32(fsCmdBlockBodyMPTR);
+					fsCmdBlockBody->next = nullptr;
+					fsCmdQueueBE->last = fsCmdBlockBody;
 				}
-				fsCmdBlockBody->previousMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsCmdBlockBodyItr));
+				fsCmdBlockBody->previous = fsCmdBlockBodyItr;
 				if (fsCmdBlockBodyItrPrev)
-					fsCmdBlockBodyItrPrev->previousMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsCmdBlockBody));
-				fsCmdBlockBodyItr->nextMPTR = _swapEndianU32(memory_getVirtualOffsetFromPointer(fsCmdBlockBody));
+					fsCmdBlockBodyItrPrev->previous = fsCmdBlockBody;
+				fsCmdBlockBodyItr->next = fsCmdBlockBody;
 				return;
 			}
 			// next
 			fsCmdBlockBodyItrPrev = fsCmdBlockBodyItr;
-			fsCmdBlockBodyItr = (FSCmdBlockBody_t*)memory_getPointerFromVirtualOffsetAllowNull(_swapEndianU32(fsCmdBlockBodyItr->previousMPTR));
+			fsCmdBlockBodyItr = fsCmdBlockBodyItr->previous;
 		}
 	}
 
-	FSCmdBlockBody_t* __FSTakeCommandFromQueue(FSCmdQueue* cmdQueue)
+	FSCmdBlockBody* __FSTakeCommandFromQueue(FSCmdQueue* cmdQueue)
 	{
-		FSCmdBlockBody_t* dequeuedCmd = nullptr;
-		if (_swapEndianU32(cmdQueue->firstMPTR) != MPTR_NULL)
+		if (!cmdQueue->first)
+			return nullptr;
+		// dequeue cmd
+		FSCmdBlockBody* dequeuedCmd = cmdQueue->first;
+		if (cmdQueue->first == cmdQueue->last)
+			cmdQueue->last = nullptr;
+		cmdQueue->first = dequeuedCmd->next;
+		dequeuedCmd->next = nullptr;
+		if (dequeuedCmd->next)
 		{
-			dequeuedCmd = (FSCmdBlockBody_t*)memory_getPointerFromVirtualOffset(_swapEndianU32(cmdQueue->firstMPTR));
-			// dequeue cmd
-			if (cmdQueue->firstMPTR == cmdQueue->lastMPTR)
-				cmdQueue->lastMPTR = _swapEndianU32(MPTR_NULL);
-			cmdQueue->firstMPTR = dequeuedCmd->nextMPTR;
-			dequeuedCmd->nextMPTR = _swapEndianU32(MPTR_NULL);
-			if (_swapEndianU32(dequeuedCmd->nextMPTR) != MPTR_NULL)
-			{
-				FSCmdBlockBody_t* fsCmdBodyNext = (FSCmdBlockBody_t*)memory_getPointerFromVirtualOffset(_swapEndianU32(dequeuedCmd->nextMPTR));
-				fsCmdBodyNext->previousMPTR = _swapEndianU32(MPTR_NULL);
-			}
+			FSCmdBlockBody* fsCmdBodyNext = dequeuedCmd->next;
+			fsCmdBodyNext->previous = nullptr;
 		}
 		return dequeuedCmd;
 	}
@@ -489,7 +496,7 @@ namespace coreinit
 		FSLockMutex();
 		if (cmdQueue->numCommandsInFlight < cmdQueue->numMaxCommandsInFlight)
 		{
-			FSCmdBlockBody_t* dequeuedCommand = __FSTakeCommandFromQueue(cmdQueue);
+			FSCmdBlockBody* dequeuedCommand = __FSTakeCommandFromQueue(cmdQueue);
 			if (dequeuedCommand)
 			{
 				cmdQueue->numCommandsInFlight += 1;
@@ -502,7 +509,7 @@ namespace coreinit
 		FSUnlockMutex();
 	}
 
-	void __FSQueueDefaultFinishFunc(FSCmdBlockBody_t* fsCmdBlockBody, FS_RESULT result)
+	void __FSQueueDefaultFinishFunc(FSCmdBlockBody* fsCmdBlockBody, FS_RESULT result)
 	{
 		switch ((FSA_CMD_OPERATION_TYPE)fsCmdBlockBody->fsaShimBuffer.operationType.value())
 		{
@@ -584,13 +591,13 @@ namespace coreinit
 
 	void export___FSQueueDefaultFinishFunc(PPCInterpreter_t* hCPU)
 	{
-		ppcDefineParamPtr(cmd, FSCmdBlockBody_t, 0);
+		ppcDefineParamPtr(cmd, FSCmdBlockBody, 0);
 		FS_RESULT result = (FS_RESULT)PPCInterpreter_getCallParamU32(hCPU, 1);
 		__FSQueueDefaultFinishFunc(cmd, static_cast<FS_RESULT>(result));
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	void __FSQueueCmd(FSCmdQueue* cmdQueue, FSCmdBlockBody_t* fsCmdBlockBody, MPTR finishCmdFunc)
+	void __FSQueueCmd(FSCmdQueue* cmdQueue, FSCmdBlockBody* fsCmdBlockBody, MPTR finishCmdFunc)
 	{
 		fsCmdBlockBody->cmdFinishFuncMPTR = finishCmdFunc;
 		FSLockMutex();
@@ -666,7 +673,7 @@ namespace coreinit
 		return FS_RESULT::FATAL_ERROR;
 	}
 
-	void __FSCmdSubmitResult(FSCmdBlockBody_t* fsCmdBlockBody, FS_RESULT result)
+	void __FSCmdSubmitResult(FSCmdBlockBody* fsCmdBlockBody, FS_RESULT result)
 	{
 		_debugVerifyCommand("FSCmdSubmitResult", fsCmdBlockBody);
 
@@ -710,7 +717,7 @@ namespace coreinit
 	void __FSAIoctlResponseCallback(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(iosResult, 0);
-		ppcDefineParamPtr(cmd, FSCmdBlockBody_t, 1);
+		ppcDefineParamPtr(cmd, FSCmdBlockBody, 1);
 
 		FSA_RESULT fsaStatus = _FSIosErrorToFSAStatus((IOS_ERROR)iosResult);
 
@@ -744,25 +751,25 @@ namespace coreinit
 	void FSInitCmdBlock(FSCmdBlock_t* fsCmdBlock)
 	{
 		memset(fsCmdBlock, 0x00, sizeof(FSCmdBlock_t));
-		FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
+		FSCmdBlockBody* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
 		fsCmdBlockBody->statusCode = _swapEndianU32(FSA_CMD_STATUS_CODE_D900A21);
 		fsCmdBlockBody->priority = 0x10;
 	}
 
-	void __FSAsyncToSyncInit(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSAsyncParamsNew_t* asyncParams)
+	void __FSAsyncToSyncInit(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSAsyncParams* asyncParams)
 	{
 		if (fsClient == nullptr || fsCmdBlock == nullptr || asyncParams == nullptr)
 			assert_dbg();
-		FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
+		FSCmdBlockBody* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
 		coreinit::OSInitMessageQueue(&fsCmdBlockBody->syncTaskMsgQueue, fsCmdBlockBody->_syncTaskMsg, 1);
 		asyncParams->userCallback = nullptr;
 		asyncParams->userContext = nullptr;
 		asyncParams->ioMsgQueue = &fsCmdBlockBody->syncTaskMsgQueue;
 	}
 
-	void __FSPrepareCmdAsyncResult(FSClientBody_t* fsClientBody, FSCmdBlockBody_t* fsCmdBlockBody, FSAsyncResult* fsCmdBlockAsyncResult, FSAsyncParamsNew_t* fsAsyncParams)
+	void __FSPrepareCmdAsyncResult(FSClientBody_t* fsClientBody, FSCmdBlockBody* fsCmdBlockBody, FSAsyncResult* fsCmdBlockAsyncResult, FSAsyncParams* fsAsyncParams)
 	{
-		memcpy(&fsCmdBlockAsyncResult->fsAsyncParamsNew, fsAsyncParams, sizeof(FSAsyncParamsNew_t));
+		memcpy(&fsCmdBlockAsyncResult->fsAsyncParamsNew, fsAsyncParams, sizeof(FSAsyncParams));
 
 		fsCmdBlockAsyncResult->fsClient = fsClientBody->selfClient;
 		fsCmdBlockAsyncResult->fsCmdBlock = fsCmdBlockBody->selfCmdBlock;
@@ -771,7 +778,7 @@ namespace coreinit
 		fsCmdBlockAsyncResult->msgUnion.fsMsg.commandType = _swapEndianU32(8);
 	}
 
-	sint32 __FSPrepareCmd(FSClientBody_t* fsClientBody, FSCmdBlockBody_t* fsCmdBlockBody, uint32 errHandling, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 __FSPrepareCmd(FSClientBody_t* fsClientBody, FSCmdBlockBody* fsCmdBlockBody, uint32 errHandling, FSAsyncParams* fsAsyncParams)
 	{
 		if (sFSInitialized == false || sFSShutdown == true)
 			return -0x400;
@@ -803,18 +810,18 @@ namespace coreinit
 
 #define _FSCmdIntro()                                                                        \
 	FSClientBody_t* fsClientBody = __FSGetClientBody(fsClient);                              \
-	FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);                      \
+	FSCmdBlockBody* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);                      \
 	sint32 fsError = __FSPrepareCmd(fsClientBody, fsCmdBlockBody, errorMask, fsAsyncParams); \
 	if (fsError != 0)                                                                        \
 		return fsError;
 
-	void _debugVerifyCommand(const char* stage, FSCmdBlockBody_t* fsCmdBlockBody)
+	void _debugVerifyCommand(const char* stage, FSCmdBlockBody* fsCmdBlockBody)
 	{
 		if (fsCmdBlockBody->asyncResult.msgUnion.fsMsg.commandType != _swapEndianU32(8))
 		{
 			cemuLog_log(LogType::Force, "Corrupted FS command detected in stage {}", stage);
 			cemuLog_log(LogType::Force, "Printing CMD block: ");
-			for (uint32 i = 0; i < (sizeof(FSCmdBlockBody_t) + 31) / 32; i++)
+			for (uint32 i = 0; i < (sizeof(FSCmdBlockBody) + 31) / 32; i++)
 			{
 				uint8* p = ((uint8*)fsCmdBlockBody) + i * 32;
 				cemuLog_log(LogType::Force, "{:04x}: {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} | {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x} - {:02x} {:02x} {:02x} {:02x}",
@@ -827,7 +834,7 @@ namespace coreinit
 
 	FSAsyncResult* FSGetAsyncResult(OSMessage* msg)
 	{
-		return (FSAsyncResult*)memory_getPointerFromVirtualOffset(_swapEndianU32(msg->message));
+		return (FSAsyncResult*)memory_getPointerFromVirtualOffset(msg->message);
 	}
 
 	sint32 __FSProcessAsyncResult(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, sint32 fsStatus, uint32 errHandling)
@@ -835,7 +842,7 @@ namespace coreinit
 		// a positive result (or zero) means success. Most operations return zero in case of success. Read and write operations return the number of transferred units
 		if (fsStatus >= 0)
 		{
-			FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
+			FSCmdBlockBody* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
 			OSMessage msg;
 			OSReceiveMessage(&fsCmdBlockBody->syncTaskMsgQueue, &msg, OS_MESSAGE_BLOCK);
 			_debugVerifyCommand("handleAsyncResult", fsCmdBlockBody);
@@ -896,12 +903,12 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* outFileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSOpenFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandlePtr outFileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		if (outFileHandle == nullptr || path == nullptr || mode == nullptr)
 			return -0x400;
-		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = &outFileHandle->fileHandle;
+		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = outFileHandle;
 		fsError = (FSStatus)__FSPrepareCmd_OpenFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path, mode, 0x660, 0, 0);
 		if (fsError != (FSStatus)FS_RESULT::SUCCESS)
 			return fsError;
@@ -909,15 +916,15 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSOpenFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandleDepr_t* fileHandle, uint32 errHandling)
+	sint32 FSOpenFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, FSFileHandlePtr outFileHandle, uint32 errHandling)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSOpenFileAsync(fsClient, fsCmdBlock, path, mode, fileHandle, errHandling, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSOpenFileAsync(fsClient, fsCmdBlock, path, mode, outFileHandle, errHandling, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
-	sint32 FSOpenFileExAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, uint32 createMode, uint32 openFlag, uint32 preallocSize, FSFileHandleDepr_t* outFileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSOpenFileExAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, uint32 createMode, uint32 openFlag, uint32 preallocSize, FSFileHandlePtr outFileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		if (openFlag != 0)
 		{
@@ -928,7 +935,7 @@ namespace coreinit
 		_FSCmdIntro();
 		if (outFileHandle == nullptr || path == nullptr || mode == nullptr)
 			return -0x400;
-		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = &outFileHandle->fileHandle;
+		fsCmdBlockBody->returnValues.cmdOpenFile.handlePtr = outFileHandle;
 
 		FSA_RESULT prepareResult = __FSPrepareCmd_OpenFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, path, mode, createMode, openFlag, preallocSize);
 		if (prepareResult != FSA_RESULT::OK)
@@ -938,11 +945,11 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSOpenFileEx(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, uint32 createMode, uint32 openFlag, uint32 preallocSize, FSFileHandleDepr_t* fileHandle, uint32 errHandling)
+	sint32 FSOpenFileEx(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, char* mode, uint32 createMode, uint32 openFlag, uint32 preallocSize, FSFileHandlePtr outFileHandle, uint32 errHandling)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSOpenFileExAsync(fsClient, fsCmdBlock, path, mode, createMode, openFlag, preallocSize, fileHandle, errHandling, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSOpenFileExAsync(fsClient, fsCmdBlock, path, mode, createMode, openFlag, preallocSize, outFileHandle, errHandling, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
@@ -960,7 +967,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSCloseFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSCloseFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 
@@ -974,9 +981,9 @@ namespace coreinit
 
 	sint32 FSCloseFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errHandling)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSCloseFileAsync(fsClient, fsCmdBlock, fileHandle, errHandling, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSCloseFileAsync(fsClient, fsCmdBlock, fileHandle, errHandling, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
@@ -994,7 +1001,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSFlushFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSFlushFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 
@@ -1008,9 +1015,9 @@ namespace coreinit
 
 	sint32 FSFlushFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errHandling)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSFlushFileAsync(fsClient, fsCmdBlock, fileHandle, errHandling, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSFlushFileAsync(fsClient, fsCmdBlock, fileHandle, errHandling, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errHandling);
 	}
 
@@ -1050,7 +1057,7 @@ namespace coreinit
 
 	SysAllocator<uint8, 128, 64> _tempFSSpace;
 
-	sint32 __FSReadFileAsyncEx(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dest, uint32 size, uint32 count, bool usePos, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 __FSReadFileAsyncEx(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dest, uint32 size, uint32 count, bool usePos, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		if (size == 0 || count == 0 || dest == NULL)
@@ -1081,7 +1088,7 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSReadFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSReadFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		cemu_assert_debug(flag == 0); // todo
 		return __FSReadFileAsyncEx(fsClient, fsCmdBlock, dst, size, count, false, 0, fileHandle, flag, errorMask, fsAsyncParams);
@@ -1089,13 +1096,13 @@ namespace coreinit
 
 	sint32 FSReadFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSReadFileAsync(fsClient, fsCmdBlock, dst, size, count, fileHandle, flag, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	sint32 FSReadFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSReadFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		cemu_assert_debug(flag == 0); // todo
 		sint32 fsStatus = __FSReadFileAsyncEx(fsClient, fsCmdBlock, dst, size, count, true, filePos, fileHandle, flag, errorMask, fsAsyncParams);
@@ -1104,8 +1111,8 @@ namespace coreinit
 
 	sint32 FSReadFileWithPos(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dst, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSReadFileWithPosAsync(fsClient, fsCmdBlock, dst, size, count, filePos, fileHandle, flag, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1144,7 +1151,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 __FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dest, uint32 size, uint32 count, bool useFilePos, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 __FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* dest, uint32 size, uint32 count, bool useFilePos, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		if (size == 0 || count == 0 || dest == nullptr)
@@ -1175,28 +1182,28 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSWriteFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSWriteFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		return __FSWriteFileWithPosAsync(fsClient, fsCmdBlock, src, size, count, false, 0, fileHandle, flag, errorMask, fsAsyncParams);
 	}
 
 	sint32 FSWriteFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 fileHandle, uint32 flag, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSWriteFileAsync(fsClient, fsCmdBlock, src, size, count, fileHandle, flag, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	sint32 FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSWriteFileWithPosAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		return __FSWriteFileWithPosAsync(fsClient, fsCmdBlock, src, size, count, true, filePos, fileHandle, flag, errorMask, fsAsyncParams);
 	}
 
 	sint32 FSWriteFileWithPos(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, void* src, uint32 size, uint32 count, uint32 filePos, uint32 fileHandle, uint32 flag, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSWriteFileWithPosAsync(fsClient, fsCmdBlock, src, size, count, filePos, fileHandle, flag, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1214,7 +1221,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSSetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSSetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_SetPosFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle, filePos);
@@ -1227,8 +1234,8 @@ namespace coreinit
 	sint32 FSSetPosFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 filePos, uint32 errorMask)
 	{
 		// used by games: Mario Kart 8
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSSetPosFileAsync(fsClient, fsCmdBlock, fileHandle, filePos, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1244,7 +1251,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSGetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSGetPosFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// games using this: Darksiders Warmastered Edition
 		_FSCmdIntro();
@@ -1258,8 +1265,8 @@ namespace coreinit
 
 	sint32 FSGetPosFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32be* returnedFilePos, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSGetPosFileAsync(fsClient, fsCmdBlock, fileHandle, returnedFilePos, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1292,7 +1299,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSOpenDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSOpenDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		cemu_assert(dirHandleOut && path);
@@ -1306,9 +1313,9 @@ namespace coreinit
 
 	sint32 FSOpenDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, FSDirHandlePtr dirHandleOut, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSOpenDirAsync(fsClient, fsCmdBlock, path, dirHandleOut, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSOpenDirAsync(fsClient, fsCmdBlock, path, dirHandleOut, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1323,7 +1330,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSReadDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSReadDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_ReadDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
@@ -1334,11 +1341,11 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSReadDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSReadDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSReadDirAsync(fsClient, fsCmdBlock, dirHandle, dirEntryOut, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSReadDirAsync(fsClient, fsCmdBlock, dirHandle, dirEntryOut, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1353,7 +1360,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSCloseDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSCloseDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_CloseDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
@@ -1366,9 +1373,9 @@ namespace coreinit
 
 	sint32 FSCloseDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSCloseDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSCloseDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1386,7 +1393,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSRewindDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSRewindDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_RewindDir(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, dirHandle);
@@ -1399,9 +1406,9 @@ namespace coreinit
 
 	sint32 FSRewindDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSRewindDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSRewindDirAsync(fsClient, fsCmdBlock, dirHandle, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1421,7 +1428,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSAppendFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_AppendFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, size, count, fileHandle, 0);
@@ -1434,8 +1441,8 @@ namespace coreinit
 
 	sint32 FSAppendFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 size, uint32 count, uint32 fileHandle, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSAppendFileAsync(fsClient, fsCmdBlock, size, count, fileHandle, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1453,7 +1460,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSTruncateFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSTruncateFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		FSA_RESULT prepareResult = __FSPrepareCmd_TruncateFile(&fsCmdBlockBody->fsaShimBuffer, fsClientBody->iosuFSAHandle, fileHandle);
@@ -1466,8 +1473,8 @@ namespace coreinit
 
 	sint32 FSTruncateFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSTruncateFileAsync(fsClient, fsCmdBlock, fileHandle, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1511,7 +1518,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSRenameAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSRenameAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// used by titles: XCX (via SAVERenameAsync)
 		_FSCmdIntro();
@@ -1530,8 +1537,8 @@ namespace coreinit
 
 	sint32 FSRename(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* srcPath, char* dstPath, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
 		sint32 fsAsyncRet = FSRenameAsync(fsClient, fsCmdBlock, srcPath, dstPath, errorMask, asyncParams.GetPointer());
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
@@ -1562,7 +1569,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSRemoveAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSRemoveAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// used by titles: XCX (via SAVERemoveAsync)
 		_FSCmdIntro();
@@ -1581,9 +1588,9 @@ namespace coreinit
 
 	sint32 FSRemove(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* filePath, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSRemoveAsync(fsClient, fsCmdBlock, filePath, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSRemoveAsync(fsClient, fsCmdBlock, filePath, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1614,7 +1621,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* dirPath, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSMakeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* dirPath, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// used by titles: XCX (via SAVEMakeDirAsync)
 		_FSCmdIntro();
@@ -1633,9 +1640,9 @@ namespace coreinit
 
 	sint32 FSMakeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSMakeDirAsync(fsClient, fsCmdBlock, path, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSMakeDirAsync(fsClient, fsCmdBlock, path, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1664,7 +1671,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSChangeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSChangeDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		if (path == NULL)
@@ -1682,9 +1689,9 @@ namespace coreinit
 
 	sint32 FSChangeDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSChangeDirAsync(fsClient, fsCmdBlock, path, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSChangeDirAsync(fsClient, fsCmdBlock, path, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1700,7 +1707,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSGetCwdAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSGetCwdAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// used by titles: Super Mario Maker
 		_FSCmdIntro();
@@ -1717,9 +1724,9 @@ namespace coreinit
 
 	sint32 FSGetCwd(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* dirPathOut, sint32 dirPathMaxLen, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSGetCwdAsync(fsClient, fsCmdBlock, dirPathOut, dirPathMaxLen, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSGetCwdAsync(fsClient, fsCmdBlock, dirPathOut, dirPathMaxLen, errorMask, &asyncParams);
 		auto r = __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 		return r;
 	}
@@ -1748,7 +1755,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 
@@ -1762,9 +1769,9 @@ namespace coreinit
 
 	sint32 FSFlushQuota(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSFlushQuotaAsync(fsClient, fsCmdBlock, path, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSFlushQuotaAsync(fsClient, fsCmdBlock, path, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1798,7 +1805,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 __FSQueryInfoAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* queryString, uint32 queryType, void* queryResult, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 __FSQueryInfoAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* queryString, uint32 queryType, void* queryResult, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		cemu_assert(queryString && queryResult); // query string and result must not be null
@@ -1812,7 +1819,7 @@ namespace coreinit
 		return (FSStatus)FS_RESULT::SUCCESS;
 	}
 
-	sint32 FSGetStatAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSStat_t* statOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSGetStatAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSStat_t* statOut, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		sint32 fsStatus = __FSQueryInfoAsync(fsClient, fsCmdBlock, (uint8*)path, FSA_QUERY_TYPE_STAT, statOut, errorMask, fsAsyncParams);
 		return fsStatus;
@@ -1820,9 +1827,9 @@ namespace coreinit
 
 	sint32 FSGetStat(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSStat_t* statOut, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSGetStatAsync(fsClient, fsCmdBlock, path, statOut, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSGetStatAsync(fsClient, fsCmdBlock, path, statOut, errorMask, &asyncParams);
 		sint32 ret = __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 		return ret;
 	}
@@ -1841,7 +1848,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSGetStatFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, FSStat_t* statOut, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSGetStatFileAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, FSStat_t* statOut, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		_FSCmdIntro();
 		cemu_assert(statOut); // statOut must not be null
@@ -1857,13 +1864,13 @@ namespace coreinit
 
 	sint32 FSGetStatFile(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSFileHandle2 fileHandle, FSStat_t* statOut, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSGetStatFileAsync(fsClient, fsCmdBlock, fileHandle, statOut, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSGetStatFileAsync(fsClient, fsCmdBlock, fileHandle, statOut, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
-	sint32 FSGetFreeSpaceSizeAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSLargeSize* returnedFreeSize, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSGetFreeSpaceSizeAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSLargeSize* returnedFreeSize, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// used by: Wii U system settings app, Art Academy, Unity (e.g. Snoopy's Grand Adventure), Super Smash Bros
 		sint32 fsStatus = __FSQueryInfoAsync(fsClient, fsCmdBlock, (uint8*)path, FSA_QUERY_TYPE_FREESPACE, returnedFreeSize, errorMask, fsAsyncParams);
@@ -1872,9 +1879,9 @@ namespace coreinit
 
 	sint32 FSGetFreeSpaceSize(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, const char* path, FSLargeSize* returnedFreeSize, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSGetFreeSpaceSizeAsync(fsClient, fsCmdBlock, path, returnedFreeSize, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSGetFreeSpaceSizeAsync(fsClient, fsCmdBlock, path, returnedFreeSize, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
@@ -1892,7 +1899,7 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
-	sint32 FSIsEofAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParamsNew_t* fsAsyncParams)
+	sint32 FSIsEofAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams)
 	{
 		// used by Paper Monsters Recut
 		_FSCmdIntro();
@@ -1907,22 +1914,22 @@ namespace coreinit
 
 	sint32 FSIsEof(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint32 fileHandle, uint32 errorMask)
 	{
-		StackAllocator<FSAsyncParamsNew_t, 1> asyncParams;
-		__FSAsyncToSyncInit(fsClient, fsCmdBlock, asyncParams);
-		sint32 fsAsyncRet = FSIsEofAsync(fsClient, fsCmdBlock, fileHandle, errorMask, asyncParams);
+		StackAllocator<FSAsyncParams, 1> asyncParams;
+		__FSAsyncToSyncInit(fsClient, fsCmdBlock, &asyncParams);
+		sint32 fsAsyncRet = FSIsEofAsync(fsClient, fsCmdBlock, fileHandle, errorMask, &asyncParams);
 		return __FSProcessAsyncResult(fsClient, fsCmdBlock, fsAsyncRet, errorMask);
 	}
 
 	void FSSetUserData(FSCmdBlock_t* fsCmdBlock, void* userData)
 	{
-		FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
+		FSCmdBlockBody* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
 		if (fsCmdBlockBody)
 			fsCmdBlockBody->userData = userData;
 	}
 
 	void* FSGetUserData(FSCmdBlock_t* fsCmdBlock)
 	{
-		FSCmdBlockBody_t* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
+		FSCmdBlockBody* fsCmdBlockBody = __FSGetCmdBlockBody(fsCmdBlock);
 		void* userData = nullptr;
 		if (fsCmdBlockBody)
 			userData = fsCmdBlockBody->userData.GetPtr();
@@ -1946,7 +1953,7 @@ namespace coreinit
 		FSClientBody_t* fsClientBody = __FSGetClientBody(fsClient);
 		if (!fsClientBody)
 			return nullptr;
-		FSCmdBlockBody_t* cmdBlockBody = fsClientBody->currentCmdBlockBody;
+		FSCmdBlockBody* cmdBlockBody = fsClientBody->currentCmdBlockBody;
 		if (!cmdBlockBody)
 			return nullptr;
 		return cmdBlockBody->selfCmdBlock;

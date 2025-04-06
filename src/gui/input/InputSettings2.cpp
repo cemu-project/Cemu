@@ -20,6 +20,8 @@
 #include "gui/input/InputAPIAddWindow.h"
 #include "input/ControllerFactory.h"
 
+#include "gui/input/PairingDialog.h"
+
 #include "gui/input/panels/VPADInputPanel.h"
 #include "gui/input/panels/ProControllerInputPanel.h"
 
@@ -252,6 +254,13 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 			page_data.m_controller_api_remove = remove_api;
 		}
 
+		auto* pairingDialog = new wxButton(page, wxID_ANY, _("Pair Wii/Wii U Controller"));
+		pairingDialog->Bind(wxEVT_BUTTON, [this](wxEvent&) {
+			PairingDialog pairing_dialog(this);
+			pairing_dialog.ShowModal();
+		});
+		sizer->Add(pairingDialog, wxGBPosition(5, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
 		// controller
 		auto* controller_bttns = new wxBoxSizer(wxHORIZONTAL);
 		auto* settings = new wxButton(page, wxID_ANY, _("Settings"), wxDefaultPosition, wxDefaultSize, 0);
@@ -293,32 +302,6 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 	page->SetClientObject(new wxCustomData(page_data));
 
 	return page;
-}
-
-std::pair<size_t, size_t> InputSettings2::get_emulated_controller_types() const
-{
-	size_t vpad = 0, wpad = 0;
-	for(size_t i = 0; i < m_notebook->GetPageCount(); ++i)
-	{
-		auto* page = m_notebook->GetPage(i);
-		auto* page_data = (wxControllerPageData*)page->GetClientObject();
-		if (!page_data)
-			continue;
-		
-		if (!page_data->ref().m_controller) // = disabled
-			continue;
-
-		const auto api_type = page_data->ref().m_controller->type();
-		if (api_type) 
-			continue;
-
-		if (api_type == EmulatedController::VPAD)
-			++vpad;
-		else
-			++wpad;
-	}
-
-	return std::make_pair(vpad, wpad);
 }
 
 std::shared_ptr<ControllerBase> InputSettings2::get_active_controller() const
@@ -771,14 +754,16 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	wxWindowUpdateLocker lock(emulated_controllers);
 
 	bool is_gamepad_selected = false;
+	bool is_wpad_selected = false;
 	const auto selected = emulated_controllers->GetSelection();
 	const auto selected_value = emulated_controllers->GetStringSelection();
 	if(selected != wxNOT_FOUND)
 	{
 		is_gamepad_selected = selected_value == to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
+		is_wpad_selected = !is_gamepad_selected && selected != 0;
 	}
 
-	const auto [vpad_count, wpad_count] = get_emulated_controller_types();
+	const auto [vpad_count, wpad_count] = InputManager::instance().get_controller_count();
 
 	emulated_controllers->Clear();
 	emulated_controllers->AppendString(_("Disabled"));
@@ -786,7 +771,7 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	if (vpad_count < InputManager::kMaxVPADControllers || is_gamepad_selected)
 		emulated_controllers->Append(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD)));
 
-	if (wpad_count < InputManager::kMaxWPADControllers || !is_gamepad_selected)
+	if (wpad_count < InputManager::kMaxWPADControllers || is_wpad_selected)
 	{
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Pro)));
 		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Classic)));

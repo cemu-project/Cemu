@@ -1,23 +1,12 @@
 #include "nsyshid.h"
 #include "Backend.h"
-
-#if NSYSHID_ENABLE_BACKEND_LIBUSB
-
+#include "BackendEmulated.h"
 #include "BackendLibusb.h"
-
-#endif
-
-#if NSYSHID_ENABLE_BACKEND_WINDOWS_HID
-
-#include "BackendWindowsHID.h"
-
-#endif
 
 namespace nsyshid::backend
 {
 	void AttachDefaultBackends()
 	{
-#if NSYSHID_ENABLE_BACKEND_LIBUSB
 		// add libusb backend
 		{
 			auto backendLibusb = std::make_shared<backend::libusb::BackendLibusb>();
@@ -26,16 +15,13 @@ namespace nsyshid::backend
 				AttachBackend(backendLibusb);
 			}
 		}
-#endif // NSYSHID_ENABLE_BACKEND_LIBUSB
-#if NSYSHID_ENABLE_BACKEND_WINDOWS_HID
-		// add windows hid backend
+	   // add emulated backend
 		{
-			auto backendWindowsHID = std::make_shared<backend::windows::BackendWindowsHID>();
-			if (backendWindowsHID->IsInitialisedOk())
+			auto backendEmulated = std::make_shared<backend::emulated::BackendEmulated>();
+			if (backendEmulated->IsInitialisedOk())
 			{
-				AttachBackend(backendWindowsHID);
+				AttachBackend(backendEmulated);
 			}
 		}
-#endif // NSYSHID_ENABLE_BACKEND_WINDOWS_HID
 	}
 } // namespace nsyshid::backend
