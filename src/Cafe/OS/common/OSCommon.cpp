@@ -205,7 +205,7 @@ void osLib_save(MemStreamWriter& s)
 	nlibcurl::save(s);
 	nsyshid::save(s);
 	camera::save(s);
-	procui_save(s);
+	proc_ui::save(s);
 }
 void osLib_restore(MemStreamReader& s)
 {
@@ -225,7 +225,7 @@ void osLib_restore(MemStreamReader& s)
 	nlibcurl::restore(s);
 	nsyshid::restore(s);
 	camera::restore(s);
-	procui_restore(s);
+	proc_ui::restore(s);
 }
 
 void osLib_load()

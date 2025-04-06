@@ -875,12 +875,12 @@ namespace proc_ui
 		s_driverInBackground = false;
 	}
 
-	void ProcUISave(MemStreamWriter& s)
+	void save(MemStreamWriter& s)
 	{
 		s.writeSection("proc_ui");
 	}
 
-	void ProcUIRestore(MemStreamReader& s)
+	void restore(MemStreamReader& s)
 	{
 		s.readSection("proc_ui");
 	}

@@ -39,8 +39,8 @@ namespace proc_ui
 	void ProcUIDrawDoneRelease();
 	ProcUIStatus ProcUIProcessMessages(bool isBlockingInBackground);
 	ProcUIStatus ProcUISubProcessMessages(bool isBlockingInBackground);
-	void ProcUISave(MemStreamWriter& s);
-	void ProcUIRestore(MemStreamReader& s);
 
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
 	void load();
 }
