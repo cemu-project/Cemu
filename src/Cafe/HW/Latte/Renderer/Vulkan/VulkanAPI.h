@@ -14,7 +14,11 @@ extern bool g_vulkan_available;
 
 #endif
 
-#ifdef VKFUNC_DEFINE
+#ifdef VKFUNC_DEFINE_CUSTOM
+	#define VKFUNC(__FUNC__) VKFUNC_DEFINE_CUSTOM(__FUNC__)
+	#define VKFUNC_INSTANCE(__FUNC__) VKFUNC_DEFINE_CUSTOM(__FUNC__)
+	#define VKFUNC_DEVICE(__FUNC__) VKFUNC_DEFINE_CUSTOM(__FUNC__)
+#elif defined(VKFUNC_DEFINE)
 	#define VKFUNC(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
 	#define VKFUNC_INSTANCE(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
 	#define VKFUNC_DEVICE(__FUNC__) NOEXPORT PFN_##__FUNC__ __FUNC__ = nullptr
@@ -161,6 +165,7 @@ VKFUNC_DEVICE(vkCmdDraw);
 VKFUNC_DEVICE(vkCmdCopyBufferToImage);
 VKFUNC_DEVICE(vkCmdCopyImageToBuffer);
 VKFUNC_DEVICE(vkCmdClearColorImage);
+VKFUNC_DEVICE(vkCmdClearAttachments);
 VKFUNC_DEVICE(vkCmdBindIndexBuffer);
 VKFUNC_DEVICE(vkCmdBindVertexBuffers);
 VKFUNC_DEVICE(vkCmdDrawIndexed);
@@ -184,6 +189,9 @@ VKFUNC_DEVICE(vkCmdPipelineBarrier2KHR);
 VKFUNC_DEVICE(vkCmdBeginRenderingKHR);
 VKFUNC_DEVICE(vkCmdEndRenderingKHR);
 
+// khr_present_wait
+VKFUNC_DEVICE(vkWaitForPresentKHR);
+
 // transform feedback extension
 VKFUNC_DEVICE(vkCmdBindTransformFeedbackBuffersEXT);
 VKFUNC_DEVICE(vkCmdBeginTransformFeedbackEXT);
@@ -191,6 +199,7 @@ VKFUNC_DEVICE(vkCmdEndTransformFeedbackEXT);
 
 // query
 VKFUNC_DEVICE(vkCreateQueryPool);
+VKFUNC_DEVICE(vkDestroyQueryPool);
 VKFUNC_DEVICE(vkCmdResetQueryPool);
 VKFUNC_DEVICE(vkCmdBeginQuery);
 VKFUNC_DEVICE(vkCmdEndQuery);
@@ -229,6 +238,7 @@ VKFUNC_DEVICE(vkAllocateDescriptorSets);
 VKFUNC_DEVICE(vkFreeDescriptorSets);
 VKFUNC_DEVICE(vkUpdateDescriptorSets);
 VKFUNC_DEVICE(vkCreateDescriptorPool);
+VKFUNC_DEVICE(vkDestroyDescriptorPool);
 VKFUNC_DEVICE(vkDestroyDescriptorSetLayout);
 
 #undef VKFUNC_INIT
@@ -239,3 +249,4 @@ VKFUNC_DEVICE(vkDestroyDescriptorSetLayout);
 #undef VKFUNC
 #undef VKFUNC_INSTANCE
 #undef VKFUNC_DEVICE
+#undef VKFUNC_DEFINE_CUSTOM

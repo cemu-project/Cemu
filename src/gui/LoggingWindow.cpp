@@ -88,7 +88,7 @@ void LoggingWindow::OnLogMessage(wxLogEvent& event)
 
 void LoggingWindow::OnFilterChange(wxCommandEvent& event)
 {
-	m_log_list->SetActiveFilter(from_wxString(m_filter->GetValue()));
+	m_log_list->SetActiveFilter(m_filter->GetValue().utf8_string());
 	event.Skip();
 }
 

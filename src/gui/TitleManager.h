@@ -8,6 +8,8 @@
 
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 
+#define DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN 0
+
 class wxCheckBox;
 class wxStaticText;
 class wxListEvent;
@@ -86,7 +88,6 @@ private:
 	void OnDisconnect(wxCommandEvent& event);
 
 	void OnDlFilterCheckbox(wxCommandEvent& event);
-	void OnDlCheckboxShowUpdates(wxCommandEvent& event);
 
 	void SetConnected(bool state);
 

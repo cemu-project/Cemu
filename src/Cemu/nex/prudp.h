@@ -4,26 +4,26 @@
 
 #define RC4_N 256
 
-typedef struct
+struct RC4Ctx
 {
 	unsigned char S[RC4_N];
 	int i;
 	int j;
-}RC4Ctx_t;
+};
 
-void RC4_initCtx(RC4Ctx_t* rc4Ctx, char *key);
-void RC4_initCtx(RC4Ctx_t* rc4Ctx, unsigned char* key, int keyLen);
-void RC4_transform(RC4Ctx_t* rc4Ctx, unsigned char* input, int len, unsigned char* output);
+void RC4_initCtx(RC4Ctx* rc4Ctx, const char* key);
+void RC4_initCtx(RC4Ctx* rc4Ctx, unsigned char* key, int keyLen);
+void RC4_transform(RC4Ctx* rc4Ctx, unsigned char* input, int len, unsigned char* output);
 
-typedef struct
+struct prudpStreamSettings
 {
 	uint8 checksumBase; // calculated from key
 	uint8 accessKeyDigest[16]; // MD5 hash of key
-	RC4Ctx_t rc4Client;
-	RC4Ctx_t rc4Server;
-}prudpStreamSettings_t;
+	RC4Ctx rc4Client;
+	RC4Ctx rc4Server;
+};
 
-typedef struct
+struct prudpStationUrl
 {
 	uint32 ip;
 	uint16 port;
@@ -32,19 +32,17 @@ typedef struct
 	sint32 sid;
 	sint32 stream;
 	sint32 type;
-}stationUrl_t;
+};
 
-typedef struct
+struct prudpAuthServerInfo
 {
 	uint32 userPid;
 	uint8 secureKey[16];
 	uint8 kerberosKey[16];
 	uint8 secureTicket[1024];
 	sint32 secureTicketLength;
-	stationUrl_t server;
-}authServerInfo_t;
-
-uint8 prudp_calculateChecksum(uint8 checksumBase, uint8* data, sint32 length);
+	prudpStationUrl server;
+};
 
 class prudpPacket
 {
@@ -66,19 +64,18 @@ public:
 
 	static sint32 calculateSizeFromPacketData(uint8* data, sint32 length);
 
-	prudpPacket(prudpStreamSettings_t* streamSettings, uint8 src, uint8 dst, uint8 type, uint16 flags, uint8 sessionId, uint16 sequenceId, uint32 packetSignature);
+	prudpPacket(prudpStreamSettings* streamSettings, uint8 src, uint8 dst, uint8 type, uint16 flags, uint8 sessionId, uint16 sequenceId, uint32 packetSignature);
 	bool requiresAck();
 	void setData(uint8* data, sint32 length);
 	void setFragmentIndex(uint8 fragmentIndex);
 	sint32 buildData(uint8* output, sint32 maxLength);
+	uint8 GetType() const { return type; }
+	uint16 GetSequenceId() const { return m_sequenceId; }
 
 private:
 	uint32 packetSignature();
 
 	uint8 calculateChecksum(uint8* data, sint32 length);
-
-public:
-	uint16 sequenceId;
 
 private:
 	uint8 src;
@@ -88,15 +85,17 @@ private:
 	uint16 flags;
 	uint8 sessionId;
 	uint32 specifiedPacketSignature;
-	prudpStreamSettings_t* streamSettings;
+	prudpStreamSettings* streamSettings;
 	std::vector<uint8> packetData;
 	bool isEncrypted;
+	uint16 m_sequenceId{0};
+
 };
 
 class prudpIncomingPacket
 {
 public:
-	prudpIncomingPacket(prudpStreamSettings_t* streamSettings, uint8* data, sint32 length);
+	prudpIncomingPacket(prudpStreamSettings* streamSettings, uint8* data, sint32 length);
 
 	bool hasError();
 
@@ -121,80 +120,91 @@ public:
 
 private:
 	bool isInvalid = false;
-	prudpStreamSettings_t* streamSettings = nullptr;
-
+	prudpStreamSettings* streamSettings = nullptr;
 };
-
-typedef struct
-{
-	prudpPacket* packet;
-	uint32 initialSendTimestamp;
-	uint32 lastRetryTimestamp;
-	sint32 retryCount;
-}prudpAckRequired_t;
 
 class prudpClient
 {
+	struct PacketWithAckRequired
+	{
+		PacketWithAckRequired(prudpPacket* packet, uint32 initialSendTimestamp) :
+			packet(packet), initialSendTimestamp(initialSendTimestamp), lastRetryTimestamp(initialSendTimestamp) { }
+		prudpPacket* packet;
+		uint32 initialSendTimestamp;
+		uint32 lastRetryTimestamp;
+		sint32 retryCount{0};
+	};
 public:
-	static const int STATE_CONNECTING = 0;
-	static const int STATE_CONNECTED = 1;
-	static const int STATE_DISCONNECTED = 2;
+	enum class ConnectionState : uint8
+	{
+	  Connecting,
+	  Connected,
+	  Disconnected
+  };
 
-public:
 	prudpClient(uint32 dstIp, uint16 dstPort, const char* key);
-	prudpClient(uint32 dstIp, uint16 dstPort, const char* key, authServerInfo_t* authInfo);
+	prudpClient(uint32 dstIp, uint16 dstPort, const char* key, prudpAuthServerInfo* authInfo);
 	~prudpClient();
 
-	bool isConnected();
+	bool IsConnected() const { return m_currentConnectionState == ConnectionState::Connected; }
+	ConnectionState GetConnectionState() const { return m_currentConnectionState; }
+	uint16 GetSourcePort() const { return m_srcPort; }
 
-	uint8 getConnectionState();
-	void acknowledgePacket(uint16 sequenceId);
-	void sortIncomingDataPacket(prudpIncomingPacket* incomingPacket);
-	void handleIncomingPacket(prudpIncomingPacket* incomingPacket);
-	bool update(); // check for new incoming packets, returns true if receiveDatagram() should be called
+	bool Update(); // update connection state and check for incoming packets. Returns true if ReceiveDatagram() should be called
 
-	sint32 receiveDatagram(std::vector<uint8>& outputBuffer);
-	void sendDatagram(uint8* input, sint32 length, bool reliable = true);
-
-	uint16 getSourcePort();
-
-	SOCKET getSocket();
+	sint32 ReceiveDatagram(std::vector<uint8>& outputBuffer);
+	void SendDatagram(uint8* input, sint32 length, bool reliable = true);
 
 private:
 	prudpClient();
-	void directSendPacket(prudpPacket* packet, uint32 dstIp, uint16 dstPort);
-	sint32 kerberosEncryptData(uint8* input, sint32 length, uint8* output);
-	void queuePacket(prudpPacket* packet, uint32 dstIp, uint16 dstPort);
+
+	void HandleIncomingPacket(std::unique_ptr<prudpIncomingPacket> incomingPacket);
+	void DirectSendPacket(prudpPacket* packet);
+	sint32 KerberosEncryptData(uint8* input, sint32 length, uint8* output);
+	void QueuePacket(prudpPacket* packet);
+
+	void AcknowledgePacket(uint16 sequenceId);
+	void SortIncomingDataPacket(std::unique_ptr<prudpIncomingPacket> incomingPacket);
+
+	void SendCurrentHandshakePacket();
 
 private:
-	uint16 srcPort;
-	uint32 dstIp;
-	uint16 dstPort;
-	uint8 vport_src;
-	uint8 vport_dst;
-	prudpStreamSettings_t streamSettings;
-	std::vector<prudpAckRequired_t> list_packetsWithAckReq;
-	std::vector<prudpIncomingPacket*> queue_incomingPackets;
-	
+	uint16 m_srcPort;
+	uint32 m_dstIp;
+	uint16 m_dstPort;
+	uint8 m_srcVPort;
+	uint8 m_dstVPort;
+	prudpStreamSettings m_streamSettings;
+	std::vector<PacketWithAckRequired> m_dataPacketsWithAckReq;
+	std::vector<std::unique_ptr<prudpIncomingPacket>> m_incomingPacketQueue;
+
+	// connection handshake state
+	bool m_hasSynAck{false};
+	bool m_hasConAck{false};
+	uint32 m_lastHandshakeTimestamp{0};
+	uint8 m_handshakeRetryCount{0};
+
 	// connection
-	uint8 currentConnectionState;
-	uint32 serverConnectionSignature;
-	uint32 clientConnectionSignature;
-	bool hasSentCon;
-	uint32 lastPingTimestamp;
+	ConnectionState m_currentConnectionState;
+	uint32 m_serverConnectionSignature;
+	uint32 m_clientConnectionSignature;
+	uint32 m_lastPingTimestamp;
 
-	uint16 outgoingSequenceId;
-	uint16 incomingSequenceId;
+	uint16 m_outgoingReliableSequenceId{2}; // 1 is reserved for CON
+	uint16 m_incomingSequenceId;
 
-	uint8 clientSessionId;
-	uint8 serverSessionId;
+	uint16 m_outgoingSequenceId_ping{0};
+	uint8 m_unacknowledgedPingCount{0};
+
+	uint8 m_clientSessionId;
+	uint8 m_serverSessionId;
 
 	// secure
-	bool isSecureConnection;
-	authServerInfo_t authInfo;
+	bool m_isSecureConnection{false};
+	prudpAuthServerInfo m_authInfo;
 
 	// socket
-	SOCKET socketUdp;
+	SOCKET m_socketUdp;
 };
 
 uint32 prudpGetMSTimestamp();

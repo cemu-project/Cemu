@@ -166,7 +166,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 		for (int i = 0; i < 8; ++i)
 		{
-			profile_sizer->Add(new wxStaticText(panel, wxID_ANY, fmt::format("{} {}", _("Controller").ToStdString(), (i + 1))), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			profile_sizer->Add(new wxStaticText(panel, wxID_ANY, formatWxString(_("Controller {}"), i + 1)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 			m_controller_profile[i] = new wxComboBox(panel, wxID_ANY,"", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN| wxCB_READONLY);
 			m_controller_profile[i]->SetMinSize(wxSize(250, -1));
@@ -244,7 +244,7 @@ void GameProfileWindow::SetProfileInt(gameProfileIntegerOption_t& option, wxChec
 void GameProfileWindow::ApplyProfile()
 {
 	if(m_game_profile.m_gameName)
-		this->SetTitle(fmt::format("{} - {}", _("Edit game profile").ToStdString(), m_game_profile.m_gameName.value()));
+		this->SetTitle(_("Edit game profile") + " - " + m_game_profile.m_gameName.value());
 
 	// general
 	m_load_libs->SetValue(m_game_profile.m_loadSharedLibraries.value());

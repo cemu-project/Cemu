@@ -1,6 +1,12 @@
 project(CemuAsm C)
 
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
+if (CMAKE_OSX_ARCHITECTURES)
+    set(CEMU_ASM_ARCHITECTURE ${CMAKE_OSX_ARCHITECTURES})
+else()
+    set(CEMU_ASM_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+
+if (CEMU_ASM_ARCHITECTURE MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
 
 	if (WIN32)
 
@@ -40,8 +46,8 @@ if (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86)|(X86)|(amd64)|(AMD64)")
 
 	endif()
 
-elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+elseif(CEMU_ASM_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
 	add_library(CemuAsm stub.cpp)
 else()
-	message(STATUS "CemuAsm - Unsupported arch: ${CMAKE_SYSTEM_PROCESSOR}")
+	message(STATUS "CemuAsm - Unsupported arch: ${CEMU_ASM_ARCHITECTURE}")
 endif()

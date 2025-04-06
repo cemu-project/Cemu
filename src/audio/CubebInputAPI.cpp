@@ -175,20 +175,25 @@ void CubebInputAPI::Destroy()
 
 std::vector<IAudioInputAPI::DeviceDescriptionPtr> CubebInputAPI::GetDevices()
 {
+	std::vector<DeviceDescriptionPtr> result;
+	// Add the default device to the list
+	auto defaultDevice = std::make_shared<CubebDeviceDescription>(nullptr, "default", L"Default Device");
+	result.emplace_back(defaultDevice);
+
 	cubeb_device_collection devices;
 	if (cubeb_enumerate_devices(s_context, CUBEB_DEVICE_TYPE_INPUT, &devices) != CUBEB_OK)
-		return {};
+		return result;
 
-	std::vector<DeviceDescriptionPtr> result;
-	result.reserve(devices.count);
+	result.reserve(devices.count + 1); // The default device already occupies one element
+
 	for (size_t i = 0; i < devices.count; ++i)
 	{
-		//const auto& device = devices.device[i];
+		// const auto& device = devices.device[i];
 		if (devices.device[i].state == CUBEB_DEVICE_STATE_ENABLED)
 		{
 			auto device = std::make_shared<CubebDeviceDescription>(devices.device[i].devid, devices.device[i].device_id,
-			                                                       boost::nowide::widen(
-				                                                       devices.device[i].friendly_name));
+																   boost::nowide::widen(
+																	   devices.device[i].friendly_name));
 			result.emplace_back(device);
 		}
 	}

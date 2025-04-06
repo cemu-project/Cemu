@@ -38,6 +38,7 @@ void LattePerformanceMonitor_frameEnd()
 		uint64 indexDataCached = 0;
 		uint32 frameCounter = 0;
 		uint32 drawCallCounter = 0;
+		uint32 fastDrawCallCounter = 0;
 		uint32 shaderBindCounter = 0;
 		uint32 recompilerLeaveCount = 0;
 		uint32 threadLeaveCount = 0;
@@ -53,6 +54,7 @@ void LattePerformanceMonitor_frameEnd()
 			indexDataCached += performanceMonitor.cycle[i].indexDataCached;
 			frameCounter += performanceMonitor.cycle[i].frameCounter;
 			drawCallCounter += performanceMonitor.cycle[i].drawCallCounter;
+			fastDrawCallCounter += performanceMonitor.cycle[i].fastDrawCallCounter;
 			shaderBindCounter += performanceMonitor.cycle[i].shaderBindCount;
 			recompilerLeaveCount += performanceMonitor.cycle[i].recompilerLeaveCount;
 			threadLeaveCount += performanceMonitor.cycle[i].threadLeaveCount;
@@ -72,19 +74,18 @@ void LattePerformanceMonitor_frameEnd()
 		uniformBankDataUploadedPerFrame /= 1024ULL;
 		uint32 uniformBankCountUploadedPerFrame = (uint32)(uniformBankUploadedCount / (uint64)elapsedFrames);
 		uint64 indexDataUploadPerFrame = (indexDataUploaded / (uint64)elapsedFrames);
-		indexDataUploadPerFrame /= 1024ULL;
 
 		double fps = (double)elapsedFrames2S * 1000.0 / (double)totalElapsedTimeFPS;
-		uint32 drawCallsPerFrame = drawCallCounter / elapsedFrames;
 		uint32 shaderBindsPerFrame = shaderBindCounter / elapsedFrames;
 		passedCycles = passedCycles * 1000ULL / totalElapsedTime;
 		uint32 rlps = (uint32)((uint64)recompilerLeaveCount * 1000ULL / (uint64)totalElapsedTime);
 		uint32 tlps = (uint32)((uint64)threadLeaveCount * 1000ULL / (uint64)totalElapsedTime);
 		// set stats
-
+		performanceMonitor.stats.indexDataUploadPerFrame = indexDataUploadPerFrame;
 		// next counter cycle
 		sint32 nextCycleIndex = (performanceMonitor.cycleIndex + 1) % PERFORMANCE_MONITOR_TRACK_CYCLES;
 		performanceMonitor.cycle[nextCycleIndex].drawCallCounter = 0;
+		performanceMonitor.cycle[nextCycleIndex].fastDrawCallCounter = 0;
 		performanceMonitor.cycle[nextCycleIndex].frameCounter = 0;
 		performanceMonitor.cycle[nextCycleIndex].shaderBindCount = 0;
 		performanceMonitor.cycle[nextCycleIndex].lastCycleCount = PPCInterpreter_getMainCoreCycleCounter();
@@ -104,12 +105,12 @@ void LattePerformanceMonitor_frameEnd()
 
 		if (isFirstUpdate)
 		{
-			LatteOverlay_updateStats(0.0, 0);
+			LatteOverlay_updateStats(0.0, 0, 0);
 			gui_updateWindowTitles(false, false, 0.0);
 		}
 		else
 		{
-			LatteOverlay_updateStats(fps, drawCallCounter / elapsedFrames);
+			LatteOverlay_updateStats(fps, drawCallCounter / elapsedFrames, fastDrawCallCounter / elapsedFrames);
 			gui_updateWindowTitles(false, false, fps);
 		}
 	}

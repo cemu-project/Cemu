@@ -11,21 +11,24 @@ uint32 ppcThreadQuantum = 45000; // execute 45000 instructions before thread res
 
 void PPCInterpreter_relinquishTimeslice()
 {
-	if( ppcInterpreterCurrentInstance->remainingCycles >= 0 )
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	if( hCPU->remainingCycles >= 0 )
 	{
-		ppcInterpreterCurrentInstance->skippedCycles = ppcInterpreterCurrentInstance->remainingCycles + 1;
-		ppcInterpreterCurrentInstance->remainingCycles = -1;
+		hCPU->skippedCycles = hCPU->remainingCycles + 1;
+		hCPU->remainingCycles = -1;
 	}
 }
 
 void PPCCore_boostQuantum(sint32 numCycles)
 {
-	ppcInterpreterCurrentInstance->remainingCycles += numCycles;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	hCPU->remainingCycles += numCycles;
 }
 
 void PPCCore_deboostQuantum(sint32 numCycles)
 {
-	ppcInterpreterCurrentInstance->remainingCycles -= numCycles;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+	hCPU->remainingCycles -= numCycles;
 }
 
 namespace coreinit
@@ -36,7 +39,7 @@ namespace coreinit
 void PPCCore_switchToScheduler()
 {
 	cemu_assert_debug(__OSHasSchedulerLock() == false); // scheduler lock must not be hold past thread time slice
-	cemu_assert_debug(ppcInterpreterCurrentInstance->coreInterruptMask != 0 || CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
+	cemu_assert_debug(PPCInterpreter_getCurrentInstance()->coreInterruptMask != 0 || CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
 	__OSLockScheduler();
 	coreinit::__OSThreadSwitchToNext();
 	__OSUnlockScheduler();
@@ -45,7 +48,7 @@ void PPCCore_switchToScheduler()
 void PPCCore_switchToSchedulerWithLock()
 {
 	cemu_assert_debug(__OSHasSchedulerLock() == true); // scheduler lock must be hold
-	cemu_assert_debug(ppcInterpreterCurrentInstance->coreInterruptMask != 0 || CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
+	cemu_assert_debug(PPCInterpreter_getCurrentInstance()->coreInterruptMask != 0 || CafeSystem::GetForegroundTitleId() == 0x000500001019e600);
 	coreinit::__OSThreadSwitchToNext();
 }
 
@@ -58,7 +61,7 @@ void _PPCCore_callbackExit(PPCInterpreter_t* hCPU)
 PPCInterpreter_t* PPCCore_executeCallbackInternal(uint32 functionMPTR)
 {
 	cemu_assert_debug(functionMPTR != 0);
-	PPCInterpreter_t* hCPU = ppcInterpreterCurrentInstance;
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	// remember LR and instruction pointer
 	uint32 lr = hCPU->spr.LR;
 	uint32 ip = hCPU->instructionPointer;

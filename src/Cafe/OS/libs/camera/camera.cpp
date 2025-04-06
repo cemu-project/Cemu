@@ -181,12 +181,12 @@ namespace camera
 	sint32 CAMInit(uint32 cameraId, CAMInitInfo_t* camInitInfo, uint32be* error)
 	{
 		CameraInstance* camInstance = new CameraInstance(camInitInfo->width, camInitInfo->height, camInitInfo->handlerFuncPtr);
-
+		*error = 0; // Hunter's Trophy 2 will fail to boot if we don't set this
 		std::unique_lock<std::recursive_mutex> _lock(g_mutex_camera);
 		if (g_cameraCounter == 0)
 		{
 			coreinit::OSCreateAlarm(g_alarm_camera.GetPtr());
-			coreinit::OSSetPeriodicAlarm(g_alarm_camera.GetPtr(), coreinit::coreinit_getOSTime(), (uint64)ESPRESSO_TIMER_CLOCK / 60ull, RPLLoader_MakePPCCallable(ppcCAMUpdate60));
+			coreinit::OSSetPeriodicAlarm(g_alarm_camera.GetPtr(), coreinit::OSGetTime(), (uint64)ESPRESSO_TIMER_CLOCK / 60ull, RPLLoader_MakePPCCallable(ppcCAMUpdate60));
 		}
 		g_cameraCounter++;
 

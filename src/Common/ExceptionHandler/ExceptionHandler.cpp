@@ -6,8 +6,6 @@
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 #include "ExceptionHandler.h"
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 bool crashLogCreated = false;
 
 bool CrashLog_Create()
@@ -73,16 +71,17 @@ void ExceptionHandler_LogGeneralInfo()
     // info about active PPC instance:
     CrashLog_WriteLine("");
     CrashLog_WriteHeader("Active PPC instance");
-    if (ppcInterpreterCurrentInstance)
+	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
+    if (hCPU)
     {
         OSThread_t* currentThread = coreinit::OSGetCurrentThread();
         uint32 threadPtr = memory_getVirtualOffsetFromPointer(coreinit::OSGetCurrentThread());
-        sprintf(dumpLine, "IP 0x%08x LR 0x%08x Thread 0x%08x", ppcInterpreterCurrentInstance->instructionPointer, ppcInterpreterCurrentInstance->spr.LR, threadPtr);
+        sprintf(dumpLine, "IP 0x%08x LR 0x%08x Thread 0x%08x", hCPU->instructionPointer, hCPU->spr.LR, threadPtr);
         CrashLog_WriteLine(dumpLine);
 
         // GPR info
         CrashLog_WriteLine("");
-        auto gprs = ppcInterpreterCurrentInstance->gpr;
+        auto gprs = hCPU->gpr;
         sprintf(dumpLine, "r0 =%08x r1 =%08x r2 =%08x r3 =%08x r4 =%08x r5 =%08x r6 =%08x r7 =%08x", gprs[0], gprs[1], gprs[2], gprs[3], gprs[4], gprs[5], gprs[6], gprs[7]);
         CrashLog_WriteLine(dumpLine);
         sprintf(dumpLine, "r8 =%08x r9 =%08x r10=%08x r11=%08x r12=%08x r13=%08x r14=%08x r15=%08x", gprs[8], gprs[9], gprs[10], gprs[11], gprs[12], gprs[13], gprs[14], gprs[15]);
@@ -93,10 +92,10 @@ void ExceptionHandler_LogGeneralInfo()
         CrashLog_WriteLine(dumpLine);
 
         // stack trace
-        MPTR currentStackVAddr = ppcInterpreterCurrentInstance->gpr[1];
+        MPTR currentStackVAddr = hCPU->gpr[1];
         CrashLog_WriteLine("");
         CrashLog_WriteHeader("PPC stack trace");
-        DebugLogStackTrace(currentThread, currentStackVAddr);
+        DebugLogStackTrace(currentThread, currentStackVAddr, true);
 
         // stack dump
         CrashLog_WriteLine("");
@@ -154,7 +153,7 @@ void ExceptionHandler_LogGeneralInfo()
         const char* threadName = "NULL";
         if (!threadItrBE->threadName.IsNull())
             threadName = threadItrBE->threadName.GetPtr();
-        sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s", threadItrMPTR, _swapEndianU32(threadItrBE->entrypoint), threadItrBE->context.srr0, _swapEndianU32(threadItrBE->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
+        sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s", threadItrMPTR, threadItrBE->entrypoint.GetMPTR(), threadItrBE->context.srr0, _swapEndianU32(threadItrBE->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
         // write line to log
         CrashLog_WriteLine(dumpLine);
     }

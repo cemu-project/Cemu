@@ -27,17 +27,13 @@ public:
 
 	void SetBase(const TitleInfo& titleInfo)
 	{
-		m_base = titleInfo;
+		if (IsPrioritizedVersionOrFormat(m_base, titleInfo))
+			m_base = titleInfo;
 	}
 
 	void SetUpdate(const TitleInfo& titleInfo)
 	{
-		if (HasUpdate())
-		{
-			if (titleInfo.GetAppTitleVersion() > m_update.GetAppTitleVersion())
-				m_update = titleInfo;
-		}
-		else
+		if (IsPrioritizedVersionOrFormat(m_update, titleInfo))
 			m_update = titleInfo;
 	}
 
@@ -53,7 +49,7 @@ public:
 		auto it = std::find_if(m_aoc.begin(), m_aoc.end(), [aocTitleId](const TitleInfo& rhs) { return rhs.GetAppTitleId() == aocTitleId; });
 		if (it != m_aoc.end())
 		{
-			if(it->GetAppTitleVersion() >= aocVersion)
+			if (!IsPrioritizedVersionOrFormat(*it, titleInfo))
 				return;
 			m_aoc.erase(it);
 		}
@@ -126,6 +122,25 @@ public:
 	}
 
 private:
+  	bool IsPrioritizedVersionOrFormat(const TitleInfo& currentTitle, const TitleInfo& newTitle)
+	{
+		if (!currentTitle.IsValid())
+			return true; // always prefer a valid title over an invalid one
+		// always prefer higher version
+		if (newTitle.GetAppTitleVersion() > currentTitle.GetAppTitleVersion())
+			return true;
+		// never prefer lower version
+		if (newTitle.GetAppTitleVersion() < currentTitle.GetAppTitleVersion())
+			return false;
+		// for users which have both NUS and non-NUS titles in their games folder we want to prioritize non-NUS formats
+		// this is to stay consistent with previous Cemu versions which did not support NUS format at all
+		TitleInfo::TitleDataFormat currentFormat = currentTitle.GetFormat();
+		TitleInfo::TitleDataFormat newFormat = newTitle.GetFormat();
+		if (currentFormat != TitleInfo::TitleDataFormat::NUS && newFormat == TitleInfo::TitleDataFormat::NUS)
+			return false;
+		return true;
+	};
+
 	TitleInfo m_base;
 	TitleInfo m_update;
 	std::vector<TitleInfo> m_aoc;

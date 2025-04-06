@@ -75,10 +75,6 @@ private:
 	VkRenderingAttachmentInfoKHR m_vkColorAttachments[8];
 	VkRenderingAttachmentInfoKHR m_vkDepthAttachment;
 	VkRenderingAttachmentInfoKHR m_vkStencilAttachment;
-	//uint8 m_vkColorAttachmentsCount{0};
-	bool m_vkHasDepthAttachment{ false };
-	bool m_vkHasStencilAttachment{ false };
-
 
 	std::vector<class PipelineInfo*> m_usedByPipelines; // PipelineInfo objects which use this renderpass/framebuffer
 };

@@ -71,7 +71,6 @@ sint32 MCP_GetSysProdSettings(MCPHANDLE mcpHandle, SysProdSettings* sysProdSetti
 
 void coreinitExport_MCP_GetSysProdSettings(PPCInterpreter_t* hCPU)
 {
-	cemuLog_logDebug(LogType::Force, "MCP_GetSysProdSettings(0x{:08x},0x{:08x})", hCPU->gpr[3], hCPU->gpr[4]);
 	sint32 result = MCP_GetSysProdSettings(hCPU->gpr[3], (SysProdSettings*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]));
 	osLib_returnFromFunction(hCPU, result);
 }
@@ -416,6 +415,12 @@ namespace coreinit
 		return 0;
 	}
 
+	uint32 MCP_GetTitleId(uint32 mcpHandle, uint64be* outTitleId)
+	{
+		*outTitleId = CafeSystem::GetForegroundTitleId();
+		return 0;
+	}
+
 	void InitializeMCP()
 	{
 		osLib_addFunction("coreinit", "MCP_Open", coreinitExport_MCP_Open);
@@ -443,6 +448,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", MCP_RightCheckLaunchable, LogType::Placeholder);
 
 		cafeExportRegister("coreinit", MCP_GetEcoSettings, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", MCP_GetTitleId, LogType::Placeholder);
 	}
 
 }

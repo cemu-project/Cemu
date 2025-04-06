@@ -2,6 +2,12 @@
 
 namespace coreinit
 {
+	enum class RplEntryReason
+	{
+		Loaded = 1,
+		Unloaded = 2,
+	};
+
 	uint32 OSDynLoad_SetAllocator(MPTR allocFunc, MPTR freeFunc);
 	void OSDynLoad_SetTLSAllocator(MPTR allocFunc, MPTR freeFunc);
 	uint32 OSDynLoad_GetAllocator(betype<MPTR>* funcAlloc, betype<MPTR>* funcFree);

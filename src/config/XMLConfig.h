@@ -235,6 +235,12 @@ public:
 		set(name, value.load());
 	}
 
+	template <typename T>
+	void set(const char* name, const ConfigValue<T>& value)
+	{
+		set(name, value.GetValue());
+	}
+
 	void set(const char* name, uint64 value)
 	{
 		set(name, (sint64)value);
@@ -462,4 +468,3 @@ public:
 private:
 	T m_data;
 };
-

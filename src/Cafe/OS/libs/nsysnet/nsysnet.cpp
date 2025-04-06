@@ -3,6 +3,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/coreinit/coreinit_GHS.h"
 
 #include "Common/socket.h"
 
@@ -13,6 +14,7 @@
 #define WSAESHUTDOWN ESHUTDOWN
 #define WSAECONNABORTED ECONNABORTED
 #define WSAHOST_NOT_FOUND EAI_NONAME
+#define WSAENOTCONN ENOTCONN
 
 #define GETLASTERR errno
 
@@ -35,14 +37,46 @@
 
 #define WU_SO_REUSEADDR		0x0004
 #define WU_SO_KEEPALIVE		0x0008
+#define WU_SO_DONTROUTE		0x0010
+#define WU_SO_BROADCAST		0x0020
+#define WU_SO_LINGER		0x0080
+#define WU_SO_OOBINLINE		0x0100
+#define WU_SO_TCPSACK		0x0200
 #define WU_SO_WINSCALE		0x0400
 #define WU_SO_SNDBUF		0x1001
 #define WU_SO_RCVBUF		0x1002
+#define WU_SO_SNDLOWAT		0x1003
+#define WU_SO_RCVLOWAT		0x1004
 #define WU_SO_LASTERROR		0x1007
+#define WU_SO_TYPE			0x1008
+#define WU_SO_HOPCNT		0x1009
+#define WU_SO_MAXMSG		0x1010
+#define WU_SO_RXDATA		0x1011
+#define WU_SO_TXDATA		0x1012
+#define WU_SO_MYADDR		0x1013
 #define WU_SO_NBIO			0x1014
+#define WU_SO_BIO			0x1015
 #define WU_SO_NONBLOCK		0x1016
+#define WU_SO_UNKNOWN1019	0x1019 // tcp related
+#define WU_SO_UNKNOWN101A	0x101A // tcp related
+#define WU_SO_UNKNOWN101B	0x101B // tcp related
+#define WU_SO_NOSLOWSTART	0x4000
+#define WU_SO_RUSRBUF		0x10000
 
-#define WU_TCP_NODELAY		0x2004
+#define WU_TCP_ACKDELAYTIME		0x2001
+#define WU_TCP_NOACKDELAY		0x2002
+#define WU_TCP_MAXSEG			0x2003
+#define WU_TCP_NODELAY			0x2004
+#define WU_TCP_UNKNOWN			0x2005 // amount of mss received before sending an ack
+
+#define WU_IP_TOS				3
+#define WU_IP_TTL				4
+#define WU_IP_MULTICAST_IF		9
+#define WU_IP_MULTICAST_TTL		10
+#define WU_IP_MULTICAST_LOOP	11
+#define WU_IP_ADD_MEMBERSHIP	12
+#define WU_IP_DROP_MEMBERSHIP	13
+#define WU_IP_UNKNOWN			14
 
 #define WU_SOL_SOCKET		-1 // this constant differs from Win32 socket API
 
@@ -53,6 +87,7 @@
 #define WU_SO_SUCCESS		0x0000
 #define WU_SO_EWOULDBLOCK	0x0006
 #define WU_SO_ECONNRESET	0x0008
+#define WU_SO_ENOTCONN		0x0009
 #define WU_SO_EINVAL		0x000B
 #define WU_SO_EINPROGRESS	0x0016
 #define WU_SO_EAFNOSUPPORT  0x0021
@@ -83,20 +118,14 @@ void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
 }
 
-uint32* __gh_errno_ptr()
-{
-	OSThread_t* osThread = coreinitThread_getCurrentThreadDepr(PPCInterpreter_getCurrentInstance());
-	return &osThread->context.error;
-}
-
 void _setSockError(sint32 errCode)
 {
-	*(uint32be*)__gh_errno_ptr() = (uint32)errCode;
+	coreinit::__gh_set_errno(errCode);
 }
 
 sint32 _getSockError()
 {
-	return (sint32)*(uint32be*)__gh_errno_ptr();
+	return coreinit::__gh_get_errno();
 }
 
 // error translation modes for _translateError
@@ -148,8 +177,11 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 	case WSAESHUTDOWN:
 		_setSockError(WU_SO_ESHUTDOWN);
 		break;
+	case WSAENOTCONN:
+		_setSockError(WU_SO_ENOTCONN);
+		break;
 	default:
-		cemuLog_logDebug(LogType::Force, "Unhandled wsaError {}\n", wsaError);
+		cemuLog_logDebug(LogType::Force, "Unhandled wsaError {}", wsaError);
 		_setSockError(99999); // unhandled error
 	}
 	return -1;
@@ -157,7 +189,7 @@ sint32 _translateError(sint32 returnCode, sint32 wsaError, sint32 mode = _ERROR_
 
 void nsysnetExport_socketlasterr(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "socketlasterr() -> {}", _getSockError());
+	cemuLog_logDebug(LogType::Socket, "socketlasterr() -> {}", _getSockError());
 	osLib_returnFromFunction(hCPU, _getSockError());
 }
 
@@ -485,9 +517,9 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 				if (r != 0)
 					cemu_assert_suspicious();
 			}
-			else if (optname == WU_SO_NBIO)
+			else if (optname == WU_SO_NBIO || optname == WU_SO_BIO)
 			{
-				// similar to WU_SO_NONBLOCK but always sets non-blocking mode regardless of option value
+				// similar to WU_SO_NONBLOCK but always sets blocking (_BIO) or non-blocking (_NBIO) mode regardless of option value
 				if (optlen == 4)
 				{
 					sint32 optvalLE = _swapEndianU32(*(uint32*)optval);
@@ -498,9 +530,10 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 				}
 				else
 					cemu_assert_suspicious();
-				u_long mode = 1;
+				bool setNonBlocking = optname == WU_SO_NBIO;
+				u_long mode = setNonBlocking ? 1 : 0;
 				_socket_nonblock(vs->s,  mode);
-				vs->isNonBlocking = true;
+				vs->isNonBlocking = setNonBlocking;
 			}
 			else if (optname == WU_SO_NONBLOCK)
 			{
@@ -541,7 +574,7 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 			}
 			else
 			{
-				cemuLog_logDebug(LogType::Force, "setsockopt(): Unsupported optname 0x{:08x}", optname);
+				cemuLog_logDebug(LogType::Force, "setsockopt(WU_SOL_SOCKET): Unsupported optname 0x{:08x}", optname);
 			}
 		}
 		else if (level == WU_IPPROTO_TCP)
@@ -557,18 +590,22 @@ void nsysnetExport_setsockopt(PPCInterpreter_t* hCPU)
 					assert_dbg();
 			}
 			else
-				assert_dbg();
+			{
+				cemuLog_logDebug(LogType::Force, "setsockopt(WU_IPPROTO_TCP): Unsupported optname 0x{:08x}", optname);
+			}
 		}
 		else if (level == WU_IPPROTO_IP)
 		{
 			hostLevel = IPPROTO_IP;
-			if (optname == 0xC)
+			if (optname == WU_IP_MULTICAST_IF || optname == WU_IP_MULTICAST_TTL ||
+				optname == WU_IP_MULTICAST_LOOP || optname == WU_IP_ADD_MEMBERSHIP ||
+				optname == WU_IP_DROP_MEMBERSHIP)
 			{
-				// unknown
+				cemuLog_logDebug(LogType::Socket, "todo: setsockopt() for multicast");
 			}
-			else if( optname == 0x4 )
+			else if(optname == WU_IP_TTL || optname == WU_IP_TOS)
 			{
-				cemuLog_logDebug(LogType::Force, "setsockopt with unsupported opname 4 for IPPROTO_IP");
+				cemuLog_logDebug(LogType::Force, "setsockopt(WU_IPPROTO_IP): Unsupported optname 0x{:08x}", optname);
 			}
 			else
 				assert_dbg();
@@ -642,6 +679,16 @@ void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
 			*(uint32*)optval = _swapEndianU32(optvalLE);
 			// used by Lost Reavers after some loading screens
 		}
+		else if (optname == WU_SO_TYPE)
+		{
+			if (memory_readU32(optlenMPTR) != 4)
+				assert_dbg();
+			int optvalLE = 0;
+			socklen_t optlenLE = 4;
+			memory_writeU32(optlenMPTR, 4);
+			*(uint32*)optval = _swapEndianU32(vs->type);
+			r = WU_SO_SUCCESS;
+		}
         else if (optname == WU_SO_NONBLOCK)
         {
             if (memory_readU32(optlenMPTR) != 4)
@@ -654,12 +701,12 @@ void nsysnetExport_getsockopt(PPCInterpreter_t* hCPU)
         }
 		else
 		{
-			cemu_assert_debug(false);
+			cemuLog_logDebug(LogType::Force, "getsockopt(WU_SOL_SOCKET): Unsupported optname 0x{:08x}", optname);
 		}
 	}
 	else
 	{
-		cemu_assert_debug(false);
+		cemuLog_logDebug(LogType::Force, "getsockopt(): Unsupported level 0x{:08x}", level);
 	}
 
 	osLib_returnFromFunction(hCPU, r);
@@ -1158,6 +1205,14 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 
 	timeval tv = { 0 };
 
+	if (timeOut == NULL)
+	{
+		// return immediately
+		cemuLog_log(LogType::Socket, "select returned immediately because of null timeout");
+		osLib_returnFromFunction(hCPU, 0);
+		return;
+	}
+
 	uint64 msTimeout = (_swapEndianU32(timeOut->tv_usec) / 1000) + (_swapEndianU32(timeOut->tv_sec) * 1000);
 	uint32 startTime = GetTickCount();
 	while (true)
@@ -1526,7 +1581,7 @@ void nsysnetExport_getaddrinfo(PPCInterpreter_t* hCPU)
 
 void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 {
-	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6]);
+	cemuLog_log(LogType::Socket, "recvfrom({},0x{:08x},{},0x{:x},0x{:x},0x{:x})", hCPU->gpr[3], hCPU->gpr[4], hCPU->gpr[5], hCPU->gpr[6], hCPU->gpr[7], hCPU->gpr[8]);
 	ppcDefineParamS32(s, 0);
 	ppcDefineParamStr(msg, 1);
 	ppcDefineParamS32(len, 2);
@@ -1555,8 +1610,8 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 	if (vs->isNonBlocking)
 		requestIsNonBlocking = vs->isNonBlocking;
 
-	socklen_t fromLenHost = *fromLen;
 	sockaddr fromAddrHost;
+	socklen_t fromLenHost = sizeof(fromAddrHost);
 	sint32 wsaError = 0;
 
 	while( true )
@@ -1598,9 +1653,13 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 				if (r < 0)
 					cemu_assert_debug(false);
 				cemuLog_logDebug(LogType::Force, "recvfrom returned {} bytes", r);
-				*fromLen = fromLenHost;
-				fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
-				memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+
+				// fromAddr and fromLen can be NULL
+				if (fromAddr && fromLen) {
+					*fromLen = fromLenHost;
+					fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
+					memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+				}
 
 				_setSockError(0);
 				osLib_returnFromFunction(hCPU, r);
@@ -1650,9 +1709,12 @@ void nsysnetExport_recvfrom(PPCInterpreter_t* hCPU)
 		assert_dbg();
 	}
 
-	*fromLen = fromLenHost;
-	fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
-	memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+	// fromAddr and fromLen can be NULL
+	if (fromAddr && fromLen) {
+		*fromLen = fromLenHost;
+		fromAddr->sa_family = _swapEndianU16(fromAddrHost.sa_family);
+		memcpy(fromAddr->sa_data, fromAddrHost.sa_data, 14);
+	}
 
 	_translateError(r <= 0 ? -1 : 0, wsaError);
 

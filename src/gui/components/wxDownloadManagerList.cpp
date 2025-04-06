@@ -432,13 +432,11 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 	switch (column)
 	{
 	case ColumnTitleId:
-		return wxStringFormat2("{:08x}-{:08x}", (uint32)(entry.titleId >> 32), (uint32)(entry.titleId & 0xFFFFFFFF));
+		return formatWxString("{:08x}-{:08x}", (uint32) (entry.titleId >> 32), (uint32) (entry.titleId & 0xFFFFFFFF));
 	case ColumnName:
-	{
 		return entry.name;
-	}
 	case ColumnType:
-		return wxStringFormat2("{}", entry.type);
+		return GetTranslatedTitleEntryType(entry.type);
 	case ColumnVersion:
 	{
 		// dont show version for base game unless it is not v0
@@ -446,7 +444,7 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 			return "";
 		if (entry.type == EntryType::DLC && entry.version == 0)
 			return "";
-		return wxStringFormat2("v{}", entry.version);
+		return formatWxString("v{}", entry.version);
 	}
 	case ColumnProgress:
 	{
@@ -454,11 +452,11 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 		{
 			if (entry.progress >= 1000)
 				return "100%";
-			return wxStringFormat2("{:.1f}%", (float)entry.progress / 10.0f); // one decimal
+			return formatWxString("{:.1f}%", (float) entry.progress / 10.0f); // one decimal
 		}
 		else if (entry.status == TitleDownloadStatus::Installing || entry.status == TitleDownloadStatus::Checking || entry.status == TitleDownloadStatus::Verifying)
 		{
-			return wxStringFormat2("{0}/{1}", entry.progress, entry.progressMax); // number of processed files/content files
+			return formatWxString("{0}/{1}", entry.progress, entry.progressMax); // number of processed files/content files
 		}
 		return "";
 	}
@@ -501,6 +499,21 @@ wxString wxDownloadManagerList::GetTitleEntryText(const TitleEntry& entry, ItemC
 	}
 	
 	return wxEmptyString;
+}
+
+wxString wxDownloadManagerList::GetTranslatedTitleEntryType(EntryType type)
+{
+	switch (type)
+	{
+		case EntryType::Base:
+			return _("base");
+		case EntryType::Update:
+			return _("update");
+		case EntryType::DLC:
+			return _("DLC");
+		default:
+			return std::to_string(static_cast<std::underlying_type_t<EntryType>>(type));
+	}
 }
 
 void wxDownloadManagerList::AddOrUpdateTitle(TitleEntryData_t* obj)

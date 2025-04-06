@@ -54,7 +54,7 @@ void gx2Export_GX2GetGPUTimeout(PPCInterpreter_t* hCPU)
 void gx2Export_GX2SampleTopGPUCycle(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::GX2, "GX2SampleTopGPUCycle(0x{:08x})", hCPU->gpr[3]);
-	memory_writeU64(hCPU->gpr[3], coreinit::coreinit_getTimerTick());
+	memory_writeU64(hCPU->gpr[3], coreinit::OSGetSystemTime());
 	osLib_returnFromFunction(hCPU, 0);
 }
 

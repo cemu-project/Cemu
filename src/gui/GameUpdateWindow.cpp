@@ -10,24 +10,24 @@
 #include "gui/helpers/wxHelpers.h"
 #include "wxHelper.h"
 
-std::string _GetTitleIdTypeStr(TitleId titleId)
+wxString _GetTitleIdTypeStr(TitleId titleId)
 {
 	TitleIdParser tip(titleId);
 	switch (tip.GetType())
 	{
 	case TitleIdParser::TITLE_TYPE::AOC:
-		return _("DLC").ToStdString();
+		return _("DLC");
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE:
-		return _("Base game").ToStdString();
+		return _("Base game");
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE_DEMO:
-		return _("Demo").ToStdString();
+		return _("Demo");
 	case TitleIdParser::TITLE_TYPE::SYSTEM_TITLE:
 	case TitleIdParser::TITLE_TYPE::SYSTEM_OVERLAY_TITLE:
-		return _("System title").ToStdString();
+		return _("System title");
 	case TitleIdParser::TITLE_TYPE::SYSTEM_DATA:
-		return _("System data title").ToStdString();
+		return _("System data title");
 	case TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE:
-		return _("Update").ToStdString();
+		return _("Update");
 	default:
 		break;
 	}
@@ -57,11 +57,11 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 
 				if (tip.GetType() != tipOther.GetType())
 				{
-					std::string typeStrToInstall = _GetTitleIdTypeStr(m_title_info.GetAppTitleId());
-					std::string typeStrCurrentlyInstalled = _GetTitleIdTypeStr(tmp.GetAppTitleId());
+					auto typeStrToInstall = _GetTitleIdTypeStr(m_title_info.GetAppTitleId());
+					auto typeStrCurrentlyInstalled = _GetTitleIdTypeStr(tmp.GetAppTitleId());
 
-					std::string wxMsg = wxHelper::MakeUTF8(_("It seems that there is already a title installed at the target location but it has a different type.\nCurrently installed: \'{}\' Installing: \'{}\'\n\nThis can happen for titles which were installed with very old Cemu versions.\nDo you still want to continue with the installation? It will replace the currently installed title."));
-					wxMessageDialog dialog(this, fmt::format(fmt::runtime(wxMsg), typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
+					auto wxMsg = _("It seems that there is already a title installed at the target location but it has a different type.\nCurrently installed: \'{}\' Installing: \'{}\'\n\nThis can happen for titles which were installed with very old Cemu versions.\nDo you still want to continue with the installation? It will replace the currently installed title.");
+					wxMessageDialog dialog(this, formatWxString(wxMsg, typeStrCurrentlyInstalled, typeStrToInstall), _("Warning"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 					if (dialog.ShowModal() != wxID_YES)
 						return false;
 				}
@@ -90,7 +90,7 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 
 				if (ec)
 				{
-					const auto error_msg = wxStringFormat2(_("Error when trying to move former title installation:\n{}"), GetSystemErrorMessage(ec));
+					const auto error_msg = formatWxString(_("Error when trying to move former title installation:\n{}"), GetSystemErrorMessage(ec));
 					wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 					return false;
 				}
@@ -131,8 +131,8 @@ bool GameUpdateWindow::ParseUpdate(const fs::path& metaPath)
 	const fs::space_info targetSpace = fs::space(ActiveSettings::GetMlcPath());
 	if (targetSpace.free <= m_required_size)
 	{
-		auto string = wxStringFormat(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), L"%lld %lld", (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
-		throw std::runtime_error(string);
+		auto string = formatWxString(_("Not enough space available.\nRequired: {0} MB\nAvailable: {1} MB"), (m_required_size / 1024 / 1024), (targetSpace.free / 1024 / 1024));
+		throw std::runtime_error(string.utf8_string());
 	}
 
 	return true;
@@ -244,7 +244,7 @@ void GameUpdateWindow::ThreadWork()
 		error_msg << GetSystemErrorMessage(ex);
 
 		if(currentDirEntry != fs::directory_entry{})
-			error_msg << fmt::format("\n{}\n{}",_("Current file:").ToStdString(), _pathToUtf8(currentDirEntry.path()));
+			error_msg << fmt::format("\n{}\n{}",_("Current file:").utf8_string(), _pathToUtf8(currentDirEntry.path()));
 
 		m_thread_exception = error_msg.str();
 		m_thread_state = ThreadCanceled;

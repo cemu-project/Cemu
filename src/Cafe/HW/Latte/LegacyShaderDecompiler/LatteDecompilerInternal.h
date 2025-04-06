@@ -57,6 +57,7 @@ struct LatteDecompilerTEXInstruction
 		sint8 offsetY{};
 		sint8 offsetZ{};
 		bool unnormalized[4]{}; // set if texture coordinates are in [0,dim] range instead of [0,1]
+		sint8 lodBias{}; // divide by 16 to get actual value
 	}textureFetch;
 	// memRead
 	struct
@@ -125,17 +126,68 @@ struct LatteDecompilerCFInstruction
 	LatteDecompilerCFInstruction& operator=(LatteDecompilerCFInstruction&& mE) = default;
 };
 
-struct LatteDecompilerCFileAccess
-{
-	LatteDecompilerCFileAccess(uint8 index, bool isRelative) : index(index), isRelative(isRelative) {};
-	uint8 index;
-	bool isRelative;
-};
-
 struct LatteDecompilerSubroutineInfo
 {
 	uint32 cfAddr;
 	std::vector<LatteDecompilerCFInstruction> instructions;
+};
+
+// helper struct to track the highest accessed offset within a buffer
+struct LatteDecompilerBufferAccessTracker
+{
+	bool hasStaticIndexAccess{false};
+	bool hasDynamicIndexAccess{false};
+	sint32 highestAccessDynamicIndex{0};
+	sint32 highestAccessStaticIndex{0};
+
+	// track access, index is the array index and not a byte offset
+	void TrackAccess(sint32 index, bool isDynamicIndex)
+	{
+		if (isDynamicIndex)
+		{
+			hasDynamicIndexAccess = true;
+			if (index > highestAccessDynamicIndex)
+				highestAccessDynamicIndex = index;
+		}
+		else
+		{
+			hasStaticIndexAccess = true;
+			if (index > highestAccessStaticIndex)
+				highestAccessStaticIndex = index;
+		}
+	}
+
+	sint32 DetermineSize(uint64 shaderBaseHash, sint32 maximumSize) const
+	{
+		// here we try to predict the accessed byte range so we dont have to upload the whole buffer
+		// if no bound can be determined then return maximumSize
+		// for some known shaders we use hand-tuned values instead of the maximumSize fallback value that those shaders would normally use
+		if(shaderBaseHash == 0x8ff56afdf1a2f837) // XCX text rendering
+			return 24;
+		if(shaderBaseHash == 0x37b9100c1310d3bb) // BotW UI backdrops 1
+			return 24;
+		if(shaderBaseHash == 0xf7ba548c1fefe24a) // BotW UI backdrops 2
+			return 30;
+
+		sint32 highestAccessIndex = -1;
+		if(hasStaticIndexAccess)
+			highestAccessIndex = highestAccessStaticIndex;
+		if(hasDynamicIndexAccess)
+			return maximumSize; // dynamic index exists and no bound can be determined
+		if (highestAccessIndex < 0)
+			return 1; // no access at all? But avoid zero as a size
+		return highestAccessIndex + 1;
+	}
+
+	bool HasAccess() const
+	{
+		return hasStaticIndexAccess || hasDynamicIndexAccess;
+	}
+
+	bool HasRelativeAccess() const
+	{
+		return hasDynamicIndexAccess;
+	}
 };
 
 struct LatteDecompilerShaderContext
@@ -174,12 +226,9 @@ struct LatteDecompilerShaderContext
 		bool isPointsPrimitive{}; // set if current render primitive is points
 		bool outputPointSize{}; // set if the current shader should output the point size
 		std::bitset<256> inputAttributSemanticMask; // one set bit for every used semanticId - todo: there are only 128 bit available semantic locations? The MSB has special meaning?
-		// uniform
-		bool uniformRegisterAccess; // set to true if cfile (uniform register) is accessed
-		bool uniformRegisterDynamicAccess; // set to true if cfile (uniform register) is accessed with a dynamic index
-		uint32 uniformBufferAccessMask; // 1 bit per buffer, set if the uniform buffer is accessed
-		uint32 uniformBufferDynamicAccessMask; // 1 bit per buffer, set if the uniform buffer is accessed by dynamic index
-		std::vector<LatteDecompilerCFileAccess> uniformRegisterAccessIndices;
+		// uniforms
+		LatteDecompilerBufferAccessTracker uniformRegisterAccessTracker;
+		LatteDecompilerBufferAccessTracker uniformBufferAccessTracker[LATTE_NUM_MAX_UNIFORM_BUFFERS];
 		// ssbo
 		bool hasSSBORead; // shader has instructions that read from SSBO
 		bool hasSSBOWrite; // shader has instructions that write to SSBO

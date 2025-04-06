@@ -1,3 +1,4 @@
+#include <util/helpers/helpers.h>
 #include "iosu_odm.h"
 #include "config/ActiveSettings.h"
 #include "Common/FileStream.h"
@@ -79,6 +80,7 @@ namespace iosu
 
 		void ODMServiceThread()
 		{
+			SetThreadName("ODMService");
 			s_msgQueueId = IOS_CreateMessageQueue(_s_msgBuffer.GetPtr(), _s_msgBuffer.GetCount());
 			cemu_assert(!IOS_ResultIsError((IOS_ERROR)s_msgQueueId));
 			IOS_ERROR r = IOS_RegisterResourceManager(s_devicePath.c_str(), s_msgQueueId);

@@ -116,7 +116,7 @@ typedef struct
 	/* +0x34 */ uint32be ukn34;
 	/* +0x38 */ uint32be ukn38;
 	/* +0x3C */ uint32be ukn3C;
-	/* +0x40 */ uint32be toolkitVersion;
+	/* +0x40 */ uint32be minimumToolkitVersion;
 	/* +0x44 */ uint32be ukn44;
 	/* +0x48 */ uint32be ukn48;
 	/* +0x4C */ uint32be ukn4C;
@@ -225,17 +225,17 @@ struct RPLModule
 
 };
 
-typedef struct
+struct RPLDependency
 {
 	char modulename[RPL_MODULE_NAME_LENGTH];
 	char filepath[RPL_MODULE_PATH_LENGTH];
 	bool loadAttempted;
-	//bool isHLEModule; // determined to be a HLE module
-	RPLModule* rplLoaderContext; // context of loaded module
+	bool isCafeOSModule; // name is a known Cafe OS RPL
+	RPLModule* rplLoaderContext; // context of loaded module, can be nullptr for HLE COS modules
 	sint32 referenceCount;
 	uint32 coreinitHandle; // fake handle for coreinit
 	sint16 tlsModuleIndex; // tls module index assigned to this dependency
-}rplDependency_t;
+};
 
 RPLModule* RPLLoader_FindModuleByCodeAddr(uint32 addr);
 RPLModule* RPLLoader_FindModuleByDataAddr(uint32 addr);

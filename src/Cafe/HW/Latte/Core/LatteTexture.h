@@ -24,10 +24,10 @@ struct LatteSamplerState
 class LatteTexture
 {
 public:
-	LatteTexture(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
+	LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
 	virtual ~LatteTexture();
 
-	virtual void InitTextureState() {};
+	virtual void AllocateOnHost() = 0;
 
 	LatteTextureView* GetOrCreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
 	{
@@ -56,6 +56,29 @@ public:
 	}
 
 	bool Is3DTexture() const { return dim == Latte::E_DIM::DIM_3D; };
+
+	void GetSize(sint32& width, sint32& height, sint32 mipLevel) const
+	{
+		width = std::max(1, this->width >> mipLevel);
+		height = std::max(1, this->height >> mipLevel);
+	}
+
+	// similar to GetSize, but returns the real size of the texture taking into account any resolution overwrite by gfx pack rules
+	void GetEffectiveSize(sint32& effectiveWidth, sint32& effectiveHeight, sint32 mipLevel) const
+	{
+		if( overwriteInfo.hasResolutionOverwrite )
+		{
+			effectiveWidth = overwriteInfo.width;
+			effectiveHeight = overwriteInfo.height;
+		}
+		else
+		{
+			effectiveWidth = this->width;
+			effectiveHeight = this->height;
+		}
+		effectiveWidth = std::max(1, effectiveWidth >> mipLevel);
+		effectiveHeight = std::max(1, effectiveHeight >> mipLevel);
+	}
 
 	sint32 GetMipDepth(sint32 mipIndex)
 	{
@@ -307,13 +330,11 @@ std::vector<LatteTextureInformation> LatteTexture_QueryCacheInfo();
 
 float* LatteTexture_getEffectiveTextureScale(LatteConst::ShaderType shaderType, sint32 texUnit);
 
-LatteTextureView* LatteTexture_CreateTexture(uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
+LatteTextureView* LatteTexture_CreateTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
 void LatteTexture_Delete(LatteTexture* texture);
 
 void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* textureData, uint32 sliceIndex, uint32 mipIndex, uint8* linearPixelData);
 
-void LatteTexture_getSize(LatteTexture* texture, sint32* width, sint32* height, sint32* depth, sint32 mipLevel);
-void LatteTexture_getEffectiveSize(LatteTexture* texture, sint32* effectiveWidth, sint32* effectiveHeight, sint32* effectiveDepth, sint32 mipLevel = 0);
 sint32 LatteTexture_getEffectiveWidth(LatteTexture* texture);
 bool LatteTexture_doesEffectiveRescaleRatioMatch(LatteTexture* texture1, sint32 mipLevel1, LatteTexture* texture2, sint32 mipLevel2);
 void LatteTexture_scaleToEffectiveSize(LatteTexture* texture, sint32* x, sint32* y, sint32 mipLevel);

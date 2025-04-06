@@ -5,7 +5,6 @@
 
 #include <wx/language.h>
 
-#include "PermanentConfig.h"
 #include "ActiveSettings.h"
 
 XMLCemuConfig_t g_config(L"settings.xml");
@@ -15,23 +14,6 @@ void CemuConfig::SetMLCPath(fs::path path, bool save)
 	mlc_path.SetValue(_pathToUtf8(path));
 	if(save)
 		g_config.Save();
-
-	// if custom mlc path has been selected, store it in permanent config
-	if (path != ActiveSettings::GetDefaultMLCPath())
-	{
-		try
-		{
-			auto pconfig = PermanentConfig::Load();
-			pconfig.custom_mlc_path = _pathToUtf8(path);
-			pconfig.Store();
-		}
-		catch (const PSDisabledException&) {}
-		catch (const std::exception& ex)
-		{
-			cemuLog_log(LogType::Force, "can't store custom mlc path in permanent storage: {}", ex.what());
-		}
-	}
-
 	Account::RefreshAccounts();
 }
 
@@ -43,6 +25,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	// general settings
 	log_flag = parser.get("logflag", log_flag.GetInitValue());
+	cemuLog_setActiveLoggingFlags(GetConfig().log_flag.GetValue());
 	advanced_ppc_logging = parser.get("advanced_ppc_logging", advanced_ppc_logging.GetInitValue());
 
 	const char* mlc = parser.get("mlc_path", "");
@@ -53,8 +36,9 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	language = parser.get<sint32>("language", wxLANGUAGE_DEFAULT);
 	use_discord_presence = parser.get("use_discord_presence", true);
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
-    	feral_gamemode = parser.get("feral_gamemode", false);
+	feral_gamemode = parser.get("feral_gamemode", false);
 	check_update = parser.get("check_update", check_update);
+	receive_untested_updates = parser.get("receive_untested_updates", receive_untested_updates);
 	save_screenshot = parser.get("save_screenshot", save_screenshot);
 	did_show_vulkan_warning = parser.get("vk_warning", did_show_vulkan_warning);
 	did_show_graphic_pack_download = parser.get("gp_download", did_show_graphic_pack_download);
@@ -62,9 +46,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen = parser.get("fullscreen", fullscreen);
 	proxy_server = parser.get("proxy_server", "");
 	disable_screensaver = parser.get("disable_screensaver", disable_screensaver);
-
-	// cpu_mode = parser.get("cpu_mode", cpu_mode.GetInitValue());
-	//console_region = parser.get("console_region", console_region.GetInitValue());
+	play_boot_sound = parser.get("play_boot_sound", play_boot_sound);
 	console_language = parser.get("console_language", console_language.GetInitValue());
 
 	window_position.x = parser.get("window_position").get("x", -1);
@@ -85,6 +67,8 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto gamelist = parser.get("GameList");
 	game_list_style = gamelist.get("style", 0);
 	game_list_column_order = gamelist.get("order", "");
+
+	show_icon_column = parser.get("show_icon_column", true);
 
 	// return default width if value in config file out of range
 	auto loadColumnSize = [&gamelist] (const char *name, uint32 defaultWidth)
@@ -112,7 +96,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 		try
 		{
-			recent_launch_files.emplace_back(boost::nowide::widen(path));
+			recent_launch_files.emplace_back(path);
 		}
 		catch (const std::exception&)
 		{
@@ -127,10 +111,9 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		const std::string path = element.value("");
 		if (path.empty())
 			continue;
-
 		try
 		{
-			recent_nfc_files.emplace_back(boost::nowide::widen(path));
+			recent_nfc_files.emplace_back(path);
 		}
 		catch (const std::exception&)
 		{
@@ -145,10 +128,9 @@ void CemuConfig::Load(XMLConfigParser& parser)
 		const std::string path = element.value("");
 		if (path.empty())
 			continue;
-
 		try
 		{
-			game_paths.emplace_back(boost::nowide::widen(path));
+			game_paths.emplace_back(path);
 		}
 		catch (const std::exception&)
 		{
@@ -330,8 +312,22 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	// account
 	auto acc = parser.get("Account");
 	account.m_persistent_id = acc.get("PersistentId", account.m_persistent_id);
-	account.online_enabled = acc.get("OnlineEnabled", account.online_enabled);
-	account.active_service = acc.get("ActiveService",account.active_service);
+	// legacy online settings, we only parse these for upgrading purposes
+	account.legacy_online_enabled = acc.get("OnlineEnabled", account.legacy_online_enabled);
+	account.legacy_active_service = acc.get("ActiveService",account.legacy_active_service);
+	// per-account online setting
+	auto accService = parser.get("AccountService");
+	account.service_select.clear();
+	for (auto element = accService.get("SelectedService"); element.valid(); element = accService.get("SelectedService", element))
+	{
+		uint32 persistentId = element.get_attribute<uint32>("PersistentId", 0);
+		sint32 serviceIndex = element.get_attribute<sint32>("Service", 0);
+		NetworkService networkService = static_cast<NetworkService>(serviceIndex);
+		if (persistentId < Account::kMinPersistendId)
+			continue;
+		if(networkService == NetworkService::Offline || networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Custom)
+			account.service_select.emplace(persistentId, networkService);
+	}
 	// debug
 	auto debug = parser.get("Debug");
 #if BOOST_OS_WINDOWS
@@ -346,6 +342,12 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	auto dsuc = input.get("DSUC");
 	dsu_client.host = dsuc.get_attribute("host", dsu_client.host);
 	dsu_client.port = dsuc.get_attribute("port", dsu_client.port);
+
+	// emulatedusbdevices
+	auto usbdevices = parser.get("EmulatedUsbDevices");
+	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
+	emulated_usb_devices.emulate_infinity_base = usbdevices.get("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base);
+	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
 }
 
 void CemuConfig::Save(XMLConfigParser& parser)
@@ -361,6 +363,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("fullscreen_menubar", fullscreen_menubar);
     	config.set<bool>("feral_gamemode", feral_gamemode);
 	config.set<bool>("check_update", check_update);
+	config.set<bool>("receive_untested_updates", receive_untested_updates);
 	config.set<bool>("save_screenshot", save_screenshot);
 	config.set<bool>("vk_warning", did_show_vulkan_warning);
 	config.set<bool>("gp_download", did_show_graphic_pack_download);
@@ -368,6 +371,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	config.set<bool>("fullscreen", fullscreen);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
 	config.set<bool>("disable_screensaver", disable_screensaver);
+	config.set<bool>("play_boot_sound", play_boot_sound);
 
 	// config.set("cpu_mode", cpu_mode.GetValue());
 	//config.set("console_region", console_region.GetValue());
@@ -389,6 +393,7 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	psize.set<sint32>("x", pad_size.x);
 	psize.set<sint32>("y", pad_size.y);
 	config.set<bool>("pad_maximized", pad_maximized);
+	config.set<bool>("show_icon_column" , show_icon_column);
 
 	auto gamelist = config.set("GameList");
 	gamelist.set("style", game_list_style);
@@ -404,20 +409,20 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto launch_files_parser = config.set("RecentLaunchFiles");
 	for (const auto& entry : recent_launch_files)
 	{
-		launch_files_parser.set("Entry", boost::nowide::narrow(entry).c_str());
+		launch_files_parser.set("Entry", entry.c_str());
 	}
 	
 	auto nfc_files_parser = config.set("RecentNFCFiles");
 	for (const auto& entry : recent_nfc_files)
 	{
-		nfc_files_parser.set("Entry", boost::nowide::narrow(entry).c_str());
+		nfc_files_parser.set("Entry", entry.c_str());
 	}
 		
 	// game paths
 	auto game_path_parser = config.set("GamePaths");
 	for (const auto& entry : game_paths)
 	{
-		game_path_parser.set("Entry", boost::nowide::narrow(entry).c_str());
+		game_path_parser.set("Entry", entry.c_str());
 	}
 
 	// game list cache
@@ -513,8 +518,17 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	// account
 	auto acc = config.set("Account");
 	acc.set("PersistentId", account.m_persistent_id.GetValue());
-	acc.set("OnlineEnabled", account.online_enabled.GetValue());
-	acc.set("ActiveService",account.active_service.GetValue());
+	// legacy online mode setting
+	acc.set("OnlineEnabled", account.legacy_online_enabled.GetValue());
+	acc.set("ActiveService",account.legacy_active_service.GetValue());
+	// per-account online setting
+	auto accService = config.set("AccountService");
+	for(auto& it : account.service_select)
+	{
+		auto entry = accService.set("SelectedService");
+		entry.set_attribute("PersistentId", it.first);
+		entry.set_attribute("Service", static_cast<sint32>(it.second));
+	}
 	// debug
 	auto debug = config.set("Debug");
 #if BOOST_OS_WINDOWS
@@ -529,6 +543,12 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	auto dsuc = input.set("DSUC");
 	dsuc.set_attribute("host", dsu_client.host);
 	dsuc.set_attribute("port", dsu_client.port);
+
+	// emulated usb devices
+	auto usbdevices = config.set("EmulatedUsbDevices");
+	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
+	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
+	usbdevices.set("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad.GetValue());
 }
 
 GameEntry* CemuConfig::GetGameEntryByTitleId(uint64 titleId)
@@ -595,22 +615,45 @@ void CemuConfig::SetGameListCustomName(uint64 titleId, std::string customName)
 	gameEntry->custom_name = std::move(customName);
 }
 
-void CemuConfig::AddRecentlyLaunchedFile(std::wstring_view file)
+void CemuConfig::AddRecentlyLaunchedFile(std::string_view file)
 {
-	// insert into front
-	recent_launch_files.insert(recent_launch_files.begin(), std::wstring{ file });
+	recent_launch_files.insert(recent_launch_files.begin(), std::string(file));
 	RemoveDuplicatesKeepOrder(recent_launch_files);
-	// keep maximum of entries
 	while(recent_launch_files.size() > kMaxRecentEntries)
 		recent_launch_files.pop_back();
 }
 
-void CemuConfig::AddRecentNfcFile(std::wstring_view file)
+void CemuConfig::AddRecentNfcFile(std::string_view file)
 {
-	// insert into front
-	recent_nfc_files.insert(recent_nfc_files.begin(), std::wstring{ file });
+	recent_nfc_files.insert(recent_nfc_files.begin(), std::string(file));
 	RemoveDuplicatesKeepOrder(recent_nfc_files);
-	// keep maximum of entries
 	while (recent_nfc_files.size() > kMaxRecentEntries)
 		recent_nfc_files.pop_back();
+}
+
+NetworkService CemuConfig::GetAccountNetworkService(uint32 persistentId)
+{
+	auto it = account.service_select.find(persistentId);
+	if (it != account.service_select.end())
+	{
+		NetworkService serviceIndex = it->second;
+		// make sure the returned service is valid
+		if (serviceIndex != NetworkService::Offline &&
+			serviceIndex != NetworkService::Nintendo &&
+			serviceIndex != NetworkService::Pretendo &&
+			serviceIndex != NetworkService::Custom)
+			return NetworkService::Offline;
+		if( static_cast<NetworkService>(serviceIndex) == NetworkService::Custom && !NetworkConfig::XMLExists() )
+			return NetworkService::Offline; // custom is selected but no custom config exists
+		return serviceIndex;
+	}
+	// if not found, return the legacy value
+	if(!account.legacy_online_enabled)
+		return NetworkService::Offline;
+	return static_cast<NetworkService>(account.legacy_active_service.GetValue() + 1); // +1 because "Offline" now takes index 0
+}
+
+void CemuConfig::SetAccountSelectedService(uint32 persistentId, NetworkService serviceIndex)
+{
+	account.service_select[persistentId] = serviceIndex;
 }

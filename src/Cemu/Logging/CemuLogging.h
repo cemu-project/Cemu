@@ -1,45 +1,54 @@
 #pragma once
 
+extern uint64 s_loggingFlagMask;
+
 enum class LogType : sint32
 {
-	// note: IDs must not exceed 63
-	Placeholder = -2,
-	None = -1,
-	Force = 0, // this logging type is always on
-	CoreinitFile = 1,
-	GX2 = 2,
-	UnsupportedAPI = 3,
-	ThreadSync = 4,
-	SoundAPI = 5, // any audio related API
-	InputAPI = 6, // any input related API
-	Socket = 7,
-	Save = 8,
-	CoreinitMem = 9, // coreinit memory functions
-	H264 = 10,
-	OpenGLLogging = 11, // OpenGL debug logging
-	TextureCache = 12, // texture cache warnings and info
-	VulkanValidation = 13, // Vulkan validation layer
-	nn_nfp = 14, // nn_nfp (Amiibo) API
-	Patches = 15,
-	CoreinitMP = 16,
-	CoreinitThread = 17,
-	CoreinitLogging = 18, // OSReport, OSConsoleWrite etc.
-	CoreinitMemoryMapping = 19, // OSGetAvailPhysAddrRange, OSAllocVirtAddr, OSMapMemory etc.
-	CoreinitAlarm = 23,
+	// note: IDs must be in range 1-64
+	Force = 63, // always enabled
+	Placeholder = 62, // always disabled
+	APIErrors = 61, // Logs bad parameters or other API usage mistakes or unintended errors in OS libs. Intended for homebrew developers
 
-	PPC_IPC = 20,
-	NN_AOC = 21,
-	NN_PDM = 22,
-	
-	TextureReadback = 30,
+	CoreinitFile = 0,
+	GX2 = 1,
+	UnsupportedAPI = 2,
+	SoundAPI = 4, // any audio related API
+	InputAPI = 5, // any input related API
+	Socket = 6,
+	Save = 7,
+	H264 = 9,
+	OpenGLLogging = 10, // OpenGL debug logging
+	TextureCache = 11, // texture cache warnings and info
+	VulkanValidation = 12, // Vulkan validation layer
+	Patches = 14,
+	CoreinitMem = 8, // coreinit memory functions
+	CoreinitMP = 15,
+	CoreinitThread = 16,
+	CoreinitLogging = 17, // OSReport, OSConsoleWrite etc.
+	CoreinitMemoryMapping = 18, // OSGetAvailPhysAddrRange, OSAllocVirtAddr, OSMapMemory etc.
+	CoreinitAlarm = 22,
+	CoreinitThreadSync = 3,
 
-	ProcUi = 40,
+	PPC_IPC = 19,
+	NN_AOC = 20,
+	NN_PDM = 21,
+	NN_OLV = 23,
+	NN_NFP = 13,
+	NN_FP = 24,
+	NN_BOSS = 25,
+	NN_SL = 26,
+
+	TextureReadback = 29,
+
+	ProcUi = 39,
+	nlibcurl = 41,
 
 	SaveStates = 50,
 
-	APIErrors = 0, // alias for Force. Logs bad parameters or other API errors in OS libs
+	PRUDP = 40,
 
-	
+	NFC	= 41,
+	NTAG = 42,
 };
 
 template <>
@@ -55,27 +64,21 @@ struct fmt::formatter<std::u8string_view> : formatter<string_view> {
 void cemuLog_writeLineToLog(std::string_view text, bool date = true, bool new_line = true);
 inline void cemuLog_writePlainToLog(std::string_view text) { cemuLog_writeLineToLog(text, false, false); }
 
-bool cemuLog_isLoggingEnabled(LogType type);
+void cemuLog_setActiveLoggingFlags(uint64 flagMask);
+
+inline uint64 cemuLog_getFlag(LogType type)
+{
+	return 1ULL << (uint64)type;
+}
+
+inline bool cemuLog_isLoggingEnabled(LogType type)
+{
+	return (s_loggingFlagMask & cemuLog_getFlag(type)) != 0;
+}
 
 bool cemuLog_log(LogType type, std::string_view text);
 bool cemuLog_log(LogType type, std::u8string_view text);
-bool cemuLog_log(LogType type, std::wstring_view text);
 void cemuLog_waitForFlush(); // wait until all log lines are written
-
-template <typename T>
-auto ForwardEnum(T t) 
-{
-  if constexpr (std::is_enum_v<T>)
-    return fmt::underlying(t);
-  else
-    return std::forward<T>(t);
-}
-
-template <typename... TArgs>
-auto ForwardEnum(std::tuple<TArgs...> t) 
-{ 
-	return std::apply([](auto... x) { return std::make_tuple(ForwardEnum(x)...); }, t);
-}
 
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
@@ -90,7 +93,11 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 	else
 	{
 		const auto format_view = fmt::basic_string_view<T>(formatStr);
-		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(ForwardEnum(args)...));
+#if FMT_VERSION >= 110000
+		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffered_context<T>>(args...));
+#else
+		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(args...));
+#endif
 		cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
 	}
 	return true;
@@ -99,9 +106,13 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 {
+	if (!cemuLog_isLoggingEnabled(type))
+		return false;
 	auto format_str = std::basic_string<T>(format);
 	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
 }
+
+#define cemuLog_logOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_log(__VA_ARGS__); } }
 
 // same as cemuLog_log, but only outputs in debug mode
 template<typename TFmt, typename ... TArgs>
@@ -114,11 +125,12 @@ bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 #endif
 }
 
+#define cemuLog_logDebugOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_logDebug(__VA_ARGS__); } }
+
 // cafe lib calls
 bool cemuLog_advancedPPCLoggingEnabled();
 
 uint64 cemuLog_getFlag(LogType type);
-void cemuLog_setFlag(LogType type, bool enabled);
 
 fs::path cemuLog_GetLogFilePath();
 void cemuLog_createLogFile(bool triggeredByCrash);

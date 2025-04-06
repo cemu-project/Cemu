@@ -7,42 +7,47 @@
 #include "config/LaunchSettings.h"
 #include "util/helpers/helpers.h"
 
-std::set<fs::path>
-ActiveSettings::LoadOnce(
-	const fs::path& executablePath,
-	const fs::path& userDataPath,
-	const fs::path& configPath,
-	const fs::path& cachePath,
-	const fs::path& dataPath)
+void ActiveSettings::SetPaths(bool isPortableMode,
+		const fs::path& executablePath,
+		const fs::path& userDataPath,
+		const fs::path& configPath,
+		const fs::path& cachePath,
+		const fs::path& dataPath,
+		std::set<fs::path>& failedWriteAccess)
 {
+	cemu_assert_debug(!s_setPathsCalled); // can only change paths before loading
+	s_isPortableMode = isPortableMode;
 	s_executable_path = executablePath;
 	s_user_data_path = userDataPath;
 	s_config_path = configPath;
 	s_cache_path = cachePath;
 	s_data_path = dataPath;
-	std::set<fs::path> failed_write_access;
+	failedWriteAccess.clear();
 	for (auto&& path : {userDataPath, configPath, cachePath})
 	{
-		if (!fs::exists(path))
-		{
-			std::error_code ec;
+		std::error_code ec;
+		if (!fs::exists(path, ec))
 			fs::create_directories(path, ec);
-		}
 		if (!TestWriteAccess(path))
 		{
 			cemuLog_log(LogType::Force, "Failed to write to {}", _pathToUtf8(path));
-			failed_write_access.insert(path);
+			failedWriteAccess.insert(path);
 		}
 	}
-
 	s_executable_filename = s_executable_path.filename();
+	s_setPathsCalled = true;
+}
 
-	g_config.SetFilename(GetConfigPath("settings.xml").generic_wstring());
-	g_config.Load();
-	LaunchSettings::ChangeNetworkServiceURL(GetConfig().account.active_service);
-	std::wstring additionalErrorInfo;
+[[nodiscard]] bool ActiveSettings::IsPortableMode()
+{
+	return s_isPortableMode;
+}
+
+void ActiveSettings::Init()
+{
+	cemu_assert_debug(s_setPathsCalled);
+	std::string additionalErrorInfo;
 	s_has_required_online_files = iosuCrypt_checkRequirementsForOnlineMode(additionalErrorInfo) == IOS_CRYPTO_ONLINE_REQ_OK;
-	return failed_write_access;
 }
 
 bool ActiveSettings::LoadSharedLibrariesEnabled()
@@ -132,7 +137,12 @@ uint32 ActiveSettings::GetPersistentId()
 
 bool ActiveSettings::IsOnlineEnabled()
 {
-	return GetConfig().account.online_enabled && Account::GetAccount(GetPersistentId()).IsValidOnlineAccount() && HasRequiredOnlineFiles();
+	if(!Account::GetAccount(GetPersistentId()).IsValidOnlineAccount())
+		return false;
+	if(!HasRequiredOnlineFiles())
+		return false;
+	NetworkService networkService = static_cast<NetworkService>(GetConfig().GetAccountNetworkService(GetPersistentId()));
+	return networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Custom;
 }
 
 bool ActiveSettings::HasRequiredOnlineFiles()
@@ -140,8 +150,9 @@ bool ActiveSettings::HasRequiredOnlineFiles()
 	return s_has_required_online_files;
 }
 
-NetworkService ActiveSettings::GetNetworkService() {
-	return static_cast<NetworkService>(GetConfig().account.active_service.GetValue());
+NetworkService ActiveSettings::GetNetworkService()
+{
+	return GetConfig().GetAccountNetworkService(GetPersistentId());
 }
 
 bool ActiveSettings::DumpShadersEnabled()
@@ -187,14 +198,20 @@ bool ActiveSettings::ShaderPreventInfiniteLoopsEnabled()
 {
 	const uint64 titleId = CafeSystem::GetForegroundTitleId();
 	// workaround for NSMBU (and variants) having a bug where shaders can get stuck in infinite loops
-	// update: As of Cemu 1.20.0 this should no longer be required
+	// Fatal Frame has an actual infinite loop in shader 0xb6a67c19f6472e00 encountered during a cutscene for the second drop (eShop version only?)
+	// update: As of Cemu 1.20.0 this should no longer be required for NSMBU/NSLU due to fixes with uniform handling. But we leave it here for good measure
+	// todo - Once we add support for loop config registers this workaround should become unnecessary
 	return /* NSMBU JP */ titleId == 0x0005000010101C00 ||
 		/* NSMBU US */ titleId == 0x0005000010101D00 ||
 		/* NSMBU EU */ titleId == 0x0005000010101E00 ||
 		/* NSMBU+L US */ titleId == 0x000500001014B700 ||
 		/* NSMBU+L EU */ titleId == 0x000500001014B800 ||
 		/* NSLU US */ titleId == 0x0005000010142300 ||
-		/* NSLU EU */ titleId == 0x0005000010142400;
+		/* NSLU EU */ titleId == 0x0005000010142400 ||
+	   /* Project Zero: Maiden of Black Water (EU) */ titleId == 0x00050000101D0300 ||
+	   /* Fatal Frame: Maiden of Black Water (US) */ titleId == 0x00050000101D0600 ||
+	   /* Project Zero: Maiden of Black Water (JP) */ titleId == 0x000500001014D200 ||
+	   /* Project Zero: Maiden of Black Water (Trial, EU) */ titleId == 0x00050000101D3F00;
 }
 
 bool ActiveSettings::FlushGPUCacheOnSwap()
@@ -224,6 +241,7 @@ bool ActiveSettings::ForceSamplerRoundToPrecision()
 
 fs::path ActiveSettings::GetMlcPath()
 {
+	cemu_assert_debug(s_setPathsCalled);
 	if(const auto launch_mlc = LaunchSettings::GetMLCPath(); launch_mlc.has_value())
 		return launch_mlc.value();
 
@@ -231,6 +249,17 @@ fs::path ActiveSettings::GetMlcPath()
 		return _utf8ToPath(config_mlc);
 
 	return GetDefaultMLCPath();
+}
+
+bool ActiveSettings::IsCustomMlcPath()
+{
+	cemu_assert_debug(s_setPathsCalled);
+	return !GetConfig().mlc_path.GetValue().empty();
+}
+
+bool ActiveSettings::IsCommandLineMlcPath()
+{
+	return LaunchSettings::GetMLCPath().has_value();
 }
 
 fs::path ActiveSettings::GetDefaultMLCPath()

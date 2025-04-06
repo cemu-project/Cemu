@@ -599,7 +599,7 @@ void LatteTextureLoader_loadTextureDataIntoSlice(LatteTexture* hostTexture, sint
 	}
 }
 
-void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 textureUnit, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex)
+void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIndex, uint32 mipIndex, MPTR physImagePtr, MPTR physMipPtr, Latte::E_DIM dim, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, uint32 pitch, Latte::E_HWTILEMODE tileMode, uint32 swizzle, bool dumpTex)
 {
 	LatteTextureLoaderCtx textureLoader = { 0 };
 	
@@ -621,7 +621,7 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, sint32 texture
 
 	if (tex->isDataDefined == false)
 	{
-		g_renderer->texture_reserveTextureOnGPU(tex);
+		tex->AllocateOnHost();
 		tex->isDataDefined = true;
 		// if decoder is not set then clear texture
 		// on Vulkan this is used to make sure the texture is no longer in UNDEFINED layout

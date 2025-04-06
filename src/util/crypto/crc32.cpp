@@ -1,29 +1,6 @@
 #include "crc32.h"
 
-#if defined(_MSC_VER) || defined(__MINGW32__)
-#define __LITTLE_ENDIAN 1234
-#define __BIG_ENDIAN    4321
-#define __BYTE_ORDER    __LITTLE_ENDIAN
-
-#include <xmmintrin.h>
-#ifdef __MINGW32__
-#define PREFETCH(location) __builtin_prefetch(location)
-#else
-#define PREFETCH(location) _mm_prefetch(location, _MM_HINT_T0)
-#endif
-#else
-// defines __BYTE_ORDER as __LITTLE_ENDIAN or __BIG_ENDIAN
-#include <sys/param.h>
-
-#ifdef __GNUC__
-#define PREFETCH(location) __builtin_prefetch(location)
-#else
-  // no prefetching
-#define PREFETCH(location) ;
-#endif
-#endif
-
-unsigned int Crc32Lookup[8][256] =
+constexpr uint32 Crc32Lookup[8][256] =
 {
 	{
 		0x00000000,0x77073096,0xEE0E612C,0x990951BA,0x076DC419,0x706AF48F,0xE963A535,0x9E6495A3,
@@ -301,20 +278,7 @@ unsigned int Crc32Lookup[8][256] =
 	  }
 };
 
-/// swap endianess
-static inline uint32_t swap(uint32_t x)
-{
-#if defined(__GNUC__) || defined(__clang__)
-	return __builtin_bswap32(x);
-#else
-	return (x >> 24) |
-		((x >> 8) & 0x0000FF00) |
-		((x << 8) & 0x00FF0000) |
-		(x << 24);
-#endif
-}
-
-unsigned int crc32_calc_slice_by_8(unsigned int previousCrc32, const void* data, int length)
+uint32 crc32_calc_slice_by_8(uint32 previousCrc32, const void* data, size_t length)
 {
 	uint32_t crc = ~previousCrc32; // same as previousCrc32 ^ 0xFFFFFFFF
 	const uint32_t* current = (const uint32_t*)data;
@@ -323,7 +287,7 @@ unsigned int crc32_calc_slice_by_8(unsigned int previousCrc32, const void* data,
 	while (length >= 8)
 	{
 		if constexpr (std::endian::native == std::endian::big){
-			uint32_t one = *current++ ^ swap(crc);
+			uint32_t one = *current++ ^ _swapEndianU32(crc);
 			uint32_t two = *current++;
 			crc = Crc32Lookup[0][two & 0xFF] ^
 				  Crc32Lookup[1][(two >> 8) & 0xFF] ^
@@ -348,13 +312,14 @@ unsigned int crc32_calc_slice_by_8(unsigned int previousCrc32, const void* data,
 				  Crc32Lookup[7][one & 0xFF];
 		}
 		else {
-			cemu_assert(false);
+			static_assert(std::endian::native == std::endian::big || std::endian::native == std::endian::little,
+						  "Platform byte-order is unsupported");
 		}
 
 		length -= 8;
 	}
 
-	const uint8_t* currentChar = (const uint8_t*)current;
+	const uint8* currentChar = (const uint8*)current;
 	// remaining 1 to 7 bytes (standard algorithm)
 	while (length-- != 0)
 		crc = (crc >> 8) ^ Crc32Lookup[0][(crc & 0xFF) ^ *currentChar++];
@@ -362,20 +327,20 @@ unsigned int crc32_calc_slice_by_8(unsigned int previousCrc32, const void* data,
 	return ~crc; // same as crc ^ 0xFFFFFFFF
 }
 
-unsigned int crc32_calc(unsigned int c, const void* data, int length)
+uint32 crc32_calc(uint32 c, const void* data, size_t length)
 {
 	if (length >= 16)
 	{
 		return crc32_calc_slice_by_8(c, data, length);
 	}
-	unsigned char* p = (unsigned char*)data;
+	const uint8* p = (const uint8*)data;
 	if (length == 0)
 		return c;
 	c ^= 0xFFFFFFFF;
 	while (length)
 	{
-		unsigned char temp = *p;
-		temp ^= (unsigned char)c;
+		uint8 temp = *p;
+		temp ^= (uint8)c;
 		c = (c >> 8) ^ Crc32Lookup[0][temp];
 		// next
 		length--;

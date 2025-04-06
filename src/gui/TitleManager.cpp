@@ -31,17 +31,15 @@
 #include <wx/dirdlg.h>
 #include <wx/notebook.h>
 
+#include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "config/ActiveSettings.h"
 #include "gui/dialogs/SaveImport/SaveImportWindow.h"
 #include "Cafe/Account/Account.h"
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 #include "gui/CemuApp.h"
-
 #include "Cafe/TitleList/TitleList.h"
-
-#include "resource/embedded/resources.h"
-
 #include "Cafe/TitleList/SaveList.h"
+#include "resource/embedded/resources.h"
 
 wxDEFINE_EVENT(wxEVT_TITLE_FOUND, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_TITLE_SEARCH_COMPLETE, wxCommandEvent);
@@ -70,7 +68,7 @@ wxPanel* TitleManager::CreateTitleManagerPage()
 		row->Add(m_refresh_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		auto* help_button = new wxStaticBitmap(panel, wxID_ANY, wxBITMAP_PNG_FROM_DATA(PNG_HELP));
-		help_button->SetToolTip(wxStringFormat2(_("The following prefixes are supported:\n{0}\n{1}\n{2}\n{3}\n{4}"),
+		help_button->SetToolTip(formatWxString(_("The following prefixes are supported:\n{0}\n{1}\n{2}\n{3}\n{4}"),
 			"titleid:", "name:", "type:", "version:", "region:"));
 		row->Add(help_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
@@ -155,6 +153,7 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 	{
 		auto* row = new wxBoxSizer(wxHORIZONTAL);
 
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 		m_account = new wxChoice(panel, wxID_ANY);
 		m_account->SetMinSize({ 250,-1 });
 		auto accounts = Account::GetAccounts();
@@ -172,6 +171,7 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 		}
 	
 		row->Add(m_account, 0, wxALL, 5);
+#endif
 
 		m_connect = new wxButton(panel, wxID_ANY, _("Connect"));
 		m_connect->Bind(wxEVT_BUTTON, &TitleManager::OnConnect, this);
@@ -180,7 +180,17 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 		sizer->Add(row, 0, wxEXPAND, 5);
 	}
 
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 	m_status_text = new wxStaticText(panel, wxID_ANY, _("Select an account and press Connect"));
+#else
+	if(!NCrypto::HasDataForConsoleCert())
+	{
+		m_status_text = new wxStaticText(panel, wxID_ANY, _("Valid online files are required to download eShop titles. For more information, go to the Account tab in the General Settings."));
+		m_connect->Enable(false);
+	}
+	else
+		m_status_text = new wxStaticText(panel, wxID_ANY, _("Click on Connect to load the list of downloadable titles"));
+#endif
 	this->Bind(wxEVT_SET_TEXT, &TitleManager::OnSetStatusText, this);
 	sizer->Add(m_status_text, 0, wxALL, 5);
 	
@@ -328,7 +338,7 @@ void TitleManager::OnTitleSearchComplete(wxCommandEvent& event)
 	}
 	// update status bar text
 	m_title_list->SortEntries(-1);
-	m_status_bar->SetStatusText(wxStringFormat2(_("Found {0} games, {1} updates, {2} DLCs and {3} save entries"),
+	m_status_bar->SetStatusText(formatWxString(_("Found {0} games, {1} updates, {2} DLCs and {3} save entries"),
 		m_title_list->GetCountByType(wxTitleManagerList::EntryType::Base) + m_title_list->GetCountByType(wxTitleManagerList::EntryType::System),
 		m_title_list->GetCountByType(wxTitleManagerList::EntryType::Update),
 		m_title_list->GetCountByType(wxTitleManagerList::EntryType::Dlc),
@@ -494,7 +504,7 @@ void TitleManager::OnSaveDelete(wxCommandEvent& event)
 	if (selection.IsEmpty())
 		return;
 	
-	const auto msg = wxStringFormat2(_("Are you really sure that you want to delete the save entry for {}"), selection);
+	const auto msg = formatWxString(_("Are you really sure that you want to delete the save entry for {}"), selection);
 	const auto result = wxMessageBox(msg, _("Warning"), wxYES_NO | wxCENTRE | wxICON_EXCLAMATION, this);
 	if (result == wxNO)
 		return;
@@ -545,7 +555,7 @@ void TitleManager::OnSaveDelete(wxCommandEvent& event)
 	fs::remove_all(target, ec);
 	if (ec)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to delete the save directory:\n{}"), GetSystemErrorMessage(ec));
+		const auto error_msg = formatWxString(_("Error when trying to delete the save directory:\n{}"), GetSystemErrorMessage(ec));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE, this);
 		return;
 	}
@@ -622,7 +632,8 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 
 	const auto persistent_id = (uint32)(uintptr_t)m_save_account_list->GetClientData(selection_index);
 
-	wxFileDialog path_dialog(this, _("Select a target file to export the save entry"), entry->path.string(), wxEmptyString, "Exported save entry (*.zip)|*.zip", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	wxFileDialog path_dialog(this, _("Select a target file to export the save entry"), wxHelper::FromPath(entry->path), wxEmptyString,
+		fmt::format("{}|*.zip", _("Exported save entry (*.zip)")), wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (path_dialog.ShowModal() != wxID_OK || path_dialog.GetPath().IsEmpty())
 		return;
 
@@ -633,7 +644,7 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 	{
 		zip_error_t ziperror;
 		zip_error_init_with_code(&ziperror, ze);
-		const auto error_msg = wxStringFormat2(_("Error when creating the zip for the save entry:\n{}"), zip_error_strerror(&ziperror));
+		const auto error_msg = formatWxString(_("Error when creating the zip for the save entry:\n{}"), zip_error_strerror(&ziperror));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 		return;
 	}
@@ -651,7 +662,7 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 		{
 			if(zip_dir_add(zip, (const char*)entryname.substr(savedir_str.size() + 1).c_str(), ZIP_FL_ENC_UTF_8) < 0 )
 			{
-				const auto error_msg = wxStringFormat2(_("Error when trying to add a directory to the zip:\n{}"), zip_strerror(zip));
+				const auto error_msg = formatWxString(_("Error when trying to add a directory to the zip:\n{}"), zip_strerror(zip));
 				wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			}
 		}
@@ -660,13 +671,13 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 			auto* source = zip_source_file(zip, (const char*)entryname.c_str(), 0, 0);
 			if(!source)
 			{
-				const auto error_msg = wxStringFormat2(_("Error when trying to add a file to the zip:\n{}"), zip_strerror(zip));
+				const auto error_msg = formatWxString(_("Error when trying to add a file to the zip:\n{}"), zip_strerror(zip));
 				wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 			}
 
 			if (zip_file_add(zip, (const char*)entryname.substr(savedir_str.size() + 1).c_str(), source, ZIP_FL_ENC_UTF_8) < 0)
 			{
-				const auto error_msg = wxStringFormat2(_("Error when trying to add a file to the zip:\n{}"), zip_strerror(zip));
+				const auto error_msg = formatWxString(_("Error when trying to add a file to the zip:\n{}"), zip_strerror(zip));
 				wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 				
 				zip_source_free(source);
@@ -679,7 +690,7 @@ void TitleManager::OnSaveExport(wxCommandEvent& event)
 	auto* metabuff = zip_source_buffer(zip, metacontent.data(), metacontent.size(), 0);
 	if(zip_file_add(zip, "cemu_meta", metabuff, ZIP_FL_ENC_UTF_8) < 0)
 	{
-		const auto error_msg = wxStringFormat2(_("Error when trying to add cemu_meta file to the zip:\n{}"), zip_strerror(zip));
+		const auto error_msg = formatWxString(_("Error when trying to add cemu_meta file to the zip:\n{}"), zip_strerror(zip));
 		wxMessageBox(error_msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);
 
 		zip_source_free(metabuff);
@@ -719,9 +730,10 @@ void TitleManager::OnSaveImport(wxCommandEvent& event)
 void TitleManager::InitiateConnect()
 {
 	// init connection to download manager if queued
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 	uint32 persistentId = (uint32)(uintptr_t)m_account->GetClientData(m_account->GetSelection());
 	auto& account = Account::GetAccount(persistentId);
-
+#endif
 	DownloadManager* dlMgr = DownloadManager::GetInstance();
 	dlMgr->reset();
 	m_download_list->SetCurrentDownloadMgr(dlMgr);
@@ -730,18 +742,26 @@ void TitleManager::InitiateConnect()
 
 	if (!NCrypto::SEEPROM_IsPresent())
 	{
-		SetDownloadStatusText("Dumped online files not found");
+		SetDownloadStatusText(_("Dumped online files not found"));
 		return;
 	}
 
-	SetDownloadStatusText("Connecting...");
+	SetDownloadStatusText(_("Connecting..."));
 	// begin async connect
 	dlMgr->setUserData(this);
 	dlMgr->registerCallbacks(
 		TitleManager::Callback_ConnectStatusUpdate,
 		TitleManager::Callback_AddDownloadableTitle,
 		TitleManager::Callback_RemoveDownloadableTitle);
-	dlMgr->connect(account.GetAccountId(), account.GetAccountPasswordCache(), NCrypto::SEEPROM_GetRegion(), NCrypto::GetCountryAsString(account.GetCountry()), NCrypto::GetDeviceId(), NCrypto::GetSerial(), deviceCertBase64);
+	std::string accountName;
+	std::array<uint8, 32> accountPassword;
+	std::string accountCountry;
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
+	accountName = account.GetAccountId();
+	accountPassword = account.GetAccountPasswordCache();
+	accountCountry.assign(NCrypto::GetCountryAsString(account.GetCountry()));
+#endif
+	dlMgr->connect(accountName, accountPassword, NCrypto::SEEPROM_GetRegion(), accountCountry, NCrypto::GetDeviceId(), NCrypto::GetSerial(), deviceCertBase64);
 }
 
 void TitleManager::OnConnect(wxCommandEvent& event)
@@ -786,7 +806,9 @@ void TitleManager::OnDisconnect(wxCommandEvent& event)
 
 void TitleManager::SetConnected(bool state)
 {
+#if DOWNLOADMGR_HAS_ACCOUNT_DROPDOWN
 	m_account->Enable(!state);
+#endif
 	m_connect->Enable(!state);
 
 	m_show_titles->Enable(state);
@@ -798,7 +820,7 @@ void TitleManager::SetConnected(bool state)
 void TitleManager::Callback_ConnectStatusUpdate(std::string statusText, DLMGR_STATUS_CODE statusCode)
 {
 	TitleManager* titleManager = static_cast<TitleManager*>(DownloadManager::GetInstance()->getUserData());
-	titleManager->SetDownloadStatusText(statusText);
+	titleManager->SetDownloadStatusText(wxString::FromUTF8(statusText));
 	if (statusCode == DLMGR_STATUS_CODE::FAILED)
 	{
 		auto* evt = new wxCommandEvent(wxEVT_DL_DISCONNECT_COMPLETE);

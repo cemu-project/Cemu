@@ -16,7 +16,9 @@ public:
 
 class nexType
 {
-public:
+  public:
+	virtual ~nexType(){};
+
 	virtual const char* getMetaName()
 	{
 		cemu_assert_unimplemented();

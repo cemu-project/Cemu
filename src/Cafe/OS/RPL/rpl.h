@@ -2,7 +2,7 @@
 
 struct RPLModule;
 
-#define RPL_INVALID_HANDLE	(0xFFFFFFFF)
+#define RPL_INVALID_HANDLE		0xFFFFFFFF
 
 void RPLLoader_InitState();
 void RPLLoader_ResetState();
@@ -14,7 +14,7 @@ MPTR RPLLoader_AllocateCodeSpace(uint32 size, uint32 alignment);
 uint32 RPLLoader_GetMaxCodeOffset();
 uint32 RPLLoader_GetDataAllocatorAddr();
 
-RPLModule* rpl_loadFromMem(uint8* rplData, sint32 size, char* name);
+RPLModule* RPLLoader_LoadFromMemory(uint8* rplData, sint32 size, char* name);
 uint32 rpl_mapHLEImport(RPLModule* rplLoaderContext, const char* rplName, const char* funcName, bool functionMustExist);
 void RPLLoader_Link();
 
@@ -29,6 +29,7 @@ void RPLLoader_NotifyControlPassedToApplication();
 
 void RPLLoader_AddDependency(const char* name);
 void RPLLoader_RemoveDependency(uint32 handle);
+bool RPLLoader_HasDependency(std::string_view name);
 void RPLLoader_UpdateDependencies();
 
 uint32 RPLLoader_GetHandleByModuleName(const char* name);

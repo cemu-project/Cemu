@@ -9,6 +9,7 @@
 #include "audio/IAudioAPI.h"
 #include "audio/IAudioInputAPI.h"
 #include "config/ActiveSettings.h"
+#include "config/LaunchSettings.h"
 #include "Cafe/TitleList/GameInfo.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "util/helpers/SystemException.h"
@@ -35,6 +36,7 @@
 #include "Cafe/IOSU/legacy/iosu_boss.h"
 #include "Cafe/IOSU/legacy/iosu_nim.h"
 #include "Cafe/IOSU/PDM/iosu_pdm.h"
+#include "Cafe/IOSU/ccr_nfc/iosu_ccr_nfc.h"
 
 // IOSU initializer functions
 #include "Cafe/IOSU/kernel/iosu_kernel.h"
@@ -51,6 +53,8 @@
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/OS/libs/gx2/GX2_Misc.h"
 #include "Cafe/OS/libs/mic/mic.h"
+#include "Cafe/OS/libs/nfc/nfc.h"
+#include "Cafe/OS/libs/ntag/ntag.h"
 #include "Cafe/OS/libs/nn_aoc/nn_aoc.h"
 #include "Cafe/OS/libs/nn_pdm/nn_pdm.h"
 #include "Cafe/OS/libs/nn_cmpt/nn_cmpt.h"
@@ -167,7 +171,7 @@ void LoadMainExecutable()
 	{
 		// RPX
 		RPLLoader_AddDependency(_pathToExecutable.c_str());
-		applicationRPX = rpl_loadFromMem(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
+		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
 			wxMessageBox(_("Failed to run this title because the executable is damaged"));
@@ -253,14 +257,7 @@ void InfoLog_PrintActiveSettings()
 		if(!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
-	cemuLog_log(LogType::Force, "Console language: {}", config.console_language);
-}
-
-void PPCCore_setupSPR(PPCInterpreter_t* hCPU, uint32 coreIndex)
-{
-	hCPU->sprExtended.PVR = 0x70010001;
-	hCPU->spr.UPIR = coreIndex;
-	hCPU->sprExtended.msr |= MSR_FP; // enable floating point
+	cemuLog_log(LogType::Force, "Console language: {}", stdx::to_underlying(config.console_language.GetValue()));
 }
 
 struct SharedDataEntry
@@ -402,7 +399,7 @@ void cemu_initForGame()
 		// replace any known function signatures with our HLE implementations and patch bugs in the games
 		GamePatch_scan();
 	}
-	LatteGPUState.alwaysDisplayDRC = ActiveSettings::DisplayDRCEnabled();
+	LatteGPUState.isDRCPrimary = ActiveSettings::DisplayDRCEnabled();
 	InfoLog_PrintActiveSettings();
 	Latte_Start();
 	// check for debugger entrypoint bp
@@ -489,7 +486,7 @@ namespace CafeSystem
 	#if BOOST_OS_WINDOWS
 	std::string GetWindowsNamedVersion(uint32& buildNumber)
 	{
-		static char productName[256];
+		char productName[256];
 		HKEY hKey;
 		DWORD dwType = REG_SZ;
 		DWORD dwSize = sizeof(productName);
@@ -535,6 +532,16 @@ namespace CafeSystem
 		cemuLog_log(LogType::Force, "Platform: {}", platform);
 	}
 
+	static std::vector<IOSUModule*> s_iosuModules =
+	{
+		// entries in this list are ordered by initialization order. Shutdown in reverse order
+		iosu::kernel::GetModule(),
+		iosu::acp::GetModule(),
+		iosu::fpd::GetModule(),
+		iosu::pdm::GetModule(),
+		iosu::ccr_nfc::GetModule(),
+	};
+
 	// initialize all subsystems which are persistent and don't depend on a game running
 	void Initialize()
 	{
@@ -559,20 +566,20 @@ namespace CafeSystem
 		// allocate memory for all SysAllocators
 		// must happen before COS module init, but also before iosu::kernel::Initialize()
 		SysAllocatorContainer::GetInstance().Initialize();
-		// init IOSU
+		// init IOSU modules
+		for(auto& module : s_iosuModules)
+			module->SystemLaunch();
+		// init IOSU (deprecated manual init)
 		iosuCrypto_init();
-		iosu::kernel::Initialize();
 		iosu::fsa::Initialize();
 		iosuIoctl_init();
 		iosuAct_init_depr();
 		iosu::act::Initialize();
-		iosu::fpd::Initialize();
 		iosu::iosuMcp_init();
 		iosu::mcp::Init();
 		iosu::iosuAcp_init();
 		iosu::boss_init();
 		iosu::nim::Initialize();
-		iosu::pdm::Initialize();
 		iosu::odm::Initialize();
 		// init Cafe OS
 		avm::Initialize();
@@ -587,6 +594,8 @@ namespace CafeSystem
 		H264::Initialize();
 		snd_core::Initialize();
 		mic::Initialize();
+		nfc::Initialize();
+		ntag::Initialize();
 		// init hardware register interfaces
 		HW_SI::Initialize();
 	}
@@ -602,11 +611,14 @@ namespace CafeSystem
         // if a title is running, shut it down
         if (sSystemRunning)
             ShutdownTitle();
-        // shutdown persistent subsystems
+        // shutdown persistent subsystems (deprecated manual shutdown)
 		iosu::odm::Shutdown();
 		iosu::act::Stop();
         iosu::mcp::Shutdown();
         iosu::fsa::Shutdown();
+		// shutdown IOSU modules
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->SystemExit();
         s_initialized = false;
     }
 
@@ -628,40 +640,40 @@ namespace CafeSystem
         fsc_unmount("/cemuBossStorage/", FSC_PRIORITY_BASE);
     }
 
-	STATUS_CODE LoadAndMountForegroundTitle(TitleId titleId)
+	PREPARE_STATUS_CODE LoadAndMountForegroundTitle(TitleId titleId)
 	{
         cemuLog_log(LogType::Force, "Mounting title {:016x}", (uint64)titleId);
 		sGameInfo_ForegroundTitle = CafeTitleList::GetGameInfo(titleId);
 		if (!sGameInfo_ForegroundTitle.IsValid())
 		{
 			cemuLog_log(LogType::Force, "Mounting failed: Game meta information is either missing, inaccessible or not valid (missing or invalid .xml files in code and meta folder)");
-			return STATUS_CODE::UNABLE_TO_MOUNT;
+			return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 		}
 		// check base
 		TitleInfo& titleBase = sGameInfo_ForegroundTitle.GetBase();
 		if (!titleBase.IsValid())
-			return STATUS_CODE::UNABLE_TO_MOUNT;
+			return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 		if(!titleBase.ParseXmlInfo())
-			return STATUS_CODE::UNABLE_TO_MOUNT;
+			return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 		cemuLog_log(LogType::Force, "Base: {}", titleBase.GetPrintPath());
 		// mount base
 		if (!titleBase.Mount("/vol/content", "content", FSC_PRIORITY_BASE) || !titleBase.Mount(GetInternalVirtualCodeFolder(), "code", FSC_PRIORITY_BASE))
 		{
 			cemuLog_log(LogType::Force, "Mounting failed");
-			return STATUS_CODE::UNABLE_TO_MOUNT;
+			return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 		}
 		// check update
 		TitleInfo& titleUpdate = sGameInfo_ForegroundTitle.GetUpdate();
 		if (titleUpdate.IsValid())
 		{
 			if (!titleUpdate.ParseXmlInfo())
-				return STATUS_CODE::UNABLE_TO_MOUNT;
+				return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 			cemuLog_log(LogType::Force, "Update: {}", titleUpdate.GetPrintPath());
 			// mount update
 			if (!titleUpdate.Mount("/vol/content", "content", FSC_PRIORITY_PATCH) || !titleUpdate.Mount(GetInternalVirtualCodeFolder(), "code", FSC_PRIORITY_PATCH))
 			{
 				cemuLog_log(LogType::Force, "Mounting failed");
-				return STATUS_CODE::UNABLE_TO_MOUNT;
+				return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 			}
 		}
 		else
@@ -673,20 +685,20 @@ namespace CafeSystem
 			// todo - support for multi-title AOC
 			TitleInfo& titleAOC = aocList[0];
 			if (!titleAOC.ParseXmlInfo())
-				return STATUS_CODE::UNABLE_TO_MOUNT;
+				return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 			cemu_assert_debug(titleAOC.IsValid());
 			cemuLog_log(LogType::Force, "DLC: {}", titleAOC.GetPrintPath());
 			// mount AOC
 			if (!titleAOC.Mount(fmt::format("/vol/aoc{:016x}", titleAOC.GetAppTitleId()), "content", FSC_PRIORITY_PATCH))
 			{
 				cemuLog_log(LogType::Force, "Mounting failed");
-				return STATUS_CODE::UNABLE_TO_MOUNT;
+				return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 			}
 		}
 		else
 			cemuLog_log(LogType::Force, "DLC: Not present");
 		sForegroundTitleId = titleId;
-		return STATUS_CODE::SUCCESS;
+		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
     void UnmountForegroundTitle()
@@ -714,7 +726,7 @@ namespace CafeSystem
         }
     }
 
-	STATUS_CODE SetupExecutable()
+	PREPARE_STATUS_CODE SetupExecutable()
 	{
 		// set rpx path from cos.xml if available
 		_pathToBaseExecutable = _pathToExecutable;
@@ -746,8 +758,7 @@ namespace CafeSystem
 			}
 		}
 		LoadMainExecutable();
-		gameProfile_load();
-		return STATUS_CODE::SUCCESS;
+		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
     void SetupMemorySpace()
@@ -761,7 +772,7 @@ namespace CafeSystem
         memory_unmapForCurrentTitle();
     }
 
-	STATUS_CODE PrepareForegroundTitle(TitleId titleId)
+	PREPARE_STATUS_CODE PrepareForegroundTitle(TitleId titleId)
 	{
 		CafeTitleList::WaitForMandatoryScan();
 		sLaunchModeIsStandalone = false;
@@ -772,20 +783,21 @@ namespace CafeSystem
         // mount mlc storage
         MountBaseDirectories();
         // mount title folders
-		STATUS_CODE r = LoadAndMountForegroundTitle(titleId);
-		if (r != STATUS_CODE::SUCCESS)
+		PREPARE_STATUS_CODE r = LoadAndMountForegroundTitle(titleId);
+		if (r != PREPARE_STATUS_CODE::SUCCESS)
 			return r;
+		gameProfile_load();
 		// setup memory space and PPC recompiler
         SetupMemorySpace();
         PPCRecompiler_init();
 		r = SetupExecutable(); // load RPX
-		if (r != STATUS_CODE::SUCCESS)
+		if (r != PREPARE_STATUS_CODE::SUCCESS)
 			return r;
 		InitVirtualMlcStorage();
-		return STATUS_CODE::SUCCESS;
+		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
-	STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path)
+	PREPARE_STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path)
 	{
 		sLaunchModeIsStandalone = true;
 		cemuLog_log(LogType::Force, "Launching executable in standalone mode due to incorrect layout or missing meta files");
@@ -803,7 +815,7 @@ namespace CafeSystem
 				if (!r)
 				{
 					cemuLog_log(LogType::Force, "Failed to mount {}", _pathToUtf8(contentPath));
-					return STATUS_CODE::UNABLE_TO_MOUNT;
+					return PREPARE_STATUS_CODE::UNABLE_TO_MOUNT;
 				}
 			}
 		}
@@ -815,7 +827,7 @@ namespace CafeSystem
 		// since a lot of systems (including save folder location) rely on a TitleId, we derive a placeholder id from the executable hash
 		auto execData = fsc_extractFile(_pathToExecutable.c_str());
 		if (!execData)
-			return STATUS_CODE::INVALID_RPX;
+			return PREPARE_STATUS_CODE::INVALID_RPX;
 		uint32 h = generateHashFromRawRPXData(execData->data(), execData->size());
 		sForegroundTitleId = 0xFFFFFFFF00000000ULL | (uint64)h;
 		cemuLog_log(LogType::Force, "Generated placeholder TitleId: {:016x}", sForegroundTitleId);
@@ -825,19 +837,19 @@ namespace CafeSystem
         // load executable
         SetupExecutable();
 		InitVirtualMlcStorage();
-		return STATUS_CODE::SUCCESS;
+		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
 	void _LaunchTitleThread()
 	{
-		// init
+		for(auto& module : s_iosuModules)
+			module->TitleStart();
 		cemu_initForGame();
 		// enter scheduler
-		if (ActiveSettings::GetCPUMode() == CPUMode::MulticoreRecompiler)
+		if (ActiveSettings::GetCPUMode() == CPUMode::MulticoreRecompiler && !LaunchSettings::ForceInterpreter())
 			coreinit::OSSchedulerBegin(3);
 		else
 			coreinit::OSSchedulerBegin(1);
-		iosu::pdm::StartTrackingTime(GetForegroundTitleId());
 	}
 
 	void LaunchForegroundTitle()
@@ -912,6 +924,27 @@ namespace CafeSystem
 		return sGameInfo_ForegroundTitle.GetBase().GetArgStr();
 	}
 
+	CosCapabilityBits GetForegroundTitleCosCapabilities(CosCapabilityGroup group)
+	{
+		if (sLaunchModeIsStandalone)
+			return CosCapabilityBits::All;
+		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
+		if (update.IsValid())
+		{
+			ParsedCosXml* cosXml = update.GetCosInfo();
+			if (cosXml)
+				return cosXml->GetCapabilityBits(group);
+		}
+		auto& base = sGameInfo_ForegroundTitle.GetBase();
+		if(base.IsValid())
+		{
+			ParsedCosXml* cosXml = base.GetCosInfo();
+			if (cosXml)
+				return cosXml->GetCapabilityBits(group);
+		}
+		return CosCapabilityBits::All;
+	}
+
 	// when switching titles custom parameters can be passed, returns true if override args are used
 	bool GetOverrideArgStr(std::vector<std::string>& args)
 	{
@@ -965,8 +998,8 @@ namespace CafeSystem
         nn::save::ResetToDefaultState();
         coreinit::__OSDeleteAllActivePPCThreads();
         RPLLoader_ResetState();
-        // stop time tracking
-		iosu::pdm::Stop();
+		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
+			(*it)->TitleStop();
         // reset Cemu subsystems
         PPCRecompiler_Shutdown();
         GraphicPack2::Reset();

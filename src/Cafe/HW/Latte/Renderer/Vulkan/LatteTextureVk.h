@@ -9,18 +9,17 @@
 class LatteTextureVk : public LatteTexture
 {
 public:
-	LatteTextureVk(class VulkanRenderer* vkRenderer, uint32 textureUnit, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
+	LatteTextureVk(class VulkanRenderer* vkRenderer, Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels,
 		uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth);
 
 	~LatteTextureVk();
+
+	void AllocateOnHost() override;
 
 	VKRObjectTexture* GetImageObj() const { return vkObjTex; };
 	
 	VkFormat GetFormat() const { return vkObjTex->m_format; }
 	VkImageAspectFlags GetImageAspect() const { return vkObjTex->m_imageAspect; }
-
-	void setAllocation(struct VkImageMemAllocation* memAllocation);
-	struct VkImageMemAllocation* getAllocation() const;
 
 	VkImageLayout GetImageLayout(VkImageSubresource& subresource)
 	{

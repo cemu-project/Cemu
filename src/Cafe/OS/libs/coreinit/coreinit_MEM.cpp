@@ -128,7 +128,7 @@ namespace coreinit
 	{
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(1, &memBound, &memBoundSize);
 
 		MEMPTR<void> bucket;
 		uint32be bucketSize;
@@ -257,7 +257,7 @@ namespace coreinit
 	{
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(1, &memBound, &memBoundSize);
 
 		MEMPTR<void> bucket;
 		uint32be bucketSize;
@@ -593,16 +593,16 @@ namespace coreinit
 		{
 			MEMPTR<void> memBound;
 			uint32be memBoundSize;
-			OSGetMemBound(1, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+			OSGetMemBound(1, &memBound, &memBoundSize);
 			mem1Heap = MEMCreateFrmHeapEx(memBound.GetPtr(), (uint32)memBoundSize, 0);
 
-			OSGetForegroundBucketFreeArea((MPTR*)memBound.GetBEPtr(), (MPTR*)&memBoundSize);
+			OSGetForegroundBucketFreeArea(&memBound, &memBoundSize);
 			memFGHeap = MEMCreateFrmHeapEx(memBound.GetPtr(), (uint32)memBoundSize, 0);
 		}
 
 		MEMPTR<void> memBound;
 		uint32be memBoundSize;
-		OSGetMemBound(2, (MPTR*)memBound.GetBEPtr(), (uint32*)&memBoundSize);
+		OSGetMemBound(2, &memBound, &memBoundSize);
 		mem2Heap = MEMDefaultHeap_Init(memBound.GetPtr(), (uint32)memBoundSize);
 
 		// set DynLoad allocators

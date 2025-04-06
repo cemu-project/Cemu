@@ -62,6 +62,7 @@ if(WIN32)
 endif()
 
 if (ENABLE_WIIMOTE)
+	target_compile_definitions(CemuInput PUBLIC SUPPORTS_WIIMOTE)
 	target_sources(CemuInput PRIVATE
 			api/Wiimote/WiimoteControllerProvider.h
 			api/Wiimote/WiimoteControllerProvider.cpp
@@ -69,17 +70,13 @@ if (ENABLE_WIIMOTE)
 			api/Wiimote/NativeWiimoteController.h
 			api/Wiimote/NativeWiimoteController.cpp
 			api/Wiimote/WiimoteDevice.h
-	)
-	if (ENABLE_HIDAPI)
-		target_sources(CemuInput PRIVATE
 			api/Wiimote/hidapi/HidapiWiimote.cpp
 			api/Wiimote/hidapi/HidapiWiimote.h
-		)
-	elseif (WIN32)
+	)
+	if (UNIX AND NOT APPLE)
 		target_sources(CemuInput PRIVATE
-			api/Wiimote/windows/WinWiimoteDevice.cpp
-			api/Wiimote/windows/WinWiimoteDevice.h
-		)
+			api/Wiimote/l2cap/L2CapWiimote.cpp
+			api/Wiimote/l2cap/L2CapWiimote.h)
 	endif()
 endif ()
 
@@ -105,3 +102,8 @@ endif()
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuInput PRIVATE wx::base wx::core)
 endif()
+
+
+if (UNIX AND NOT APPLE)
+	target_link_libraries(CemuInput PRIVATE bluez::bluez)
+endif ()

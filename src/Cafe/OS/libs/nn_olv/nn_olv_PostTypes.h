@@ -531,6 +531,11 @@ namespace nn
 			// SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCwUc
 			static nnResult SetSearchKey(DownloadPostDataListParam* _this, const uint16be* searchKey, uint8 searchKeyIndex)
 			{
+				if( !searchKey )
+				{
+					memset(&_this->searchKeyArray[searchKeyIndex], 0, sizeof(SearchKey));
+					return OLV_RESULT_SUCCESS;
+				}
 				if (searchKeyIndex >= MAX_NUM_SEARCH_KEY)
 					return OLV_RESULT_INVALID_PARAMETER;
 				memset(&_this->searchKeyArray[searchKeyIndex], 0, sizeof(SearchKey));
@@ -546,6 +551,11 @@ namespace nn
 			// SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw
 			static nnResult SetSearchKeySingle(DownloadPostDataListParam* _this, const uint16be* searchKey)
 			{
+				if (searchKey == nullptr)
+				{
+					cemuLog_logDebug(LogType::NN_OLV, "DownloadPostDataListParam::SetSearchKeySingle: searchKeySingle is Null\n");			
+					return OLV_RESULT_INVALID_PARAMETER;
+				}
 				return SetSearchKey(_this, searchKey, 0);
 			}
 

@@ -212,9 +212,12 @@ bool FSCDeviceWUD_Mount(std::string_view mountPath, std::string_view destination
 // wua device
 bool FSCDeviceWUA_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class ZArchiveReader* archive, sint32 priority);
 
+// wuhb device
+bool FSCDeviceWUHB_Mount(std::string_view mountPath, std::string_view destinationBaseDir, class WUHBReader* wuhbReader, sint32 priority);
+
 // hostFS device
 bool FSCDeviceHostFS_Mount(std::string_view mountPath, std::string_view hostTargetPath, sint32 priority);
 
 // redirect device
 void fscDeviceRedirect_map();
-void fscDeviceRedirect_add(std::string_view virtualSourcePath, const fs::path& targetFilePath, sint32 priority);
+void fscDeviceRedirect_add(std::string_view virtualSourcePath, size_t fileSize, const fs::path& targetFilePath, sint32 priority);

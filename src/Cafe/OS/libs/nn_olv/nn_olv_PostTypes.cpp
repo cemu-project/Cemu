@@ -391,71 +391,71 @@ namespace nn
 
 		void loadOlivePostAndTopicTypes()
 		{
-			cafeExportRegisterFunc(GetSystemTopicDataListFromRawData, "nn_olv", "GetSystemTopicDataListFromRawData__Q3_2nn3olv6hiddenFPQ4_2nn3olv6hidden29DownloadedSystemTopicDataListPQ4_2nn3olv6hidden24DownloadedSystemPostDataPUiUiPCUcT4", LogType::None);
+			cafeExportRegisterFunc(GetSystemTopicDataListFromRawData, "nn_olv", "GetSystemTopicDataListFromRawData__Q3_2nn3olv6hiddenFPQ4_2nn3olv6hidden29DownloadedSystemTopicDataListPQ4_2nn3olv6hidden24DownloadedSystemPostDataPUiUiPCUcT4", LogType::NN_OLV);
 
 			// DownloadedDataBase getters
-			cafeExportRegisterFunc(DownloadedDataBase::TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetUserPid, "nn_olv", "GetUserPid__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetPostDate, "nn_olv", "GetPostDate__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetFeeling, "nn_olv", "GetFeeling__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetRegionId, "nn_olv", "GetRegionId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetPlatformId, "nn_olv", "GetPlatformId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetLanguageId, "nn_olv", "GetLanguageId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetCountryId, "nn_olv", "GetCountryId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetExternalUrl, "nn_olv", "GetExternalUrl__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData1, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFP12FFLStoreData", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetMiiNickname, "nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetBodyText, "nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetBodyMemo, "nn_olv", "GetBodyMemo__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetTopicTag, "nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData2, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::DownloadExternalImageData, "nn_olv", "DownloadExternalImageData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi", LogType::None);
-			cafeExportRegisterFunc(DownloadedDataBase::GetExternalImageDataSize, "nn_olv", "GetExternalImageDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedDataBase::TestFlags, "nn_olv", "TestFlags__Q3_2nn3olv18DownloadedDataBaseCFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetUserPid, "nn_olv", "GetUserPid__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetPostDate, "nn_olv", "GetPostDate__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetFeeling, "nn_olv", "GetFeeling__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetRegionId, "nn_olv", "GetRegionId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetPlatformId, "nn_olv", "GetPlatformId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetLanguageId, "nn_olv", "GetLanguageId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetCountryId, "nn_olv", "GetCountryId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetExternalUrl, "nn_olv", "GetExternalUrl__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData1, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFP12FFLStoreData", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetMiiNickname, "nn_olv", "GetMiiNickname__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetBodyText, "nn_olv", "GetBodyText__Q3_2nn3olv18DownloadedDataBaseCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetBodyMemo, "nn_olv", "GetBodyMemo__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetTopicTag, "nn_olv", "GetTopicTag__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetAppData, "nn_olv", "GetAppData__Q3_2nn3olv18DownloadedDataBaseCFPUcPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetAppDataSize, "nn_olv", "GetAppDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetMiiData2, "nn_olv", "GetMiiData__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::DownloadExternalImageData, "nn_olv", "DownloadExternalImageData__Q3_2nn3olv18DownloadedDataBaseCFPvPUiUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedDataBase::GetExternalImageDataSize, "nn_olv", "GetExternalImageDataSize__Q3_2nn3olv18DownloadedDataBaseCFv", LogType::NN_OLV);
 
 			// DownloadedPostData getters
-			cafeExportRegisterFunc(DownloadedPostData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedPostData::GetEmpathyCount, "nn_olv", "GetEmpathyCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedPostData::GetCommentCount, "nn_olv", "GetCommentCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
-			cafeExportRegisterFunc(DownloadedPostData::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedPostData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedPostData::GetEmpathyCount, "nn_olv", "GetEmpathyCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedPostData::GetCommentCount, "nn_olv", "GetCommentCount__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadedPostData::GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv18DownloadedPostDataCFv", LogType::NN_OLV);
 
 			// DownloadedSystemPostData getters
-			cafeExportRegisterFunc(hidden::DownloadedSystemPostData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden24DownloadedSystemPostDataCFv", LogType::None);
+			cafeExportRegisterFunc(hidden::DownloadedSystemPostData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden24DownloadedSystemPostDataCFv", LogType::NN_OLV);
 
 			// DownloadedTopicData getters
-			cafeExportRegisterFunc(DownloadedTopicData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv19DownloadedTopicDataCFv", LogType::None);
+			cafeExportRegisterFunc(DownloadedTopicData::GetCommunityId, "nn_olv", "GetCommunityId__Q3_2nn3olv19DownloadedTopicDataCFv", LogType::NN_OLV);
 
 			// DownloadedSystemTopicData getters
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::TestFlags, "nn_olv", "TestFlags__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFUi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIdNum, "nn_olv", "GetTitleIdNum__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleText, "nn_olv", "GetTitleText__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPwUi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIconData, "nn_olv", "GetTitleIconData__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPUcPUiUi", LogType::None);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::TestFlags, "nn_olv", "TestFlags__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleId, "nn_olv", "GetTitleId__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIdNum, "nn_olv", "GetTitleIdNum__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleText, "nn_olv", "GetTitleText__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPwUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicData::GetTitleIconData, "nn_olv", "GetTitleIconData__Q4_2nn3olv6hidden25DownloadedSystemTopicDataCFPUcPUiUi", LogType::NN_OLV);
 
 			// DownloadedSystemTopicDataList getters
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicDataNum, "nn_olv", "GetDownloadedSystemTopicDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFv", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostDataNum, "nn_olv", "GetDownloadedSystemPostDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicData, "nn_olv", "GetDownloadedSystemTopicData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::None);
-			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostData, "nn_olv", "GetDownloadedSystemPostData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFiT1", LogType::None);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicDataNum, "nn_olv", "GetDownloadedSystemTopicDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostDataNum, "nn_olv", "GetDownloadedSystemPostDataNum__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemTopicData, "nn_olv", "GetDownloadedSystemTopicData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFi", LogType::NN_OLV);
+			cafeExportRegisterFunc(hidden::DownloadedSystemTopicDataList::GetDownloadedSystemPostData, "nn_olv", "GetDownloadedSystemPostData__Q4_2nn3olv6hidden29DownloadedSystemTopicDataListCFiT1", LogType::NN_OLV);
 
 			// DownloadPostDataListParam constructor and getters
-			cafeExportRegisterFunc(DownloadPostDataListParam::Construct, "nn_olv", "__ct__Q3_2nn3olv25DownloadPostDataListParamFv", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetLanguageId, "nn_olv", "SetLanguageId__Q3_2nn3olv25DownloadPostDataListParamFUc", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetCommunityId, "nn_olv", "SetCommunityId__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchKey, "nn_olv", "SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCwUc", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchKeySingle, "nn_olv", "SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchPid, "nn_olv", "SetSearchPid__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostId, "nn_olv", "SetPostId__Q3_2nn3olv25DownloadPostDataListParamFPCcUi", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostDate, "nn_olv", "SetPostDate__Q3_2nn3olv25DownloadPostDataListParamFL", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostDataMaxNum, "nn_olv", "SetPostDataMaxNum__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataListParam::SetBodyTextMaxLength, "nn_olv", "SetBodyTextMaxLength__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::None);
+			cafeExportRegisterFunc(DownloadPostDataListParam::Construct, "nn_olv", "__ct__Q3_2nn3olv25DownloadPostDataListParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetFlags, "nn_olv", "SetFlags__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetLanguageId, "nn_olv", "SetLanguageId__Q3_2nn3olv25DownloadPostDataListParamFUc", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetCommunityId, "nn_olv", "SetCommunityId__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchKey, "nn_olv", "SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCwUc", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchKeySingle, "nn_olv", "SetSearchKey__Q3_2nn3olv25DownloadPostDataListParamFPCw", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetSearchPid, "nn_olv", "SetSearchPid__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostId, "nn_olv", "SetPostId__Q3_2nn3olv25DownloadPostDataListParamFPCcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostDate, "nn_olv", "SetPostDate__Q3_2nn3olv25DownloadPostDataListParamFL", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetPostDataMaxNum, "nn_olv", "SetPostDataMaxNum__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataListParam::SetBodyTextMaxLength, "nn_olv", "SetBodyTextMaxLength__Q3_2nn3olv25DownloadPostDataListParamFUi", LogType::NN_OLV);
 
 			// URL and downloading functions
-			cafeExportRegisterFunc(DownloadPostDataListParam::GetRawDataUrl, "nn_olv", "GetRawDataUrl__Q3_2nn3olv25DownloadPostDataListParamCFPcUi", LogType::None);
-			cafeExportRegisterFunc(DownloadPostDataList, "nn_olv", "DownloadPostDataList__Q2_2nn3olvFPQ3_2nn3olv19DownloadedTopicDataPQ3_2nn3olv18DownloadedPostDataPUiUiPCQ3_2nn3olv25DownloadPostDataListParam", LogType::None);
+			cafeExportRegisterFunc(DownloadPostDataListParam::GetRawDataUrl, "nn_olv", "GetRawDataUrl__Q3_2nn3olv25DownloadPostDataListParamCFPcUi", LogType::NN_OLV);
+			cafeExportRegisterFunc(DownloadPostDataList, "nn_olv", "DownloadPostDataList__Q2_2nn3olvFPQ3_2nn3olv19DownloadedTopicDataPQ3_2nn3olv18DownloadedPostDataPUiUiPCQ3_2nn3olv25DownloadPostDataListParam", LogType::NN_OLV);
 
 		}
 

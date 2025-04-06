@@ -20,7 +20,8 @@ void iosuCrypto_readOtpData(void* output, sint32 wordIndex, sint32 size);
 
 void iosuCrypto_readSeepromData(void* output, sint32 wordIndex, sint32 size);
 
-extern bool hasSeepromMem; // remove later
+extern bool hasSeepromMem; // remove later (migrate otp/seeprom loading & parsing to this class)
+extern bool hasOtpMem; // remove later
 
 namespace NCrypto
 {
@@ -792,6 +793,16 @@ namespace NCrypto
 		return (CafeConsoleRegion)seepromRegionU32[3];
 	}
 
+	bool OTP_IsPresent()
+	{
+		return hasOtpMem;
+	}
+
+	bool HasDataForConsoleCert()
+	{
+		return SEEPROM_IsPresent() && OTP_IsPresent();
+	}
+
 	std::string GetRegionAsString(CafeConsoleRegion regionCode)
 	{
 		if (regionCode == CafeConsoleRegion::EUR)
@@ -955,6 +966,11 @@ namespace NCrypto
 		if (it == g_countryTable.cend())
 			return "NN";
 		return it->second;
+	}
+
+	size_t GetCountryCount()
+	{
+		return g_countryTable.size();
 	}
 
 	void unitTests()

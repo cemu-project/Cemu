@@ -57,7 +57,12 @@ uint32 LatteTextureVk_AdjustTextureCompSel(Latte::E_GX2SURFFMT format, uint32 co
 LatteTextureViewVk::LatteTextureViewVk(VkDevice device, LatteTextureVk* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount)
 	: LatteTextureView(texture, firstMip, mipCount, firstSlice, sliceCount, dim, format), m_device(device)
 {
-	if (dim != texture->dim || format != texture->format)
+	if(texture->overwriteInfo.hasFormatOverwrite)
+	{
+		cemu_assert_debug(format == texture->format); // if format overwrite is used, the texture is no longer taking part in aliasing and the format of any view has to match
+		m_format = texture->GetFormat();
+	}
+	else if (dim != texture->dim || format != texture->format)
 	{
 		VulkanRenderer::FormatInfoVK texFormatInfo;
 		VulkanRenderer::GetInstance()->GetTextureFormatInfoVK(format, texture->isDepth, dim, 0, 0, &texFormatInfo);
@@ -74,14 +79,14 @@ LatteTextureViewVk::~LatteTextureViewVk()
 		delete list_descriptorSets[0];
 
 	if (m_smallCacheView0)
-		VulkanRenderer::GetInstance()->releaseDestructibleObject(m_smallCacheView0);
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_smallCacheView0);
 	if (m_smallCacheView1)
-		VulkanRenderer::GetInstance()->releaseDestructibleObject(m_smallCacheView1);
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_smallCacheView1);
 
 	if (m_fallbackCache)
 	{
 		for (auto& itr : *m_fallbackCache)
-			VulkanRenderer::GetInstance()->releaseDestructibleObject(itr.second);
+			VulkanRenderer::GetInstance()->ReleaseDestructibleObject(itr.second);
 		delete m_fallbackCache;
 		m_fallbackCache = nullptr;
 	}
@@ -197,6 +202,13 @@ VkSampler LatteTextureViewVk::GetDefaultTextureSampler(bool useLinearTexFilter)
 	VkSamplerCreateInfo samplerInfo{};
 	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
+	// emulate OpenGL minFilters
+	// see note under: https://docs.vulkan.org/spec/latest/chapters/samplers.html#VkSamplerCreateInfo
+	// if maxLod = 0 then magnification is always performed
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 0.25f;
+
 	if (useLinearTexFilter)
 	{
 		samplerInfo.magFilter = VK_FILTER_LINEAR;
@@ -207,6 +219,9 @@ VkSampler LatteTextureViewVk::GetDefaultTextureSampler(bool useLinearTexFilter)
 		samplerInfo.magFilter = VK_FILTER_NEAREST;
 		samplerInfo.minFilter = VK_FILTER_NEAREST;
 	}
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
 
 	if (vkCreateSampler(m_device, &samplerInfo, nullptr, &sampler) != VK_SUCCESS)
 	{

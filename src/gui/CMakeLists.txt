@@ -75,6 +75,8 @@ add_library(CemuGui
   input/InputAPIAddWindow.h
   input/InputSettings2.cpp
   input/InputSettings2.h
+  input/PairingDialog.cpp
+  input/PairingDialog.h
   input/panels/ClassicControllerInputPanel.cpp
   input/panels/ClassicControllerInputPanel.h
   input/panels/InputPanel.cpp
@@ -99,6 +101,8 @@ add_library(CemuGui
   PadViewFrame.h
   TitleManager.cpp
   TitleManager.h
+  EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp
+  EmulatedUSBDevices/EmulatedUSBDeviceFrame.h
   windows/PPCThreadsViewer
   windows/PPCThreadsViewer/DebugPPCThreadsWindow.cpp
   windows/PPCThreadsViewer/DebugPPCThreadsWindow.h
@@ -170,3 +174,11 @@ if (ENABLE_WXWIDGETS)
 	# PUBLIC because wx/app.h is included in CemuApp.h
 	target_link_libraries(CemuGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
 endif()
+
+if(WIN32)
+	target_link_libraries(CemuGui PRIVATE bthprops)
+endif()
+
+if(ALLOW_PORTABLE)
+	target_compile_definitions(CemuGui PRIVATE CEMU_ALLOW_PORTABLE)
+endif ()

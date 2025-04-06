@@ -11,7 +11,7 @@ uint64 dmaeRetiredTimestamp = 0;
 
 uint64 dmae_getTimestamp()
 {
-	return coreinit::coreinit_getTimerTick();
+	return coreinit::OSGetSystemTime();
 }
 
 void dmae_setRetiredTimestamp(uint64 timestamp)

@@ -23,7 +23,7 @@ using wxControllerData = wxCustomData<ControllerPtr>;
 
 InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
                                      const std::vector<ControllerPtr>& controllers)
-	: wxDialog(parent, wxID_ANY, _("Add input API"), position, wxDefaultSize, 0), m_controllers(controllers)
+	: wxDialog(parent, wxID_ANY, "Add input API", position, wxDefaultSize, 0), m_controllers(controllers)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
@@ -90,11 +90,11 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 			auto* row = new wxBoxSizer(wxHORIZONTAL);
 			// we only have dsu settings atm, so add elements now
 			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("IP")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-			m_ip = new wxTextCtrl(m_settings_panel, wxID_ANY, wxT("127.0.0.1"));
+			m_ip = new wxTextCtrl(m_settings_panel, wxID_ANY, "127.0.0.1");
 			row->Add(m_ip, 0, wxALL, 5);
 
 			row->Add(new wxStaticText(m_settings_panel, wxID_ANY, _("Port")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-			m_port = new wxTextCtrl(m_settings_panel, wxID_ANY, wxT("26760"));
+			m_port = new wxTextCtrl(m_settings_panel, wxID_ANY, "26760");
 			row->Add(m_port, 0, wxALL, 5);
 
 			panel_sizer->Add(row, 0, wxEXPAND);
@@ -112,6 +112,11 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 	sizer->Fit(this);
 
 	this->Bind(wxControllersRefreshed, &InputAPIAddWindow::on_controllers_refreshed, this);
+}
+
+InputAPIAddWindow::~InputAPIAddWindow()
+{
+	discard_thread_result();
 }
 
 void InputAPIAddWindow::on_add_button(wxCommandEvent& event)
@@ -159,6 +164,8 @@ std::unique_ptr<ControllerProviderSettings> InputAPIAddWindow::get_settings() co
 
 void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
 {
+	discard_thread_result();
+
 	if (m_input_api->GetSelection() == wxNOT_FOUND)
 		return;
 
@@ -239,19 +246,25 @@ void InputAPIAddWindow::on_controller_dropdown(wxCommandEvent& event)
 	m_controller_list->Append(_("Searching for controllers..."), (wxClientData*)nullptr);
 	m_controller_list->SetSelection(wxNOT_FOUND);
 
-	std::thread([this, provider, selected_uuid]()
+	m_search_thread_data = std::make_unique<AsyncThreadData>();
+	std::thread([this, provider, selected_uuid](std::shared_ptr<AsyncThreadData> data)
 	{
 		auto available_controllers = provider->get_controllers();
 
-		wxCommandEvent event(wxControllersRefreshed);
-		event.SetEventObject(m_controller_list);
-		event.SetClientObject(new wxCustomData(std::move(available_controllers)));
-		event.SetInt(provider->api());
-		event.SetString(selected_uuid);
-		wxPostEvent(this, event);
-
-		m_search_running = false;
-	}).detach();
+		{
+			std::lock_guard lock{data->mutex};
+			if(!data->discardResult)
+			{
+				wxCommandEvent event(wxControllersRefreshed);
+				event.SetEventObject(m_controller_list);
+				event.SetClientObject(new wxCustomData(std::move(available_controllers)));
+				event.SetInt(provider->api());
+				event.SetString(selected_uuid);
+				wxPostEvent(this, event);
+				m_search_running = false;
+			}
+		}
+	}, m_search_thread_data).detach();
 }
 
 void InputAPIAddWindow::on_controller_selected(wxCommandEvent& event)
@@ -299,5 +312,15 @@ void InputAPIAddWindow::on_controllers_refreshed(wxCommandEvent& event)
 			controllers->SetSelection(index);
 			item_selected = true;
 		}
+	}
+}
+
+void InputAPIAddWindow::discard_thread_result()
+{
+	m_search_running = false;
+	if(m_search_thread_data)
+	{
+		std::lock_guard lock{m_search_thread_data->mutex};
+		m_search_thread_data->discardResult = true;
 	}
 }

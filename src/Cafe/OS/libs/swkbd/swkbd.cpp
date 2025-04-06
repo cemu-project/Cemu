@@ -276,7 +276,6 @@ void swkbdExport_SwkbdDisappearKeyboard(PPCInterpreter_t* hCPU)
 
 void swkbdExport_SwkbdGetInputFormString(PPCInterpreter_t* hCPU)
 {
-	debug_printf("SwkbdGetInputFormString__3RplFv LR: %08x\n", hCPU->spr.LR);
 	for(sint32 i=0; i<swkbdInternalState->formStringLength; i++)
 	{
 		swkbdInternalState->formStringBufferBE[i] = _swapEndianU16(swkbdInternalState->formStringBuffer[i]);
@@ -287,7 +286,6 @@ void swkbdExport_SwkbdGetInputFormString(PPCInterpreter_t* hCPU)
 
 void swkbdExport_SwkbdIsDecideOkButton(PPCInterpreter_t* hCPU)
 {
-	debug_printf("SwkbdIsDecideOkButton__3RplFPb LR: %08x\n", hCPU->spr.LR);
 	if (swkbdInternalState->decideButtonWasPressed)
 		osLib_returnFromFunction(hCPU, 1);
 	else

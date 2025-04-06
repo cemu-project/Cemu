@@ -294,7 +294,7 @@ std::atomic_bool s_recompilerThreadStopSignal{false};
 
 void PPCRecompiler_thread()
 {
-	SetThreadName("PPCRecompiler_thread");
+	SetThreadName("PPCRecompiler");
 	while (true)
 	{
         if(s_recompilerThreadStopSignal)
@@ -325,6 +325,8 @@ void PPCRecompiler_thread()
 			PPCRecompilerState.recompilerSpinlock.unlock();
 
 			PPCRecompiler_recompileAtAddress(enterAddress);
+			if(s_recompilerThreadStopSignal)
+				return;
 		}
 	}
 }

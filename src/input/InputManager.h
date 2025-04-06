@@ -5,7 +5,7 @@
 #include "input/api/XInput/XInputControllerProvider.h"
 #endif
 
-#if defined(HAS_HIDAPI) || BOOST_OS_WINDOWS
+#ifdef SUPPORTS_WIIMOTE
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
 #endif
 

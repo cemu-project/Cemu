@@ -1,4 +1,5 @@
 #pragma once
+#include "Cafe/IOSU/iosu_types_common.h"
 
 namespace iosu
 {
@@ -6,10 +7,6 @@ namespace iosu
 	{
 		void save(MemStreamWriter& s);
 		void restore(MemStreamReader& s);
-
-		void Initialize();
-		void StartTrackingTime(uint64 titleId);
-		void Stop();
 
 		inline constexpr size_t NUM_PLAY_STATS_ENTRIES = 256;
 		inline constexpr size_t NUM_PLAY_DIARY_ENTRIES_MAX = 18250; // 0x474A
@@ -37,5 +34,7 @@ namespace iosu
 		};
 
 		bool GetStatForGamelist(uint64 titleId, GameListStat& stat);
+
+		IOSUModule* GetModule();
 	};
 };

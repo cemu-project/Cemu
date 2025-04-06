@@ -195,13 +195,13 @@ namespace nn
 					break;
 			}
 
-			req.initate(requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
+			req.initate(ActiveSettings::GetNetworkService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
 			InitializeOliveRequest(req);
 
 			StackAllocator<coreinit::OSEvent> requestDoneEvent;
-			coreinit::OSInitEvent(requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+			coreinit::OSInitEvent(&requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 			std::future<sint32> requestRes = std::async(std::launch::async, MakeDiscoveryRequest_AsyncRequest, std::ref(req), requestUrl.c_str(), requestDoneEvent.GetPointer());
-			coreinit::OSWaitEvent(requestDoneEvent);
+			coreinit::OSWaitEvent(&requestDoneEvent);
 
 			return requestRes.get();
 		}

@@ -107,6 +107,7 @@ CurlRequestHelper::CurlRequestHelper()
 
 	curl_easy_setopt(m_curl, CURLOPT_FOLLOWLOCATION, 1);
 	curl_easy_setopt(m_curl, CURLOPT_MAXREDIRS, 2);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	if(GetConfig().proxy_server.GetValue() != "")
 	{
@@ -119,7 +120,7 @@ CurlRequestHelper::~CurlRequestHelper()
 	curl_easy_cleanup(m_curl);
 }
 
-void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
+void CurlRequestHelper::initate(NetworkService service, std::string url, SERVER_SSL_CONTEXT sslContext)
 {
 	// reset parameters
 	m_headerExtraFields.clear();
@@ -131,8 +132,10 @@ void CurlRequestHelper::initate(std::string url, SERVER_SSL_CONTEXT sslContext)
 	curl_easy_setopt(m_curl, CURLOPT_TIMEOUT, 60);
 
 	// SSL
-	if (GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() == NetworkService::Custom || ActiveSettings::GetNetworkService() == NetworkService::Pretendo){ //Remove once Pretendo has SSL
-	curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 1L);
+	if (IsNetworkServiceSSLDisabled(service))
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
 	}
 	else if (sslContext == SERVER_SSL_CONTEXT::ACT || sslContext == SERVER_SSL_CONTEXT::TAGAYA)
 	{
@@ -256,18 +259,25 @@ bool CurlRequestHelper::submitRequest(bool isPost)
 	return true;
 }
 
-CurlSOAPHelper::CurlSOAPHelper()
+CurlSOAPHelper::CurlSOAPHelper(NetworkService service)
 {
 	m_curl = curl_easy_init();
 	curl_easy_setopt(m_curl, CURLOPT_WRITEFUNCTION, __curlWriteCallback);
 	curl_easy_setopt(m_curl, CURLOPT_WRITEDATA, this);
+	curl_easy_setopt(m_curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 
 	// SSL
-	if (!GetNetworkConfig().disablesslver.GetValue()  && ActiveSettings::GetNetworkService() != NetworkService::Pretendo  && ActiveSettings::GetNetworkService() != NetworkService::Custom) { //Remove once Pretendo has SSL
-	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
-	curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
+	if (!IsNetworkServiceSSLDisabled(service))
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_FUNCTION, _sslctx_function_SOAP);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_CTX_DATA, NULL);
+		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 1L);
 	}
-	if(GetConfig().proxy_server.GetValue() != "")
+	else
+	{
+		curl_easy_setopt(m_curl, CURLOPT_SSL_VERIFYPEER, 0L);
+	}
+	if (GetConfig().proxy_server.GetValue() != "")
 	{
 		curl_easy_setopt(m_curl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
 	}
@@ -380,9 +390,8 @@ bool CurlSOAPHelper::submitRequest()
 	headers = curl_slist_append(headers, "Accept-Charset: UTF-8");
 	headers = curl_slist_append(headers, fmt::format("SOAPAction: urn:{}.wsapi.broadon.com/{}", m_serviceType, m_requestMethod).c_str());
 	headers = curl_slist_append(headers, "Accept: */*");
-	headers = curl_slist_append(headers, "User-Agent: EVL NUP 040800 Sep 18 2012 20:20:02");
-
 	curl_easy_setopt(m_curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(m_curl, CURLOPT_USERAGENT, "EVL NUP 040800 Sep 18 2012 20:20:02");
 
 	// send request
 	auto res = curl_easy_perform(m_curl);

@@ -38,7 +38,7 @@ public:
 		return m_curl;
 	}
 
-	void initate(std::string url, SERVER_SSL_CONTEXT sslContext);
+	void initate(NetworkService service, std::string url, SERVER_SSL_CONTEXT sslContext);
 	void addHeaderField(const char* fieldName, std::string_view value);
 	void addPostField(const char* fieldName, std::string_view value);
 	void setWriteCallback(bool(*cbWriteCallback)(void* userData, const void* ptr, size_t len, bool isLast), void* userData);
@@ -74,7 +74,7 @@ private:
 class CurlSOAPHelper // todo - make this use CurlRequestHelper
 {
 public:
-	CurlSOAPHelper();
+	CurlSOAPHelper(NetworkService service);
 	~CurlSOAPHelper();
 
 	CURL* getCURL()

@@ -8,6 +8,7 @@
 #include "gui/components/wxProgressDialogManager.h"
 
 #include <cinttypes>
+#include <helpers/wxHelpers.h>
 
 enum
 {
@@ -194,10 +195,10 @@ void DebugPPCThreadsWindow::RefreshThreadList()
             m_thread_list->InsertItem(item);
             m_thread_list->SetItemData(item, (long)threadItrMPTR);
             // entry point
-            sprintf(tempStr, "%08X", _swapEndianU32(cafeThread->entrypoint));
+            sprintf(tempStr, "%08X", cafeThread->entrypoint.GetMPTR());
             m_thread_list->SetItem(i, 1, tempStr);
             // stack base (low)
-            sprintf(tempStr, "%08X - %08X", _swapEndianU32(cafeThread->stackEnd), _swapEndianU32(cafeThread->stackBase));
+            sprintf(tempStr, "%08X - %08X", cafeThread->stackEnd.GetMPTR(), cafeThread->stackBase.GetMPTR());
             m_thread_list->SetItem(i, 2, tempStr);
             // pc
             RPLStoredSymbol* symbol = rplSymbolStorage_getByAddress(cafeThread->context.srr0);
@@ -276,12 +277,10 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 	m_thread_list->SetScrollPos(0, scrollPos, true);
 }
 
-void DebugLogStackTrace(OSThread_t* thread, MPTR sp);
-
 void DebugPPCThreadsWindow::DumpStackTrace(OSThread_t* thread)
 {
 	cemuLog_log(LogType::Force, "Dumping stack trace for thread {0:08x} LR: {1:08x}", memory_getVirtualOffsetFromPointer(thread), _swapEndianU32(thread->context.lr));
-	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]));
+	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]), true);
 }
 
 void DebugPPCThreadsWindow::PresentProfileResults(OSThread_t* thread, const std::unordered_map<VAddr, uint32>& samples)
@@ -333,7 +332,7 @@ void DebugPPCThreadsWindow::PresentProfileResults(OSThread_t* thread, const std:
 void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
 {
 	wxProgressDialogManager progressDialog(this);
-	progressDialog.Create("Profiling thread",
+	progressDialog.Create(_("Profiling thread"),
 						  _("Capturing samples..."),
 						  1000, // range
 						  wxPD_CAN_SKIP);
@@ -364,8 +363,7 @@ void DebugPPCThreadsWindow::ProfileThreadWorker(OSThread_t* thread)
 		totalSampleCount++;
 		if ((totalSampleCount % 50) == 0)
 		{
-			wxString msg = fmt::format("Capturing samples... ({:})\nResults will be written to log.txt\n",
-									   totalSampleCount);
+			wxString msg = formatWxString(_("Capturing samples... ({:})\nResults will be written to log.txt\n"), totalSampleCount);
 			if (totalSampleCount < 30000)
 				msg.Append(_("Click Skip button for early results with lower accuracy"));
 			else

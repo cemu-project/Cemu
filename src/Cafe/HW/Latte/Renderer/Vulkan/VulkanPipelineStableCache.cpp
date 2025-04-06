@@ -59,10 +59,10 @@ uint32 VulkanPipelineStableCache::BeginLoading(uint64 cacheTitleId)
 
 	// open cache file or create it
 	cemu_assert_debug(s_cache == nullptr);
-	s_cache = FileCache::Open(pathCacheFile.generic_wstring(), true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
+	s_cache = FileCache::Open(pathCacheFile, true, LatteShaderCache_getPipelineCacheExtraVersion(cacheTitleId));
 	if (!s_cache)
 	{
-		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", pathCacheFile.generic_string());
+		cemuLog_log(LogType::Force, "Failed to open or create Vulkan pipeline cache file: {}", _pathToUtf8(pathCacheFile));
 		return 0;
 	}
 	else
@@ -300,7 +300,7 @@ void VulkanPipelineStableCache::LoadPipelineFromCache(std::span<uint8> fileData)
 	delete pipelineInfo;
 	delete lcr;
 	delete cachedPipeline;
-	VulkanRenderer::GetInstance()->releaseDestructibleObject(renderPass);
+	VulkanRenderer::GetInstance()->ReleaseDestructibleObject(renderPass);
 	s_spinlockSharedInternal.unlock();
 }
 
@@ -408,6 +408,7 @@ bool VulkanPipelineStableCache::DeserializePipeline(MemStreamReader& memReader, 
 
 int VulkanPipelineStableCache::CompilerThread()
 {
+	SetThreadName("plCacheCompiler");
 	while (m_numCompilationThreads != 0)
 	{
 		std::vector<uint8> pipelineData = m_compilationQueue.pop();
@@ -421,6 +422,7 @@ int VulkanPipelineStableCache::CompilerThread()
 
 void VulkanPipelineStableCache::WorkerThread()
 {
+	SetThreadName("plCacheWriter");
 	while (true)
 	{
 		CachedPipeline* job;

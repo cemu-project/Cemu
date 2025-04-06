@@ -110,20 +110,12 @@ void deleteDownloadedGraphicPacks()
 
 void DownloadGraphicPacksWindow::UpdateThread()
 {
-	if (CafeSystem::IsTitleRunning())
-	{
-		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
-		// cancel update
-		m_threadState = ThreadFinished;
-		return;
-	}
-	
 	// get github url
 	std::string githubAPIUrl;
 	curlDownloadFileState_t tempDownloadState;
 	std::string queryUrl("https://cemu.info/api2/query_graphicpack_url.php?");
 	char temp[64];
-	sprintf(temp, "version=%d.%d.%d", EMULATOR_VERSION_LEAD, EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR);
+	sprintf(temp, "version=%d.%d.%d", EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH);
 	queryUrl.append(temp);
 	queryUrl.append("&");
 	sprintf(temp, "t=%u", (uint32)std::chrono::seconds(std::time(NULL)).count()); // add a dynamic part to the url to bypass overly aggressive caching (like some proxies do)
@@ -326,8 +318,6 @@ DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
 
 
 	m_downloadState = std::make_unique<curlDownloadFileState_t>();
-
-	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
 }
 
 DownloadGraphicPacksWindow::~DownloadGraphicPacksWindow()
@@ -344,6 +334,12 @@ const std::string& DownloadGraphicPacksWindow::GetException() const
 
 int DownloadGraphicPacksWindow::ShowModal()
 {
+	if(CafeSystem::IsTitleRunning())
+	{
+		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
+		return wxID_CANCEL;
+	}
+	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
 	wxDialog::ShowModal();
 	return m_threadState == ThreadCanceled ? wxID_CANCEL : wxID_OK;
 }

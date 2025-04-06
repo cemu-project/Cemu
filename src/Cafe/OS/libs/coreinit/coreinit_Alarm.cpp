@@ -166,7 +166,7 @@ namespace coreinit
 	void alarm_update()
 	{	
 		cemu_assert_debug(!__OSHasSchedulerLock());
-		uint64 currentTick = coreinit::coreinit_getOSTime();
+		uint64 currentTick = coreinit::OSGetTime();
 		if (!OSHostAlarm::quickCheckForAlarm(currentTick))
 			return;
 		__OSLockScheduler();
@@ -233,7 +233,7 @@ namespace coreinit
 			if (period == 0)
 				return;
 
-			uint64 currentTime = coreinit_getOSTime();
+			uint64 currentTime = OSGetTime();
 
 			uint64 ticksSinceStart = currentTime - startTime;
 			uint64 numPeriods = ticksSinceStart / period;
@@ -267,7 +267,7 @@ namespace coreinit
 	void OSSetAlarm(OSAlarm_t* alarm, uint64 delayInTicks, MPTR handlerFunc)
 	{
 		__OSLockScheduler();
-		__OSInitiateAlarm(alarm, coreinit_getOSTime() + delayInTicks, 0, handlerFunc, false);
+		__OSInitiateAlarm(alarm, OSGetTime() + delayInTicks, 0, handlerFunc, false);
 		__OSUnlockScheduler();
 	}
 
@@ -372,7 +372,7 @@ namespace coreinit
 		while( true )
 		{
 			OSWaitEvent(g_alarmEvent.GetPtr());
-			uint64 currentTick = coreinit_getOSTime();
+			uint64 currentTick = OSGetTime();
 			while (true)
 			{
 				// get alarm to fire

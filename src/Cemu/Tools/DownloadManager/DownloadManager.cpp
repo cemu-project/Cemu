@@ -33,14 +33,7 @@ void DownloadManager::downloadTitleVersionList()
 {
 	if (m_hasTitleVersionList)
 		return;
-	NAPI::AuthInfo authInfo;
-	authInfo.accountId = m_authInfo.nnidAccountName;
-	authInfo.passwordHash = m_authInfo.passwordHash;
-	authInfo.deviceId = m_authInfo.deviceId;
-	authInfo.serial = m_authInfo.serial;
-	authInfo.country = m_authInfo.country;
-	authInfo.region = m_authInfo.region;
-	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
+	NAPI::AuthInfo authInfo = GetAuthInfo(false);
 	auto versionListVersionResult = NAPI::TAG_GetVersionListVersion(authInfo);
 	if (!versionListVersionResult.isValid)
 		return;
@@ -195,15 +188,7 @@ public:
 
 bool DownloadManager::_connect_refreshIASAccountIdAndDeviceToken()
 {
-	NAPI::AuthInfo authInfo;
-	authInfo.accountId = m_authInfo.nnidAccountName;
-	authInfo.passwordHash = m_authInfo.passwordHash;
-	authInfo.deviceId = m_authInfo.deviceId;
-	authInfo.serial = m_authInfo.serial;
-	authInfo.country = m_authInfo.country;
-	authInfo.region = m_authInfo.region;
-	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
-
+	NAPI::AuthInfo authInfo = GetAuthInfo(false);
 	// query IAS/ECS account id and device token (if not cached)
 	auto rChallenge = NAPI::IAS_GetChallenge(authInfo);
 	if (rChallenge.apiError != NAPI_RESULT::SUCCESS)
@@ -211,7 +196,6 @@ bool DownloadManager::_connect_refreshIASAccountIdAndDeviceToken()
 	auto rRegistrationInfo = NAPI::IAS_GetRegistrationInfo_QueryInfo(authInfo, rChallenge.challenge);
 	if (rRegistrationInfo.apiError != NAPI_RESULT::SUCCESS)
 		return false;
-
 	m_iasToken.serviceAccountId = rRegistrationInfo.accountId;
 	m_iasToken.deviceToken = rRegistrationInfo.deviceToken;
 	// store to cache
@@ -221,24 +205,13 @@ bool DownloadManager::_connect_refreshIASAccountIdAndDeviceToken()
 	std::vector<uint8> serializedData;
 	if (!storedTokenInfo.serialize(serializedData))
 		return false;
-	s_nupFileCache->AddFileAsync({ fmt::format("{}/token_info", m_authInfo.nnidAccountName) }, serializedData.data(), serializedData.size());
+	s_nupFileCache->AddFileAsync({ fmt::format("{}/token_info", m_authInfo.cachefileName) }, serializedData.data(), serializedData.size());
 	return true;
 }
 
 bool DownloadManager::_connect_queryAccountStatusAndServiceURLs()
 {
-	NAPI::AuthInfo authInfo;
-	authInfo.accountId = m_authInfo.nnidAccountName;
-	authInfo.passwordHash = m_authInfo.passwordHash;
-	authInfo.deviceId = m_authInfo.deviceId;
-	authInfo.serial = m_authInfo.serial;
-	authInfo.country = m_authInfo.country;
-	authInfo.region = m_authInfo.region;
-	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
-
-	authInfo.IASToken.accountId = m_iasToken.serviceAccountId;
-	authInfo.IASToken.deviceToken = m_iasToken.deviceToken;
-
+	NAPI::AuthInfo authInfo = GetAuthInfo(true);
 	NAPI::NAPI_ECSGetAccountStatus_Result accountStatusResult = NAPI::ECS_GetAccountStatus(authInfo);
 	if (accountStatusResult.apiError != NAPI_RESULT::SUCCESS)
 	{
@@ -291,7 +264,7 @@ void DownloadManager::loadTicketCache()
 	m_ticketCache.clear();
 	cemu_assert_debug(m_ticketCache.empty());
 	std::vector<uint8> ticketCacheBlob;	
-	if (!s_nupFileCache->GetFile({ fmt::format("{}/eticket_cache", m_authInfo.nnidAccountName) }, ticketCacheBlob))
+	if (!s_nupFileCache->GetFile({ fmt::format("{}/eticket_cache", m_authInfo.cachefileName) }, ticketCacheBlob))
 		return;
 	MemStreamReader memReader(ticketCacheBlob.data(), ticketCacheBlob.size());
 	uint8 version = memReader.readBE<uint8>();
@@ -343,23 +316,12 @@ void DownloadManager::storeTicketCache()
 			memWriter.writePODVector(cert);
 	}
 	auto serializedBlob = memWriter.getResult();
-	s_nupFileCache->AddFileAsync({ fmt::format("{}/eticket_cache", m_authInfo.nnidAccountName) }, serializedBlob.data(), serializedBlob.size());
+	s_nupFileCache->AddFileAsync({ fmt::format("{}/eticket_cache", m_authInfo.cachefileName) }, serializedBlob.data(), serializedBlob.size());
 }
 
 bool DownloadManager::syncAccountTickets()
 {
-	NAPI::AuthInfo authInfo;
-	authInfo.accountId = m_authInfo.nnidAccountName;
-	authInfo.passwordHash = m_authInfo.passwordHash;
-	authInfo.deviceId = m_authInfo.deviceId;
-	authInfo.serial = m_authInfo.serial;
-	authInfo.country = m_authInfo.country;
-	authInfo.region = m_authInfo.region;
-	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
-
-	authInfo.IASToken.accountId = m_iasToken.serviceAccountId;
-	authInfo.IASToken.deviceToken = m_iasToken.deviceToken;
-
+	NAPI::AuthInfo authInfo = GetAuthInfo(true);
 	// query TIV list from server
 	NAPI::NAPI_ECSAccountListETicketIds_Result resultTicketIds = NAPI::ECS_AccountListETicketIds(authInfo);
 	if (!resultTicketIds.isValid())
@@ -371,7 +333,7 @@ bool DownloadManager::syncAccountTickets()
 	for (auto& tiv : resultTicketIds.tivs)
 	{
 		index++;
-		std::string msg = _("Downloading account ticket").ToStdString();
+		std::string msg = _("Downloading account ticket").utf8_string();
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		// skip if already cached
@@ -424,20 +386,8 @@ bool DownloadManager::syncAccountTickets()
 
 bool DownloadManager::syncSystemTitleTickets()
 {
-	setStatusMessage(std::string(_("Downloading system tickets...")), DLMGR_STATUS_CODE::CONNECTING);
-	// todo - add GetAuth() function
-	NAPI::AuthInfo authInfo;
-	authInfo.accountId = m_authInfo.nnidAccountName;
-	authInfo.passwordHash = m_authInfo.passwordHash;
-	authInfo.deviceId = m_authInfo.deviceId;
-	authInfo.serial = m_authInfo.serial;
-	authInfo.country = m_authInfo.country;
-	authInfo.region = m_authInfo.region;
-	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
-
-	authInfo.IASToken.accountId = m_iasToken.serviceAccountId;
-	authInfo.IASToken.deviceToken = m_iasToken.deviceToken;
-
+	setStatusMessage(_("Downloading system tickets...").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
+	NAPI::AuthInfo authInfo = GetAuthInfo(true);
 	auto querySystemTitleTicket = [&](uint64 titleId) -> void
 	{
 		// check if cached already
@@ -486,7 +436,7 @@ bool DownloadManager::syncSystemTitleTickets()
 // build list of updates for which either an installed game exists or the base title ticket is cached
 bool DownloadManager::syncUpdateTickets()
 {
-	setStatusMessage(std::string(_("Retrieving update information...")), DLMGR_STATUS_CODE::CONNECTING);
+	setStatusMessage(_("Retrieving update information...").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
 	// download update version list
 	downloadTitleVersionList();
 	if (!m_hasTitleVersionList)
@@ -508,7 +458,7 @@ bool DownloadManager::syncUpdateTickets()
 		if (titleIdParser.GetType() != TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
 			continue;
 
-		std::string msg = _("Downloading ticket").ToStdString();
+		std::string msg = _("Downloading ticket").utf8_string();
 		msg.append(fmt::format(" {0}/{1}", updateIndex, numUpdates));
 		updateIndex++;
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
@@ -520,8 +470,7 @@ bool DownloadManager::syncUpdateTickets()
 		if (findTicketByTitleIdAndVersion(itr.titleId, itr.availableTitleVersion))
 			continue;
 
-		NAPI::AuthInfo dummyAuth;
-		auto cetkResult = NAPI::CCS_GetCETK(dummyAuth, itr.titleId, itr.availableTitleVersion);
+		auto cetkResult = NAPI::CCS_GetCETK(GetDownloadMgrNetworkService(), itr.titleId, itr.availableTitleVersion);
 		if (!cetkResult.isValid)
 			continue;
 		NCrypto::ETicketParser ticketParser;
@@ -561,12 +510,12 @@ bool DownloadManager::syncTicketCache()
 	for (auto& ticketInfo : m_ticketCache)
 	{
 		index++;
-		std::string msg = _("Downloading meta data").ToStdString();
+		std::string msg = _("Downloading meta data").utf8_string();
 		msg.append(fmt::format(" {0}/{1}", index, count));
 		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
 		prepareIDBE(ticketInfo.titleId);
 	}
-	setStatusMessage(std::string(_("Connected. Right click entries in the list to start downloading")), DLMGR_STATUS_CODE::CONNECTED);
+	setStatusMessage(_("Connected. Right click entries in the list to start downloading").utf8_string(), DLMGR_STATUS_CODE::CONNECTED);
 	return true;
 }
 
@@ -652,12 +601,12 @@ void DownloadManager::_handle_connect()
 	// reset login state
 	m_iasToken.serviceAccountId.clear();
 	m_iasToken.deviceToken.clear();
-	setStatusMessage(std::string(_("Logging in..")), DLMGR_STATUS_CODE::CONNECTING);
+	setStatusMessage(_("Logging in...").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
 	// retrieve ECS AccountId + DeviceToken from cache
 	if (s_nupFileCache)
 	{
 		std::vector<uint8> serializationBlob;
-		if (s_nupFileCache->GetFile({ fmt::format("{}/token_info", m_authInfo.nnidAccountName) }, serializationBlob))
+		if (s_nupFileCache->GetFile({ fmt::format("{}/token_info", m_authInfo.cachefileName) }, serializationBlob))
 		{
 			StoredTokenInfo storedTokenInfo;
 			if (storedTokenInfo.deserialize(serializationBlob))
@@ -675,7 +624,7 @@ void DownloadManager::_handle_connect()
 			cemuLog_log(LogType::Force, "Failed to request IAS token");
 			cemu_assert_debug(false);
 			m_connectState.store(CONNECT_STATE::FAILED);
-			setStatusMessage(std::string(_("Login failed. Outdated or incomplete online files?")), DLMGR_STATUS_CODE::FAILED);
+			setStatusMessage(_("Login failed. Outdated or incomplete online files?").utf8_string(), DLMGR_STATUS_CODE::FAILED);
 			return;
 		}
 	}
@@ -683,16 +632,16 @@ void DownloadManager::_handle_connect()
 	if (!_connect_queryAccountStatusAndServiceURLs())
 	{
 		m_connectState.store(CONNECT_STATE::FAILED);
-		setStatusMessage(std::string(_("Failed to query account status. Invalid account information?")), DLMGR_STATUS_CODE::FAILED);
+		setStatusMessage(_("Failed to query account status").utf8_string(), DLMGR_STATUS_CODE::FAILED);
 		return;
 	}
 	// load ticket cache and sync
-	setStatusMessage(std::string(_("Updating ticket cache")), DLMGR_STATUS_CODE::CONNECTING);
+	setStatusMessage(_("Updating ticket cache").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
 	loadTicketCache();
 	if (!syncTicketCache())
 	{
 		m_connectState.store(CONNECT_STATE::FAILED);
-		setStatusMessage(std::string(_("Failed to request tickets (invalid NNID?)")), DLMGR_STATUS_CODE::FAILED);
+		setStatusMessage(_("Failed to request tickets").utf8_string(), DLMGR_STATUS_CODE::FAILED);
 		return;
 	}
 	searchForIncompleteDownloads();
@@ -713,22 +662,10 @@ void DownloadManager::connect(
 	std::string_view serial,
 	std::string_view deviceCertBase64)
 {
-	if (nnidAccountName.empty())
-	{
-		m_connectState.store(CONNECT_STATE::FAILED);
-		setStatusMessage(std::string(_("This account is not linked with an NNID")), DLMGR_STATUS_CODE::FAILED);
-		return;
-	}
 	runManager();
 	m_authInfo.nnidAccountName = nnidAccountName;
 	m_authInfo.passwordHash = passwordHash;
-	if (std::all_of(m_authInfo.passwordHash.begin(), m_authInfo.passwordHash.end(), [](uint8 v) { return v == 0; }))
-	{
-		cemuLog_log(LogType::Force, "DLMgr: Invalid password hash");
-		m_connectState.store(CONNECT_STATE::FAILED);
-		setStatusMessage(std::string(_("Failed. Account does not have password set")), DLMGR_STATUS_CODE::FAILED);
-		return;
-	}
+	m_authInfo.cachefileName = nnidAccountName.empty() ? "DefaultName" : nnidAccountName;
 	m_authInfo.region = region;
 	m_authInfo.country = country;
 	m_authInfo.deviceCertBase64 = deviceCertBase64;
@@ -742,6 +679,31 @@ void DownloadManager::connect(
 bool DownloadManager::IsConnected() const
 {
 	return m_connectState.load() != CONNECT_STATE::UNINITIALIZED;
+}
+
+NetworkService DownloadManager::GetDownloadMgrNetworkService()
+{
+	return NetworkService::Nintendo;
+}
+
+NAPI::AuthInfo DownloadManager::GetAuthInfo(bool withIasToken)
+{
+	NAPI::AuthInfo authInfo;
+	authInfo.serviceOverwrite = GetDownloadMgrNetworkService();
+	authInfo.accountId = m_authInfo.nnidAccountName;
+	authInfo.passwordHash = m_authInfo.passwordHash;
+	authInfo.deviceId = m_authInfo.deviceId;
+	authInfo.serial = m_authInfo.serial;
+	authInfo.country = m_authInfo.country;
+	authInfo.region = m_authInfo.region;
+	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
+	if(withIasToken)
+	{
+		cemu_assert_debug(!m_iasToken.serviceAccountId.empty());
+		authInfo.IASToken.accountId = m_iasToken.serviceAccountId;
+		authInfo.IASToken.deviceToken = m_iasToken.deviceToken;
+	}
+	return authInfo;
 }
 
 /* package / downloading */
@@ -1022,17 +984,7 @@ void DownloadManager::reportPackageProgress(Package* package, uint32 currentProg
 
 void DownloadManager::asyncPackageDownloadTMD(Package* package)
 {
-	NAPI::AuthInfo authInfo;
-	authInfo.accountId = m_authInfo.nnidAccountName;
-	authInfo.passwordHash = m_authInfo.passwordHash;
-	authInfo.deviceId = m_authInfo.deviceId;
-	authInfo.serial = m_authInfo.serial;
-	authInfo.country = m_authInfo.country;
-	authInfo.region = m_authInfo.region;
-	authInfo.deviceCertBase64 = m_authInfo.deviceCertBase64;
-	authInfo.IASToken.accountId = m_iasToken.serviceAccountId;
-	authInfo.IASToken.deviceToken = m_iasToken.deviceToken;
-
+	NAPI::AuthInfo authInfo = GetAuthInfo(true);
 	TitleIdParser titleIdParser(package->titleId);
 	NAPI::NAPI_CCSGetTMD_Result tmdResult;
 	if (titleIdParser.GetType() == TitleIdParser::TITLE_TYPE::AOC)
@@ -1054,7 +1006,7 @@ void DownloadManager::asyncPackageDownloadTMD(Package* package)
 	std::unique_lock<std::recursive_mutex> _l(m_mutex);
 	if (!tmdResult.isValid)
 	{
-		setPackageError(package, from_wxString(_("TMD download failed")));
+		setPackageError(package, _("TMD download failed").utf8_string());
 		package->state.isDownloadingTMD = false;
 		return;
 	}
@@ -1063,7 +1015,7 @@ void DownloadManager::asyncPackageDownloadTMD(Package* package)
 	NCrypto::TMDParser tmdParser;
 	if (!tmdParser.parse(tmdResult.tmdData.data(), tmdResult.tmdData.size()))
 	{
-		setPackageError(package, from_wxString(_("Invalid TMD")));
+		setPackageError(package, _("Invalid TMD").utf8_string());
 		package->state.isDownloadingTMD = false;
 		return;
 	}
@@ -1172,7 +1124,7 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 				size_t bytesWritten = callbackInfo->receiveBuffer.size();
 				if (callbackInfo->fileOutput->writeData(callbackInfo->receiveBuffer.data(), callbackInfo->receiveBuffer.size()) != (uint32)callbackInfo->receiveBuffer.size())
 				{
-					callbackInfo->downloadMgr->setPackageError(callbackInfo->package, from_wxString(_("Cannot write file. Disk full?")));
+					callbackInfo->downloadMgr->setPackageError(callbackInfo->package, _("Cannot write file. Disk full?").utf8_string());
 					return false;
 				}
 				callbackInfo->receiveBuffer.clear();
@@ -1193,12 +1145,12 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 	callbackInfoData.fileOutput = FileStream::createFile2(packageDownloadPath / fmt::format("{:08x}.app", contentId));
 	if (!callbackInfoData.fileOutput)
 	{
-		setPackageError(package, from_wxString(_("Cannot create file")));
+		setPackageError(package, _("Cannot create file").utf8_string());
 		return;
 	}
-	if (!NAPI::CCS_GetContentFile(titleId, contentId, CallbackInfo::writeCallback, &callbackInfoData))
+	if (!NAPI::CCS_GetContentFile(GetDownloadMgrNetworkService(), titleId, contentId, CallbackInfo::writeCallback, &callbackInfoData))
 	{
-		setPackageError(package, from_wxString(_("Download failed")));
+		setPackageError(package, _("Download failed").utf8_string());
 		delete callbackInfoData.fileOutput;
 		return;
 	}
@@ -1286,7 +1238,11 @@ bool DownloadManager::asyncPackageInstallRecursiveExtractFiles(Package* package,
 		setPackageError(package, "Internal error");
 		return false;
 	}
-
+	if (fstVolume->HasLinkFlag(dirItr.GetDirHandle()))
+	{
+		cemu_assert_suspicious();
+		return true;
+	}
 	FSTFileHandle itr;
 	while (fstVolume->Next(dirItr, itr))
 	{
@@ -1486,7 +1442,7 @@ void DownloadManager::prepareIDBE(uint64 titleId)
 	if (s_nupFileCache->GetFile({ fmt::format("idbe/{0:016x}", titleId) }, idbeFile) && idbeFile.size() == sizeof(NAPI::IDBEIconDataV0))
 		return addToCache(titleId, (NAPI::IDBEIconDataV0*)(idbeFile.data()));
 	// not cached, query from server
-	std::optional<NAPI::IDBEIconDataV0> iconData = NAPI::IDBE_Request(titleId);
+	std::optional<NAPI::IDBEIconDataV0> iconData = NAPI::IDBE_Request(GetDownloadMgrNetworkService(), titleId);
 	if (!iconData)
 		return;
 	s_nupFileCache->AddFileAsync({ fmt::format("idbe/{0:016x}", titleId) }, (uint8*)&(*iconData), sizeof(NAPI::IDBEIconDataV0));
@@ -1541,7 +1497,7 @@ void DownloadManager::runManager()
 	auto cacheFilePath = ActiveSettings::GetMlcPath("usr/save/system/nim/nup/");
 	fs::create_directories(cacheFilePath);
 	cacheFilePath /= "cemu_cache.dat";
-	s_nupFileCache = FileCache::Open(cacheFilePath.generic_wstring(), true);
+	s_nupFileCache = FileCache::Open(cacheFilePath, true);
 	// launch worker thread
 	std::thread t(&DownloadManager::threadFunc, this);
 	t.detach();

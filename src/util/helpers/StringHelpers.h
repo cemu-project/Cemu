@@ -2,6 +2,7 @@
 #include "boost/nowide/convert.hpp"
 #include <charconv>
 
+// todo - move the Cafe/PPC specific parts to CafeString.h eventually
 namespace StringHelpers
 {
 	// convert Wii U big-endian wchar_t string to utf8 string

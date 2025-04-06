@@ -1,13 +1,14 @@
 #include "TitleInfo.h"
-
 #include "Cafe/Filesystem/fscDeviceHostFS.h"
+#include "Cafe/Filesystem/WUHB/WUHBReader.h"
 #include "Cafe/Filesystem/FST/FST.h"
-
 #include "pugixml.hpp"
 #include "Common/FileStream.h"
-
 #include <zarchive/zarchivereader.h>
+#include "util/IniParser/IniParser.h"
+#include "util/crypto/crc32.h"
 #include "config/ActiveSettings.h"
+#include "util/helpers/helpers.h"
 
 // detect format by reading file header/footer
 CafeTitleFileType DetermineCafeSystemFileType(fs::path filePath)
@@ -77,6 +78,7 @@ TitleInfo::TitleInfo(const fs::path& path, std::string_view subPath)
 	if (!path.has_filename())
 	{
 		m_isValid = false;
+		SetInvalidReason(InvalidReason::BAD_PATH_OR_INACCESSIBLE);
 		return;
 	}
 	m_isValid = true;
@@ -98,7 +100,9 @@ TitleInfo::TitleInfo(const TitleInfo::CachedInfo& cachedInfo)
 	m_isValid = false;
 	if (cachedInfo.titleDataFormat != TitleDataFormat::HOST_FS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WIIU_ARCHIVE &&
+		cachedInfo.titleDataFormat != TitleDataFormat::WUHB &&
 		cachedInfo.titleDataFormat != TitleDataFormat::WUD &&
+		cachedInfo.titleDataFormat != TitleDataFormat::NUS &&
 		cachedInfo.titleDataFormat != TitleDataFormat::INVALID_STRUCTURE)
 		return;
 	if (cachedInfo.path.empty())
@@ -197,10 +201,16 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			}
 		}
 		else if (boost::iends_with(filenameStr, ".wud") ||
-			boost::iends_with(filenameStr, ".wux") ||
-			boost::iends_with(filenameStr, ".iso"))
+				 boost::iends_with(filenameStr, ".wux") ||
+				 boost::iends_with(filenameStr, ".iso"))
 		{
 			formatOut = TitleDataFormat::WUD;
+			pathOut = path;
+			return true;
+		}
+		else if (boost::iequals(filenameStr, "title.tmd"))
+		{
+			formatOut = TitleDataFormat::NUS;
 			pathOut = path;
 			return true;
 		}
@@ -239,6 +249,16 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			delete zar;
 			return foundBase;
 		}
+		else if (boost::iends_with(filenameStr, ".wuhb"))
+		{
+			std::unique_ptr<WUHBReader> reader{WUHBReader::FromPath(path)};
+			if(reader)
+			{
+				formatOut = TitleDataFormat::WUHB;
+				pathOut = path;
+				return true;
+			}
+		}
 		// note: Since a Wii U archive file (.wua) contains multiple titles we shouldn't auto-detect them here
 		// instead TitleInfo has a second constructor which takes a subpath
 		// unable to determine type by extension, check contents
@@ -262,6 +282,7 @@ bool TitleInfo::DetectFormat(const fs::path& path, fs::path& pathOut, TitleDataF
 			return true;
 		}
 	}
+	SetInvalidReason(InvalidReason::UNKNOWN_FORMAT);
 	return false;
 }
 
@@ -312,6 +333,12 @@ uint64 TitleInfo::GetUID()
 {
 	cemu_assert_debug(m_isValid);
 	return m_uid;
+}
+
+void TitleInfo::SetInvalidReason(InvalidReason reason)
+{
+	if(m_invalidReason == InvalidReason::NONE)
+		m_invalidReason = reason; // only update reason when it hasn't been set before
 }
 
 std::mutex sZArchivePoolMtx;
@@ -375,18 +402,29 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 		if (!r)
 		{
 			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
+			SetInvalidReason(InvalidReason::BAD_PATH_OR_INACCESSIBLE);
 			return false;
 		}
 	}
-	else if (m_titleFormat == TitleDataFormat::WUD)
+	else if (m_titleFormat == TitleDataFormat::WUD || m_titleFormat == TitleDataFormat::NUS)
 	{
+		FSTVolume::ErrorCode fstError;
 		if (m_mountpoints.empty())
 		{
 			cemu_assert_debug(!m_wudVolume);
-			m_wudVolume = FSTVolume::OpenFromDiscImage(m_fullPath);
+			if(m_titleFormat == TitleDataFormat::WUD)
+				m_wudVolume = FSTVolume::OpenFromDiscImage(m_fullPath, &fstError); // open wud/wux
+			else
+				m_wudVolume = FSTVolume::OpenFromContentFolder(m_fullPath.parent_path(), &fstError); // open from .app files directory, the path points to /title.tmd
 		}
 		if (!m_wudVolume)
+		{
+			if (fstError == FSTVolume::ErrorCode::DISC_KEY_MISSING)
+				SetInvalidReason(InvalidReason::NO_DISC_KEY);
+			else if (fstError == FSTVolume::ErrorCode::TITLE_TIK_MISSING)
+				SetInvalidReason(InvalidReason::NO_TITLE_TIK);
 			return false;
+		}
 		bool r = FSCDeviceWUD_Mount(virtualPath, subfolder, m_wudVolume, mountPriority);
 		cemu_assert_debug(r);
 		if (!r)
@@ -412,6 +450,23 @@ bool TitleInfo::Mount(std::string_view virtualPath, std::string_view subfolder, 
 			return false;
 		}
 	}
+	else if (m_titleFormat == TitleDataFormat::WUHB)
+	{
+		if (!m_wuhbreader)
+		{
+			m_wuhbreader = WUHBReader::FromPath(m_fullPath);
+			if (!m_wuhbreader)
+				return false;
+		}
+		bool r = FSCDeviceWUHB_Mount(virtualPath, subfolder, m_wuhbreader, mountPriority);
+		if (!r)
+		{
+			cemuLog_log(LogType::Force, "Failed to mount {} to {}", virtualPath, subfolder);
+			delete m_wuhbreader;
+			m_wuhbreader = nullptr;
+			return false;
+		}
+	}
 	else
 	{
 		cemu_assert_unimplemented();
@@ -433,7 +488,7 @@ void TitleInfo::Unmount(std::string_view virtualPath)
 		{
 			if (m_wudVolume)
 			{
-				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUD);
+				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUD || m_titleFormat == TitleDataFormat::NUS);
 				delete m_wudVolume;
 				m_wudVolume = nullptr;
 			}
@@ -443,6 +498,12 @@ void TitleInfo::Unmount(std::string_view virtualPath)
                 if (m_mountpoints.empty())
                     m_zarchive = nullptr;
             }
+			if (m_wuhbreader)
+			{
+				cemu_assert_debug(m_titleFormat == TitleDataFormat::WUHB);
+				delete m_wuhbreader;
+				m_wuhbreader = nullptr;
+			}
 		}
 		return;
 	}
@@ -478,6 +539,20 @@ bool TitleInfo::ParseXmlInfo()
 	auto xmlData = fsc_extractFile(fmt::format("{}meta/meta.xml", mountPath).c_str());
 	if(xmlData)
 		m_parsedMetaXml = ParsedMetaXml::Parse(xmlData->data(), xmlData->size());
+
+	if(!m_parsedMetaXml)
+	{
+		// meta/meta.ini (WUHB)
+		auto iniData = fsc_extractFile(fmt::format("{}meta/meta.ini", mountPath).c_str());
+		if (iniData)
+			m_parsedMetaXml = ParseAromaIni(*iniData);
+		if(m_parsedMetaXml)
+		{
+			m_parsedCosXml = new ParsedCosXml{.argstr = "root.rpx"};
+			m_parsedAppXml = new ParsedAppXml{m_parsedMetaXml->m_title_id, 0, 0, 0, 0};
+		}
+	}
+
 	// code/app.xml
 	xmlData = fsc_extractFile(fmt::format("{}code/app.xml", mountPath).c_str());
 	if(xmlData)
@@ -508,10 +583,39 @@ bool TitleInfo::ParseXmlInfo()
 		m_parsedAppXml = nullptr;
 		m_parsedCosXml = nullptr;
 		m_isValid = false;
+		SetInvalidReason(InvalidReason::MISSING_XML_FILES);
 		return false;
 	}
 	m_isValid = true;
 	return true;
+}
+
+ParsedMetaXml* TitleInfo::ParseAromaIni(std::span<unsigned char> content)
+{
+	IniParser parser{content};
+	while (parser.NextSection() && parser.GetCurrentSectionName() != "menu")
+		continue;
+	if (parser.GetCurrentSectionName() != "menu")
+		return nullptr;
+
+	auto parsed = std::make_unique<ParsedMetaXml>();
+
+	const auto author = parser.FindOption("author");
+	if (author)
+		parsed->m_publisher[(size_t)CafeConsoleLanguage::EN] = *author;
+
+	const auto longName = parser.FindOption("longname");
+	if (longName)
+		parsed->m_long_name[(size_t)CafeConsoleLanguage::EN] = *longName;
+
+	const auto shortName = parser.FindOption("shortname");
+	if (shortName)
+		parsed->m_short_name[(size_t)CafeConsoleLanguage::EN] = *shortName;
+
+	auto checksumInput = std::string{*author}.append(*longName).append(*shortName);
+	parsed->m_title_id = (0x0005000Full<<32) | crc32_calc(checksumInput.data(), checksumInput.length());
+
+	return parsed.release();
 }
 
 bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
@@ -538,7 +642,7 @@ bool TitleInfo::ParseAppXml(std::vector<uint8>& appXmlData)
 		else if (name == "group_id")
 			m_parsedAppXml->group_id = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
 		else if (name == "sdk_version")
-			m_parsedAppXml->sdk_version = (uint32)std::stoull(child.text().as_string(), nullptr, 16);
+			m_parsedAppXml->sdk_version = (uint32)std::stoull(child.text().as_string(), nullptr, 10);
 	}
 	return true;
 }
@@ -610,9 +714,9 @@ std::string TitleInfo::GetMetaTitleName() const
 	if (m_parsedMetaXml)
 	{
 		std::string titleNameCfgLanguage;
-		titleNameCfgLanguage = m_parsedMetaXml->GetShortName(GetConfig().console_language);
+		titleNameCfgLanguage = m_parsedMetaXml->GetLongName(GetConfig().console_language);
 		if (titleNameCfgLanguage.empty()) //Get English Title
-			titleNameCfgLanguage = m_parsedMetaXml->GetShortName(CafeConsoleLanguage::EN);
+			titleNameCfgLanguage = m_parsedMetaXml->GetLongName(CafeConsoleLanguage::EN);
 		if (titleNameCfgLanguage.empty()) //Unknown Title
 			titleNameCfgLanguage = "Unknown Title";
 		return titleNameCfgLanguage;
@@ -664,8 +768,14 @@ std::string TitleInfo::GetPrintPath() const
 	case TitleDataFormat::WUD:
 		tmp.append(" [WUD]");
 		break;
+	case TitleDataFormat::NUS:
+		tmp.append(" [NUS]");
+		break;
 	case TitleDataFormat::WIIU_ARCHIVE:
 		tmp.append(" [WUA]");
+		break;
+	case TitleDataFormat::WUHB:
+		tmp.append(" [WUHB]");
 		break;
 	default:
 		break;
@@ -679,10 +789,41 @@ std::string TitleInfo::GetInstallPath() const
 {
 	TitleId titleId = GetAppTitleId();
 	TitleIdParser tip(titleId);
-        std::string tmp;
+	std::string tmp;
 	if (tip.IsSystemTitle())
-               tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-        else
-               tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+		tmp = fmt::format("sys/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
+    else
+		tmp = fmt::format("usr/title/{:08x}/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
 	return tmp;
+}
+
+ParsedCosXml* ParsedCosXml::Parse(uint8* xmlData, size_t xmlLen)
+{
+	pugi::xml_document app_doc;
+	if (!app_doc.load_buffer_inplace(xmlData, xmlLen))
+		return nullptr;
+
+	const auto root = app_doc.child("app");
+	if (!root)
+		return nullptr;
+
+	ParsedCosXml* parsedCos = new ParsedCosXml();
+
+	auto node = root.child("argstr");
+	if (node)
+		parsedCos->argstr = node.text().as_string();
+
+	// parse permissions
+	auto permissionsNode = root.child("permissions");
+	for(uint32 permissionIndex = 0; permissionIndex < 19; ++permissionIndex)
+	{
+		std::string permissionName = fmt::format("p{}", permissionIndex);
+		auto permissionNode = permissionsNode.child(permissionName.c_str());
+		if (!permissionNode)
+			break;
+		parsedCos->permissions[permissionIndex].group = static_cast<CosCapabilityGroup>(ConvertString<uint32>(permissionNode.child("group").text().as_string(), 10));
+		parsedCos->permissions[permissionIndex].mask = static_cast<CosCapabilityBits>(ConvertString<uint64>(permissionNode.child("mask").text().as_string(), 16));
+	}
+
+	return parsedCos;
 }

@@ -149,6 +149,7 @@ static uint64 PPCInterpreter_getCallParamU64(PPCInterpreter_t* hCPU, uint32 inde
 
 PPCInterpreter_t* PPCInterpreter_createInstance(unsigned int Entrypoint);
 PPCInterpreter_t* PPCInterpreter_getCurrentInstance();
+void PPCInterpreter_setCurrentInstance(PPCInterpreter_t* hCPU);
 
 uint64 PPCInterpreter_getMainCoreCycleCounter();
 
@@ -192,7 +193,6 @@ uint32 PPCInterpreter_getCurrentCoreIndex();
 void PPCInterpreter_setDEC(PPCInterpreter_t* hCPU, uint32 newValue);
 
 // timing for main processor
-extern volatile uint64 ppcMainThreadCycleCounter;
 extern uint64 ppcCyclesSince2000; // on init this is set to the cycles that passed since 1.1.2000
 extern uint64 ppcCyclesSince2000TimerClock; // on init this is set to the cycles that passed since 1.1.2000 / 20
 extern uint64 ppcCyclesSince2000_UTC;
@@ -213,8 +213,7 @@ void PPCTimer_start();
 // core info and control
 extern uint32 ppcThreadQuantum;
 
-extern thread_local PPCInterpreter_t *ppcInterpreterCurrentInstance;
-uint8* PPCInterpreterGetAndModifyStackPointer(sint32 offset);
+uint8* PPCInterpreter_PushAndReturnStackPointer(sint32 offset);
 uint8* PPCInterpreterGetStackPointer();
 void PPCInterpreterModifyStackPointer(sint32 offset);
 
@@ -231,7 +230,7 @@ static inline float flushDenormalToZero(float f)
 typedef void(*HLECALL)(PPCInterpreter_t* hCPU);
 
 typedef sint32 HLEIDX;
-HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall);
+HLEIDX PPCInterpreter_registerHLECall(HLECALL hleCall, std::string hleName);
 HLECALL PPCInterpreter_getHLECall(HLEIDX funcIndex);
 
 // HLE scheduler

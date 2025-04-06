@@ -43,14 +43,14 @@ namespace nn
 				return res;
 
 			CurlRequestHelper req;
-			req.initate(reqUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
+			req.initate(ActiveSettings::GetNetworkService(), reqUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
 			InitializeOliveRequest(req);
 
 			StackAllocator<coreinit::OSEvent> requestDoneEvent;
-			coreinit::OSInitEvent(requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
+			coreinit::OSInitEvent(&requestDoneEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_MANUAL);
 			std::future<sint32> requestRes = std::async(std::launch::async, DownloadCommunityDataList_AsyncRequest,
 				std::ref(req), reqUrl, requestDoneEvent.GetPointer(), pOutList, pOutNum, numMaxList, pParam);
-			coreinit::OSWaitEvent(requestDoneEvent);
+			coreinit::OSWaitEvent(&requestDoneEvent);
 
 			return requestRes.get();	
 		}
