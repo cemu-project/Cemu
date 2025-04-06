@@ -80,33 +80,6 @@ MMURange* memory_getMMURangeByAddress(MPTR address)
 	return nullptr;
 }
 
-template<>
-void MemStreamWriter::write(const MMURange& v)
-{
-	writeBool(v.m_isMapped);
-	write(v.baseAddress);
-	write((uint8)v.areaId);
-	write((uint8)v.flags);
-	write(v.name);
-	write(v.size);
-	write(v.initSize);
-}
-
-template <>
-void MemStreamReader::read(MMURange& mmuRange)
-{
-	bool needsMapped = readBool();
-	mmuRange.m_isMapped = false;
-	mmuRange.baseAddress = read<uint32>();
-	mmuRange.areaId = (MMU_MEM_AREA_ID)read<uint8>();
-	mmuRange.flags = (MMURange::MFLAG)read<uint8>();
-	mmuRange.name = read<std::string>();
-	mmuRange.size = read<uint32>();
-	mmuRange.initSize = read<uint32>();
-	if (needsMapped)
-		mmuRange.mapMem();
-}
-
 MMURange::MMURange(const uint32 baseAddress, const uint32 size, MMU_MEM_AREA_ID areaId, const std::string_view name, MFLAG flags) : baseAddress(baseAddress), size(size), initSize(size), areaId(areaId), name(name), flags(flags)
 {
 	g_mmuRanges.emplace_back(this);
@@ -439,6 +412,33 @@ void memory_createDump()
 	}
 }
 
+template<>
+void MemStreamWriter::write(const MMURange& v)
+{
+	writeBool(v.m_isMapped);
+	write(v.baseAddress);
+	write((uint8)v.areaId);
+	write((uint8)v.flags);
+	write(v.name);
+	write(v.size);
+	write(v.initSize);
+}
+
+template <>
+void MemStreamReader::read(MMURange& v)
+{
+	bool needsMapped = readBool();
+	v.m_isMapped = false;
+	read(v.baseAddress);
+	v.areaId = (MMU_MEM_AREA_ID)read<uint8>();
+	v.flags = (MMURange::MFLAG)read<uint8>();
+	read(v.name);
+	read(v.size);
+	read(v.initSize);
+	if (needsMapped)
+		v.mapMem();
+}
+
 void memory_Serialize(MemStreamWriter& s)
 {
 	for (auto& itr : g_mmuRanges)
@@ -455,7 +455,7 @@ void memory_Deserialize(MemStreamReader& s)
 {
 	for (auto& itr : g_mmuRanges)
 	{
-		s.read<MMURange>(*itr);
+		s.read(*itr);
 		if (itr->isMapped())
 		{
 			s.readData(memory_base + itr->getBase(), itr->getSize());

@@ -928,7 +928,7 @@ template <>
 void MemStreamWriter::write(const iosu::fsa::_FSAHandleTable& v)
 {
 	write(v.m_currentCounter);
-	for (sint32 i = 0; i < v.m_handleTableSize; i++)
+	for (sint32 i = 0; i < v.m_handleTable.size(); i++)
 	{
 		write(v.m_handleTable[i].handleCheckValue);
 		writeBool(v.m_handleTable[i].isAllocated);
@@ -942,12 +942,19 @@ template <>
 void MemStreamReader::read(iosu::fsa::_FSAHandleTable& v)
 {
 	read(v.m_currentCounter);
-	for (sint32 i = 0; i < v.m_handleTableSize; i++)
+	for (sint32 i = 0; i < v.m_handleTable.size(); i++)
 	{
 		read(v.m_handleTable[i].handleCheckValue);
 		readBool(v.m_handleTable[i].isAllocated);
 
-		if (readBool()) v.m_handleTable[i].fscFile = FSCVirtualFile::Restore(*this);
+		if (readBool())
+		{
+			v.m_handleTable[i].fscFile = FSCVirtualFile::Restore(*this);
+		}
+		else
+		{
+			v.m_handleTable[i].fscFile = nullptr;
+		}
 	}
 }
 

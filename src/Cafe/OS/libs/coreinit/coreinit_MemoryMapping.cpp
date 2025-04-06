@@ -173,7 +173,7 @@ namespace coreinit
 		s_allocatedVirtMemory.reserve(s_allocatedVirtMemorySize);
 		for (sint32 i = 0; i < s_allocatedVirtMemorySize; i++)
 		{
-			s_allocatedVirtMemory.push_back(OSVirtMemoryEntry(s.read<MPTR>(), s.read<uint32>(), s.read<uint32>()));
+			s_allocatedVirtMemory.emplace_back(s.read<MPTR>(), s.read<uint32>(), s.read<uint32>());
 		}
 	}
 
