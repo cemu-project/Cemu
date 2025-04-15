@@ -558,8 +558,8 @@ void PipelineCompiler::InitRasterizerState(const LatteContextRegister& latteRegi
 	rasterizerExt.flags = 0;
 
 	rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizer.pNext = &rasterizerExt;
 	rasterizer.rasterizerDiscardEnable = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+	rasterizer.pNext = VulkanRenderer::GetInstance()->m_featureControl.deviceExtensions.depth_clip_enable ? &rasterizerExt : nullptr;
 	// GX2SetSpecialState(0, true) workaround
 	if (!LatteGPUState.contextNew.PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
 		rasterizer.rasterizerDiscardEnable = false;
@@ -730,7 +730,7 @@ void PipelineCompiler::InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, Pipe
 	{
 		cemu_assert_debug(descriptorSetLayoutCount == 0);
 		CreateDescriptorSetLayout(vkRenderer, vertexShader, descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
-		vkObjPipeline->vertexDSL = descriptorSetLayout[descriptorSetLayoutCount];
+		vkObjPipeline->m_vertexDSL = descriptorSetLayout[descriptorSetLayoutCount];
 		descriptorSetLayoutCount++;
 	}
 
@@ -738,7 +738,7 @@ void PipelineCompiler::InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, Pipe
 	{
 		cemu_assert_debug(descriptorSetLayoutCount == 1);
 		CreateDescriptorSetLayout(vkRenderer, pixelShader, descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
-		vkObjPipeline->pixelDSL = descriptorSetLayout[descriptorSetLayoutCount];
+		vkObjPipeline->m_pixelDSL = descriptorSetLayout[descriptorSetLayoutCount];
 		descriptorSetLayoutCount++;
 	}
 	else if (geometryShader)
@@ -757,7 +757,7 @@ void PipelineCompiler::InitDescriptorSetLayouts(VulkanRenderer* vkRenderer, Pipe
 	{
 		cemu_assert_debug(descriptorSetLayoutCount == 2);
 		CreateDescriptorSetLayout(vkRenderer, geometryShader, descriptorSetLayout[descriptorSetLayoutCount], vkrPipelineInfo);
-		vkObjPipeline->geometryDSL = descriptorSetLayout[descriptorSetLayoutCount];
+		vkObjPipeline->m_geometryDSL = descriptorSetLayout[descriptorSetLayoutCount];
 		descriptorSetLayoutCount++;
 	}
 }
@@ -918,7 +918,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	pipelineLayoutInfo.pPushConstantRanges = nullptr;
 	pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-	VkResult result = vkCreatePipelineLayout(vkRenderer->m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipeline_layout);
+	VkResult result = vkCreatePipelineLayout(vkRenderer->m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
 	if (result != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", result);
@@ -936,7 +936,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 
 	// ##########################################################################################################################################
 
-	pipelineInfo->m_vkrObjPipeline->pipeline_layout = m_pipeline_layout;
+	pipelineInfo->m_vkrObjPipeline->m_pipelineLayout = m_pipelineLayout;
 
 	// increment ref counter for vkrObjPipeline and renderpass object to make sure they dont get released while we are using them
 	m_vkrObjPipeline->incRef();
@@ -989,7 +989,7 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = &colorBlending;
-	pipelineInfo.layout = m_pipeline_layout;
+	pipelineInfo.layout = m_pipelineLayout;
 	pipelineInfo.renderPass = m_renderPassObj->m_renderPass;
 	pipelineInfo.pDepthStencilState = &depthStencilState;
 	pipelineInfo.subpass = 0;
@@ -1037,7 +1037,7 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	}
 	else if (result == VK_SUCCESS)
 	{
-		m_vkrObjPipeline->setPipeline(pipeline);
+		m_vkrObjPipeline->SetPipeline(pipeline);
 	}
 	else
 	{

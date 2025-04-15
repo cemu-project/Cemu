@@ -603,7 +603,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		const auto it = pipeline_info->vertex_ds_cache.find(stateHash);
 		if (it != pipeline_info->vertex_ds_cache.cend())
 			return it->second;
-		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->vertexDSL;
+		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->m_vertexDSL;
 		break;
 	}
 	case LatteConst::ShaderType::Pixel:
@@ -611,7 +611,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		const auto it = pipeline_info->pixel_ds_cache.find(stateHash);
 		if (it != pipeline_info->pixel_ds_cache.cend())
 			return it->second;
-		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->pixelDSL;
+		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->m_pixelDSL;
 		break;
 	}
 	case LatteConst::ShaderType::Geometry:
@@ -619,7 +619,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		const auto it = pipeline_info->geometry_ds_cache.find(stateHash);
 		if (it != pipeline_info->geometry_ds_cache.cend())
 			return it->second;
-		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->geometryDSL;
+		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->m_geometryDSL;
 		break;
 	}
 	default:
@@ -1481,8 +1481,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 	}
 
 	auto vkObjPipeline = pipeline_info->m_vkrObjPipeline;
-
-	if (vkObjPipeline->pipeline == VK_NULL_HANDLE)
+	if (vkObjPipeline->GetPipeline() == VK_NULL_HANDLE)
 	{
 		// invalid/uninitialized pipeline
 		m_state.activeVertexDS = nullptr;
@@ -1509,11 +1508,11 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 
 	draw_setRenderPass();
 
-	if (m_state.currentPipeline != vkObjPipeline->pipeline)
+	if (m_state.currentPipeline != vkObjPipeline->GetPipeline())
 	{
-		vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->pipeline);
+		vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->GetPipeline());
 		vkObjPipeline->flagForCurrentCommandBuffer();
-		m_state.currentPipeline = vkObjPipeline->pipeline;
+		m_state.currentPipeline = vkObjPipeline->GetPipeline();
 		// depth bias
 		if (pipeline_info->usesDepthBias)
 			draw_updateDepthBias(true);
@@ -1545,7 +1544,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		dsArray[1] = pixelDS->m_vkObjDescriptorSet->descriptorSet;
 
 		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			vkObjPipeline->pipeline_layout, 0, 2, dsArray, numDynOffsetsVS + numDynOffsetsPS,
+			vkObjPipeline->m_pipelineLayout, 0, 2, dsArray, numDynOffsetsVS + numDynOffsetsPS,
 			dynamicOffsets);
 	}
 	else if (vertexDS)
@@ -1554,7 +1553,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, dynamicOffsets, numDynOffsets,
 			pipeline_info);
 		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			vkObjPipeline->pipeline_layout, 0, 1, &vertexDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
+			vkObjPipeline->m_pipelineLayout, 0, 1, &vertexDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
 			dynamicOffsets);
 	}
 	else if (pixelDS)
@@ -1563,7 +1562,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, dynamicOffsets, numDynOffsets,
 			pipeline_info);
 		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			vkObjPipeline->pipeline_layout, 1, 1, &pixelDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
+			vkObjPipeline->m_pipelineLayout, 1, 1, &pixelDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
 			dynamicOffsets);
 	}
 	if (geometryDS)
@@ -1572,7 +1571,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, dynamicOffsets, numDynOffsets,
 			pipeline_info);
 		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-			vkObjPipeline->pipeline_layout, 2, 1, &geometryDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
+			vkObjPipeline->m_pipelineLayout, 2, 1, &geometryDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets,
 			dynamicOffsets);
 	}
 

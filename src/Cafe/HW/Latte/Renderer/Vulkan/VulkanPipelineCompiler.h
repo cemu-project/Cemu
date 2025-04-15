@@ -41,7 +41,7 @@ public:
 	bool InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const LatteContextRegister& latteRegister, VKRObjectRenderPass* renderPassObj);
 	void TrackAsCached(uint64 baseHash, uint64 pipelineStateHash); // stores pipeline to permanent cache if not yet cached. Must be called synchronously from render thread due to dependency on GPU state
 
-	VkPipelineLayout m_pipeline_layout;
+	VkPipelineLayout m_pipelineLayout;
 	VKRObjectRenderPass* m_renderPassObj{};
 
 	/* shader stages */

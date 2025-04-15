@@ -49,7 +49,8 @@ const  std::vector<const char*> kOptionalDeviceExtensions =
 	VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 	VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
-	VK_KHR_PRESENT_ID_EXTENSION_NAME
+	VK_KHR_PRESENT_ID_EXTENSION_NAME,
+	VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME
 };
 
 const std::vector<const char*> kRequiredDeviceExtensions =
@@ -81,8 +82,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 
 	if (strstr(pCallbackData->pMessage, "Number of currently valid sampler objects is not less than the maximum allowed"))
 		return VK_FALSE;
-
-	assert_dbg();
 
 #endif
 
@@ -314,7 +313,10 @@ void VulkanRenderer::GetDeviceFeatures()
 			cemuLog_log(LogType::Force, "VK_EXT_custom_border_color not supported. Cannot emulate arbitrary border color");
 		}
 	}
-
+	if (!m_featureControl.deviceExtensions.depth_clip_enable)
+	{
+		cemuLog_log(LogType::Force, "VK_EXT_depth_clip_enable not supported");
+	}
 	// get limits
 	m_featureControl.limits.minUniformBufferOffsetAlignment = std::max(prop2.properties.limits.minUniformBufferOffsetAlignment, (VkDeviceSize)4);
 	m_featureControl.limits.nonCoherentAtomSize = std::max(prop2.properties.limits.nonCoherentAtomSize, (VkDeviceSize)4);
@@ -1118,10 +1120,13 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 		used_extensions.emplace_back(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.shader_float_controls)
 		used_extensions.emplace_back(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
+	if (m_featureControl.deviceExtensions.depth_clip_enable)
+		used_extensions.emplace_back(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.present_wait)
+	{
 		used_extensions.emplace_back(VK_KHR_PRESENT_ID_EXTENSION_NAME);
-	if (m_featureControl.deviceExtensions.present_wait)
 		used_extensions.emplace_back(VK_KHR_PRESENT_WAIT_EXTENSION_NAME);
+	}
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1218,6 +1223,7 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	info.deviceExtensions.synchronization2 = isExtensionAvailable(VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME);
 	info.deviceExtensions.shader_float_controls = isExtensionAvailable(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 	info.deviceExtensions.dynamic_rendering = false; // isExtensionAvailable(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
+	info.deviceExtensions.depth_clip_enable = isExtensionAvailable(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
 	info.deviceExtensions.present_wait = isExtensionAvailable(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && isExtensionAvailable(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 
@@ -4112,33 +4118,36 @@ VKRObjectFramebuffer::~VKRObjectFramebuffer()
 
 VKRObjectPipeline::VKRObjectPipeline()
 {
-	// todo
 }
 
-void VKRObjectPipeline::setPipeline(VkPipeline newPipeline)
+void VKRObjectPipeline::SetPipeline(VkPipeline newPipeline)
 {
-	cemu_assert_debug(pipeline == VK_NULL_HANDLE);
-	pipeline = newPipeline;
-	if(newPipeline != VK_NULL_HANDLE)
+	if (m_pipeline == newPipeline)
+		return;
+	cemu_assert_debug(m_pipeline == VK_NULL_HANDLE); // replacing an already assigned pipeline is not intended
+	if(m_pipeline == VK_NULL_HANDLE && newPipeline != VK_NULL_HANDLE)
 		performanceMonitor.vk.numGraphicPipelines.increment();
+	else if(m_pipeline != VK_NULL_HANDLE && newPipeline == VK_NULL_HANDLE)
+		performanceMonitor.vk.numGraphicPipelines.decrement();
+	m_pipeline = newPipeline;
 }
 
 VKRObjectPipeline::~VKRObjectPipeline()
 {
 	auto vkr = VulkanRenderer::GetInstance();
-	if (pipeline != VK_NULL_HANDLE)
+	if (m_pipeline != VK_NULL_HANDLE)
 	{
-		vkDestroyPipeline(vkr->GetLogicalDevice(), pipeline, nullptr);
+		vkDestroyPipeline(vkr->GetLogicalDevice(), m_pipeline, nullptr);
 		performanceMonitor.vk.numGraphicPipelines.decrement();
 	}
-	if (vertexDSL != VK_NULL_HANDLE)
-		vkDestroyDescriptorSetLayout(vkr->GetLogicalDevice(), vertexDSL, nullptr);
-	if (pixelDSL != VK_NULL_HANDLE)
-		vkDestroyDescriptorSetLayout(vkr->GetLogicalDevice(), pixelDSL, nullptr);
-	if (geometryDSL != VK_NULL_HANDLE)
-		vkDestroyDescriptorSetLayout(vkr->GetLogicalDevice(), geometryDSL, nullptr);
-	if (pipeline_layout != VK_NULL_HANDLE)
-		vkDestroyPipelineLayout(vkr->GetLogicalDevice(), pipeline_layout, nullptr);
+	if (m_vertexDSL != VK_NULL_HANDLE)
+		vkDestroyDescriptorSetLayout(vkr->GetLogicalDevice(), m_vertexDSL, nullptr);
+	if (m_pixelDSL != VK_NULL_HANDLE)
+		vkDestroyDescriptorSetLayout(vkr->GetLogicalDevice(), m_pixelDSL, nullptr);
+	if (m_geometryDSL != VK_NULL_HANDLE)
+		vkDestroyDescriptorSetLayout(vkr->GetLogicalDevice(), m_geometryDSL, nullptr);
+	if (m_pipelineLayout != VK_NULL_HANDLE)
+		vkDestroyPipelineLayout(vkr->GetLogicalDevice(), m_pipelineLayout, nullptr);
 }
 
 VKRObjectDescriptorSet::VKRObjectDescriptorSet()
