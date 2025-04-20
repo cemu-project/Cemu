@@ -17,7 +17,73 @@ elseif(UNIX)
 			_XOPEN_SOURCE
 			VK_USE_PLATFORM_MACOS_MVK
 			VK_USE_PLATFORM_METAL_EXT
+			METAL_OPTIMIZE
+			USE_METAL_PERFORMANCE_SHADERS
+			USE_GRAND_CENTRAL_DISPATCH
+			USE_PERFORMANCE_OPTIMIZATIONS
 		)
+		
+		# Add optimization files
+		set(OPTIMIZATION_SOURCES
+			gui/MetalOptimizations.h
+			gui/MetalOptimizations.mm
+			gui/PerformanceOptimizer.h
+			gui/PerformanceOptimizer.cpp
+		)
+		
+		# Comprehensive compiler optimizations
+		if(CMAKE_BUILD_TYPE STREQUAL "Release")
+			# Basic optimizations
+			add_compile_options(-Ofast -march=native -flto -fomit-frame-pointer)
+			target_link_options(CemuBin PRIVATE -flto)
+			
+			# Advanced optimizations
+			add_compile_options(
+				-fstrict-aliasing
+				-ffast-math
+				-fno-math-errno
+				-fno-trapping-math
+				-fno-signed-zeros
+				-fno-rounding-math
+				-fno-signaling-nans
+				-fno-cx-limited-range
+				-fno-exceptions
+				-fno-rtti
+			)
+			
+			# PGO support
+			option(ENABLE_PGO "Enable Profile Guided Optimization" ON)
+			if(ENABLE_PGO)
+				add_compile_options(-fprofile-generate)
+				target_link_options(CemuBin PRIVATE -fprofile-generate)
+			endif()
+			
+			# Link-time optimizations
+			target_link_options(CemuBin PRIVATE
+				-Wl,-dead_strip
+				-Wl,-no_compact_unwind
+				-Wl,-fatal_warnings
+			)
+			
+			# Metal-specific optimizations
+			add_compile_options(-fmetal-optimize)
+			add_compile_definitions(
+				METAL_USE_TRIPLE_BUFFERING
+				METAL_USE_COMPUTE_SHADERS
+				METAL_USE_COMMAND_QUEUE
+			)
+		endif()
+		
+		# System-specific optimizations
+		add_compile_definitions(
+			USE_MACOS_POWER_MANAGEMENT
+			USE_MACOS_DISPLAY_MODES
+			USE_METAL_PRESENTATION_MODES
+		)
+		
+		# Memory management
+		add_compile_options(-fobjc-arc)
+		add_compile_definitions(USE_MEMORY_POOLING)
 	else()
 		add_compile_definitions(
 			VK_USE_PLATFORM_XLIB_KHR # legacy. Do we need to support XLIB surfaces?
@@ -133,6 +199,12 @@ target_link_libraries(CemuBin PRIVATE
 	CemuUtil
 	OpenGL::GL
 	SDL2::SDL2
+	"-framework Metal"
+	"-framework MetalPerformanceShaders"
+	"-framework QuartzCore"
+	"-framework CoreVideo"
+	"-framework IOKit"
+	"-framework Cocoa"
 )
 
 if(UNIX AND NOT APPLE)
