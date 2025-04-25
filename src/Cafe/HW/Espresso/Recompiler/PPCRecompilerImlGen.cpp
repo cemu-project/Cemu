@@ -384,12 +384,12 @@ bool PPCRecompilerImlGen_MFSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 ATTR_MS_ABI uint32 PPCRecompiler_GetTBL()
 {
-	return (uint32)coreinit::coreinit_getTimerTick();
+	return (uint32)coreinit::OSGetSystemTime();
 }
 
 ATTR_MS_ABI uint32 PPCRecompiler_GetTBU()
 {
-	return (uint32)(coreinit::coreinit_getTimerTick() >> 32);
+	return (uint32)(coreinit::OSGetSystemTime() >> 32);
 }
 
 bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
