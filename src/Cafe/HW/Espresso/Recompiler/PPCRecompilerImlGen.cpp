@@ -2973,7 +2973,6 @@ void PPCRecompiler_SetSegmentsUncertainFlow(ppcImlGenContext_t& ppcImlGenContext
 {
 	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
-		bool isLastSegment = segIt == ppcImlGenContext.segmentList2.back();
 		// handle empty segment
 		if (segIt->imlList.empty())
 		{
@@ -3166,102 +3165,11 @@ bool PPCRecompiler_GenerateIML(ppcImlGenContext_t& ppcImlGenContext, PPCFunction
 	return true;
 }
 
-void IMLOptimizer_replaceWithConditionalMov(ppcImlGenContext_t& ppcImlGenContext)
-{
-	// optimization pass - replace segments with conditional MOVs if possible
-	//for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
-	//{
-	//	if (segIt->nextSegmentBranchNotTaken == nullptr || segIt->nextSegmentBranchTaken == nullptr)
-	//		continue; // not a branching segment
-	//	IMLInstruction* lastInstruction = segIt->GetLastInstruction();
-	//	if (lastInstruction->type != PPCREC_IML_TYPE_CJUMP || lastInstruction->op_conditionalJump.crRegisterIndex != 0)
-	//		continue;
-	//	IMLSegment* conditionalSegment = segIt->nextSegmentBranchNotTaken;
-	//	IMLSegment* finalSegment = segIt->nextSegmentBranchTaken;
-	//	if (segIt->nextSegmentBranchTaken != segIt->nextSegmentBranchNotTaken->nextSegmentBranchNotTaken)
-	//		continue;
-	//	if (segIt->nextSegmentBranchNotTaken->imlList.size() > 4)
-	//		continue;
-	//	if (conditionalSegment->list_prevSegments.size() != 1)
-	//		continue; // the reduced segment must not be the target of any other branch
-	//	if (conditionalSegment->isEnterable)
-	//		continue;
-	//	// check if the segment contains only iml instructions that can be turned into conditional moves (Value assignment, register assignment)
-	//	bool canReduceSegment = true;
-	//	for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
-	//	{
-	//		IMLInstruction* imlInstruction = conditionalSegment->imlList.data() + f;
-	//		if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
-	//			continue;
-	//		// todo: Register to register copy
-	//		canReduceSegment = false;
-	//		break;
-	//	}
-
-	//	if (canReduceSegment == false)
-	//		continue;
-
-	//	// remove the branch instruction
-	//	uint8 branchCond_crRegisterIndex = lastInstruction->op_conditionalJump.crRegisterIndex;
-	//	uint8 branchCond_crBitIndex = lastInstruction->op_conditionalJump.crBitIndex;
-	//	bool  branchCond_bitMustBeSet = lastInstruction->op_conditionalJump.bitMustBeSet;
-	//	lastInstruction->make_no_op();
-
-	//	// append conditional moves based on branch condition
-	//	for (sint32 f = 0; f < conditionalSegment->imlList.size(); f++)
-	//	{
-	//		IMLInstruction* imlInstruction = conditionalSegment->imlList.data() + f;
-	//		if (imlInstruction->type == PPCREC_IML_TYPE_R_S32 && imlInstruction->operation == PPCREC_IML_OP_ASSIGN)
-	//			PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(&ppcImlGenContext, PPCRecompiler_appendInstruction(segIt), PPCREC_IML_OP_ASSIGN, imlInstruction->op_r_immS32.registerIndex, imlInstruction->op_r_immS32.immS32, branchCond_crRegisterIndex, branchCond_crBitIndex, !branchCond_bitMustBeSet);
-	//		else
-	//			assert_dbg();
-	//	}
-	//	// update segment links
-	//	// source segment: imlSegment, conditional/removed segment: conditionalSegment, final segment: finalSegment
-	//	IMLSegment_RemoveLink(segIt, conditionalSegment);
-	//	IMLSegment_RemoveLink(segIt, finalSegment);
-	//	IMLSegment_RemoveLink(conditionalSegment, finalSegment);
-	//	IMLSegment_SetLinkBranchNotTaken(segIt, finalSegment);
-	//	// remove all instructions from conditional segment
-	//	conditionalSegment->imlList.clear();
-
-	//	// if possible, merge imlSegment with finalSegment
-	//	if (finalSegment->isEnterable == false && finalSegment->list_prevSegments.size() == 1)
-	//	{
-	//		// todo: Clean this up and move into separate function PPCRecompilerIML_mergeSegments()
-	//		IMLSegment_RemoveLink(segIt, finalSegment);
-	//		if (finalSegment->nextSegmentBranchNotTaken)
-	//		{
-	//			IMLSegment* tempSegment = finalSegment->nextSegmentBranchNotTaken;
-	//			IMLSegment_RemoveLink(finalSegment, tempSegment);
-	//			IMLSegment_SetLinkBranchNotTaken(segIt, tempSegment);
-	//		}
-	//		if (finalSegment->nextSegmentBranchTaken)
-	//		{
-	//			IMLSegment* tempSegment = finalSegment->nextSegmentBranchTaken;
-	//			IMLSegment_RemoveLink(finalSegment, tempSegment);
-	//			IMLSegment_SetLinkBranchTaken(segIt, tempSegment);
-	//		}
-	//		// copy IML instructions
-	//		cemu_assert_debug(segIt != finalSegment);
-	//		for (sint32 f = 0; f < finalSegment->imlList.size(); f++)
-	//		{
-	//			memcpy(PPCRecompiler_appendInstruction(segIt), finalSegment->imlList.data() + f, sizeof(IMLInstruction));
-	//		}
-	//		finalSegment->imlList.clear();
-	//	}
-
-	//	// todo: If possible, merge with the segment following conditionalSegment (merging is only possible if the segment is not an entry point or has no other jump sources)
-	//}
-}
-
 bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext, PPCRecFunction_t* ppcRecFunc, std::set<uint32>& entryAddresses, PPCFunctionBoundaryTracker& boundaryTracker)
 {
 	ppcImlGenContext.boundaryTracker = &boundaryTracker;
 	if (!PPCRecompiler_GenerateIML(ppcImlGenContext, boundaryTracker, entryAddresses))
 		return false;
-
-	// IMLOptimizer_replaceWithConditionalMov(ppcImlGenContext);
 
 	// set range
 	// todo - support non-continuous functions for the range tracking?
