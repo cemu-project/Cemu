@@ -73,7 +73,7 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 	{
 		// insert expand instruction after store
 		IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, lastStore);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, newExpand, PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, _FPRRegFromID(fprIndex));
+		newExpand->make_fpr_r(PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, _FPRRegFromID(fprIndex));
 	}
 }
 

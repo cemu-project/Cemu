@@ -816,6 +816,44 @@ struct IMLInstruction
 		this->op_fpr_compare.cond = cond;
 	}
 
+	void make_fpr_r(sint32 operation, IMLReg registerResult)
+	{
+		// OP (fpr)
+		this->type = PPCREC_IML_TYPE_FPR_R;
+		this->operation = operation;
+		this->op_fpr_r.regR = registerResult;
+	}
+
+	void make_fpr_r_r(sint32 operation, IMLReg registerResult, IMLReg registerOperand, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+	{
+		// fpr OP fpr
+		this->type = PPCREC_IML_TYPE_FPR_R_R;
+		this->operation = operation;
+		this->op_fpr_r_r.regR = registerResult;
+		this->op_fpr_r_r.regA = registerOperand;
+	}
+
+	void make_fpr_r_r_r(sint32 operation, IMLReg registerResult, IMLReg registerOperand1, IMLReg registerOperand2, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+	{
+		// fpr = OP (fpr,fpr)
+		this->type = PPCREC_IML_TYPE_FPR_R_R_R;
+		this->operation = operation;
+		this->op_fpr_r_r_r.regR = registerResult;
+		this->op_fpr_r_r_r.regA = registerOperand1;
+		this->op_fpr_r_r_r.regB = registerOperand2;
+	}
+
+	void make_fpr_r_r_r_r(sint32 operation, IMLReg registerResult, IMLReg registerOperandA, IMLReg registerOperandB, IMLReg registerOperandC, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+	{
+		// fpr = OP (fpr,fpr,fpr)
+		this->type = PPCREC_IML_TYPE_FPR_R_R_R_R;
+		this->operation = operation;
+		this->op_fpr_r_r_r_r.regR = registerResult;
+		this->op_fpr_r_r_r_r.regA = registerOperandA;
+		this->op_fpr_r_r_r_r.regB = registerOperandB;
+		this->op_fpr_r_r_r_r.regC = registerOperandC;
+	}
+
 	/* X86 specific */
 	void make_x86_eflags_jcc(IMLCondition cond, bool invertedCondition)
 	{
