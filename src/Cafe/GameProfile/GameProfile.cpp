@@ -140,7 +140,7 @@ bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T&
 	for(const T& v : T())
 	{
 		// test integer option
-		if (boost::iequals(fmt::format("{}", fmt::underlying(v)), *option_value))
+		if (boost::iequals(fmt::format("{}", static_cast<typename std::underlying_type<T>::type>(v)), *option_value))
 		{
 			option = v;
 			return true;
