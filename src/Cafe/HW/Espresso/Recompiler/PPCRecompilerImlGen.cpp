@@ -220,24 +220,6 @@ IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 	return PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + index);
 }
 
-/*
- * Loads a PPC fpr into any of the available IML FPU registers
- * If loadNew is false, it will check first if the fpr is already loaded into any IML register
- */
-IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName, bool loadNew)
-{
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
-}
-
-/*
- * Checks if a PPC fpr register is already loaded into any IML register
- * If not, it will create a new undefined temporary IML FPU register and map the name (effectively overwriting the old ppc register)
- */
-IMLReg PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
-{
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
-}
-
 bool PPCRecompiler_canInlineFunction(MPTR functionPtr, sint32* functionInstructionCount)
 {
 	for (sint32 i = 0; i < 6; i++)
@@ -2339,8 +2321,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		case 534: // LWBRX
 			PPCRecompilerImlGen_LOAD_INDEXED(ppcImlGenContext, opcode, 32, false, false, false);
 			break;
-		case 535:
-			if (PPCRecompilerImlGen_LFSX(ppcImlGenContext, opcode) == false)
+		case 535: // LFSX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, false, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2348,8 +2330,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (PPCRecompilerImlGen_SRW(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 567:
-			if (PPCRecompilerImlGen_LFSUX(ppcImlGenContext, opcode) == false)
+		case 567: // LFSUX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, true, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2360,13 +2342,13 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		case 598:
 			PPCRecompilerImlGen_SYNC(ppcImlGenContext, opcode);
 			break;
-		case 599:
-			if (PPCRecompilerImlGen_LFDX(ppcImlGenContext, opcode) == false)
+		case 599: // LFDX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, false, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 631:
-			if (PPCRecompilerImlGen_LFDUX(ppcImlGenContext, opcode) == false)
+		case 631: // LFDUX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, true, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2374,20 +2356,24 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (!PPCRecompilerImlGen_STORE_INDEXED(ppcImlGenContext, opcode, 32, false, false))
 				unsupportedInstructionFound = true;
 			break;
-		case 663:
-			if (PPCRecompilerImlGen_STFSX(ppcImlGenContext, opcode) == false)
+		case 663: // STFSX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, false, false) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 695:
-			if (PPCRecompilerImlGen_STFSUX(ppcImlGenContext, opcode) == false)
+		case 695: // STFSUX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, true, false) == false)
 				unsupportedInstructionFound = true;
 			break;
 		case 725:
 			if (PPCRecompilerImlGen_STSWI(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 727:
-			if (PPCRecompilerImlGen_STFDX(ppcImlGenContext, opcode) == false)
+		case 727: // STFDX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, false, true) == false)
+				unsupportedInstructionFound = true;
+			break;
+		case 759: // STFDUX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, true, true) == false)
 				unsupportedInstructionFound = true;
 			break;
 		case 790: // LHBRX
@@ -2488,43 +2474,43 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 	case 47:
 		PPCRecompilerImlGen_STMW(ppcImlGenContext, opcode);
 		break;
-	case 48:
-		if (PPCRecompilerImlGen_LFS(ppcImlGenContext, opcode) == false)
+	case 48: // LFS
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, false, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 49:
-		if (PPCRecompilerImlGen_LFSU(ppcImlGenContext, opcode) == false)
+	case 49: // LFSU
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, true, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 50:
-		if (PPCRecompilerImlGen_LFD(ppcImlGenContext, opcode) == false)
+	case 50: // LFD
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, false, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 51:
-		if (PPCRecompilerImlGen_LFDU(ppcImlGenContext, opcode) == false)
+	case 51: // LFDU
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, true, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 52:
-		if (PPCRecompilerImlGen_STFS(ppcImlGenContext, opcode) == false)
+	case 52: // STFS
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, false, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 53:
-		if (PPCRecompilerImlGen_STFSU(ppcImlGenContext, opcode) == false)
+	case 53: // STFSU
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, true, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 54:
-		if (PPCRecompilerImlGen_STFD(ppcImlGenContext, opcode) == false)
+	case 54: // STFD
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, false, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 55:
-		if (PPCRecompilerImlGen_STFDU(ppcImlGenContext, opcode) == false)
+	case 55: // STFDU
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, true, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;

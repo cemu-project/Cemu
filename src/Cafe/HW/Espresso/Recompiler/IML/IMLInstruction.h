@@ -752,6 +752,60 @@ struct IMLInstruction
 		this->op_call_imm.regReturn = regReturn;
 	}
 
+	// FPR
+
+	// load from memory
+	void make_fpr_r_memory(IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	{
+		this->type = PPCREC_IML_TYPE_FPR_LOAD;
+		this->operation = 0;
+		this->op_storeLoad.registerData = registerDestination;
+		this->op_storeLoad.registerMem = registerMemory;
+		this->op_storeLoad.registerGQR = registerGQR;
+		this->op_storeLoad.immS32 = immS32;
+		this->op_storeLoad.mode = mode;
+		this->op_storeLoad.flags2.swapEndian = switchEndian;
+	}
+
+	void make_fpr_r_memory_indexed(IMLReg registerDestination, IMLReg registerMemory1, IMLReg registerMemory2, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	{
+		this->type = PPCREC_IML_TYPE_FPR_LOAD_INDEXED;
+		this->operation = 0;
+		this->op_storeLoad.registerData = registerDestination;
+		this->op_storeLoad.registerMem = registerMemory1;
+		this->op_storeLoad.registerMem2 = registerMemory2;
+		this->op_storeLoad.registerGQR = registerGQR;
+		this->op_storeLoad.immS32 = 0;
+		this->op_storeLoad.mode = mode;
+		this->op_storeLoad.flags2.swapEndian = switchEndian;
+	}
+
+	// store to memory
+	void make_fpr_memory_r(IMLReg registerSource, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	{
+		this->type = PPCREC_IML_TYPE_FPR_STORE;
+		this->operation = 0;
+		this->op_storeLoad.registerData = registerSource;
+		this->op_storeLoad.registerMem = registerMemory;
+		this->op_storeLoad.registerGQR = registerGQR;
+		this->op_storeLoad.immS32 = immS32;
+		this->op_storeLoad.mode = mode;
+		this->op_storeLoad.flags2.swapEndian = switchEndian;
+	}
+
+	void make_fpr_memory_r_indexed(IMLReg registerSource, IMLReg registerMemory1, IMLReg registerMemory2, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	{
+		this->type = PPCREC_IML_TYPE_FPR_STORE_INDEXED;
+		this->operation = 0;
+		this->op_storeLoad.registerData = registerSource;
+		this->op_storeLoad.registerMem = registerMemory1;
+		this->op_storeLoad.registerMem2 = registerMemory2;
+		this->op_storeLoad.registerGQR = registerGQR;
+		this->op_storeLoad.immS32 = immS32;
+		this->op_storeLoad.mode = mode;
+		this->op_storeLoad.flags2.swapEndian = switchEndian;
+	}
+
 	void make_fpr_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
 	{
 		this->type = PPCREC_IML_TYPE_FPR_COMPARE;

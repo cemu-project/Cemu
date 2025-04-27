@@ -14,34 +14,21 @@ void PPCRecompilerIml_insertSegments(ppcImlGenContext_t* ppcImlGenContext, sint3
 void PPCRecompilerIml_setSegmentPoint(IMLSegmentPoint* segmentPoint, IMLSegment* imlSegment, sint32 index);
 void PPCRecompilerIml_removeSegmentPoint(IMLSegmentPoint* segmentPoint);
 
-// GPR register management
-IMLReg PPCRecompilerImlGen_loadRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName);
+// Register management
+IMLReg PPCRecompilerImlGen_LookupReg(ppcImlGenContext_t* ppcImlGenContext, IMLName mappedName, IMLRegFormat regFormat);
 
-// FPR register management
-IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName, bool loadNew = false);
-IMLReg PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName);
+IMLReg PPCRecompilerImlGen_loadRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName);
 
 // IML instruction generation
 void PPCRecompilerImlGen_generateNewInstruction_conditional_r_s32(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, uint32 operation, IMLReg registerIndex, sint32 immS32, uint32 crRegisterIndex, uint32 crBitIndex, bool bitMustBeSet);
 void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 operation, IMLReg registerResult);
 
 // IML generation - FPU
-bool PPCRecompilerImlGen_LFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_LFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
+bool PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate, bool isDouble);
+bool PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate, bool isDouble);
+bool PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate, bool isDouble);
+bool PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool hasUpdate, bool isDouble);
 bool PPCRecompilerImlGen_STFIWX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
-bool PPCRecompilerImlGen_STFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
 bool PPCRecompilerImlGen_FADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
 bool PPCRecompilerImlGen_FSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
 bool PPCRecompilerImlGen_FMUL(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode);
