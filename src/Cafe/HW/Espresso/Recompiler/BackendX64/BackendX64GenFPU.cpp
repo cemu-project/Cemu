@@ -213,6 +213,37 @@ void x64Gen_movsd_memReg64_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegi
 	}
 }
 
+void x64Gen_movsd_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRegister, sint32 memRegister, uint32 memImmU32)
+{
+	// SSE2
+	if( memRegister == X86_REG_RSP )
+	{
+		// MOVSD <xmm>, [RSP+<imm>]
+		x64Gen_writeU8(x64GenContext, 0xF2);
+		x64Gen_genSSEVEXPrefix2(x64GenContext, 0, xmmRegister, false);
+		x64Gen_writeU8(x64GenContext, 0x0F);
+		x64Gen_writeU8(x64GenContext, 0x10);
+		x64Gen_writeU8(x64GenContext, 0x84+(xmmRegister&7)*8);
+		x64Gen_writeU8(x64GenContext, 0x24);
+		x64Gen_writeU32(x64GenContext, memImmU32);
+	}
+	else if( memRegister == 15 )
+	{
+		// MOVSD <xmm>, [R15+<imm>]
+		x64Gen_writeU8(x64GenContext, 0x36);
+		x64Gen_writeU8(x64GenContext, 0xF2);
+		x64Gen_genSSEVEXPrefix2(x64GenContext, memRegister, xmmRegister, false);
+		x64Gen_writeU8(x64GenContext, 0x0F);
+		x64Gen_writeU8(x64GenContext, 0x10);
+		x64Gen_writeU8(x64GenContext, 0x87+(xmmRegister&7)*8);
+		x64Gen_writeU32(x64GenContext, memImmU32);
+	}
+	else
+	{
+		assert_dbg();
+	}
+}
+
 void x64Gen_movlpd_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRegister, sint32 memRegister, uint32 memImmU32)
 {
 	// SSE3
@@ -559,6 +590,16 @@ void x64Gen_cvttsd2si_xmmReg_xmmReg(x64GenContext_t* x64GenContext, sint32 regis
 	x64Gen_writeU8(x64GenContext, 0x0F);
 	x64Gen_writeU8(x64GenContext, 0x2C);
 	x64Gen_writeU8(x64GenContext, 0xC0+(registerDest&7)*8+(xmmRegisterSrc&7));
+}
+
+void x64Gen_cvtsi2sd_xmmReg_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegisterDest, sint32 registerSrc)
+{
+	// SSE2
+	x64Gen_writeU8(x64GenContext, 0xF2);
+	x64Gen_genSSEVEXPrefix2(x64GenContext, registerSrc, xmmRegisterDest, false);
+	x64Gen_writeU8(x64GenContext, 0x0F);
+	x64Gen_writeU8(x64GenContext, 0x2A);
+	x64Gen_writeU8(x64GenContext, 0xC0+(xmmRegisterDest&7)*8+(registerSrc&7));
 }
 
 void x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegisterDest, sint32 xmmRegisterSrc)

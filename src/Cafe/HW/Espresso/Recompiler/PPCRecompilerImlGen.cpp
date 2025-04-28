@@ -87,8 +87,7 @@ void PPCRecompilerImlGen_generateNewInstruction_memory_r_indexed(ppcImlGenContex
 }
 
 // create and fill two segments (branch taken and branch not taken) as a follow up to the current segment and then merge flow afterwards
-template<typename F1n, typename F2n>
-void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, F1n genSegmentBranchTaken, F2n genSegmentBranchNotTaken)
+void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, const std::function<void(ppcImlGenContext_t&)>& genSegmentBranchTaken, const std::function<void(ppcImlGenContext_t&)>& genSegmentBranchNotTaken)
 {
 	IMLSegment* currentWriteSegment = basicBlockInfo.GetSegmentForInstructionAppend();
 
@@ -116,6 +115,100 @@ void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, P
 	// make merge segment the new write segment
 	ppcImlGenContext.currentOutputSegment = segMerge;
 	basicBlockInfo.appendSegment = segMerge;
+}
+
+IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index);
+
+IMLRedirectInstOutput::IMLRedirectInstOutput(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* outputSegment) : m_context(ppcImlGenContext)
+{
+	m_prevSegment = ppcImlGenContext->currentOutputSegment;
+	cemu_assert_debug(ppcImlGenContext->currentOutputSegment == ppcImlGenContext->currentBasicBlock->appendSegment);
+	if (outputSegment == ppcImlGenContext->currentOutputSegment)
+	{
+		m_prevSegment = nullptr;
+		return;
+	}
+	m_context->currentBasicBlock->appendSegment = outputSegment;
+	m_context->currentOutputSegment = outputSegment;
+}
+
+IMLRedirectInstOutput::~IMLRedirectInstOutput()
+{
+	if (m_prevSegment)
+	{
+		m_context->currentBasicBlock->appendSegment = m_prevSegment;
+		m_context->currentOutputSegment = m_prevSegment;
+	}
+}
+
+
+// compare values and branch to segment with same index in segmentsOut. The last segment doesn't actually have any comparison and just is the default case. Thus compareValues is one shorter than count
+void PPCIMLGen_CreateSegmentBranchedPathMultiple(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, IMLSegment** segmentsOut, IMLReg compareReg, sint32* compareValues, sint32 count)
+{
+	IMLSegment* currentWriteSegment = basicBlockInfo.GetSegmentForInstructionAppend();
+	cemu_assert_debug(!currentWriteSegment->HasSuffixInstruction()); // must not already have a suffix instruction
+
+	const sint32 numBranchSegments = count;// - 1; If we move the default case to the first segment we could avoid one extra non-conditional branch
+	const sint32 numCaseSegments = count;
+
+	std::span<IMLSegment*> segments = ppcImlGenContext.InsertSegments(ppcImlGenContext.GetSegmentIndex(currentWriteSegment) + 1, numBranchSegments - 1 + numCaseSegments + 1);
+	IMLSegment** extraBranchSegments = segments.data();
+	IMLSegment** caseSegments = segments.data() + numBranchSegments - 1;
+	IMLSegment* mergeSegment = segments[numBranchSegments - 1 + numCaseSegments];
+
+	// move links to the merge segment
+	mergeSegment->SetLinkBranchTaken(currentWriteSegment->GetBranchTaken());
+	mergeSegment->SetLinkBranchNotTaken(currentWriteSegment->GetBranchNotTaken());
+	currentWriteSegment->SetLinkBranchTaken(nullptr);
+	currentWriteSegment->SetLinkBranchNotTaken(nullptr);
+
+	for (sint32 i=0; i<count; i++)
+		segmentsOut[i] = caseSegments[i];
+
+	IMLReg tmpBoolReg = _GetRegTemporaryS8(&ppcImlGenContext, 2);
+
+	// the first branch segment is the original current write segment
+	auto GetBranchSegment = [&](sint32 index) {
+		if (index == 0)
+			return currentWriteSegment;
+		else
+			return extraBranchSegments[index - 1];
+	};
+	// link branch segments (taken: Link to case segment. NotTaken: Link to next branch segment. For the last one use a non-conditional jump)
+	for (sint32 i=0; i<numBranchSegments; i++)
+	{
+		IMLSegment* seg = GetBranchSegment(i);
+		if (i < numBranchSegments - 1)
+		{
+			seg->SetLinkBranchTaken(caseSegments[i]);
+			seg->SetLinkBranchNotTaken(GetBranchSegment(i + 1));
+			seg->AppendInstruction()->make_compare_s32(compareReg, compareValues[i], tmpBoolReg, IMLCondition::EQ);
+			seg->AppendInstruction()->make_conditional_jump(tmpBoolReg, true);
+		}
+		else
+		{
+			seg->SetLinkBranchTaken(caseSegments[i]);
+			seg->AppendInstruction()->make_jump();
+		}
+	}
+	// link case segments
+	for (sint32 i=0; i<numCaseSegments; i++)
+	{
+		IMLSegment* seg = caseSegments[i];
+		if (i < numCaseSegments - 1)
+		{
+			seg->SetLinkBranchTaken(mergeSegment);
+			//seg->AppendInstruction()->make_jump(); -> Jumps are added after the instructions
+		}
+		else
+		{
+			// todo - the last segment doesnt need to jump
+			seg->SetLinkBranchTaken(mergeSegment);
+			//seg->AppendInstruction()->make_jump();
+		}
+	}
+	ppcImlGenContext.currentOutputSegment = mergeSegment;
+	basicBlockInfo.appendSegment = mergeSegment;
 }
 
 IMLReg PPCRecompilerImlGen_LookupReg(ppcImlGenContext_t* ppcImlGenContext, IMLName mappedName, IMLRegFormat regFormat)
@@ -212,8 +305,8 @@ IMLReg _GetRegTemporary(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 	return PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + index);
 }
 
-// get throw-away register. Only valid for the scope of a single translated instruction
-// be careful to not collide with manually loaded temporary register
+// get throw-away register
+// be careful to not collide with other temporary register
 IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 {
 	cemu_assert_debug(index < 4);
@@ -1891,23 +1984,23 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 12: // multiply scalar
-			if (PPCRecompilerImlGen_PS_MULS0(ppcImlGenContext, opcode) == false)
+		case 12: // PS_MULS0
+			if (PPCRecompilerImlGen_PS_MULSX(ppcImlGenContext, opcode, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 13: // multiply scalar
-			if (PPCRecompilerImlGen_PS_MULS1(ppcImlGenContext, opcode) == false)
+		case 13: // PS_MULS1
+			if (PPCRecompilerImlGen_PS_MULSX(ppcImlGenContext, opcode, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 14: // multiply add scalar
-			if (PPCRecompilerImlGen_PS_MADDS0(ppcImlGenContext, opcode) == false)
+		case 14: // PS_MADDS0
+			if (PPCRecompilerImlGen_PS_MADDSX(ppcImlGenContext, opcode, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 15: // multiply add scalar
-			if (PPCRecompilerImlGen_PS_MADDS1(ppcImlGenContext, opcode) == false)
+		case 15: // PS_MADDS1
+			if (PPCRecompilerImlGen_PS_MADDSX(ppcImlGenContext, opcode, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2515,12 +2608,12 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
 	case 56:
-		if (PPCRecompilerImlGen_PSQ_L(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_L(ppcImlGenContext, opcode, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
 	case 57:
-		if (PPCRecompilerImlGen_PSQ_LU(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_L(ppcImlGenContext, opcode, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
@@ -2573,12 +2666,12 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		}
 		break;
 	case 60:
-		if (PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext, opcode, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
 	case 61:
-		if (PPCRecompilerImlGen_PSQ_STU(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext, opcode, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
@@ -2688,7 +2781,6 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 }
 
 // returns false if code flow is not interrupted
-// continueDefaultPath: Controls if 
 bool PPCRecompiler_CheckIfInstructionEndsSegment(PPCFunctionBoundaryTracker& boundaryTracker, uint32 instructionAddress, uint32 opcode, bool& makeNextInstEnterable, bool& continueDefaultPath, bool& hasBranchTarget, uint32& branchTarget)
 {
 	hasBranchTarget = false;

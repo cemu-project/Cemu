@@ -269,7 +269,8 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 		realRegisterMem2 = _regI32(imlInstruction->op_storeLoad.registerMem2);
 	uint8 mode = imlInstruction->op_storeLoad.mode;
 
-	if( mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1 )
+	if( mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1 ||
+		mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0 ) // lazy hack for now. Load only one value for SINGLE_INTO_PS0
 	{
 		// load byte swapped single into temporary FPR
 		if( indexed )
@@ -682,6 +683,21 @@ void _swapPS0PS1(x64GenContext_t* x64GenContext, sint32 xmmReg)
 // FPR op FPR
 void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction)
 {
+	if( imlInstruction->operation == PPCREC_IML_OP_FPR_FLOAT_TO_INT )
+	{
+		uint32 regGpr = _regI32(imlInstruction->op_fpr_r_r.regR);
+		uint32 regFpr = _regF64(imlInstruction->op_fpr_r_r.regA);
+		x64Gen_cvttsd2si_reg64Low_xmmReg(x64GenContext, regGpr, regFpr);
+		return;
+	}
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_INT_TO_FLOAT )
+	{
+		uint32 regFpr = _regF64(imlInstruction->op_fpr_r_r.regR);
+		uint32 regGpr = _regI32(imlInstruction->op_fpr_r_r.regA);
+		x64Gen_cvtsi2sd_xmmReg_xmmReg(x64GenContext, regFpr, regGpr);
+		return;
+	}
+	// all other cases operate on two floating-point registers
 	uint32 regR = _regF64(imlInstruction->op_fpr_r_r.regR);
 	uint32 regA = _regF64(imlInstruction->op_fpr_r_r.regA);
 
@@ -1024,6 +1040,10 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATE_BOTTOM )
 	{
 		x64Gen_xorps_xmmReg_mem128Reg64(x64GenContext, regR, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom));
+	}
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_LOAD_ONE )
+	{
+		x64Gen_movsd_xmmReg_memReg64(x64GenContext, regR, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble1_1));
 	}
 	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ABS_BOTTOM )
 	{

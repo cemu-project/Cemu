@@ -10,6 +10,18 @@ namespace Espresso
 		CR_BIT_INDEX_SO = 3,
 	};
 
+	enum class PSQ_LOAD_TYPE
+	{
+		TYPE_F32 = 0,
+		TYPE_UNUSED1 = 1,
+		TYPE_UNUSED2 = 2,
+		TYPE_UNUSED3 = 3,
+		TYPE_U8 = 4,
+		TYPE_U16 = 5,
+		TYPE_S8 = 6,
+		TYPE_S16 = 7,
+	};
+
 	enum class PrimaryOpcode
 	{
 		// underscore at the end of the name means that this instruction always updates CR0 (as if RC bit is set)

@@ -189,9 +189,17 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		{
 			strOutput.addFmt("r{}", inst.op_r_name.name - PPCREC_NAME_R0);
 		}
-		else if (inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0 + 999))
+		else if (inst.op_r_name.name >= PPCREC_NAME_FPR0 && inst.op_r_name.name < (PPCREC_NAME_FPR0 + 32))
 		{
 			strOutput.addFmt("f{}", inst.op_r_name.name - PPCREC_NAME_FPR0);
+		}
+		else if (inst.op_r_name.name >= PPCREC_NAME_FPR0_NEW && inst.op_r_name.name < (PPCREC_NAME_FPR0_NEW + 32*2))
+		{
+			strOutput.addFmt("f{}", inst.op_r_name.name - ((PPCREC_NAME_FPR0_NEW - inst.op_r_name.name)/2));
+			if ((inst.op_r_name.name-PPCREC_NAME_FPR0_NEW)&1)
+				strOutput.add(".ps1");
+			else
+				strOutput.add(".ps0");
 		}
 		else if (inst.op_r_name.name >= PPCREC_NAME_SPR0 && inst.op_r_name.name < (PPCREC_NAME_SPR0 + 999))
 		{

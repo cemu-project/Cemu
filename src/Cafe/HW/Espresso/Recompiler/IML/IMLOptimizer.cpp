@@ -209,7 +209,9 @@ bool PPCRecompiler_isUGQRValueKnown(ppcImlGenContext_t* ppcImlGenContext, sint32
 {
 	// UGQR 2 to 7 are initialized by the OS and we assume that games won't ever permanently touch those
 	// todo - hack - replace with more accurate solution
-	if (gqrIndex == 2)
+	if (gqrIndex == 0)
+		gqrValue = 0x00000000;
+	else if (gqrIndex == 2)
 		gqrValue = 0x00040004;
 	else if (gqrIndex == 3)
 		gqrValue = 0x00050005;

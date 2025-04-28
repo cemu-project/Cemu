@@ -158,10 +158,14 @@ enum
 	PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ,
 	PPCREC_IML_OP_FPR_SELECT_BOTTOM, // selectively copy bottom value from operand B or C based on value in operand A
 	PPCREC_IML_OP_FPR_SELECT_PAIR, // selectively copy top/bottom from operand B or C based on value in top/bottom of operand A
+	// Conversion (FPR_R_R)
+	PPCREC_IML_OP_FPR_INT_TO_FLOAT, // convert integer value in gpr to floating point value in fpr
+	PPCREC_IML_OP_FPR_FLOAT_TO_INT, // convert floating point value in fpr to integer value in gpr
 	// PS
 	PPCREC_IML_OP_FPR_SUM0,
 	PPCREC_IML_OP_FPR_SUM1,
 
+	PPCREC_IML_OP_FPR_LOAD_ONE, // load constant 1.0 into register
 
 	// R_R_R only
 
@@ -276,6 +280,7 @@ enum // IMLName
 	PPCREC_NAME_R0 = 2000,
 	PPCREC_NAME_SPR0 = 3000,
 	PPCREC_NAME_FPR0 = 4000,
+	PPCREC_NAME_FPR0_NEW = 4800, // similar to FPR0, but counting PS0 and PS1 separate. So fp3.ps1 is at offset 3 * 2 + 1
 	PPCREC_NAME_TEMPORARY_FPR0 = 5000, // 0 to 7
 	PPCREC_NAME_XER_CA = 6000, // carry bit from XER
 	PPCREC_NAME_XER_OV = 6001, // overflow bit from XER
@@ -757,6 +762,12 @@ struct IMLInstruction
 	// load from memory
 	void make_fpr_r_memory(IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
 	{
+		if (registerGQR.IsValid())
+		{
+			if ( mode == 0)
+				__debugbreak();
+		}
+
 		this->type = PPCREC_IML_TYPE_FPR_LOAD;
 		this->operation = 0;
 		this->op_storeLoad.registerData = registerDestination;

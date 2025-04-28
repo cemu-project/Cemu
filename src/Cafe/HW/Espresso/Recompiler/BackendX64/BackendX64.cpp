@@ -1208,6 +1208,13 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 		{
 			x64Gen_movupd_xmmReg_memReg128(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
 		}
+		else if (name >= PPCREC_NAME_FPR0_NEW && name < (PPCREC_NAME_FPR0_NEW + 64))
+		{
+			sint32 regIndex = (name - PPCREC_NAME_FPR0_NEW) / 2;
+			sint32 pairIndex = (name - PPCREC_NAME_FPR0_NEW) % 2;
+			x64Gen_movddup_xmmReg_memReg64(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * regIndex + pairIndex * sizeof(double));
+			// todo - use movsd here
+		}
 		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
 		{
 			x64Gen_movupd_xmmReg_memReg128(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, temporaryFPR) + sizeof(FPR_t) * (name - PPCREC_NAME_TEMPORARY_FPR0));
@@ -1284,6 +1291,12 @@ void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction,
 		if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
 		{
 			x64Gen_movupd_memReg128_xmmReg(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+		}
+		else if (name >= PPCREC_NAME_FPR0_NEW && name < (PPCREC_NAME_FPR0_NEW + 64))
+		{
+			sint32 regIndex = (name - PPCREC_NAME_FPR0_NEW) / 2;
+			sint32 pairIndex = (name - PPCREC_NAME_FPR0_NEW) % 2;
+			x64Gen_movsd_memReg64_xmmReg(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * regIndex + (pairIndex ? sizeof(double) : 0));
 		}
 		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
 		{
