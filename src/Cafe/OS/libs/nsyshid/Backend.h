@@ -172,7 +172,7 @@ namespace nsyshid
 
 		std::shared_ptr<Device> FindDevice(std::function<bool(const std::shared_ptr<Device>&)> isWantedDevice);
 
-		bool FindDeviceById(uint16 vendorId, uint16 productId);
+		std::shared_ptr<Device> FindDeviceById(uint16 vendorId, uint16 productId);
 
 		bool IsDeviceWhitelisted(uint16 vendorId, uint16 productId);
 
