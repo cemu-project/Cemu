@@ -16,6 +16,8 @@ namespace nsyshid
 			m_devices.emplace_back(0x0e6f, 0x0241);
 			// skylanders portal
 			m_devices.emplace_back(0x1430, 0x0150);
+			// skylanders 360 portal
+			m_devices.emplace_back(0x1430, 0x1F17);
 			// disney infinity base
 			m_devices.emplace_back(0x0e6f, 0x0129);
 		}
