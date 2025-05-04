@@ -51,12 +51,10 @@ struct PPCInterpreter_t
 	uint8 xer_ca;  // carry from xer
 	uint8 xer_so;
 	uint8 xer_ov;
-	uint8 LSQE;
-	uint8 PSE;
 	// thread remaining cycles
 	sint32 remainingCycles; // if this value goes below zero, the next thread is scheduled
 	sint32 skippedCycles; // number of skipped cycles
-	struct  
+	struct
 	{
 		uint32 LR;
 		uint32 CTR;
@@ -72,7 +70,7 @@ struct PPCInterpreter_t
 	uint32 temporaryGPR[4]; // deprecated, refactor backend dependency on this away
 	uint32 temporaryGPR_reg[4];
 	// values below this are not used by Cafe OS usermode
-	struct  
+	struct
 	{
 		uint32 fpecr; // is this the same register as fpscr ?
 		uint32 DEC;
@@ -87,7 +85,7 @@ struct PPCInterpreter_t
 		// DMA
 		uint32 dmaU;
 		uint32 dmaL;
-		// MMU 
+		// MMU
 		uint32 dbatU[8];
 		uint32 dbatL[8];
 		uint32 ibatU[8];
@@ -95,6 +93,8 @@ struct PPCInterpreter_t
 		uint32 sr[16];
 		uint32 sdr1;
 	}sprExtended;
+	uint8 LSQE;
+	uint8 PSE;
 	// global CPU values
 	PPCInterpreterGlobal_t* global;
 	// interpreter control
