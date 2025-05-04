@@ -669,9 +669,9 @@ void PPCRecompiler_init()
 		ppcRecompilerEnabled = false;
 		return;
 	}
-	if (LaunchSettings::ForceInterpreter())
+	if (LaunchSettings::ForceInterpreter() || LaunchSettings::ForceMultiCoreInterpreter())
 	{
-		cemuLog_log(LogType::Force, "Recompiler disabled. Command line --force-interpreter was passed");
+		cemuLog_log(LogType::Force, "Recompiler disabled. Command line --force-interpreter or force-multicore-interpreter was passed");
 		return;
 	}
 	if (ppcRecompilerInstanceData)

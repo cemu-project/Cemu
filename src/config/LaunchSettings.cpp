@@ -69,7 +69,8 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 
 		("account,a", po::value<std::string>(), "Persistent id of account")
 
-		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler")
+		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler. Useful for debugging purposes where you want to get accurate memory accesses and stack traces.")
+		("force-multicore-interpreter", po::value<bool>()->implicit_value(true), "Force multi-core interpreter CPU emulation, disables recompiler. Only useful for getting stack traces, but slightly faster than the single-core interpreter mode.")
 		("enable-gdbstub", po::value<bool>()->implicit_value(true), "Enable GDB stub to debug executables inside Cemu using an external debugger");
 
 	po::options_description hidden{ "Hidden options" };
@@ -176,6 +177,9 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 
 		if(vm.count("force-interpreter"))
 			s_force_interpreter = vm["force-interpreter"].as<bool>();
+
+		if(vm.count("force-multicore-interpreter"))
+			s_force_multicore_interpreter = vm["force-multicore-interpreter"].as<bool>();
 		
 		if (vm.count("enable-gdbstub"))
 			s_enable_gdbstub = vm["enable-gdbstub"].as<bool>();
