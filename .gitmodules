@@ -18,3 +18,7 @@
 	path = dependencies/imgui
 	url = https://github.com/ocornut/imgui
 	shallow = true
+[submodule "dependencies/openpnp-capture"]
+	path = dependencies/openpnp-capture
+	url = https://github.com/capitalistspz/openpnp-capture
+	branch = dev
