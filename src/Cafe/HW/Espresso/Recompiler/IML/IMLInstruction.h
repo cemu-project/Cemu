@@ -126,26 +126,22 @@ enum
 	PPCREC_IML_OP_SRW,				// SRW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_CNTLZW,
 	// FPU
-	PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM,
+	PPCREC_IML_OP_FPR_ASSIGN,
 	PPCREC_IML_OP_FPR_LOAD_ONE, // load constant 1.0 into register
-	PPCREC_IML_OP_FPR_ADD_BOTTOM,
-	PPCREC_IML_OP_FPR_SUB_BOTTOM,
-	PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM,
-	PPCREC_IML_OP_FPR_DIVIDE_BOTTOM,
-	PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, // expand bottom f32 to f64 in bottom and top half
-	PPCREC_IML_OP_FPR_NEGATE_BOTTOM,
-	PPCREC_IML_OP_FPR_ABS_BOTTOM, // abs(fp0)
-	PPCREC_IML_OP_FPR_NEGATIVE_ABS_BOTTOM, // -abs(fp0)
+	PPCREC_IML_OP_FPR_ADD,
+	PPCREC_IML_OP_FPR_SUB,
+	PPCREC_IML_OP_FPR_MULTIPLY,
+	PPCREC_IML_OP_FPR_DIVIDE,
+	PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, // expand f32 to f64 in-place
+	PPCREC_IML_OP_FPR_NEGATE,
+	PPCREC_IML_OP_FPR_ABS, // abs(fpr)
+	PPCREC_IML_OP_FPR_NEGATIVE_ABS, // -abs(fpr)
 	PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, // round 64bit double to 64bit double with 32bit float precision (in bottom half of xmm register)
-	PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ,
-	PPCREC_IML_OP_FPR_SELECT_BOTTOM, // selectively copy bottom value from operand B or C based on value in operand A
+	PPCREC_IML_OP_FPR_FCTIWZ,
+	PPCREC_IML_OP_FPR_SELECT, // selectively copy bottom value from operand B or C based on value in operand A
 	// Conversion (FPR_R_R)
 	PPCREC_IML_OP_FPR_INT_TO_FLOAT, // convert integer value in gpr to floating point value in fpr
 	PPCREC_IML_OP_FPR_FLOAT_TO_INT, // convert floating point value in fpr to integer value in gpr
-
-	// R_R_R only
-
-	// R_R_S32 only
 
 	// R_R_R + R_R_S32
 	PPCREC_IML_OP_ADD, // also R_R_R_CARRY

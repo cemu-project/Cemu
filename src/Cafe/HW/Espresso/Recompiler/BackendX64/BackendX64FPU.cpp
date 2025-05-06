@@ -72,8 +72,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 		else
 		{
 			x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, realRegisterXMM, realRegisterXMM);
-			x64Gen_movddup_xmmReg_xmmReg(x64GenContext, realRegisterXMM, realRegisterXMM);
-		}		
+		}
 	}
 	else if( mode == PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0 )
 	{
@@ -246,27 +245,27 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 	uint32 regR = _regF64(imlInstruction->op_fpr_r_r.regR);
 	uint32 regA = _regF64(imlInstruction->op_fpr_r_r.regA);
 
-	if( imlInstruction->operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM )
+	if( imlInstruction->operation == PPCREC_IML_OP_FPR_ASSIGN )
 	{
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, regR, regA);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY )
 	{
 		x64Gen_mulsd_xmmReg_xmmReg(x64GenContext, regR, regA);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_DIVIDE_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_DIVIDE )
 	{
 		x64Gen_divsd_xmmReg_xmmReg(x64GenContext, regR, regA);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ADD_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ADD )
 	{
 		x64Gen_addsd_xmmReg_xmmReg(x64GenContext, regR, regA);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB )
 	{
 		x64Gen_subsd_xmmReg_xmmReg(x64GenContext, regR, regA);
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_FCTIWZ )
 	{
 		x64Gen_cvttsd2si_xmmReg_xmmReg(x64GenContext, REG_RESV_TEMP, regA);
 		x64Gen_mov_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP);
@@ -288,7 +287,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 	uint32 regA = _regF64(imlInstruction->op_fpr_r_r_r.regA);
 	uint32 regB = _regF64(imlInstruction->op_fpr_r_r_r.regB);
 
-	if (imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM)
+	if (imlInstruction->operation == PPCREC_IML_OP_FPR_MULTIPLY)
 	{
 		if (regR == regA)
 		{
@@ -304,7 +303,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 			x64Gen_mulsd_xmmReg_xmmReg(x64GenContext, regR, regB);
 		}
 	}
-	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_ADD_BOTTOM)
+	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_ADD)
 	{
 		// todo: Use AVX 3-operand VADDSD if available
 		if (regR == regA)
@@ -321,7 +320,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r(PPCRecFunction_t* PPCRecFuncti
 			x64Gen_addsd_xmmReg_xmmReg(x64GenContext, regR, regB);
 		}
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_SUB )
 	{
 		if( regR == regA )
 		{
@@ -353,7 +352,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r_r_r(PPCRecFunction_t* PPCRecFunc
 	uint32 regB = _regF64(imlInstruction->op_fpr_r_r_r_r.regB);
 	uint32 regC = _regF64(imlInstruction->op_fpr_r_r_r_r.regC);
 
-	if( imlInstruction->operation == PPCREC_IML_OP_FPR_SELECT_BOTTOM )
+	if( imlInstruction->operation == PPCREC_IML_OP_FPR_SELECT )
 	{
 		x64Gen_comisd_xmmReg_mem64Reg64(x64GenContext, regA, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble0_0));
 		sint32 jumpInstructionOffset1 = x64GenContext->emitter->GetWriteIndex();
@@ -376,7 +375,7 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 {
 	uint32 regR = _regF64(imlInstruction->op_fpr_r.regR);
 
-	if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATE_BOTTOM )
+	if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATE )
 	{
 		x64Gen_xorps_xmmReg_mem128Reg64(x64GenContext, regR, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom));
 	}
@@ -384,11 +383,11 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 	{
 		x64Gen_movsd_xmmReg_memReg64(x64GenContext, regR, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble1_1));
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ABS_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_ABS )
 	{
 		x64Gen_andps_xmmReg_mem128Reg64(x64GenContext, regR, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_andAbsMaskBottom));
 	}
-	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATIVE_ABS_BOTTOM )
+	else if( imlInstruction->operation == PPCREC_IML_OP_FPR_NEGATIVE_ABS )
 	{
 		x64Gen_orps_xmmReg_mem128Reg64(x64GenContext, regR, REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom));
 	}
@@ -399,12 +398,10 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r(PPCRecFunction_t* PPCRecFunction, 
 		// convert back to 64bit double
 		x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, regR, regR);
 	}
-	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64)
+	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64)
 	{
 		// convert bottom to 64bit double
 		x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, regR, regR);
-		// copy to top half
-		x64Gen_movddup_xmmReg_xmmReg(x64GenContext, regR, regR);
 	}
 	else
 	{

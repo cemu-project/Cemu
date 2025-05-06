@@ -282,9 +282,9 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	{
 		// fpr operation
 		if (
-			operation == PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64 ||
-			operation == PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ
+			operation == PPCREC_IML_OP_FPR_ASSIGN ||
+			operation == PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64 ||
+			operation == PPCREC_IML_OP_FPR_FCTIWZ
 			)
 		{
 			// operand read, result read and (partially) written
@@ -292,10 +292,10 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 			registersUsed->readGPR2 = op_fpr_r_r.regR;
 			registersUsed->writtenGPR1 = op_fpr_r_r.regR;
 		}
-		else if (operation == PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_DIVIDE_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_ADD_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_SUB_BOTTOM)
+		else if (operation == PPCREC_IML_OP_FPR_MULTIPLY ||
+			operation == PPCREC_IML_OP_FPR_DIVIDE ||
+			operation == PPCREC_IML_OP_FPR_ADD ||
+			operation == PPCREC_IML_OP_FPR_SUB)
 		{
 			// operand read, result read and written
 			registersUsed->readGPR1 = op_fpr_r_r.regA;
@@ -321,9 +321,9 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		// handle partially written result
 		switch (operation)
 		{
-		case PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM:
-		case PPCREC_IML_OP_FPR_ADD_BOTTOM:
-		case PPCREC_IML_OP_FPR_SUB_BOTTOM:
+		case PPCREC_IML_OP_FPR_MULTIPLY:
+		case PPCREC_IML_OP_FPR_ADD:
+		case PPCREC_IML_OP_FPR_SUB:
 			registersUsed->readGPR3 = op_fpr_r_r_r.regR;
 			break;
 		default:
@@ -340,7 +340,7 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		// handle partially written result
 		switch (operation)
 		{
-		case PPCREC_IML_OP_FPR_SELECT_BOTTOM:
+		case PPCREC_IML_OP_FPR_SELECT:
 			registersUsed->readGPR4 = op_fpr_r_r_r_r.regR;
 			break;
 		default:
@@ -350,10 +350,10 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 	else if (type == PPCREC_IML_TYPE_FPR_R)
 	{
 		// fpr operation
-		if (operation == PPCREC_IML_OP_FPR_NEGATE_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_ABS_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_NEGATIVE_ABS_BOTTOM ||
-			operation == PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64 ||
+		if (operation == PPCREC_IML_OP_FPR_NEGATE ||
+			operation == PPCREC_IML_OP_FPR_ABS ||
+			operation == PPCREC_IML_OP_FPR_NEGATIVE_ABS ||
+			operation == PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64 ||
 			operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM)
 		{
 			registersUsed->readGPR1 = op_fpr_r.regR;
