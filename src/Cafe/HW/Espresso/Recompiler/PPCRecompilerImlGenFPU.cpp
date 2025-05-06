@@ -18,13 +18,13 @@ IMLReg _GetRegCR(ppcImlGenContext_t* ppcImlGenContext, uint8 crReg, uint8 crBit)
 IMLReg _GetFPRRegPS0(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex)
 {
 	cemu_assert_debug(regIndex < 32);
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR0_NEW + regIndex * 2 + 0, IMLRegFormat::F64);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + 0, IMLRegFormat::F64);
 }
 
 IMLReg _GetFPRRegPS1(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex)
 {
 	cemu_assert_debug(regIndex < 32);
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR0_NEW + regIndex * 2 + 1, IMLRegFormat::F64);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + 1, IMLRegFormat::F64);
 }
 
 IMLReg _GetFPRTemp(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
@@ -36,7 +36,7 @@ IMLReg _GetFPRTemp(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 IMLReg _GetFPRReg(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex, bool selectPS1)
 {
 	cemu_assert_debug(regIndex < 32);
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR0_NEW + regIndex * 2 + (selectPS1 ? 1 : 0), IMLRegFormat::F64);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + (selectPS1 ? 1 : 0), IMLRegFormat::F64);
 }
 
 /*
@@ -66,12 +66,12 @@ bool PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext_t* ppcImlGenContext,
 	if (isDouble)
 	{
 		// LFD/LFDU
-		ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister, imm, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister, imm, PPCREC_FPR_LD_MODE_DOUBLE, true);
 	}
 	else
 	{
 		// LFS/LFSU
-		ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister, imm, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister, imm, PPCREC_FPR_LD_MODE_SINGLE, true);
 		if( ppcImlGenContext->LSQE )
 		{
 			DefinePS1(fpPs1, frD);
@@ -99,16 +99,16 @@ bool PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext_t* ppcImlGenCont
 	if (isDouble)
 	{
 		if (withUpdate)
-			ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister1, 0, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
+			ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister1, 0, PPCREC_FPR_LD_MODE_DOUBLE, true);
 		else
-			ppcImlGenContext->emitInst().make_fpr_r_memory_indexed(fpPs0, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
+			ppcImlGenContext->emitInst().make_fpr_r_memory_indexed(fpPs0, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_DOUBLE, true);
 	}
 	else
 	{
 		if (withUpdate)
-			ppcImlGenContext->emitInst().make_fpr_r_memory( fpPs0, gprRegister1, 0, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+			ppcImlGenContext->emitInst().make_fpr_r_memory( fpPs0, gprRegister1, 0, PPCREC_FPR_LD_MODE_SINGLE, true);
 		else
-			ppcImlGenContext->emitInst().make_fpr_r_memory_indexed( fpPs0, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+			ppcImlGenContext->emitInst().make_fpr_r_memory_indexed( fpPs0, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_SINGLE, true);
 		if( ppcImlGenContext->LSQE )
 		{
 			DefinePS1(fpPs1, frD);
@@ -131,9 +131,9 @@ bool PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext_t* ppcImlGenCont
 		imm = 0;
 	}
 	if (isDouble)
-		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister, imm, PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister, imm, PPCREC_FPR_ST_MODE_DOUBLE, true);
 	else
-		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister, imm, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister, imm, PPCREC_FPR_ST_MODE_SINGLE, true);
 	return true;
 }
 
@@ -154,7 +154,7 @@ bool PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext_t* ppcImlGen
 		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, gprRegister1, gprRegister1, gprRegister2);
 	}
 	DefinePS0(fpPs0, frS);
-	auto mode = isDouble ? PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0 : PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0;
+	auto mode = isDouble ? PPCREC_FPR_ST_MODE_DOUBLE : PPCREC_FPR_ST_MODE_SINGLE;
 	if( ppcImlGenContext->LSQE )
 	{
 		if (hasUpdate)
@@ -800,10 +800,10 @@ void PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext_t* ppcImlGenContext, E
 {
 	if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_F32)
 	{
-		ppcImlGenContext->emitInst().make_fpr_r_memory(fprDPS0, gprA, imm, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_r_memory(fprDPS0, gprA, imm, PPCREC_FPR_LD_MODE_SINGLE, true);
 		if(readPS1)
 		{
-			ppcImlGenContext->emitInst().make_fpr_r_memory(fprDPS1, gprA, imm + 4, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+			ppcImlGenContext->emitInst().make_fpr_r_memory(fprDPS1, gprA, imm + 4, PPCREC_FPR_LD_MODE_SINGLE, true);
 		}
 	}
 	if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_U16 || loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S16)
@@ -900,10 +900,10 @@ void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, 
 	cemu_assert_debug(!storePS1 || fprDPS1.IsValid());
 	if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_F32)
 	{
-		ppcImlGenContext->emitInst().make_fpr_memory_r(fprDPS0, gprA, imm, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fprDPS0, gprA, imm, PPCREC_FPR_ST_MODE_SINGLE, true);
 		if(storePS1)
 		{
-			ppcImlGenContext->emitInst().make_fpr_memory_r(fprDPS1, gprA, imm + 4, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
+			ppcImlGenContext->emitInst().make_fpr_memory_r(fprDPS1, gprA, imm + 4, PPCREC_FPR_ST_MODE_SINGLE, true);
 		}
 	}
 	else if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_U16 || storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S16)

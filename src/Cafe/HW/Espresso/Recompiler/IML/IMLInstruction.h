@@ -251,8 +251,7 @@ enum // IMLName
 	PPCREC_NAME_TEMPORARY = 1000,
 	PPCREC_NAME_R0 = 2000,
 	PPCREC_NAME_SPR0 = 3000,
-	PPCREC_NAME_FPR0 = 4000,
-	PPCREC_NAME_FPR0_NEW = 4800, // similar to FPR0, but counting PS0 and PS1 separate. So fp3.ps1 is at offset 3 * 2 + 1
+	PPCREC_NAME_FPR_HALF = 4800, // Counts PS0 and PS1 separately. E.g. fp3.ps1 is at offset 3 * 2 + 1
 	PPCREC_NAME_TEMPORARY_FPR0 = 5000, // 0 to 7
 	PPCREC_NAME_XER_CA = 6000, // carry bit from XER
 	PPCREC_NAME_XER_OV = 6001, // overflow bit from XER
@@ -268,12 +267,12 @@ enum // IMLName
 enum
 {
 	// fpr load
-	PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0,
-	PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0,
+	PPCREC_FPR_LD_MODE_SINGLE,
+	PPCREC_FPR_LD_MODE_DOUBLE,
 
 	// fpr store
-	PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, // store 1 single precision float from ps0
-	PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, // store 1 double precision float from ps0
+	PPCREC_FPR_ST_MODE_SINGLE,
+	PPCREC_FPR_ST_MODE_DOUBLE,
 
 	PPCREC_FPR_ST_MODE_UI32_FROM_PS0, // store raw low-32bit of PS0
 };

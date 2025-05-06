@@ -229,11 +229,11 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		// determine partially written result
 		switch (op_storeLoad.mode)
 		{
-		case PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0:
+		case PPCREC_FPR_LD_MODE_DOUBLE:
 			// PS1 remains the same
 			registersUsed->readGPR2 = op_storeLoad.registerData;
 			break;
-		case PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0:
+		case PPCREC_FPR_LD_MODE_SINGLE:
 			break;
 		default:
 			cemu_assert_unimplemented();
@@ -251,11 +251,11 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 		// determine partially written result
 		switch (op_storeLoad.mode)
 		{
-		case PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0:
+		case PPCREC_FPR_LD_MODE_DOUBLE:
 			// PS1 remains the same
 			registersUsed->readGPR3 = op_storeLoad.registerData;
 			break;
-		case PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0:
+		case PPCREC_FPR_LD_MODE_SINGLE:
 			break;
 		default:
 			cemu_assert_unimplemented();

@@ -42,7 +42,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 		realRegisterMem2 = _regI32(imlInstruction->op_storeLoad.registerMem2);
 	uint8 mode = imlInstruction->op_storeLoad.mode;
 
-	if( mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0 )
+	if( mode == PPCREC_FPR_LD_MODE_SINGLE )
 	{
 		// load byte swapped single into temporary FPR
 		if( indexed )
@@ -74,7 +74,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 			x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, realRegisterXMM, realRegisterXMM);
 		}
 	}
-	else if( mode == PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0 )
+	else if( mode == PPCREC_FPR_LD_MODE_DOUBLE )
 	{
 		if( g_CPUFeatures.x86.avx )
 		{
@@ -149,7 +149,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 	if( indexed )
 		realRegisterMem2 = _regI32(imlInstruction->op_storeLoad.registerMem2);
 	uint8 mode = imlInstruction->op_storeLoad.mode;
-	if( mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0 )
+	if( mode == PPCREC_FPR_ST_MODE_SINGLE )
 	{
 		if (imlInstruction->op_storeLoad.flags2.notExpanded)
 		{
@@ -178,7 +178,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
 	}
-	else if( mode == PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0 )
+	else if( mode == PPCREC_FPR_ST_MODE_DOUBLE )
 	{
 		if( indexed )
 		{
