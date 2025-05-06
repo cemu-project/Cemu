@@ -544,7 +544,6 @@ else()
 endif()
 
 target_link_libraries(CemuCafe PRIVATE
-	CemuAsm
 	CemuAudio
 	CemuCommon
 	CemuComponents

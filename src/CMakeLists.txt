@@ -49,7 +49,6 @@ add_subdirectory(audio)
 add_subdirectory(util)
 add_subdirectory(imgui)
 add_subdirectory(resource)
-add_subdirectory(asm)
 
 add_executable(CemuBin
 	main.cpp
