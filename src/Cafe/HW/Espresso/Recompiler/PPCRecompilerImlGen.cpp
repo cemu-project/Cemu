@@ -1125,15 +1125,15 @@ bool PPCRecompilerImlGen_SRAW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 	// load masked shift factor into temporary register
 	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regTmpShiftAmount, regB, 0x3F);
-	ppcImlGenContext->emitInst().make_compare_s32(regTmpShiftAmount, 32, regTmpCondBool, IMLCondition::UNSIGNED_GT);
+	ppcImlGenContext->emitInst().make_compare_s32(regTmpShiftAmount, 31, regTmpCondBool, IMLCondition::UNSIGNED_GT);
 	ppcImlGenContext->emitInst().make_conditional_jump(regTmpCondBool, true);
 
 	PPCIMLGen_CreateSegmentBranchedPath(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock,
 		[&](ppcImlGenContext_t& genCtx)
 		{
-			/* branch taken */
-			genCtx.emitInst().make_r_r_r(PPCREC_IML_OP_RIGHT_SHIFT_S, regA, regS, regTmpShiftAmount);
-			genCtx.emitInst().make_compare_s32(regA, 0, regCarry, IMLCondition::NEQ); // if the sign bit is still set it also means it was shifted out and we can set carry
+			/* branch taken, shift size 32 or above */
+			genCtx.emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_S, regA, regS, 31); // shift the sign bit into all the bits
+			genCtx.emitInst().make_compare_s32(regA, 0, regCarry, IMLCondition::NEQ);
 		},
 		[&](ppcImlGenContext_t& genCtx) 
 		{
@@ -1148,6 +1148,8 @@ bool PPCRecompilerImlGen_SRAW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 			genCtx.emitInst().make_r_r_r(PPCREC_IML_OP_RIGHT_SHIFT_S, regA, regS, regTmpShiftAmount);
 		}
 	);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 	return true;
 }
 
