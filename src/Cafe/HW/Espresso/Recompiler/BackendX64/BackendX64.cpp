@@ -609,7 +609,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	}
 	else
 	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
+		cemuLog_logDebug(LogType::Force, "PPCRecompilerX64Gen_imlInstruction_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
 		return false;
 	}
 	return true;
@@ -635,7 +635,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else
 	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_s32(): Unsupported operation 0x%x\n", imlInstruction->operation);
+		cemuLog_logDebug(LogType::Force, "PPCRecompilerX64Gen_imlInstruction_r_s32(): Unsupported operation 0x%x\n", imlInstruction->operation);
 		return false;
 	}
 	return true;
@@ -894,7 +894,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else
 	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
+		cemuLog_logDebug(LogType::Force, "PPCRecompilerX64Gen_imlInstruction_r_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
 		return false;
 	}
 	return true;

@@ -12,9 +12,7 @@ IMLReg _GetRegCR(ppcImlGenContext_t* ppcImlGenContext, uint8 crReg, uint8 crBit)
 
 #define DefinePS0(name, regIndex) IMLReg name = _GetFPRRegPS0(ppcImlGenContext, regIndex);
 #define DefinePS1(name, regIndex) IMLReg name = _GetFPRRegPS1(ppcImlGenContext, regIndex);
-
 #define DefinePSX(name, regIndex, isPS1) IMLReg name = isPS1 ? _GetFPRRegPS1(ppcImlGenContext, regIndex) : _GetFPRRegPS0(ppcImlGenContext, regIndex);
-
 #define DefineTempFPR(name, index) IMLReg name = _GetFPRTemp(ppcImlGenContext, index);
 
 IMLReg _GetFPRRegPS0(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex)
@@ -47,17 +45,6 @@ IMLReg _GetFPRReg(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex, bool se
 void PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
 {
 	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegister);
-	if( flushDenormals )
-		assert_dbg();
-}
-
-/*
- * Rounds pair of doubles to single precision (if single precision accuracy is emulated)
- */
-void PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
-{
-	cemu_assert_suspicious(); // should not be used any longer
-	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_PAIR, fprRegister);
 	if( flushDenormals )
 		assert_dbg();
 }
@@ -250,7 +237,7 @@ bool PPCRecompilerImlGen_FMUL(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	DefinePS0(fprD, frD);
 	// move frA to frD (if different register)
 	if( frD != frA )
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frB
 	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprD, fprC);
 	return true;
@@ -268,7 +255,7 @@ bool PPCRecompilerImlGen_FDIV(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	{
 		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprTemp, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprTemp, fprA);
 		// divide bottom double of temporary register by bottom double of frB
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprTemp, fprB);
 		// move result to frD
@@ -296,7 +283,7 @@ bool PPCRecompilerImlGen_FMADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprTemp, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprTemp, fprA);
 		// multiply bottom double of temporary register with bottom double of frC
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprTemp, fprC);
 		// add result to frD
@@ -313,7 +300,7 @@ bool PPCRecompilerImlGen_FMADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	}
 	// move frA to frD (if different register)
 	if( frD != frA )
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprA); // always copy ps0 and ps1
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprA); // always copy ps0 and ps1
 	// multiply bottom double of frD with bottom double of frC
 	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprD, fprC);
 	// add frB
@@ -333,10 +320,10 @@ bool PPCRecompilerImlGen_FMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		// if frB is already in frD we need a temporary register to store the product of frA*frC
 		DefineTempFPR(fprTemp, 0);
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprTemp, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprTemp, fprA);
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprTemp, fprC);
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB_BOTTOM, fprTemp, fprB);
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprTemp);
 		return false;
 	}
 	if( frD == frC )
@@ -348,7 +335,7 @@ bool PPCRecompilerImlGen_FMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	}
 	// move frA to frD
 	if( frD != frA )
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frC
 	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprD, fprC);
 	// sub frB
@@ -423,7 +410,7 @@ bool PPCRecompilerImlGen_FMULS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	DefinePS0(fprD, frD);
 	// move frA to frD (if different register)
 	if( frD != frA )
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frB
 	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprD, fprC);
 	// adjust accuracy
@@ -445,7 +432,7 @@ bool PPCRecompilerImlGen_FDIVS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	{
 		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprTemp, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprTemp, fprA);
 		// divide bottom double of temporary register by bottom double of frB
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprTemp, fprB);
 		// move result to frD
@@ -457,7 +444,7 @@ bool PPCRecompilerImlGen_FDIVS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	}
 	// move frA to frD (if different register)
 	if( frD != frA )
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprA);
 	// subtract bottom double of frB from bottom double of frD
 	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprD, fprB);
 	// adjust accuracy
@@ -483,7 +470,7 @@ bool PPCRecompilerImlGen_FADDS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	DefinePS0(fprD, frD);
 	// move frA to frD (if different register)
 	if( frD != frA )
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_ASSIGN, fprD, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprD, fprA);
 	// add bottom double of frD and bottom double of frB
 	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD_BOTTOM, fprD, fprB);
 	// adjust accuracy

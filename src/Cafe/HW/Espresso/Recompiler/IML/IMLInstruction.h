@@ -126,46 +126,22 @@ enum
 	PPCREC_IML_OP_SRW,				// SRW (shift based on register by up to 63 bits)
 	PPCREC_IML_OP_CNTLZW,
 	// FPU
+	PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM,
+	PPCREC_IML_OP_FPR_LOAD_ONE, // load constant 1.0 into register
 	PPCREC_IML_OP_FPR_ADD_BOTTOM,
-	PPCREC_IML_OP_FPR_ADD_PAIR,
-	PPCREC_IML_OP_FPR_SUB_PAIR,
 	PPCREC_IML_OP_FPR_SUB_BOTTOM,
 	PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM,
-	PPCREC_IML_OP_FPR_MULTIPLY_PAIR,
 	PPCREC_IML_OP_FPR_DIVIDE_BOTTOM,
-	PPCREC_IML_OP_FPR_DIVIDE_PAIR,
-	PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP,
-	PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP,
-	PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM,
-	PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_TOP, // leave bottom of destination untouched
-	PPCREC_IML_OP_FPR_COPY_TOP_TO_TOP, // leave bottom of destination untouched
-	PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM, // leave top of destination untouched
-	PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED,
 	PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, // expand bottom f32 to f64 in bottom and top half
-	PPCREC_IML_OP_FPR_FCMPO_BOTTOM, // deprecated
-	PPCREC_IML_OP_FPR_FCMPU_BOTTOM, // deprecated
-	PPCREC_IML_OP_FPR_FCMPU_TOP, // deprecated
 	PPCREC_IML_OP_FPR_NEGATE_BOTTOM,
-	PPCREC_IML_OP_FPR_NEGATE_PAIR,
 	PPCREC_IML_OP_FPR_ABS_BOTTOM, // abs(fp0)
-	PPCREC_IML_OP_FPR_ABS_PAIR,
-	PPCREC_IML_OP_FPR_FRES_PAIR, // 1.0/fp approx (Espresso accuracy)
-	PPCREC_IML_OP_FPR_FRSQRTE_PAIR, // 1.0/sqrt(fp) approx (Espresso accuracy)
 	PPCREC_IML_OP_FPR_NEGATIVE_ABS_BOTTOM, // -abs(fp0)
 	PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, // round 64bit double to 64bit double with 32bit float precision (in bottom half of xmm register)
-	PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_PAIR, // round two 64bit doubles to 64bit double with 32bit float precision
-	PPCREC_IML_OP_FPR_BOTTOM_RECIPROCAL_SQRT,
 	PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ,
 	PPCREC_IML_OP_FPR_SELECT_BOTTOM, // selectively copy bottom value from operand B or C based on value in operand A
-	PPCREC_IML_OP_FPR_SELECT_PAIR, // selectively copy top/bottom from operand B or C based on value in top/bottom of operand A
 	// Conversion (FPR_R_R)
 	PPCREC_IML_OP_FPR_INT_TO_FLOAT, // convert integer value in gpr to floating point value in fpr
 	PPCREC_IML_OP_FPR_FLOAT_TO_INT, // convert floating point value in fpr to integer value in gpr
-	// PS
-	PPCREC_IML_OP_FPR_SUM0,
-	PPCREC_IML_OP_FPR_SUM1,
-
-	PPCREC_IML_OP_FPR_LOAD_ONE, // load constant 1.0 into register
 
 	// R_R_R only
 
@@ -297,38 +273,13 @@ enum
 {
 	// fpr load
 	PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0,
-	PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1,
 	PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1,
-	PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0_PS1,
-	PPCREC_FPR_LD_MODE_PSQ_S16_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_S16_PS0_PS1,
-	PPCREC_FPR_LD_MODE_PSQ_U16_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_U16_PS0_PS1,
-	PPCREC_FPR_LD_MODE_PSQ_S8_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_S8_PS0_PS1,
-	PPCREC_FPR_LD_MODE_PSQ_U8_PS0,
-	PPCREC_FPR_LD_MODE_PSQ_U8_PS0_PS1,
+
 	// fpr store
 	PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, // store 1 single precision float from ps0
 	PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, // store 1 double precision float from ps0
 
 	PPCREC_FPR_ST_MODE_UI32_FROM_PS0, // store raw low-32bit of PS0
-
-	PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1,
-	PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0,
-	PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0_PS1,
-	PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0,
-	PPCREC_FPR_ST_MODE_PSQ_S8_PS0,
-	PPCREC_FPR_ST_MODE_PSQ_S8_PS0_PS1,
-	PPCREC_FPR_ST_MODE_PSQ_U8_PS0,
-	PPCREC_FPR_ST_MODE_PSQ_U8_PS0_PS1,
-	PPCREC_FPR_ST_MODE_PSQ_U16_PS0,
-	PPCREC_FPR_ST_MODE_PSQ_U16_PS0_PS1,
-	PPCREC_FPR_ST_MODE_PSQ_S16_PS0,
-	PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1,
 };
 
 struct IMLUsedRegisters
@@ -468,7 +419,6 @@ struct IMLInstruction
 			IMLReg registerData;
 			IMLReg registerMem;
 			IMLReg registerMem2;
-			IMLReg registerGQR;
 			uint8 copyWidth;
 			struct
 			{
@@ -476,7 +426,7 @@ struct IMLInstruction
 				bool signExtend : 1;
 				bool notExpanded : 1; // for floats
 			}flags2;
-			uint8 mode; // transfer mode (copy width, ps0/ps1 behavior)
+			uint8 mode; // transfer mode
 			sint32 immS32;
 		}op_storeLoad;
 		struct
@@ -760,58 +710,48 @@ struct IMLInstruction
 	// FPR
 
 	// load from memory
-	void make_fpr_r_memory(IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	void make_fpr_r_memory(IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian)
 	{
-		if (registerGQR.IsValid())
-		{
-			if ( mode == 0)
-				__debugbreak();
-		}
-
 		this->type = PPCREC_IML_TYPE_FPR_LOAD;
 		this->operation = 0;
 		this->op_storeLoad.registerData = registerDestination;
 		this->op_storeLoad.registerMem = registerMemory;
-		this->op_storeLoad.registerGQR = registerGQR;
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.mode = mode;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
 	}
 
-	void make_fpr_r_memory_indexed(IMLReg registerDestination, IMLReg registerMemory1, IMLReg registerMemory2, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	void make_fpr_r_memory_indexed(IMLReg registerDestination, IMLReg registerMemory1, IMLReg registerMemory2, uint32 mode, bool switchEndian)
 	{
 		this->type = PPCREC_IML_TYPE_FPR_LOAD_INDEXED;
 		this->operation = 0;
 		this->op_storeLoad.registerData = registerDestination;
 		this->op_storeLoad.registerMem = registerMemory1;
 		this->op_storeLoad.registerMem2 = registerMemory2;
-		this->op_storeLoad.registerGQR = registerGQR;
 		this->op_storeLoad.immS32 = 0;
 		this->op_storeLoad.mode = mode;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
 	}
 
 	// store to memory
-	void make_fpr_memory_r(IMLReg registerSource, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	void make_fpr_memory_r(IMLReg registerSource, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian)
 	{
 		this->type = PPCREC_IML_TYPE_FPR_STORE;
 		this->operation = 0;
 		this->op_storeLoad.registerData = registerSource;
 		this->op_storeLoad.registerMem = registerMemory;
-		this->op_storeLoad.registerGQR = registerGQR;
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.mode = mode;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
 	}
 
-	void make_fpr_memory_r_indexed(IMLReg registerSource, IMLReg registerMemory1, IMLReg registerMemory2, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+	void make_fpr_memory_r_indexed(IMLReg registerSource, IMLReg registerMemory1, IMLReg registerMemory2, sint32 immS32, uint32 mode, bool switchEndian)
 	{
 		this->type = PPCREC_IML_TYPE_FPR_STORE_INDEXED;
 		this->operation = 0;
 		this->op_storeLoad.registerData = registerSource;
 		this->op_storeLoad.registerMem = registerMemory1;
 		this->op_storeLoad.registerMem2 = registerMemory2;
-		this->op_storeLoad.registerGQR = registerGQR;
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.mode = mode;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
