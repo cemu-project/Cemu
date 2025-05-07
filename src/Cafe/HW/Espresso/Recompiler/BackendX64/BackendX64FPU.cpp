@@ -241,10 +241,9 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 		x64Gen_cvtsi2sd_xmmReg_xmmReg(x64GenContext, regFpr, regGpr);
 		return;
 	}
-	// all other cases operate on two floating-point registers
+
 	uint32 regR = _regF64(imlInstruction->op_fpr_r_r.regR);
 	uint32 regA = _regF64(imlInstruction->op_fpr_r_r.regA);
-
 	if( imlInstruction->operation == PPCREC_IML_OP_FPR_ASSIGN )
 	{
 		x64Gen_movsd_xmmReg_xmmReg(x64GenContext, regR, regA);
