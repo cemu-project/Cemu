@@ -34,8 +34,8 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 		if (imlInstruction->IsSuffixInstruction())
 			break;
 		// check if FPR is stored
-		if ((imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0) ||
-			(imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0))
+		if ((imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE) ||
+			(imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE))
 		{
 			if (imlInstruction->op_storeLoad.registerData.GetRegID() == fprIndex)
 			{
@@ -73,7 +73,7 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 	{
 		// insert expand instruction after store
 		IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, lastStore);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, newExpand, PPCREC_IML_OP_FPR_EXPAND_BOTTOM32_TO_BOTTOM64_AND_TOP64, _FPRRegFromID(fprIndex));
+		newExpand->make_fpr_r(PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, _FPRRegFromID(fprIndex));
 	}
 }
 
@@ -90,21 +90,23 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 */
 void IMLOptimizer_OptimizeDirectFloatCopies(ppcImlGenContext_t* ppcImlGenContext)
 {
-	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-	{
-		for (sint32 i = 0; i < segIt->imlList.size(); i++)
-		{
-			IMLInstruction* imlInstruction = segIt->imlList.data() + i;
-			if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
-			{
-				PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
-			}
-			else if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
-			{
-				PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
-			}
-		}
-	}
+	cemuLog_logDebugOnce(LogType::Force, "IMLOptimizer_OptimizeDirectFloatCopies(): Currently disabled\n");
+	return;
+	// for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+	// {
+	// 	for (sint32 i = 0; i < segIt->imlList.size(); i++)
+	// 	{
+	// 		IMLInstruction* imlInstruction = segIt->imlList.data() + i;
+	// 		if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
+	// 		{
+	// 			PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
+	// 		}
+	// 		else if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
+	// 		{
+	// 			PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
+	// 		}
+	// 	}
+	// }
 }
 
 void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 imlIndexLoad, IMLReg gprReg)
@@ -207,131 +209,20 @@ sint32 _getGQRIndexFromRegister(ppcImlGenContext_t* ppcImlGenContext, IMLReg gqr
 
 bool PPCRecompiler_isUGQRValueKnown(ppcImlGenContext_t* ppcImlGenContext, sint32 gqrIndex, uint32& gqrValue)
 {
-	// UGQR 2 to 7 are initialized by the OS and we assume that games won't ever permanently touch those
-	// todo - hack - replace with more accurate solution
-	if (gqrIndex == 2)
-		gqrValue = 0x00040004;
-	else if (gqrIndex == 3)
-		gqrValue = 0x00050005;
-	else if (gqrIndex == 4)
-		gqrValue = 0x00060006;
-	else if (gqrIndex == 5)
-		gqrValue = 0x00070007;
+	// the default configuration is:
+	// UGQR0 = 0x00000000
+	// UGQR2 = 0x00040004
+	// UGQR3 = 0x00050005
+	// UGQR4 = 0x00060006
+	// UGQR5 = 0x00070007
+	// but games are free to modify UGQR2 to UGQR7 it seems.
+	// no game modifies UGQR0 so it's safe enough to optimize for the default value
+	// Ideally we would do some kind of runtime tracking and second recompilation to create fast paths for PSQ_L/PSQ_ST but thats todo
+	if (gqrIndex == 0)
+		gqrValue = 0x00000000;
 	else
 		return false;
 	return true;
-}
-
-/*
- * If value of GQR can be predicted for a given PSQ load or store instruction then replace it with an optimized version
- */
-void PPCRecompiler_optimizePSQLoadAndStore(ppcImlGenContext_t* ppcImlGenContext)
-{
-	for (IMLSegment* segIt : ppcImlGenContext->segmentList2) 
-	{
-		for(IMLInstruction& instIt : segIt->imlList)
-		{
-			if (instIt.type == PPCREC_IML_TYPE_FPR_LOAD || instIt.type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED)
-			{
-				if(instIt.op_storeLoad.mode != PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0 &&
-					instIt.op_storeLoad.mode != PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1 )
-					continue;
-				// get GQR value
-				cemu_assert_debug(instIt.op_storeLoad.registerGQR.IsValid());
-				sint32 gqrIndex = _getGQRIndexFromRegister(ppcImlGenContext, instIt.op_storeLoad.registerGQR);
-				cemu_assert(gqrIndex >= 0);
-				if (ppcImlGenContext->tracking.modifiesGQR[gqrIndex])
-					continue;
-				uint32 gqrValue;
-				if (!PPCRecompiler_isUGQRValueKnown(ppcImlGenContext, gqrIndex, gqrValue))
-					continue;
-
-				uint32 formatType = (gqrValue >> 16) & 7;
-				uint32 scale = (gqrValue >> 24) & 0x3F;
-				if (scale != 0)
-					continue; // only generic handler supports scale
-				if (instIt.op_storeLoad.mode == PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0)
-				{
-					if (formatType == 0)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0;
-					else if (formatType == 4)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_U8_PS0;
-					else if (formatType == 5)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_U16_PS0;
-					else if (formatType == 6)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S8_PS0;
-					else if (formatType == 7)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S16_PS0;
-					if (instIt.op_storeLoad.mode != PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0)
-						instIt.op_storeLoad.registerGQR = IMLREG_INVALID;
-				}
-				else if (instIt.op_storeLoad.mode == PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1)
-				{
-					if (formatType == 0)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_FLOAT_PS0_PS1;
-					else if (formatType == 4)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_U8_PS0_PS1;
-					else if (formatType == 5)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_U16_PS0_PS1;
-					else if (formatType == 6)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S8_PS0_PS1;
-					else if (formatType == 7)
-						instIt.op_storeLoad.mode = PPCREC_FPR_LD_MODE_PSQ_S16_PS0_PS1;
-					if (instIt.op_storeLoad.mode != PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1)
-						instIt.op_storeLoad.registerGQR = IMLREG_INVALID;
-				}
-			}
-			else if (instIt.type == PPCREC_IML_TYPE_FPR_STORE || instIt.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
-			{
-				if(instIt.op_storeLoad.mode != PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0 &&
-					instIt.op_storeLoad.mode != PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1)
-					continue;
-				// get GQR value
-				cemu_assert_debug(instIt.op_storeLoad.registerGQR.IsValid());
-				sint32 gqrIndex = _getGQRIndexFromRegister(ppcImlGenContext, instIt.op_storeLoad.registerGQR);
-				cemu_assert(gqrIndex >= 0 && gqrIndex < 8);
-				if (ppcImlGenContext->tracking.modifiesGQR[gqrIndex])
-					continue;
-				uint32 gqrValue;
-				if(!PPCRecompiler_isUGQRValueKnown(ppcImlGenContext, gqrIndex, gqrValue))
-					continue;
-				uint32 formatType = (gqrValue >> 16) & 7;
-				uint32 scale = (gqrValue >> 24) & 0x3F;
-				if (scale != 0)
-					continue; // only generic handler supports scale
-				if (instIt.op_storeLoad.mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0)
-				{
-					if (formatType == 0)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0;
-					else if (formatType == 4)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_U8_PS0;
-					else if (formatType == 5)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_U16_PS0;
-					else if (formatType == 6)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S8_PS0;
-					else if (formatType == 7)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S16_PS0;
-					if (instIt.op_storeLoad.mode != PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0)
-						instIt.op_storeLoad.registerGQR = IMLREG_INVALID;
-				}
-				else if (instIt.op_storeLoad.mode == PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1)
-				{
-					if (formatType == 0)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_FLOAT_PS0_PS1;
-					else if (formatType == 4)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_U8_PS0_PS1;
-					else if (formatType == 5)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_U16_PS0_PS1;
-					else if (formatType == 6)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S8_PS0_PS1;
-					else if (formatType == 7)
-						instIt.op_storeLoad.mode = PPCREC_FPR_ST_MODE_PSQ_S16_PS0_PS1;
-					if (instIt.op_storeLoad.mode != PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1)
-						instIt.op_storeLoad.registerGQR = IMLREG_INVALID;
-				}
-			}
-		}
-	}
 }
 
 // analyses register dependencies across the entire function

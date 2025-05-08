@@ -2093,7 +2093,10 @@ void IMLRA_GenerateSegmentMoveInstructions2(IMLRegisterAllocatorContext& ctx, IM
 	cemu_assert_debug(hadSuffixInstruction == imlSegment->HasSuffixInstruction());
 	if (imlSegment->HasSuffixInstruction())
 	{
-		cemu_assert_debug(!currentRange); // currentRange should be NULL?
+		if (currentRange)
+		{
+			cemuLog_logDebug(LogType::Force, "[DEBUG] GenerateSegmentMoveInstructions() hit suffix path with non-null currentRange. Segment: {:08x}", imlSegment->ppcAddress);
+		}
 		for (auto& remainingRange : activeRanges)
 		{
 			cemu_assert_debug(!remainingRange->hasStore);

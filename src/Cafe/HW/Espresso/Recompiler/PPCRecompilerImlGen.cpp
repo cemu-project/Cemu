@@ -87,8 +87,7 @@ void PPCRecompilerImlGen_generateNewInstruction_memory_r_indexed(ppcImlGenContex
 }
 
 // create and fill two segments (branch taken and branch not taken) as a follow up to the current segment and then merge flow afterwards
-template<typename F1n, typename F2n>
-void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, F1n genSegmentBranchTaken, F2n genSegmentBranchNotTaken)
+void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, const std::function<void(ppcImlGenContext_t&)>& genSegmentBranchTaken, const std::function<void(ppcImlGenContext_t&)>& genSegmentBranchNotTaken)
 {
 	IMLSegment* currentWriteSegment = basicBlockInfo.GetSegmentForInstructionAppend();
 
@@ -116,6 +115,122 @@ void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, P
 	// make merge segment the new write segment
 	ppcImlGenContext.currentOutputSegment = segMerge;
 	basicBlockInfo.appendSegment = segMerge;
+}
+
+void PPCIMLGen_CreateSegmentBranchedPath(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, const std::function<void(ppcImlGenContext_t&)>& genSegmentBranchNotTaken)
+{
+	IMLSegment* currentWriteSegment = basicBlockInfo.GetSegmentForInstructionAppend();
+
+	std::span<IMLSegment*> segments = ppcImlGenContext.InsertSegments(ppcImlGenContext.GetSegmentIndex(currentWriteSegment) + 1, 2);
+	IMLSegment* segBranchNotTaken = segments[0];
+	IMLSegment* segMerge = segments[1];
+
+	// link the segments
+	segMerge->SetLinkBranchTaken(currentWriteSegment->GetBranchTaken());
+	segMerge->SetLinkBranchNotTaken(currentWriteSegment->GetBranchNotTaken());
+	currentWriteSegment->SetLinkBranchTaken(segMerge);
+	currentWriteSegment->SetLinkBranchNotTaken(segBranchNotTaken);
+	segBranchNotTaken->SetLinkBranchNotTaken(segMerge);
+	// generate code for branch not taken segment
+	ppcImlGenContext.currentOutputSegment = segBranchNotTaken;
+	genSegmentBranchNotTaken(ppcImlGenContext);
+	cemu_assert_debug(ppcImlGenContext.currentOutputSegment == segBranchNotTaken);
+	// make merge segment the new write segment
+	ppcImlGenContext.currentOutputSegment = segMerge;
+	basicBlockInfo.appendSegment = segMerge;
+}
+
+IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index);
+
+IMLRedirectInstOutput::IMLRedirectInstOutput(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* outputSegment) : m_context(ppcImlGenContext)
+{
+	m_prevSegment = ppcImlGenContext->currentOutputSegment;
+	cemu_assert_debug(ppcImlGenContext->currentOutputSegment == ppcImlGenContext->currentBasicBlock->appendSegment);
+	if (outputSegment == ppcImlGenContext->currentOutputSegment)
+	{
+		m_prevSegment = nullptr;
+		return;
+	}
+	m_context->currentBasicBlock->appendSegment = outputSegment;
+	m_context->currentOutputSegment = outputSegment;
+}
+
+IMLRedirectInstOutput::~IMLRedirectInstOutput()
+{
+	if (m_prevSegment)
+	{
+		m_context->currentBasicBlock->appendSegment = m_prevSegment;
+		m_context->currentOutputSegment = m_prevSegment;
+	}
+}
+
+// compare values and branch to segment with same index in segmentsOut. The last segment doesn't actually have any comparison and just is the default case. Thus compareValues is one shorter than count
+void PPCIMLGen_CreateSegmentBranchedPathMultiple(ppcImlGenContext_t& ppcImlGenContext, PPCBasicBlockInfo& basicBlockInfo, IMLSegment** segmentsOut, IMLReg compareReg, sint32* compareValues, sint32 count, sint32 defaultCaseIndex)
+{
+	IMLSegment* currentWriteSegment = basicBlockInfo.GetSegmentForInstructionAppend();
+	cemu_assert_debug(!currentWriteSegment->HasSuffixInstruction()); // must not already have a suffix instruction
+
+	const sint32 numBranchSegments = count + 1;
+	const sint32 numCaseSegments = count;
+
+	std::span<IMLSegment*> segments = ppcImlGenContext.InsertSegments(ppcImlGenContext.GetSegmentIndex(currentWriteSegment) + 1, numBranchSegments - 1 + numCaseSegments + 1);
+	IMLSegment** extraBranchSegments = segments.data();
+	IMLSegment** caseSegments = segments.data() + numBranchSegments - 1;
+	IMLSegment* mergeSegment = segments[numBranchSegments - 1 + numCaseSegments];
+
+	// move links to the merge segment
+	mergeSegment->SetLinkBranchTaken(currentWriteSegment->GetBranchTaken());
+	mergeSegment->SetLinkBranchNotTaken(currentWriteSegment->GetBranchNotTaken());
+	currentWriteSegment->SetLinkBranchTaken(nullptr);
+	currentWriteSegment->SetLinkBranchNotTaken(nullptr);
+
+	for (sint32 i=0; i<numCaseSegments; i++)
+		segmentsOut[i] = caseSegments[i];
+
+	IMLReg tmpBoolReg = _GetRegTemporaryS8(&ppcImlGenContext, 2);
+
+	// the first branch segment is the original current write segment
+	auto GetBranchSegment = [&](sint32 index) {
+		if (index == 0)
+			return currentWriteSegment;
+		else
+			return extraBranchSegments[index - 1];
+	};
+	// link branch segments (taken: Link to case segment. NotTaken: Link to next branch segment. For the last one use a non-conditional jump)
+	for (sint32 i=0; i<numBranchSegments; i++)
+	{
+		IMLSegment* seg = GetBranchSegment(i);
+		if (i < numBranchSegments - 1)
+		{
+			cemu_assert_debug(i < numCaseSegments);
+			seg->SetLinkBranchTaken(caseSegments[i]);
+			seg->SetLinkBranchNotTaken(GetBranchSegment(i + 1));
+			seg->AppendInstruction()->make_compare_s32(compareReg, compareValues[i], tmpBoolReg, IMLCondition::EQ);
+			seg->AppendInstruction()->make_conditional_jump(tmpBoolReg, true);
+		}
+		else
+		{
+			cemu_assert_debug(defaultCaseIndex < numCaseSegments);
+			seg->SetLinkBranchTaken(caseSegments[defaultCaseIndex]);
+			seg->AppendInstruction()->make_jump();
+		}
+	}
+	// link case segments
+	for (sint32 i=0; i<numCaseSegments; i++)
+	{
+		IMLSegment* seg = caseSegments[i];
+		if (i < numCaseSegments - 1)
+		{
+			seg->SetLinkBranchTaken(mergeSegment);
+			// -> Jumps are added after the instructions
+		}
+		else
+		{
+			seg->SetLinkBranchTaken(mergeSegment);
+		}
+	}
+	ppcImlGenContext.currentOutputSegment = mergeSegment;
+	basicBlockInfo.appendSegment = mergeSegment;
 }
 
 IMLReg PPCRecompilerImlGen_LookupReg(ppcImlGenContext_t* ppcImlGenContext, IMLName mappedName, IMLRegFormat regFormat)
@@ -212,30 +327,12 @@ IMLReg _GetRegTemporary(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 	return PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + index);
 }
 
-// get throw-away register. Only valid for the scope of a single translated instruction
-// be careful to not collide with manually loaded temporary register
+// get throw-away register
+// be careful to not collide with other temporary register
 IMLReg _GetRegTemporaryS8(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 {
 	cemu_assert_debug(index < 4);
 	return PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + index);
-}
-
-/*
- * Loads a PPC fpr into any of the available IML FPU registers
- * If loadNew is false, it will check first if the fpr is already loaded into any IML register
- */
-IMLReg PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName, bool loadNew)
-{
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
-}
-
-/*
- * Checks if a PPC fpr register is already loaded into any IML register
- * If not, it will create a new undefined temporary IML FPU register and map the name (effectively overwriting the old ppc register)
- */
-IMLReg PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext_t* ppcImlGenContext, uint32 mappedName)
-{
-	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, mappedName, IMLRegFormat::F64);
 }
 
 bool PPCRecompiler_canInlineFunction(MPTR functionPtr, sint32* functionInstructionCount)
@@ -1050,15 +1147,15 @@ bool PPCRecompilerImlGen_SRAW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 
 	// load masked shift factor into temporary register
 	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, regTmpShiftAmount, regB, 0x3F);
-	ppcImlGenContext->emitInst().make_compare_s32(regTmpShiftAmount, 32, regTmpCondBool, IMLCondition::UNSIGNED_GT);
+	ppcImlGenContext->emitInst().make_compare_s32(regTmpShiftAmount, 31, regTmpCondBool, IMLCondition::UNSIGNED_GT);
 	ppcImlGenContext->emitInst().make_conditional_jump(regTmpCondBool, true);
 
 	PPCIMLGen_CreateSegmentBranchedPath(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock,
 		[&](ppcImlGenContext_t& genCtx)
 		{
-			/* branch taken */
-			genCtx.emitInst().make_r_r_r(PPCREC_IML_OP_RIGHT_SHIFT_S, regA, regS, regTmpShiftAmount);
-			genCtx.emitInst().make_compare_s32(regA, 0, regCarry, IMLCondition::NEQ); // if the sign bit is still set it also means it was shifted out and we can set carry
+			/* branch taken, shift size 32 or above */
+			genCtx.emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_S, regA, regS, 31); // shift the sign bit into all the bits
+			genCtx.emitInst().make_compare_s32(regA, 0, regCarry, IMLCondition::NEQ);
 		},
 		[&](ppcImlGenContext_t& genCtx) 
 		{
@@ -1073,6 +1170,8 @@ bool PPCRecompilerImlGen_SRAW(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 			genCtx.emitInst().make_r_r_r(PPCREC_IML_OP_RIGHT_SHIFT_S, regA, regS, regTmpShiftAmount);
 		}
 	);
+	if (opcode & PPC_OPC_RC)
+		PPCImlGen_UpdateCR0(ppcImlGenContext, regA);
 	return true;
 }
 
@@ -1909,23 +2008,23 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 12: // multiply scalar
-			if (PPCRecompilerImlGen_PS_MULS0(ppcImlGenContext, opcode) == false)
+		case 12: // PS_MULS0
+			if (PPCRecompilerImlGen_PS_MULSX(ppcImlGenContext, opcode, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 13: // multiply scalar
-			if (PPCRecompilerImlGen_PS_MULS1(ppcImlGenContext, opcode) == false)
+		case 13: // PS_MULS1
+			if (PPCRecompilerImlGen_PS_MULSX(ppcImlGenContext, opcode, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 14: // multiply add scalar
-			if (PPCRecompilerImlGen_PS_MADDS0(ppcImlGenContext, opcode) == false)
+		case 14: // PS_MADDS0
+			if (PPCRecompilerImlGen_PS_MADDSX(ppcImlGenContext, opcode, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 15: // multiply add scalar
-			if (PPCRecompilerImlGen_PS_MADDS1(ppcImlGenContext, opcode) == false)
+		case 15: // PS_MADDS1
+			if (PPCRecompilerImlGen_PS_MADDSX(ppcImlGenContext, opcode, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -1992,22 +2091,22 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 28: // multiply sub paired
-			if (PPCRecompilerImlGen_PS_MSUB(ppcImlGenContext, opcode) == false)
+		case 28: // PS_MSUB
+			if (PPCRecompilerImlGen_PS_MSUB(ppcImlGenContext, opcode, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 29: // multiply add paired
+		case 29: // PS_MADD
 			if (PPCRecompilerImlGen_PS_MADD(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 30: // negative multiply sub paired
-			if (PPCRecompilerImlGen_PS_NMSUB(ppcImlGenContext, opcode) == false)
+		case 30: // PS_NMSUB
+			if (PPCRecompilerImlGen_PS_MSUB(ppcImlGenContext, opcode, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 31: // negative multiply add paired
+		case 31: // PS_NMADD
 			if (PPCRecompilerImlGen_PS_NMADD(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
@@ -2339,8 +2438,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		case 534: // LWBRX
 			PPCRecompilerImlGen_LOAD_INDEXED(ppcImlGenContext, opcode, 32, false, false, false);
 			break;
-		case 535:
-			if (PPCRecompilerImlGen_LFSX(ppcImlGenContext, opcode) == false)
+		case 535: // LFSX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, false, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2348,8 +2447,8 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (PPCRecompilerImlGen_SRW(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 567:
-			if (PPCRecompilerImlGen_LFSUX(ppcImlGenContext, opcode) == false)
+		case 567: // LFSUX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, true, false) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2360,13 +2459,13 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		case 598:
 			PPCRecompilerImlGen_SYNC(ppcImlGenContext, opcode);
 			break;
-		case 599:
-			if (PPCRecompilerImlGen_LFDX(ppcImlGenContext, opcode) == false)
+		case 599: // LFDX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, false, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
-		case 631:
-			if (PPCRecompilerImlGen_LFDUX(ppcImlGenContext, opcode) == false)
+		case 631: // LFDUX
+			if (PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext, opcode, true, true) == false)
 				unsupportedInstructionFound = true;
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
@@ -2374,20 +2473,24 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 			if (!PPCRecompilerImlGen_STORE_INDEXED(ppcImlGenContext, opcode, 32, false, false))
 				unsupportedInstructionFound = true;
 			break;
-		case 663:
-			if (PPCRecompilerImlGen_STFSX(ppcImlGenContext, opcode) == false)
+		case 663: // STFSX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, false, false) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 695:
-			if (PPCRecompilerImlGen_STFSUX(ppcImlGenContext, opcode) == false)
+		case 695: // STFSUX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, true, false) == false)
 				unsupportedInstructionFound = true;
 			break;
 		case 725:
 			if (PPCRecompilerImlGen_STSWI(ppcImlGenContext, opcode) == false)
 				unsupportedInstructionFound = true;
 			break;
-		case 727:
-			if (PPCRecompilerImlGen_STFDX(ppcImlGenContext, opcode) == false)
+		case 727: // STFDX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, false, true) == false)
+				unsupportedInstructionFound = true;
+			break;
+		case 759: // STFDUX
+			if (PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext, opcode, true, true) == false)
 				unsupportedInstructionFound = true;
 			break;
 		case 790: // LHBRX
@@ -2488,53 +2591,53 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 	case 47:
 		PPCRecompilerImlGen_STMW(ppcImlGenContext, opcode);
 		break;
-	case 48:
-		if (PPCRecompilerImlGen_LFS(ppcImlGenContext, opcode) == false)
+	case 48: // LFS
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, false, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 49:
-		if (PPCRecompilerImlGen_LFSU(ppcImlGenContext, opcode) == false)
+	case 49: // LFSU
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, true, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 50:
-		if (PPCRecompilerImlGen_LFD(ppcImlGenContext, opcode) == false)
+	case 50: // LFD
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, false, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 51:
-		if (PPCRecompilerImlGen_LFDU(ppcImlGenContext, opcode) == false)
+	case 51: // LFDU
+		if (PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext, opcode, true, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 52:
-		if (PPCRecompilerImlGen_STFS(ppcImlGenContext, opcode) == false)
+	case 52: // STFS
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, false, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 53:
-		if (PPCRecompilerImlGen_STFSU(ppcImlGenContext, opcode) == false)
+	case 53: // STFSU
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, true, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 54:
-		if (PPCRecompilerImlGen_STFD(ppcImlGenContext, opcode) == false)
+	case 54: // STFD
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, false, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
-	case 55:
-		if (PPCRecompilerImlGen_STFDU(ppcImlGenContext, opcode) == false)
+	case 55: // STFDU
+		if (PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext, opcode, true, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
 	case 56:
-		if (PPCRecompilerImlGen_PSQ_L(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_L(ppcImlGenContext, opcode, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
 	case 57:
-		if (PPCRecompilerImlGen_PSQ_LU(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_L(ppcImlGenContext, opcode, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
@@ -2587,12 +2690,12 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		}
 		break;
 	case 60:
-		if (PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext, opcode, false) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
 	case 61:
-		if (PPCRecompilerImlGen_PSQ_STU(ppcImlGenContext, opcode) == false)
+		if (PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext, opcode, true) == false)
 			unsupportedInstructionFound = true;
 		ppcImlGenContext->hasFPUInstruction = true;
 		break;
@@ -2702,7 +2805,6 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 }
 
 // returns false if code flow is not interrupted
-// continueDefaultPath: Controls if 
 bool PPCRecompiler_CheckIfInstructionEndsSegment(PPCFunctionBoundaryTracker& boundaryTracker, uint32 instructionAddress, uint32 opcode, bool& makeNextInstEnterable, bool& continueDefaultPath, bool& hasBranchTarget, uint32& branchTarget)
 {
 	hasBranchTarget = false;

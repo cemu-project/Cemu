@@ -3,176 +3,82 @@
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
 #include "Cafe/GameProfile/GameProfile.h"
+#include "IML/IML.h"
 
 ATTR_MS_ABI double frsqrte_espresso(double input);
 ATTR_MS_ABI double fres_espresso(double input);
 
 IMLReg _GetRegCR(ppcImlGenContext_t* ppcImlGenContext, uint8 crReg, uint8 crBit);
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext_t* ppcImlGenContext, IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+#define DefinePS0(name, regIndex) IMLReg name = _GetFPRRegPS0(ppcImlGenContext, regIndex);
+#define DefinePS1(name, regIndex) IMLReg name = _GetFPRRegPS1(ppcImlGenContext, regIndex);
+#define DefinePSX(name, regIndex, isPS1) IMLReg name = isPS1 ? _GetFPRRegPS1(ppcImlGenContext, regIndex) : _GetFPRRegPS0(ppcImlGenContext, regIndex);
+#define DefineTempFPR(name, index) IMLReg name = _GetFPRTemp(ppcImlGenContext, index);
+
+IMLReg _GetFPRRegPS0(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex)
 {
-	// load from memory
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_LOAD;
-	imlInstruction->operation = 0;
-	imlInstruction->op_storeLoad.registerData = registerDestination;
-	imlInstruction->op_storeLoad.registerMem = registerMemory;
-	imlInstruction->op_storeLoad.registerGQR = registerGQR;
-	imlInstruction->op_storeLoad.immS32 = immS32;
-	imlInstruction->op_storeLoad.mode = mode;
-	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
+	cemu_assert_debug(regIndex < 32);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + 0, IMLRegFormat::F64);
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenContext_t* ppcImlGenContext, IMLReg registerDestination, IMLReg registerMemory1, IMLReg registerMemory2, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+IMLReg _GetFPRRegPS1(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex)
 {
-	// load from memory
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_LOAD_INDEXED;
-	imlInstruction->operation = 0;
-	imlInstruction->op_storeLoad.registerData = registerDestination;
-	imlInstruction->op_storeLoad.registerMem = registerMemory1;
-	imlInstruction->op_storeLoad.registerMem2 = registerMemory2;
-	imlInstruction->op_storeLoad.registerGQR = registerGQR;
-	imlInstruction->op_storeLoad.immS32 = 0;
-	imlInstruction->op_storeLoad.mode = mode;
-	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
+	cemu_assert_debug(regIndex < 32);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + 1, IMLRegFormat::F64);
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext_t* ppcImlGenContext, IMLReg registerSource, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+IMLReg _GetFPRTemp(ppcImlGenContext_t* ppcImlGenContext, uint32 index)
 {
-	// store to memory
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_STORE;
-	imlInstruction->operation = 0;
-	imlInstruction->op_storeLoad.registerData = registerSource;
-	imlInstruction->op_storeLoad.registerMem = registerMemory;
-	imlInstruction->op_storeLoad.registerGQR = registerGQR;
-	imlInstruction->op_storeLoad.immS32 = immS32;
-	imlInstruction->op_storeLoad.mode = mode;
-	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
+	cemu_assert_debug(index < 4);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0 + index, IMLRegFormat::F64);
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext_t* ppcImlGenContext, IMLReg registerSource, IMLReg registerMemory1, IMLReg registerMemory2, sint32 immS32, uint32 mode, bool switchEndian, IMLReg registerGQR = IMLREG_INVALID)
+IMLReg _GetFPRReg(ppcImlGenContext_t* ppcImlGenContext, uint32 regIndex, bool selectPS1)
 {
-	// store to memory
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_STORE_INDEXED;
-	imlInstruction->operation = 0;
-	imlInstruction->op_storeLoad.registerData = registerSource;
-	imlInstruction->op_storeLoad.registerMem = registerMemory1;
-	imlInstruction->op_storeLoad.registerMem2 = registerMemory2;
-	imlInstruction->op_storeLoad.registerGQR = registerGQR;
-	imlInstruction->op_storeLoad.immS32 = immS32;
-	imlInstruction->op_storeLoad.mode = mode;
-	imlInstruction->op_storeLoad.flags2.swapEndian = switchEndian;
+	cemu_assert_debug(regIndex < 32);
+	return PPCRecompilerImlGen_LookupReg(ppcImlGenContext, PPCREC_NAME_FPR_HALF + regIndex * 2 + (selectPS1 ? 1 : 0), IMLRegFormat::F64);
 }
 
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, IMLReg registerResult, IMLReg registerOperand, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+void PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
 {
-	// fpr OP fpr
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R;
-	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r_r.regR = registerResult;
-	imlInstruction->op_fpr_r_r.regA = registerOperand;
-}
-
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, IMLReg registerResult, IMLReg registerOperand1, IMLReg registerOperand2, sint32 crRegister=PPC_REC_INVALID_REGISTER)
-{
-	// fpr = OP (fpr,fpr)
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R_R;
-	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r_r_r.regR = registerResult;
-	imlInstruction->op_fpr_r_r_r.regA = registerOperand1;
-	imlInstruction->op_fpr_r_r_r.regB = registerOperand2;
-}
-
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext_t* ppcImlGenContext, sint32 operation, IMLReg registerResult, IMLReg registerOperandA, IMLReg registerOperandB, IMLReg registerOperandC, sint32 crRegister=PPC_REC_INVALID_REGISTER)
-{
-	// fpr = OP (fpr,fpr,fpr)
-	IMLInstruction* imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_R_R_R_R;
-	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r_r_r_r.regR = registerResult;
-	imlInstruction->op_fpr_r_r_r_r.regA = registerOperandA;
-	imlInstruction->op_fpr_r_r_r_r.regB = registerOperandB;
-	imlInstruction->op_fpr_r_r_r_r.regC = registerOperandC;
-}
-
-void PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext_t* ppcImlGenContext, IMLInstruction* imlInstruction, sint32 operation, IMLReg registerResult)
-{
-	// OP (fpr)
-	if(imlInstruction == NULL)
-		imlInstruction = PPCRecompilerImlGen_generateNewEmptyInstruction(ppcImlGenContext);
-	imlInstruction->type = PPCREC_IML_TYPE_FPR_R;
-	imlInstruction->operation = operation;
-	imlInstruction->op_fpr_r.regR = registerResult;
-}
-
-/*
- * Rounds the bottom double to single precision (if single precision accuracy is emulated)
- */
-void PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
-{
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL, PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegister);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegister);
 	if( flushDenormals )
 		assert_dbg();
 }
 
-/*
- * Rounds pair of doubles to single precision (if single precision accuracy is emulated)
- */
-void PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext_t* ppcImlGenContext, IMLReg fprRegister, bool flushDenormals=false)
-{
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL, PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_PAIR, fprRegister);
-	if( flushDenormals )
-		assert_dbg();
-}
-
-bool PPCRecompilerImlGen_LFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_LFS_LFSU_LFD_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate, bool isDouble)
 {
 	sint32 rA, frD;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	// get memory gpr register index
 	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( ppcImlGenContext->LSQE )
+	if (withUpdate)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, imm, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1, true);
+		// add imm to memory register
+		cemu_assert_debug(rA != 0);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
+		imm = 0; // set imm to 0 so we dont add it twice
+	}
+	DefinePS0(fpPs0, frD);
+	if (isDouble)
+	{
+		// LFD/LFDU
+		ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister, imm, PPCREC_FPR_LD_MODE_DOUBLE, true);
 	}
 	else
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, imm, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+		// LFS/LFSU
+		ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister, imm, PPCREC_FPR_LD_MODE_SINGLE, true);
+		if( ppcImlGenContext->LSQE )
+		{
+			DefinePS1(fpPs1, frD);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fpPs1, fpPs0);
+		}
 	}
 	return true;
 }
 
-bool PPCRecompilerImlGen_LFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	// get memory gpr register index
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// add imm to memory register
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( ppcImlGenContext->LSQE )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, 0, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1, true);
-	}
-	else
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, 0, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
-	}
-	return true;
-}
-
-bool PPCRecompilerImlGen_LFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_LFSX_LFSUX_LFDX_LFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate, bool isDouble)
 {
 	sint32 rA, frD, rB;
 	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
@@ -184,148 +90,51 @@ bool PPCRecompilerImlGen_LFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	// get memory gpr registers
 	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
 	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( ppcImlGenContext->LSQE )
+	if (withUpdate)
+		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, gprRegister1, gprRegister1, gprRegister2);
+	DefinePS0(fpPs0, frD);
+	if (isDouble)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1, true);
+		if (withUpdate)
+			ppcImlGenContext->emitInst().make_fpr_r_memory(fpPs0, gprRegister1, 0, PPCREC_FPR_LD_MODE_DOUBLE, true);
+		else
+			ppcImlGenContext->emitInst().make_fpr_r_memory_indexed(fpPs0, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_DOUBLE, true);
 	}
 	else
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
+		if (withUpdate)
+			ppcImlGenContext->emitInst().make_fpr_r_memory( fpPs0, gprRegister1, 0, PPCREC_FPR_LD_MODE_SINGLE, true);
+		else
+			ppcImlGenContext->emitInst().make_fpr_r_memory_indexed( fpPs0, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_SINGLE, true);
+		if( ppcImlGenContext->LSQE )
+		{
+			DefinePS1(fpPs1, frD);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fpPs1, fpPs0);
+		}
 	}
 	return true;
 }
 
-bool PPCRecompilerImlGen_LFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_STFS_STFSU_STFD_STFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate, bool isDouble)
 {
-	sint32 rA, frD, rB;
-	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
-	if( rA == 0 )
+	sint32 rA, frD;
+	uint32 imm;
+	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
+	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
+	DefinePS0(fpPs0, frD);
+	if (withUpdate)
 	{
-		debugBreakpoint();
-		return false;
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
+		imm = 0;
 	}
-	// get memory gpr registers
-	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// add rB to rA (if rA != 0)
-	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, gprRegister1, gprRegister1, gprRegister2);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( ppcImlGenContext->LSQE )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister1, 0, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1, true);
-	}
+	if (isDouble)
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister, imm, PPCREC_FPR_ST_MODE_DOUBLE, true);
 	else
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister1, 0, PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0, true);
-	}
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister, imm, PPCREC_FPR_ST_MODE_SINGLE, true);
 	return true;
 }
 
-bool PPCRecompilerImlGen_LFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	if( rA == 0 )
-	{
-		assert_dbg();
-	}
-	// get memory gpr register index
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, imm, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_LFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	if( rA == 0 )
-	{
-		assert_dbg();
-	}
-	// get memory gpr register index
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// add imm to memory register
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// emit load iml
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, 0, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_LFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD, rB;
-	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
-	if( rA == 0 )
-	{
-		debugBreakpoint();
-		return false;
-	}
-	// get memory gpr registers
-	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_LFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD, rB;
-	PPC_OPC_TEMPL_X(opcode, frD, rA, rB);
-	if( rA == 0 )
-	{
-		debugBreakpoint();
-		return false;
-	}
-	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// add rB to rA (if rA != 0)
-	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, gprRegister1, gprRegister1, gprRegister2);
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister1, 0, PPCREC_FPR_LD_MODE_DOUBLE_INTO_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_STFS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	IMLReg fprRegister = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister, imm, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_STFSU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	// get memory gpr register index
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// add imm to memory register
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister, 0, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_STFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompilerImlGen_STFSX_STFSUX_STFDX_STFDUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool hasUpdate, bool isDouble)
 {
 	sint32 rA, frS, rB;
 	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
@@ -337,101 +146,25 @@ bool PPCRecompilerImlGen_STFSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	// get memory gpr registers
 	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
 	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frS);
+	if (hasUpdate)
+	{
+		ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, gprRegister1, gprRegister1, gprRegister2);
+	}
+	DefinePS0(fpPs0, frS);
+	auto mode = isDouble ? PPCREC_FPR_ST_MODE_DOUBLE : PPCREC_FPR_ST_MODE_SINGLE;
 	if( ppcImlGenContext->LSQE )
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, 0, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
+		if (hasUpdate)
+			ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister1, 0, mode, true);
+		else
+			ppcImlGenContext->emitInst().make_fpr_memory_r_indexed(fpPs0, gprRegister1, gprRegister2, 0, mode, true);
 	}
 	else
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, 0, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
-	}
-	return true;
-}
-
-
-bool PPCRecompilerImlGen_STFSUX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frS, rB;
-	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
-	if( rA == 0 )
-	{
-		debugBreakpoint();
-		return false;
-	}
-	// get memory gpr registers
-	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frS);
-	// calculate EA in rA
-	ppcImlGenContext->emitInst().make_r_r_r(PPCREC_IML_OP_ADD, gprRegister1, gprRegister1, gprRegister2);
-
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister1, 0, PPCREC_FPR_ST_MODE_SINGLE_FROM_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_STFD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	if( rA == 0 )
-	{
-		debugBreakpoint();
-		return false;
-	}
-	// get memory gpr register index
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister, imm, PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_STFDU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frD;
-	uint32 imm;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, imm);
-	if( rA == 0 )
-	{
-		debugBreakpoint();
-		return false;
-	}
-	// get memory gpr register index
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	// add imm to memory register
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister, 0, PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, true);
-	return true;
-}
-
-bool PPCRecompilerImlGen_STFDX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 rA, frS, rB;
-	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
-	if( rA == 0 )
-	{
-		debugBreakpoint();
-		return false;
-	}
-	// get memory gpr registers
-	IMLReg gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
-	IMLReg gprRegister2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frS);
-	if( ppcImlGenContext->LSQE )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, 0, PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, true);
-	}
-	else
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, 0, PPCREC_FPR_ST_MODE_DOUBLE_FROM_PS0, true);
+		if (hasUpdate)
+			ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister1, 0, mode, true);
+		else
+			ppcImlGenContext->emitInst().make_fpr_memory_r_indexed(fpPs0, gprRegister1, gprRegister2, 0, mode, true);
 	}
 	return true;
 }
@@ -440,7 +173,7 @@ bool PPCRecompilerImlGen_STFIWX(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 {
 	sint32 rA, frS, rB;
 	PPC_OPC_TEMPL_X(opcode, frS, rA, rB);
-	// get memory gpr registers
+	DefinePS0(fpPs0, frS);
 	IMLReg gprRegister1;
 	IMLReg gprRegister2;
 	if( rA != 0 )
@@ -454,12 +187,10 @@ bool PPCRecompilerImlGen_STFIWX(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		gprRegister1 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rB);
 		gprRegister2 = IMLREG_INVALID;
 	}
-	// get fpr register index
-	IMLReg fprRegister = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frS);
 	if( rA != 0 )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r_indexed(ppcImlGenContext, fprRegister, gprRegister1, gprRegister2, 0, PPCREC_FPR_ST_MODE_UI32_FROM_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_memory_r_indexed(fpPs0, gprRegister1, gprRegister2, 0, PPCREC_FPR_ST_MODE_UI32_FROM_PS0, true);
 	else
-		PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister1, 0, PPCREC_FPR_ST_MODE_UI32_FROM_PS0, true);
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fpPs0, gprRegister1, 0, PPCREC_FPR_ST_MODE_UI32_FROM_PS0, true);
 	return true;
 }
 
@@ -468,13 +199,10 @@ bool PPCRecompilerImlGen_FADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
 	PPC_ASSERT(frC==0);
-
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_BOTTOM, fprRegisterD, fprRegisterA, fprRegisterB);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_ADD, fprD, fprA, fprB);
 	return true;
 }
 
@@ -483,13 +211,10 @@ bool PPCRecompilerImlGen_FSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
 	PPC_ASSERT(frC==0);
-
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// subtract bottom double of frB from bottom double of frD
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterD, fprRegisterA, fprRegisterB);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_SUB, fprD, fprA, fprB);
 	return true;
 }
 
@@ -504,15 +229,14 @@ bool PPCRecompilerImlGen_FMUL(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 		frA = frC;
 		frC = temp;
 	}
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterD, fprRegisterC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprD, fprC);
 	return true;
 }
 
@@ -521,27 +245,25 @@ bool PPCRecompilerImlGen_FDIV(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 frD, frA, frB, frC_unused;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC_unused);
 	PPC_ASSERT(frB==0);
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
 	if( frB == frD && frA != frB )
 	{
-		IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
+		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterTemp, fprRegisterA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp, fprA);
 		// divide bottom double of temporary register by bottom double of frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprRegisterTemp, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprTemp, fprB);
 		// move result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprTemp);
 		return true;
 	}
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterA); // copy ps0
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA); // copy ps0
 	// divide bottom double of frD by bottom double of frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprD, fprB);
 	return true;
 }
 
@@ -549,38 +271,37 @@ bool PPCRecompilerImlGen_FMADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	// if frB is already in frD we need a temporary register to store the product of frA*frC
 	if( frB == frD )
 	{
-		IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
+		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterTemp, fprRegisterA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp, fprA);
 		// multiply bottom double of temporary register with bottom double of frC
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterTemp, fprRegisterC);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp, fprC);
 		// add result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_BOTTOM, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprD, fprTemp);
 		return true;
 	}
 	// if frC == frD -> swap registers, we assume that frC != frD
-	if( fprRegisterD == fprRegisterC )
+	if( frD == frC )
 	{
 		// swap frA and frC
-		IMLReg temp = fprRegisterA;
-		fprRegisterA = fprRegisterC;
-		fprRegisterC = temp;
+		IMLReg temp = fprA;
+		fprA = fprC;
+		fprC = temp;
 	}
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA); // always copy ps0 and ps1
 	// multiply bottom double of frD with bottom double of frC
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterD, fprRegisterC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprD, fprC);
 	// add frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_BOTTOM, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprD, fprB);
 	return true;
 }
 
@@ -588,32 +309,34 @@ bool PPCRecompilerImlGen_FMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// if frB is already in frD we need a temporary register to store the product of frA*frC
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	if( frB == frD )
 	{
-		// not implemented
+		// if frB is already in frD we need a temporary register to store the product of frA*frC
+		DefineTempFPR(fprTemp, 0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp, fprA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp, fprC);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprTemp, fprB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprTemp);
 		return false;
 	}
-	// if frC == frD -> swap registers, we assume that frC != frD
-	if( fprRegisterD == fprRegisterC )
+	if( frD == frC )
 	{
 		// swap frA and frC
-		IMLReg temp = fprRegisterA;
-		fprRegisterA = fprRegisterC;
-		fprRegisterC = temp;
+		IMLReg temp = fprA;
+		fprA = fprC;
+		fprC = temp;
 	}
-	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
+	// move frA to frD
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frC
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterD, fprRegisterC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprD, fprC);
 	// sub frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprD, fprB);
 	return true;
 }
 
@@ -621,50 +344,51 @@ bool PPCRecompilerImlGen_FNMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	// if frB is already in frD we need a temporary register to store the product of frA*frC
 	if( frB == frD )
 	{
-		// hCPU->fpr[frD].fpr = -(hCPU->fpr[frA].fpr * hCPU->fpr[frC].fpr - hCPU->fpr[frD].fpr);
-		IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-		//// negate frB/frD
-		//PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_NEGATE_BOTTOM, fprRegisterD, true);
+		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterTemp, fprRegisterA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp, fprA);
 		// multiply bottom double of temporary register with bottom double of frC
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterTemp, fprRegisterC);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp, fprC);
 		// sub frB from temporary register
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterTemp, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprTemp, fprB);
 		// negate result
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_NEGATE_BOTTOM, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprTemp);
 		// move result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprTemp);
 		return true;
 	}
 	// if frC == frD -> swap registers, we assume that frC != frD
-	if( fprRegisterD == fprRegisterC )
+	if( frD == frC )
 	{
 		// swap frA and frC
-		IMLReg temp = fprRegisterA;
-		fprRegisterA = fprRegisterC;
-		fprRegisterC = temp;
+		IMLReg temp = fprA;
+		fprA = fprC;
+		fprC = temp;
 	}
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frC
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterD, fprRegisterC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprD, fprC);
 	// sub frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprD, fprB);
 	// negate result
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_NEGATE_BOTTOM, fprRegisterD);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprD);
 	return true;
 }
+
+#define PSE_CopyResultToPs1() 	if( ppcImlGenContext->PSE ) \
+								{ \
+									DefinePS1(fprDPS1, frD); \
+									ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDPS1, fprD); \
+								}
 
 bool PPCRecompilerImlGen_FMULS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
@@ -678,24 +402,18 @@ bool PPCRecompilerImlGen_FMULS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		frA = frC;
 		frC = temp;
 	}
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
-	
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA);
 	// multiply bottom double of frD with bottom double of frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterD, fprRegisterC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprD, fprC);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
 	// if paired single mode, copy frD ps0 to ps1
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
-	}
-	
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -704,44 +422,31 @@ bool PPCRecompilerImlGen_FDIVS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 frD, frA, frB, frC_unused;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC_unused);
 	PPC_ASSERT(frB==0);
-	/*hCPU->fpr[frD].fpr = (float)(hCPU->fpr[frA].fpr / hCPU->fpr[frB].fpr);
-	if( hCPU->PSE )
-		hCPU->fpr[frD].fp1 = hCPU->fpr[frD].fp0;*/
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
 	if( frB == frD && frA != frB )
 	{
-		IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
+		DefineTempFPR(fprTemp, 0);
 		// move frA to temporary register
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterTemp, fprRegisterA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp, fprA);
 		// divide bottom double of temporary register by bottom double of frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprRegisterTemp, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprTemp, fprB);
 		// move result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprTemp);
 		// adjust accuracy
-		PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-		// if paired single mode, copy frD ps0 to ps1
-		if( ppcImlGenContext->PSE )
-		{	
-			PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
-		}
+		PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
+		PSE_CopyResultToPs1();
 		return true;
 	}
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA);
 	// subtract bottom double of frB from bottom double of frD
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_DIVIDE_BOTTOM, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprD, fprB);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	// if paired single mode, copy frD ps0 to ps1
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
-	}
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -757,22 +462,17 @@ bool PPCRecompilerImlGen_FADDS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		frA = frB;
 		frB = temp;
 	}
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
 	// move frA to frD (if different register)
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_ASSIGN, fprRegisterD, fprRegisterA); // always copy ps0 and ps1
+	if( frD != frA )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprA);
 	// add bottom double of frD and bottom double of frB
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_BOTTOM, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprD, fprB);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	// if paired single mode, copy frD ps0 to ps1
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
-	}
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -781,20 +481,12 @@ bool PPCRecompilerImlGen_FSUBS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	int frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
 	PPC_ASSERT(frB==0);
-
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// subtract bottom
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterD, fprRegisterA, fprRegisterB);
-	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	// if paired single mode, copy frD ps0 to ps1
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
-	}
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_SUB, fprD, fprA, fprB);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -802,34 +494,26 @@ bool PPCRecompilerImlGen_FMADDS(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-	//FPRD(RD) = FPRD(RA) * FPRD(RC) + FPRD(RB);
-	//hCPU->fpr[frD].fpr = hCPU->fpr[frA].fpr * hCPU->fpr[frC].fpr + hCPU->fpr[frB].fpr;
-	//if( hCPU->PSE )
-	//	hCPU->fpr[frD].fp1 = hCPU->fpr[frD].fp0;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	IMLReg fprRegisterTemp;
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	// if none of the operand registers overlap with the result register then we can avoid the usage of a temporary register
-	if( fprRegisterD != fprRegisterA && fprRegisterD != fprRegisterB && fprRegisterD != fprRegisterC )
-		fprRegisterTemp = fprRegisterD;
+	IMLReg fprRegisterTemp;
+	if( frD != frA && frD != frB && frD != frC )
+		fprRegisterTemp = fprD;
 	else
-		fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterTemp, fprRegisterA, fprRegisterC);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_BOTTOM, fprRegisterTemp, fprRegisterB);
+		fprRegisterTemp = _GetFPRTemp(ppcImlGenContext, 0);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprRegisterTemp, fprA, fprC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprRegisterTemp, fprB);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterTemp);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprRegisterTemp);
 	// set result
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterTemp);
-	}
-	else if( fprRegisterD != fprRegisterTemp )
+	if( fprD != fprRegisterTemp )
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprRegisterTemp);
 	}
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -837,33 +521,27 @@ bool PPCRecompilerImlGen_FMSUBS(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-	//hCPU->fpr[frD].fp0 = (float)(hCPU->fpr[frA].fp0 * hCPU->fpr[frC].fp0 - hCPU->fpr[frB].fp0);
-	//if( hCPU->PSE )
-	//	hCPU->fpr[frD].fp1 = hCPU->fpr[frD].fp0;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
+
 	IMLReg fprRegisterTemp;
 	// if none of the operand registers overlap with the result register then we can avoid the usage of a temporary register
-	if( fprRegisterD != fprRegisterA && fprRegisterD != fprRegisterB && fprRegisterD != fprRegisterC )
-		fprRegisterTemp = fprRegisterD;
+	if( frD != frA && frD != frB && frD != frC )
+		fprRegisterTemp = fprD;
 	else
-		fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterTemp, fprRegisterA, fprRegisterC);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterTemp, fprRegisterB);
+		fprRegisterTemp = _GetFPRTemp(ppcImlGenContext, 0);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprRegisterTemp, fprA, fprC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprRegisterTemp, fprB);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterTemp);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprRegisterTemp);
 	// set result
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterTemp);
-	}
-	else if( fprRegisterD != fprRegisterTemp )
+	if( fprD != fprRegisterTemp )
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprRegisterTemp);
 	}
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -871,70 +549,32 @@ bool PPCRecompilerImlGen_FNMSUBS(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-
-	//[FP1(RD) = ]FP0(RD) = -(FP0(RA) * FP0(RC) - FP0(RB));
-	//hCPU->fpr[frD].fp0 = (float)-(hCPU->fpr[frA].fp0 * hCPU->fpr[frC].fp0 - hCPU->fpr[frB].fp0);
-	//if( PPC_PSE )
-	//	hCPU->fpr[frD].fp1 = hCPU->fpr[frD].fp0;
-
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
 	IMLReg fprRegisterTemp;
 	// if none of the operand registers overlap with the result register then we can avoid the usage of a temporary register
-	if( fprRegisterD != fprRegisterA && fprRegisterD != fprRegisterB && fprRegisterD != fprRegisterC )
-		fprRegisterTemp = fprRegisterD;
+	if( frD != frA && frD != frB && frD != frC )
+		fprRegisterTemp = fprD;
 	else
-		fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_BOTTOM, fprRegisterTemp, fprRegisterA, fprRegisterC);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_BOTTOM, fprRegisterTemp, fprRegisterB);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_NEGATE_BOTTOM, fprRegisterTemp);
+		fprRegisterTemp = _GetFPRTemp(ppcImlGenContext, 0);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprRegisterTemp, fprA, fprC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprRegisterTemp, fprB);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprRegisterTemp);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterTemp);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprRegisterTemp);
 	// set result
-	if( ppcImlGenContext->PSE )
-	{	
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterTemp);
-	}
-	else if( fprRegisterD != fprRegisterTemp )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterTemp);
-	}
+	if( fprD != fprRegisterTemp )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprRegisterTemp);
+	PSE_CopyResultToPs1();
 	return true;
 }
 
 bool PPCRecompilerImlGen_FCMPO(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("FCMPO: Not implemented\n");
+	// Not implemented
 	return false;
-
-	//sint32 crfD, frA, frB;
-	//PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
-	//crfD >>= 2;
-	//IMLReg regFprA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	//IMLReg regFprB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
-
-	//IMLReg crBitRegLT = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_LT);
-	//IMLReg crBitRegGT = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_GT);
-	//IMLReg crBitRegEQ = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_EQ);
-	//IMLReg crBitRegSO = _GetCRReg(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_SO);
-
-	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegLT, IMLCondition::UNORDERED_LT);
-	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegGT, IMLCondition::UNORDERED_GT);
-	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
-	//ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegSO, IMLCondition::UNORDERED_U);
-
-	// todo - set fpscr
-
-	//sint32 crfD, frA, frB;
-	//PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
-	//crfD >>= 2;
-	//uint32 fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	//uint32 fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	//PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPO_BOTTOM, fprRegisterA, fprRegisterB, crfD);
-	return true;
 }
 
 bool PPCRecompilerImlGen_FCMPU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
@@ -942,18 +582,18 @@ bool PPCRecompilerImlGen_FCMPU(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 crfD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, crfD, frA, frB);
 	crfD >>= 2;
-	IMLReg regFprA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	IMLReg regFprB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
 
 	IMLReg crBitRegLT = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_LT);
 	IMLReg crBitRegGT = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_GT);
 	IMLReg crBitRegEQ = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_EQ);
 	IMLReg crBitRegSO = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_SO);
 
-	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegLT, IMLCondition::UNORDERED_LT);
-	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegGT, IMLCondition::UNORDERED_GT);
-	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
-	ppcImlGenContext->emitInst().make_fpr_compare(regFprA, regFprB, crBitRegSO, IMLCondition::UNORDERED_U);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegLT, IMLCondition::UNORDERED_LT);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegGT, IMLCondition::UNORDERED_GT);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegSO, IMLCondition::UNORDERED_U);
 
 	// todo: set fpscr
 
@@ -964,9 +604,9 @@ bool PPCRecompilerImlGen_FMR(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode
 {
 	sint32 frD, rA, frB;
 	PPC_OPC_TEMPL_X(opcode, frD, rA, frB);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprB);
 	return true;
 }
 
@@ -975,14 +615,11 @@ bool PPCRecompilerImlGen_FABS(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 frD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, frD, frA, frB);
 	PPC_ASSERT(frA==0);
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// move frB to frD (if different register)
-	if( fprRegisterD != fprRegisterB )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
-	// abs frD
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_ABS_BOTTOM, fprRegisterD);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	if( frD != frB )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprB);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ABS, fprD);
 	return true;
 }
 
@@ -991,14 +628,11 @@ bool PPCRecompilerImlGen_FNABS(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 frD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, frD, frA, frB);
 	PPC_ASSERT(frA==0);
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// move frB to frD (if different register)
-	if( fprRegisterD != fprRegisterB )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
-	// abs frD
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_NEGATIVE_ABS_BOTTOM, fprRegisterD);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	if( frD != frB )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprB);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATIVE_ABS, fprD);
 	return true;
 }
 
@@ -1007,15 +641,12 @@ bool PPCRecompilerImlGen_FRES(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 frD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, frD, frA, frB);
 	PPC_ASSERT(frA==0);
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)fres_espresso, fprRegisterB, IMLREG_INVALID, IMLREG_INVALID, fprRegisterD);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)fres_espresso, fprB, IMLREG_INVALID, IMLREG_INVALID, fprD);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	// copy result to top
-	if( ppcImlGenContext->PSE )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -1024,15 +655,12 @@ bool PPCRecompilerImlGen_FRSP(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	sint32 frD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, frD, frA, frB);
 	PPC_ASSERT(frA==0);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( fprRegisterD != fprRegisterB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
-	}
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprRegisterD);
-	if( ppcImlGenContext->PSE )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterD);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	if( fprD != fprB )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprB);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, fprD);
+	PSE_CopyResultToPs1();
 	return true;
 }
 
@@ -1042,17 +670,12 @@ bool PPCRecompilerImlGen_FNEG(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	PPC_OPC_TEMPL_X(opcode, frD, frA, frB);
 	PPC_ASSERT(frA==0);
 	if( opcode&PPC_OPC_RC )
-	{
 		return false;
-	}
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// move frB to frD (if different register)
-	if( fprRegisterD != fprRegisterB )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
-	// negate frD
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_NEGATE_BOTTOM, fprRegisterD);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	if( frD != frB )
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprD, fprB);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprD);
 	return true;
 }
 
@@ -1064,11 +687,11 @@ bool PPCRecompilerImlGen_FSEL(ppcImlGenContext_t* ppcImlGenContext, uint32 opcod
 	{
 		return false;
 	}
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SELECT_BOTTOM, fprRegisterD, fprRegisterA, fprRegisterB, fprRegisterC);
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprC, frC);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r_r(PPCREC_IML_OP_FPR_SELECT, fprD, fprA, fprB, fprC);
 	return true;
 }
 
@@ -1076,12 +699,11 @@ bool PPCRecompilerImlGen_FRSQRTE(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 {
 	sint32 frD, frA, frB, frC;
 	PPC_OPC_TEMPL_A(opcode, frD, frA, frB, frC);
-	// hCPU->fpr[frD].fpr = 1.0 / sqrt(hCPU->fpr[frB].fpr);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)frsqrte_espresso, fprRegisterB, IMLREG_INVALID, IMLREG_INVALID, fprRegisterD);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)frsqrte_espresso, fprB, IMLREG_INVALID, IMLREG_INVALID, fprD);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundBottomFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprD);
 	return true;
 }
 
@@ -1089,237 +711,332 @@ bool PPCRecompilerImlGen_FCTIWZ(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 {
 	sint32 frD, frA, frB;
 	PPC_OPC_TEMPL_X(opcode, frD, frA, frB);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_BOTTOM_FCTIWZ, fprRegisterD, fprRegisterB);
+	DefinePS0(fprB, frB);
+	DefinePS0(fprD, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FCTIWZ, fprD, fprB);
 	return true;
 }
 
-bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+bool PPCRecompiler_isUGQRValueKnown(ppcImlGenContext_t* ppcImlGenContext, sint32 gqrIndex, uint32& gqrValue);
+
+void PPCRecompilerImlGen_ClampInteger(ppcImlGenContext_t* ppcImlGenContext, IMLReg reg, sint32 clampMin, sint32 clampMax)
+{
+	IMLReg regTmpCondBool = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 1);
+	// min(reg, clampMax)
+	ppcImlGenContext->emitInst().make_compare_s32(reg, clampMax, regTmpCondBool, IMLCondition::SIGNED_GT);
+	ppcImlGenContext->emitInst().make_conditional_jump(regTmpCondBool, false); // condition needs to be inverted because we skip if the condition is true
+	PPCIMLGen_CreateSegmentBranchedPath(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock,
+		[&](ppcImlGenContext_t& genCtx)
+		{
+			/* branch not taken */
+			genCtx.emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, reg, clampMax);
+		}
+	);
+	// max(reg, clampMin)
+	ppcImlGenContext->emitInst().make_compare_s32(reg, clampMin, regTmpCondBool, IMLCondition::SIGNED_LT);
+	ppcImlGenContext->emitInst().make_conditional_jump(regTmpCondBool, false);
+	PPCIMLGen_CreateSegmentBranchedPath(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock,
+		[&](ppcImlGenContext_t& genCtx)
+		{
+			/* branch not taken */
+			genCtx.emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, reg, clampMin);
+		}
+	);
+}
+
+void PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext_t* ppcImlGenContext, Espresso::PSQ_LOAD_TYPE loadType, bool readPS1, IMLReg gprA, sint32 imm, IMLReg fprDPS0, IMLReg fprDPS1)
+{
+	if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_F32)
+	{
+		ppcImlGenContext->emitInst().make_fpr_r_memory(fprDPS0, gprA, imm, PPCREC_FPR_LD_MODE_SINGLE, true);
+		if(readPS1)
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_memory(fprDPS1, gprA, imm + 4, PPCREC_FPR_LD_MODE_SINGLE, true);
+		}
+	}
+	if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_U16 || loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S16)
+	{
+		bool isSigned = (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S16);
+		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+		ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm, 16, isSigned, true);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS0, gprTmp);
+		if(readPS1)
+		{
+			ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm + 2, 16, isSigned, true);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS1, gprTmp);
+		}
+	}
+	else if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_U8 || loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S8)
+	{
+		bool isSigned = (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S8);
+		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+		ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm, 8, isSigned, true);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS0, gprTmp);
+		if(readPS1)
+		{
+			ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm + 1, 8, isSigned, true);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS1, gprTmp);
+		}
+	}
+}
+
+// PSQ_L and PSQ_LU
+bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate)
 {
 	int rA, frD;
 	uint32 immUnused;
 	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);
-
 	sint32 gqrIndex = ((opcode >> 12) & 7);
 	uint32 imm = opcode & 0xFFF;
 	if (imm & 0x800)
 		imm |= ~0xFFF;
-
 	bool readPS1 = (opcode & 0x8000) == false;
 
-	IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-	// psq load
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, imm, readPS1 ? PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0, true, gqrRegister);
-	return true;
-}
+	IMLReg gprA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
+	DefinePS0(fprDPS0, frD);
+	DefinePS1(fprDPS1, frD);
+	if (!readPS1)
+	{
+		// if PS1 is not explicitly read then set it to 1.0
+		ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_LOAD_ONE, fprDPS1);
+	}
+	if (withUpdate)
+	{
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprA, gprA, (sint32)imm);
+		imm = 0;
+	}
+	uint32 knownGQRValue = 0;
+	if ( !PPCRecompiler_isUGQRValueKnown(ppcImlGenContext, gqrIndex, knownGQRValue) )
+	{
+		// generate complex dynamic handler when we dont know the GQR value ahead of time
+		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
+		IMLReg loadTypeReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+		// extract the load type from the GQR register
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, loadTypeReg, gqrRegister, 0x7);
+		IMLSegment* caseSegment[6];
+		sint32 compareValues[6] = {0, 4, 5, 6, 7};
+		PPCIMLGen_CreateSegmentBranchedPathMultiple(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock, caseSegment, loadTypeReg, compareValues, 5, 0);
+		for (sint32 i=0; i<5; i++)
+		{
+			IMLRedirectInstOutput outputToCase(ppcImlGenContext, caseSegment[i]); // while this is in scope, instructions go to caseSegment[i]
+			PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext, static_cast<Espresso::PSQ_LOAD_TYPE>(compareValues[i]), readPS1, gprA, imm, fprDPS0, fprDPS1);
+			// create the case jump instructions here because we need to add it last
+			caseSegment[i]->AppendInstruction()->make_jump();
+		}
+		return true;
+	}
 
-bool PPCRecompilerImlGen_PSQ_LU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	int rA, frD;
-	uint32 immUnused;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);
-	if (rA == 0)
+	Espresso::PSQ_LOAD_TYPE type = static_cast<Espresso::PSQ_LOAD_TYPE>((knownGQRValue >> 0) & 0x7);
+	sint32 scale = (knownGQRValue >> 8) & 0x3F;
+	cemu_assert_debug(scale == 0); // known GQR values always use a scale of 0 (1.0f)
+	if (scale != 0)
 		return false;
 
-	sint32 gqrIndex = ((opcode >> 12) & 7);
-	uint32 imm = opcode & 0xFFF;
-	if (imm & 0x800)
-		imm |= ~0xFFF;
-
-	bool readPS1 = (opcode & 0x8000) == false;
-	
-	IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
-
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-	// paired load
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_memory(ppcImlGenContext, fprRegister, gprRegister, 0, readPS1 ? PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0_PS1 : PPCREC_FPR_LD_MODE_PSQ_GENERIC_PS0, true, gqrRegister);
-	return true;
-}
-
-bool PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	int rA, frD;
-	uint32 immUnused;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);
-	uint32 imm = opcode & 0xFFF;
-	if (imm & 0x800)
-		imm |= ~0xFFF;
-	sint32 gqrIndex = ((opcode >> 12) & 7);
-
-	bool storePS1 = (opcode & 0x8000) == false;
-
-	IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-	// paired store
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister, imm, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0, true, gqrRegister);
-	return true;
-}
-
-bool PPCRecompilerImlGen_PSQ_STU(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	int rA, frD;
-	uint32 immUnused;
-	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);
-	if (rA == 0)
+	if (type == Espresso::PSQ_LOAD_TYPE::TYPE_UNUSED1 ||
+		type == Espresso::PSQ_LOAD_TYPE::TYPE_UNUSED2 ||
+		type == Espresso::PSQ_LOAD_TYPE::TYPE_UNUSED3)
+	{
 		return false;
+	}
 
+	PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext, type, readPS1, gprA, imm, fprDPS0, fprDPS1);
+	return true;
+}
+
+void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, Espresso::PSQ_LOAD_TYPE storeType, bool storePS1, IMLReg gprA, sint32 imm, IMLReg fprDPS0, IMLReg fprDPS1)
+{
+	cemu_assert_debug(!storePS1 || fprDPS1.IsValid());
+	if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_F32)
+	{
+		ppcImlGenContext->emitInst().make_fpr_memory_r(fprDPS0, gprA, imm, PPCREC_FPR_ST_MODE_SINGLE, true);
+		if(storePS1)
+		{
+			ppcImlGenContext->emitInst().make_fpr_memory_r(fprDPS1, gprA, imm + 4, PPCREC_FPR_ST_MODE_SINGLE, true);
+		}
+	}
+	else if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_U16 || storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S16)
+	{
+		bool isSigned = (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S16);
+		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS0);
+		// todo - scaling
+		if (isSigned)
+			PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -32768, 32767);
+		else
+			PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, 0, 65535);
+		ppcImlGenContext->emitInst().make_memory_r(gprTmp, gprA, imm, 16, true);
+		if(storePS1)
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS1);
+			// todo - scaling
+			if (isSigned)
+				PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -32768, 32767);
+			else
+				PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, 0, 65535);
+			ppcImlGenContext->emitInst().make_memory_r(gprTmp, gprA, imm + 2, 16, true);
+		}
+	}
+	else if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_U8 || storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S8)
+	{
+		bool isSigned = (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S8);
+		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS0);
+		if (isSigned)
+			PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -128, 127);
+		else
+			PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, 0, 255);
+		ppcImlGenContext->emitInst().make_memory_r(gprTmp, gprA, imm, 8, true);
+		if(storePS1)
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS1);
+			// todo - scaling
+			if (isSigned)
+				PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -128, 127);
+			else
+				PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, 0, 255);
+			ppcImlGenContext->emitInst().make_memory_r(gprTmp, gprA, imm + 1, 8, true);
+		}
+	}
+}
+
+// PSQ_ST and PSQ_STU
+bool PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withUpdate)
+{
+	int rA, frD;
+	uint32 immUnused;
+	PPC_OPC_TEMPL_D_SImm(opcode, frD, rA, immUnused);
 	uint32 imm = opcode & 0xFFF;
 	if (imm & 0x800)
 		imm |= ~0xFFF;
 	sint32 gqrIndex = ((opcode >> 12) & 7);
-
 	bool storePS1 = (opcode & 0x8000) == false;
 
-	IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
-	IMLReg gprRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0 + rA);
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprRegister, gprRegister, (sint32)imm);
+	IMLReg gprA = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_R0+rA);
+	DefinePS0(fprDPS0, frD);
+	IMLReg fprDPS1 = storePS1 ? _GetFPRRegPS1(ppcImlGenContext, frD) : IMLREG_INVALID;
 
-	IMLReg fprRegister = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-	// paired store
-	PPCRecompilerImlGen_generateNewInstruction_fpr_memory_r(ppcImlGenContext, fprRegister, gprRegister, 0, storePS1 ? PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0_PS1 : PPCREC_FPR_ST_MODE_PSQ_GENERIC_PS0, true, gqrRegister);
+	if (withUpdate)
+	{
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprA, gprA, (sint32)imm);
+		imm = 0;
+	}
+
+	uint32 gqrValue = 0;
+	if ( !PPCRecompiler_isUGQRValueKnown(ppcImlGenContext, gqrIndex, gqrValue) )
+	{
+		// generate complex dynamic handler when we dont know the GQR value ahead of time
+		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
+		IMLReg loadTypeReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
+		// extract the load type from the GQR register
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_U, loadTypeReg, gqrRegister, 16);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, loadTypeReg, loadTypeReg, 0x7);
+
+		IMLSegment* caseSegment[5];
+		sint32 compareValues[5] = {0, 4, 5, 6, 7};
+		PPCIMLGen_CreateSegmentBranchedPathMultiple(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock, caseSegment, loadTypeReg, compareValues, 5, 0);
+		for (sint32 i=0; i<5; i++)
+		{
+			IMLRedirectInstOutput outputToCase(ppcImlGenContext, caseSegment[i]); // while this is in scope, instructions go to caseSegment[i]
+			PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext, static_cast<Espresso::PSQ_LOAD_TYPE>(compareValues[i]), storePS1, gprA, imm, fprDPS0, fprDPS1);
+			ppcImlGenContext->emitInst().make_jump(); // finalize case
+		}
+		return true;
+	}
+
+	Espresso::PSQ_LOAD_TYPE type = static_cast<Espresso::PSQ_LOAD_TYPE>((gqrValue >> 16) & 0x7);
+	sint32 scale = (gqrValue >> 24) & 0x3F;
+	cemu_assert_debug(scale == 0); // known GQR values always use a scale of 0 (1.0f)
+
+	if (type == Espresso::PSQ_LOAD_TYPE::TYPE_UNUSED1 ||
+		type == Espresso::PSQ_LOAD_TYPE::TYPE_UNUSED2 ||
+		type == Espresso::PSQ_LOAD_TYPE::TYPE_UNUSED3)
+	{
+		return false;
+	}
+
+	PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext, type, storePS1, gprA, imm, fprDPS0, fprDPS1);
 	return true;
 }
 
-bool PPCRecompilerImlGen_PS_MULS0(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+// PS_MULS0 and PS_MULS1
+bool PPCRecompilerImlGen_PS_MULSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool isVariant1)
 {
 	sint32 frD, frA, frC;
 	frC = (opcode>>6)&0x1F;
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterTemp, fprRegisterC);
-	// if frD == frA we can multiply frD immediately and safe a copy instruction
-	if( frD == frA )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	else
-	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePSX(fprC, frC, isVariant1);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+
+	DefineTempFPR(fprTmp0, 0);
+	DefineTempFPR(fprTmp1, 1);
+
+	// todo - optimize cases where a temporary is not necessary
+	// todo - round fprC to 25bit accuracy
+
+	// copy ps0 and ps1 to temporary
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTmp0, fprAps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTmp1, fprAps1);
+
+	// multiply
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp0, fprC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp1, fprC);
+
+	// copy back to result
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTmp0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTmp1);
+
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
+
 	return true;
 }
 
-bool PPCRecompilerImlGen_PS_MULS1(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 frD, frA, frC;
-	frC = (opcode>>6)&0x1F;
-	frA = (opcode>>16)&0x1F;
-	frD = (opcode>>21)&0x1F;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP, fprRegisterTemp, fprRegisterC);
-	// if frD == frA we can multiply frD immediately and safe a copy instruction
-	if( frD == frA )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	else
-	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	return true;
-}
-
-bool PPCRecompilerImlGen_PS_MADDS0(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+// PS_MADDS0 and PS_MADDS1
+bool PPCRecompilerImlGen_PS_MADDSX(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool isVariant1)
 {
 	sint32 frD, frA, frB, frC;
 	frC = (opcode>>6)&0x1F;
 	frB = (opcode>>11)&0x1F;
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//float s0 = (float)(hCPU->fpr[frA].fp0 * hCPU->fpr[frC].fp0 + hCPU->fpr[frB].fp0);
-	//float s1 = (float)(hCPU->fpr[frA].fp1 * hCPU->fpr[frC].fp0 + hCPU->fpr[frB].fp1);
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterTemp, fprRegisterC);
-	// if frD == frA and frD != frB we can multiply frD immediately and safe a copy instruction
-	if( frD == frA && frD != frB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterB);
-	}
-	else
-	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterTemp, fprRegisterB);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	return true;
-}
 
-bool PPCRecompilerImlGen_PS_MADDS1(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 frD, frA, frB, frC;
-	frC = (opcode>>6)&0x1F;
-	frB = (opcode>>11)&0x1F;
-	frA = (opcode>>16)&0x1F;
-	frD = (opcode>>21)&0x1F;
-	//float s0 = (float)(hCPU->fpr[frA].fp0 * hCPU->fpr[frC].fp1 + hCPU->fpr[frB].fp0);
-	//float s1 = (float)(hCPU->fpr[frA].fp1 * hCPU->fpr[frC].fp1 + hCPU->fpr[frB].fp1);
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp1 in bottom and top half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP, fprRegisterTemp, fprRegisterC);
-	// if frD == frA and frD != frB we can multiply frD immediately and safe a copy instruction
-	if( frD == frA && frD != frB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterB);
-	}
-	else
-	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterTemp, fprRegisterB);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePSX(fprC, frC, isVariant1);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+
+	DefineTempFPR(fprTmp0, 0);
+	DefineTempFPR(fprTmp1, 1);
+
+	// todo - round C to 25bit
+	// todo - optimize cases where a temporary is not necessary
+
+	// copy ps0 and ps1 to temporary
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTmp0, fprAps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTmp1, fprAps1);
+
+	// multiply
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp0, fprC);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp1, fprC);
+
+	// add
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprTmp0, fprBps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprTmp1, fprBps1);
+
+	// copy back to result
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTmp0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTmp1);
+
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1331,25 +1048,34 @@ bool PPCRecompilerImlGen_PS_ADD(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	frD = (opcode>>21)&0x1F;
 	//hCPU->fpr[frD].fp0 = hCPU->fpr[frA].fp0 + hCPU->fpr[frB].fp0;
 	//hCPU->fpr[frD].fp1 = hCPU->fpr[frA].fp1 + hCPU->fpr[frB].fp1;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+
 	if( frD == frA )
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprBps1);
 	}
 	else if( frD == frB )
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprAps1);
 	}
 	else
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterA);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprAps1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprBps1);
 	}
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1361,13 +1087,20 @@ bool PPCRecompilerImlGen_PS_SUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	frD = (opcode>>21)&0x1F;
 	//hCPU->fpr[frD].fp0 = hCPU->fpr[frA].fp0 - hCPU->fpr[frB].fp0;
 	//hCPU->fpr[frD].fp1 = hCPU->fpr[frA].fp1 - hCPU->fpr[frB].fp1;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_PAIR, fprRegisterD, fprRegisterA, fprRegisterB);
+
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_SUB, fprDps0, fprAps0, fprBps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_SUB, fprDps1, fprAps1, fprBps1);
+
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1377,28 +1110,37 @@ bool PPCRecompilerImlGen_PS_MUL(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	frC = (opcode >> 6) & 0x1F;
 	frA = (opcode >> 16) & 0x1F;
 	frD = (opcode >> 21) & 0x1F;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-	// we need a temporary register
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0 + 0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterTemp, fprRegisterC);
-	// todo-optimize: This instruction can be optimized so that it doesn't always use a temporary register
-	// if frD == frA we can multiply frD immediately and safe a copy instruction
+
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprCps0, frC);
+	DefinePS1(fprCps1, frC);
+
+	DefineTempFPR(fprTemp0, 0);
+	DefineTempFPR(fprTemp1, 1);
+
+	// todo: Optimize for when a temporary isnt necessary
+	// todo: Round to 25bit?
+
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp0, fprCps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp1, fprCps1);
 	if (frD == frA)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps0, fprTemp0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps1, fprTemp1);
 	}
 	else
 	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp0, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp1, fprAps1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTemp0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTemp1);
 	}
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1410,28 +1152,35 @@ bool PPCRecompilerImlGen_PS_DIV(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	frD = (opcode >> 21) & 0x1F;
 	//hCPU->fpr[frD].fp0 = hCPU->fpr[frA].fp0 / hCPU->fpr[frB].fp0;
 	//hCPU->fpr[frD].fp1 = hCPU->fpr[frA].fp1 / hCPU->fpr[frB].fp1;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frD);
-	// todo-optimize: This instruction can be optimized so that it doesn't always use a temporary register
-	// if frD == frA we can divide frD immediately and safe a copy instruction
+
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+
 	if (frD == frA)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_DIVIDE_PAIR, fprRegisterD, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprDps1, fprBps1);
 	}
 	else
 	{
-		// we need a temporary register
-		IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0 + 0);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterTemp, fprRegisterA);
+		DefineTempFPR(fprTemp0, 0);
+		DefineTempFPR(fprTemp1, 1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp0, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp1, fprAps1);
 		// we divide temporary by frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_DIVIDE_PAIR, fprRegisterTemp, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprTemp0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_DIVIDE, fprTemp1, fprBps1);
 		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTemp0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTemp1);
 	}
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1445,33 +1194,61 @@ bool PPCRecompilerImlGen_PS_MADD(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 	//float s0 = (float)(hCPU->fpr[frA].fp0 * hCPU->fpr[frC].fp0 + hCPU->fpr[frB].fp0);
 	//float s1 = (float)(hCPU->fpr[frA].fp1 * hCPU->fpr[frC].fp1 + hCPU->fpr[frB].fp1);
 
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterTemp, fprRegisterC);
-	// todo-optimize: This instruction can be optimized so that it doesn't always use a temporary register
-	// if frD == frA and frD != frB we can multiply frD immediately and save a copy instruction
-	if( frD == frA && frD != frB )
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprCps0, frC);
+	DefinePS1(fprCps1, frC);
+
+	if (frD != frA && frD != frB)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterB);
+		if (frD == frC)
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprCps0, fprAps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprCps1, fprAps1);
+		}
+		else
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprAps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprAps1);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps0, fprCps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps1, fprCps1);
+		}
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprBps1);
 	}
 	else
 	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterTemp, fprRegisterB);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
+		DefineTempFPR(fprTemp0, 0);
+		DefineTempFPR(fprTemp1, 1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp0, fprCps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp1, fprCps1);
+		if( frD == frA && frD != frB )
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps0, fprTemp0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps1, fprTemp1);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprBps1);
+		}
+		else
+		{
+			// we multiply temporary by frA
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp0, fprAps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp1, fprAps1);
+			// add frB
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprTemp0, fprBps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprTemp1, fprBps1);
+			// copy result to frD
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTemp0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTemp1);
+		}
 	}
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1483,81 +1260,54 @@ bool PPCRecompilerImlGen_PS_NMADD(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
 
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterTemp, fprRegisterC);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprCps0, frC);
+	DefinePS1(fprCps1, frC);
+
+	DefineTempFPR(fprTemp0, 0);
+	DefineTempFPR(fprTemp1, 1);
+
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp0, fprCps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp1, fprCps1);
 	// todo-optimize: This instruction can be optimized so that it doesn't always use a temporary register
-	// if frD == frA and frD != frB we can multiply frD immediately and safe a copy instruction
+	// if frD == frA and frD != frB we can multiply frD immediately and save a copy instruction
 	if( frD == frA && frD != frB )
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterD, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps0, fprTemp0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps1, fprTemp1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprBps1);
 	}
 	else
 	{
 		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp0, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp1, fprAps1);
 		// add frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ADD_PAIR, fprRegisterTemp, fprRegisterB);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprTemp0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprTemp1, fprBps1);
 		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTemp0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTemp1);
 	}
+
 	// negate
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_NEGATE_PAIR, fprRegisterD, fprRegisterD);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprDps0);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprDps1);
 	// adjust accuracy
 	//PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
 	// Splatoon requires that we emulate flush-to-denormals for this instruction
-	//PPCRecompilerImlGen_generateNewInstruction_fpr_r(ppcImlGenContext, NULL,PPCREC_IML_OP_FPR_ROUND_FLDN_TO_SINGLE_PRECISION_PAIR, fprRegisterD, false);
+	//ppcImlGenContext->emitInst().make_fpr_r(NULL,PPCREC_IML_OP_FPR_ROUND_FLDN_TO_SINGLE_PRECISION_PAIR, fprRegisterD, false);
 	return true;
 }
 
-bool PPCRecompilerImlGen_PS_MSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
-{
-	sint32 frD, frA, frB, frC;
-	frC = (opcode>>6)&0x1F;
-	frB = (opcode>>11)&0x1F;
-	frA = (opcode>>16)&0x1F;
-	frD = (opcode>>21)&0x1F;
-	//hCPU->fpr[frD].fp0 = (hCPU->fpr[frA].fp0 * hCPU->fpr[frC].fp0 - hCPU->fpr[frB].fp0);
-	//hCPU->fpr[frD].fp1 = (hCPU->fpr[frA].fp1 * hCPU->fpr[frC].fp1 - hCPU->fpr[frB].fp1);
-
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterTemp, fprRegisterC);
-	// todo-optimize: This instruction can be optimized so that it doesn't always use a temporary register
-	// if frD == frA and frD != frB we can multiply frD immediately and safe a copy instruction
-	if( frD == frA && frD != frB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-		// sub frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_PAIR, fprRegisterD, fprRegisterB);
-	}
-	else
-	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// sub frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_PAIR, fprRegisterTemp, fprRegisterB);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
-	}
-	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
-	return true;
-}
-
-bool PPCRecompilerImlGen_PS_NMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
+// PS_MSUB and PS_NMSUB
+bool PPCRecompilerImlGen_PS_MSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode, bool withNegative)
 {
 	sint32 frD, frA, frB, frC;
 	frC = (opcode>>6)&0x1F;
@@ -1565,35 +1315,64 @@ bool PPCRecompilerImlGen_PS_NMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 o
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
 
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	// we need a temporary register to store frC.fp0 in low and high half
-	IMLReg fprRegisterTemp = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY_FPR0+0);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterTemp, fprRegisterC);
-	// todo-optimize: This instruction can be optimized so that it doesn't always use a temporary register
-	// if frD == frA and frD != frB we can multiply frD immediately and safe a copy instruction
-	if( frD == frA && frD != frB )
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprCps0, frC);
+	DefinePS1(fprCps1, frC);
+
+	if (frD != frA && frD != frB)
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterD, fprRegisterTemp);
-		// sub frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_PAIR, fprRegisterD, fprRegisterB);
+		if (frD == frC)
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprCps0, fprAps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprCps1, fprAps1);
+		}
+		else
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprAps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprAps1);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps0, fprCps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps1, fprCps1);
+		}
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprDps1, fprBps1);
 	}
 	else
 	{
-		// we multiply temporary by frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_MULTIPLY_PAIR, fprRegisterTemp, fprRegisterA);
-		// sub frB
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUB_PAIR, fprRegisterTemp, fprRegisterB);
-		// copy result to frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterTemp);
+		DefineTempFPR(fprTemp0, 0);
+		DefineTempFPR(fprTemp1, 1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp0, fprCps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprTemp1, fprCps1);
+		if( frD == frA && frD != frB )
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps0, fprTemp0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDps1, fprTemp1);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprDps0, fprBps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprDps1, fprBps1);
+		}
+		else
+		{
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp0, fprAps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTemp1, fprAps1);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprTemp0, fprBps0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_SUB, fprTemp1, fprBps1);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprTemp0);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprTemp1);
+		}
 	}
 	// negate result
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_NEGATE_PAIR, fprRegisterD, fprRegisterD);
+	if (withNegative)
+	{
+		ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprDps0);
+		ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprDps1);
+	}
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1604,18 +1383,27 @@ bool PPCRecompilerImlGen_PS_SUM0(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 	frB = (opcode>>11)&0x1F;
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//float s0 = (float)(hCPU->fpr[frA].fp0 + hCPU->fpr[frB].fp1);
-	//float s1 = (float)hCPU->fpr[frC].fp1;
-	//hCPU->fpr[frD].fp0 = s0;
-	//hCPU->fpr[frD].fp1 = s1;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUM0, fprRegisterD, fprRegisterA, fprRegisterB, fprRegisterC);
+
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprBps1, frB);
+	DefinePS1(fprCps1, frC);
+
+	if( frD == frA )
+	{
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps1);
+	}
+	else
+	{
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps0, fprBps1);
+	}
+	if (fprDps1 != fprCps1)
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprCps1);
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1626,18 +1414,26 @@ bool PPCRecompilerImlGen_PS_SUM1(ppcImlGenContext_t* ppcImlGenContext, uint32 op
 	frB = (opcode>>11)&0x1F;
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//float s0 = (float)hCPU->fpr[frC].fp0;
-	//float s1 = (float)(hCPU->fpr[frA].fp0 + hCPU->fpr[frB].fp1);
-	//hCPU->fpr[frD].fp0 = s0;
-	//hCPU->fpr[frD].fp1 = s1;
-	// load registers
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SUM1, fprRegisterD, fprRegisterA, fprRegisterB, fprRegisterC);
+
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprCps0, frC);
+
+	if (frB != frD)
+	{
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprAps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprBps1);
+	}
+	else
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ADD, fprDps1, fprAps0);
+
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprCps0);
+
 	// adjust accuracy
-	PPRecompilerImmGen_optionalRoundPairFPRToSinglePrecision(ppcImlGenContext, fprRegisterD);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1646,12 +1442,20 @@ bool PPCRecompilerImlGen_PS_NEG(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	sint32 frD, frB;
 	frB = (opcode>>11)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//hCPU->fpr[frD].fp0 = -hCPU->fpr[frB].fp0;
-	//hCPU->fpr[frD].fp1 = -hCPU->fpr[frB].fp1;
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_NEGATE_PAIR, fprRegisterD, fprRegisterB);
+
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+
+	if (frB != frD)
+	{
+		// copy
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprBps1);
+	}
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprDps0);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_NEGATE, fprDps1);
 	return true;
 }
 
@@ -1660,10 +1464,17 @@ bool PPCRecompilerImlGen_PS_ABS(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	sint32 frD, frB;
 	frB = (opcode>>11)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_ABS_PAIR, fprRegisterD, fprRegisterB);
+
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprBps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprBps1);
+
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ABS, fprDps0);
+	ppcImlGenContext->emitInst().make_fpr_r(PPCREC_IML_OP_FPR_ABS, fprDps1);
 	return true;
 }
 
@@ -1675,11 +1486,16 @@ bool PPCRecompilerImlGen_PS_RES(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	//hCPU->fpr[frD].fp0 = (float)(1.0f / (float)hCPU->fpr[frB].fp0);
 	//hCPU->fpr[frD].fp1 = (float)(1.0f / (float)hCPU->fpr[frB].fp1);
 
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
 
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FRES_PAIR, fprRegisterD, fprRegisterB);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)fres_espresso, fprBps0, IMLREG_INVALID, IMLREG_INVALID, fprDps0);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)fres_espresso, fprBps1, IMLREG_INVALID, IMLREG_INVALID, fprDps1);
+	// adjust accuracy
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1688,13 +1504,17 @@ bool PPCRecompilerImlGen_PS_RSQRTE(ppcImlGenContext_t* ppcImlGenContext, uint32 
 	sint32 frD, frB;
 	frB = (opcode>>11)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//hCPU->fpr[frD].fp0 = (float)(1.0f / (float)sqrt(hCPU->fpr[frB].fp0));
-	//hCPU->fpr[frD].fp1 = (float)(1.0f / (float)sqrt(hCPU->fpr[frB].fp1));
 
-	// load registers
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FRSQRTE_PAIR, fprRegisterD, fprRegisterB);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)frsqrte_espresso, fprBps0, IMLREG_INVALID, IMLREG_INVALID, fprDps0);
+	ppcImlGenContext->emitInst().make_call_imm((uintptr_t)frsqrte_espresso, fprBps1, IMLREG_INVALID, IMLREG_INVALID, fprDps1);
+	// adjust accuracy
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps0);
+	PPRecompilerImmGen_roundToSinglePrecision(ppcImlGenContext, fprDps1);
 	return true;
 }
 
@@ -1703,14 +1523,15 @@ bool PPCRecompilerImlGen_PS_MR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	sint32 frD, frB;
 	frB = (opcode>>11)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//hCPU->fpr[frD].fp0 = hCPU->fpr[frB].fp0;
-	//hCPU->fpr[frD].fp1 = hCPU->fpr[frB].fp1;
-	// load registers
 	if( frB != frD )
 	{
-		IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-		IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_PAIR, fprRegisterD, fprRegisterB);
+		DefinePS0(fprBps0, frB);
+		DefinePS1(fprBps1, frB);
+		DefinePS0(fprDps0, frD);
+		DefinePS1(fprDps1, frD);
+
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps0, fprBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, fprDps1, fprBps1);
 	}
 	return true;
 }
@@ -1723,11 +1544,17 @@ bool PPCRecompilerImlGen_PS_SEL(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
 
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterC = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frC);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_SELECT_PAIR, fprRegisterD, fprRegisterA, fprRegisterB, fprRegisterC);
+	DefinePS0(fprAps0, frA);
+	DefinePS1(fprAps1, frA);
+	DefinePS0(fprBps0, frB);
+	DefinePS1(fprBps1, frB);
+	DefinePS0(fprCps0, frC);
+	DefinePS1(fprCps1, frC);
+	DefinePS0(fprDps0, frD);
+	DefinePS1(fprDps1, frD);
+
+	ppcImlGenContext->emitInst().make_fpr_r_r_r_r(PPCREC_IML_OP_FPR_SELECT, fprDps0, fprAps0, fprBps0, fprCps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r_r_r(PPCREC_IML_OP_FPR_SELECT, fprDps1, fprAps1, fprBps1, fprCps1);
 	return true;
 }
 
@@ -1737,26 +1564,13 @@ bool PPCRecompilerImlGen_PS_MERGE00(ppcImlGenContext_t* ppcImlGenContext, uint32
 	frB = (opcode>>11)&0x1F;
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	//float s0 = (float)hCPU->fpr[frA].fp0;
-	//float s1 = (float)hCPU->fpr[frB].fp0;
-	//hCPU->fpr[frD].fp0 = s0;
-	//hCPU->fpr[frD].fp1 = s1;
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-
-	if( frA == frB )
-	{
-		// simply duplicate bottom into bottom and top of destination register
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterA);
-	}
-	else
-	{
-		// copy bottom of frB to top first
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_TOP, fprRegisterD, fprRegisterB);
-		// copy bottom of frA
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterA);
-	}
+	DefinePS0(frpAps0, frA);
+	DefinePS0(frpBps0, frB);
+	DefinePS0(frpDps0, frD);
+	DefinePS1(frpDps1, frD);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps1, frpBps0);
+	if (frpDps0 != frpAps0)
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps0, frpAps0);
 	return true;
 }
 
@@ -1766,17 +1580,14 @@ bool PPCRecompilerImlGen_PS_MERGE01(ppcImlGenContext_t* ppcImlGenContext, uint32
 	frB = (opcode>>11)&0x1F;
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
-	// hCPU->fpr[frD].fp0 = hCPU->fpr[frA].fp0;
-	// hCPU->fpr[frD].fp1 = hCPU->fpr[frB].fp1;
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
+	DefinePS0(frpAps0, frA);
+	DefinePS1(frpBps1, frB);
+	DefinePS0(frpDps0, frD);
+	DefinePS1(frpDps1, frD);
 
-	if( fprRegisterD != fprRegisterB )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_TOP, fprRegisterD, fprRegisterB);
-	if( fprRegisterD != fprRegisterA )
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterA);
-
+	if (frpDps0 != frpAps0)
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps0, frpAps0);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps1, frpBps1);
 	return true;
 }
 
@@ -1787,33 +1598,22 @@ bool PPCRecompilerImlGen_PS_MERGE10(ppcImlGenContext_t* ppcImlGenContext, uint32
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
 
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( frA == frB )
+	DefinePS1(frpAps1, frA);
+	DefinePS0(frpBps0, frB);
+	DefinePS0(frpDps0, frD);
+	DefinePS1(frpDps1, frD);
+
+	if (frD != frB)
 	{
-		// swap bottom and top
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED, fprRegisterD, fprRegisterA);
-	}
-	else if( frA == frD )
-	{
-		// copy frB bottom to frD bottom
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
-		// swap lower and upper half of frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED, fprRegisterD, fprRegisterD);
-	}
-	else if( frB == frD )
-	{
-		// copy upper half of frA to upper half of frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_TOP, fprRegisterD, fprRegisterA);
-		// swap lower and upper half of frD
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED, fprRegisterD, fprRegisterD);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps0, frpAps1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps1, frpBps0);
 	}
 	else
 	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterA);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_TO_BOTTOM, fprRegisterD, fprRegisterB);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_BOTTOM_AND_TOP_SWAPPED, fprRegisterD, fprRegisterD);
+		DefineTempFPR(frpTemp, 0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpTemp, frpBps0);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps0, frpAps1);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps1, frpTemp);
 	}
 	return true;
 }
@@ -1825,73 +1625,64 @@ bool PPCRecompilerImlGen_PS_MERGE11(ppcImlGenContext_t* ppcImlGenContext, uint32
 	frA = (opcode>>16)&0x1F;
 	frD = (opcode>>21)&0x1F;
 
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	IMLReg fprRegisterD = PPCRecompilerImlGen_loadOverwriteFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frD);
-	if( fprRegisterA == fprRegisterB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterA);
-	}
-	else if( fprRegisterD != fprRegisterB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM_AND_TOP, fprRegisterD, fprRegisterA);
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_TOP, fprRegisterD, fprRegisterB);
-	}
-	else if( fprRegisterD == fprRegisterB )
-	{
-		PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_COPY_TOP_TO_BOTTOM, fprRegisterD, fprRegisterA);
-	}
-	else
-	{
-		debugBreakpoint();
-		return false;
-	}
+	DefinePS1(frpAps1, frA);
+	DefinePS1(frpBps1, frB);
+	DefinePS0(frpDps0, frD);
+	DefinePS1(frpDps1, frD);
+
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps0, frpAps1);
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_ASSIGN, frpDps1, frpBps1);
 	return true;
 }
 
 bool PPCRecompilerImlGen_PS_CMPO0(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("PS_CMPO0: Not implemented\n");
+	// Not implemented
 	return false;
-
-	sint32 crfD, frA, frB;
-	uint32 c=0;
-	frB = (opcode>>11)&0x1F;
-	frA = (opcode>>16)&0x1F;
-	crfD = (opcode>>23)&0x7;
-
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0+frB);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPO_BOTTOM, fprRegisterA, fprRegisterB, crfD);
-	return true;
 }
 
 bool PPCRecompilerImlGen_PS_CMPU0(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("PS_CMPU0: Not implemented\n");
-	return false;
-
 	sint32 crfD, frA, frB;
 	frB = (opcode >> 11) & 0x1F;
 	frA = (opcode >> 16) & 0x1F;
 	crfD = (opcode >> 23) & 0x7;
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPU_BOTTOM, fprRegisterA, fprRegisterB, crfD);
+
+	DefinePS0(fprA, frA);
+	DefinePS0(fprB, frB);
+
+	IMLReg crBitRegLT = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_LT);
+	IMLReg crBitRegGT = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_GT);
+	IMLReg crBitRegEQ = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_EQ);
+	IMLReg crBitRegSO = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_SO);
+
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegLT, IMLCondition::UNORDERED_LT);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegGT, IMLCondition::UNORDERED_GT);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegSO, IMLCondition::UNORDERED_U);
+
+	// todo: set fpscr
 	return true;
 }
 
 bool PPCRecompilerImlGen_PS_CMPU1(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
 {
-	printf("PS_CMPU1: Not implemented\n");
-	return false;
-
 	sint32 crfD, frA, frB;
 	frB = (opcode >> 11) & 0x1F;
 	frA = (opcode >> 16) & 0x1F;
 	crfD = (opcode >> 23) & 0x7;
-	IMLReg fprRegisterA = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frA);
-	IMLReg fprRegisterB = PPCRecompilerImlGen_loadFPRRegister(ppcImlGenContext, PPCREC_NAME_FPR0 + frB);
-	PPCRecompilerImlGen_generateNewInstruction_fpr_r_r(ppcImlGenContext, PPCREC_IML_OP_FPR_FCMPU_TOP, fprRegisterA, fprRegisterB, crfD);
+
+	DefinePS1(fprA, frA);
+	DefinePS1(fprB, frB);
+
+	IMLReg crBitRegLT = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_LT);
+	IMLReg crBitRegGT = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_GT);
+	IMLReg crBitRegEQ = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_EQ);
+	IMLReg crBitRegSO = _GetRegCR(ppcImlGenContext, crfD, Espresso::CR_BIT::CR_BIT_INDEX_SO);
+
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegLT, IMLCondition::UNORDERED_LT);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegGT, IMLCondition::UNORDERED_GT);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegEQ, IMLCondition::UNORDERED_EQ);
+	ppcImlGenContext->emitInst().make_fpr_compare(fprA, fprB, crBitRegSO, IMLCondition::UNORDERED_U);
 	return true;
 }

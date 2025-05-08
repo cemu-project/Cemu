@@ -609,7 +609,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r(PPCRecFunction_t* PPCRecFunction, pp
 	}
 	else
 	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
+		cemuLog_logDebug(LogType::Force, "PPCRecompilerX64Gen_imlInstruction_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
 		return false;
 	}
 	return true;
@@ -635,7 +635,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_s32(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else
 	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_s32(): Unsupported operation 0x%x\n", imlInstruction->operation);
+		cemuLog_logDebug(LogType::Force, "PPCRecompilerX64Gen_imlInstruction_r_s32(): Unsupported operation 0x%x\n", imlInstruction->operation);
 		return false;
 	}
 	return true;
@@ -894,7 +894,7 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 	}
 	else
 	{
-		debug_printf("PPCRecompilerX64Gen_imlInstruction_r_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
+		cemuLog_logDebug(LogType::Force, "PPCRecompilerX64Gen_imlInstruction_r_r_r(): Unsupported operation 0x%x\n", imlInstruction->operation);
 		return false;
 	}
 	return true;
@@ -1204,9 +1204,11 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 	else if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::F64)
 	{
 		auto regR = _regF64(imlInstruction->op_r_name.regR);
-		if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
+		if (name >= PPCREC_NAME_FPR_HALF && name < (PPCREC_NAME_FPR_HALF + 64))
 		{
-			x64Gen_movupd_xmmReg_memReg128(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+			sint32 regIndex = (name - PPCREC_NAME_FPR_HALF) / 2;
+			sint32 pairIndex = (name - PPCREC_NAME_FPR_HALF) % 2;
+			x64Gen_movsd_xmmReg_memReg64(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * regIndex + pairIndex * sizeof(double));
 		}
 		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
 		{
@@ -1281,9 +1283,11 @@ void PPCRecompilerX64Gen_imlInstruction_name_r(PPCRecFunction_t* PPCRecFunction,
 	{
 		auto regR = _regF64(imlInstruction->op_r_name.regR);
 		uint32 name = imlInstruction->op_r_name.name;
-		if (name >= PPCREC_NAME_FPR0 && name < (PPCREC_NAME_FPR0 + 32))
+		if (name >= PPCREC_NAME_FPR_HALF && name < (PPCREC_NAME_FPR_HALF + 64))
 		{
-			x64Gen_movupd_memReg128_xmmReg(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * (name - PPCREC_NAME_FPR0));
+			sint32 regIndex = (name - PPCREC_NAME_FPR_HALF) / 2;
+			sint32 pairIndex = (name - PPCREC_NAME_FPR_HALF) % 2;
+			x64Gen_movsd_memReg64_xmmReg(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * regIndex + (pairIndex ? sizeof(double) : 0));
 		}
 		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
 		{
