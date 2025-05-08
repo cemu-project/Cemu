@@ -277,7 +277,8 @@ void IMLInstruction::CheckRegisterUsage(IMLUsedRegisters* registersUsed) const
 
 		}
 		else if (operation == PPCREC_IML_OP_FPR_FLOAT_TO_INT ||
-			operation == PPCREC_IML_OP_FPR_INT_TO_FLOAT)
+			operation == PPCREC_IML_OP_FPR_INT_TO_FLOAT ||
+			operation == PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT)
 		{
 			registersUsed->writtenGPR1 = op_fpr_r_r.regR;
 			registersUsed->readGPR1 = op_fpr_r_r.regA;

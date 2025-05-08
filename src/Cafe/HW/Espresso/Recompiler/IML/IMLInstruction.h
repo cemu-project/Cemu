@@ -143,6 +143,9 @@ enum
 	PPCREC_IML_OP_FPR_INT_TO_FLOAT, // convert integer value in gpr to floating point value in fpr
 	PPCREC_IML_OP_FPR_FLOAT_TO_INT, // convert floating point value in fpr to integer value in gpr
 
+	// Bitcast (FPR_R_R)
+	PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT,
+
 	// R_R_R + R_R_S32
 	PPCREC_IML_OP_ADD, // also R_R_R_CARRY
 	PPCREC_IML_OP_SUB,

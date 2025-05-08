@@ -241,6 +241,25 @@ void PPCRecompilerX64Gen_imlInstruction_fpr_r_r(PPCRecFunction_t* PPCRecFunction
 		x64Gen_cvtsi2sd_xmmReg_xmmReg(x64GenContext, regFpr, regGpr);
 		return;
 	}
+	else if (imlInstruction->operation == PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT)
+	{
+		cemu_assert_debug(imlInstruction->op_fpr_r_r.regR.GetRegFormat() == IMLRegFormat::F64); // assuming target is always F64 for now
+		cemu_assert_debug(imlInstruction->op_fpr_r_r.regA.GetRegFormat() == IMLRegFormat::I32); // supporting only 32bit floats as input for now
+		// exact operation depends on size of types. Floats are automatically promoted to double if the target is F64
+		uint32 regFpr = _regF64(imlInstruction->op_fpr_r_r.regR);
+		if (imlInstruction->op_fpr_r_r.regA.GetRegFormat() == IMLRegFormat::I32)
+		{
+			uint32 regGpr = _regI32(imlInstruction->op_fpr_r_r.regA);
+			x64Gen_movq_xmmReg_reg64(x64GenContext, regFpr, regGpr); // using reg32 as reg64 param here is ok. We'll refactor later
+			// float to double
+			x64Gen_cvtss2sd_xmmReg_xmmReg(x64GenContext, regFpr, regFpr);
+		}
+		else
+		{
+			cemu_assert_unimplemented();
+		}
+		return;
+	}
 
 	uint32 regR = _regF64(imlInstruction->op_fpr_r_r.regR);
 	uint32 regA = _regF64(imlInstruction->op_fpr_r_r.regA);

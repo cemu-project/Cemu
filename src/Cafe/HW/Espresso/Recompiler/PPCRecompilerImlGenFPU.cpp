@@ -744,7 +744,21 @@ void PPCRecompilerImlGen_ClampInteger(ppcImlGenContext_t* ppcImlGenContext, IMLR
 	);
 }
 
-void PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext_t* ppcImlGenContext, Espresso::PSQ_LOAD_TYPE loadType, bool readPS1, IMLReg gprA, sint32 imm, IMLReg fprDPS0, IMLReg fprDPS1)
+void PPCRecompilerIMLGen_GetPSQScale(ppcImlGenContext_t* ppcImlGenContext, IMLReg gqrRegister, IMLReg fprRegScaleOut, bool isLoad)
+{
+	IMLReg gprTmp2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 2);
+	// extract scale factor and sign extend it
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, gprTmp2, gqrRegister, 32 - ((isLoad ? 24 : 8)+7));
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_S, gprTmp2, gprTmp2, (32-23)-7);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, gprTmp2, gprTmp2, 0x1FF<<23);
+	if (isLoad)
+		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NEG, gprTmp2, gprTmp2);
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_ADD, gprTmp2, gprTmp2, 0x7F<<23);
+	// gprTmp2 now holds the scale float bits, bitcast to float
+	ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT, fprRegScaleOut, gprTmp2);
+}
+
+void PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext_t* ppcImlGenContext, sint32 gqrIndex, Espresso::PSQ_LOAD_TYPE loadType, bool readPS1, IMLReg gprA, sint32 imm, IMLReg fprDPS0, IMLReg fprDPS1)
 {
 	if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_F32)
 	{
@@ -756,26 +770,42 @@ void PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext_t* ppcImlGenContext, E
 	}
 	if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_U16 || loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S16)
 	{
+		// get scale factor
+		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
+		IMLReg fprScaleReg = _GetFPRTemp(ppcImlGenContext, 2);
+		PPCRecompilerIMLGen_GetPSQScale(ppcImlGenContext, gqrRegister, fprScaleReg, true);
+
 		bool isSigned = (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S16);
 		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
 		ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm, 16, isSigned, true);
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS0, gprTmp);
+
+		ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDPS0, fprDPS0, fprScaleReg);
+
 		if(readPS1)
 		{
 			ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm + 2, 16, isSigned, true);
 			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS1, gprTmp);
+			ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDPS1, fprDPS1, fprScaleReg);
 		}
 	}
 	else if (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_U8 || loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S8)
 	{
+		// get scale factor
+		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
+		IMLReg fprScaleReg = _GetFPRTemp(ppcImlGenContext, 2);
+		PPCRecompilerIMLGen_GetPSQScale(ppcImlGenContext, gqrRegister, fprScaleReg, true);
+
 		bool isSigned = (loadType == Espresso::PSQ_LOAD_TYPE::TYPE_S8);
 		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
 		ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm, 8, isSigned, true);
 		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS0, gprTmp);
+		ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDPS0, fprDPS0, fprScaleReg);
 		if(readPS1)
 		{
 			ppcImlGenContext->emitInst().make_r_memory(gprTmp, gprA, imm + 1, 8, isSigned, true);
 			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_INT_TO_FLOAT, fprDPS1, gprTmp);
+			ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprDPS1, fprDPS1, fprScaleReg);
 		}
 	}
 }
@@ -812,14 +842,15 @@ bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
 		IMLReg loadTypeReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
 		// extract the load type from the GQR register
-		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, loadTypeReg, gqrRegister, 0x7);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_U, loadTypeReg, gqrRegister, 16);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, loadTypeReg, loadTypeReg, 0x7);
 		IMLSegment* caseSegment[6];
 		sint32 compareValues[6] = {0, 4, 5, 6, 7};
 		PPCIMLGen_CreateSegmentBranchedPathMultiple(*ppcImlGenContext, *ppcImlGenContext->currentBasicBlock, caseSegment, loadTypeReg, compareValues, 5, 0);
 		for (sint32 i=0; i<5; i++)
 		{
 			IMLRedirectInstOutput outputToCase(ppcImlGenContext, caseSegment[i]); // while this is in scope, instructions go to caseSegment[i]
-			PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext, static_cast<Espresso::PSQ_LOAD_TYPE>(compareValues[i]), readPS1, gprA, imm, fprDPS0, fprDPS1);
+			PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext, gqrIndex, static_cast<Espresso::PSQ_LOAD_TYPE>(compareValues[i]), readPS1, gprA, imm, fprDPS0, fprDPS1);
 			// create the case jump instructions here because we need to add it last
 			caseSegment[i]->AppendInstruction()->make_jump();
 		}
@@ -839,11 +870,11 @@ bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		return false;
 	}
 
-	PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext, type, readPS1, gprA, imm, fprDPS0, fprDPS1);
+	PPCRecompilerImlGen_EmitPSQLoadCase(ppcImlGenContext, gqrIndex, type, readPS1, gprA, imm, fprDPS0, fprDPS1);
 	return true;
 }
 
-void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, Espresso::PSQ_LOAD_TYPE storeType, bool storePS1, IMLReg gprA, sint32 imm, IMLReg fprDPS0, IMLReg fprDPS1)
+void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, sint32 gqrIndex, Espresso::PSQ_LOAD_TYPE storeType, bool storePS1, IMLReg gprA, sint32 imm, IMLReg fprDPS0, IMLReg fprDPS1)
 {
 	cemu_assert_debug(!storePS1 || fprDPS1.IsValid());
 	if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_F32)
@@ -856,10 +887,18 @@ void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 	else if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_U16 || storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S16)
 	{
+		// get scale factor
+		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
+		IMLReg fprScaleReg = _GetFPRTemp(ppcImlGenContext, 2);
+		PPCRecompilerIMLGen_GetPSQScale(ppcImlGenContext, gqrRegister, fprScaleReg, false);
+
 		bool isSigned = (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S16);
+		IMLReg fprTmp = _GetFPRTemp(ppcImlGenContext, 0);
+
 		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS0);
-		// todo - scaling
+		ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp, fprDPS0, fprScaleReg);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprTmp);
+
 		if (isSigned)
 			PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -32768, 32767);
 		else
@@ -867,8 +906,8 @@ void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, 
 		ppcImlGenContext->emitInst().make_memory_r(gprTmp, gprA, imm, 16, true);
 		if(storePS1)
 		{
-			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS1);
-			// todo - scaling
+			ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp, fprDPS1, fprScaleReg);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprTmp);
 			if (isSigned)
 				PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -32768, 32767);
 			else
@@ -878,9 +917,16 @@ void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, 
 	}
 	else if (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_U8 || storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S8)
 	{
+		// get scale factor
+		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
+		IMLReg fprScaleReg = _GetFPRTemp(ppcImlGenContext, 2);
+		PPCRecompilerIMLGen_GetPSQScale(ppcImlGenContext, gqrRegister, fprScaleReg, false);
+
 		bool isSigned = (storeType == Espresso::PSQ_LOAD_TYPE::TYPE_S8);
+		IMLReg fprTmp = _GetFPRTemp(ppcImlGenContext, 0);
 		IMLReg gprTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
-		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS0);
+		ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp, fprDPS0, fprScaleReg);
+		ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprTmp);
 		if (isSigned)
 			PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -128, 127);
 		else
@@ -888,8 +934,8 @@ void PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext_t* ppcImlGenContext, 
 		ppcImlGenContext->emitInst().make_memory_r(gprTmp, gprA, imm, 8, true);
 		if(storePS1)
 		{
-			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprDPS1);
-			// todo - scaling
+			ppcImlGenContext->emitInst().make_fpr_r_r_r(PPCREC_IML_OP_FPR_MULTIPLY, fprTmp, fprDPS1, fprScaleReg);
+			ppcImlGenContext->emitInst().make_fpr_r_r(PPCREC_IML_OP_FPR_FLOAT_TO_INT, gprTmp, fprTmp);
 			if (isSigned)
 				PPCRecompilerImlGen_ClampInteger(ppcImlGenContext, gprTmp, -128, 127);
 			else
@@ -928,8 +974,7 @@ bool PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		IMLReg gqrRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_SPR0 + SPR_UGQR0 + gqrIndex);
 		IMLReg loadTypeReg = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
 		// extract the load type from the GQR register
-		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_U, loadTypeReg, gqrRegister, 16);
-		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, loadTypeReg, loadTypeReg, 0x7);
+		ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, loadTypeReg, gqrRegister, 0x7);
 
 		IMLSegment* caseSegment[5];
 		sint32 compareValues[5] = {0, 4, 5, 6, 7};
@@ -937,7 +982,7 @@ bool PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		for (sint32 i=0; i<5; i++)
 		{
 			IMLRedirectInstOutput outputToCase(ppcImlGenContext, caseSegment[i]); // while this is in scope, instructions go to caseSegment[i]
-			PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext, static_cast<Espresso::PSQ_LOAD_TYPE>(compareValues[i]), storePS1, gprA, imm, fprDPS0, fprDPS1);
+			PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext, gqrIndex, static_cast<Espresso::PSQ_LOAD_TYPE>(compareValues[i]), storePS1, gprA, imm, fprDPS0, fprDPS1);
 			ppcImlGenContext->emitInst().make_jump(); // finalize case
 		}
 		return true;
@@ -954,7 +999,7 @@ bool PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		return false;
 	}
 
-	PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext, type, storePS1, gprA, imm, fprDPS0, fprDPS1);
+	PPCRecompilerImlGen_EmitPSQStoreCase(ppcImlGenContext, gqrIndex, type, storePS1, gprA, imm, fprDPS0, fprDPS1);
 	return true;
 }
 
