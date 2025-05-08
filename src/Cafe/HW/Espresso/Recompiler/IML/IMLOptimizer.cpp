@@ -209,18 +209,17 @@ sint32 _getGQRIndexFromRegister(ppcImlGenContext_t* ppcImlGenContext, IMLReg gqr
 
 bool PPCRecompiler_isUGQRValueKnown(ppcImlGenContext_t* ppcImlGenContext, sint32 gqrIndex, uint32& gqrValue)
 {
-	// UGQR 2 to 7 are initialized by the OS and we assume that games won't ever permanently touch those
-	// todo - hack - replace with more accurate solution
+	// the default configuration is:
+	// UGQR0 = 0x00000000
+	// UGQR2 = 0x00040004
+	// UGQR3 = 0x00050005
+	// UGQR4 = 0x00060006
+	// UGQR5 = 0x00070007
+	// but games are free to modify UGQR2 to UGQR7 it seems.
+	// no game modifies UGQR0 so it's safe enough to optimize for the default value
+	// Ideally we would do some kind of runtime tracking and second recompilation to create fast paths for PSQ_L/PSQ_ST but thats todo
 	if (gqrIndex == 0)
 		gqrValue = 0x00000000;
-	else if (gqrIndex == 2)
-		gqrValue = 0x00040004;
-	else if (gqrIndex == 3)
-		gqrValue = 0x00050005;
-	else if (gqrIndex == 4)
-		gqrValue = 0x00060006;
-	else if (gqrIndex == 5)
-		gqrValue = 0x00070007;
 	else
 		return false;
 	return true;
