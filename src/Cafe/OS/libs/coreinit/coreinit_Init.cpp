@@ -216,3 +216,21 @@ void coreinit_start(PPCInterpreter_t* hCPU)
 	hCPU->gpr[3] = _coreinitInfo->argc;
 	hCPU->instructionPointer = _coreinitTitleEntryPoint;
 }
+
+void coreinit_Init_Save(MemStreamWriter& s)
+{
+	s.writeSection("coreinit_Init");
+	s.writeNullableData(_coreinitInfo, sizeof(coreinitInit_t));
+	s.write(argStorageIndex);
+	s.writeMPTR(g_preinitUserParam);
+	s.write(_coreinitTitleEntryPoint);
+}
+
+void coreinit_Init_Restore(MemStreamReader& s)
+{
+	s.readSection("coreinit_Init");
+	s.readNullableData(_coreinitInfo, sizeof(coreinitInit_t));
+	s.read(argStorageIndex);
+	s.readMPTR(g_preinitUserParam);
+	s.read(_coreinitTitleEntryPoint);
+}

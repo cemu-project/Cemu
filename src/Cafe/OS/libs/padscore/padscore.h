@@ -4,6 +4,9 @@
 
 namespace padscore
 {
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
+
 	void start();
 	void load();
 }

@@ -247,7 +247,7 @@ namespace coreinit
 		}
 		else
 		{
-			alarm->nextTime = _swapEndianU64(startTime);
+			alarm->nextTime = _swapEndianU64(nextTime);
 			alarm->period = 0;
 			alarm->handler = _swapEndianU32(handlerFunc);
 		}
@@ -303,6 +303,68 @@ namespace coreinit
         g_activeAlarms.clear();
         OSHostAlarm::Reset();
         __OSUnlockScheduler();
+	}
+
+	void Alarm_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_Alarm");
+
+		s.writeMPTR(g_alarmEvent);
+		s.writeMPTR(g_alarmThread);
+		s.writeMPTR(_g_alarmThreadStack);
+		s.writeMPTR(_g_alarmThreadName);
+
+		s.write(coreinit_getOSTime());
+
+		s.write((uint64)g_activeAlarms.size());
+		for (auto& itr : g_activeAlarms)
+		{
+			s.write(memory_getVirtualOffsetFromPointer(itr.first));
+			s.write(itr.second->getNextFire());
+		}
+	}
+
+	void Alarm_Restore(MemStreamReader& s)
+	{
+		OSAlarm_Shutdown();
+
+		s.readSection("coreinit_Alarm");
+
+		s.readMPTR(g_alarmEvent);
+		s.readMPTR(g_alarmThread);
+		s.readMPTR(_g_alarmThreadStack);
+		s.readMPTR(_g_alarmThreadName);
+
+		uint64 currentTime = coreinit_getOSTime();
+		uint64_t timeOffset = currentTime - s.read<uint64_t>();
+
+		size_t alms = s.read<uint64>();
+		for (size_t alm = 0; alm < alms; alm++)
+		{
+			OSAlarm_t* alarm = (OSAlarm_t*)memory_getPointerFromVirtualOffset(s.read<MPTR>());
+
+			uint64 startTime = _swapEndianU64(alarm->startTime) + timeOffset;
+			uint64 nextTime = _swapEndianU64(alarm->nextTime) + timeOffset;
+			//uint64 nextTime = startTime;
+
+			uint64 period = _swapEndianU64(alarm->period);
+
+			if (period != 0)
+			{
+				//uint64 ticksSinceStart = currentTime - startTime;
+				//uint64 numPeriods = ticksSinceStart / period;
+			
+				//nextTime = startTime + (numPeriods + 1ull) * period;
+			
+				alarm->startTime = _swapEndianU64(startTime);
+			}
+			alarm->nextTime = _swapEndianU64(nextTime);
+
+			uint64 nextFire = s.read<uint64>() + timeOffset;
+			__OSLockScheduler();
+			g_activeAlarms[alarm] = OSHostAlarmCreate(nextFire, period, __OSHostAlarmTriggered, nullptr);
+			__OSUnlockScheduler();
+		}
 	}
 
 	void _OSAlarmThread(PPCInterpreter_t* hCPU)

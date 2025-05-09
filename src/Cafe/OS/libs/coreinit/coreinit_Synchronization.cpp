@@ -612,6 +612,18 @@ namespace coreinit
 		OSWakeupThread(&fastCond->threadQueue);
 	}
 
+	void Synchronization_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_Synchronization");
+		s.writeMPTR(g_rendezvousEvent);
+	}
+
+	void Synchronization_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_Synchronization");
+		s.readMPTR(g_rendezvousEvent);
+	}
+
 	/************* init ************/
 
 	void InitializeConcurrency()
