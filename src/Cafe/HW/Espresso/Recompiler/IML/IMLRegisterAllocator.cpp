@@ -6,6 +6,9 @@
 #include "IMLRegisterAllocatorRanges.h"
 
 #include "../BackendX64/BackendX64.h"
+#ifdef __aarch64__
+#include "../BackendAArch64/BackendAArch64.h"
+#endif
 
 #include <boost/container/static_vector.hpp>
 #include <boost/container/small_vector.hpp>
@@ -127,23 +130,22 @@ static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRe
 	fixedRegs.listInput.clear();
 	fixedRegs.listOutput.clear();
 
-	// code below for aarch64 has not been tested
 	// The purpose of GetInstructionFixedRegisters() is to constraint virtual registers to specific physical registers for instructions which need it
 	// on x86 this is used for instructions like SHL <reg>, CL where the CL register is hardwired. On aarch it's probably only necessary for setting up the calling convention
-	cemu_assert_unimplemented();
-#ifdef 0
 	if (instruction->type == PPCREC_IML_TYPE_CALL_IMM)
 	{
 		const IMLPhysReg intParamToPhysReg[3] = {IMLArchAArch64::PHYSREG_GPR_BASE + 0, IMLArchAArch64::PHYSREG_GPR_BASE + 1, IMLArchAArch64::PHYSREG_GPR_BASE + 2};
 		const IMLPhysReg floatParamToPhysReg[3] = {IMLArchAArch64::PHYSREG_FPR_BASE + 0, IMLArchAArch64::PHYSREG_FPR_BASE + 1, IMLArchAArch64::PHYSREG_FPR_BASE + 2};
 		IMLPhysRegisterSet volatileRegs;
-		for (int i=0; i<19; i++) // x0 to x18 are volatile
+		for (int i = 0; i <= 17; i++) // x0 to x17 are volatile
 			volatileRegs.SetAvailable(IMLArchAArch64::PHYSREG_GPR_BASE + i);
-		for (int i = 0; i <= 31; i++) // which float registers are volatile?
+		// v0-v7 & v16-v31 are volatile. For v8-v15 only the high 64 bits are volatile.
+		for (int i = 0; i <= 7; i++)
+			volatileRegs.SetAvailable(IMLArchAArch64::PHYSREG_FPR_BASE + i);
+		for (int i = 16; i <= 31; i++)
 			volatileRegs.SetAvailable(IMLArchAArch64::PHYSREG_FPR_BASE + i);
 		SetupCallingConvention(instruction, fixedRegs, intParamToPhysReg, floatParamToPhysReg, IMLArchAArch64::PHYSREG_GPR_BASE + 0, IMLArchAArch64::PHYSREG_FPR_BASE + 0, volatileRegs);
 	}
-#endif
 }
 #else
 // x86-64
