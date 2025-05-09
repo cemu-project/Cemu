@@ -281,16 +281,41 @@ struct AArch64GenContext_t : CodeGenerator
 	}
 };
 
-template<typename T>
+template<std::derived_from<VRegSc> T>
 T fpReg(const IMLReg& imlReg)
 {
-	return T(imlReg.GetRegID() - IMLArchAArch64::PHYSREG_FPR_BASE);
+	cemu_assert_debug(imlReg.GetRegFormat() == IMLRegFormat::F64);
+	auto regId = imlReg.GetRegID();
+	cemu_assert_debug(regId >= IMLArchAArch64::PHYSREG_FPR_BASE && regId < IMLArchAArch64::PHYSREG_FPR_BASE + IMLArchAArch64::PHYSREG_FPR_COUNT);
+	return T(regId - IMLArchAArch64::PHYSREG_FPR_BASE);
 }
 
-template<typename T>
+template<std::derived_from<RReg> T>
 T gpReg(const IMLReg& imlReg)
 {
-	return T(imlReg.GetRegID() - IMLArchAArch64::PHYSREG_GPR_BASE);
+	auto regFormat = imlReg.GetRegFormat();
+	if (std::is_same_v<T, WReg>)
+		cemu_assert_debug(regFormat == IMLRegFormat::I32);
+	else if (std::is_same_v<T, XReg>)
+		cemu_assert_debug(regFormat == IMLRegFormat::I64);
+	else
+		cemu_assert_unimplemented();
+
+	auto regId = imlReg.GetRegID();
+	cemu_assert_debug(regId >= IMLArchAArch64::PHYSREG_GPR_BASE && regId < IMLArchAArch64::PHYSREG_GPR_BASE + IMLArchAArch64::PHYSREG_GPR_COUNT);
+	return T(regId - IMLArchAArch64::PHYSREG_GPR_BASE);
+}
+
+template<std::derived_from<VRegSc> To, std::derived_from<VRegSc> From>
+To aliasAs(const From& reg)
+{
+	return To(reg.getIdx());
+}
+
+template<std::derived_from<RReg> To, std::derived_from<RReg> From>
+To aliasAs(const From& reg)
+{
+	return To(reg.getIdx());
 }
 
 AArch64GenContext_t::AArch64GenContext_t(Allocator* allocator)
@@ -356,7 +381,8 @@ void AArch64GenContext_t::r_name(IMLInstruction* imlInstruction)
 
 	if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::I64)
 	{
-		WReg regR = gpReg<WReg>(imlInstruction->op_r_name.regR);
+		XReg regRXReg = gpReg<XReg>(imlInstruction->op_r_name.regR);
+		WReg regR = aliasAs<WReg>(regRXReg);
 		if (name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0 + 32)
 		{
 			ldr(regR, AdrUimm(HCPU_REG, offsetof(PPCInterpreter_t, gpr) + sizeof(uint32) * (name - PPCREC_NAME_R0)));
@@ -436,7 +462,8 @@ void AArch64GenContext_t::name_r(IMLInstruction* imlInstruction)
 
 	if (imlInstruction->op_r_name.regR.GetBaseFormat() == IMLRegFormat::I64)
 	{
-		auto regR = gpReg<WReg>(imlInstruction->op_r_name.regR);
+		XReg regRXReg = gpReg<XReg>(imlInstruction->op_r_name.regR);
+		WReg regR = aliasAs<WReg>(regRXReg);
 		if (name >= PPCREC_NAME_R0 && name < PPCREC_NAME_R0 + 32)
 		{
 			str(regR, AdrUimm(HCPU_REG, offsetof(PPCInterpreter_t, gpr) + sizeof(uint32) * (name - PPCREC_NAME_R0)));
@@ -657,7 +684,7 @@ bool AArch64GenContext_t::r_r_s32_carry(IMLInstruction* imlInstruction)
 bool AArch64GenContext_t::r_r_r(IMLInstruction* imlInstruction)
 {
 	WReg regResult = gpReg<WReg>(imlInstruction->op_r_r_r.regR);
-	XReg reg64Result = gpReg<XReg>(imlInstruction->op_r_r_r.regR);
+	XReg reg64Result = aliasAs<XReg>(regResult);
 	WReg regOperand1 = gpReg<WReg>(imlInstruction->op_r_r_r.regA);
 	WReg regOperand2 = gpReg<WReg>(imlInstruction->op_r_r_r.regB);
 
@@ -859,12 +886,12 @@ bool AArch64GenContext_t::macro(IMLInstruction* imlInstruction)
 {
 	if (imlInstruction->operation == PPCREC_IML_MACRO_B_TO_REG)
 	{
-		XReg branchDstReg = gpReg<XReg>(imlInstruction->op_macro.paramReg);
+		WReg branchDstReg = gpReg<WReg>(imlInstruction->op_macro.paramReg);
 
-		mov(TEMP_GPR1.XReg, offsetof(PPCRecompilerInstanceData_t, ppcRecompilerDirectJumpTable));
-		add(TEMP_GPR1.XReg, TEMP_GPR1.XReg, branchDstReg, ShMod::LSL, 1);
-		ldr(TEMP_GPR1.XReg, AdrReg(PPC_REC_INSTANCE_REG, TEMP_GPR1.XReg));
-		mov(LR.XReg, branchDstReg);
+		mov(TEMP_GPR1.WReg, offsetof(PPCRecompilerInstanceData_t, ppcRecompilerDirectJumpTable));
+		add(TEMP_GPR1.WReg, TEMP_GPR1.WReg, branchDstReg, ShMod::LSL, 1);
+		ldr(TEMP_GPR1.XReg, AdrExt(PPC_REC_INSTANCE_REG, TEMP_GPR1.WReg, ExtMod::UXTW));
+		mov(LR.WReg, branchDstReg);
 		br(TEMP_GPR1.XReg);
 		return true;
 	}
@@ -1390,9 +1417,9 @@ Cond ImlFPCondToArm64Cond(IMLCondition cond)
 
 void AArch64GenContext_t::fpr_compare(IMLInstruction* imlInstruction)
 {
-	auto regR = gpReg<XReg>(imlInstruction->op_fpr_compare.regR);
-	auto regA = fpReg<DReg>(imlInstruction->op_fpr_compare.regA);
-	auto regB = fpReg<DReg>(imlInstruction->op_fpr_compare.regB);
+	WReg regR = gpReg<WReg>(imlInstruction->op_fpr_compare.regR);
+	DReg regA = fpReg<DReg>(imlInstruction->op_fpr_compare.regA);
+	DReg regB = fpReg<DReg>(imlInstruction->op_fpr_compare.regB);
 	auto cond = ImlFPCondToArm64Cond(imlInstruction->op_fpr_compare.cond);
 	fcmp(regA, regB);
 	cset(regR, cond);
