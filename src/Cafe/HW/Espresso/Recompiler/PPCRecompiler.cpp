@@ -16,6 +16,9 @@
 #include "IML/IML.h"
 #include "IML/IMLRegisterAllocator.h"
 #include "BackendX64/BackendX64.h"
+#ifdef __aarch64__
+#include "BackendAArch64/BackendAArch64.h"
+#endif
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
 #define PPCREC_FORCE_SYNCHRONOUS_COMPILATION	0 // if 1, then function recompilation will block and execute on the thread that called PPCRecompiler_visitAddressNoBlock
@@ -220,12 +223,20 @@ PPCRecFunction_t* PPCRecompiler_recompileFunction(PPCFunctionBoundaryTracker::PP
 		return nullptr;
 	}
 
+#if defined(ARCH_X86_64)
 	// emit x64 code
 	bool x64GenerationSuccess = PPCRecompiler_generateX64Code(ppcRecFunc, &ppcImlGenContext);
 	if (x64GenerationSuccess == false)
 	{
 		return nullptr;
 	}
+#elif defined(__aarch64__)
+	bool aarch64GenerationSuccess = PPCRecompiler_generateAArch64Code(ppcRecFunc, &ppcImlGenContext);
+	if (aarch64GenerationSuccess == false)
+	{
+		return nullptr;
+	}
+#endif
 	if (ActiveSettings::DumpRecompilerFunctionsEnabled())
 	{
 		FileStream* fs = FileStream::createFile2(ActiveSettings::GetUserDataPath(fmt::format("dump/recompiler/ppc_{:08x}.bin", ppcRecFunc->ppcAddress)));
@@ -270,6 +281,7 @@ void PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext_t& ppcImlGenCont
 	for (auto& it : ppcImlGenContext.mappedRegs)
 		raParam.regIdToName.try_emplace(it.second.GetRegID(), it.first);
 
+#if defined(ARCH_X86_64)
 	auto& gprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::I64);
 	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RAX);
 	gprPhysPool.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RDX);
@@ -301,6 +313,19 @@ void PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext_t& ppcImlGenCont
 	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 12);
 	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 13);
 	fprPhysPool.SetAvailable(IMLArchX86::PHYSREG_FPR_BASE + 14);
+#elif defined(__aarch64__)
+	auto& gprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::I64);
+	for (auto i = IMLArchAArch64::PHYSREG_GPR_BASE; i < IMLArchAArch64::PHYSREG_GPR_BASE + IMLArchAArch64::PHYSREG_GPR_COUNT; i++)
+	{
+		if (i == IMLArchAArch64::PHYSREG_GPR_BASE + 18)
+			continue; // Skip reserved platform register
+		gprPhysPool.SetAvailable(i);
+	}
+
+	auto& fprPhysPool = raParam.GetPhysRegPool(IMLRegFormat::F64);
+	for (auto i = IMLArchAArch64::PHYSREG_FPR_BASE; i < IMLArchAArch64::PHYSREG_FPR_BASE + IMLArchAArch64::PHYSREG_FPR_COUNT; i++)
+		fprPhysPool.SetAvailable(i);
+#endif
 
 	IMLRegisterAllocator_AllocateRegisters(&ppcImlGenContext, raParam);
 }
@@ -679,8 +704,11 @@ void PPCRecompiler_init()
 	debug_printf("Allocating %dMB for recompiler instance data...\n", (sint32)(sizeof(PPCRecompilerInstanceData_t) / 1024 / 1024));
 	ppcRecompilerInstanceData = (PPCRecompilerInstanceData_t*)MemMapper::ReserveMemory(nullptr, sizeof(PPCRecompilerInstanceData_t), MemMapper::PAGE_PERMISSION::P_RW);
 	MemMapper::AllocateMemory(&(ppcRecompilerInstanceData->_x64XMM_xorNegateMaskBottom), sizeof(PPCRecompilerInstanceData_t) - offsetof(PPCRecompilerInstanceData_t, _x64XMM_xorNegateMaskBottom), MemMapper::PAGE_PERMISSION::P_RW, true);
+#ifdef ARCH_X86_64
 	PPCRecompilerX64Gen_generateRecompilerInterfaceFunctions();
-
+#elif defined(__aarch64__)
+	PPCRecompilerAArch64Gen_generateRecompilerInterfaceFunctions();
+#endif
     PPCRecompiler_allocateRange(0, 0x1000); // the first entry is used for fallback to interpreter
     PPCRecompiler_allocateRange(mmuRange_TRAMPOLINE_AREA.getBase(), mmuRange_TRAMPOLINE_AREA.getSize());
     PPCRecompiler_allocateRange(mmuRange_CODECAVE.getBase(), mmuRange_CODECAVE.getSize());

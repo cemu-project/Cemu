@@ -702,8 +702,10 @@ void IMLOptimizer_StandardOptimizationPassForSegment(IMLOptimizerRegIOAnalysis& 
 {
 	IMLOptimizer_RemoveDeadCodeFromSegment(regIoAnalysis, seg);
 
+#ifdef ARCH_X86_64
 	// x86 specific optimizations
 	IMLOptimizerX86_SubstituteCJumpForEflagsJump(regIoAnalysis, seg); // this pass should be applied late since it creates invisible eflags dependencies (which would break further register dependency analysis)
+#endif
 }
 
 void IMLOptimizer_StandardOptimizationPass(ppcImlGenContext_t& ppcImlGenContext)

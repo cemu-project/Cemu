@@ -222,6 +222,10 @@ endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
+endif()
+
 find_package(ZArchive)
 if (NOT ZArchive_FOUND)
 	add_subdirectory("dependencies/ZArchive" EXCLUDE_FROM_ALL)
