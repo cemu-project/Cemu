@@ -23,7 +23,7 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 	IMLInstruction* imlInstructionLoad = imlSegment->imlList.data() + imlIndexLoad;
 	if (imlInstructionLoad->op_storeLoad.flags2.notExpanded)
 		return;
-
+	boost::container::static_vector<sint32, 4> trackedMoves; // only track up to 4 copies
 	IMLUsedRegisters registersUsed;
 	sint32 scanRangeEnd = std::min<sint32>(imlIndexLoad + 25, imlSegment->imlList.size()); // don't scan too far (saves performance and also the chances we can merge the load+store become low at high distances)
 	bool foundMatch = false;
@@ -54,8 +54,24 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 				continue;
 			}
 		}
-
-		// check if FPR is overwritten (we can actually ignore read operations?)
+		// if the FPR is copied then keep track of it. We can expand the copies instead of the original
+		if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R_R && imlInstruction->operation == PPCREC_IML_OP_FPR_ASSIGN && imlInstruction->op_fpr_r_r.regA.GetRegID() == fprIndex)
+		{
+			if (imlInstruction->op_fpr_r_r.regR.GetRegID() == fprIndex)
+			{
+				// unexpected no-op
+				break;
+			}
+			if (trackedMoves.size() >= trackedMoves.capacity())
+			{
+				// we cant track any more moves, expand here
+				lastStore = i;
+				break;
+			}
+			trackedMoves.push_back(i);
+			continue;
+		}
+		// check if FPR is overwritten
 		imlInstruction->CheckRegisterUsage(&registersUsed);
 		if (registersUsed.writtenGPR1.IsValidAndSameRegID(fprIndex) || registersUsed.writtenGPR2.IsValidAndSameRegID(fprIndex))
 			break;
@@ -71,6 +87,24 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 
 	if (foundMatch)
 	{
+		// insert expand instructions for each target register of a move
+		sint32 positionBias = 0;
+		for (auto& trackedMove : trackedMoves)
+		{
+			sint32 realPosition = trackedMove + positionBias;
+			IMLInstruction* imlMoveInstruction = imlSegment->imlList.data() + realPosition;
+			if (realPosition >= lastStore)
+				break; // expand is inserted before this move
+			else
+				lastStore++;
+
+			cemu_assert_debug(imlMoveInstruction->type == PPCREC_IML_TYPE_FPR_R_R && imlMoveInstruction->op_fpr_r_r.regA.GetRegID() == fprIndex);
+			cemu_assert_debug(imlMoveInstruction->op_fpr_r_r.regA.GetRegFormat() == IMLRegFormat::F64);
+			auto dstReg = imlMoveInstruction->op_fpr_r_r.regR;
+			IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, realPosition+1); // one after the move
+			newExpand->make_fpr_r(PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, dstReg);
+			positionBias++;
+		}
 		// insert expand instruction after store
 		IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, lastStore);
 		newExpand->make_fpr_r(PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, _FPRRegFromID(fprIndex));
@@ -90,23 +124,21 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 */
 void IMLOptimizer_OptimizeDirectFloatCopies(ppcImlGenContext_t* ppcImlGenContext)
 {
-	cemuLog_logDebugOnce(LogType::Force, "IMLOptimizer_OptimizeDirectFloatCopies(): Currently disabled\n");
-	return;
-	// for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
-	// {
-	// 	for (sint32 i = 0; i < segIt->imlList.size(); i++)
-	// 	{
-	// 		IMLInstruction* imlInstruction = segIt->imlList.data() + i;
-	// 		if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
-	// 		{
-	// 			PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
-	// 		}
-	// 		else if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE_INTO_PS0_PS1)
-	// 		{
-	// 			PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
-	// 		}
-	// 	}
-	// }
+	for (IMLSegment* segIt : ppcImlGenContext->segmentList2)
+	{
+		for (sint32 i = 0; i < segIt->imlList.size(); i++)
+		{
+			IMLInstruction* imlInstruction = segIt->imlList.data() + i;
+			if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE)
+			{
+				PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
+			}
+			else if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE)
+			{
+				PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
+			}
+		}
+	}
 }
 
 void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* ppcImlGenContext, IMLSegment* imlSegment, sint32 imlIndexLoad, IMLReg gprReg)

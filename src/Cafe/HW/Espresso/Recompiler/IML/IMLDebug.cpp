@@ -36,6 +36,30 @@ const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 		return "MULS";
 	else if (op == PPCREC_IML_OP_DIVIDE_SIGNED)
 		return "DIVS";
+	else if (op == PPCREC_IML_OP_FPR_ASSIGN)
+		return "FMOV";
+	else if (op == PPCREC_IML_OP_FPR_ADD)
+		return "FADD";
+	else if (op == PPCREC_IML_OP_FPR_SUB)
+		return "FSUB";
+	else if (op == PPCREC_IML_OP_FPR_MULTIPLY)
+		return "FMUL";
+	else if (op == PPCREC_IML_OP_FPR_DIVIDE)
+		return "FDIV";
+	else if (op == PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64)
+		return "F32TOF64";
+	else if (op == PPCREC_IML_OP_FPR_ABS)
+		return "FABS";
+	else if (op == PPCREC_IML_OP_FPR_NEGATE)
+		return "FNEG";
+	else if (op == PPCREC_IML_OP_FPR_NEGATIVE_ABS)
+		return "FNABS";
+	else if (op == PPCREC_IML_OP_FPR_FLOAT_TO_INT)
+		return "F2I";
+	else if (op == PPCREC_IML_OP_FPR_INT_TO_FLOAT)
+		return "I2F";
+	else if (op == PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT)
+		return "BITMOVE";
 
 	sprintf(_tempOpcodename, "OP0%02x_T%d", iml->operation, iml->type);
 	return _tempOpcodename;
@@ -409,19 +433,24 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		strOutput.addFmt("{} [t{}+{}]", inst.op_storeLoad.copyWidth / 8, inst.op_storeLoad.registerMem.GetRegID(), inst.op_storeLoad.immS32);
 		strOutput.addFmt(" = {} mode {}", IMLDebug_GetRegName(inst.op_storeLoad.registerData), inst.op_storeLoad.mode);
 	}
+	else if (inst.type == PPCREC_IML_TYPE_FPR_R)
+	{
+		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
+		strOutput.addFmt("{}", IMLDebug_GetRegName(inst.op_fpr_r.regR));
+	}
 	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R)
 	{
-		strOutput.addFmt("{:>6} ", IMLDebug_GetOpcodeName(&inst));
+		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}, {}", IMLDebug_GetRegName(inst.op_fpr_r_r.regR), IMLDebug_GetRegName(inst.op_fpr_r_r.regA));
 	}
 	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R_R)
 	{
-		strOutput.addFmt("{:>6} ", IMLDebug_GetOpcodeName(&inst));
+		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}, {}, {}, {}", IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regR), IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regA), IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regB), IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regC));
 	}
 	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R)
 	{
-		strOutput.addFmt("{:>6} ", IMLDebug_GetOpcodeName(&inst));
+		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}, {}, {}", IMLDebug_GetRegName(inst.op_fpr_r_r_r.regR), IMLDebug_GetRegName(inst.op_fpr_r_r_r.regA), IMLDebug_GetRegName(inst.op_fpr_r_r_r.regB));
 	}
 	else if (inst.type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)

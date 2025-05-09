@@ -685,45 +685,6 @@ void PPCRecompiler_init()
     PPCRecompiler_allocateRange(mmuRange_TRAMPOLINE_AREA.getBase(), mmuRange_TRAMPOLINE_AREA.getSize());
     PPCRecompiler_allocateRange(mmuRange_CODECAVE.getBase(), mmuRange_CODECAVE.getSize());
 
-	// setup GQR scale tables
-
-	for (uint32 i = 0; i < 32; i++)
-	{
-		float a = 1.0f / (float)(1u << i);
-		float b = 0;
-		if (i == 0)
-			b = 4294967296.0f;
-		else
-			b = (float)(1u << (32u - i));
-
-		float ar = (float)(1u << i);
-		float br = 0;
-		if (i == 0)
-			br = 1.0f / 4294967296.0f;
-		else
-			br = 1.0f / (float)(1u << (32u - i));
-
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_1[i * 2 + 0] = a;
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_1[i * 2 + 1] = 1.0f;
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_1[(i + 32) * 2 + 0] = b;
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_1[(i + 32) * 2 + 1] = 1.0f;
-
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_ps1[i * 2 + 0] = a;
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_ps1[i * 2 + 1] = a;
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_ps1[(i + 32) * 2 + 0] = b;
-		ppcRecompilerInstanceData->_psq_ld_scale_ps0_ps1[(i + 32) * 2 + 1] = b;
-
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_1[i * 2 + 0] = ar;
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_1[i * 2 + 1] = 1.0f;
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_1[(i + 32) * 2 + 0] = br;
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_1[(i + 32) * 2 + 1] = 1.0f;
-
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_ps1[i * 2 + 0] = ar;
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_ps1[i * 2 + 1] = ar;
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_ps1[(i + 32) * 2 + 0] = br;
-		ppcRecompilerInstanceData->_psq_st_scale_ps0_ps1[(i + 32) * 2 + 1] = br;
-	}
-
     PPCRecompiler_initPlatform();
     
 	cemuLog_log(LogType::Force, "Recompiler initialized");

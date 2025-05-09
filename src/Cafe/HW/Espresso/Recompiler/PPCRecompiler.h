@@ -136,11 +136,6 @@ typedef struct
 	alignas(16) float  _x64XMM_constFloatMin[2];
 	alignas(16) uint32 _x64XMM_flushDenormalMask1[4];
 	alignas(16) uint32 _x64XMM_flushDenormalMaskResetSignBits[4];
-	// PSQ load/store scale tables
-	double _psq_ld_scale_ps0_ps1[64 * 2];
-	double _psq_ld_scale_ps0_1[64 * 2];
-	double _psq_st_scale_ps0_ps1[64 * 2];
-	double _psq_st_scale_ps0_1[64 * 2];
 	// MXCSR
 	uint32 _x64XMM_mxCsr_ftzOn;
 	uint32 _x64XMM_mxCsr_ftzOff;
