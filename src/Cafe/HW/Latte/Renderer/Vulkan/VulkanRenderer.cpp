@@ -1652,10 +1652,10 @@ void VulkanRenderer::Initialize()
 
 void VulkanRenderer::Shutdown()
 {
-	DeleteFontTextures();
-	Renderer::Shutdown();
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
+	DeleteFontTextures();
+	Renderer::Shutdown();
 	if (m_imguiRenderPass != VK_NULL_HANDLE)
 	{
 		vkDestroyRenderPass(m_logicalDevice, m_imguiRenderPass, nullptr);
