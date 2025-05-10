@@ -101,7 +101,7 @@ bool IAudioAPI::IsAudioAPIAvailable(AudioAPI api)
 AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample)
 {
 	sint32 channels = CemuConfig::AudioChannelsToNChannels(AudioTypeToChannels(type));
-	return CreateDeviceFromConfig(TV, rate, channels, samples_per_block, bits_per_sample);
+	return CreateDeviceFromConfig(type, rate, channels, samples_per_block, bits_per_sample);
 }
 
 AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
@@ -128,7 +128,7 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint3
 		throw std::runtime_error("failed to find selected device while trying to create audio device");
 
 	audioAPIDev = CreateDevice(audio_api, device_description, rate, channels, samples_per_block, bits_per_sample);
-	audioAPIDev->SetVolume(TV ? config.tv_volume : config.pad_volume);
+	audioAPIDev->SetVolume(GetVolumeFromType(type));
 
 	return audioAPIDev;
 }
