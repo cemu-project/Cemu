@@ -55,10 +55,10 @@ private:
 
 namespace VulkanRendererConst
 {
-	static const inline int SHADER_STAGE_INDEX_VERTEX = 0;
-	static const inline int SHADER_STAGE_INDEX_FRAGMENT = 1;
-	static const inline int SHADER_STAGE_INDEX_GEOMETRY = 2;
-	static const inline int SHADER_STAGE_INDEX_COUNT = 3;
+	static constexpr inline int SHADER_STAGE_INDEX_VERTEX = 0;
+	static constexpr inline int SHADER_STAGE_INDEX_FRAGMENT = 1;
+	static constexpr inline int SHADER_STAGE_INDEX_GEOMETRY = 2;
+	static constexpr inline int SHADER_STAGE_INDEX_COUNT = 3;
 };
 
 class PipelineInfo
@@ -128,11 +128,11 @@ class VulkanRenderer : public Renderer
 
 	using VSync = SwapchainInfoVk::VSync;
 
-	static const inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
+	static constexpr inline int UNIFORMVAR_RINGBUFFER_SIZE = 1024 * 1024 * 16; // 16MB
 
-	static const inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
+	static constexpr inline int TEXTURE_READBACK_SIZE = 32 * 1024 * 1024; // 32 MB
 
-	static const inline int OCCLUSION_QUERY_POOL_SIZE = 1024;
+	static constexpr inline int OCCLUSION_QUERY_POOL_SIZE = 1024;
 
 public:
 

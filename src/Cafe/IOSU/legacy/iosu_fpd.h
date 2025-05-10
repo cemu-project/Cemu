@@ -206,13 +206,13 @@ namespace iosu
 		};
 		static_assert(sizeof(FPDPreference) == 4);
 
-		static const int RELATIONSHIP_INVALID = 0;
-		static const int RELATIONSHIP_FRIENDREQUEST_OUT = 1;
-		static const int RELATIONSHIP_FRIENDREQUEST_IN = 2;
-		static const int RELATIONSHIP_FRIEND = 3;
+		static constexpr int RELATIONSHIP_INVALID = 0;
+		static constexpr int RELATIONSHIP_FRIENDREQUEST_OUT = 1;
+		static constexpr int RELATIONSHIP_FRIENDREQUEST_IN = 2;
+		static constexpr int RELATIONSHIP_FRIEND = 3;
 
-		static const int GAMEMODE_MAX_MESSAGE_LENGTH = 0x80; // limit includes null-terminator character, so only 0x7F actual characters can be used
-		static const int MY_COMMENT_LENGTH = 0x12;
+		static constexpr int GAMEMODE_MAX_MESSAGE_LENGTH = 0x80; // limit includes null-terminator character, so only 0x7F actual characters can be used
+		static constexpr int MY_COMMENT_LENGTH = 0x12;
 
 		enum class FPD_REQUEST_ID
 		{
