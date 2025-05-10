@@ -139,6 +139,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
 
 	// debug->logging
+	MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE = 21499,
 	MAINFRAME_MENU_ID_DEBUG_LOGGING0 = 21500,
 	MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO = 21599,
 	// debug->dump
@@ -2205,7 +2206,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendSeparator();
 
 	wxMenu* logCosModulesMenu = new wxMenu();
-	logCosModulesMenu->AppendCheckItem(0, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
 	logCosModulesMenu->AppendSeparator();
 	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
 	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
