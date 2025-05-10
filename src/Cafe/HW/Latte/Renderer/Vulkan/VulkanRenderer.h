@@ -453,6 +453,7 @@ private:
 			bool shader_float_controls = false; // VK_KHR_shader_float_controls
 			bool present_wait = false; // VK_KHR_present_wait
 			bool depth_clip_enable = false; // VK_EXT_depth_clip_enable
+			bool pipeline_robustness = false; // VK_EXT_pipeline_robustness
 		}deviceExtensions;
 
 		struct

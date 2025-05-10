@@ -873,7 +873,7 @@ void PipelineCompiler::InitDynamicState(PipelineInfo* pipelineInfo, bool usesBle
 	dynamicState.pDynamicStates = dynamicStates.data();
 }
 
-bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const LatteContextRegister& latteRegister, VKRObjectRenderPass* renderPassObj)
+bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const LatteContextRegister& latteRegister, VKRObjectRenderPass* renderPassObj, bool requireRobustBufferAccess)
 {
 	VulkanRenderer* vkRenderer = VulkanRenderer::GetInstance();
 
@@ -888,6 +888,7 @@ bool PipelineCompiler::InitFromCurrentGPUState(PipelineInfo* pipelineInfo, const
 	m_vkGeometryShader = pipelineInfo->geometryShaderVk;
 	m_vkrObjPipeline = pipelineInfo->m_vkrObjPipeline;
 	m_renderPassObj = renderPassObj;
+	m_requestRobustBufferAccess = requireRobustBufferAccess;
 
 	// if required generate RECT emulation geometry shader
 	if (!vkRenderer->m_featureControl.deviceExtensions.nv_fill_rectangle && isPrimitiveRect)
@@ -998,6 +999,8 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	if (!forceCompile)
 		pipelineInfo.flags |= VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT_EXT;
 
+	void* prevStruct = nullptr;
+
 	VkPipelineCreationFeedbackCreateInfoEXT creationFeedbackInfo;
 	VkPipelineCreationFeedbackEXT creationFeedback;
 	std::vector<VkPipelineCreationFeedbackEXT> creationStageFeedback(0);
@@ -1015,8 +1018,24 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 		creationFeedbackInfo.pPipelineCreationFeedback = &creationFeedback;
 		creationFeedbackInfo.pPipelineStageCreationFeedbacks = creationStageFeedback.data();
 		creationFeedbackInfo.pipelineStageCreationFeedbackCount = pipelineInfo.stageCount;
-		pipelineInfo.pNext = &creationFeedbackInfo;
+		creationFeedbackInfo.pNext = prevStruct;
+		prevStruct = &creationFeedbackInfo;
 	}
+
+	VkPipelineRobustnessCreateInfoEXT pipelineRobustnessCreateInfo{};
+	if (vkRenderer->m_featureControl.deviceExtensions.pipeline_robustness && m_requestRobustBufferAccess)
+	{
+		// per-pipeline handling of robust buffer access, if the extension is not available then we fall back to device feature robustBufferAccess
+		pipelineRobustnessCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_ROBUSTNESS_CREATE_INFO_EXT;
+		pipelineRobustnessCreateInfo.pNext = prevStruct;
+		prevStruct = &pipelineRobustnessCreateInfo;
+		pipelineRobustnessCreateInfo.storageBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
+		pipelineRobustnessCreateInfo.uniformBuffers = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_ROBUST_BUFFER_ACCESS_EXT;
+		pipelineRobustnessCreateInfo.vertexInputs = VK_PIPELINE_ROBUSTNESS_BUFFER_BEHAVIOR_DEVICE_DEFAULT_EXT;
+		pipelineRobustnessCreateInfo.images = VK_PIPELINE_ROBUSTNESS_IMAGE_BEHAVIOR_DEVICE_DEFAULT_EXT;
+	}
+
+	pipelineInfo.pNext = prevStruct;
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
 	VkResult result;
@@ -1074,4 +1093,32 @@ void PipelineCompiler::TrackAsCached(uint64 baseHash, uint64 pipelineStateHash)
 	if (pipelineCache.HasPipelineCached(baseHash, pipelineStateHash))
 		return;
 	pipelineCache.AddCurrentStateToCache(baseHash, pipelineStateHash);
+}
+
+// calculate whether the pipeline requires robust buffer access
+// if there is a potential risk for a shader to do out-of-bounds reads or writes we need to enable robust buffer access
+// this can happen when:
+// - Streamout is used with too small of a buffer (probably? Could also be some issue with how the streamout array index is calculated -> We can maybe fix this in the future)
+// - The shader uses dynamic indices for uniform access. This will trigger the uniform mode to be FULL_CBANK
+bool PipelineCompiler::CalcRobustBufferAccessRequirement(LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader, LatteDecompilerShader* geometryShader)
+{
+	bool requiresRobustBufferAcces = false;
+	if (vertexShader)
+	{
+		cemu_assert_debug(vertexShader->shaderType == LatteConst::ShaderType::Vertex);
+		requiresRobustBufferAcces |= vertexShader->hasStreamoutBufferWrite;
+		requiresRobustBufferAcces |= vertexShader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK;
+	}
+	if (geometryShader)
+	{
+		cemu_assert_debug(geometryShader->shaderType == LatteConst::ShaderType::Geometry);
+		requiresRobustBufferAcces |= geometryShader->hasStreamoutBufferWrite;
+		requiresRobustBufferAcces |= geometryShader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK;
+	}
+	if (pixelShader)
+	{
+		cemu_assert_debug(pixelShader->shaderType == LatteConst::ShaderType::Pixel);
+		requiresRobustBufferAcces |= pixelShader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK;
+	}
+	return requiresRobustBufferAcces;
 }

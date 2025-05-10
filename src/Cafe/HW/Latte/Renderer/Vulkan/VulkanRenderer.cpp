@@ -50,7 +50,8 @@ const  std::vector<const char*> kOptionalDeviceExtensions =
 	VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 	VK_KHR_PRESENT_WAIT_EXTENSION_NAME,
 	VK_KHR_PRESENT_ID_EXTENSION_NAME,
-	VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME
+	VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME,
+	VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME
 };
 
 const std::vector<const char*> kRequiredDeviceExtensions =
@@ -263,6 +264,14 @@ void VulkanRenderer::GetDeviceFeatures()
 	pwf.pNext = prevStruct;
 	prevStruct = &pwf;
 
+	VkPhysicalDevicePipelineRobustnessFeaturesEXT pprf{};
+	if (m_featureControl.deviceExtensions.pipeline_robustness)
+	{
+		pprf.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_ROBUSTNESS_FEATURES_EXT;
+		pprf.pNext = prevStruct;
+		prevStruct = &pprf;
+	}
+
 	VkPhysicalDeviceFeatures2 physicalDeviceFeatures2{};
 	physicalDeviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
 	physicalDeviceFeatures2.pNext = prevStruct;
@@ -316,6 +325,11 @@ void VulkanRenderer::GetDeviceFeatures()
 	if (!m_featureControl.deviceExtensions.depth_clip_enable)
 	{
 		cemuLog_log(LogType::Force, "VK_EXT_depth_clip_enable not supported");
+	}
+	if (m_featureControl.deviceExtensions.pipeline_robustness)
+	{
+		if ( pprf.pipelineRobustness != VK_TRUE )
+			m_featureControl.deviceExtensions.pipeline_robustness = false;
 	}
 	// get limits
 	m_featureControl.limits.minUniformBufferOffsetAlignment = std::max(prop2.properties.limits.minUniformBufferOffsetAlignment, (VkDeviceSize)4);
@@ -475,11 +489,17 @@ VulkanRenderer::VulkanRenderer()
 	deviceFeatures.occlusionQueryPrecise = VK_TRUE;
 	deviceFeatures.depthClamp = VK_TRUE;
 	deviceFeatures.depthBiasClamp = VK_TRUE;
-	if (m_vendor == GfxVendor::AMD)
+
+	if (m_featureControl.deviceExtensions.pipeline_robustness)
 	{
-		deviceFeatures.robustBufferAccess = VK_TRUE;
-		cemuLog_log(LogType::Force, "Enable robust buffer access");
+		deviceFeatures.robustBufferAccess = VK_FALSE;
 	}
+	else
+	{
+		cemuLog_log(LogType::Force, "VK_EXT_pipeline_robustness not supported. Falling back to robustBufferAccess");
+		deviceFeatures.robustBufferAccess = VK_TRUE;
+	}
+
 	if (m_featureControl.mode.useTFEmulationViaSSBO)
 	{
 		deviceFeatures.vertexPipelineStoresAndAtomics = true;
@@ -523,6 +543,15 @@ VulkanRenderer::VulkanRenderer()
 		presentWaitFeature.pNext = deviceExtensionFeatures;
 		deviceExtensionFeatures = &presentWaitFeature;
 		presentWaitFeature.presentWait = VK_TRUE;
+	}
+	// enable VK_EXT_pipeline_robustness
+	VkPhysicalDevicePipelineRobustnessFeaturesEXT pipelineRobustnessFeature{};
+	if (m_featureControl.deviceExtensions.pipeline_robustness)
+	{
+		pipelineRobustnessFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PIPELINE_ROBUSTNESS_FEATURES_EXT;
+		pipelineRobustnessFeature.pNext = deviceExtensionFeatures;
+		deviceExtensionFeatures = &pipelineRobustnessFeature;
+		pipelineRobustnessFeature.pipelineRobustness = VK_TRUE;
 	}
 
 	std::vector<const char*> used_extensions;
@@ -1127,6 +1156,8 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 		used_extensions.emplace_back(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 		used_extensions.emplace_back(VK_KHR_PRESENT_WAIT_EXTENSION_NAME);
 	}
+	if (m_featureControl.deviceExtensions.pipeline_robustness)
+		used_extensions.emplace_back(VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME);
 
 	VkDeviceCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -1224,6 +1255,7 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	info.deviceExtensions.shader_float_controls = isExtensionAvailable(VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME);
 	info.deviceExtensions.dynamic_rendering = false; // isExtensionAvailable(VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME);
 	info.deviceExtensions.depth_clip_enable = isExtensionAvailable(VK_EXT_DEPTH_CLIP_ENABLE_EXTENSION_NAME);
+	info.deviceExtensions.pipeline_robustness = isExtensionAvailable(VK_EXT_PIPELINE_ROBUSTNESS_EXTENSION_NAME);
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
 	info.deviceExtensions.present_wait = isExtensionAvailable(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && isExtensionAvailable(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 
