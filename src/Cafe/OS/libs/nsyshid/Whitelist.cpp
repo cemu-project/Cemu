@@ -20,6 +20,8 @@ namespace nsyshid
 			m_devices.emplace_back(0x1430, 0x1F17);
 			// disney infinity base
 			m_devices.emplace_back(0x0e6f, 0x0129);
+			// kamen rider ride gate
+			m_devices.emplace_back(0x0e6f, 0x200A);
 		}
 	}
 
