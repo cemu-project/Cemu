@@ -1448,15 +1448,23 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
 {
-	if ((event.AltDown() && event.GetKeyCode() == WXK_F4) || 
-		(event.CmdDown() && event.GetKeyCode() == 'Q'))
-	{
-		Close(true);
-	}
-	else
-	{
-		event.Skip();
-	}
+#if defined(__APPLE__)
+       // On macOS, allow Cmd+Q to quit the application
+    if (event.CmdDown() && event.GetKeyCode() == 'Q')
+    {
+        Close(true);
+    }
+#else
+     // On Windows/Linux, only Alt+F4 is allowed for quittinger
+    if (event.AltDown() && event.GetKeyCode() == WXK_F4)
+    {
+        Close(true);
+    }
+#endif
+    else
+    {
+        event.Skip(); 
+    }
 }
 
 void MainWindow::OnChar(wxKeyEvent& event)
