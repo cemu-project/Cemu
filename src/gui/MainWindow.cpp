@@ -1455,7 +1455,7 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
         Close(true);
     }
 #else
-     // On Windows/Linux, only Alt+F4 is allowed for quittinger
+     // On Windows/Linux, only Alt+F4 is allowed for quitting
     if (event.AltDown() && event.GetKeyCode() == WXK_F4)
     {
         Close(true);
