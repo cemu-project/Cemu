@@ -132,7 +132,6 @@ namespace GX2
 			depthFirstSlice = _swapEndianU32(depthBuffer->viewFirstSlice);
 			depthNumSlices = _swapEndianU32(depthBuffer->viewNumSlices);
 		}
-
 		gx2WriteGather_submit(pm4HeaderType3(IT_HLE_CLEAR_COLOR_DEPTH_STENCIL, 23),
 		hleClearFlags,
 		colorPhysAddr,

@@ -59,7 +59,7 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 	if (isPokken)
 		GX2::GX2DrawDone();
 
-	GX2ReserveCmdSpace(5+2);
+	GX2::GX2ReserveCmdSpace(5+2);
 
 	uint64 tick64 = PPCInterpreter_getMainCoreCycleCounter() / 20ULL;
 	lastSwapTime = tick64;
@@ -86,24 +86,16 @@ void gx2Export_GX2SwapScanBuffers(PPCInterpreter_t* hCPU)
 		GX2::GX2WaitForFlip();
 	}
 
-	GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2CopyColorBufferToScanBuffer(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::GX2, "GX2CopyColorBufferToScanBuffer(0x{:08x},{})", hCPU->gpr[3], hCPU->gpr[4]);
-	GX2ReserveCmdSpace(5);
+	GX2::GX2ReserveCmdSpace(10);
 
 	// todo: proper implementation
 
-	// hack: Avoid running to far ahead of GPU. Normally this would be guaranteed by the circular buffer model, which we currently dont fully emulate
-	if(GX2::GX2WriteGather_getReadWriteDistance() > 32*1024*1024 )
-	{
-		debug_printf("Waiting for GPU to catch up...\n");
-		PPCInterpreter_relinquishTimeslice(); // release current thread
-		return;
-	}
 	GX2ColorBuffer* colorBuffer = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_COPY_COLORBUFFER_TO_SCANBUFFER, 9));
@@ -309,81 +301,6 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-void gx2Export_GX2Flush(PPCInterpreter_t* hCPU)
-{
-	cemuLog_log(LogType::GX2, "GX2Flush()");
-	_GX2SubmitToTCL();
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-uint8* _GX2LastFlushPtr[PPC_CORE_COUNT] = {NULL};
-
-uint64 _prevReturnedGPUTime = 0;
-
-uint64 Latte_GetTime()
-{
-	uint64 gpuTime = coreinit::OSGetSystemTime();
-	gpuTime *= 20000ULL;
-	if (gpuTime <= _prevReturnedGPUTime)
-		gpuTime = _prevReturnedGPUTime + 1; // avoid ever returning identical timestamps
-	_prevReturnedGPUTime = gpuTime;
-	return gpuTime;
-}
-
-void _GX2SubmitToTCL()
-{
-	uint32 coreIndex = PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
-	// do nothing if called from non-main GX2 core
-	if (GX2::sGX2MainCoreIndex != coreIndex)
-	{
-		cemuLog_logDebug(LogType::Force, "_GX2SubmitToTCL() called on non-main GX2 core");
-		return;
-	}
-	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
-		return; // quit if in display list
-	_GX2LastFlushPtr[coreIndex] = (gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex]);
-	// update last submitted CB timestamp
-	uint64 commandBufferTimestamp = Latte_GetTime();
-	LatteGPUState.lastSubmittedCommandBufferTimestamp.store(commandBufferTimestamp);
-	cemuLog_log(LogType::GX2, "Submitting GX2 command buffer with timestamp {:016x}", commandBufferTimestamp);
-	// submit HLE packet to write retirement timestamp
-	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SET_CB_RETIREMENT_TIMESTAMP, 2));
-	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp>>32ULL));
-	gx2WriteGather_submitU32AsBE((uint32)(commandBufferTimestamp&0xFFFFFFFFULL));
-}
-
-uint32 _GX2GetUnflushedBytes(uint32 coreIndex)
-{
-	uint32 unflushedBytes = 0;
-	if (_GX2LastFlushPtr[coreIndex] != NULL)
-	{
-		if (_GX2LastFlushPtr[coreIndex] > gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex])
-			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer + 4); // this isn't 100% correct since we ignore the bytes between the last flush address and the start of the wrap around
-		else
-			unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - _GX2LastFlushPtr[coreIndex]);
-	}
-	else
-		unflushedBytes = (uint32)(gx2WriteGatherPipe.writeGatherPtrGxBuffer[coreIndex] - gx2WriteGatherPipe.gxRingBuffer);
-	return unflushedBytes;
-}
-
-/*
- * Guarantees that the requested amount of space is available on the current command buffer
- * If the space is not available, the current command buffer is pushed to the GPU and a new one is allocated
- */
-void GX2ReserveCmdSpace(uint32 reservedFreeSpaceInU32)
-{
-	uint32 coreIndex = coreinit::OSGetCoreId();
-	// if we are in a display list then do nothing
-	if( gx2WriteGatherPipe.displayListStart[coreIndex] != MPTR_NULL )
-		return;
-	uint32 unflushedBytes = _GX2GetUnflushedBytes(coreIndex);
-	if( unflushedBytes >= 0x1000 )
-	{
-		_GX2SubmitToTCL();
-	}
-}
-
 void gx2_load()
 {
 	osLib_addFunction("gx2", "GX2GetContextStateDisplayList", gx2Export_GX2GetContextStateDisplayList);
@@ -445,10 +362,6 @@ void gx2_load()
 	// semaphore
 	osLib_addFunction("gx2", "GX2SetSemaphore", gx2Export_GX2SetSemaphore);
 
-	// command buffer
-	osLib_addFunction("gx2", "GX2Flush", gx2Export_GX2Flush);
-
-	GX2::GX2Init_writeGather();
 	GX2::GX2MemInit();
 	GX2::GX2ResourceInit();
 	GX2::GX2CommandInit();

@@ -52,7 +52,6 @@ namespace GX2
 			0,
 			count,
 			0);
-		GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	}
 
 	void GX2DrawIndexedEx2(GX2PrimitiveMode2 primitiveMode, uint32 count, GX2IndexType indexType, void* indexData, uint32 baseVertex, uint32 numInstances, uint32 baseInstance)
@@ -85,7 +84,6 @@ namespace GX2
 			pm4HeaderType3(IT_SET_CTL_CONST, 2), 1,
 			0 // baseInstance
 		);
-		GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	}
 
 	void GX2DrawEx(GX2PrimitiveMode2 primitiveMode, uint32 count, uint32 baseVertex, uint32 numInstances)
@@ -109,7 +107,6 @@ namespace GX2
 			count,
 			0 // DRAW_INITIATOR
 		);
-		GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	}
 
 	void GX2DrawIndexedImmediateEx(GX2PrimitiveMode2 primitiveMode, uint32 count, GX2IndexType indexType, void* indexData, uint32 baseVertex, uint32 numInstances)
@@ -177,7 +174,6 @@ namespace GX2
 			}
 		}
 
-		GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	}
 
 	struct GX2DispatchComputeParam
