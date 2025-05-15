@@ -12,10 +12,10 @@ namespace nn
 		class UploadedFavoriteToCommunityData
 		{
 		public:
-			static const inline uint32 FLAG_HAS_TITLE_TEXT = (1 << 0);
-			static const inline uint32 FLAG_HAS_DESC_TEXT = (1 << 1);
-			static const inline uint32 FLAG_HAS_APP_DATA = (1 << 2);
-			static const inline uint32 FLAG_HAS_ICON_DATA = (1 << 3);
+			static constexpr inline uint32 FLAG_HAS_TITLE_TEXT = (1 << 0);
+			static constexpr inline uint32 FLAG_HAS_DESC_TEXT = (1 << 1);
+			static constexpr inline uint32 FLAG_HAS_APP_DATA = (1 << 2);
+			static constexpr inline uint32 FLAG_HAS_ICON_DATA = (1 << 3);
 		
 			UploadedFavoriteToCommunityData()
 			{
@@ -243,7 +243,7 @@ namespace nn
 		{
 
 		public:
-			static const inline uint32 FLAG_DELETION = (1 << 0);
+			static constexpr inline uint32 FLAG_DELETION = (1 << 0);
 
 			UploadFavoriteToCommunityDataParam()
 			{

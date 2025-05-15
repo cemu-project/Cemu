@@ -55,7 +55,7 @@ private:
 	uint32_t m_offset = 0;
 	bool m_data_written = false;
 
-	static const uint32 kBufferCount = 4;
+	static constexpr uint32 kBufferCount = 4;
 	std::array<HANDLE, kBufferCount> m_notify_event{};
 	mutable std::shared_mutex m_mutex;
 

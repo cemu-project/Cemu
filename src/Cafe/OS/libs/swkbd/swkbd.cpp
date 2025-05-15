@@ -362,7 +362,7 @@ void swkbd_render(bool mainWindow)
 	if (!font || !textFont)
 		return;
 
-	const auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
+	constexpr auto kPopupFlags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings;
 
 	ImGui::PushStyleColor(ImGuiCol_WindowBg, 0);
 

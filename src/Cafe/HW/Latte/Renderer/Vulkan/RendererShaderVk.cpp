@@ -133,7 +133,7 @@ public:
 		if (m_threadsActive.exchange(true))
 			return;
 		// create thread pool
-		const uint32 threadCount = 2;
+		constexpr uint32 threadCount = 2;
 		for (uint32 i = 0; i < threadCount; ++i)
 			s_threads.emplace_back(&_ShaderVkThreadPool::CompilerThreadFunc, this);
 	}

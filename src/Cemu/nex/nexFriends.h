@@ -513,10 +513,10 @@ class NexFriends
 public:
   	using RpcErrorCode = int; // replace with enum class later
 
-	static const int ERR_NONE = 0;
-	static const int ERR_RPC_FAILED = 1;
-	static const int ERR_UNEXPECTED_RESULT = 2;
-	static const int ERR_NOT_CONNECTED = 3;
+	static constexpr int ERR_NONE = 0;
+	static constexpr int ERR_RPC_FAILED = 1;
+	static constexpr int ERR_UNEXPECTED_RESULT = 2;
+	static constexpr int ERR_NOT_CONNECTED = 3;
 
 	enum NOTIFICATION_TYPE
 	{
