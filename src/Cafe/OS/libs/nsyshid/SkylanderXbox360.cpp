@@ -3,7 +3,7 @@
 namespace nsyshid
 {
 	SkylanderXbox360PortalLibusb::SkylanderXbox360PortalLibusb(std::shared_ptr<Device> usbPortal)
-	: Device(0x1430, 0x0150, 1, 2, 0)
+		: Device(0x1430, 0x0150, 1, 2, 0)
 	{
 		m_IsOpened = false;
 		m_usbPortal = std::static_pointer_cast<backend::libusb::DeviceLibusb>(usbPortal);
@@ -26,7 +26,7 @@ namespace nsyshid
 
 	Device::ReadResult SkylanderXbox360PortalLibusb::Read(ReadMessage* message)
 	{
-		std::vector<uint8> xboxData(std::min<uint32>(32, message->length + sizeof(XBOX_DATA_HEADER)), 0);
+		std::vector<uint8> xboxData(std::min<uint32>(32, message->length + sizeof(XBOX_DATA_HEADER)));
 		memcpy(xboxData.data(), XBOX_DATA_HEADER, sizeof(XBOX_DATA_HEADER));
 		memcpy(xboxData.data() + sizeof(XBOX_DATA_HEADER), message->data, message->length - sizeof(XBOX_DATA_HEADER));
 
@@ -45,7 +45,7 @@ namespace nsyshid
 		if (message->data[0] == 'M' && message->data[1] == 0x01) // Enables Speaker
 			g72x_init_state(&m_state);
 
-		std::vector<uint8> xboxData(message->length + sizeof(XBOX_DATA_HEADER), 0);
+		std::vector<uint8> xboxData(message->length + sizeof(XBOX_DATA_HEADER));
 		memcpy(xboxData.data(), XBOX_DATA_HEADER, sizeof(XBOX_DATA_HEADER));
 		memcpy(xboxData.data() + sizeof(XBOX_DATA_HEADER), message->data, message->length);
 
@@ -61,7 +61,7 @@ namespace nsyshid
 	{
 		std::vector<uint8> audioData(message->data, message->data + message->length);
 
-		std::vector<uint8_t> xboxAudioData;
+		std::vector<uint8_t> xboxAudioData(audioData.size() / 4);
 		for (size_t i = 0; i < audioData.size(); i += 4)
 		{
 			int16_t sample1 = (static_cast<int16_t>(audioData[i + 1]) << 8) | audioData[i];
@@ -70,10 +70,10 @@ namespace nsyshid
 			uint8_t encoded1 = g721_encoder(sample1, &m_state) & 0x0F;
 			uint8_t encoded2 = g721_encoder(sample2, &m_state) & 0x0F;
 
-			xboxAudioData.push_back((encoded2 << 4) | encoded1);
+			xboxAudioData[i / 4] = ((encoded2 << 4) | encoded1);
 		}
 
-		std::vector<uint8> xboxData(xboxAudioData.size() + sizeof(XBOX_AUDIO_DATA_HEADER), 0);
+		std::vector<uint8> xboxData(xboxAudioData.size() + sizeof(XBOX_AUDIO_DATA_HEADER));
 		memcpy(xboxData.data(), XBOX_AUDIO_DATA_HEADER, sizeof(XBOX_AUDIO_DATA_HEADER));
 		memcpy(xboxData.data() + sizeof(XBOX_AUDIO_DATA_HEADER), xboxAudioData.data(), xboxAudioData.size());
 
@@ -123,32 +123,32 @@ namespace nsyshid
 		*(uint16be*)(currentWritePtr + 7) = 0x001D; // wDescriptorLength
 		currentWritePtr = currentWritePtr + 9;
 		// endpoint descriptor 1
-		*(uint8*)(currentWritePtr + 0) = 7;		  // bLength
-		*(uint8*)(currentWritePtr + 1) = 0x05;	  // bDescriptorType
-		*(uint8*)(currentWritePtr + 2) = 0x81;	  // bEndpointAddress
-		*(uint8*)(currentWritePtr + 3) = 0x03;	  // bmAttributes
+		*(uint8*)(currentWritePtr + 0) = 7;			// bLength
+		*(uint8*)(currentWritePtr + 1) = 0x05;		// bDescriptorType
+		*(uint8*)(currentWritePtr + 2) = 0x81;		// bEndpointAddress
+		*(uint8*)(currentWritePtr + 3) = 0x03;		// bmAttributes
 		*(uint16be*)(currentWritePtr + 4) = 0x0040; // wMaxPacketSize
-		*(uint8*)(currentWritePtr + 6) = 0x01;	  // bInterval
+		*(uint8*)(currentWritePtr + 6) = 0x01;		// bInterval
 		currentWritePtr = currentWritePtr + 7;
 		// endpoint descriptor 2
-		*(uint8*)(currentWritePtr + 0) = 7;		  // bLength
-		*(uint8*)(currentWritePtr + 1) = 0x05;	  // bDescriptorType
-		*(uint8*)(currentWritePtr + 2) = 0x02;	  // bEndpointAddress
-		*(uint8*)(currentWritePtr + 3) = 0x03;	  // bmAttributes
+		*(uint8*)(currentWritePtr + 0) = 7;			// bLength
+		*(uint8*)(currentWritePtr + 1) = 0x05;		// bDescriptorType
+		*(uint8*)(currentWritePtr + 2) = 0x02;		// bEndpointAddress
+		*(uint8*)(currentWritePtr + 3) = 0x03;		// bmAttributes
 		*(uint16be*)(currentWritePtr + 4) = 0x0040; // wMaxPacketSize
-		*(uint8*)(currentWritePtr + 6) = 0x01;	  // bInterval
+		*(uint8*)(currentWritePtr + 6) = 0x01;		// bInterval
 		currentWritePtr = currentWritePtr + 7;
 
 		cemu_assert_debug((currentWritePtr - configurationDescriptor) == 0x29);
 
 		memcpy(output, configurationDescriptor,
-			std::min<uint32>(outputMaxLength, sizeof(configurationDescriptor)));
+			   std::min<uint32>(outputMaxLength, sizeof(configurationDescriptor)));
 		return true;
 	}
 
 	bool SkylanderXbox360PortalLibusb::SetIdle(uint8 ifIndex,
-		uint8 reportId,
-		uint8 duration)
+											   uint8 reportId,
+											   uint8 duration)
 	{
 		return true;
 	}
@@ -157,4 +157,4 @@ namespace nsyshid
 	{
 		return true;
 	}
-}
+} // namespace nsyshid
