@@ -303,6 +303,60 @@ namespace coreinit
 	}
 };
 
+void coreinit_save(MemStreamWriter& s)
+{
+	s.writeSection("coreinit");
+	s.writeNullableData(gCoreinitData, sizeof(coreinitData_t));
+	s.write(placeholderFont);
+	s.write(placeholderFontSize);
+
+	coreinit_Init_Save(s);
+	coreinit::SysHeap_Save(s);
+	coreinit::Thread_Save(s);
+	coreinit::MEM_Save(s);
+	coreinit::FG_Save(s);
+	coreinit::OverlayArena_Save(s);
+	coreinit::DynLoad_Save(s);
+	coreinit::GHS_Save(s);
+	coreinit::LockedCache_Save(s);
+	coreinit::Alarm_Save(s);
+	coreinit::FS_Save(s);
+	coreinit::SystemInfo_Save(s);
+	coreinit::Synchronization_Save(s);
+	coreinit::MessageQueue_Save(s);
+	coreinit::IPC_Save(s);
+	coreinit::MemoryMapping_Save(s);
+	coreinit::CodeGen_Save(s);
+	coreinit_Callbacks_Save(s);
+}
+
+void coreinit_restore(MemStreamReader& s)
+{
+	s.readSection("coreinit");
+	s.readNullableData(gCoreinitData, sizeof(coreinitData_t));
+	s.read(placeholderFont);
+	s.read(placeholderFontSize);
+
+	coreinit_Init_Restore(s);
+	coreinit::SysHeap_Restore(s);
+	coreinit::Thread_Restore(s);
+	coreinit::MEM_Restore(s);
+	coreinit::FG_Restore(s);
+	coreinit::OverlayArena_Restore(s);
+	coreinit::DynLoad_Restore(s);
+	coreinit::GHS_Restore(s);
+	coreinit::LockedCache_Restore(s);
+	coreinit::Alarm_Restore(s);
+	coreinit::FS_Restore(s);
+	coreinit::SystemInfo_Restore(s);
+	coreinit::Synchronization_Restore(s);
+	coreinit::MessageQueue_Restore(s);
+	coreinit::IPC_Restore(s);
+	coreinit::MemoryMapping_Restore(s);
+	coreinit::CodeGen_Restore(s);
+	coreinit_Callbacks_Restore(s);
+}
+
 void coreinit_load()
 {
 	coreinit::InitializeCore();

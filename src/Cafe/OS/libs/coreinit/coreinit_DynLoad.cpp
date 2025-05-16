@@ -131,6 +131,24 @@ namespace coreinit
 		return 0;
 	}
 
+	void DynLoad_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_DynLoad");
+		s.write(_osDynLoadFuncAlloc);
+		s.write(_osDynLoadFuncFree);
+		s.write(_osDynLoadTLSFuncAlloc);
+		s.write(_osDynLoadTLSFuncFree);
+	}
+
+	void DynLoad_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_DynLoad");
+		s.read(_osDynLoadFuncAlloc);
+		s.read(_osDynLoadFuncFree);
+		s.read(_osDynLoadTLSFuncAlloc);
+		s.read(_osDynLoadTLSFuncFree);
+	}
+
 	void InitializeDynLoad()
 	{
 		cafeExportRegister("coreinit", OSDynLoad_SetAllocator, LogType::Placeholder);

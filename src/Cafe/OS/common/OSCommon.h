@@ -6,6 +6,9 @@ struct PPCInterpreter_t;
 #define OSLIB_FUNCTIONTABLE_TYPE_FUNCTION	(1)
 #define OSLIB_FUNCTIONTABLE_TYPE_POINTER	(2)
 
+void osLib_save(MemStreamWriter& s);
+void osLib_restore(MemStreamReader& s);
+
 void osLib_load();
 void osLib_generateHashFromName(const char* name, uint32* hashA, uint32* hashB);
 sint32 osLib_getFunctionIndex(const char* libraryName, const char* functionName);

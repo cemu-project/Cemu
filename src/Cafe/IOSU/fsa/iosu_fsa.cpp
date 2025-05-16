@@ -36,7 +36,9 @@ namespace iosu
 			}
 		};
 
-		std::array<FSAClient, 624> sFSAClientArray;
+		static constexpr int const sFSAClientArraySize = 624;
+
+		std::array<FSAClient, sFSAClientArraySize> sFSAClientArray;
 
 		IOS_ERROR FSAAllocateClient(sint32& indexOut)
 		{
@@ -169,6 +171,8 @@ namespace iosu
 		}
 
 		class _FSAHandleTable {
+			friend class MemStreamWriter;
+			friend class MemStreamReader;
 			struct _FSAHandleResource
 			{
 				bool isAllocated{false};
@@ -227,9 +231,10 @@ namespace iosu
 				return it.fscFile;
 			}
 
+			static constexpr int const m_handleTableSize = 0x3C0;
 		private:
 			uint32 m_currentCounter = 1;
-			std::array<_FSAHandleResource, 0x3C0> m_handleTable;
+			std::array<_FSAHandleResource, m_handleTableSize> m_handleTable;
 		};
 
 		_FSAHandleTable sFileHandleTable;
@@ -901,6 +906,88 @@ namespace iosu
 		{
 			IOS_SendMessage(sFSAIoMsgQueue, 0, 0);
 			sFSAIoThread.join();
+		}
+	} // namespace fsa
+} // namespace iosu
+
+template <>
+void MemStreamWriter::write(const iosu::fsa::FSAClient& v)
+{
+	write(v.workingDirectory);
+	writeBool(v.isAllocated);
+}
+
+template <>
+void MemStreamReader::read(iosu::fsa::FSAClient& v)
+{
+	read(v.workingDirectory);
+	readBool(v.isAllocated);
+}
+
+template <>
+void MemStreamWriter::write(const iosu::fsa::_FSAHandleTable& v)
+{
+	write(v.m_currentCounter);
+	for (sint32 i = 0; i < v.m_handleTable.size(); i++)
+	{
+		write(v.m_handleTable[i].handleCheckValue);
+		writeBool(v.m_handleTable[i].isAllocated);
+
+		writeBool(v.m_handleTable[i].fscFile != nullptr);
+		if (v.m_handleTable[i].fscFile != nullptr) v.m_handleTable[i].fscFile->Save(*this);
+	}
+}
+
+template <>
+void MemStreamReader::read(iosu::fsa::_FSAHandleTable& v)
+{
+	read(v.m_currentCounter);
+	for (sint32 i = 0; i < v.m_handleTable.size(); i++)
+	{
+		read(v.m_handleTable[i].handleCheckValue);
+		readBool(v.m_handleTable[i].isAllocated);
+
+		if (readBool())
+		{
+			v.m_handleTable[i].fscFile = FSCVirtualFile::Restore(*this);
+		}
+		else
+		{
+			v.m_handleTable[i].fscFile = nullptr;
+		}
+	}
+}
+
+namespace iosu
+{
+	namespace fsa
+	{
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("iosu_fsa");
+			s.write(sFSAIoMsgQueue);
+			s.writeMPTR(_m_sFSAIoMsgQueueMsgBuffer);
+
+			for (sint32 i = 0; i < sFSAClientArraySize; i++)
+			{
+				s.write(sFSAClientArray[i]);
+			}
+			s.write(sDirHandleTable);
+			s.write(sFileHandleTable);
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("iosu_fsa");
+			s.read(sFSAIoMsgQueue);
+			s.readMPTR(_m_sFSAIoMsgQueueMsgBuffer);
+
+			for (sint32 i = 0; i < sFSAClientArraySize; i++)
+			{
+				s.read(sFSAClientArray[i]);
+			}
+			s.read(sDirHandleTable);
+			s.read(sFileHandleTable);
 		}
 	} // namespace fsa
 } // namespace iosu

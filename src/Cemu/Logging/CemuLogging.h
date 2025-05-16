@@ -42,6 +42,8 @@ enum class LogType : sint32
 	ProcUi = 39,
 	nlibcurl = 41,
 
+	SaveStates = 50,
+
 	PRUDP = 40,
 
 	NFC	= 41,
