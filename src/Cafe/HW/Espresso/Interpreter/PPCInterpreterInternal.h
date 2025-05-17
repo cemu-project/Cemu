@@ -50,9 +50,9 @@
 #define CR_BIT_EQ	2
 #define CR_BIT_SO	3
 
-#define XER_SO			(1<<31)	// summary overflow bit
-#define XER_OV			(1<<30)	// overflow bit
 #define XER_BIT_CA		(29)	// carry bit index. To accelerate frequent access, this bit is stored as a separate uint8
+#define XER_BIT_SO		(31)	// summary overflow, counterpart to CR SO
+#define XER_BIT_OV		(30)
 
 // FPSCR
 #define FPSCR_VXSNAN	(1<<24)
@@ -118,7 +118,8 @@
 
 static inline void ppc_update_cr0(PPCInterpreter_t* hCPU, uint32 r)
 {
-	hCPU->cr[CR_BIT_SO] = (hCPU->spr.XER&XER_SO) ? 1 : 0;
+	cemu_assert_debug(hCPU->xer_so <= 1);
+	hCPU->cr[CR_BIT_SO] = hCPU->xer_so;
 	hCPU->cr[CR_BIT_LT] = ((r != 0) ? 1 : 0) & ((r & 0x80000000) ? 1 : 0);
 	hCPU->cr[CR_BIT_EQ] = (r == 0);
 	hCPU->cr[CR_BIT_GT] = hCPU->cr[CR_BIT_EQ] ^ hCPU->cr[CR_BIT_LT] ^ 1;  // this works because EQ and LT can never be set at the same time. So the only case where GT becomes 1 is when LT=0 and EQ=0
@@ -190,8 +191,8 @@ inline double roundTo25BitAccuracy(double d)
 	return *(double*)&v;
 }
 
-double fres_espresso(double input);
-double frsqrte_espresso(double input);
+ATTR_MS_ABI double fres_espresso(double input);
+ATTR_MS_ABI double frsqrte_espresso(double input);
 
 void fcmpu_espresso(PPCInterpreter_t* hCPU, int crfD, double a, double b);
 

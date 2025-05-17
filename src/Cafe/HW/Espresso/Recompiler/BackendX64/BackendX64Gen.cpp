@@ -1,62 +1,31 @@
-#include "PPCRecompiler.h"
-#include "PPCRecompilerIml.h"
-#include "PPCRecompilerX64.h"
+#include "BackendX64.h"
 
 // x86/x64 extension opcodes that could be useful:
 // ANDN
 // mulx, rorx, sarx, shlx, shrx
 // PDEP, PEXT
 
-void x64Gen_checkBuffer(x64GenContext_t* x64GenContext)
-{
-	// todo
-}
-
 void x64Gen_writeU8(x64GenContext_t* x64GenContext, uint8 v)
 {
-	if( x64GenContext->codeBufferIndex+1 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint8*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex++;
+	x64GenContext->emitter->_emitU8(v);
 }
 
 void x64Gen_writeU16(x64GenContext_t* x64GenContext, uint32 v)
 {
-	if( x64GenContext->codeBufferIndex+2 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint16*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex += 2;
+	x64GenContext->emitter->_emitU16(v);
 }
 
 void x64Gen_writeU32(x64GenContext_t* x64GenContext, uint32 v)
 {
-	if( x64GenContext->codeBufferIndex+4 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint32*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex += 4;
+	x64GenContext->emitter->_emitU32(v);
 }
 
 void x64Gen_writeU64(x64GenContext_t* x64GenContext, uint64 v)
 {
-	if( x64GenContext->codeBufferIndex+8 > x64GenContext->codeBufferSize )
-	{
-		x64GenContext->codeBufferSize *= 2;
-		x64GenContext->codeBuffer = (uint8*)realloc(x64GenContext->codeBuffer, x64GenContext->codeBufferSize);
-	}
-	*(uint64*)(x64GenContext->codeBuffer+x64GenContext->codeBufferIndex) = v;
-	x64GenContext->codeBufferIndex += 8;
+	x64GenContext->emitter->_emitU64(v);
 }
 
-#include "x64Emit.hpp"
+#include "X64Emit.hpp"
 
 void _x64Gen_writeMODRMDeprecated(x64GenContext_t* x64GenContext, sint32 dataRegister, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32)
 {
@@ -67,7 +36,7 @@ void _x64Gen_writeMODRMDeprecated(x64GenContext_t* x64GenContext, sint32 dataReg
 		forceUseOffset = true;
 	}
 
-	if (memRegisterB64 == REG_NONE)
+	if (memRegisterB64 == X86_REG_NONE)
 	{
 		// memRegisterA64 + memImmS32
 		uint8 modRM = (dataRegister & 7) * 8 + (memRegisterA64 & 7);
@@ -352,7 +321,7 @@ void x64Gen_mov_mem32Reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegis
 void x64Gen_mov_mem64Reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegister, uint32 memImmU32, uint32 dataImmU32)
 {
 	// MOV QWORD [<memReg>+<memImmU32>], dataImmU32
-	if( memRegister == REG_R14 )
+	if( memRegister == X86_REG_R14 )
 	{
 		sint32 memImmS32 = (sint32)memImmU32;
 		if( memImmS32 == 0 )
@@ -384,7 +353,7 @@ void x64Gen_mov_mem64Reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegis
 void x64Gen_mov_mem8Reg64_imm8(x64GenContext_t* x64GenContext, sint32 memRegister, uint32 memImmU32, uint8 dataImmU8)
 {
 	// MOV BYTE [<memReg64>+<memImmU32>], dataImmU8
-	if( memRegister == REG_RSP )
+	if( memRegister == X86_REG_RSP )
 	{
 		sint32 memImmS32 = (sint32)memImmU32;
 		if( memImmS32 >= -128 && memImmS32 <= 127 )
@@ -625,7 +594,7 @@ void _x64_op_reg64Low_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstRegist
 	if (memRegister64 >= 8)
 		x64Gen_writeU8(x64GenContext, 0x41);
 	x64Gen_writeU8(x64GenContext, opByte);
-	_x64Gen_writeMODRMDeprecated(x64GenContext, dstRegister, memRegister64, REG_NONE, memImmS32);
+	_x64Gen_writeMODRMDeprecated(x64GenContext, dstRegister, memRegister64, X86_REG_NONE, memImmS32);
 }
 
 void x64Gen_or_reg64Low8_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegister64, sint32 memImmS32)
@@ -641,40 +610,6 @@ void x64Gen_and_reg64Low8_mem8Reg64(x64GenContext_t* x64GenContext, sint32 dstRe
 void x64Gen_mov_mem8Reg64_reg64Low8(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegister64, sint32 memImmS32)
 {
 	_x64_op_reg64Low_mem8Reg64(x64GenContext, dstRegister, memRegister64, memImmS32, 0x88);
-}
-
-void x64Gen_lock_cmpxchg_mem32Reg64PlusReg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32, sint32 srcRegister)
-{
-	// LOCK CMPXCHG DWORD [<reg64> + <reg64> + <imm64>], <srcReg64> (low dword)
-	x64Gen_writeU8(x64GenContext, 0xF0); // LOCK prefix
-
-	if( srcRegister >= 8 || memRegisterA64 >= 8|| memRegisterB64 >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x40+((srcRegister>=8)?4:0)+((memRegisterA64>=8)?1:0)+((memRegisterB64>=8)?2:0));
-
-	x64Gen_writeU8(x64GenContext, 0x0F);
-	x64Gen_writeU8(x64GenContext, 0xB1);
-
-	_x64Gen_writeMODRMDeprecated(x64GenContext, srcRegister, memRegisterA64, memRegisterB64, memImmS32);
-}
-
-void x64Gen_lock_cmpxchg_mem32Reg64_reg64(x64GenContext_t* x64GenContext, sint32 memRegister64, sint32 memImmS32, sint32 srcRegister)
-{
-	// LOCK CMPXCHG DWORD [<reg64> + <imm64>], <srcReg64> (low dword)
-	x64Gen_writeU8(x64GenContext, 0xF0); // LOCK prefix
-
-	if( srcRegister >= 8 || memRegister64 >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x40+((srcRegister>=8)?4:0)+((memRegister64>=8)?1:0));
-
-	x64Gen_writeU8(x64GenContext, 0x0F);
-	x64Gen_writeU8(x64GenContext, 0xB1);
-
-	if( memImmS32 == 0 )
-	{
-		x64Gen_writeU8(x64GenContext, 0x45+(srcRegister&7)*8);
-		x64Gen_writeU8(x64GenContext, 0x00);
-	}
-	else
-		assert_dbg();
 }
 
 void x64Gen_add_reg64_reg64(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister)
@@ -732,7 +667,7 @@ void x64Gen_add_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegis
 	}
 	else
 	{
-		if( srcRegister == REG_RAX )
+		if( srcRegister == X86_REG_RAX )
 		{
 			// special EAX short form
 			x64Gen_writeU8(x64GenContext, 0x05);
@@ -772,7 +707,7 @@ void x64Gen_sub_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegis
 	}
 	else
 	{
-		if( srcRegister == REG_RAX )
+		if( srcRegister == X86_REG_RAX )
 		{
 			// special EAX short form
 			x64Gen_writeU8(x64GenContext, 0x2D);
@@ -811,7 +746,7 @@ void x64Gen_sub_mem32reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegis
 {
 	// SUB <mem32_memReg64>, <imm32>
 	sint32 immS32 = (sint32)immU32;
-	if( memRegister == REG_RSP )
+	if( memRegister == X86_REG_RSP )
 	{
 		if( memImmS32 >= 128 )
 		{
@@ -843,64 +778,11 @@ void x64Gen_sub_mem32reg64_imm32(x64GenContext_t* x64GenContext, sint32 memRegis
 	}
 }
 
-void x64Gen_sbb_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister)
-{
-	// SBB <destReg64_low32>, <srcReg64_low32>
-	if( destRegister >= 8 && srcRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x45);
-	else if( srcRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x44);
-	else if( destRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x41);
-	x64Gen_writeU8(x64GenContext, 0x19);
-	x64Gen_writeU8(x64GenContext, 0xC0+(srcRegister&7)*8+(destRegister&7));
-}
-
-void x64Gen_adc_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister)
-{
-	// ADC <destReg64_low32>, <srcReg64_low32>
-	if( destRegister >= 8 && srcRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x45);
-	else if( srcRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x44);
-	else if( destRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x41);
-	x64Gen_writeU8(x64GenContext, 0x11);
-	x64Gen_writeU8(x64GenContext, 0xC0+(srcRegister&7)*8+(destRegister&7));
-}
-
-void x64Gen_adc_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32)
-{
-	sint32 immS32 = (sint32)immU32;
-	if( srcRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x41);
-	if( immS32 >= -128 && immS32 <= 127 )
-	{
-		x64Gen_writeU8(x64GenContext, 0x83);
-		x64Gen_writeU8(x64GenContext, 0xD0+(srcRegister&7));
-		x64Gen_writeU8(x64GenContext, (uint8)immS32);
-	}
-	else
-	{
-		if( srcRegister == REG_RAX )
-		{
-			// special EAX short form
-			x64Gen_writeU8(x64GenContext, 0x15);
-		}
-		else
-		{
-			x64Gen_writeU8(x64GenContext, 0x81);
-			x64Gen_writeU8(x64GenContext, 0xD0+(srcRegister&7));
-		}
-		x64Gen_writeU32(x64GenContext, immU32);
-	}
-}
-
 void x64Gen_dec_mem32(x64GenContext_t* x64GenContext, sint32 memoryRegister, uint32 memoryImmU32)
 {
 	// DEC dword [<reg64>+imm]
 	sint32 memoryImmS32 = (sint32)memoryImmU32;
-	if (memoryRegister != REG_RSP)
+	if (memoryRegister != X86_REG_RSP)
 		assert_dbg(); // not supported yet
 	if (memoryImmS32 >= -128 && memoryImmS32 <= 127)
 	{
@@ -981,7 +863,7 @@ void x64Gen_and_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegis
 	}
 	else
 	{
-		if( srcRegister == REG_RAX )
+		if( srcRegister == X86_REG_RAX )
 		{
 			// special EAX short form
 			x64Gen_writeU8(x64GenContext, 0x25);
@@ -1026,7 +908,7 @@ void x64Gen_test_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegi
 	sint32 immS32 = (sint32)immU32;
 	if( srcRegister >= 8 )
 		x64Gen_writeU8(x64GenContext, 0x41);
-	if( srcRegister == REG_RAX )
+	if( srcRegister == X86_REG_RAX )
 	{
 		// special EAX short form
 		x64Gen_writeU8(x64GenContext, 0xA9);
@@ -1052,7 +934,7 @@ void x64Gen_cmp_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegis
 	}
 	else
 	{
-		if( srcRegister == REG_RAX )
+		if( srcRegister == X86_REG_RAX )
 		{
 			// special RAX short form
 			x64Gen_writeU8(x64GenContext, 0x3D);
@@ -1082,7 +964,7 @@ void x64Gen_cmp_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 des
 void x64Gen_cmp_reg64Low32_mem32reg64(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 memRegister, sint32 memImmS32)
 {
 	// CMP <destReg64_lowDWORD>, DWORD [<memRegister>+<immS32>]
-	if( memRegister == REG_RSP )
+	if( memRegister == X86_REG_RSP )
 	{
 		if( memImmS32 >= -128 && memImmS32 <= 127 )
 			assert_dbg(); // todo -> Shorter instruction form
@@ -1112,7 +994,7 @@ void x64Gen_or_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegist
 	}
 	else
 	{
-		if( srcRegister == REG_RAX )
+		if( srcRegister == X86_REG_RAX )
 		{
 			// special EAX short form
 			x64Gen_writeU8(x64GenContext, 0x0D);
@@ -1172,7 +1054,7 @@ void x64Gen_xor_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegis
 	}
 	else
 	{
-		if( srcRegister == REG_RAX )
+		if( srcRegister == X86_REG_RAX )
 		{
 			// special EAX short form
 			x64Gen_writeU8(x64GenContext, 0x35);
@@ -1326,32 +1208,12 @@ void x64Gen_cdq(x64GenContext_t* x64GenContext)
 	x64Gen_writeU8(x64GenContext, 0x99);
 }
 
-void x64Gen_bswap_reg64(x64GenContext_t* x64GenContext, sint32 destRegister)
-{
-	if( destRegister >= 8 )
-		x64Gen_writeU8(x64GenContext, 0x41|8);
-	else
-		x64Gen_writeU8(x64GenContext, 0x40|8);
-	x64Gen_writeU8(x64GenContext, 0x0F);
-	x64Gen_writeU8(x64GenContext, 0xC8+(destRegister&7));
-}
-
 void x64Gen_bswap_reg64Lower32bit(x64GenContext_t* x64GenContext, sint32 destRegister)
 {
 	if( destRegister >= 8 )
 		x64Gen_writeU8(x64GenContext, 0x41);
 	x64Gen_writeU8(x64GenContext, 0x0F);
 	x64Gen_writeU8(x64GenContext, 0xC8+(destRegister&7));
-}
-
-void x64Gen_bswap_reg64Lower16bit(x64GenContext_t* x64GenContext, sint32 destRegister)
-{
-	assert_dbg(); // do not use this instruction, it's result is always undefined. Instead use ROL <reg16>, 8
-	//x64Gen_writeU8(x64GenContext, 0x66);
-	//if( destRegister >= 8 )
-	//	x64Gen_writeU8(x64GenContext, 0x41);
-	//x64Gen_writeU8(x64GenContext, 0x0F);
-	//x64Gen_writeU8(x64GenContext, 0xC8+(destRegister&7));
 }
 
 void x64Gen_lzcnt_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister)
@@ -1388,7 +1250,7 @@ void x64Gen_setcc_mem8(x64GenContext_t* x64GenContext, sint32 conditionType, sin
 {
 	// SETcc [<reg64>+imm]
 	sint32 memoryImmS32 = (sint32)memoryImmU32;
-	if( memoryRegister != REG_RSP )
+	if( memoryRegister != X86_REG_RSP )
 		assert_dbg(); // not supported
 	if( memoryRegister >= 8 )
 		assert_dbg(); // not supported
@@ -1627,7 +1489,7 @@ void x64Gen_bt_mem8(x64GenContext_t* x64GenContext, sint32 memoryRegister, uint3
 {
 	// BT [<reg64>+imm], bitIndex	(bit test)
 	sint32 memoryImmS32 = (sint32)memoryImmU32;
-	if( memoryRegister != REG_RSP )
+	if( memoryRegister != X86_REG_RSP )
 		assert_dbg(); // not supported yet
 	if( memoryImmS32 >= -128 && memoryImmS32 <= 127 )
 	{
@@ -1662,7 +1524,7 @@ void x64Gen_jmp_imm32(x64GenContext_t* x64GenContext, uint32 destImm32)
 
 void x64Gen_jmp_memReg64(x64GenContext_t* x64GenContext, sint32 memRegister, uint32 immU32)
 {
-	if( memRegister == REG_NONE )
+	if( memRegister == X86_REG_NONE )
 	{
 		assert_dbg();
 	}

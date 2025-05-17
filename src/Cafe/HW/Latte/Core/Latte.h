@@ -47,8 +47,6 @@ struct LatteGPUState_t
 	gx2GPUSharedArea_t* sharedArea; // quick reference to shared area
 	MPTR sharedAreaAddr;
 	// other
-	// todo: Currently we have the command buffer logic implemented as a FIFO ringbuffer. On real HW it's handled as a series of command buffers that are pushed individually.
-	std::atomic<uint64> lastSubmittedCommandBufferTimestamp;
 	uint32 gx2InitCalled; // incremented every time GX2Init() is called
 	// OpenGL control
 	uint32 glVendor; // GLVENDOR_*
@@ -74,8 +72,6 @@ struct LatteGPUState_t
 };
 
 extern LatteGPUState_t LatteGPUState;
-
-extern uint8* gxRingBufferReadPtr; // currently active read pointer (gx2 ring buffer or display list)
 
 // texture
 

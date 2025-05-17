@@ -226,6 +226,10 @@ set(BUILD_SHARED_LIBS OFF)
 add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL SYSTEM)
 set(BUILD_SHARED_LIBS "")
 
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
+endif()
+
 find_package(ZArchive)
 if (NOT ZArchive_FOUND)
 	add_subdirectory("dependencies/ZArchive" EXCLUDE_FROM_ALL)

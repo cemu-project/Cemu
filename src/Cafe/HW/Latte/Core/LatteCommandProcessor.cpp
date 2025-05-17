@@ -13,6 +13,7 @@
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
+#include "Cafe/OS/libs/TCL/TCL.h" // TCL currently handles the GPU command ringbuffer
 
 #include "Cafe/CafeSystem.h"
 
@@ -27,11 +28,6 @@ void LatteCP_DebugPrintCmdBuffer(uint32be* bufferPtr, uint32 size);
 typedef uint32be* LatteCMDPtr;
 #define LatteReadCMD() ((uint32)*(cmd++))
 #define LatteSkipCMD(_nWords) cmd += (_nWords)
-
-uint8* gxRingBufferReadPtr; // currently active read pointer (gx2 ring buffer or display list)
-uint8* gx2CPParserDisplayListPtr;
-uint8* gx2CPParserDisplayListStart; // used for debugging
-uint8* gx2CPParserDisplayListEnd;
 
 void LatteThread_HandleOSScreen();
 
@@ -155,16 +151,12 @@ void LatteCP_signalEnterWait()
 */
 uint32 LatteCP_readU32Deprc()
 {
-	uint32 v;
-	uint8* gxRingBufferWritePtr;
-	sint32 readDistance;
 	// no display list active
 	while (true)
 	{
-		gxRingBufferWritePtr = gx2WriteGatherPipe.writeGatherPtrGxBuffer[GX2::sGX2MainCoreIndex];
-		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		if (readDistance != 0)
-			break;
+		uint32 cmdWord;
+		if ( TCL::TCLGPUReadRBWord(cmdWord) )
+			return cmdWord;
 
 		g_renderer->NotifyLatteCommandProcessorIdle(); // let the renderer know in case it wants to flush any commands
 		performanceMonitor.gpuTime_idleTime.beginMeasuring();
@@ -175,9 +167,8 @@ uint32 LatteCP_readU32Deprc()
 		}
 		LatteThread_HandleOSScreen(); // check if new frame was presented via OSScreen API
 
-		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		if (readDistance != 0)
-			break;
+		if ( TCL::TCLGPUReadRBWord(cmdWord) )
+			return cmdWord;
 		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 
@@ -187,53 +178,7 @@ uint32 LatteCP_readU32Deprc()
 		std::this_thread::yield();
 		performanceMonitor.gpuTime_idleTime.endMeasuring();
 	}
-	v = *(uint32*)gxRingBufferReadPtr;
-	gxRingBufferReadPtr += 4;
-#ifdef CEMU_DEBUG_ASSERT
-	if (v == 0xcdcdcdcd)
-		assert_dbg();
-#endif
-	v = _swapEndianU32(v);
-	return v;
-}
-
-void LatteCP_waitForNWords(uint32 numWords)
-{
-	uint8* gxRingBufferWritePtr;
-	sint32 readDistance;
-	bool isFlushed = false;
-	sint32 waitDistance = numWords * sizeof(uint32be);
-	// no display list active
-	while (true)
-	{
-		gxRingBufferWritePtr = gx2WriteGatherPipe.writeGatherPtrGxBuffer[GX2::sGX2MainCoreIndex];
-		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		if (readDistance < 0)
-			return; // wrap around means there is at least one full command queued after this
-		if (readDistance >= waitDistance)
-			break;
-		g_renderer->NotifyLatteCommandProcessorIdle(); // let the renderer know in case it wants to flush any commands
-		performanceMonitor.gpuTime_idleTime.beginMeasuring();
-		// no command data available, spin in a busy loop for a while then check again
-		for (sint32 busy = 0; busy < 80; busy++)
-		{
-			_mm_pause();
-		}
-		readDistance = (sint32)(gxRingBufferWritePtr - gxRingBufferReadPtr);
-		if (readDistance < 0)
-			return; // wrap around means there is at least one full command queued after this
-		if (readDistance >= waitDistance)
-			break;
-
-		if (Latte_GetStopSignal())
-			LatteThread_Exit();
-
-		// still no command data available, do some other tasks
-		LatteTiming_HandleTimedVsync();
-		LatteAsyncCommands_checkAndExecute();
-		std::this_thread::yield();
-		performanceMonitor.gpuTime_idleTime.endMeasuring();
-	}
+	UNREACHABLE;
 }
 
 template<uint32 readU32()>
@@ -270,21 +215,23 @@ void LatteCP_itIndirectBufferDepr(LatteCMDPtr cmd, uint32 nWords)
 	cemu_assert_debug(nWords == 3);
 	uint32 physicalAddress = LatteReadCMD();
 	uint32 physicalAddressHigh = LatteReadCMD(); // unused
-	uint32 sizeInDWords = LatteReadCMD();
-	uint32 displayListSize = sizeInDWords * 4;
-	DrawPassContext drawPassCtx;
+	uint32 sizeInU32s = LatteReadCMD();
 
 #ifdef LATTE_CP_LOGGING
 	if (GetAsyncKeyState('A'))
 		LatteCP_DebugPrintCmdBuffer(MEMPTR<uint32be>(physicalAddress), displayListSize);
 #endif
 
-	uint32be* buf = MEMPTR<uint32be>(physicalAddress).GetPtr();
-	drawPassCtx.PushCurrentCommandQueuePos(buf, buf, buf + sizeInDWords);
+	if (sizeInU32s > 0)
+	{
+		DrawPassContext drawPassCtx;
+		uint32be* buf = MEMPTR<uint32be>(physicalAddress).GetPtr();
+		drawPassCtx.PushCurrentCommandQueuePos(buf, buf, buf + sizeInU32s);
 
-	LatteCP_processCommandBuffer(drawPassCtx);
-	if (drawPassCtx.isWithinDrawPass())
-		drawPassCtx.endDrawPass();
+		LatteCP_processCommandBuffer(drawPassCtx);
+		if (drawPassCtx.isWithinDrawPass())
+			drawPassCtx.endDrawPass();
+	}
 }
 
 // pushes the command buffer to the stack
@@ -294,11 +241,12 @@ void LatteCP_itIndirectBuffer(LatteCMDPtr cmd, uint32 nWords, DrawPassContext& d
 	uint32 physicalAddress = LatteReadCMD();
 	uint32 physicalAddressHigh = LatteReadCMD(); // unused
 	uint32 sizeInDWords = LatteReadCMD();
-	uint32 displayListSize = sizeInDWords * 4;
-	cemu_assert_debug(displayListSize >= 4);
-
-	uint32be* buf = MEMPTR<uint32be>(physicalAddress).GetPtr();
-	drawPassCtx.PushCurrentCommandQueuePos(buf, buf, buf + sizeInDWords);
+	if (sizeInDWords > 0)
+	{
+		uint32 displayListSize = sizeInDWords * 4;
+		uint32be* buf = MEMPTR<uint32be>(physicalAddress).GetPtr();
+		drawPassCtx.PushCurrentCommandQueuePos(buf, buf, buf + sizeInDWords);
+	}
 }
 
 LatteCMDPtr LatteCP_itStreamoutBufferUpdate(LatteCMDPtr cmd, uint32 nWords)
@@ -565,26 +513,55 @@ LatteCMDPtr LatteCP_itMemWrite(LatteCMDPtr cmd, uint32 nWords)
 	if (word1 == 0x40000)
 	{
 		// write U32
-		*memPtr = word2;
+		stdx::atomic_ref<uint32be> atomicRef(*memPtr);
+		atomicRef.store(word2);
 	}
 	else if (word1 == 0x00000)
 	{
-		// write U64 (as two U32)
-		// note: The U32s are swapped
-		memPtr[0] = word2;
-		memPtr[1] = word3;
+		// write U64
+		// note: The U32s are swapped here, but needs verification. Also, it seems like the two U32 halves are written independently and the U64 as a whole is not atomic -> investiagte
+		stdx::atomic_ref<uint64be> atomicRef(*(uint64be*)memPtr);
+		atomicRef.store(((uint64le)word2 << 32) | word3);
 	}
 	else if (word1 == 0x20000)
 	{
 		// write U64 (little endian)
-		memPtr[0] = _swapEndianU32(word2);
-		memPtr[1] = _swapEndianU32(word3);
+		stdx::atomic_ref<uint64le> atomicRef(*(uint64le*)memPtr);
+		atomicRef.store(((uint64le)word3 << 32) | word2);
 	}
 	else
 		cemu_assert_unimplemented();
 	return cmd;
 }
 
+LatteCMDPtr LatteCP_itEventWriteEOP(LatteCMDPtr cmd, uint32 nWords)
+{
+	cemu_assert_debug(nWords == 5);
+	uint32 word0 = LatteReadCMD();
+	uint32 word1 = LatteReadCMD();
+	uint32 word2 = LatteReadCMD();
+	uint32 word3 = LatteReadCMD(); // value low bits
+	uint32 word4 = LatteReadCMD(); // value high bits
+
+	cemu_assert_debug(word2 == 0x40000000 || word2 == 0x42000000);
+
+	if (word0 == 0x504 && (word2&0x40000000)) // todo - figure out the flags
+	{
+		stdx::atomic_ref<uint64be> atomicRef(*(uint64be*)memory_getPointerFromPhysicalOffset(word1));
+		uint64 val = ((uint64)word4 << 32) | word3;
+		atomicRef.store(val);
+	}
+	else
+	{	cemu_assert_unimplemented();
+	}
+	bool triggerInterrupt = (word2 & 0x2000000) != 0;
+	if (triggerInterrupt)
+	{
+		// todo - timestamp interrupt
+	}
+	TCL::TCLGPUNotifyNewRetirementTimestamp();
+	return cmd;
+}
 
 LatteCMDPtr LatteCP_itMemSemaphore(LatteCMDPtr cmd, uint32 nWords)
 {
@@ -783,16 +760,6 @@ LatteCMDPtr LatteCP_itDrawImmediate(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 
 	drawPassCtx.executeDraw(count, false, _tempIndexArrayMPTR);
 	return cmd;
-
-}
-
-LatteCMDPtr LatteCP_itHLEFifoWrapAround(LatteCMDPtr cmd, uint32 nWords)
-{
-	cemu_assert_debug(nWords == 1);
-	uint32 unused = LatteReadCMD();
-	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
-	cmd = (LatteCMDPtr)gxRingBufferReadPtr;
-	return cmd;
 }
 
 LatteCMDPtr LatteCP_itHLESampleTimer(LatteCMDPtr cmd, uint32 nWords)
@@ -816,16 +783,6 @@ LatteCMDPtr LatteCP_itHLESpecialState(LatteCMDPtr cmd, uint32 nWords)
 	{
 		LatteGPUState.contextNew.GetSpecialStateValues()[stateId] = stateValue;
 	}
-	return cmd;
-}
-
-LatteCMDPtr LatteCP_itHLESetRetirementTimestamp(LatteCMDPtr cmd, uint32 nWords)
-{
-	cemu_assert_debug(nWords == 2);
-	uint32 timestampHigh = (uint32)LatteReadCMD();
-	uint32 timestampLow = (uint32)LatteReadCMD();
-	uint64 timestamp = ((uint64)timestampHigh << 32ULL) | (uint64)timestampLow;
-	GX2::__GX2NotifyNewRetirementTimestamp(timestamp);
 	return cmd;
 }
 
@@ -1145,9 +1102,10 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 		LatteCMDPtr cmd, cmdStart, cmdEnd;
 		if (!drawPassCtx.PopCurrentCommandQueuePos(cmd, cmdStart, cmdEnd))
 			break;
+		uint32 itHeader;
 		while (cmd < cmdEnd)
 		{
-			uint32 itHeader = LatteReadCMD();
+			itHeader = LatteReadCMD();
 			uint32 itHeaderType = (itHeader >> 30) & 3;
 			if (itHeaderType == 3)
 			{
@@ -1361,11 +1319,6 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 					LatteCP_itHLEEndOcclusionQuery(cmdData, nWords);
 					break;
 				}
-				case IT_HLE_SET_CB_RETIREMENT_TIMESTAMP:
-				{
-					LatteCP_itHLESetRetirementTimestamp(cmdData, nWords);
-					break;
-				}
 				case IT_HLE_BOTTOM_OF_PIPE_CB:
 				{
 					LatteCP_itHLEBottomOfPipeCB(cmdData, nWords);
@@ -1421,6 +1374,7 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 void LatteCP_ProcessRingbuffer()
 {
 	sint32 timerRecheck = 0; // estimates how much CP processing time has elapsed based on the executed commands, if the value exceeds CP_TIMER_RECHECK then _handleTimers() is called
+	uint32be tmpBuffer[128];
 	while (true)
 	{
 		uint32 itHeader = LatteCP_readU32Deprc();
@@ -1429,10 +1383,13 @@ void LatteCP_ProcessRingbuffer()
 		{
 			uint32 itCode = (itHeader >> 8) & 0xFF;
 			uint32 nWords = ((itHeader >> 16) & 0x3FFF) + 1;
-			LatteCP_waitForNWords(nWords);
-			LatteCMDPtr cmd = (LatteCMDPtr)gxRingBufferReadPtr;
-			uint8* cmdEnd = gxRingBufferReadPtr + nWords * 4;
-			gxRingBufferReadPtr = cmdEnd;
+			cemu_assert(nWords < 128);
+			for (sint32 i=0; i<nWords; i++)
+			{
+				uint32 word = LatteCP_readU32Deprc();
+				tmpBuffer[i] = word;
+			}
+			LatteCMDPtr cmd = (LatteCMDPtr)tmpBuffer;
 			switch (itCode)
 			{
 			case IT_SURFACE_SYNC:
@@ -1599,6 +1556,11 @@ void LatteCP_ProcessRingbuffer()
 				timerRecheck += CP_TIMER_RECHECK / 512;
 				break;
 			}
+			case IT_EVENT_WRITE_EOP:
+			{
+				LatteCP_itEventWriteEOP(cmd, nWords);
+				break;
+			}
 			case IT_HLE_COPY_COLORBUFFER_TO_SCANBUFFER:
 			{
 				LatteCP_itHLECopyColorBufferToScanBuffer(cmd, nWords);
@@ -1637,12 +1599,6 @@ void LatteCP_ProcessRingbuffer()
 				timerRecheck += CP_TIMER_RECHECK / 128;
 				break;
 			}
-			case IT_HLE_FIFO_WRAP_AROUND:
-			{
-				LatteCP_itHLEFifoWrapAround(cmd, nWords);
-				timerRecheck += CP_TIMER_RECHECK / 512;
-				break;
-			}
 			case IT_HLE_SAMPLE_TIMER:
 			{
 				LatteCP_itHLESampleTimer(cmd, nWords);
@@ -1664,12 +1620,6 @@ void LatteCP_ProcessRingbuffer()
 			case IT_HLE_END_OCCLUSION_QUERY:
 			{
 				LatteCP_itHLEEndOcclusionQuery(cmd, nWords);
-				timerRecheck += CP_TIMER_RECHECK / 512;
-				break;
-			}
-			case IT_HLE_SET_CB_RETIREMENT_TIMESTAMP:
-			{
-				LatteCP_itHLESetRetirementTimestamp(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 512;
 				break;
 			}
@@ -1933,11 +1883,6 @@ void LatteCP_DebugPrintCmdBuffer(uint32be* bufferPtr, uint32 size)
 				cemuLog_log(LogType::Force, "{} IT_HLE_COPY_SURFACE_NEW", strPrefix);
 				break;
 			}
-			case IT_HLE_FIFO_WRAP_AROUND:
-			{
-				cemuLog_log(LogType::Force, "{} IT_HLE_FIFO_WRAP_AROUND", strPrefix);
-				break;
-			}
 			case IT_HLE_SAMPLE_TIMER:
 			{
 				cemuLog_log(LogType::Force, "{} IT_HLE_SAMPLE_TIMER", strPrefix);
@@ -1956,11 +1901,6 @@ void LatteCP_DebugPrintCmdBuffer(uint32be* bufferPtr, uint32 size)
 			case IT_HLE_END_OCCLUSION_QUERY:
 			{
 				cemuLog_log(LogType::Force, "{} IT_HLE_END_OCCLUSION_QUERY", strPrefix);
-				break;
-			}
-			case IT_HLE_SET_CB_RETIREMENT_TIMESTAMP:
-			{
-				cemuLog_log(LogType::Force, "{} IT_HLE_SET_CB_RETIREMENT_TIMESTAMP", strPrefix);
 				break;
 			}
 			case IT_HLE_BOTTOM_OF_PIPE_CB:
