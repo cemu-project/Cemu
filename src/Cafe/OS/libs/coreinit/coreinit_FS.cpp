@@ -742,7 +742,8 @@ namespace coreinit
 		}
 
 		__FSCmdSubmitResult(cmd, fsStatus);
-		__FSUpdateQueue(&cmd->fsClientBody->fsCmdQueue);
+		// dont read from cmd after this point, since the game could already have modified it
+		__FSUpdateQueue(&client->fsCmdQueue);
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
