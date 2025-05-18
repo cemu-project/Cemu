@@ -434,25 +434,74 @@ static inline int order_to_int(const std::weak_ordering &wo)
 	return 0;
 }
 
-int wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData)
+std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData)
 {
 	const auto isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
 	const auto isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
-	const auto& name1 = GetNameByTitleId(titleId1);
-	const auto& name2 = GetNameByTitleId(titleId2);
 
-	if(sortData->dir > 0)
-		return order_to_int(std::tie(isFavoriteB, name1) <=> std::tie(isFavoriteA, name2));
-	else
-		return order_to_int(std::tie(isFavoriteB, name2) <=> std::tie(isFavoriteA, name1));
+	auto compareFn = [&, isFavoriteA, isFavoriteB]<class T>(T a, T b, bool prioritizeFave = false)
+	{
+		if(!prioritizeFave)
+		{
+			if (sortData->dir > 0)
+				return a <=> b;
+			else
+				return b <=> a;
+		}
+		else
+		{
+			if (sortData->dir > 0)
+				return std::tie(isFavoriteB, a) <=> std::tie(isFavoriteA, b);
+			else
+				return std::tie(isFavoriteB, b) <=> std::tie(isFavoriteA, a);
+		}
+	};
+
+	auto titlePlayDateSortString = [](uint64_t id)
+	{
+	  iosu::pdm::GameListStat playTimeStat;
+	  if (!iosu::pdm::GetStatForGamelist(id, playTimeStat))
+		  return std::string{"00000'00'00"};
+	  auto& lastPlay = playTimeStat.last_played;
+	  return fmt::format("{:0>5}'{:0>2}'{:0>2}", lastPlay.year, lastPlay.month, lastPlay.day);
+	};
+
+	auto titlePlayMinutes = [](uint64_t id)
+	{
+	  iosu::pdm::GameListStat playTimeStat;
+	  if (!iosu::pdm::GetStatForGamelist(id, playTimeStat))
+		  return 0u;
+	  return playTimeStat.numMinutesPlayed;
+	};
+
+	auto titleRegion = [](uint64_t id)
+	{
+	  return CafeTitleList::GetGameInfo(id).GetRegion();
+	};
+
+	switch(sortData->column)
+	{
+	default:
+	case ColumnName:
+		return compareFn(GetNameByTitleId(titleId1), GetNameByTitleId(titleId2), true);
+	case ColumnGameStarted:
+		return compareFn(titlePlayDateSortString(titleId1), titlePlayDateSortString(titleId2));
+	case ColumnGameTime:
+		return compareFn(titlePlayMinutes(titleId1), titlePlayMinutes(titleId2));
+	case ColumnRegion:
+		return compareFn(titleRegion(titleId1), titleRegion(titleId2));
+	case ColumnTitleID:
+		return compareFn(titleId1, titleId2);
+	}
+	// unreachable
+	cemu_assert_debug(false);
+	return std::weak_ordering::less;
 }
 
 int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
 {
 	const auto sort_data = (SortData*)sortData;
-	const int dir = sort_data->dir;
-
-	return sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data);
+	return order_to_int(sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data));
 }
 
 void wxGameList::SortEntries(int column)
@@ -479,8 +528,9 @@ void wxGameList::SortEntries(int column)
 	case ColumnGameTime:
 	case ColumnGameStarted:
 	case ColumnRegion:
+	case ColumnTitleID:
 	{
-		SortData data{ this, column, s_direction };
+		SortData data{ this, ItemColumns{column}, s_direction };
 		SortItems(SortFunction, (wxIntPtr)&data);
 		break;
 	}
@@ -1004,7 +1054,7 @@ void wxGameList::OnClose(wxCloseEvent& event)
 
 int wxGameList::FindInsertPosition(TitleId titleId)
 {
-	SortData data{ this, s_last_column, s_direction };
+	SortData data{ this, ItemColumns{s_last_column}, s_direction };
 	const auto itemCount = GetItemCount();
 	if (itemCount == 0)
 		return 0;
