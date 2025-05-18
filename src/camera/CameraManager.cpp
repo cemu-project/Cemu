@@ -90,15 +90,17 @@ namespace CameraManager
 
 	void Init()
 	{
-		std::scoped_lock lock(s_mutex);
-		if (s_initialized)
-			return;
-		s_initialized = true;
-		s_mutex.unlock();
-		s_running = true;
+		{
+			std::scoped_lock lock(s_mutex);
+			if (s_initialized)
+				return;
+			s_initialized = true;
+			s_running = true;
+		}
+		s_ctx = Cap_createContext();
+
 		s_captureThread = std::thread(&CaptureWorker);
 
-		s_ctx = Cap_createContext();
 
 		const auto uniqueId = GetConfig().camera_id.GetValue();
 		if (!uniqueId.empty())
