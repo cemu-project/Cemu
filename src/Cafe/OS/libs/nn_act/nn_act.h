@@ -29,7 +29,7 @@ namespace act
 		return (simpleAddressId>>24)&0xFF;
 	}
 
-	const uint8 ACT_SLOT_CURRENT = 0xFE;
+	constexpr uint8 ACT_SLOT_CURRENT = 0xFE;
 }
 }
 

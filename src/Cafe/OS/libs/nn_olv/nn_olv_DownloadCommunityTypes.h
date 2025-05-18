@@ -13,11 +13,11 @@ namespace nn
 		class DownloadedCommunityData
 		{
 		public:
-			static const inline uint32 FLAG_HAS_TITLE_TEXT = (1 << 0);
-			static const inline uint32 FLAG_HAS_DESC_TEXT = (1 << 1);
-			static const inline uint32 FLAG_HAS_APP_DATA = (1 << 2);
-			static const inline uint32 FLAG_HAS_ICON_DATA = (1 << 3);
-			static const inline uint32 FLAG_HAS_MII_DATA = (1 << 4);
+			static constexpr inline uint32 FLAG_HAS_TITLE_TEXT = (1 << 0);
+			static constexpr inline uint32 FLAG_HAS_DESC_TEXT = (1 << 1);
+			static constexpr inline uint32 FLAG_HAS_APP_DATA = (1 << 2);
+			static constexpr inline uint32 FLAG_HAS_ICON_DATA = (1 << 3);
+			static constexpr inline uint32 FLAG_HAS_MII_DATA = (1 << 4);
 
 			DownloadedCommunityData()
 			{
@@ -276,11 +276,11 @@ namespace nn
 		class DownloadCommunityDataListParam
 		{
 		public:
-			static const inline uint32 FLAG_FILTER_FAVORITES = (1 << 0);
-			static const inline uint32 FLAG_FILTER_OFFICIALS = (1 << 1);
-			static const inline uint32 FLAG_FILTER_OWNED = (1 << 2);
-			static const inline uint32 FLAG_QUERY_MII_DATA = (1 << 3);
-			static const inline uint32 FLAG_QUERY_ICON_DATA = (1 << 4);
+			static constexpr inline uint32 FLAG_FILTER_FAVORITES = (1 << 0);
+			static constexpr inline uint32 FLAG_FILTER_OFFICIALS = (1 << 1);
+			static constexpr inline uint32 FLAG_FILTER_OWNED = (1 << 2);
+			static constexpr inline uint32 FLAG_QUERY_MII_DATA = (1 << 3);
+			static constexpr inline uint32 FLAG_QUERY_ICON_DATA = (1 << 4);
 
 			DownloadCommunityDataListParam()
 			{

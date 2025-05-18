@@ -62,7 +62,7 @@ public:
 	}
 
 private:
-	static const uint32 kStaticMemOffset = 64;
+	static constexpr uint32 kStaticMemOffset = 64;
 
 	T* m_ptr;
 	sint32 m_modified_size;
