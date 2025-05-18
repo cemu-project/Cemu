@@ -21,4 +21,5 @@ namespace CameraManager
 	void SetDevice(uint32 deviceNo);
 	std::vector<DeviceInfo> EnumerateDevices();
 	void SaveDevice();
+	std::optional<uint32> GetCurrentDevice();
 } // namespace CameraManager

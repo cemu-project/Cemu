@@ -344,7 +344,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	dsu_client.port = dsuc.get_attribute("port", dsu_client.port);
 
 	auto camera = parser.get("Camera");
-	camera_id = camera.get_attribute("Id", "");
+	camera_id = camera.get("Id", "");
 
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");

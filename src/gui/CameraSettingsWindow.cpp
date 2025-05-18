@@ -15,7 +15,8 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 	  m_imageBitmap(CAMERA_WIDTH, CAMERA_HEIGHT, 24), m_imageBuffer(CAMERA_WIDTH * CAMERA_HEIGHT * 3)
 {
 
-
+	CameraManager::Init();
+	CameraManager::Open();
 	auto* rootSizer = new wxBoxSizer(wxVERTICAL);
 	{
 		auto* topSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -37,8 +38,6 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 		rootSizer->Add(m_imageWindow, wxEXPAND);
 	}
 	SetSizerAndFit(rootSizer);
-	CameraManager::Init();
-	CameraManager::Open();
 	m_imageUpdateTimer.Bind(wxEVT_TIMER, &CameraSettingsWindow::UpdateImage, this);
 	m_imageUpdateTimer.Start(33, wxTIMER_CONTINUOUS);
 	this->Bind(wxEVT_CLOSE_WINDOW, &CameraSettingsWindow::OnClose, this);
@@ -61,8 +60,8 @@ void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
 		choices.push_back(entry.name);
 	}
 	m_cameraChoice->Set(choices);
-	wxArrayString str;
-
+	if (auto currentDevice = CameraManager::GetCurrentDevice())
+		m_cameraChoice->SetSelection(*currentDevice + 1);
 }
 void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
 {

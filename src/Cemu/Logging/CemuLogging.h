@@ -14,6 +14,7 @@ enum class LogType : sint32
 	UnsupportedAPI = 2,
 	SoundAPI = 4, // any audio related API
 	InputAPI = 5, // any input related API
+	CameraAPI  = 27,
 	Socket = 6,
 	Save = 7,
 	H264 = 9,

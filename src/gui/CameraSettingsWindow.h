@@ -19,4 +19,3 @@ class CameraSettingsWindow : public wxDialog
 	void UpdateImage(const wxTimerEvent&);
 	void OnClose(wxCloseEvent& event);
 };
-

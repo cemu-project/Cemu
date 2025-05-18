@@ -18,7 +18,6 @@ constexpr unsigned CAMERA_PITCH = 768;
 namespace CameraManager
 {
 	std::mutex s_mutex;
-	bool s_initialized = false;
 	CapContext s_ctx;
 	std::optional<CapDeviceID> s_device;
 	std::optional<CapStream> s_stream;
@@ -29,17 +28,38 @@ namespace CameraManager
 	std::atomic_bool s_capturing = false;
 	std::atomic_bool s_running = false;
 
+	std::string FourCC(uint32le value)
+	{
+		return {
+			static_cast<char>((value >> 0) & 0xFF),
+			static_cast<char>((value >> 8) & 0xFF),
+			static_cast<char>((value >> 16) & 0xFF),
+			static_cast<char>((value >> 24) & 0xFF)};
+	}
+
+	void CaptureLogFunction(uint32_t level, const char* string)
+	{
+		cemuLog_log(LogType::CameraAPI, "OpenPNPCapture: {}: {}", level, string);
+	}
+
 	std::optional<CapFormatID> FindCorrectFormat()
 	{
-		const auto formatCount = Cap_getNumFormats(s_ctx, *s_device);
+		const auto device = *s_device;
+		cemuLog_log(LogType::CameraAPI, "Video capture device '{}' available formats:", Cap_getDeviceName(s_ctx, device));
+		const auto formatCount = Cap_getNumFormats(s_ctx, device);
 		for (int32_t formatId = 0; formatId < formatCount; ++formatId)
 		{
 			CapFormatInfo formatInfo;
-			if (Cap_getFormatInfo(s_ctx, *s_device, formatId, &formatInfo) != CAPRESULT_OK)
+			if (Cap_getFormatInfo(s_ctx, device, formatId, &formatInfo) != CAPRESULT_OK)
 				continue;
+			cemuLog_log(LogType::CameraAPI, "{}: {} {}x{} @ {} fps, {} bpp", formatId, FourCC(formatInfo.fourcc), formatInfo.width, formatInfo.height, formatInfo.fps, formatInfo.bpp);
 			if (formatInfo.width == CAMERA_WIDTH && formatInfo.height == CAMERA_HEIGHT)
+			{
+				cemuLog_log(LogType::CameraAPI, "Selected video format {}", formatId);
 				return formatId;
+			}
 		}
+		cemuLog_log(LogType::CameraAPI, "Failed to find suitable video format");
 		return std::nullopt;
 	}
 
@@ -92,15 +112,15 @@ namespace CameraManager
 	{
 		{
 			std::scoped_lock lock(s_mutex);
-			if (s_initialized)
+			if (s_running)
 				return;
-			s_initialized = true;
 			s_running = true;
+			s_ctx = Cap_createContext();
+			Cap_setLogLevel(4);
+			Cap_installCustomLogFunction(CaptureLogFunction);
 		}
-		s_ctx = Cap_createContext();
 
 		s_captureThread = std::thread(&CaptureWorker);
-
 
 		const auto uniqueId = GetConfig().camera_id.GetValue();
 		if (!uniqueId.empty())
@@ -121,8 +141,8 @@ namespace CameraManager
 	{
 		CloseStream();
 		Cap_releaseContext(s_ctx);
+		s_running = false;
 		s_captureThread.join();
-		s_initialized = false;
 	}
 	void FillNV12Buffer(uint8* nv12Buffer)
 	{
@@ -173,6 +193,7 @@ namespace CameraManager
 		std::scoped_lock lock(s_mutex);
 		std::vector<DeviceInfo> infos;
 		const auto deviceCount = Cap_getDeviceCount(s_ctx);
+		cemuLog_log(LogType::CameraAPI, "Available video capture devices:");
 		for (CapDeviceID deviceNo = 0; deviceNo < deviceCount; ++deviceNo)
 		{
 			const auto uniqueId = Cap_getDeviceUniqueID(s_ctx, deviceNo);
@@ -181,19 +202,26 @@ namespace CameraManager
 			info.uniqueId = uniqueId;
 
 			if (name)
-				info.name = fmt::format("{}: {}", deviceNo + 1, name);
+				info.name = fmt::format("{}: {}", deviceNo, name);
 			else
-				info.name = fmt::format("{}: Unknown", deviceNo + 1);
+				info.name = fmt::format("{}: Unknown", deviceNo);
 			infos.push_back(info);
+			cemuLog_log(LogType::CameraAPI, "{}", info.name);
 		}
+		if (infos.empty())
+			cemuLog_log(LogType::CameraAPI, "No available video capture devices");
 		return infos;
 	}
 	void SaveDevice()
 	{
 		std::scoped_lock lock(s_mutex);
-		if (s_device)
-			GetConfig().camera_id = Cap_getDeviceUniqueID(s_ctx, *s_device);
-		else
-			GetConfig().camera_id = "";
+		auto& config = GetConfig();
+		const auto cameraId = s_device ? Cap_getDeviceUniqueID(s_ctx, *s_device) : "";
+		config.camera_id = cameraId;
+	}
+
+	std::optional<uint32> GetCurrentDevice()
+	{
+		return s_device;
 	}
 } // namespace CameraManager
