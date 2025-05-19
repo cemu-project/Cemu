@@ -320,8 +320,8 @@ std::string RendererOutputShader::GetOpenGlVertexSource(bool render_upside_down)
 	// vertex shader
 	std::ostringstream vertex_source;
 		vertex_source <<
-			R"(#version 400
-out vec2 passUV;
+			R"(#version 420
+layout(location = 0) smooth out vec2 passUV;
 
 out gl_PerVertex
 {
@@ -468,7 +468,7 @@ uniform vec2 nativeResolution;
 uniform vec2 outputResolution;
 #endif
 
-layout(location = 0) in vec2 passUV;
+layout(location = 0) smooth in vec2 passUV;
 layout(binding = 0) uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
 )" + shaderSrc;

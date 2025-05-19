@@ -303,7 +303,27 @@ namespace GX2
 
 	void GX2SetVertexShader(GX2VertexShader* vertexShader)
 	{
-		GX2ReserveCmdSpace(100);
+		uint32 numOutputIds = vertexShader->regs.vsOutIdTableSize;
+		numOutputIds = std::min<uint32>(numOutputIds, 0xA);
+		uint32 vsSemanticTableSize = vertexShader->regs.semanticTableSize;
+
+		uint32 reserveSize = 31;
+		if (vertexShader->shaderMode == GX2_SHADER_MODE::GEOMETRY_SHADER)
+		{
+			reserveSize += 7;
+		}
+		else
+		{
+			reserveSize += 18;
+			reserveSize += numOutputIds;
+			if (vertexShader->usesStreamOut != 0)
+				reserveSize += 2+12;
+		}
+		if (vsSemanticTableSize > 0)
+		{
+			reserveSize += 5 + vsSemanticTableSize;
+		}
+		GX2ReserveCmdSpace(reserveSize);
 
 		MPTR shaderProgramAddr;
 		uint32 shaderProgramSize;
@@ -361,8 +381,6 @@ namespace GX2
 
 			cemu_assert_debug(vertexShader->regs.SPI_VS_OUT_CONFIG.value().get_VS_PER_COMPONENT() == false); // not handled on the GPU side
 
-			uint32 numOutputIds = vertexShader->regs.vsOutIdTableSize;
-			numOutputIds = std::min<uint32>(numOutputIds, 0xA);
 			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 1+numOutputIds));
 			gx2WriteGather_submitU32AsBE(Latte::REGADDR::SPI_VS_OUT_ID_0-0xA000);
 			for(uint32 i=0; i<numOutputIds; i++)
@@ -392,7 +410,6 @@ namespace GX2
 			}
 		}
 		// update semantic table
-		uint32 vsSemanticTableSize = vertexShader->regs.semanticTableSize;
 		if (vsSemanticTableSize > 0)
 		{
 			gx2WriteGather_submit(

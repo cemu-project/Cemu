@@ -186,7 +186,7 @@ namespace camera
 		if (g_cameraCounter == 0)
 		{
 			coreinit::OSCreateAlarm(g_alarm_camera.GetPtr());
-			coreinit::OSSetPeriodicAlarm(g_alarm_camera.GetPtr(), coreinit::coreinit_getOSTime(), (uint64)ESPRESSO_TIMER_CLOCK / 60ull, RPLLoader_MakePPCCallable(ppcCAMUpdate60));
+			coreinit::OSSetPeriodicAlarm(g_alarm_camera.GetPtr(), coreinit::OSGetTime(), (uint64)ESPRESSO_TIMER_CLOCK / 60ull, RPLLoader_MakePPCCallable(ppcCAMUpdate60));
 		}
 		g_cameraCounter++;
 

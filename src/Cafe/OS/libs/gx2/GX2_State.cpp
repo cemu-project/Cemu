@@ -213,7 +213,6 @@ namespace GX2
 
 	void GX2SetViewportReg(GX2ViewportReg* viewportReg)
 	{
-		GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 		GX2ReserveCmdSpace(2 + 6);
 
 		gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONTEXT_REG, 1 + 6),

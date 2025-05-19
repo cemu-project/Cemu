@@ -86,11 +86,11 @@ namespace coreinit
 		else
 		{
 			// loop until lock acquired or timeout occurred
-			uint64 timeoutValue = coreinit_getTimerTick() + coreinit::EspressoTime::ConvertNsToTimerTicks(timeout);
+			uint64 timeoutValue = OSGetSystemTime() + coreinit::EspressoTime::ConvertNsToTimerTicks(timeout);
 			while (!spinlock->ownerThread.atomic_compare_exchange(nullptr, currentThread))
 			{
 				OSYieldThread();
-				if (coreinit_getTimerTick() >= timeoutValue)
+				if (OSGetSystemTime() >= timeoutValue)
 				{
 					return false;
 				}
@@ -182,11 +182,11 @@ namespace coreinit
 		else
 		{
 			// loop until lock acquired or timeout occurred
-			uint64 timeoutValue = coreinit_getTimerTick() + coreinit::EspressoTime::ConvertNsToTimerTicks(timeout);
+			uint64 timeoutValue = OSGetSystemTime() + coreinit::EspressoTime::ConvertNsToTimerTicks(timeout);
 			while (!spinlock->ownerThread.atomic_compare_exchange(nullptr, currentThread))
 			{
 				OSYieldThread();
-				if (coreinit_getTimerTick() >= timeoutValue)
+				if (OSGetSystemTime() >= timeoutValue)
 				{
 					return false;
 				}

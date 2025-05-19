@@ -671,7 +671,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				{
 				fs::path path(gameInfo.GetBase().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(path))));
+				wxLaunchDefaultApplication(wxHelper::FromPath(path));
 				break;
 				}
 			case kWikiPage:
@@ -692,21 +692,21 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 
 			case kContextMenuSaveFolder:
 			{
-				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(gameInfo.GetSaveFolder()))));
+				wxLaunchDefaultApplication(wxHelper::FromPath(gameInfo.GetSaveFolder()));
 				break;
 			}
 			case kContextMenuUpdateFolder:
 			{
 				fs::path path(gameInfo.GetUpdate().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(path))));
+				wxLaunchDefaultApplication(wxHelper::FromPath(path));
 				break;
 			}
 			case kContextMenuDLCFolder:
 			{
 				fs::path path(gameInfo.GetAOC().front().GetPath());
 				_stripPathFilename(path);
-				wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(path))));
+				wxLaunchDefaultApplication(wxHelper::FromPath(path));
 				break;
 			}
 			case kContextMenuRemoveCache:

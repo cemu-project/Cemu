@@ -146,17 +146,15 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 	auto* top_row = new wxBoxSizer(wxHORIZONTAL);
 	auto* bottom_row = new wxBoxSizer(wxHORIZONTAL);
 
-	auto* dummy = new wxStaticText(box, wxID_ANY, "");
-
 	top_row->Add(AddDimensionPanel(2, 0, box), 1, wxEXPAND | wxALL, 2);
-	top_row->Add(dummy, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
+	top_row->Add(0, 0, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
 	top_row->Add(AddDimensionPanel(1, 1, box), 1, wxEXPAND | wxALL, 2);
-	top_row->Add(dummy, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
+	top_row->Add(0, 0, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
 	top_row->Add(AddDimensionPanel(3, 2, box), 1, wxEXPAND | wxALL, 2);
 
 	bottom_row->Add(AddDimensionPanel(2, 3, box), 1, wxEXPAND | wxALL, 2);
 	bottom_row->Add(AddDimensionPanel(2, 4, box), 1, wxEXPAND | wxALL, 2);
-	bottom_row->Add(dummy, 1, wxEXPAND | wxLEFT | wxRIGHT, 0);
+	bottom_row->Add(0, 0, 1, wxEXPAND | wxLEFT | wxRIGHT, 0);
 	bottom_row->Add(AddDimensionPanel(3, 5, box), 1, wxEXPAND | wxALL, 2);
 	bottom_row->Add(AddDimensionPanel(3, 6, box), 1, wxEXPAND | wxALL, 2);
 

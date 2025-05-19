@@ -39,7 +39,6 @@ enum class LogType : sint32
 	NN_SL = 26,
 
 	TextureReadback = 29,
-
 	ProcUi = 39,
 	nlibcurl = 41,
 
@@ -47,6 +46,7 @@ enum class LogType : sint32
 
 	NFC	= 41,
 	NTAG = 42,
+	Recompiler = 60,
 };
 
 template <>

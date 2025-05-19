@@ -135,7 +135,7 @@ void gx2Export_GX2InitDepthBufferRegs(PPCInterpreter_t* hCPU)
 void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::GX2, "GX2SetColorBuffer(0x{:08x}, {})", hCPU->gpr[3], hCPU->gpr[4]);
-	GX2ReserveCmdSpace(20);
+	GX2::GX2ReserveCmdSpace(20);
 
 	GX2ColorBuffer* colorBufferBE = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
@@ -198,15 +198,13 @@ void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 		mmCB_COLOR0_INFO - 0xA000 + hCPU->gpr[4],
 		colorBufferBE->reg_info);
 
-	GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
-
 	osLib_returnFromFunction(hCPU, 0);
 }
 
 void gx2Export_GX2SetDepthBuffer(PPCInterpreter_t* hCPU)
 {
 	cemuLog_log(LogType::GX2, "GX2SetDepthBuffer(0x{:08x})", hCPU->gpr[3]);
-	GX2ReserveCmdSpace(20);
+	GX2::GX2ReserveCmdSpace(20);
 
 	GX2DepthBuffer* depthBufferBE = (GX2DepthBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
@@ -264,8 +262,6 @@ void gx2Export_GX2SetDepthBuffer(PPCInterpreter_t* hCPU)
 	gx2WriteGather_submitU32AsBE(mmDB_DEPTH_VIEW - 0xA000);
 	gx2WriteGather_submitU32AsBE(db_view);
 
-	GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
-
 	osLib_returnFromFunction(hCPU, 0);
 }
 
@@ -281,7 +277,7 @@ void gx2Export_GX2MarkScanBufferCopied(PPCInterpreter_t* hCPU)
 	uint32 scanTarget = hCPU->gpr[3];
 	if( scanTarget == GX2_SCAN_TARGET_TV )
 	{
-		GX2ReserveCmdSpace(10);
+		GX2::GX2ReserveCmdSpace(10);
 
 		uint32 physAddr = (MEMORY_TILINGAPERTURE_AREA_ADDR+0x200000);
 

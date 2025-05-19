@@ -264,7 +264,7 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 	// send copy command to GPU
 	if( srcHwTileMode > 0 && srcHwTileMode < 16 && dstHwTileMode > 0 && dstHwTileMode < 16 || requestGPURAMCopy )
 	{
-		GX2ReserveCmdSpace(1+13*2);
+		GX2::GX2ReserveCmdSpace(1+13*2);
 
 		gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13*2),
 		// src
@@ -540,7 +540,7 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	uint32 dstDepth = std::max<uint32>(surfOutDst.depth, 1);
 
 	// send copy command to GPU
-	GX2ReserveCmdSpace(1 + 13 * 2);
+	GX2::GX2ReserveCmdSpace(1 + 13 * 2);
 	gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13 * 2),
 		// src
 		(uint32)srcSurface->imagePtr,
@@ -619,7 +619,7 @@ void gx2Export_GX2ConvertDepthBufferToTextureSurface(PPCInterpreter_t* hCPU)
 	sint32 srcMip = 0;
 
 	uint32 numSlices = std::max<uint32>(_swapEndianU32(depthBuffer->viewNumSlices), 1);
-	GX2ReserveCmdSpace((1 + 13 * 2) * numSlices);
+	GX2::GX2ReserveCmdSpace((1 + 13 * 2) * numSlices);
 	for (uint32 subSliceIndex = 0; subSliceIndex < numSlices; subSliceIndex++)
 	{
 		// send copy command to GPU

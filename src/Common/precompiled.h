@@ -616,4 +616,36 @@ namespace stdx
 		scope_exit& operator=(scope_exit) = delete;
 		void release() { m_released = true;}
 	};
+
+	// Xcode 16 doesn't have std::atomic_ref support and we provide a minimalist reimplementation as fallback
+#ifdef __cpp_lib_atomic_ref
+	#include <atomic>
+	template<typename T>
+	using atomic_ref = std::atomic_ref<T>;
+#else
+	template<typename T>
+	class atomic_ref
+	{
+		static_assert(std::is_trivially_copyable<T>::value, "atomic_ref requires trivially copyable types");
+	public:
+		using value_type = T;
+
+		explicit atomic_ref(T& obj) noexcept : ptr_(std::addressof(obj)) {}
+
+		T load(std::memory_order order = std::memory_order_seq_cst) const noexcept
+		{
+			auto aptr = reinterpret_cast<std::atomic<T>*>(ptr_);
+			return aptr->load(order);
+		}
+
+		void store(T desired, std::memory_order order = std::memory_order_seq_cst) const noexcept
+		{
+			auto aptr = reinterpret_cast<std::atomic<T>*>(ptr_);
+			aptr->store(desired, order);
+		}
+
+	private:
+		T* ptr_;
+	};
+#endif
 }

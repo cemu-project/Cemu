@@ -221,11 +221,14 @@ public:
 	VKRObjectPipeline();
 	~VKRObjectPipeline() override;
 
-	void setPipeline(VkPipeline newPipeline);
+	void SetPipeline(VkPipeline newPipeline);
+	VkPipeline GetPipeline() const { return m_pipeline; }
 
-	VkPipeline pipeline = VK_NULL_HANDLE;
-	VkDescriptorSetLayout vertexDSL = VK_NULL_HANDLE, pixelDSL = VK_NULL_HANDLE, geometryDSL = VK_NULL_HANDLE;
-	VkPipelineLayout pipeline_layout = VK_NULL_HANDLE;
+	VkDescriptorSetLayout m_vertexDSL = VK_NULL_HANDLE, m_pixelDSL = VK_NULL_HANDLE, m_geometryDSL = VK_NULL_HANDLE;
+	VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
+
+private:
+	VkPipeline m_pipeline = VK_NULL_HANDLE;
 };
 
 class VKRObjectDescriptorSet : public VKRDestructibleObject
