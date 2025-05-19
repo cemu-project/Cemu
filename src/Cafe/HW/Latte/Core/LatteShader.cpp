@@ -650,17 +650,18 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 		auxHash += (uint64)dim;
 	}
 
-	// Textures as render targets
-	for (uint32 i = 0; i < pixelShader->textureUnitListCount; i++)
-	{
-	    uint8 t = pixelShader->textureUnitList[i];
-	    auxHash = std::rotl<uint64>(auxHash, 11);
-		auxHash += (uint64)pixelShader->textureRenderTargetIndex[t];
-	}
-
 #if ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
+		// Textures as render targets
+		for (uint32 i = 0; i < pixelShader->textureUnitListCount; i++)
+		{
+		    uint8 t = pixelShader->textureUnitList[i];
+		    auxHash = std::rotl<uint64>(auxHash, 11);
+			auxHash += (uint64)pixelShader->textureRenderTargetIndex[t];
+		}
+
+		// Color buffers
         for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
         {
             auto format = LatteMRT::GetColorBufferFormat(i, LatteGPUState.contextNew);
@@ -669,6 +670,7 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
             auxHash += (uint64)dataType;
         }
 
+        // Depth buffer
         bool hasDepthBuffer = LatteMRT::GetActiveDepthBufferMask(LatteGPUState.contextNew);
         if (hasDepthBuffer)
         {

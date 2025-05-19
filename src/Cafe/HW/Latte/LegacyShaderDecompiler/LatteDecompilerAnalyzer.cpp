@@ -403,7 +403,8 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 		}
 		else if (cfInstruction->exportType == 0 && cfInstruction->exportArrayBase == 61)
 		{
-		    if (LatteMRT::GetActiveDepthBufferMask(*shaderContext->contextRegistersNew))
+		    // Only check for depth buffer mask on Metal, as its not in the PS hash on other backends
+		    if (g_renderer->GetType() != RendererAPI::Metal || LatteMRT::GetActiveDepthBufferMask(*shaderContext->contextRegistersNew))
 				shader->depthMask = true;
 		}
 		else

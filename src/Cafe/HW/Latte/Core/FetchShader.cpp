@@ -75,7 +75,7 @@ uint32 LatteShaderRecompiler_getAttributeAlignment(LatteParsedFetchShaderAttribu
 	return 4;
 }
 
-void LatteShader_calculateFSKey(LatteFetchShader* fetchShader, uint32* contextRegister)
+void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 {
 	uint64 key = 0;
 	for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
@@ -367,7 +367,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	{
 		// empty fetch shader, seen in Minecraft
 		// these only make sense when vertex shader does not call FS?
-		LatteShader_calculateFSKey(newFetchShader, contextRegister);
+		LatteShader_calculateFSKey(newFetchShader);
 		newFetchShader->CalculateFetchShaderVkHash();
 		newFetchShader->CheckIfVerticesNeedManualFetchMtl(contextRegister);
 		return newFetchShader;
@@ -427,7 +427,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 		}
 		bufferGroup.vboStride = vboOffset;
 	}
-	LatteShader_calculateFSKey(newFetchShader, contextRegister);
+	LatteShader_calculateFSKey(newFetchShader);
 	newFetchShader->CalculateFetchShaderVkHash();
 	newFetchShader->CheckIfVerticesNeedManualFetchMtl(contextRegister);
 
