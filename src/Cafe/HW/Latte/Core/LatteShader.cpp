@@ -701,7 +701,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	// copy uniform offsets
 	// for OpenGL these are retrieved in _prepareSeparableUniforms()
 	// HACK
-	if (g_renderer->GetType() != RendererAPI::OpenGL)
+	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
 	{
 		shader->uniform.loc_remapped = decompilerOutput.uniformOffsetsVK.offset_remapped;
 		shader->uniform.loc_uniformRegister = decompilerOutput.uniformOffsetsVK.offset_uniformRegister;
