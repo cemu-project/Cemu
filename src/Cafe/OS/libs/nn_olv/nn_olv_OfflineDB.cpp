@@ -17,6 +17,11 @@ namespace nn
 		bool g_offlineDBInitialized = false;
 		ZArchiveReader* g_offlineDBArchive{nullptr};
 
+		bool OfflineDB_Initialized()
+		{
+			return g_offlineDBInitialized;
+		}
+
 		void OfflineDB_LazyInit()
 		{
 			std::scoped_lock _l(g_offlineDBMutex);

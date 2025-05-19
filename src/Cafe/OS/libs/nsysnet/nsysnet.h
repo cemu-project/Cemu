@@ -12,6 +12,9 @@
 
 typedef signed int WUSOCKET;
 
+void nsysnet_save(MemStreamWriter& s);
+void nsysnet_restore(MemStreamReader& s);
+
 void nsysnet_load();
 WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket);
 void nsysnet_notifyCloseSharedSocket(SOCKET existingSocket);

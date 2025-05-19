@@ -16,6 +16,18 @@ namespace nn::temp
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("nn_temp");
+		s.write(tempIdGenerator);
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("nn_temp");
+		s.read(tempIdGenerator);
+	}
+
 	void Initialize()
 	{
 		osLib_addFunction("nn_temp", "TEMPCreateAndInitTempDir", nnTempExport_TEMPCreateAndInitTempDir);
