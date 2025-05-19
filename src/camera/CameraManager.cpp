@@ -104,8 +104,9 @@ namespace CameraManager
 	void ResetBuffers()
 	{
 		std::ranges::fill(s_rgbBuffer, 0);
-		std::ranges::fill_n(s_nv12Buffer.begin(), CAMERA_WIDTH * CAMERA_PITCH, 16);
-		std::ranges::fill_n(s_nv12Buffer.begin() + CAMERA_WIDTH * CAMERA_PITCH, (CAMERA_WIDTH / 2), 128);
+		constexpr auto pixCount = CAMERA_HEIGHT * CAMERA_PITCH;
+		std::ranges::fill_n(s_nv12Buffer.begin(), pixCount, 16);
+		std::ranges::fill_n(s_nv12Buffer.begin() + pixCount, (pixCount / 2), 128);
 	}
 
 	void Init()
