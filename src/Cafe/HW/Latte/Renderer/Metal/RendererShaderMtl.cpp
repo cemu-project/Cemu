@@ -277,7 +277,7 @@ MTL::Library* RendererShaderMtl::LibraryFromSource()
 {
     // Compile from source
     NS_STACK_SCOPED MTL::CompileOptions* options = MTL::CompileOptions::alloc()->init();
-    if (g_current_game_profile->GetFastMath())
+    if (g_current_game_profile->GetShaderFastMath())
         options->setFastMathEnabled(true);
 
     if (m_mtlr->GetPositionInvariance())

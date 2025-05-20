@@ -43,12 +43,12 @@ public:
     // Getters
     bool UseHostMemoryForCache() const
     {
-        return (m_bufferCacheMode == BufferCacheMode::Host);
+        return (m_metalBufferCacheMode == MetalBufferCacheMode::Host);
     }
 
     bool NeedsReducedLatency() const
     {
-        return (m_bufferCacheMode == BufferCacheMode::DeviceShared || m_bufferCacheMode == BufferCacheMode::Host);
+        return (m_metalBufferCacheMode == MetalBufferCacheMode::DeviceShared || m_metalBufferCacheMode == MetalBufferCacheMode::Host);
     }
 
     MPTR GetImportedMemBaseAddress() const
@@ -70,7 +70,7 @@ private:
     MetalSynchronizedHeapAllocator m_indexAllocator;
 
     MTL::Buffer* m_bufferCache = nullptr;
-    BufferCacheMode m_bufferCacheMode;
+    MetalBufferCacheMode m_metalBufferCacheMode;
     MPTR m_importedMemBaseAddress;
     size_t m_hostAllocationSize = 0;
 };

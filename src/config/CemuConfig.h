@@ -124,14 +124,14 @@ enum class AccurateShaderMulOption
 };
 ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, AccurateShaderMulOption::True);
 
-enum class BufferCacheMode
+enum class MetalBufferCacheMode
 {
     Auto,
     DevicePrivate,
     DeviceShared,
     Host,
 };
-ENABLE_ENUM_ITERATORS(BufferCacheMode, BufferCacheMode::Auto, BufferCacheMode::Host);
+ENABLE_ENUM_ITERATORS(MetalBufferCacheMode, MetalBufferCacheMode::Auto, MetalBufferCacheMode::Host);
 
 enum class PositionInvariance
 {
@@ -239,16 +239,16 @@ struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 	}
 };
 template <>
-struct fmt::formatter<BufferCacheMode> : formatter<string_view> {
+struct fmt::formatter<MetalBufferCacheMode> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(const BufferCacheMode c, FormatContext &ctx) const {
+	auto format(const MetalBufferCacheMode c, FormatContext &ctx) const {
 		string_view name;
 		switch (c)
 		{
-		case BufferCacheMode::Auto: name = "auto"; break;
-		case BufferCacheMode::DevicePrivate: name = "device private"; break;
-		case BufferCacheMode::DeviceShared: name = "device shared"; break;
-		case BufferCacheMode::Host: name = "host"; break;
+		case MetalBufferCacheMode::Auto: name = "auto"; break;
+		case MetalBufferCacheMode::DevicePrivate: name = "device private"; break;
+		case MetalBufferCacheMode::DeviceShared: name = "device shared"; break;
+		case MetalBufferCacheMode::Host: name = "host"; break;
 		default: name = "unknown"; break;
 		}
 		return formatter<string_view>::format(name, ctx);

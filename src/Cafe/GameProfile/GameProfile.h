@@ -31,8 +31,8 @@ public:
 
 	[[nodiscard]] const std::optional<GraphicAPI>& GetGraphicsAPI() const { return m_graphics_api; }
 	[[nodiscard]] const AccurateShaderMulOption& GetAccurateShaderMul() const { return m_accurateShaderMul; }
-	[[nodiscard]] bool GetFastMath() const { return m_fastMath; }
-	[[nodiscard]] BufferCacheMode GetBufferCacheMode() const { return m_bufferCacheMode; }
+	[[nodiscard]] bool GetShaderFastMath() const { return m_shaderFastMath; }
+	[[nodiscard]] MetalBufferCacheMode GetBufferCacheMode() const { return m_metalBufferCacheMode; }
 	[[nodiscard]] PositionInvariance GetPositionInvariance() const { return m_positionInvariance; }
 	[[nodiscard]] const std::optional<PrecompiledShaderOption>& GetPrecompiledShadersState() const { return m_precompiledShaders; }
 
@@ -57,8 +57,8 @@ private:
 	// graphic settings
 	std::optional<GraphicAPI> m_graphics_api{};
 	AccurateShaderMulOption m_accurateShaderMul = AccurateShaderMulOption::True;
-	bool m_fastMath = true;
-	BufferCacheMode m_bufferCacheMode = BufferCacheMode::Auto;
+	bool m_shaderFastMath = true;
+	MetalBufferCacheMode m_metalBufferCacheMode = MetalBufferCacheMode::Auto;
 	PositionInvariance m_positionInvariance = PositionInvariance::Auto;
 	std::optional<PrecompiledShaderOption> m_precompiledShaders{};
 	// cpu settings

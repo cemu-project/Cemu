@@ -1091,11 +1091,13 @@ void GeneralSettings2::StoreConfig()
 	{
         if (selection != wxNOT_FOUND)
     	{
+#if ENABLE_METAL
     		const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
     		if (info)
     			config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
     		else
     			config.mtl_graphic_device_uuid = {};
+#endif
     	}
     	else
     		config.mtl_graphic_device_uuid = {};
@@ -1638,9 +1640,9 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		m_vsync->Select(selection);
 
 		m_graphic_device->Enable();
-		auto devices = MetalRenderer::GetDevices();
 		m_graphic_device->Clear();
 #if ENABLE_METAL
+        auto devices = MetalRenderer::GetDevices();
 		if(!devices.empty())
 		{
 			for (const auto& device : devices)

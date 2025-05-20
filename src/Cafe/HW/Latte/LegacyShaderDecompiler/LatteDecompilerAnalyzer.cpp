@@ -559,6 +559,7 @@ namespace LatteDecompiler
 		{
 			decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance and uf_streamoutBufferBase*
 		}
+#if ENABLE_METAL
 		if (g_renderer->GetType() == RendererAPI::Metal)
 		{
             bool usesGeometryShader = UseGeometryShader(*decompilerContext->contextRegistersNew, decompilerContext->options->usesGeometryShader);
@@ -566,6 +567,7 @@ namespace LatteDecompiler
 		    if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && usesGeometryShader)
 				decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance
 		}
+#endif
 	}
 
 	void _initUniformBindingPoints(LatteDecompilerShaderContext* decompilerContext)

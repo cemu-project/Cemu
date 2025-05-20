@@ -128,19 +128,19 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		m_shader_mul_accuracy->SetToolTip(_("EXPERT OPTION\nControls the accuracy of floating point multiplication in shaders.\n\nRecommended: true"));
 		first_row->Add(m_shader_mul_accuracy, 0, wxALL, 5);
 
-		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Fast math")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Shader fast math")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString math_values[] = { _("false"), _("true") };
-		m_fast_math = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(math_values), math_values);
-		m_fast_math->SetToolTip(_("EXPERT OPTION\nEnables fast math for all shaders. May (rarely) cause graphical bugs.\n\nMetal only\n\nRecommended: true"));
-		first_row->Add(m_fast_math, 0, wxALL, 5);
+		m_shader_fast_math = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(math_values), math_values);
+		m_shader_fast_math->SetToolTip(_("EXPERT OPTION\nEnables fast math for all shaders. May (rarely) cause graphical bugs.\n\nMetal only\n\nRecommended: true"));
+		first_row->Add(m_shader_fast_math, 0, wxALL, 5);
 
-		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Buffer cache mode")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Metal buffer cache mode")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString cache_values[] = { _("auto"), _("device private"), _("device shared"), _("host") };
-		m_buffer_cache_mode = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(cache_values), cache_values);
-		m_buffer_cache_mode->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: auto"));
-		first_row->Add(m_buffer_cache_mode, 0, wxALL, 5);
+		m_metal_buffer_cache_mode = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(cache_values), cache_values);
+		m_metal_buffer_cache_mode->SetToolTip(_("EXPERT OPTION\nDecides how the buffer cache memory will be managed.\n\nMetal only\n\nRecommended: auto"));
+		first_row->Add(m_metal_buffer_cache_mode, 0, wxALL, 5);
 
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Position invariance")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
@@ -295,8 +295,8 @@ void GameProfileWindow::ApplyProfile()
 	else
 		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan, Metal
 	m_shader_mul_accuracy->SetSelection((int)m_game_profile.m_accurateShaderMul);
-	m_fast_math->SetSelection((int)m_game_profile.m_fastMath);
-	m_buffer_cache_mode->SetSelection((int)m_game_profile.m_bufferCacheMode);
+	m_shader_fast_math->SetSelection((int)m_game_profile.m_shaderFastMath);
+	m_metal_buffer_cache_mode->SetSelection((int)m_game_profile.m_metalBufferCacheMode);
 	m_position_invariance->SetSelection((int)m_game_profile.m_positionInvariance);
 
 	//// audio
@@ -359,8 +359,8 @@ void GameProfileWindow::SaveProfile()
 	m_game_profile.m_accurateShaderMul = (AccurateShaderMulOption)m_shader_mul_accuracy->GetSelection();
 	if (m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::False && m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::True)
 		m_game_profile.m_accurateShaderMul = AccurateShaderMulOption::True; // force a legal value
-	m_game_profile.m_fastMath = (bool)m_fast_math->GetSelection();
-	m_game_profile.m_bufferCacheMode = (BufferCacheMode)m_buffer_cache_mode->GetSelection();
+	m_game_profile.m_shaderFastMath = (bool)m_shader_fast_math->GetSelection();
+	m_game_profile.m_metalBufferCacheMode = (MetalBufferCacheMode)m_metal_buffer_cache_mode->GetSelection();
 	m_game_profile.m_positionInvariance = (PositionInvariance)m_position_invariance->GetSelection();
 
 	if (m_graphic_api->GetSelection() == 0)
