@@ -280,12 +280,12 @@ namespace camera
 	void load()
 	{
 		reset();
-		cafeExportRegister("camera", CAMGetMemReq, LogType::Force);
-		cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::Force);
-		cafeExportRegister("camera", CAMInit, LogType::Force);
-		cafeExportRegister("camera", CAMExit, LogType::Force);
-		cafeExportRegister("camera", CAMOpen, LogType::Force);
-		cafeExportRegister("camera", CAMClose, LogType::Force);
-		cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::Force);
+		cafeExportRegister("camera", CAMGetMemReq, LogType::CameraAPI);
+		cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::CameraAPI);
+		cafeExportRegister("camera", CAMInit, LogType::CameraAPI);
+		cafeExportRegister("camera", CAMExit, LogType::CameraAPI);
+		cafeExportRegister("camera", CAMOpen, LogType::CameraAPI);
+		cafeExportRegister("camera", CAMClose, LogType::CameraAPI);
+		cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::CameraAPI);
 	}
 } // namespace camera
