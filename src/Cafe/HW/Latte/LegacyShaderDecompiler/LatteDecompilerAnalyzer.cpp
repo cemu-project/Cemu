@@ -910,18 +910,15 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 
             // Check for dimension
             auto dim = shader->textureUnitDim[textureIndex];
-            // TODO: 2D arrays could technically be supported as well
+            // TODO: 2D arrays could be supported as well
             if (dim != Latte::E_DIM::DIM_2D)
                 continue;
 
             // Check for mip level
-            // TODO: uncomment?
-            /*
             auto lastMip = texRegister.word5.get_LAST_LEVEL();
-            // TODO: multiple mip levels could technically be supported as well
+            // TODO: multiple mip levels could be supported as well
             if (lastMip != 0)
                 continue;
-            */
 
             Latte::E_GX2SURFFMT format = LatteTexture_ReconstructGX2Format(texRegister.word1, texRegister.word4);
 
