@@ -383,8 +383,7 @@ void CemuApp::OnAssertFailure(const wxChar* file, int line, const wxChar* func, 
 #if BOOST_OS_WINDOWS
 	DumpThreadStackTrace();
 #endif
-    // HACK
-	//cemu_assert_debug(false);
+	cemu_assert_debug(false);
 }
 
 int CemuApp::FilterEvent(wxEvent& event)
