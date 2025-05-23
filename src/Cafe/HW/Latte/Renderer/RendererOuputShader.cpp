@@ -1,6 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
-#include "HW/Latte/Renderer/Renderer.h"
 
 const std::string RendererOutputShader::s_copy_shader_source =
 R"(
