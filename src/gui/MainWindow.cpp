@@ -288,6 +288,11 @@ private:
 MainWindow::MainWindow()
 	: wxFrame(nullptr, -1, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
 {
+#ifdef __WXMAC__
+	// Not necessary to set wxApp::s_macExitMenuItemId as automatically handled
+	wxApp::s_macAboutMenuItemId = MAINFRAME_MENU_ID_HELP_ABOUT;
+	wxApp::s_macPreferencesMenuItemId = MAINFRAME_MENU_ID_OPTIONS_GENERAL2;
+#endif
 	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_main, this);
 	g_mainFrame = this;
 	CafeSystem::SetImplementation(this);
@@ -1940,6 +1945,16 @@ public:
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
 			sizer->Add(lineSizer);
 		}
+#if BOOST_OS_MACOS
+		// MoltenVK
+		{
+			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
+			lineSizer->Add(new wxStaticText(parent, -1, "MoltenVK ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/KhronosGroup/MoltenVK", "https://github.com/KhronosGroup/MoltenVK"), 0);
+			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			sizer->Add(lineSizer);
+		}
+#endif
 		// icons
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -2165,7 +2180,11 @@ void MainWindow::RecreateMenu()
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
 	m_padViewMenuItem->Check(GetConfig().pad_open);
 	optionsMenu->AppendSeparator();
+	#if BOOST_OS_MACOS
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&Settings..." "\tCtrl-,"));
+	#else
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
+	#endif
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
 
 	optionsMenu->AppendSeparator();
