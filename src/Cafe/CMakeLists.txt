@@ -593,10 +593,10 @@ if(ENABLE_METAL)
         HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitMSLHeader.hpp
     )
 
-    #target_link_libraries(CemuCafe PRIVATE
-    #    "-framework Metal"
-    #    "-framework QuartzCore"
-    #)
+    target_link_libraries(CemuCafe PRIVATE
+        "-framework Metal"
+        "-framework QuartzCore"
+    )
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")

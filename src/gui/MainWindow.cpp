@@ -1,5 +1,3 @@
-#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "gui/wxgui.h"
 #include "gui/MainWindow.h"
 #include "gui/guiWrapper.h"
@@ -62,6 +60,10 @@
 //GameMode support
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
 #include "gamemode_client.h"
+#endif
+
+#if ENABLE_METAL
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #endif
 
 #include "Cafe/TitleList/TitleInfo.h"
@@ -1476,7 +1478,7 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
 #endif
     else
     {
-        event.Skip(); 
+        event.Skip();
     }
 }
 

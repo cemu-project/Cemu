@@ -109,10 +109,15 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 			key += (uint64)attrib->semanticId;
 			key = std::rotl<uint64>(key, 8);
 			if (g_renderer->GetType() == RendererAPI::Metal)
+			{
 			    key += (uint64)attrib->offset;
+				key = std::rotl<uint64>(key, 7);
+			}
 			else
+			{
                 key += (uint64)(attrib->offset & 3);
-			key = std::rotl<uint64>(key, 7);
+                key = std::rotl<uint64>(key, 2);
+			}
 		}
 	}
 	// todo - also hash invalid buffer groups?

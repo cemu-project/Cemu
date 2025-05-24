@@ -45,7 +45,7 @@ std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
     for (uint32 i = 0; i < devices->count(); i++)
     {
         MTL::Device* device = static_cast<MTL::Device*>(devices->object(i));
-        result.emplace_back(std::string(device->name()->utf8String()), device->registryID());
+        result.push_back({std::string(device->name()->utf8String()), device->registryID()});
     }
 
     return result;
