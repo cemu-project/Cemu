@@ -52,7 +52,7 @@ enum class LogType : sint32
 template <>
 struct fmt::formatter<std::u8string_view> : formatter<string_view> {
 	template <typename FormatContext>
-	auto format(std::u8string_view v, FormatContext& ctx) 
+	auto format(std::u8string_view v, FormatContext& ctx)
 	{
 		string_view s((char*)v.data(), v.size());
 		return formatter<string_view>::format(s, ctx);
@@ -100,7 +100,7 @@ bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
 	}
 	return true;
 }
- 
+
 template<typename T, typename ... TArgs>
 bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
 {
