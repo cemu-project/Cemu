@@ -40,25 +40,21 @@ namespace coreinit
 
 		inline TimerTicks ConvertNsToTimerTicks(uint64 ns)
 		{
-			return ((GetTimerClock() / 31250LL) * ((TimerTicks)ns) / 32000LL);
+			return static_cast<TimerTicks>((static_cast<uint64>(GetTimerClock()) / 31250ULL) * (ns) / 32000ULL);
 		}
 
 		inline TimerTicks ConvertMsToTimerTicks(uint64 ms)
 		{
-			return (TimerTicks)ms * GetTimerClock() / 1000LL;
+			return static_cast<TimerTicks>(ms * static_cast<uint64>(GetTimerClock()) / 1000ULL);
 		}
 	};
 
 	void OSTicksToCalendarTime(uint64 ticks, OSCalendarTime_t* calenderStruct);
+
+	uint64 OSGetSystemTime();
 	uint64 OSGetTime();
-
-	uint64 coreinit_getOSTime();
-	uint64 coreinit_getTimerTick();
-
-	static uint64 OSGetSystemTime()
-	{
-		return coreinit_getTimerTick();
-	}
+	uint32 OSGetSystemTick();
+	uint32 OSGetTick();
 
 	void InitializeTimeAndCalendar();
 };

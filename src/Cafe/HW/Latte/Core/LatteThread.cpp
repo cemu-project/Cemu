@@ -207,7 +207,6 @@ int Latte_ThreadEntry()
 		if (Latte_GetStopSignal())
 			LatteThread_Exit();
 	}
-	gxRingBufferReadPtr = gx2WriteGatherPipe.gxRingBuffer;
 	LatteCP_ProcessRingbuffer();
 	cemu_assert_debug(false); // should never reach
 	return 0;
@@ -235,6 +234,8 @@ void Latte_Start()
 void Latte_Stop()
 {
 	std::unique_lock _lock(sLatteThreadStateMutex);
+	if (!sLatteThreadRunning)
+		return;
 	sLatteThreadRunning = false;
 	_lock.unlock();
 	sLatteThread.join();

@@ -357,7 +357,7 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	layoutInfo.bindingCount = (uint32_t)descriptorSetLayoutBindings.size();
 	layoutInfo.pBindings = descriptorSetLayoutBindings.data();
 
-	if (vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &vkObjPipeline->pixelDSL) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(m_logicalDevice, &layoutInfo, nullptr, &vkObjPipeline->m_pixelDSL) != VK_SUCCESS)
 		UnrecoverableError(fmt::format("Failed to create descriptor set layout for surface copy shader").c_str());
 
 	// ##########################################################################################################################################
@@ -370,15 +370,15 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
 	pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutInfo.setLayoutCount = 1;
-	pipelineLayoutInfo.pSetLayouts = &vkObjPipeline->pixelDSL;
+	pipelineLayoutInfo.pSetLayouts = &vkObjPipeline->m_pixelDSL;
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 
-	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &vkObjPipeline->pipeline_layout);
+	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &vkObjPipeline->m_pipelineLayout);
 	if (result != VK_SUCCESS)
 	{
 		cemuLog_log(LogType::Force, "Failed to create pipeline layout: {}", result);
-		vkObjPipeline->pipeline = VK_NULL_HANDLE;
+		vkObjPipeline->SetPipeline(VK_NULL_HANDLE);
 		return copyPipeline;
 	}
 
@@ -425,7 +425,7 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 	pipelineInfo.pRasterizationState = &rasterizer;
 	pipelineInfo.pMultisampleState = &multisampling;
 	pipelineInfo.pColorBlendState = state.destinationTexture->isDepth?nullptr:&colorBlending;
-	pipelineInfo.layout = vkObjPipeline->pipeline_layout;
+	pipelineInfo.layout = vkObjPipeline->m_pipelineLayout;
 	pipelineInfo.renderPass = copyPipeline->vkObjRenderPass->m_renderPass;
 	pipelineInfo.pDepthStencilState = &depthStencilState;
 	pipelineInfo.subpass = 0;
@@ -434,17 +434,16 @@ CopySurfacePipelineInfo* VulkanRenderer::copySurface_getOrCreateGraphicsPipeline
 
 	copyPipeline->vkObjPipeline = vkObjPipeline;
 
-	result = vkCreateGraphicsPipelines(m_logicalDevice, m_pipeline_cache, 1, &pipelineInfo, nullptr, &copyPipeline->vkObjPipeline->pipeline);
+	VkPipeline pipeline = VK_NULL_HANDLE;
+	result = vkCreateGraphicsPipelines(m_logicalDevice, m_pipeline_cache, 1, &pipelineInfo, nullptr, &pipeline);
 	if (result != VK_SUCCESS)
 	{
+		copyPipeline->vkObjPipeline->SetPipeline(nullptr);
 		cemuLog_log(LogType::Force, "Failed to create graphics pipeline for surface copy. Error {} Info:", (sint32)result);
-		cemu_assert_debug(false);
-		copyPipeline->vkObjPipeline->pipeline = VK_NULL_HANDLE;
+		cemu_assert_suspicious();
 	}
-	//performanceMonitor.vk.numGraphicPipelines.increment();
-
-	//m_pipeline_cache_semaphore.notify();
-
+	else
+		copyPipeline->vkObjPipeline->SetPipeline(pipeline);
 	return copyPipeline;
 }
 
@@ -522,7 +521,7 @@ VKRObjectDescriptorSet* VulkanRenderer::surfaceCopy_getOrCreateDescriptorSet(VkC
 	allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	allocInfo.descriptorPool = m_descriptorPool;
 	allocInfo.descriptorSetCount = 1;
-	allocInfo.pSetLayouts = &(pipelineInfo->vkObjPipeline->pixelDSL);
+	allocInfo.pSetLayouts = &pipelineInfo->vkObjPipeline->m_pixelDSL;
 
 	if (vkAllocateDescriptorSets(m_logicalDevice, &allocInfo, &vkObjDescriptorSet->descriptorSet) != VK_SUCCESS)
 	{
@@ -644,7 +643,7 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 	pushConstantData.srcTexelOffset[0] = 0;
 	pushConstantData.srcTexelOffset[1] = 0;
 
-	vkCmdPushConstants(m_state.currentCommandBuffer, copySurfacePipelineInfo->vkObjPipeline->pipeline_layout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstantData), &pushConstantData);
+	vkCmdPushConstants(m_state.currentCommandBuffer, copySurfacePipelineInfo->vkObjPipeline->m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstantData), &pushConstantData);
 
 	// draw
 	VkRenderPassBeginInfo renderPassInfo{};
@@ -680,13 +679,13 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 	
 	vkCmdBeginRenderPass(m_state.currentCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, copySurfacePipelineInfo->vkObjPipeline->pipeline);
+	vkCmdBindPipeline(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, copySurfacePipelineInfo->vkObjPipeline->GetPipeline());
 	copySurfacePipelineInfo->vkObjPipeline->flagForCurrentCommandBuffer();
 
-	m_state.currentPipeline = copySurfacePipelineInfo->vkObjPipeline->pipeline;
+	m_state.currentPipeline = copySurfacePipelineInfo->vkObjPipeline->GetPipeline();
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-		copySurfacePipelineInfo->vkObjPipeline->pipeline_layout, 0, 1, &vkObjDescriptorSet->descriptorSet, 0, nullptr);
+		copySurfacePipelineInfo->vkObjPipeline->m_pipelineLayout, 0, 1, &vkObjDescriptorSet->descriptorSet, 0, nullptr);
 	vkObjDescriptorSet->flagForCurrentCommandBuffer();
 
 	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);

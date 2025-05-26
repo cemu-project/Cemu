@@ -168,7 +168,7 @@ uint32 _GX2Context_CalcStateSize()
 
 void _GX2Context_CreateLoadDL()
 {
-	GX2ReserveCmdSpace(3);
+	GX2::GX2ReserveCmdSpace(3);
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_CONTEXT_CONTROL, 2));
 	gx2WriteGather_submitU32AsBE(0x80000077);
 	gx2WriteGather_submitU32AsBE(0x80000077);
@@ -176,7 +176,7 @@ void _GX2Context_CreateLoadDL()
 
 void _GX2Context_WriteCmdDisableStateShadowing()
 {
-	GX2ReserveCmdSpace(3);
+	GX2::GX2ReserveCmdSpace(3);
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_CONTEXT_CONTROL, 2));
 	gx2WriteGather_submitU32AsBE(0x80000000);
 	gx2WriteGather_submitU32AsBE(0x80000000);
@@ -184,7 +184,7 @@ void _GX2Context_WriteCmdDisableStateShadowing()
 
 void _GX2Context_cmdLoad(void* gx2ukn, uint32 pm4Header, MPTR physAddrRegArea, uint32 waitForIdle, uint32 numRegOffsetEntries, GX2RegLoadPktEntry_t* regOffsetEntries)
 {
-	GX2ReserveCmdSpace(3 + numRegOffsetEntries*2);
+	GX2::GX2ReserveCmdSpace(3 + numRegOffsetEntries*2);
 	gx2WriteGather_submitU32AsBE(pm4Header);
 	gx2WriteGather_submitU32AsBE(physAddrRegArea);
 	gx2WriteGather_submitU32AsBE(waitForIdle);
@@ -199,7 +199,6 @@ void _GX2Context_cmdLoad(void* gx2ukn, uint32 pm4Header, MPTR physAddrRegArea, u
 
 void _GX2Context_WriteCmdRestoreState(GX2ContextState_t* gx2ContextState, uint32 ukn)
 {
-	GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	MPTR physAddrContextState = memory_virtualToPhysical(memory_getVirtualOffsetFromPointer(gx2ContextState));
 	_GX2Context_CreateLoadDL();
 	__cmdStateLoad(NULL, IT_LOAD_CONFIG_REG, gx2ContextState->hwContext.areaConfigReg, 0x80000000, configReg_loadPktEntries);
@@ -212,7 +211,7 @@ void _GX2Context_WriteCmdRestoreState(GX2ContextState_t* gx2ContextState, uint32
 
 void GX2SetDefaultState()
 {
-	GX2ReserveCmdSpace(0x100);
+	GX2::GX2ReserveCmdSpace(0x100);
 
 	Latte::LATTE_PA_CL_VTE_CNTL reg{};
 	reg.set_VPORT_X_OFFSET_ENA(true).set_VPORT_X_SCALE_ENA(true);
@@ -375,7 +374,6 @@ void gx2Export_GX2SetContextState(PPCInterpreter_t* hCPU)
 	// todo: Save/restore GX2 special state as well -> handle this by correctly emulating the state
 	osLib_returnFromFunction(hCPU, 0);
 }
-
 
 void gx2Export_GX2GetContextStateDisplayList(PPCInterpreter_t* hCPU)
 {

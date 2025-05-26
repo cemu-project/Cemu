@@ -760,7 +760,7 @@ namespace padscore
 	void start()
 	{
 		OSCreateAlarm(&g_padscore.alarm);
-		const uint64 start_tick = coreinit::coreinit_getOSTime();
+		const uint64 start_tick = coreinit::OSGetTime();
 		const uint64 period_tick = coreinit::EspressoTime::GetTimerClock() / 200; // every 5ms
 		MPTR handler = PPCInterpreter_makeCallableExportDepr(TickFunction);
 		OSSetPeriodicAlarm(&g_padscore.alarm, start_tick, period_tick, handler);

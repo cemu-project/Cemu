@@ -14,6 +14,7 @@
 #define IT_MEM_WRITE				0x3D
 #define IT_SURFACE_SYNC				0x43
 #define IT_EVENT_WRITE				0x46
+#define IT_EVENT_WRITE_EOP			0x47	// end of pipe
 
 #define IT_LOAD_CONFIG_REG			0x60
 #define IT_LOAD_CONTEXT_REG			0x61
@@ -47,14 +48,12 @@
 #define IT_HLE_WAIT_FOR_FLIP					0xF1
 #define IT_HLE_BOTTOM_OF_PIPE_CB				0xF2
 #define IT_HLE_COPY_COLORBUFFER_TO_SCANBUFFER	0xF3
-#define IT_HLE_FIFO_WRAP_AROUND					0xF4
 #define IT_HLE_CLEAR_COLOR_DEPTH_STENCIL		0xF5
 #define IT_HLE_SAMPLE_TIMER						0xF7
 #define IT_HLE_TRIGGER_SCANBUFFER_SWAP			0xF8
 #define IT_HLE_SPECIAL_STATE					0xF9
 #define IT_HLE_BEGIN_OCCLUSION_QUERY			0xFA
 #define IT_HLE_END_OCCLUSION_QUERY				0xFB
-#define IT_HLE_SET_CB_RETIREMENT_TIMESTAMP		0xFD
 
 #define pm4HeaderType3(__itCode, __dataDWordCount) (0xC0000000|((uint32)(__itCode)<<8)|((uint32)((__dataDWordCount)-1)<<16))
 #define pm4HeaderType2Filler() (0x80000000)

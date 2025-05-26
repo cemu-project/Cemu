@@ -24,3 +24,4 @@ Comment[it]=Software per emulare giochi e applicazioni per Wii U su PC
 Categories=Game;Emulator;
 Keywords=Nintendo;
 MimeType=application/x-wii-u-rom;
+StartupWMClass=Cemu

@@ -16,18 +16,6 @@ namespace GX2
 	SysAllocator<coreinit::OSThreadQueue> g_vsyncThreadQueue;
 	SysAllocator<coreinit::OSThreadQueue> g_flipThreadQueue;
 
-	SysAllocator<coreinit::OSEvent> s_updateRetirementEvent;
-	std::atomic<uint64> s_lastRetirementTimestamp = 0;
-
-	// called from GPU code when a command buffer is retired
-	void __GX2NotifyNewRetirementTimestamp(uint64 tsRetire)
-	{
-		__OSLockScheduler();
-		s_lastRetirementTimestamp = tsRetire;
-		coreinit::OSSignalEventAllInternal(s_updateRetirementEvent.GetPtr());
-		__OSUnlockScheduler();
-	}
-
 	void GX2SetGPUFence(uint32be* fencePtr, uint32 mask, uint32 compareOp, uint32 compareValue)
 	{
 		GX2ReserveCmdSpace(7);
@@ -210,16 +198,6 @@ namespace GX2
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
-	uint64 GX2GetLastSubmittedTimeStamp()
-	{
-		return LatteGPUState.lastSubmittedCommandBufferTimestamp.load();
-	}
-
-	uint64 GX2GetRetiredTimeStamp()
-	{
-		return s_lastRetirementTimestamp;
-	}
-
 	void GX2WaitForVsync()
 	{
 		__OSLockScheduler();
@@ -236,19 +214,6 @@ namespace GX2
 		__OSUnlockScheduler();
 	}
 
-	bool GX2WaitTimeStamp(uint64 tsWait)
-	{
-		__OSLockScheduler();
-		while (tsWait > s_lastRetirementTimestamp)
-		{
-			// GPU hasn't caught up yet
-			coreinit::OSWaitEventInternal(s_updateRetirementEvent.GetPtr());
-		}
-		__OSUnlockScheduler();
-		// return true to indicate no timeout
-		return true;
-	}
-
 	void GX2DrawDone()
 	{
 		// optional force full sync (texture readback and occlusion queries)
@@ -263,13 +228,10 @@ namespace GX2
 			gx2WriteGather_submitU32AsBE(0x00000000); // unused
 		}
 		// flush pipeline
-		if (_GX2GetUnflushedBytes(coreinit::OSGetCoreId()) > 0)
-			_GX2SubmitToTCL();
+		GX2Command_Flush(0x100, true);
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();
 		GX2WaitTimeStamp(ts);
-
-		GX2::GX2WriteGather_checkAndInsertWrapAroundMark();
 	}
 
 	void GX2Init_event()
@@ -294,25 +256,19 @@ namespace GX2
 		cafeExportRegister("gx2", GX2SetEventCallback, LogType::GX2);
 		cafeExportRegister("gx2", GX2GetEventCallback, LogType::GX2);
 
-		cafeExportRegister("gx2", GX2GetLastSubmittedTimeStamp, LogType::GX2);
-		cafeExportRegister("gx2", GX2GetRetiredTimeStamp, LogType::GX2);
-
 		cafeExportRegister("gx2", GX2WaitForVsync, LogType::GX2);
 		cafeExportRegister("gx2", GX2WaitForFlip, LogType::GX2);
-		cafeExportRegister("gx2", GX2WaitTimeStamp, LogType::GX2);
 		cafeExportRegister("gx2", GX2DrawDone, LogType::GX2);
 
 		coreinit::OSInitThreadQueue(g_vsyncThreadQueue.GetPtr());
 		coreinit::OSInitThreadQueue(g_flipThreadQueue.GetPtr());
 
-		coreinit::OSInitEvent(s_updateRetirementEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 		coreinit::OSInitSemaphore(s_eventCbQueueSemaphore, 0);
 	}
 
     void GX2EventResetToDefaultState()
     {
         s_callbackThreadLaunched = false;
-        s_lastRetirementTimestamp = 0;
         for(auto& it : s_eventCallback)
         {
             it.callbackFuncPtr = nullptr;

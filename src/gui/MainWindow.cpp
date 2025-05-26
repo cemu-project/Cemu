@@ -77,6 +77,7 @@ enum
 	MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE,
 	MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER,
 	MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER,
+	MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER,
 	MAINFRAME_MENU_ID_FILE_EXIT,
 	MAINFRAME_MENU_ID_FILE_END_EMULATION,
 	MAINFRAME_MENU_ID_FILE_RECENT_0,
@@ -144,6 +145,7 @@ enum
 	// debug->dump
 	MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES = 21600,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS,
+	MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_RAM,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_FST,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS,
@@ -170,6 +172,7 @@ EVT_MENU(MAINFRAME_MENU_ID_FILE_LOAD, MainWindow::OnFileMenu)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, MainWindow::OnInstallUpdate)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, MainWindow::OnOpenFolder)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, MainWindow::OnOpenFolder)
+EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, MainWindow::OnOpenFolder)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_EXIT, MainWindow::OnFileExit)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_END_EMULATION, MainWindow::OnFileMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_FILE_RECENT_0 + 0, MAINFRAME_MENU_ID_FILE_RECENT_LAST, MainWindow::OnFileMenu)
@@ -205,8 +208,9 @@ EVT_MENU_RANGE(MAINFRAME_MENU_ID_NFC_RECENT_0 + 0, MAINFRAME_MENU_ID_NFC_RECENT_
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 0, MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 98, MainWindow::OnDebugLoggingToggleFlagGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, MainWindow::OnPPCInfoToggle)
 // debug -> dump menu
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, MainWindow::OnDebugDumpUsedTextures)
-EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, MainWindow::OnDebugDumpUsedShaders)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, MainWindow::OnDebugDumpGeneric)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, MainWindow::OnDebugDumpGeneric)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, MainWindow::OnDebugDumpGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, MainWindow::OnDebugSetting)
 // debug -> Other options
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, MainWindow::OnDebugSetting)
@@ -674,10 +678,15 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 
 void MainWindow::OnOpenFolder(wxCommandEvent& event)
 {
-	if(event.GetId() == MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER)
+	const auto id = event.GetId();
+	if(id == MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER)
 		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetUserDataPath()));
-	else if(event.GetId() == MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER)
+	else if(id == MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER)
 		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetMlcPath()));
+	else if (id == MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER)
+		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetCachePath("shaderCache")));
+
+
 }
 
 void MainWindow::OnInstallUpdate(wxCommandEvent& event)
@@ -1085,31 +1094,29 @@ void MainWindow::OnPPCInfoToggle(wxCommandEvent& event)
 	g_config.Save();
 }
 
-void MainWindow::OnDebugDumpUsedTextures(wxCommandEvent& event)
+void MainWindow::OnDebugDumpGeneric(wxCommandEvent& event)
 {
-	const bool value = event.IsChecked();
-	ActiveSettings::EnableDumpTextures(value);
-	if (value)
+	std::string dumpSubpath;
+	std::function<void(bool)> setDumpState;
+	switch(event.GetId())
 	{
-		try
-		{
-			// create directory
-			const fs::path path(ActiveSettings::GetUserDataPath());
-			fs::create_directories(path / "dump" / "textures");
-		}
-		catch (const std::exception& ex)
-		{
-			SystemException sys(ex);
-			cemuLog_log(LogType::Force, "can't create texture dump folder: {}", ex.what());
-			ActiveSettings::EnableDumpTextures(false);
-		}
+	case MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES:
+		dumpSubpath = "dump/textures";
+		setDumpState = ActiveSettings::EnableDumpTextures;
+		break;
+	case MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS:
+		dumpSubpath = "dump/shaders";
+		setDumpState = ActiveSettings::EnableDumpShaders;
+		break;
+	case MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS:
+		dumpSubpath = "dump/recompiler";
+		setDumpState = ActiveSettings::EnableDumpRecompilerFunctions;
+		break;
+	default:
+		UNREACHABLE;
 	}
-}
-
-void MainWindow::OnDebugDumpUsedShaders(wxCommandEvent& event)
-{
 	const bool value = event.IsChecked();
-	ActiveSettings::EnableDumpShaders(value);
+	setDumpState(value);
 	if (value)
 	{
 		try
@@ -1442,15 +1449,23 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
 {
-	if ((event.AltDown() && event.GetKeyCode() == WXK_F4) || 
-		(event.CmdDown() && event.GetKeyCode() == 'Q'))
-	{
-		Close(true);
-	}
-	else
-	{
-		event.Skip();
-	}
+#if defined(__APPLE__)
+       // On macOS, allow Cmd+Q to quit the application
+    if (event.CmdDown() && event.GetKeyCode() == 'Q')
+    {
+        Close(true);
+    }
+#else
+     // On Windows/Linux, only Alt+F4 is allowed for quitting
+    if (event.AltDown() && event.GetKeyCode() == WXK_F4)
+    {
+        Close(true);
+    }
+#endif
+    else
+    {
+        event.Skip(); 
+    }
 }
 
 void MainWindow::OnChar(wxKeyEvent& event)
@@ -2100,6 +2115,7 @@ void MainWindow::RecreateMenu()
 
 	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("&Open Cemu folder"));
 	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, _("&Open MLC folder"));
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, _("Open &shader cache folder"));
 	m_fileMenu->AppendSeparator();
 
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
@@ -2232,6 +2248,7 @@ void MainWindow::RecreateMenu()
 	wxMenu* debugDumpMenu = new wxMenu;
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, _("&Textures"), wxEmptyString)->Check(ActiveSettings::DumpTexturesEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, _("&Recompiled functions"), wxEmptyString)->Check(ActiveSettings::DumpRecompilerFunctionsEnabled());
 	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
 	// debug submenu
 	wxMenu* debugMenu = new wxMenu();
