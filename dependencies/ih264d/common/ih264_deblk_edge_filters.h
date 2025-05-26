@@ -41,31 +41,19 @@
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
 
-typedef void _ih264_deblk_edge_bslt4_ft(UWORD8 *pu1_src,
+typedef void ih264_deblk_edge_bslt4_ft(UWORD8 *pu1_src,
                                        WORD32 src_strd,
                                        WORD32 alpha,
                                        WORD32 beta,
                                        UWORD32 u4_bs,
                                        const UWORD8 *pu1_cliptab );
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg __asm__(#arg);
-#else
-#define ih264_deblk_edge_bslt4_ft(arg) _ih264_deblk_edge_bslt4_ft arg;
-#endif
-
-typedef void _ih264_deblk_edge_bs4_ft(UWORD8 *pu1_src,
+typedef void ih264_deblk_edge_bs4_ft(UWORD8 *pu1_src,
                                      WORD32 src_strd,
                                      WORD32 alpha,
                                      WORD32 beta );
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_deblk_edge_bs4_ft(arg) _ih264_deblk_edge_bs4_ft arg __asm__(#arg);
-#else
-#define ih264_deblk_edge_bs4_ft(arg) _ih264_deblk_edge_bs4_ft arg;
-#endif
-
-typedef void _ih264_deblk_chroma_edge_bslt4_ft(UWORD8 *pu1_src,
+typedef void ih264_deblk_chroma_edge_bslt4_ft(UWORD8 *pu1_src,
                                               WORD32 src_strd,
                                               WORD32 alpha_cb,
                                               WORD32 beta_cb,
@@ -75,143 +63,133 @@ typedef void _ih264_deblk_chroma_edge_bslt4_ft(UWORD8 *pu1_src,
                                               const UWORD8 *pu1_cliptab_cb,
                                               const UWORD8 *pu1_cliptab_cr);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_deblk_chroma_edge_bslt4_ft(arg) _ih264_deblk_chroma_edge_bslt4_ft arg __asm__(#arg);
-#else
-#define ih264_deblk_chroma_edge_bslt4_ft(arg) _ih264_deblk_chroma_edge_bslt4_ft arg;
-#endif
-
-typedef void _ih264_deblk_chroma_edge_bs4_ft(UWORD8 *pu1_src,
+typedef void ih264_deblk_chroma_edge_bs4_ft(UWORD8 *pu1_src,
                                             WORD32 src_strd,
                                             WORD32 alpha_cb,
                                             WORD32 beta_cb,
                                             WORD32 alpha_cr,
                                             WORD32 beta_cr);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_deblk_chroma_edge_bs4_ft(arg) _ih264_deblk_chroma_edge_bs4_ft arg __asm__(#arg);
-#else
-#define ih264_deblk_chroma_edge_bs4_ft(arg) _ih264_deblk_chroma_edge_bs4_ft arg;
-#endif
-
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_horz_bs4);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_mbaff);
 
 
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_bp);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_bp);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_bp);
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_horz_bs4;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_mbaff;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_horz_bslt4);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_mbaff);
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_horz_bs4_bp;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_bp;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_bp;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_bp);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_bp);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_bp);
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_horz_bslt4;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_mbaff;
 
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_mbaff);
 
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_mbaff);
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_bp;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_bp;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_bp;
+
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_mbaff;
+
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_mbaff;
 
 
 /*A9*/
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_horz_bs4_a9);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_a9);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_mbaff_a9);
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_horz_bs4_a9;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_a9;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_mbaff_a9;
 
 
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_bp_a9);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_bp_a9);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_bp_a9);
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_horz_bs4_bp_a9;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_bp_a9;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_bp_a9;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_horz_bslt4_a9);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_a9);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_mbaff_a9);
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_horz_bslt4_a9;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_a9;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_mbaff_a9;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_bp_a9);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_bp_a9);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_bp_a9);
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_bp_a9;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_bp_a9;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_bp_a9;
 
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_a9);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_a9);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_a9);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_mbaff_a9);
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_a9;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_a9;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_a9;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_mbaff_a9;
 
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_a9);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_a9);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_a9);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_mbaff_a9);
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_a9;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_a9;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_a9;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_mbaff_a9;
 
 /*AV8*/
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_horz_bs4_av8);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_av8);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_mbaff_av8);
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_horz_bs4_av8;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_av8;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_mbaff_av8;
 
 
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_bp_av8);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_bp_av8);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_bp_av8);
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_horz_bs4_bp_av8;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_bp_av8;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_bp_av8;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_horz_bslt4_av8);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_av8);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_mbaff_av8);
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_horz_bslt4_av8;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_av8;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_mbaff_av8;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_bp_av8);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_bp_av8);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_bp_av8);
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_bp_av8;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_bp_av8;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_bp_av8;
 
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_av8);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_av8);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_av8);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_mbaff_av8);
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_av8;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_av8;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_av8;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_mbaff_av8;
 
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_av8);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_av8);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_av8);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_mbaff_av8);
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_av8;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_av8;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_av8;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_mbaff_av8;
 
 /*SSE3*/
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_horz_bs4_ssse3);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_ssse3);
-ih264_deblk_edge_bs4_ft(ih264_deblk_luma_vert_bs4_mbaff_ssse3);
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_horz_bs4_ssse3;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_ssse3;
+ih264_deblk_edge_bs4_ft ih264_deblk_luma_vert_bs4_mbaff_ssse3;
 
 
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_bp_ssse3);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_bp_ssse3);
-ih264_deblk_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_bp_ssse3);
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_horz_bs4_bp_ssse3;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_bp_ssse3;
+ih264_deblk_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_bp_ssse3;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_horz_bslt4_ssse3);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_ssse3);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_luma_vert_bslt4_mbaff_ssse3);
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_horz_bslt4_ssse3;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_ssse3;
+ih264_deblk_edge_bslt4_ft ih264_deblk_luma_vert_bslt4_mbaff_ssse3;
 
 
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_bp_ssse3);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_bp_ssse3);
-ih264_deblk_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_bp_ssse3);
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_bp_ssse3;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_bp_ssse3;
+ih264_deblk_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_bp_ssse3;
 
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_ssse3);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_ssse3);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_vert_bs4_mbaff_ssse3);
-ih264_deblk_chroma_edge_bs4_ft(ih264_deblk_chroma_horz_bs4_mbaff_ssse3);
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_ssse3;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_ssse3;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_vert_bs4_mbaff_ssse3;
+ih264_deblk_chroma_edge_bs4_ft ih264_deblk_chroma_horz_bs4_mbaff_ssse3;
 
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_ssse3);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_ssse3);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_vert_bslt4_mbaff_ssse3);
-ih264_deblk_chroma_edge_bslt4_ft(ih264_deblk_chroma_horz_bslt4_mbaff_ssse3);
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_ssse3;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_ssse3;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_vert_bslt4_mbaff_ssse3;
+ih264_deblk_chroma_edge_bslt4_ft ih264_deblk_chroma_horz_bslt4_mbaff_ssse3;
 
 #endif /* IH264_DEBLK_H_ */

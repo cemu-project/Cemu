@@ -429,7 +429,7 @@ ih264_intra_pred_chroma_8x8_mode_plane_av8:
     rev64     v7.4h, v2.4h
     ld1       {v3.2s}, [x10]
     sub       x5, x3, #8
-#if defined(__APPLE__) && defined(__aarch64__)
+#ifdef __APPLE__
     adrp      x12, _ih264_gai1_intrapred_chroma_plane_coeffs1@GOTPAGE
     ldr       x12, [x12, _ih264_gai1_intrapred_chroma_plane_coeffs1@GOTPAGEOFF]
 #else
@@ -489,7 +489,7 @@ ih264_intra_pred_chroma_8x8_mode_plane_av8:
     zip1      v1.8h, v0.8h, v2.8h
     zip2      v2.8h, v0.8h, v2.8h
     mov       v0.16b, v1.16b
-#if defined(__APPLE__) && defined(__aarch64__)
+#ifdef __APPLE__
     adrp      x12, _ih264_gai1_intrapred_chroma_plane_coeffs2@GOTPAGE
     ldr       x12, [x12, _ih264_gai1_intrapred_chroma_plane_coeffs2@GOTPAGEOFF]
 #else

@@ -100,7 +100,7 @@ extern const WORD32 ih264_g_six_tap[3];/* coefficients for 6 tap filtering*/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
 
-typedef void _ih264_inter_pred_luma_ft(UWORD8 *pu1_src,
+typedef void ih264_inter_pred_luma_ft(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
                                       WORD32 dst_strd,
@@ -109,26 +109,14 @@ typedef void _ih264_inter_pred_luma_ft(UWORD8 *pu1_src,
                                       UWORD8* pu1_tmp,
                                       WORD32 dydx);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_inter_pred_luma_ft(arg) _ih264_inter_pred_luma_ft arg __asm__(#arg);
-#else
-#define ih264_inter_pred_luma_ft(arg) _ih264_inter_pred_luma_ft arg;
-#endif
-
-typedef void _ih264_interleave_copy_ft(UWORD8 *pu1_src,
+typedef void ih264_interleave_copy_ft(UWORD8 *pu1_src,
                                       UWORD8 *pu1_dst,
                                       WORD32 src_strd,
                                       WORD32 dst_strd,
                                       WORD32 ht,
                                       WORD32 wd);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_interleave_copy_ft(arg) _ih264_interleave_copy_ft arg __asm__(#arg);
-#else
-#define ih264_interleave_copy_ft(arg) _ih264_interleave_copy_ft arg;
-#endif
-
-typedef void _ih264_inter_pred_luma_bilinear_ft(UWORD8 *pu1_src1,
+typedef void ih264_inter_pred_luma_bilinear_ft(UWORD8 *pu1_src1,
                                                UWORD8 *pu1_src2,
                                                UWORD8 *pu1_dst,
                                                WORD32 src_strd1,
@@ -137,13 +125,7 @@ typedef void _ih264_inter_pred_luma_bilinear_ft(UWORD8 *pu1_src1,
                                                WORD32 height,
                                                WORD32 width);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_inter_pred_luma_bilinear_ft(arg) _ih264_inter_pred_luma_bilinear_ft arg __asm__(#arg);
-#else
-#define ih264_inter_pred_luma_bilinear_ft(arg) _ih264_inter_pred_luma_bilinear_ft arg;
-#endif
-
-typedef void _ih264_inter_pred_chroma_ft(UWORD8 *pu1_src,
+typedef void ih264_inter_pred_chroma_ft(UWORD8 *pu1_src,
                                         UWORD8 *pu1_dst,
                                         WORD32 src_strd,
                                         WORD32 dst_strd,
@@ -152,113 +134,107 @@ typedef void _ih264_inter_pred_chroma_ft(UWORD8 *pu1_src,
                                         WORD32 ht,
                                         WORD32 wd);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_inter_pred_chroma_ft(arg) _ih264_inter_pred_chroma_ft arg __asm__(#arg);
-#else
-#define ih264_inter_pred_chroma_ft(arg) _ih264_inter_pred_chroma_ft arg;
-#endif
-
 /* No NEON Declarations */
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_copy);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_copy;
 
-ih264_interleave_copy_ft(ih264_interleave_copy);
+ih264_interleave_copy_ft ih264_interleave_copy;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_hpel);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_hpel;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_qpel);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_qpel;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_qpel);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_qpel;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_hpel);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_hpel;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_qpel);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_qpel;
 
-ih264_inter_pred_luma_bilinear_ft(ih264_inter_pred_luma_bilinear);
+ih264_inter_pred_luma_bilinear_ft ih264_inter_pred_luma_bilinear;
 
-ih264_inter_pred_chroma_ft(ih264_inter_pred_chroma);
+ih264_inter_pred_chroma_ft ih264_inter_pred_chroma;
 
 /* A9 NEON Declarations */
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_copy_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_copy_a9q;
 
-ih264_interleave_copy_ft(ih264_interleave_copy_a9);
+ih264_interleave_copy_ft ih264_interleave_copy_a9;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_a9q;
 
-ih264_inter_pred_luma_bilinear_ft(ih264_inter_pred_luma_bilinear_a9q);
+ih264_inter_pred_luma_bilinear_ft ih264_inter_pred_luma_bilinear_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_hpel_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_hpel_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_qpel_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_qpel_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_qpel_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_qpel_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_hpel_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_hpel_a9q;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_qpel_a9q);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_qpel_a9q;
 
-ih264_inter_pred_chroma_ft(ih264_inter_pred_chroma_a9q);
+ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_a9q;
 
 /* AV8 NEON Declarations */
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_copy_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_copy_av8;
 
-ih264_interleave_copy_ft(ih264_interleave_copy_av8);
+ih264_interleave_copy_ft ih264_interleave_copy_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_hpel_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_hpel_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_qpel_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_qpel_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_qpel_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_qpel_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_hpel_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_hpel_av8;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_qpel_av8);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_qpel_av8;
 
-ih264_inter_pred_chroma_ft(ih264_inter_pred_chroma_av8);
+ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_av8;
 
-ih264_inter_pred_chroma_ft(ih264_inter_pred_chroma_dx_zero_av8);
+ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_dx_zero_av8;
 
-ih264_inter_pred_chroma_ft(ih264_inter_pred_chroma_dy_zero_av8);
+ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_dy_zero_av8;
 
 
 /* SSSE3 Intrinsic Declarations */
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_copy_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_copy_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_ssse3;
 
-ih264_inter_pred_luma_bilinear_ft(ih264_inter_pred_luma_bilinear_ssse3);
+ih264_inter_pred_luma_bilinear_ft ih264_inter_pred_luma_bilinear_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_hpel_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_hpel_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_vert_qpel_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_vert_qpel_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_qpel_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_qpel_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_qpel_vert_hpel_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_qpel_vert_hpel_ssse3;
 
-ih264_inter_pred_luma_ft(ih264_inter_pred_luma_horz_hpel_vert_qpel_ssse3);
+ih264_inter_pred_luma_ft ih264_inter_pred_luma_horz_hpel_vert_qpel_ssse3;
 
-ih264_inter_pred_chroma_ft(ih264_inter_pred_chroma_ssse3);
+ih264_inter_pred_chroma_ft ih264_inter_pred_chroma_ssse3;
 
 #endif
 

@@ -1029,8 +1029,7 @@ ih264_intra_pred_luma_8x8_mode_horz_u_av8:
     mov       v3.d[0], v2.d[1]
     ext       v4.16b, v2.16b , v2.16b , #1
     mov       v5.d[0], v4.d[1]
-
-#if defined(__APPLE__) && defined(__aarch64__)
+#ifdef __APPLE__
     adrp      x12, _ih264_gai1_intrapred_luma_8x8_horz_u@GOTPAGE
     ldr       x12, [x12, _ih264_gai1_intrapred_luma_8x8_horz_u@GOTPAGEOFF]
 #else

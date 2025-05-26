@@ -68,7 +68,7 @@
 /*****************************************************************************/
 /* Extern Function Declarations                                              */
 /*****************************************************************************/
-typedef void _ih264_default_weighted_pred_ft(UWORD8 *puc_src1,
+typedef void ih264_default_weighted_pred_ft(UWORD8 *puc_src1,
                                             UWORD8 *puc_src2,
                                             UWORD8 *puc_dst,
                                             WORD32 src_strd1,
@@ -77,13 +77,7 @@ typedef void _ih264_default_weighted_pred_ft(UWORD8 *puc_src1,
                                             WORD32 ht,
                                             WORD32 wd);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_default_weighted_pred_ft(arg) _ih264_default_weighted_pred_ft arg __asm__(#arg);
-#else
-#define ih264_default_weighted_pred_ft(arg) _ih264_default_weighted_pred_ft arg;
-#endif
-
-typedef void _ih264_weighted_pred_ft(UWORD8 *puc_src,
+typedef void ih264_weighted_pred_ft(UWORD8 *puc_src,
                                     UWORD8 *puc_dst,
                                     WORD32 src_strd,
                                     WORD32 dst_strd,
@@ -93,13 +87,7 @@ typedef void _ih264_weighted_pred_ft(UWORD8 *puc_src,
                                     WORD32 ht,
                                     WORD32 wd);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_weighted_pred_ft(arg) _ih264_weighted_pred_ft arg __asm__(#arg);
-#else
-#define ih264_weighted_pred_ft(arg) _ih264_weighted_pred_ft arg;
-#endif
-
-typedef void _ih264_weighted_bi_pred_ft(UWORD8 *puc_src1,
+typedef void ih264_weighted_bi_pred_ft(UWORD8 *puc_src1,
                                        UWORD8 *puc_src2,
                                        UWORD8 *puc_dst,
                                        WORD32 src_strd1,
@@ -113,69 +101,63 @@ typedef void _ih264_weighted_bi_pred_ft(UWORD8 *puc_src1,
                                        WORD32 ht,
                                        WORD32 wd);
 
-#if defined(__APPLE__) && defined(__aarch64__)
-#define ih264_weighted_bi_pred_ft(arg) _ih264_weighted_bi_pred_ft arg __asm__(#arg);
-#else
-#define ih264_weighted_bi_pred_ft(arg) _ih264_weighted_bi_pred_ft arg;
-#endif
-
 /* No NEON Declarations */
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_luma);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_luma;
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_chroma);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_chroma;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_luma);
+ih264_weighted_pred_ft ih264_weighted_pred_luma;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_chroma);
+ih264_weighted_pred_ft ih264_weighted_pred_chroma;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_luma);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_luma;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_chroma);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_chroma;
 
 /* A9 NEON Declarations */
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_luma_a9q);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_luma_a9q;
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_chroma_a9q);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_chroma_a9q;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_luma_a9q);
+ih264_weighted_pred_ft ih264_weighted_pred_luma_a9q;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_chroma_a9q);
+ih264_weighted_pred_ft ih264_weighted_pred_chroma_a9q;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_luma_a9q);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_luma_a9q;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_chroma_a9q);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_chroma_a9q;
 
 
 /* AV8 NEON Declarations */
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_luma_av8);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_luma_av8;
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_chroma_av8);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_chroma_av8;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_luma_av8);
+ih264_weighted_pred_ft ih264_weighted_pred_luma_av8;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_chroma_av8);
+ih264_weighted_pred_ft ih264_weighted_pred_chroma_av8;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_luma_av8);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_luma_av8;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_chroma_av8);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_chroma_av8;
 
 
 /* SSE42 Intrinsic Declarations */
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_luma_sse42);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_luma_sse42;
 
-ih264_default_weighted_pred_ft(ih264_default_weighted_pred_chroma_sse42);
+ih264_default_weighted_pred_ft ih264_default_weighted_pred_chroma_sse42;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_luma_sse42);
+ih264_weighted_pred_ft ih264_weighted_pred_luma_sse42;
 
-ih264_weighted_pred_ft(ih264_weighted_pred_chroma_sse42);
+ih264_weighted_pred_ft ih264_weighted_pred_chroma_sse42;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_luma_sse42);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_luma_sse42;
 
-ih264_weighted_bi_pred_ft(ih264_weighted_bi_pred_chroma_sse42);
+ih264_weighted_bi_pred_ft ih264_weighted_bi_pred_chroma_sse42;
 
 #endif /* IH264_WEIGHTED_PRED_H_ */
 
