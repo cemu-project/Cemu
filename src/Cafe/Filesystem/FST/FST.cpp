@@ -921,7 +921,7 @@ void FSTVolume::TrimCacheIfRequired(FSTCachedRawBlock** droppedRawBlock, FSTCach
 
 void FSTVolume::DetermineUnhashedBlockIV(uint32 clusterIndex, uint32 blockIndex, uint8 ivOut[16])
 {
-	memset(ivOut, 0, sizeof(ivOut));
+	memset(ivOut, 0, 16);
 	if(blockIndex == 0)
 	{
 		ivOut[0] = (uint8)(clusterIndex >> 8);
