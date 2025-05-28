@@ -104,6 +104,6 @@ if (ENABLE_WXWIDGETS)
 endif()
 
 
-if (UNIX AND NOT APPLE)
+if (ENABLE_BLUEZ)
 	target_link_libraries(CemuInput PRIVATE bluez::bluez)
 endif ()
