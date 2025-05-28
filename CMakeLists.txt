@@ -222,6 +222,10 @@ endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
 
+set(BUILD_SHARED_LIBS OFF)
+add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL SYSTEM)
+set(BUILD_SHARED_LIBS "")
+
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
 	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
 endif()
