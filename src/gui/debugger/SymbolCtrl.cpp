@@ -107,7 +107,7 @@ wxString SymbolListCtrl::OnGetItemText(long item, long column) const
 void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 {
 	long selected = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-	if (selected == -1)
+	if (selected == wxNOT_FOUND)
 		return;
 	const auto text = GetItemText(selected, ColumnAddress);
 	const auto address = std::stoul(text.ToStdString(), nullptr, 16);
@@ -120,7 +120,7 @@ void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 void SymbolListCtrl::OnRightClick(wxListEvent& event)
 {
 	long selected = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-	if (selected == -1)
+	if (selected == wxNOT_FOUND)
 		return;
 	auto text = GetItemText(selected, ColumnAddress);
 	text = "0x" + text;

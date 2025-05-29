@@ -393,7 +393,7 @@ void MemorySearcherTool::OnResultListClick(wxMouseEvent& event)
 	while (true)
 	{
 		selectedIndex = m_listResults->GetNextItem(selectedIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-		if (selectedIndex == -1)
+		if (selectedIndex == wxNOT_FOUND)
 			break;
 
 		long address = m_listResults->GetItemData(selectedIndex);
@@ -684,7 +684,7 @@ void MemorySearcherTool::OnPopupClick(wxCommandEvent& event)
 	if (event.GetId() == LIST_ENTRY_REMOVE)
 	{
 		const int row = m_listEntryTable->GetSelectedRow();
-		if (row == -1)
+		if (row == wxNOT_FOUND)
 			return;
 		
 		m_listEntryTable->DeleteItem(row);
@@ -700,7 +700,7 @@ void MemorySearcherTool::OnItemEdited(wxDataViewEvent& event)
 	else if (column == 3)
 	{
 		auto row = m_listEntryTable->GetSelectedRow();
-		if (row == -1)
+		if (row == wxNOT_FOUND)
 			return;
 
 		auto addressText = std::string(m_listEntryTable->GetTextValue(row, 1).mbc_str());

@@ -87,7 +87,7 @@ public:
     wxCheckedListCtrl()
         : wxListCtrl(), m_imageList(16, 16, TRUE) {}
 
-    wxCheckedListCtrl(wxWindow *parent, wxWindowID id = -1,
+    wxCheckedListCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
                         const wxPoint& pt = wxDefaultPosition,
                         const wxSize& sz = wxDefaultSize,
                         long style = wxCLC_CHECK_WHEN_SELECTING,
@@ -96,7 +96,7 @@ public:
                         : wxListCtrl(), m_imageList(16, 16, TRUE)
         { Create(parent, id, pt, sz, style, validator, name); }
 
-    bool Create(wxWindow *parent, wxWindowID id = -1,
+    bool Create(wxWindow *parent, wxWindowID id = wxID_ANY,
                         const wxPoint& pt = wxDefaultPosition,
                         const wxSize& sz = wxDefaultSize,
                         long style = wxCLC_CHECK_WHEN_SELECTING,

@@ -286,7 +286,7 @@ private:
 };
 
 MainWindow::MainWindow()
-	: wxFrame(nullptr, -1, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
+	: wxFrame(nullptr, wxID_ANY, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
 {
 	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_main, this);
 	g_mainFrame = this;
@@ -1859,7 +1859,7 @@ public:
 		auto versionString = formatWxString(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}"), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
-		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
+		sizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
 
 		sizer->AddSpacer(3);
 		sizer->Add(new wxStaticLine(parent), wxSizerFlags().Expand().Border(wxRIGHT, 4));
@@ -1879,95 +1879,95 @@ public:
 		// zLib
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "zLib ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.zlib.net", "https://www.zlib.net"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "zLib ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.zlib.net", "https://www.zlib.net"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// wxWidgets
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "wxWidgets ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.wxwidgets.org/", "https://www.wxwidgets.org/"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "wxWidgets ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.wxwidgets.org/", "https://www.wxwidgets.org/"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// OpenSSL
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "OpenSSL ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.openssl.org/", "https://www.openssl.org/"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "OpenSSL ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.openssl.org/", "https://www.openssl.org/"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// libcurl
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "libcurl ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://curl.haxx.se/libcurl/", "https://curl.haxx.se/libcurl/"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libcurl ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://curl.haxx.se/libcurl/", "https://curl.haxx.se/libcurl/"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// imgui
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "imgui ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/ocornut/imgui", "https://github.com/ocornut/imgui"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "imgui ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/ocornut/imgui", "https://github.com/ocornut/imgui"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// fontawesome
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "fontawesome ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/FortAwesome/Font-Awesome", "https://github.com/FortAwesome/Font-Awesome"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "fontawesome ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/FortAwesome/Font-Awesome", "https://github.com/FortAwesome/Font-Awesome"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// boost
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "boost ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.boost.org", "https://www.boost.org"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "boost ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.boost.org", "https://www.boost.org"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// libusb
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "libusb ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://libusb.info", "https://libusb.info"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libusb ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://libusb.info", "https://libusb.info"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// icons
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "icons from "), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://icons8.com", "https://icons8.com"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "icons from "), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://icons8.com", "https://icons8.com"), 0);
 			sizer->Add(lineSizer);
 		}
 		// Lato font (are we still using it?)
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "\"Lato\" font by tyPoland Lukasz Dziedzic (OFL, V1.1)"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "\"Lato\" font by tyPoland Lukasz Dziedzic (OFL, V1.1)"), 0);
 			sizer->Add(lineSizer);
 		}
 		// SDL
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "SDL ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/libsdl-org/SDL", "https://github.com/libsdl-org/SDL"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "SDL ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/libsdl-org/SDL", "https://github.com/libsdl-org/SDL"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// IH264
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "Modified ih264 from Android project ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "Source", "https://cemu.info/oss/ih264d.zip"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, "  "), 0);
-			wxHyperlinkCtrl* noticeLink = new wxHyperlinkCtrl(parent, -1, "NOTICE", "");
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "Modified ih264 from Android project ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "Source", "https://cemu.info/oss/ih264d.zip"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "  "), 0);
+			wxHyperlinkCtrl* noticeLink = new wxHyperlinkCtrl(parent, wxID_ANY, "NOTICE", "");
 			noticeLink->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& event)
 				{
 					fs::path tempPath = fs::temp_directory_path();
@@ -2001,7 +2001,7 @@ public:
 					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath))));
 				});
 			lineSizer->Add(noticeLink, 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 	}
