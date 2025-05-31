@@ -30,7 +30,7 @@ wxDECLARE_EVENT(wxEVT_OPEN_GRAPHIC_PACK, wxTitleIdEvent);
 wxDECLARE_EVENT(wxEVT_GAMELIST_BEGIN_UPDATE, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_GAMELIST_END_UPDATE, wxCommandEvent);
 
-class wxGameList : public wxListCtrl
+class wxGameList : public wxListView
 {
 	friend class MainWindow;
 public:

@@ -173,7 +173,7 @@ wxDECLARE_EVENT_TABLE();
 	wxComboBox* m_cbDataType;
 	wxTextCtrl* m_textValue;
 	wxButton *m_buttonStart, *m_buttonFilter;
-	wxListCtrl* m_listResults;
+	wxListView* m_listResults;
 	wxDataViewListCtrl* m_listEntryTable;
 	wxStaticText* m_textEntryTable;
 	wxGauge* m_gauge;

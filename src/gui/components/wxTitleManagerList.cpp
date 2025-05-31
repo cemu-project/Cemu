@@ -38,7 +38,7 @@ wxDEFINE_EVENT(wxEVT_TITLE_REMOVED, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REMOVE_ENTRY, wxCommandEvent);
 
 wxTitleManagerList::wxTitleManagerList(wxWindow* parent, wxWindowID id)
-	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_VIRTUAL)
+	: wxListView(parent, id, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_VIRTUAL)
 {
 	AddColumns();
 
@@ -74,7 +74,7 @@ wxTitleManagerList::~wxTitleManagerList()
 
 boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetSelectedTitleEntry() const
 {
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto tmp = GetTitleEntry(selection);
@@ -87,7 +87,7 @@ boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetSe
 
 boost::optional<wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetSelectedTitleEntry()
 {
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto tmp = GetTitleEntry(selection);
@@ -757,7 +757,7 @@ void wxTitleManagerList::OnContextMenu(wxContextMenuEvent& event)
 	wxMenu menu;
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxTitleManagerList::OnContextMenuSelected, this);
 
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)
 		return;
 
@@ -855,8 +855,8 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	// still doing work
 	if (m_context_worker.valid() && !future_is_ready(m_context_worker))
 		return;
-	
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+
+	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)
 		return;
 
