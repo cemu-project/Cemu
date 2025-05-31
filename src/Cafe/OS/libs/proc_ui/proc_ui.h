@@ -40,5 +40,7 @@ namespace proc_ui
 	ProcUIStatus ProcUIProcessMessages(bool isBlockingInBackground);
 	ProcUIStatus ProcUISubProcessMessages(bool isBlockingInBackground);
 
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
 	void load();
 }

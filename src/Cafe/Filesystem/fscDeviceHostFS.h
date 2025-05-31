@@ -18,6 +18,8 @@ public:
 	void fscSetFileLength(uint64 endOffset) override;
 	bool fscDirNext(FSCDirEntry* dirEntry) override;
 
+	void Save(MemStreamWriter& writer) override;
+
 private:
 	FSCVirtualFile_Host(uint32 type) : m_type(type) {};
 
@@ -31,4 +33,6 @@ private:
 	// directory
 	std::unique_ptr<std::filesystem::path> m_path{};
 	std::unique_ptr<std::filesystem::directory_iterator> m_dirIterator{};
+	// serialization
+	FSC_ACCESS_FLAG m_accessFlags;
 };

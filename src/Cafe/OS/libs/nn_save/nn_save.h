@@ -4,6 +4,9 @@ namespace nn
 {
 namespace save
 {
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
+
 	void load();
     void ResetToDefaultState();
 
