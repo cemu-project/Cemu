@@ -549,7 +549,7 @@ set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CON
 
 target_include_directories(CemuCafe PUBLIC "../")
 
-if (glslang_VERSION VERSION_LESS "15.0.0")
+if (glslang_VERSION VERSION_LESS "15.0.0" OR glslang_VERSION VERSION_GREATER_EQUAL "15.3.0")
 	set(glslang_target "glslang::SPIRV")
 else()
 	set(glslang_target "glslang")
