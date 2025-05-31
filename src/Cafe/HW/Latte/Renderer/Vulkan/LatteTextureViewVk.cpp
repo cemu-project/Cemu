@@ -126,7 +126,7 @@ VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
 		viewInfo.subresourceRange.layerCount = this->numSlice;
 	}
 
-	static const VkComponentSwizzle swizzle[] =
+	static constexpr VkComponentSwizzle swizzle[] =
 	{
 		VK_COMPONENT_SWIZZLE_R,
 		VK_COMPONENT_SWIZZLE_G,

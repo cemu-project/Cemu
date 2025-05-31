@@ -34,7 +34,7 @@ namespace LatteAddrLib
 		BAD_SIZE_FIELD = 6,
 	};
 
-	const uint32 m_configFlags = (1 << 29);
+	constexpr uint32 m_configFlags = (1 << 29);
 
 	uint32 GetSliceComputingFlags()
 	{

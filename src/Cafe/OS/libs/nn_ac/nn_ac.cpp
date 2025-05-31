@@ -99,7 +99,7 @@ void nnAcExport_GetAssignedAddress(PPCInterpreter_t* hCPU)
 
 	*ipAddrOut = localIp;
 
-	const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
+	constexpr uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	osLib_returnFromFunction(hCPU, nnResultCode);
 }
 
@@ -115,7 +115,7 @@ void nnAcExport_GetAssignedSubnet(PPCInterpreter_t* hCPU)
 
 	*subnetMaskOut = subnetMask;
 
-	const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
+	constexpr uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	osLib_returnFromFunction(hCPU, nnResultCode);
 }
 
@@ -128,7 +128,7 @@ void nnAcExport_ACGetAssignedAddress(PPCInterpreter_t* hCPU)
 	_GetLocalIPAndSubnetMask(localIp, subnetMask);
 	*ipAddrOut = localIp;
 
-	const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
+	constexpr uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 	osLib_returnFromFunction(hCPU, nnResultCode);
 }
 
@@ -205,7 +205,7 @@ namespace nn_ac
 
 	nnResult GetConnectResult(uint32be* connectResult)
 	{
-		const uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
+		constexpr uint32 nnResultCode = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_AC, 0);
 		if (connectResult)
 			*connectResult = nnResultCode;
 		return nnResultCode;
