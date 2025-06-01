@@ -59,6 +59,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 	desc.add_options()
 		("help,h", "This help screen")
 		("version,v", "Displays the version of Cemu")
+		("verbose", "Log to stdout")
 
 		("game,g", po::wvalue<std::wstring>(), "Path of game to launch")
         ("title-id,t", po::value<std::string>(), "Title ID of the title to be launched (overridden by --game)")
@@ -124,6 +125,9 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			std::cout << versionStr << std::endl;
 			return false; // exit in main
 		}
+
+		if (vm.count("verbose"))
+			s_verbose = true;
 
 		if (vm.count("game"))
 		{
