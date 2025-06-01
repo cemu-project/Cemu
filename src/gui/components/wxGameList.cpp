@@ -434,36 +434,53 @@ static inline int order_to_int(const std::weak_ordering &wo)
 	return 0;
 }
 
+static bool operator<(const iosu::pdm::GameListStat& a, const iosu::pdm::GameListStat& b)
+{
+	const auto& lastA = a.last_played;
+	const auto& lastB = b.last_played;
+
+	if(lastA.year < lastB.year)
+		return true;
+	if(lastA.year > lastB.year)
+		return false;
+
+	// same year
+	if(lastA.month < lastB.month)
+		return true;
+	if(lastA.month > lastB.month)
+		return false;
+
+	// same year and month
+	return lastA.day < lastB.day;
+}
+
+static bool operator==(const iosu::pdm::GameListStat& a, const iosu::pdm::GameListStat& b)
+{
+	const auto& lastA = a.last_played;
+	const auto& lastB = b.last_played;
+
+	return lastA.year == lastB.year &&
+		   lastA.month == lastB.month &&
+		   lastA.day == lastB.day;
+}
+
+static std::weak_ordering operator<=>(const iosu::pdm::GameListStat& a, const iosu::pdm::GameListStat& b)
+{
+	if (a == b)
+		return std::weak_ordering::equivalent;
+	if (a < b)
+		return std::weak_ordering::less;
+	else
+		return std::weak_ordering::greater;
+}
+
 std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData)
 {
-	const auto isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
-	const auto isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
-
-	auto compareFn = [&, isFavoriteA, isFavoriteB]<class T>(T a, T b, bool prioritizeFave = false)
+	auto titleLastPlayed = [](uint64_t id)
 	{
-		if(!prioritizeFave)
-		{
-			if (sortData->dir > 0)
-				return a <=> b;
-			else
-				return b <=> a;
-		}
-		else
-		{
-			if (sortData->dir > 0)
-				return std::tie(isFavoriteB, a) <=> std::tie(isFavoriteA, b);
-			else
-				return std::tie(isFavoriteB, b) <=> std::tie(isFavoriteA, a);
-		}
-	};
-
-	auto titlePlayDateSortString = [](uint64_t id)
-	{
-	  iosu::pdm::GameListStat playTimeStat;
-	  if (!iosu::pdm::GetStatForGamelist(id, playTimeStat))
-		  return std::string{"00000'00'00"};
-	  auto& lastPlay = playTimeStat.last_played;
-	  return fmt::format("{:0>5}'{:0>2}'{:0>2}", lastPlay.year, lastPlay.month, lastPlay.day);
+	  iosu::pdm::GameListStat playTimeStat{};
+	  iosu::pdm::GetStatForGamelist(id, playTimeStat);
+	  return playTimeStat;
 	};
 
 	auto titlePlayMinutes = [](uint64_t id)
@@ -483,15 +500,21 @@ std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, 
 	{
 	default:
 	case ColumnName:
-		return compareFn(GetNameByTitleId(titleId1), GetNameByTitleId(titleId2), true);
+	{
+		const auto isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
+		const auto isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
+		const auto nameA = GetNameByTitleId(titleId1);
+		const auto nameB = GetNameByTitleId(titleId2);
+		return std::tie(isFavoriteB, nameA) <=> std::tie(isFavoriteA, nameB);
+	}
 	case ColumnGameStarted:
-		return compareFn(titlePlayDateSortString(titleId1), titlePlayDateSortString(titleId2));
+		return titleLastPlayed(titleId1) <=> titleLastPlayed(titleId2);
 	case ColumnGameTime:
-		return compareFn(titlePlayMinutes(titleId1), titlePlayMinutes(titleId2));
+		return titlePlayMinutes(titleId1) <=> titlePlayMinutes(titleId2);
 	case ColumnRegion:
-		return compareFn(titleRegion(titleId1), titleRegion(titleId2));
+		return titleRegion(titleId1) <=> titleRegion(titleId2);
 	case ColumnTitleID:
-		return compareFn(titleId1, titleId2);
+		return titleId1 <=> titleId2;
 	}
 	// unreachable
 	cemu_assert_debug(false);
@@ -501,7 +524,7 @@ std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, 
 int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
 {
 	const auto sort_data = (SortData*)sortData;
-	return order_to_int(sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data));
+	return sort_data->dir * order_to_int(sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data));
 }
 
 void wxGameList::SortEntries(int column)
