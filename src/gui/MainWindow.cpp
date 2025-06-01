@@ -91,6 +91,7 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_GENERAL2,
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
+	MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS,
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_12 = 20350 + 11,
@@ -187,6 +188,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_AUDIO, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
+EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, MainWindow::OnOptionsInput)
 // tools menu
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
@@ -288,6 +290,11 @@ private:
 MainWindow::MainWindow()
 	: wxFrame(nullptr, wxID_ANY, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
 {
+#ifdef __WXMAC__
+	// Not necessary to set wxApp::s_macExitMenuItemId as automatically handled
+	wxApp::s_macAboutMenuItemId = MAINFRAME_MENU_ID_HELP_ABOUT;
+	wxApp::s_macPreferencesMenuItemId = MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS;
+#endif
 	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_main, this);
 	g_mainFrame = this;
 	CafeSystem::SetImplementation(this);
@@ -911,6 +918,7 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 		break;
 	}
 
+	case MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS:
 	case MAINFRAME_MENU_ID_OPTIONS_GENERAL2:
 	{
 		OpenSettings();
@@ -1940,6 +1948,16 @@ public:
 			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
+#if BOOST_OS_MACOS
+		// MoltenVK
+		{
+			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
+			lineSizer->Add(new wxStaticText(parent, -1, "MoltenVK ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/KhronosGroup/MoltenVK", "https://github.com/KhronosGroup/MoltenVK"), 0);
+			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			sizer->Add(lineSizer);
+		}
+#endif
 		// icons
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
@@ -2165,6 +2183,9 @@ void MainWindow::RecreateMenu()
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
 	m_padViewMenuItem->Check(GetConfig().pad_open);
 	optionsMenu->AppendSeparator();
+	#if BOOST_OS_MACOS
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, _("&Settings..." "\tCtrl-,"));
+	#endif
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
 
