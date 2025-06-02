@@ -127,6 +127,8 @@ add_library(CemuGui
   wxcomponents/unchecked.xpm
   wxgui.h
   wxHelper.h
+	CameraSettingsWindow.cpp
+	CameraSettingsWindow.h
 )
 
 set_property(TARGET CemuGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -139,6 +141,7 @@ target_include_directories(CemuGui PUBLIC ${RAPIDJSON_INCLUDE_DIRS})
 target_link_libraries(CemuGui PRIVATE
 	CemuAudio
 	CemuCafe
+	CemuCamera
 	CemuCommon
 	CemuComponents
 	CemuConfig
