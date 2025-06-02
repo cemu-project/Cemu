@@ -181,6 +181,22 @@ namespace coreinit
 		osLib_returnFromFunction(hCPU, r ? 1 : 0);
 	}
 
+	void FG_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_FG");
+		s.writeMPTR(fgAddr);
+		s.writeMPTR(fgSaveAreaAddr);
+		s.writeData(&fgAreaEntries, sizeof(fgAreaEntries) * FG_BUCKET_AREA_COUNT);
+	}
+
+	void FG_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_FG");
+		s.readMPTR(fgAddr);
+		s.readMPTR(fgSaveAreaAddr);
+		s.readData(&fgAreaEntries, sizeof(fgAreaEntries) * FG_BUCKET_AREA_COUNT);
+	}
+
 	void InitializeFG()
 	{
 		osLib_addFunction("coreinit", "OSGetForegroundBucket", coreinitExport_OSGetForegroundBucket);

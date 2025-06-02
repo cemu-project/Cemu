@@ -335,6 +335,18 @@ namespace acp
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("nn_acp");
+		s.writeBool(sSaveDirMounted);
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("nn_acp");
+		s.readBool(sSaveDirMounted);
+	}
+
 	void load()
 	{
 		cafeExportRegister("nn_acp", ACPCheckApplicationDeviceEmulation, LogType::Placeholder);

@@ -758,6 +758,20 @@ namespace nn
 			return ipcCtx->SubmitAsync(std::move(ipcCtx), funcPtr, customParam);
 		}
 
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("nn_fp");
+			s.writeBool(g_fp.isAdminMode);
+			s.writeBool(g_fp.isInitialized);
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("nn_fp");
+			s.readBool(g_fp.isAdminMode);
+			s.readBool(g_fp.isInitialized);
+		}
+
 		void load()
 		{
 			g_fp.initCounter = 0;
