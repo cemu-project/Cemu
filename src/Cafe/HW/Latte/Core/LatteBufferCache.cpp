@@ -697,10 +697,10 @@ private:
 
 	static uint64 hashPage(uint8* mem)
 	{
-		static const uint64 k0 = 0x55F23EAD;
-		static const uint64 k1 = 0x185FDC6D;
-		static const uint64 k2 = 0xF7431F49;
-		static const uint64 k3 = 0xA4C7AE9D;
+		static constexpr uint64 k0 = 0x55F23EAD;
+		static constexpr uint64 k1 = 0x185FDC6D;
+		static constexpr uint64 k2 = 0xF7431F49;
+		static constexpr uint64 k3 = 0xA4C7AE9D;
 
 		cemu_assert_debug((CACHE_PAGE_SIZE % 32) == 0);
 		const uint64* ptr = (const uint64*)mem;

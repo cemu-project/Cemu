@@ -562,9 +562,9 @@ fastfloat_really_inline void write_u64(uint8_t *chars, uint64_t val) {
 
 // credit  @aqrit
 fastfloat_really_inline uint32_t  parse_eight_digits_unrolled(uint64_t val) {
-  const uint64_t mask = 0x000000FF000000FF;
-  const uint64_t mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
-  const uint64_t mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)
+  constexpr uint64_t mask = 0x000000FF000000FF;
+  constexpr uint64_t mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
+  constexpr uint64_t mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)
   val -= 0x3030303030303030;
   val = (val * 10) + (val >> 8); // val = (val * 2561) >> 8;
   val = (((val & mask) * mul1) + (((val >> 16) & mask) * mul2)) >> 32;
@@ -2276,9 +2276,9 @@ fastfloat_really_inline void write_u64(uint8_t *chars, uint64_t val) {
 
 // credit  @aqrit
 fastfloat_really_inline uint32_t  parse_eight_digits_unrolled(uint64_t val) {
-  const uint64_t mask = 0x000000FF000000FF;
-  const uint64_t mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
-  const uint64_t mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)
+  constexpr uint64_t mask = 0x000000FF000000FF;
+  constexpr uint64_t mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
+  constexpr uint64_t mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)
   val -= 0x3030303030303030;
   val = (val * 10) + (val >> 8); // val = (val * 2561) >> 8;
   val = (((val & mask) * mul1) + (((val >> 16) & mask) * mul2)) >> 32;

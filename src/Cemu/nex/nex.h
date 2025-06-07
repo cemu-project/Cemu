@@ -2,9 +2,9 @@
 #include "nexTypes.h"
 #include<mutex>
 
-const int NEX_PROTOCOL_AUTHENTICATION = 0xA;
-const int NEX_PROTOCOL_SECURE = 0xB;
-const int NEX_PROTOCOL_FRIENDS_WIIU = 0x66;
+constexpr int NEX_PROTOCOL_AUTHENTICATION = 0xA;
+constexpr int NEX_PROTOCOL_SECURE = 0xB;
+constexpr int NEX_PROTOCOL_FRIENDS_WIIU = 0x66;
 
 class nexService;
 
@@ -69,12 +69,12 @@ private:
 	}protocolHandler_t;
 
 public:
-	static const int STATE_CONNECTING = 0;
-	static const int STATE_CONNECTED = 1;
-	static const int STATE_DISCONNECTED = 2;
+	static constexpr int STATE_CONNECTING = 0;
+	static constexpr int STATE_CONNECTED = 1;
+	static constexpr int STATE_DISCONNECTED = 2;
 
-	static const unsigned int ERR_TIMEOUT = (0xFFFFFFFF);
-	static const unsigned int ERR_NO_CONNECTION = (0xFFFFFFFE);
+	static constexpr unsigned int ERR_TIMEOUT = (0xFFFFFFFF);
+	static constexpr unsigned int ERR_NO_CONNECTION = (0xFFFFFFFE);
 
 	nexService(prudpClient* con);
 	nexService(uint32 ip, uint16 port, const char* accessKey);

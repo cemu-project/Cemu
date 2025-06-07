@@ -15,7 +15,7 @@ namespace nn
 		class InitializeParam
 		{
 		public:
-			static const inline uint32 FLAG_OFFLINE_MODE = (1 << 0);
+			static constexpr inline uint32 FLAG_OFFLINE_MODE = (1 << 0);
 
 			InitializeParam()
 			{
