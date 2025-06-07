@@ -82,6 +82,56 @@ std::list<fs::path> _getCachesPaths(const TitleId& titleId)
 	return cachePaths;
 }
 
+// Convert PNG to Apple icon image format
+bool writeICNS(const fs::path& pngPath, const fs::path& icnsPath) {
+	// Read PNG file
+	std::ifstream pngFile(pngPath, std::ios::binary);
+	if (!pngFile)
+		return false;
+
+	// Get PNG size
+	pngFile.seekg(0, std::ios::end);
+	uint32 pngSize = static_cast<uint32>(pngFile.tellg());
+	pngFile.seekg(0, std::ios::beg);
+
+	// Calculate total file size (header + size + type + data)
+	uint32 totalSize = 8 + 8 + pngSize;
+
+	// Create output file
+	std::ofstream icnsFile(icnsPath, std::ios::binary);
+	if (!icnsFile)
+		return false;
+
+	// Write ICNS header
+	icnsFile.put(0x69); // 'i'
+	icnsFile.put(0x63); // 'c'
+	icnsFile.put(0x6e); // 'n'
+	icnsFile.put(0x73); // 's'
+
+	// Write total file size (big endian)
+	icnsFile.put((totalSize >> 24) & 0xFF);
+	icnsFile.put((totalSize >> 16) & 0xFF);
+	icnsFile.put((totalSize >> 8) & 0xFF);
+	icnsFile.put(totalSize & 0xFF);
+
+	// Write icon type (ic07 = 128x128 PNG)
+	icnsFile.put(0x69); // 'i'
+	icnsFile.put(0x63); // 'c'
+	icnsFile.put(0x30); // '0'
+	icnsFile.put(0x37); // '7'
+
+	// Write PNG size (big endian)
+	icnsFile.put((pngSize >> 24) & 0xFF);
+	icnsFile.put((pngSize >> 16) & 0xFF);
+	icnsFile.put((pngSize >> 8) & 0xFF);
+	icnsFile.put(pngSize & 0xFF);
+
+	// Copy PNG data
+	icnsFile << pngFile.rdbuf();
+
+	return true;
+}
+
 wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
@@ -596,9 +646,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.Append(kContextMenuEditGameProfile, _("&Edit game profile"));
 
             menu.AppendSeparator();
-#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
             menu.Append(kContextMenuCreateShortcut, _("&Create shortcut"));
-#endif
             menu.AppendSeparator();
             menu.Append(kContextMenuCopyTitleName, _("&Copy Title Name"));
             menu.Append(kContextMenuCopyTitleId, _("&Copy Title ID"));
@@ -724,9 +772,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 			}
             case kContextMenuCreateShortcut:
             {
-#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
                 CreateShortcut(gameInfo);
-#endif
                 break;
             }
             case kContextMenuCopyTitleName:
@@ -1371,6 +1417,135 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		return;
 	}
 	outputStream << desktopEntryString;
+}
+#elif BOOST_OS_MACOS
+void wxGameList::CreateShortcut(GameInfo2& gameInfo)
+{
+	const auto titleId = gameInfo.GetBaseTitleId();
+	const auto titleName = wxString::FromUTF8(gameInfo.GetTitleName());
+	auto exePath = ActiveSettings::GetExecutablePath();
+
+	const wxString appName = wxString::Format("%s.app", titleName);
+	wxFileDialog entryDialog(this, _("Choose shortcut location"), "~/Applications", appName,
+							 "Application (*.app)|*.app", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+	const auto result = entryDialog.ShowModal();
+	if (result == wxID_CANCEL)
+		return;
+	const auto output_path = entryDialog.GetPath();
+	// Create .app folder
+	const fs::path appPath = output_path.utf8_string();
+	if (!fs::create_directories(appPath))
+	{
+		cemuLog_log(LogType::Force, "Failed to create app directory");
+		return;
+	}
+	const fs::path infoPath = appPath / "Contents/Info.plist";
+	const fs::path scriptPath = appPath / "Contents/MacOS/run.sh";
+	const fs::path icnsPath = appPath / "Contents/Resources/shortcut.icns";
+	if (!(fs::create_directories(scriptPath.parent_path()) && fs::create_directories(icnsPath.parent_path())))
+	{
+		cemuLog_log(LogType::Force, "Failed to create app shortcut directories");
+		return;
+	}
+
+	std::optional<fs::path> iconPath;
+	// Obtain and convert icon
+	[&]()
+	{
+		int iconIndex, smallIconIndex;
+
+		if (!QueryIconForTitle(titleId, iconIndex, smallIconIndex))
+		{
+			cemuLog_log(LogType::Force, "Icon hasn't loaded");
+			return;
+		}
+		const fs::path outIconDir = fs::temp_directory_path();
+
+		if (!fs::exists(outIconDir) && !fs::create_directories(outIconDir))
+		{
+			cemuLog_log(LogType::Force, "Failed to create icon directory");
+			return;
+		}
+
+		iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+		wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
+
+		auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
+		wxPNGHandler pngHandler;
+		if (!pngHandler.SaveFile(&image, pngFileStream, false))
+		{
+			iconPath = std::nullopt;
+			cemuLog_log(LogType::Force, "Icon failed to save");
+		}
+	}();
+
+	std::string runCommand = fmt::format("#!/bin/zsh\n\n{0:?} --title-id {1:016x}", _pathToUtf8(exePath), titleId);
+	const std::string infoPlist = fmt::format(
+	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+	"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+	"<plist version=\"1.0\">\n"
+	"<dict>\n"
+	"	<key>CFBundleDisplayName</key>\n"
+	"	<string>{0}</string>\n"
+	"	<key>CFBundleExecutable</key>\n"
+	"	<string>run.sh</string>\n"
+	"	<key>CFBundleIconFile</key>\n"
+	"	<string>shortcut.icns</string>\n"
+	"	<key>CFBundleName</key>\n"
+	"	<string>{0}</string>\n"
+	"	<key>CFBundlePackageType</key>\n"
+	"	<string>APPL</string>\n"
+	"	<key>CFBundleSignature</key>\n"
+	"	<string>\?\?\?\?</string>\n"
+	"	<key>LSApplicationCategoryType</key>\n"
+	"	<string>public.app-category.games</string>\n"
+	"	<key>CFBundleShortVersionString</key>\n"
+	"	<string>{1}</string>\n"
+	"	<key>CFBundleVersion</key>\n"
+	"	<string>{1}</string>\n"
+	"</dict>\n"
+	"</plist>\n",
+	gameInfo.GetTitleName(),
+	std::to_string(gameInfo.GetVersion())
+	);
+	// write Info.plist to infoPath
+	std::ofstream infoStream(infoPath);
+	std::ofstream scriptStream(scriptPath);
+	if (!infoStream.good() || !scriptStream.good())
+	{
+		auto errorMsg = formatWxString(_("Failed to save app shortcut to {}"), output_path.utf8_string());
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+		return;
+	}
+	infoStream << infoPlist;
+	scriptStream << runCommand;
+	scriptStream.close();
+
+	// Set execute permissions for script
+	fs::permissions(
+		scriptPath,
+		fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
+		fs::perm_options::add
+	);
+
+	// Return if iconPath is empty
+	if (!iconPath)
+	{
+		cemuLog_log(LogType::Force, "Icon not found");
+		return;
+	}
+
+	// Convert icon to icns, only works for 128x128 PNG
+	// Alternatively, can run the command "sips -s format icns {iconPath} --out '{icnsPath}'"
+	// using std::system() to handle images of any size
+	if (!writeICNS(*iconPath, icnsPath))
+	{
+		cemuLog_log(LogType::Force, "Failed to convert icon to icns");
+		return;
+	}
+
+	// Remove temp file
+	fs::remove(*iconPath);
 }
 #elif BOOST_OS_WINDOWS
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
