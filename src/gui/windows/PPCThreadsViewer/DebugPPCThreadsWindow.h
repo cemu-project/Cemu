@@ -23,7 +23,7 @@ private:
     void PresentProfileResults(OSThread_t* thread, const std::unordered_map<VAddr, uint32>& samples);
     void DumpStackTrace(struct OSThread_t* thread);
 
-    wxListCtrl* m_thread_list;
+	wxListView* m_thread_list;
 	wxCheckBox* m_auto_refresh;
 	wxTimer* m_timer;
 
