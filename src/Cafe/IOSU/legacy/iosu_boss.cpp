@@ -502,6 +502,7 @@ namespace iosu
 		curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, task_header_callback);
 		curl_easy_setopt(curl, CURLOPT_HEADERDATA, &(*it));
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0x3C);
+		curl_easy_setopt(curl, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
 		if (IsNetworkServiceSSLDisabled(ActiveSettings::GetNetworkService()))
 		{ 
 			curl_easy_setopt(curl,CURLOPT_SSL_VERIFYPEER,0L);
