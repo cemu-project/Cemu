@@ -6,6 +6,7 @@
 
 #include <numeric>
 
+#include <wx/listctrl.h>
 #include <wx/wupdlock.h>
 #include <wx/menu.h>
 #include <wx/mstream.h>
@@ -133,7 +134,7 @@ bool writeICNS(const fs::path& pngPath, const fs::path& icnsPath) {
 }
 
 wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
-	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
+	: wxListView(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
 	const auto& config = GetConfig();
 
@@ -393,7 +394,7 @@ void wxGameList::SetStyle(Style style, bool save)
 	SetWindowStyleFlag(GetStyleFlags(m_style));
 
 	uint64 selected_title_id = 0;
-	auto selection = GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		selected_title_id = (uint64)GetItemData(selection);
@@ -416,8 +417,8 @@ void wxGameList::SetStyle(Style style, bool save)
 
 	if(selection != wxNOT_FOUND)
 	{
-		SetItemState(selection, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
-		EnsureVisible(selection);
+		Select(selection);
+		Focus(selection);
 	}
 
 	if(save)
@@ -549,15 +550,14 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 		const auto item_count = GetItemCount();
 		if (item_count > 0)
 		{
-			auto selection = (int)GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+			auto selection = (int)GetFirstSelected();
 			if (selection == wxNOT_FOUND)
 				selection = 0;
 			else
 				selection = std::max(0, selection - GetCountPerPage());
 
-			SetItemState(wxNOT_FOUND, 0, wxLIST_STATE_SELECTED);
-			SetItemState(selection, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
-			EnsureVisible(selection);
+			Select(selection);
+			Focus(selection);
 		}
 	}
 	else if (keycode == WXK_RIGHT)
@@ -565,15 +565,14 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 		const auto item_count = GetItemCount();
 		if (item_count > 0)
 		{
-			auto selection = (int)GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+			auto selection = (int)GetFirstSelected();
 			if (selection == wxNOT_FOUND)
 				selection = 0;
 
 			selection = std::min(item_count - 1, selection + GetCountPerPage());
 
-			SetItemState(wxNOT_FOUND, 0, wxLIST_STATE_SELECTED);
-			SetItemState(selection, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
-			EnsureVisible(selection);
+			Select(selection);
+			Focus(selection);
 		}
 	}
 }
@@ -613,7 +612,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 	wxMenu menu;
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxGameList::OnContextMenuSelected, this);
 
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto title_id = (uint64)GetItemData(selection);

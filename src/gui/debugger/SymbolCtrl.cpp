@@ -2,6 +2,7 @@
 #include "gui/guiWrapper.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include <wx/listctrl.h>
 
 enum ItemColumns
 {
@@ -10,8 +11,7 @@ enum ItemColumns
 	ColumnModule,
 };
 
-SymbolListCtrl::SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size) :
-	wxListCtrl(parent, id, pos, size, wxLC_REPORT | wxLC_VIRTUAL)
+SymbolListCtrl::SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size) : wxListView(parent, id, pos, size, wxLC_REPORT | wxLC_VIRTUAL)
 {    
 	wxListItem col0;
 	col0.SetId(ColumnName);
@@ -106,7 +106,7 @@ wxString SymbolListCtrl::OnGetItemText(long item, long column) const
 
 void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 {
-	long selected = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	long selected = GetFirstSelected();
 	if (selected == wxNOT_FOUND)
 		return;
 	const auto text = GetItemText(selected, ColumnAddress);
@@ -119,7 +119,7 @@ void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 
 void SymbolListCtrl::OnRightClick(wxListEvent& event)
 {
-	long selected = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	long selected = GetFirstSelected();
 	if (selected == wxNOT_FOUND)
 		return;
 	auto text = GetItemText(selected, ColumnAddress);

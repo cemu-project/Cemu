@@ -5,6 +5,7 @@
 #include <vector>
 #include <sstream>
 #include <thread>
+#include <wx/listctrl.h>
 
 #include "config/ActiveSettings.h"
 #include "gui/helpers/wxHelpers.h"
@@ -79,7 +80,7 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	m_gauge->Enable(false);
 
 	m_textEntryTable = new wxStaticText(this, wxID_ANY, _("Results"));
-	m_listResults = new wxListCtrl(this, LIST_RESULTS, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_SORT_ASCENDING);
+	m_listResults = new wxListView(this, LIST_RESULTS, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_SORT_ASCENDING);
 	m_listResults->Bind(wxEVT_LEFT_DCLICK, &MemorySearcherTool::OnResultListClick, this);
 	{
 		wxListItem col0;
@@ -388,14 +389,8 @@ void MemorySearcherTool::OnEntryListRightClick(wxDataViewEvent& event)
 
 void MemorySearcherTool::OnResultListClick(wxMouseEvent& event)
 {
-	long selectedIndex = -1;
-
-	while (true)
+	for (long selectedIndex = m_listResults->GetFirstSelected(); selectedIndex != wxNOT_FOUND; selectedIndex = m_listResults->GetNextSelected(selectedIndex))
 	{
-		selectedIndex = m_listResults->GetNextItem(selectedIndex, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-		if (selectedIndex == wxNOT_FOUND)
-			break;
-
 		long address = m_listResults->GetItemData(selectedIndex);
 		auto currValue = m_listResults->GetItemText(selectedIndex, 1);
 

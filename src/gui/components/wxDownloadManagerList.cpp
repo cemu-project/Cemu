@@ -25,9 +25,8 @@
 
 wxDEFINE_EVENT(wxEVT_REMOVE_ENTRY, wxCommandEvent);
 
-
 wxDownloadManagerList::wxDownloadManagerList(wxWindow* parent, wxWindowID id)
-	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_VIRTUAL)
+	: wxListView(parent, id, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_VIRTUAL)
 {
 	AddColumns();
 
@@ -52,7 +51,7 @@ wxDownloadManagerList::wxDownloadManagerList(wxWindow* parent, wxWindowID id)
 
 boost::optional<const wxDownloadManagerList::TitleEntry&> wxDownloadManagerList::GetSelectedTitleEntry() const
 {
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto tmp = GetTitleEntry(selection);
@@ -65,7 +64,7 @@ boost::optional<const wxDownloadManagerList::TitleEntry&> wxDownloadManagerList:
 
 boost::optional<wxDownloadManagerList::TitleEntry&> wxDownloadManagerList::GetSelectedTitleEntry()
 {
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto tmp = GetTitleEntry(selection);
@@ -324,7 +323,7 @@ void wxDownloadManagerList::OnContextMenu(wxContextMenuEvent& event)
 	wxMenu menu;
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxDownloadManagerList::OnContextMenuSelected, this);
 
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)
 		return;
 
@@ -379,8 +378,8 @@ void wxDownloadManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	// still doing work
 	if (m_context_worker.valid() && !future_is_ready(m_context_worker))
 		return;
-	
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+
+	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)
 		return;
 
