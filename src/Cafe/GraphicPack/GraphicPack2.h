@@ -260,7 +260,7 @@ private:
 	CustomShader LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type) const;
 	void ApplyShaderPresets(std::string& shader_source) const;
 	void LoadReplacedFiles();
-	void _iterateReplacedFiles(const fs::path& currentPath, bool isAOC);
+	void _iterateReplacedFiles(const fs::path& currentPath, bool isAOC, const char* virtualMountBase);
 
 	// ram mappings
 	std::vector<std::pair<MPTR, MPTR>> m_ramMappings;
