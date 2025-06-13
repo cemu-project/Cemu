@@ -575,7 +575,7 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 	if (m_style != Style::kList)
 		return;
 
-	const auto keycode = std::tolower(event.GetKeyCode());
+	const auto keycode = event.GetKeyCode();
 	if (keycode == WXK_LEFT)
 	{
 		const auto item_count = GetItemCount();
