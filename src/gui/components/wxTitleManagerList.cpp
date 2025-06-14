@@ -576,7 +576,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 		}
 		else
 		{
-			progressDialog.Update(0, _("Collecting list of files..." + fmt::format(" ({})", writerContext.totalFileCount.load())));
+			progressDialog.Update(0, _("Collecting list of files...") + fmt::format(" ({})", writerContext.totalFileCount.load()));
 		}
 		if (progressDialog.WasCancelled())
 			writerContext.cancelled.store(true);

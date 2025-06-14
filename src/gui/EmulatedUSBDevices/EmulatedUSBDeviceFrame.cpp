@@ -283,7 +283,7 @@ void EmulatedUSBDeviceFrame::LoadSkylanderPath(uint8 slot, wxString path)
 	std::unique_ptr<FileStream> skyFile(FileStream::openFile2(_utf8ToPath(path.utf8_string()), true));
 	if (!skyFile)
 	{
-		wxMessageDialog open_error(this, "Error Opening File: " + path.c_str());
+		wxMessageDialog open_error(this, "Error Opening File: " + path);
 		open_error.ShowModal();
 		return;
 	}

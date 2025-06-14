@@ -615,7 +615,7 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	{
 		// double-clicked on disassembly (operation and operand data)
 		wxString currentInstruction = wxEmptyString;
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new instruction."), _(wxString::Format("Overwrite instruction at address %08x", virtualAddress)), currentInstruction);
+		wxTextEntryDialog set_value_dialog(this, _("Enter a new instruction."), wxString::Format(_("Overwrite instruction at address %08x"), virtualAddress), currentInstruction);
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			PPCAssemblerInOut ctx = { 0 };
@@ -637,7 +637,7 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 		if (comment && comment->type == RplDebugSymbolComment)
 			old_comment = comment->comment;
 
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new comment."), _(wxString::Format("Create comment at address %08x", virtualAddress)), old_comment);
+		wxTextEntryDialog set_value_dialog(this, _("Enter a new comment."), wxString::Format(_("Create comment at address %08x"), virtualAddress), old_comment);
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			rplDebugSymbol_createComment(virtualAddress, set_value_dialog.GetValue().wc_str());
