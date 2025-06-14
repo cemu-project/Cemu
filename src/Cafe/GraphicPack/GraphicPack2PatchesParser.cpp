@@ -223,7 +223,7 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 		AddPatchGroup(currentGroup);
 }
 
-static inline uint32 INVALID_ORIGIN = 0xFFFFFFFF;
+static constexpr inline uint32 INVALID_ORIGIN = 0xFFFFFFFF;
 
 bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 {

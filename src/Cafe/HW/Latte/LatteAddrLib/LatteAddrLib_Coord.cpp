@@ -17,7 +17,7 @@ namespace LatteAddrLib
 	}
 #endif
 
-	static const uint32 bankSwapOrder[] = { 0, 1, 3, 2 };
+	static constexpr uint32 bankSwapOrder[] = { 0, 1, 3, 2 };
 
 	uint32 _GetMicroTileType(bool isDepth)
 	{

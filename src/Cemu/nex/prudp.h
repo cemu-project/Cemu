@@ -47,20 +47,20 @@ struct prudpAuthServerInfo
 class prudpPacket
 {
 public:
-	static const int PACKET_RAW_SIZE_MAX = 500;
+	static constexpr int PACKET_RAW_SIZE_MAX = 500;
 
-	static const int TYPE_SYN = 0;
-	static const int TYPE_CON = 1;
-	static const int TYPE_DATA = 2;
-	static const int TYPE_DISCONNECT = 3;
-	static const int TYPE_PING = 4;
+	static constexpr int TYPE_SYN = 0;
+	static constexpr int TYPE_CON = 1;
+	static constexpr int TYPE_DATA = 2;
+	static constexpr int TYPE_DISCONNECT = 3;
+	static constexpr int TYPE_PING = 4;
 
-	static const int STREAM_TYPE_SECURE = 0xA;
+	static constexpr int STREAM_TYPE_SECURE = 0xA;
 
-	static const int FLAG_ACK = 0x1;
-	static const int FLAG_RELIABLE = 0x2; // if this flag is set, increase sequenceId
-	static const int FLAG_NEED_ACK = 0x4;
-	static const int FLAG_HAS_SIZE = 0x8;
+	static constexpr int FLAG_ACK = 0x1;
+	static constexpr int FLAG_RELIABLE = 0x2; // if this flag is set, increase sequenceId
+	static constexpr int FLAG_NEED_ACK = 0x4;
+	static constexpr int FLAG_HAS_SIZE = 0x8;
 
 	static sint32 calculateSizeFromPacketData(uint8* data, sint32 length);
 
