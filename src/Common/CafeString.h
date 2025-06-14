@@ -51,15 +51,15 @@ class CafeWideString // fixed buffer size, null-terminated, PPC wchar_t (16bit b
 
 	bool assignFromUTF8(std::string_view sv)
 	{
-		std::basic_string<uint16be> beStr = StringHelpers::FromUtf8(sv);
-		if(beStr.length() > N-1)
+		std::vector<uint16be> beStr = StringHelpers::FromUtf8(sv);
+		if(beStr.size() > N-1)
 		{
 			memcpy(data, beStr.data(), (N-1)*sizeof(uint16be));
 			data[N-1] = 0;
 			return false;
 		}
-		memcpy(data, beStr.data(), beStr.length()*sizeof(uint16be));
-		data[beStr.length()] = '\0';
+		memcpy(data, beStr.data(), beStr.size()*sizeof(uint16be));
+		data[beStr.size()] = '\0';
 		return true;
 	}
 
