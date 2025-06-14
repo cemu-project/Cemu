@@ -6,7 +6,9 @@ namespace nn
 {
 	namespace olv
 	{
-		void OfflineDB_Init();
+		bool OfflineDB_Initialized();
+
+		void OfflineDB_LazyInit();
 		void OfflineDB_Shutdown();
 
 		nnResult OfflineDB_DownloadPostDataListParam_DownloadPostDataList(DownloadedTopicData* downloadedTopicData, DownloadedPostData* downloadedPostData, uint32be* postCountOut, uint32 maxCount, DownloadPostDataListParam* param);

@@ -118,6 +118,17 @@ void dmaeExport_DMAEGetRetiredTimeStamp(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction64(hCPU, dmaeRetiredTimestamp);
 }
 
+void dmae_save(MemStreamWriter& s)
+{
+	s.writeSection("dmae");
+	s.write(dmaeRetiredTimestamp);
+}
+
+void dmae_restore(MemStreamReader& s)
+{
+	s.readSection("dmae");
+	s.read(dmaeRetiredTimestamp);
+}
 
 void dmae_load()
 {

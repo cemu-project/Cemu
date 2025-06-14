@@ -1040,6 +1040,50 @@ namespace nn::nfp
 		osLib_addFunction("nn_nfp", "GetAmiiboSettingsArgs__Q2_2nn3nfpFPQ3_2nn3nfp18AmiiboSettingsArgs", nnNfpExport_GetAmiiboSettingsArgs);
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("nn_nfp");
+		s.writeBool(nfp_data.nfpIsInitialized);
+		s.write(nfp_data.activateEvent);
+		s.write(nfp_data.deactivateEvent);
+		s.writeBool(nfp_data.isDetecting);
+		s.writeBool(nfp_data.isMounted);
+		s.writeBool(nfp_data.isReadOnly);
+		s.writeBool(nfp_data.hasOpenApplicationArea);
+		s.writeBool(nfp_data.hasActiveAmiibo);
+
+		s.writeBool(nfp_data.hasInvalidHMAC);
+		s.write(nfp_data.amiiboTouchTime);
+		s.write<uint32>(sizeof(AmiiboRawNFCData));
+		s.writeData(&nfp_data.amiiboNFCData, sizeof(AmiiboRawNFCData));
+		s.write<uint32>(sizeof(AmiiboInternal));
+		s.writeData(&nfp_data.amiiboInternal, sizeof(AmiiboInternal));
+		s.write<uint32>(sizeof(AmiiboProcessedData));
+		s.writeData(&nfp_data.amiiboProcessedData, sizeof(AmiiboProcessedData));
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("nn_nfp");
+		s.readBool(nfp_data.nfpIsInitialized);
+		s.read(nfp_data.activateEvent);
+		s.read(nfp_data.deactivateEvent);
+		s.readBool(nfp_data.isDetecting);
+		s.readBool(nfp_data.isMounted);
+		s.readBool(nfp_data.isReadOnly);
+		s.readBool(nfp_data.hasOpenApplicationArea);
+		s.readBool(nfp_data.hasActiveAmiibo);
+
+		s.readBool(nfp_data.hasInvalidHMAC);
+		s.read(nfp_data.amiiboTouchTime);
+		cemu_assert(s.read<uint32>() == sizeof(AmiiboRawNFCData));
+		s.readData(&nfp_data.amiiboNFCData, sizeof(AmiiboRawNFCData));
+		cemu_assert(s.read<uint32>() == sizeof(AmiiboInternal));
+		s.readData(&nfp_data.amiiboInternal, sizeof(AmiiboInternal));
+		cemu_assert(s.read<uint32>() == sizeof(AmiiboProcessedData));
+		s.readData(&nfp_data.amiiboProcessedData, sizeof(AmiiboProcessedData));
+	}
+
 	void load()
 	{
 		nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc
