@@ -127,8 +127,6 @@ private:
 	std::vector<ItemDataPtr> m_data;
 	std::vector<std::reference_wrapper<ItemData>> m_sorted_data;
 
-	int m_last_column_sorted = -1;
-	bool m_sort_less = true;
 	using Type_t = std::reference_wrapper<const ItemData>;
 	bool SortFunc(int column, const Type_t& v1, const Type_t& v2);
 

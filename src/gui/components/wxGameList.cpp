@@ -193,6 +193,8 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	// start async worker (for icon loading)
 	m_async_worker_active = true;
 	m_async_worker_thread = std::thread(&wxGameList::AsyncWorkerThread, this);
+
+	ShowSortIndicator(ColumnName);
 }
 
 wxGameList::~wxGameList()
@@ -540,21 +542,16 @@ int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
 
 void wxGameList::SortEntries(int column)
 {
+	bool ascending;
 	if (column == -1)
-		column = s_last_column;
-	else
 	{
-		if (s_last_column == column)
-		{
-			s_last_column = 0;
-			s_direction = -1;
-		}
-		else
-		{
-			s_last_column = column;
-			s_direction = 1;
-		}
+		column = GetSortIndicator();
+		if (column == -1)
+			column = ColumnName;
+		ascending = IsAscendingSortIndicator();
 	}
+	else
+		ascending = GetUpdatedAscendingSortIndicator(column);
 
 	switch (column)
 	{
@@ -564,8 +561,9 @@ void wxGameList::SortEntries(int column)
 	case ColumnRegion:
 	case ColumnTitleID:
 	{
-		SortData data{ this, ItemColumns{column}, s_direction };
+		SortData data{this, ItemColumns{column}, ascending ? 1 : -1};
 		SortItems(SortFunction, (wxIntPtr)&data);
+		ShowSortIndicator(column, ascending);
 		break;
 	}
 	}
@@ -577,7 +575,7 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 	if (m_style != Style::kList)
 		return;
 
-	const auto keycode = std::tolower(event.m_code);
+	const auto keycode = event.GetKeyCode();
 	if (keycode == WXK_LEFT)
 	{
 		const auto item_count = GetItemCount();
@@ -1082,7 +1080,7 @@ void wxGameList::OnClose(wxCloseEvent& event)
 
 int wxGameList::FindInsertPosition(TitleId titleId)
 {
-	SortData data{ this, ItemColumns{s_last_column}, s_direction };
+	SortData data{this, ItemColumns(GetSortIndicator()), IsAscendingSortIndicator()};
 	const auto itemCount = GetItemCount();
 	if (itemCount == 0)
 		return 0;

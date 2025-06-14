@@ -83,8 +83,6 @@ private:
 		ColumnCounts,
 	};
 
-	int s_last_column = ColumnName;
-	int s_direction = 1;
 	void SortEntries(int column = -1);
 	struct SortData
 	{

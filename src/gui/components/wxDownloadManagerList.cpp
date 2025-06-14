@@ -47,6 +47,8 @@ wxDownloadManagerList::wxDownloadManagerList(wxWindow* parent, wxWindowID id)
 	Bind(wxEVT_REMOVE_ITEM, &wxDownloadManagerList::OnRemoveItem, this);
 	Bind(wxEVT_REMOVE_ENTRY, &wxDownloadManagerList::OnRemoveEntry, this);
 	Bind(wxEVT_CLOSE_WINDOW, &wxDownloadManagerList::OnClose, this);
+
+	ShowSortIndicator(ColumnName);
 }
 
 boost::optional<const wxDownloadManagerList::TitleEntry&> wxDownloadManagerList::GetSelectedTitleEntry() const
@@ -217,16 +219,7 @@ void wxDownloadManagerList::OnColumnClick(wxListEvent& event)
 {
 	const int column = event.GetColumn();
 
-	if (column == m_sort_by_column)
-	{
-		m_sort_less = !m_sort_less;
-	}
-	else
-	{
-		m_sort_by_column = column;
-		m_sort_less = true;
-	}
-	SortEntries();
+	SortEntries(column);
 	event.Skip();
 }
 
@@ -620,24 +613,31 @@ bool wxDownloadManagerList::SortFunc(std::span<int> sortColumnOrder, const Type_
 
 #include <boost/container/small_vector.hpp>
 
-void wxDownloadManagerList::SortEntries()
+void wxDownloadManagerList::SortEntries(int column)
 {
 	boost::container::small_vector<int, 12> s_SortColumnOrder{ ColumnName, ColumnType, ColumnVersion, ColumnTitleId, ColumnProgress };
 
-	if (m_sort_by_column != -1)
+	bool ascending;
+	if (column == -1)
 	{
-		// prioritize column by moving it to first position in the column sort order list
-		s_SortColumnOrder.erase(std::remove(s_SortColumnOrder.begin(), s_SortColumnOrder.end(), m_sort_by_column), s_SortColumnOrder.end());
-		s_SortColumnOrder.insert(s_SortColumnOrder.begin(), m_sort_by_column);
+		column = GetSortIndicator();
+		if (column == -1)
+			column = ColumnName;
+		ascending = IsAscendingSortIndicator();
 	}
+	else
+		ascending = GetUpdatedAscendingSortIndicator(column);
+
+	// prioritize column by moving it to first position in the column sort order list
+	s_SortColumnOrder.erase(std::remove(s_SortColumnOrder.begin(), s_SortColumnOrder.end(), column), s_SortColumnOrder.end());
+	s_SortColumnOrder.insert(s_SortColumnOrder.begin(), column);
 
 	std::sort(m_sorted_data.begin(), m_sorted_data.end(),
-		[this, &s_SortColumnOrder](const Type_t& v1, const Type_t& v2) -> bool
-		{
-			const bool result = SortFunc({ s_SortColumnOrder.data(), s_SortColumnOrder.size() }, v1, v2);
-			return m_sort_less ? result : !result;
-		});
-	
+			  [this, &s_SortColumnOrder, ascending](const Type_t& v1, const Type_t& v2) -> bool {
+				  return ascending ? SortFunc(s_SortColumnOrder, v1, v2) : SortFunc(s_SortColumnOrder, v2, v1);
+			  });
+
+	ShowSortIndicator(column, ascending);
 	RefreshPage();
 }
 
