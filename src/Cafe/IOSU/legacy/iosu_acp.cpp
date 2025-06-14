@@ -782,7 +782,7 @@ namespace iosu
 		  public:
 			AcpMainService() : iosu::nn::IPCService("/dev/acp_main") {}
 
-			nnResult ServiceCall(uint32 serviceId, void* request, void* response) override
+			nnResult ServiceCall(IPCServiceCall& serviceCall) override
 			{
 				cemuLog_log(LogType::Force, "Unsupported service call to /dev/acp_main");
 				cemu_assert_unimplemented();

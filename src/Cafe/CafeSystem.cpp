@@ -33,10 +33,10 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/IOSU/legacy/iosu_mcp.h"
 #include "Cafe/IOSU/legacy/iosu_acp.h"
-#include "Cafe/IOSU/legacy/iosu_boss.h"
 #include "Cafe/IOSU/legacy/iosu_nim.h"
 #include "Cafe/IOSU/PDM/iosu_pdm.h"
 #include "Cafe/IOSU/ccr_nfc/iosu_ccr_nfc.h"
+#include "Cafe/IOSU/nn/boss/boss_service.h"
 
 // IOSU initializer functions
 #include "Cafe/IOSU/kernel/iosu_kernel.h"
@@ -551,6 +551,7 @@ namespace CafeSystem
 		iosu::fpd::GetModule(),
 		iosu::pdm::GetModule(),
 		iosu::ccr_nfc::GetModule(),
+		iosu::boss::GetModule()
 	};
 
 	// initialize all subsystems which are persistent and don't depend on a game running
@@ -589,7 +590,6 @@ namespace CafeSystem
 		iosu::iosuMcp_init();
 		iosu::mcp::Init();
 		iosu::iosuAcp_init();
-		iosu::boss_init();
 		iosu::nim::Initialize();
 		iosu::odm::Initialize();
 		// init Cafe OS

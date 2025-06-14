@@ -161,7 +161,7 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 
 	if( dstMipWidth != srcMipWidth || dstMipHeight != srcMipHeight )
 	{
-		cemu_assert_debug(false);
+		cemuLog_logDebugOnce(LogType::Force, "GX2CopySurface: Mismatching mip resolution");
 		return;
 	}
 	// handle format

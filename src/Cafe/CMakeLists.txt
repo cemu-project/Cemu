@@ -238,8 +238,6 @@ add_library(CemuCafe
   IOSU/legacy/iosu_acp.h
   IOSU/legacy/iosu_act.cpp
   IOSU/legacy/iosu_act.h
-  IOSU/legacy/iosu_boss.cpp
-  IOSU/legacy/iosu_boss.h
   IOSU/legacy/iosu_crypto.cpp
   IOSU/legacy/iosu_crypto.h
   IOSU/legacy/iosu_fpd.cpp
@@ -252,6 +250,10 @@ add_library(CemuCafe
   IOSU/legacy/iosu_nim.h
   IOSU/nn/iosu_nn_service.cpp
   IOSU/nn/iosu_nn_service.h
+  IOSU/nn/boss/boss_common.cpp
+  IOSU/nn/boss/boss_common.h
+  IOSU/nn/boss/boss_service.cpp
+  IOSU/nn/boss/boss_service.h
   IOSU/PDM/iosu_pdm.cpp
   IOSU/PDM/iosu_pdm.h
   IOSU/ODM/iosu_odm.cpp
@@ -418,6 +420,7 @@ add_library(CemuCafe
   OS/libs/nn_ccr/nn_ccr.h
   OS/libs/nn_cmpt/nn_cmpt.cpp
   OS/libs/nn_cmpt/nn_cmpt.h
+  OS/libs/nn_client_service.h
   OS/libs/nn_common.h
   OS/libs/nn_ec/nn_ec.cpp
   OS/libs/nn_ec/nn_ec.h

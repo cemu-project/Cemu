@@ -81,6 +81,7 @@ enum
 	MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER,
 	MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER,
 	MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER,
+	MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE,
 	MAINFRAME_MENU_ID_FILE_EXIT,
 	MAINFRAME_MENU_ID_FILE_END_EMULATION,
 	MAINFRAME_MENU_ID_FILE_RECENT_0,
@@ -178,6 +179,7 @@ EVT_MENU(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, MainWindow::OnInstallUpdate)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, MainWindow::OnOpenFolder)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, MainWindow::OnOpenFolder)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, MainWindow::OnOpenFolder)
+EVT_MENU(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, MainWindow::OnClearSpotPassCache)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_EXIT, MainWindow::OnFileExit)
 EVT_MENU(MAINFRAME_MENU_ID_FILE_END_EMULATION, MainWindow::OnFileMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_FILE_RECENT_0 + 0, MAINFRAME_MENU_ID_FILE_RECENT_LAST, MainWindow::OnFileMenu)
@@ -696,8 +698,15 @@ void MainWindow::OnOpenFolder(wxCommandEvent& event)
 		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetMlcPath()));
 	else if (id == MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER)
 		wxLaunchDefaultApplication(wxHelper::FromPath(ActiveSettings::GetCachePath("shaderCache")));
+}
 
-
+void MainWindow::OnClearSpotPassCache(wxCommandEvent& event)
+{
+	fs::path bossPath = ActiveSettings::GetMlcPath("usr/boss");
+	fs::remove_all(bossPath);
+	// recreate usr/boss/
+	fs::create_directory(bossPath);
+	wxMessageBox(_("SpotPass cache cleared"));
 }
 
 void MainWindow::OnInstallUpdate(wxCommandEvent& event)
@@ -2142,11 +2151,14 @@ void MainWindow::RecreateMenu()
 #endif
 	}
 
-	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("&Open Cemu folder"));
-	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, _("&Open MLC folder"));
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER, _("Open Cemu folder"));
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, _("Open MLC folder"));
 	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, _("Open &shader cache folder"));
 	m_fileMenu->AppendSeparator();
-
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, _("Clear Spot&Pass cache"), wxEmptyString);
+	if (m_game_launched)
+		m_fileMenu->Enable(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, false);
+	m_fileMenu->AppendSeparator();
 	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
 	m_menuBar->Append(m_fileMenu, _("&File"));
 	// options->account submenu

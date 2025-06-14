@@ -659,7 +659,10 @@ namespace iosu
 			for (uint32 i = 0; i < numIn + numOut; i++)
 			{
 				if (vec[i].baseVirt == nullptr && vec[i].size != 0)
+				{
+					cemuLog_logDebug(LogType::Force, "IPC Ioctlv failed because baseVirt is null but size is not 0");
 					return IOS_ERROR_INVALID;
+				}
 				// todo - check for valid pointer range
 				vec[i].basePhys = vec[i].baseVirt;
 			}

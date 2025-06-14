@@ -125,6 +125,9 @@ bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
 
 #define cemuLog_logDebugOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_logDebug(__VA_ARGS__); } }
 
+// utility function for logging binary data as a hex dump
+void cemuLog_logHexDump(LogType type, const void* data, size_t size, size_t lineSize = 16);
+
 // cafe lib calls
 bool cemuLog_advancedPPCLoggingEnabled();
 
