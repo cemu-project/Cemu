@@ -1098,7 +1098,7 @@ size_t read_callback(char* buffer, size_t size, size_t nitems, void* instream)
 }
 
 
-int progress_callback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+int progress_callback(void* clientp, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
 	//peterBreak();
 	CURL_t* curl = (CURL_t*)clientp;
@@ -1317,11 +1317,11 @@ void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
 			curl->in_set = parameter;
 			break;
 		}
-		case CURLOPT_PROGRESSFUNCTION:
+		case CURLOPT_XFERINFOFUNCTION:
 		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_PROGRESSFUNCTION", parameter.GetMPTR());
+			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_XFERINFOFUNCTION", parameter.GetMPTR());
 			curl->fprogress = parameter;
-			result = ::curl_easy_setopt(curlObj, CURLOPT_PROGRESSFUNCTION, progress_callback);
+			result = ::curl_easy_setopt(curlObj, CURLOPT_XFERINFOFUNCTION, progress_callback);
 			::curl_easy_setopt(curlObj, CURLOPT_PROGRESSDATA, curl.GetPtr());
 			break;
 		}
@@ -1380,11 +1380,11 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 	CURLcode result = CURLE_OK;
 	switch (info)
 	{
-		case CURLINFO_SIZE_DOWNLOAD:
-		case CURLINFO_SPEED_DOWNLOAD:
-		case CURLINFO_SIZE_UPLOAD:
-		case CURLINFO_SPEED_UPLOAD:
-		case CURLINFO_CONTENT_LENGTH_DOWNLOAD:
+		case CURLINFO_SIZE_DOWNLOAD_T:
+		case CURLINFO_SPEED_DOWNLOAD_T:
+		case CURLINFO_SIZE_UPLOAD_T:
+		case CURLINFO_SPEED_UPLOAD_T:
+		case CURLINFO_CONTENT_LENGTH_DOWNLOAD_T:
 		{
 			double tempDouble = 0.0;
 			result = curl_easy_getinfo(curlObj, (CURLINFO)info, &tempDouble);

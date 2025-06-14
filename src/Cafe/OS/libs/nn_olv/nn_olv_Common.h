@@ -175,7 +175,7 @@ namespace nn
 		bool GetCommunityIdFromCode(uint32* pOutId, const char* pCode);
 		bool FormatCommunityCode(char* pOutCode, uint32* outLen, uint32 communityId);
 
-		sint32 olv_curlformcode_to_error(CURLFORMcode code);
+		sint32 olv_curlformcode_to_error(CURLcode code);
 
 		// convert and copy utf8 string into UC2 big-endian array
 		template<size_t TLength>

@@ -78,8 +78,8 @@ namespace nn
 			std::string encodedAppData;
 			uint8* encodedIcon = nullptr;
 
-			struct curl_httppost* post = nullptr;
-			struct curl_httppost* last = nullptr;
+			curl_mime *mime = curl_mime_init(req.getCURL());
+			curl_mimepart *part;
 
 			try
 			{
@@ -96,13 +96,9 @@ namespace nn
 						}
 
 						base64icon = NCrypto::base64Encode(encodedIcon, iconEncodeRes);
-						res = olv_curlformcode_to_error(
-							curl_formadd(&post, &last,
-								CURLFORM_COPYNAME, "icon",
-								CURLFORM_PTRCONTENTS, base64icon.data(),
-								CURLFORM_CONTENTSLENGTH, base64icon.size(),
-								CURLFORM_END)
-						);
+						part = curl_mime_addpart(mime);
+						curl_mime_name(part, "icon");
+						res = olv_curlformcode_to_error(curl_mime_data(part, base64icon.data(), base64icon.size()));
 
 						if (res < 0)
 							throw std::runtime_error("curl_formadd() error! - icon");
@@ -112,13 +108,9 @@ namespace nn
 				if (pParam->titleText[0])
 				{
 					form_name = StringHelpers::ToUtf8((const uint16be*)pParam->titleText, 127);
-					res = olv_curlformcode_to_error(
-						curl_formadd(&post, &last,
-							CURLFORM_COPYNAME, "name",
-							CURLFORM_PTRCONTENTS, form_name.data(),
-							CURLFORM_CONTENTSLENGTH, form_name.size(),
-							CURLFORM_END)
-					);
+					part = curl_mime_addpart(mime);
+					curl_mime_name(part, "name");
+					res = olv_curlformcode_to_error(curl_mime_data(part, form_name.data(), form_name.size()));
 
 					if (res < 0)
 						throw std::runtime_error("curl_formadd() error! - name");
@@ -127,13 +119,9 @@ namespace nn
 				if (pParam->description[0])
 				{
 					form_desc = StringHelpers::ToUtf8((const uint16be*)pParam->description, 255);
-					res = olv_curlformcode_to_error(
-						curl_formadd(&post, &last,
-							CURLFORM_COPYNAME, "description",
-							CURLFORM_PTRCONTENTS, form_desc.data(),
-							CURLFORM_CONTENTSLENGTH, form_desc.size(),
-							CURLFORM_END)
-					);
+					part = curl_mime_addpart(mime);
+					curl_mime_name(part, "description");
+					res = olv_curlformcode_to_error(curl_mime_data(part, form_desc.data(), form_desc.size()));
 
 
 					if (res < 0)
@@ -145,13 +133,9 @@ namespace nn
 					if (pParam->searchKeys[i][0])
 					{
 						form_searchKey[i] = StringHelpers::ToUtf8((const uint16be*)pParam->searchKeys[i], 151);
-						res = olv_curlformcode_to_error(
-							curl_formadd(&post, &last,
-								CURLFORM_COPYNAME, "search_key",
-								CURLFORM_PTRCONTENTS, form_searchKey[i].data(),
-								CURLFORM_CONTENTSLENGTH, form_searchKey[i].size(),
-								CURLFORM_END)
-						);
+						part = curl_mime_addpart(mime);
+						curl_mime_name(part, "search_key");
+						res = olv_curlformcode_to_error(curl_mime_data(part, form_searchKey[i].data(), form_searchKey[i].size()));
 
 						if (res < 0)
 							throw std::runtime_error("curl_formadd() error! - search_key");
@@ -165,13 +149,9 @@ namespace nn
 						res = OLV_RESULT_FATAL(101);
 					else
 					{
-						res = olv_curlformcode_to_error(
-							curl_formadd(&post, &last,
-								CURLFORM_COPYNAME, "app_data",
-								CURLFORM_PTRCONTENTS, encodedAppData.data(),
-								CURLFORM_CONTENTSLENGTH, encodedAppData.size(),
-								CURLFORM_END)
-						);
+						part = curl_mime_addpart(mime);
+						curl_mime_name(part, "app_data");
+						res = olv_curlformcode_to_error(curl_mime_data(part, encodedAppData.data(), encodedAppData.size()));
 
 						if (res < 0)
 							throw std::runtime_error("curl_formadd() error! - app_data");
@@ -181,7 +161,7 @@ namespace nn
 			catch (const std::runtime_error& error)
 			{
 				cemuLog_log(LogType::Force, "Error in multipart curl -> {}", error.what());
-				curl_formfree(post);
+				curl_mime_free(mime);
 
 				if (encodedIcon)
 					delete[] encodedIcon;
@@ -189,7 +169,7 @@ namespace nn
 				return res;
 			}
 
-			curl_easy_setopt(req.getCURL(), CURLOPT_HTTPPOST, post);
+			curl_easy_setopt(req.getCURL(), CURLOPT_MIMEPOST, mime);
 			req.setUseMultipartFormData(true);
 
 			bool reqResult = req.submitRequest(true);
