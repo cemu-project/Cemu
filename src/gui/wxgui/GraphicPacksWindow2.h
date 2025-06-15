@@ -4,8 +4,7 @@
 #include <wx/dialog.h>
 #include <wx/scrolwin.h>
 #include <wx/infobar.h>
-
-#include "wxcomponents/checktree.h"
+#include <wx/treelist.h>
 
 #include "Cafe/GraphicPack/GraphicPack2.h"
 
@@ -13,6 +12,7 @@ class wxSplitterWindow;
 class wxPanel;
 class wxButton;
 class wxChoice;
+class wxTextCtrl;
 
 class GraphicPacksWindow2 : public wxDialog
 {
@@ -30,15 +30,15 @@ private:
 
 	void ClearPresets();
 	void FillGraphicPackList() const;
-	void GetChildren(const wxTreeItemId& id, std::vector<wxTreeItemId>& children) const;
-	void ExpandChildren(const std::vector<wxTreeItemId>& ids, size_t& counter) const;
-	
+	void GetChildren(const wxTreeListItem& id, std::vector<wxTreeListItem>& children) const;
+	void ExpandChildren(const std::vector<wxTreeListItem>& ids, size_t& counter) const;
+
 	wxSplitterWindow * m_splitter_window;
 
 	wxPanel* m_right_panel;
 	wxScrolled<wxPanel>* m_gp_options;
-	
-	wxCheckTree * m_graphic_pack_tree;
+
+	wxTreeListCtrl* m_graphic_pack_tree;
 	wxTextCtrl* m_filter_text;
 	wxCheckBox* m_installed_games_only;
 
@@ -54,11 +54,11 @@ private:
 
 	float m_ratio = 0.55f;
 
-	wxTreeItemId FindTreeItem(const wxTreeItemId& root, const wxString& text) const;
+	wxTreeListItem FindTreeItem(const wxTreeListItem root, const wxString& text) const;
 	void LoadPresetSelections(const GraphicPackPtr& gp);
 
-	void OnTreeSelectionChanged(wxTreeEvent& event);
-	void OnTreeChoiceChanged(wxTreeEvent& event);
+	void OnTreeSelectionChanged(wxTreeListEvent& event);
+	void OnTreeChoiceChanged(wxTreeListEvent& event);
 	void OnActivePresetChanged(wxCommandEvent& event);
 	void OnReloadShaders(wxCommandEvent& event);
 	void OnCheckForUpdates(wxCommandEvent& event);
