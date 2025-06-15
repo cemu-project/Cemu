@@ -177,6 +177,9 @@ jobs:
 
   build-macos:
     runs-on: macos-14
+    strategy:
+      matrix:
+        arch: [x86_64, arm64]
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v4
@@ -236,7 +239,7 @@ jobs:
         cd build
         cmake .. ${{ env.BUILD_FLAGS }} \
         -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} \
-        -DCMAKE_OSX_ARCHITECTURES=x86_64 \
+        -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
         -DMACOS_BUNDLE=ON \
         -G Ninja
         
@@ -259,5 +262,5 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: cemu-bin-macos-x64
+        name: cemu-bin-macos-${{ matrix.arch }}
         path: ./bin/Cemu.dmg
