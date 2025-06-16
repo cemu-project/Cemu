@@ -1,9 +1,8 @@
 #include "DirectSoundAPI.h"
 
-#include "gui/wxgui.h"
-
 #include "util/helpers/helpers.h"
 #include "gui/guiWrapper.h"
+#include <wrl/client.h>
 
 #pragma comment(lib, "Dsound.lib")
 
@@ -15,11 +14,8 @@ std::wstring DirectSoundAPI::DirectSoundDeviceDescription::GetIdentifier() const
 DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
 	: IAudioAPI(samplerate, channels, samples_per_block, bits_per_sample)
 {
-	LPDIRECTSOUND8 direct_sound;
-	if (DirectSoundCreate8(guid, &direct_sound, nullptr) != DS_OK)
+	if (DirectSoundCreate8(guid, &m_direct_sound, nullptr) != DS_OK)
 		throw std::runtime_error("can't create directsound device");
-
-	m_direct_sound = decltype(m_direct_sound)(direct_sound);
 
 	if (FAILED(m_direct_sound->SetCooperativeLevel(gui_getWindowInfo().window_main.hwnd, DSSCL_PRIORITY)))
 		throw std::runtime_error("can't set directsound priority");
@@ -30,7 +26,7 @@ DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, s
 	bd.dwBufferBytes = kBufferCount * m_bytesPerBlock; // kBlockCount * (samples_per_block * channels * (bits_per_sample / 8));
 	bd.lpwfxFormat = (LPWAVEFORMATEX)&m_wfx;
 
-	LPDIRECTSOUNDBUFFER sound_buffer;
+	Microsoft::WRL::ComPtr<IDirectSoundBuffer> sound_buffer;
 	if (FAILED(m_direct_sound->CreateSoundBuffer(&bd, &sound_buffer, nullptr)))
 		throw std::runtime_error("can't create directsound soundbuffer");
 
@@ -41,27 +37,17 @@ DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, s
 
 	m_sound_buffer_size = caps.dwBufferBytes;
 
-	LPDIRECTSOUNDBUFFER8 sound_buffer8;
-	LPDIRECTSOUNDNOTIFY8 notify8;
-	sound_buffer->QueryInterface(IID_IDirectSoundBuffer8, (void**)&sound_buffer8);
+	Microsoft::WRL::ComPtr<IDirectSoundNotify8> notify8;
 
-	if (!sound_buffer8)
+	if (FAILED(sound_buffer->QueryInterface(IID_IDirectSoundBuffer8, &m_sound_buffer)))
 	{
-		sound_buffer->Release();
 		throw std::runtime_error("can't get directsound buffer interface");
 	}
 
-	m_sound_buffer = decltype(m_sound_buffer)(sound_buffer8);
-
-	sound_buffer->QueryInterface(IID_IDirectSoundNotify8, (void**)&notify8);
-	if (!notify8)
+	if (FAILED(sound_buffer->QueryInterface(IID_IDirectSoundNotify8, &m_notify)))
 	{
-		sound_buffer->Release();
 		throw std::runtime_error("can't get directsound notify interface");
 	}
-	m_notify = decltype(m_notify)(notify8);
-
-	sound_buffer->Release();
 
 	{ // initialize sound buffer
 		void *ptr1, *ptr2;
@@ -155,10 +141,6 @@ DirectSoundAPI::~DirectSoundAPI()
 	if(m_thread.joinable())
 		m_thread.join();
 
-	m_notify.reset();
-	m_sound_buffer.reset();
-	m_direct_sound.reset();
-
 	for(auto entry : m_notify_event)
 	{
 		if (entry)
@@ -186,7 +168,7 @@ bool DirectSoundAPI::Stop()
 
 bool DirectSoundAPI::FeedBlock(sint16* data)
 {
-	std::unique_lock lock(m_mutex);
+	std::lock_guard lock(m_mutex);
 	if (m_buffer.size() > kBlockCount)
 	{
 		cemuLog_logDebug(LogType::Force, "dropped direct sound block since too many buffers are queued");

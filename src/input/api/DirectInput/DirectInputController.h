@@ -2,6 +2,7 @@
 
 #include "input/api/DirectInput/DirectInputControllerProvider.h"
 #include "input/api/Controller.h"
+#include <wrl/client.h>
 
 class DirectInputController : public Controller<DirectInputControllerProvider>
 {
@@ -41,8 +42,8 @@ private:
 	GUID m_product_guid{};
 
 	std::shared_mutex m_mutex;
-	LPDIRECTINPUTDEVICE8 m_device = nullptr;
-	LPDIRECTINPUTEFFECT m_effect = nullptr;
+	Microsoft::WRL::ComPtr<IDirectInputDevice8> m_device;
+	Microsoft::WRL::ComPtr<IDirectInputEffect> m_effect;
 
 	std::array<LONG, 6> m_min_axis{};
 	std::array<LONG, 6> m_max_axis{};

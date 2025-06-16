@@ -385,8 +385,6 @@ template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
 template <typename T1, typename T2>
 constexpr bool HAS_BIT(T1 value, T2 index) { return (value & ((T1)1 << index)) != 0; }
-template <typename T>
-constexpr void SAFE_RELEASE(T& p) { if (p) { p->Release(); p = nullptr; } }
 
 template <typename T>
 constexpr uint32_t ppcsizeof() { return (uint32_t) sizeof(T); }
