@@ -114,7 +114,7 @@ private:
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
 
-	void RemoveCache(const std::list<fs::path>& cachePath, const std::string& titleName);
+	void RemoveCache(const std::vector<fs::path>& cachePath, const std::string& titleName);
 
 	void AsyncWorkerThread();
 	void RequestLoadIconAsync(TitleId titleId);

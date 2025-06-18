@@ -66,21 +66,21 @@ void _stripPathFilename(fs::path& path)
 		path = path.parent_path();
 }
 
-std::list<fs::path> _getCachesPaths(const TitleId& titleId)
+std::vector<fs::path> _getCachesPaths(const TitleId& titleId)
 {
-	std::list<fs::path> cachePaths{
+	std::vector<fs::path> cachePaths{
 		ActiveSettings::GetCachePath(L"shaderCache/driver/vk/{:016x}.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_spirv.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_gl.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_shaders.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_vkpipeline.bin", titleId)};
 
-	cachePaths.remove_if(
-		[](const fs::path& cachePath)
-		{
-			std::error_code ec;
-			return !fs::exists(cachePath, ec);
-		});
+	cachePaths.erase(std::remove_if(cachePaths.begin(), cachePaths.end(),
+									[](const fs::path& cachePath) {
+										std::error_code ec;
+										return !fs::exists(cachePath, ec);
+									}),
+					 cachePaths.end());
 
 	return cachePaths;
 }
@@ -1280,7 +1280,7 @@ void wxGameList::HandleTitleListCallback(CafeTitleListCallbackEvent* evt)
 	}
 }
 
-void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::string& titleName)
+void wxGameList::RemoveCache(const std::vector<fs::path>& cachePaths, const std::string& titleName)
 {
 	wxMessageDialog dialog(this, formatWxString(_("Remove the shader caches for {}?"), titleName), _("Remove shader caches"), wxCENTRE | wxYES_NO | wxICON_EXCLAMATION);
 	dialog.SetYesNoLabels(_("Yes"), _("No"));
@@ -1288,7 +1288,7 @@ void wxGameList::RemoveCache(const std::list<fs::path>& cachePaths, const std::s
 	const auto dialogResult = dialog.ShowModal();
 	if (dialogResult != wxID_YES)
 		return;
-	std::list<std::string> errs;
+	std::vector<std::string> errs;
 	for (const fs::path& cachePath : cachePaths)
 	{
 		if (std::error_code ec; !fs::remove(cachePath, ec))
