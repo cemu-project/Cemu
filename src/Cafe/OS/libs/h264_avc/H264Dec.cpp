@@ -370,10 +370,10 @@ namespace H264
 
 	H264DEC_STATUS H264DECSetParam(H264Context* ctx, uint32 paramId, void* paramValue)
 	{
-		const uint32 PARAMID_FPTR_OUTPUT = 0x1;
-		const uint32 PARAMID_OUTPUT_PER_FRAME = 0x20000002;
-		const uint32 PARAMID_USER_MEMORY = 0x70000001;
-		const uint32 PARAMID_UKN = 0x20000030;
+		constexpr uint32 PARAMID_FPTR_OUTPUT = 0x1;
+		constexpr uint32 PARAMID_OUTPUT_PER_FRAME = 0x20000002;
+		constexpr uint32 PARAMID_USER_MEMORY = 0x70000001;
+		constexpr uint32 PARAMID_UKN = 0x20000030;
 
 		if (paramId == PARAMID_FPTR_OUTPUT)
 		{

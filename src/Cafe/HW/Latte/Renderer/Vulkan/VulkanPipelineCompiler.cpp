@@ -253,7 +253,7 @@ static VkBlendOp GetVkBlendOp(Latte::LATTE_CB_BLENDN_CONTROL::E_COMBINEFUNC comb
 
 static VkBlendFactor GetVkBlendFactor(Latte::LATTE_CB_BLENDN_CONTROL::E_BLENDFACTOR factor)
 {
-	const VkBlendFactor factors[] =
+	constexpr VkBlendFactor factors[] =
 	{
 		/* 0x00 */ VK_BLEND_FACTOR_ZERO,
 		/* 0x01 */ VK_BLEND_FACTOR_ONE,
@@ -774,7 +774,7 @@ void PipelineCompiler::InitDepthStencilState()
 	depthStencilState.depthTestEnable = depthEnable ? VK_TRUE : VK_FALSE;
 	depthStencilState.depthWriteEnable = depthWriteEnable ? VK_TRUE : VK_FALSE;
 
-	static const VkCompareOp vkDepthCompareTable[8] =
+	static constexpr VkCompareOp vkDepthCompareTable[8] =
 	{
 		VK_COMPARE_OP_NEVER,
 		VK_COMPARE_OP_LESS,
@@ -811,7 +811,7 @@ void PipelineCompiler::InitDepthStencilState()
 	uint32 stencilWriteMaskBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILWRITEMASK_B();
 	uint32 stencilRefBack = LatteGPUState.contextNew.DB_STENCILREFMASK_BF.get_STENCILREF_B();
 
-	static const VkStencilOp stencilOpTable[8] = {
+	static constexpr VkStencilOp stencilOpTable[8] = {
 		VK_STENCIL_OP_KEEP,
 		VK_STENCIL_OP_ZERO,
 		VK_STENCIL_OP_REPLACE,

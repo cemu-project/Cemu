@@ -15,7 +15,7 @@ enum class MIC_RESULT
 
 #define MIC_SAMPLERATE				32000
 
-const int MIC_SAMPLES_PER_3MS_32KHZ = (96);  // 32000*3/1000
+constexpr int MIC_SAMPLES_PER_3MS_32KHZ = (96);  // 32000*3/1000
 
 enum class MIC_STATUS_FLAGS : uint32
 {
@@ -436,7 +436,7 @@ void mic_updateOnAXFrame()
 	}
 	else
 	{
-		const sint32 micSampleCount = 32000 / 32;
+		constexpr sint32 micSampleCount = 32000 / 32;
 		sint16 micSampleData[micSampleCount];
 
 		auto controller = InputManager::instance().get_vpad_controller(drcIndex);
