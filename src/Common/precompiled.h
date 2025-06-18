@@ -310,7 +310,8 @@ inline uint64 __rdtsc()
 
 inline void _mm_mfence()
 {
-    
+	asm volatile("" ::: "memory");
+	std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)

@@ -45,7 +45,11 @@ namespace MemMapper
 		void* r;
 		if(fromReservation)
 		{
-			if( mprotect(baseAddr, size, GetProt(permissionFlags)) == 0 )
+		    uint64 page_size = sysconf(_SC_PAGESIZE);
+		    void* page = baseAddr;
+		    if ( (uint64) baseAddr % page_size != 0 )
+		        page = (void*) ((uint64)baseAddr & ~(page_size - 1));
+			if( mprotect(page, size, GetProt(permissionFlags)) == 0 )
                 r = baseAddr;
 			else
                 r = nullptr;
