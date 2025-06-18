@@ -302,6 +302,12 @@ void InputAPIAddWindow::on_controllers_refreshed(wxCommandEvent& event)
 
 	wxWindowUpdateLocker lock(controllers);
 	controllers->Clear();
+#if BOOST_OS_LINUX
+	// We add a placeholder to make to list clickable on linux
+	// This allows the user to trigger a refill of the controller list
+	if (has_custom_settings() && available_controllers.empty())
+		m_controller_list->Append(_("No controllers found."), (wxClientData*)nullptr);
+#endif
 	for (const auto& c : available_controllers)
 	{
 		const auto display_name = c->display_name();
