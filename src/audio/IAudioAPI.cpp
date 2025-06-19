@@ -13,13 +13,14 @@
 std::shared_mutex g_audioMutex;
 AudioAPIPtr g_tvAudio;
 AudioAPIPtr g_padAudio;
+AudioAPIPtr g_portalAudio;
 std::atomic_int32_t g_padVolume = 0;
 
 uint32 IAudioAPI::s_audioDelay = 2;
 std::array<bool, IAudioAPI::AudioAPIEnd> IAudioAPI::s_availableApis{};
 
 IAudioAPI::IAudioAPI(uint32 samplerate, uint32 channels, uint32 samples_per_block, uint32 bits_per_sample)
-	: m_samplerate(samplerate), m_channels(channels), m_samplesPerBlock(samples_per_block), m_bitsPerSample(bits_per_sample) 
+	: m_samplerate(samplerate), m_channels(channels), m_samplesPerBlock(samples_per_block), m_bitsPerSample(bits_per_sample)
 {
 	m_bytesPerBlock = samples_per_block * channels * (bits_per_sample / 8);
 	InitWFX(m_samplerate, m_channels, m_bitsPerSample);
@@ -80,7 +81,7 @@ void IAudioAPI::InitializeStatic()
 #if BOOST_OS_WINDOWS
 	s_availableApis[DirectSound] = true;
 	s_availableApis[XAudio2] = XAudio2API::InitializeStatic();
-	if(!s_availableApis[XAudio2]) // don't try to initialize the older lib if the newer version is available
+	if (!s_availableApis[XAudio2]) // don't try to initialize the older lib if the newer version is available
 		s_availableApis[XAudio27] = XAudio27API::InitializeStatic();
 #endif
 #if HAS_CUBEB
@@ -97,30 +98,29 @@ bool IAudioAPI::IsAudioAPIAvailable(AudioAPI api)
 	return false;
 }
 
-AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(bool TV, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample)
+AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample)
 {
-	auto& config = GetConfig();
-	sint32 channels = CemuConfig::AudioChannelsToNChannels(TV ? config.tv_channels : config.pad_channels);
-	return CreateDeviceFromConfig(TV, rate, channels, samples_per_block, bits_per_sample);
+	sint32 channels = CemuConfig::AudioChannelsToNChannels(AudioTypeToChannels(type));
+	return CreateDeviceFromConfig(type, rate, channels, samples_per_block, bits_per_sample);
 }
 
-AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(bool TV, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
+AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample)
 {
 	AudioAPIPtr audioAPIDev;
 
 	auto& config = GetConfig();
 
 	const auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
-	auto& selectedDevice = TV ? config.tv_device : config.pad_device;
+	auto selectedDevice = GetDeviceFromType(type);
 
-	if(selectedDevice.empty())
+	if (selectedDevice.empty())
 		return {};
 
 	IAudioAPI::DeviceDescriptionPtr device_description;
 	if (IAudioAPI::IsAudioAPIAvailable(audio_api))
 	{
 		auto devices = IAudioAPI::GetDevices(audio_api);
-		const auto it = std::find_if(devices.begin(), devices.end(), [&selectedDevice](const auto& d) {return d->GetIdentifier() == selectedDevice; });
+		const auto it = std::find_if(devices.begin(), devices.end(), [&selectedDevice](const auto& d) { return d->GetIdentifier() == selectedDevice; });
 		if (it != devices.end())
 			device_description = *it;
 	}
@@ -128,7 +128,8 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(bool TV, sint32 rate, sint32 chann
 		throw std::runtime_error("failed to find selected device while trying to create audio device");
 
 	audioAPIDev = CreateDevice(audio_api, device_description, rate, channels, samples_per_block, bits_per_sample);
-	audioAPIDev->SetVolume(TV ? config.tv_volume : config.pad_volume);
+	audioAPIDev->SetVolume(GetVolumeFromType(type));
+
 	return audioAPIDev;
 }
 
@@ -137,7 +138,7 @@ AudioAPIPtr IAudioAPI::CreateDevice(AudioAPI api, const DeviceDescriptionPtr& de
 	if (!IsAudioAPIAvailable(api))
 		return {};
 
-	switch(api)
+	switch (api)
 	{
 #if BOOST_OS_WINDOWS
 	case DirectSound:
@@ -157,11 +158,11 @@ AudioAPIPtr IAudioAPI::CreateDevice(AudioAPI api, const DeviceDescriptionPtr& de
 	}
 #endif
 #if HAS_CUBEB
-    case Cubeb:
-    {
-        const auto tmp = std::dynamic_pointer_cast<CubebAPI::CubebDeviceDescription>(device);
-        return std::make_unique<CubebAPI>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
-    }
+	case Cubeb:
+	{
+		const auto tmp = std::dynamic_pointer_cast<CubebAPI::CubebDeviceDescription>(device);
+		return std::make_unique<CubebAPI>(tmp->GetDeviceId(), samplerate, channels, samples_per_block, bits_per_sample);
+	}
 #endif
 	default:
 		throw std::runtime_error(fmt::format("invalid audio api: {}", api));
@@ -172,8 +173,8 @@ std::vector<IAudioAPI::DeviceDescriptionPtr> IAudioAPI::GetDevices(AudioAPI api)
 {
 	if (!IsAudioAPIAvailable(api))
 		return {};
-	
-	switch(api)
+
+	switch (api)
 	{
 #if BOOST_OS_WINDOWS
 	case DirectSound:
@@ -208,4 +209,52 @@ void IAudioAPI::SetAudioDelayOverride(uint32 delay)
 uint32 IAudioAPI::GetAudioDelay() const
 {
 	return m_audioDelayOverride > 0 ? m_audioDelayOverride : s_audioDelay;
+}
+
+AudioChannels IAudioAPI::AudioTypeToChannels(AudioType type)
+{
+	auto& config = GetConfig();
+	switch (type)
+	{
+	case TV:
+		return config.tv_channels;
+	case Gamepad:
+		return config.pad_channels;
+	case Portal:
+		return kMono;
+	default:
+		return kMono;
+	}
+}
+
+std::wstring IAudioAPI::GetDeviceFromType(AudioType type)
+{
+	auto& config = GetConfig();
+	switch (type)
+	{
+	case TV:
+		return config.tv_device;
+	case Gamepad:
+		return config.pad_device;
+	case Portal:
+		return config.portal_device;
+	default:
+		return L"";
+	}
+}
+
+sint32 IAudioAPI::GetVolumeFromType(AudioType type)
+{
+	auto& config = GetConfig();
+	switch (type)
+	{
+	case TV:
+		return config.tv_volume;
+	case Gamepad:
+		return config.pad_volume;
+	case Portal:
+		return config.portal_volume;
+	default:
+		return 0;
+	}
 }

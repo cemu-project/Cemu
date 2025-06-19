@@ -278,6 +278,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	tv_volume = audio.get("TVVolume", 20);
 	pad_volume = audio.get("PadVolume", 0);
 	input_volume = audio.get("InputVolume", 20);
+	portal_volume = audio.get("PortalVolume", 20);
 
 	const auto tv = audio.get("TVDevice", "");
 	try
@@ -307,6 +308,16 @@ void CemuConfig::Load(XMLConfigParser& parser)
 	catch (const std::exception&)
 	{
 		cemuLog_log(LogType::Force, "config load error: can't load input device: {}", input_device_name);
+	}
+
+	const auto portal_device_name = audio.get("PortalDevice", "");
+	try
+	{
+		portal_device = boost::nowide::widen(portal_device_name);
+	}
+	catch (const std::exception&)
+	{
+		cemuLog_log(LogType::Force, "config load error: can't load input device: {}", portal_device_name);
 	}
 
 	// account
@@ -511,9 +522,11 @@ void CemuConfig::Save(XMLConfigParser& parser)
 	audio.set("TVVolume", tv_volume);
 	audio.set("PadVolume", pad_volume);
 	audio.set("InputVolume", input_volume);
+	audio.set("PortalVolume", portal_volume);
 	audio.set("TVDevice", boost::nowide::narrow(tv_device).c_str());
 	audio.set("PadDevice", boost::nowide::narrow(pad_device).c_str());
 	audio.set("InputDevice", boost::nowide::narrow(input_device).c_str());
+	audio.set("PortalDevice", boost::nowide::narrow(portal_device).c_str());
 
 	// account
 	auto acc = config.set("Account");

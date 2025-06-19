@@ -6,6 +6,8 @@
 #include "Backend.h"
 
 #include "Common/FileStream.h"
+#include "audio/IAudioAPI.h"
+#include "config/CemuConfig.h"
 
 namespace nsyshid
 {
@@ -558,6 +560,26 @@ namespace nsyshid
 
 	Device::WriteResult SkylanderPortalDevice::Write(WriteMessage* message)
 	{
+		if (message->length != 64) {
+			cemu_assert_error();
+		}
+
+		if (!g_portalAudio)
+		{
+			// Portal audio is mono channel, 16 bit audio.
+			// Audio is unsigned 16 bit, supplied as 64 bytes which is 32 samples per block
+			g_portalAudio = IAudioAPI::CreateDeviceFromConfig(IAudioAPI::AudioType::Portal, 8000, 32, 16);
+		}
+		std::array<sint16, 32> mono_samples;
+		for (unsigned int i = 0; i < mono_samples.size(); ++i)
+		{
+			sint16 sample = static_cast<uint16>(message->data[i * 2 + 1]) << 8 | static_cast<uint16>(message->data[i * 2]);
+			mono_samples[i] = sample;
+		}
+		if (g_portalAudio)
+		{
+			g_portalAudio->FeedBlock(mono_samples.data());
+		}
 		message->bytesWritten = message->length;
 		return Device::WriteResult::Success;
 	}
@@ -604,20 +626,20 @@ namespace nsyshid
 		*(uint16be*)(currentWritePtr + 7) = 0x001D; // wDescriptorLength
 		currentWritePtr = currentWritePtr + 9;
 		// endpoint descriptor 1
-		*(uint8*)(currentWritePtr + 0) = 7;		  // bLength
-		*(uint8*)(currentWritePtr + 1) = 0x05;	  // bDescriptorType
-		*(uint8*)(currentWritePtr + 2) = 0x81;	  // bEndpointAddress
-		*(uint8*)(currentWritePtr + 3) = 0x03;	  // bmAttributes
+		*(uint8*)(currentWritePtr + 0) = 7;			// bLength
+		*(uint8*)(currentWritePtr + 1) = 0x05;		// bDescriptorType
+		*(uint8*)(currentWritePtr + 2) = 0x81;		// bEndpointAddress
+		*(uint8*)(currentWritePtr + 3) = 0x03;		// bmAttributes
 		*(uint16be*)(currentWritePtr + 4) = 0x0040; // wMaxPacketSize
-		*(uint8*)(currentWritePtr + 6) = 0x01;	  // bInterval
+		*(uint8*)(currentWritePtr + 6) = 0x01;		// bInterval
 		currentWritePtr = currentWritePtr + 7;
 		// endpoint descriptor 2
-		*(uint8*)(currentWritePtr + 0) = 7;		  // bLength
-		*(uint8*)(currentWritePtr + 1) = 0x05;	  // bDescriptorType
-		*(uint8*)(currentWritePtr + 2) = 0x02;	  // bEndpointAddress
-		*(uint8*)(currentWritePtr + 3) = 0x03;	  // bmAttributes
+		*(uint8*)(currentWritePtr + 0) = 7;			// bLength
+		*(uint8*)(currentWritePtr + 1) = 0x05;		// bDescriptorType
+		*(uint8*)(currentWritePtr + 2) = 0x02;		// bEndpointAddress
+		*(uint8*)(currentWritePtr + 3) = 0x03;		// bmAttributes
 		*(uint16be*)(currentWritePtr + 4) = 0x0040; // wMaxPacketSize
-		*(uint8*)(currentWritePtr + 6) = 0x01;	  // bInterval
+		*(uint8*)(currentWritePtr + 6) = 0x01;		// bInterval
 		currentWritePtr = currentWritePtr + 7;
 
 		cemu_assert_debug((currentWritePtr - configurationDescriptor) == 0x29);
@@ -628,8 +650,8 @@ namespace nsyshid
 	}
 
 	bool SkylanderPortalDevice::SetIdle(uint8 ifIndex,
-									 uint8 reportId,
-									 uint8 duration)
+										uint8 reportId,
+										uint8 duration)
 	{
 		return true;
 	}
