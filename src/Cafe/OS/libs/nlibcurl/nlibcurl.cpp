@@ -3,6 +3,7 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "nlibcurl.h"
 
+#include "Common/precompiled.h"
 #include "openssl/bn.h"
 #include "openssl/x509.h"
 #include "openssl/ssl.h"
@@ -24,6 +25,14 @@
 
 namespace nlibcurl
 {
+#define WU_CURLINFO_DOUBLE 0x300000
+
+#define WU_CURLINFO_SIZE_UPLOAD WU_CURLINFO_DOUBLE + 7
+#define WU_CURLINFO_SIZE_DOWNLOAD WU_CURLINFO_DOUBLE + 8
+#define WU_CURLINFO_SPEED_DOWNLOAD WU_CURLINFO_DOUBLE + 9
+#define WU_CURLINFO_SPEED_UPLOAD WU_CURLINFO_DOUBLE + 10
+#define WU_CURLINFO_CONTENT_LENGTH_DOWNLOAD WU_CURLINFO_DOUBLE + 15
+
 #define CURL_MULTI_HANDLE		(0x000bab1e)
 
 #define NSSL_VERIFY_NONE		(0x0)
@@ -1369,6 +1378,24 @@ void _updateGuestString(CURL_t* curl, MEMPTR<char>& ppcStr, char* hostStr)
 	memcpy(ppcStr.GetPtr(), hostStr, length + 1);
 }
 
+uint32 _convert_curlinfo(uint32 info)
+{
+	switch(info)
+	{
+		case WU_CURLINFO_SIZE_DOWNLOAD:
+			return CURLINFO_SIZE_DOWNLOAD_T;
+		case WU_CURLINFO_SPEED_DOWNLOAD:
+			return CURLINFO_SPEED_DOWNLOAD_T;
+		case WU_CURLINFO_SIZE_UPLOAD:
+			return CURLINFO_SIZE_UPLOAD_T;
+		case WU_CURLINFO_SPEED_UPLOAD:
+			return CURLINFO_SPEED_UPLOAD_T;
+		case WU_CURLINFO_CONTENT_LENGTH_DOWNLOAD:
+			return CURLINFO_CONTENT_LENGTH_DOWNLOAD_T;
+	}
+	return info;
+}
+
 void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamMEMPTR(curl, CURL_t, 0);
@@ -1378,7 +1405,7 @@ void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
 	CURL* curlObj = curl->curl;
 
 	CURLcode result = CURLE_OK;
-	switch (info)
+	switch (_convert_curlinfo(info))
 	{
 		case CURLINFO_SIZE_DOWNLOAD_T:
 		case CURLINFO_SPEED_DOWNLOAD_T:
