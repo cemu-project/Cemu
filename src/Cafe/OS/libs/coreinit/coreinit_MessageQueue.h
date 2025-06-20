@@ -47,5 +47,8 @@ namespace coreinit
 
 	OSMessageQueue* OSGetSystemMessageQueue();
 
+	void MessageQueue_Save(MemStreamWriter& s);
+	void MessageQueue_Restore(MemStreamReader& s);
+
 	void InitializeMessageQueue();
 };

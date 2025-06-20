@@ -503,7 +503,16 @@ static_assert(sizeof(OSThread_t) == 0x6A0);
 
 namespace coreinit
 {
+	void Thread_Save(MemStreamWriter& s);
+	void Thread_Restore(MemStreamReader& s);
+	void SuspendActiveThreads();
+	void ResumeActiveThreads();
+
 	void InitializeThread();
+
+	void Synchronization_Save(MemStreamWriter& s);
+	void Synchronization_Restore(MemStreamReader& s);
+
 	void InitializeConcurrency();
 
 	bool __CemuIsMulticoreMode();

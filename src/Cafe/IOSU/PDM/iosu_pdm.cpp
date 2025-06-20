@@ -409,6 +409,15 @@ namespace iosu
 			}
 		}
 
+		void save(MemStreamWriter& s)
+		{
+
+		}
+		void restore(MemStreamReader& s)
+		{
+
+		}
+
 		class : public ::IOSUModule
 		{
 			void PDMLoadAll()

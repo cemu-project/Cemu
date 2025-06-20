@@ -1503,6 +1503,29 @@ CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_
 	return result;
 }
 
+void save(MemStreamWriter& s)
+{
+	s.writeSection("nlibcurl");
+	s.write(g_nlibcurl.initialized);
+	s.writeMPTR(g_nlibcurl.proxyConfig);
+	s.writeMPTR(g_nlibcurl.malloc);
+	s.writeMPTR(g_nlibcurl.free);
+	s.writeMPTR(g_nlibcurl.realloc);
+	s.writeMPTR(g_nlibcurl.strdup);
+	s.writeMPTR(g_nlibcurl.calloc);
+}
+void restore(MemStreamReader& s)
+{
+	s.readSection("nlibcurl");
+	s.read(g_nlibcurl.initialized);
+	s.readMPTR(g_nlibcurl.proxyConfig);
+	s.readMPTR(g_nlibcurl.malloc);
+	s.readMPTR(g_nlibcurl.free);
+	s.readMPTR(g_nlibcurl.realloc);
+	s.readMPTR(g_nlibcurl.strdup);
+	s.readMPTR(g_nlibcurl.calloc);
+}
+
 void load()
 {
 	cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::nlibcurl);
