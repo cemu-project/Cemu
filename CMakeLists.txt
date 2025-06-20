@@ -166,7 +166,7 @@ if (UNIX AND NOT APPLE)
 
 	if(ENABLE_BLUEZ)
 		find_package(bluez REQUIRED)
-		set(ENABLE_WIIMOTE ON)
+		set(SUPPORTS_WIIMOTE ON)
 		add_compile_definitions(HAS_BLUEZ)
 	endif()
 
@@ -188,7 +188,7 @@ endif()
 
 if (ENABLE_HIDAPI)
 	find_package(hidapi REQUIRED)
-	set(ENABLE_WIIMOTE ON)
+	set(SUPPORTS_WIIMOTE ON)
 	add_compile_definitions(HAS_HIDAPI)
 endif ()
 
