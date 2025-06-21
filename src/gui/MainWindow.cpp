@@ -2054,7 +2054,7 @@ public:
 			wxString& nameList = ((i % 2) == 0) ? nameListLeft : nameListRight;
 			if (i >= 2)
 				nameList.append("\n");
-			nameList.append(name);
+			nameList.append(wxString::FromUTF8(name));
 		}
 
 		gridSizer->Add(new wxStaticText(parent, wxID_ANY, nameListLeft), wxSizerFlags());
