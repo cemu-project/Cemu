@@ -266,17 +266,16 @@ namespace nn
 			return true;
 		}
 
-		sint32 olv_curlformcode_to_error(CURLFORMcode code)
+		sint32 olv_curlformcode_to_error(CURLcode code)
 		{
 			switch (code)
 			{
-				case CURL_FORMADD_OK:
+				case CURLE_OK:
 					return OLV_RESULT_SUCCESS;
 
-				case CURL_FORMADD_MEMORY:
+				case CURLE_OUT_OF_MEMORY:
 					return OLV_RESULT_FATAL(25);
 
-				case CURL_FORMADD_OPTION_TWICE:
 				default:
 					return OLV_RESULT_LVL6(50);
 			}

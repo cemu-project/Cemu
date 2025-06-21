@@ -28,7 +28,7 @@ size_t DownloadGraphicPacksWindow::curlDownloadFile_writeData(void *ptr, size_t 
 	return writeSize;
 }
 
-int DownloadGraphicPacksWindow::progress_callback(curlDownloadFileState_t* downloadState, double dltotal, double dlnow, double ultotal, double ulnow)
+int DownloadGraphicPacksWindow::progress_callback(curlDownloadFileState_t* downloadState, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow)
 {
 	if (dltotal > 1.0)
 		downloadState->progress = dlnow / dltotal;
@@ -47,7 +47,7 @@ bool DownloadGraphicPacksWindow::curlDownloadFile(const char *url, curlDownloadF
 	curl_easy_setopt(curl, CURLOPT_URL, url);
 	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, curlDownloadFile_writeData);
 	curl_easy_setopt(curl, CURLOPT_WRITEDATA, downloadState);
-	curl_easy_setopt(curl, CURLOPT_PROGRESSFUNCTION, progress_callback);
+	curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
 	curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, downloadState);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);

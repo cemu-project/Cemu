@@ -87,7 +87,7 @@ namespace nn
 			if (httpCode != 200)
 				return OLV_RESULT_STATUS(httpCode + 4000);
 
-			std::string request_name = doc.select_single_node("//request_name").node().child_value();
+			std::string request_name = doc.select_node("//request_name").node().child_value();
 			if (request_name.size() == 0)
 			{
 				cemuLog_log(LogType::Force, "Community download response doesn't contain <request_name>");
@@ -100,7 +100,7 @@ namespace nn
 				return OLV_RESULT_INVALID_XML;
 			}
 
-			pugi::xml_node communities = doc.select_single_node("//communities").node();
+			pugi::xml_node communities = doc.select_node("//communities").node();
 			if (!communities)
 			{
 				cemuLog_log(LogType::Force, "Community download response doesn't contain <communities>");
