@@ -717,7 +717,10 @@ namespace coreinit
 		thread->id = 0x8000;
 
 		if (!thread->deallocatorFunc.IsNull())
+		{
 			__OSQueueThreadDeallocation(thread);
+			PPCCore_switchToSchedulerWithLock(); // make sure the deallocation function runs before we return
+		}
 
 		__OSUnlockScheduler();
 
@@ -1525,7 +1528,7 @@ namespace coreinit
 	}
 
 	// queue thread deallocation to run after current thread finishes
-	// the termination threads run at a higher priority on the same threads
+	// the termination threads run at a higher priority on the same core
 	void __OSQueueThreadDeallocation(OSThread_t* thread)
 	{
 		uint32 coreIndex = OSGetCoreId();
