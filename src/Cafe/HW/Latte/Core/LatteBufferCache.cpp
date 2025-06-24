@@ -25,7 +25,7 @@ class IntervalTree2
 	// static TNodeObject* Split(TNodeObject* nodeObject, TRangeData firstRangeBegin, TRangeData firstRangeEnd, TRangeData secondRangeBegin, TRangeData secondRangeEnd)
 	// Cut a hole into an existing range and split it in two. Should return the newly created node object after the hole
 
-	static_assert(std::is_pointer<TNodeObject>::value == false, "TNodeObject must be a non-pointer type");
+	static_assert(!std::is_pointer_v<TNodeObject>, "TNodeObject must be a non-pointer type");
 
 	struct InternalRange
 	{
