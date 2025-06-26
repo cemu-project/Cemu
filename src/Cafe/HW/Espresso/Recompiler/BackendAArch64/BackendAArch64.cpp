@@ -169,8 +169,10 @@ struct AArch64GenContext_t : CodeGenerator
 
 	bool processAllJumps()
 	{
-		for (auto&& [jumpStart, jumpInfo] : jumps)
+		for (auto jump : jumps)
 		{
+			auto jumpStart = jump.first;
+			auto jumpInfo = jump.second;
 			bool success = std::visit(
 				[&, this](const auto& jump) {
 					setSize(jumpStart);

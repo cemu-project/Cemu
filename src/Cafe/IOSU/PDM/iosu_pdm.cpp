@@ -464,5 +464,34 @@ namespace iosu
 			return static_cast<IOSUModule*>(&sIOSUModuleNNPDM);
 		}
 
+
+		bool GameListStat::LastPlayDate::operator<(const LastPlayDate& b) const
+		{
+			const auto& a = *this;
+
+			if(a.year < b.year)
+				return true;
+			if(a.year > b.year)
+				return false;
+
+			// same year
+			if(a.month < b.month)
+				return true;
+			if(a.month > b.month)
+				return false;
+
+			// same year and month
+			return a.day < b.day;
+		}
+
+		bool GameListStat::LastPlayDate::operator==(const LastPlayDate& b) const
+		{
+			const auto& a = *this;
+			return a.year == b.year &&
+				   a.month == b.month &&
+				   a.day == b.day;
+		}
+		std::weak_ordering GameListStat::LastPlayDate::operator<=>(const LastPlayDate& b) const = default;
+
 	};
 };

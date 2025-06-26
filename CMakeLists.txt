@@ -166,7 +166,7 @@ if (UNIX AND NOT APPLE)
 
 	if(ENABLE_BLUEZ)
 		find_package(bluez REQUIRED)
-		set(ENABLE_WIIMOTE ON)
+		set(SUPPORTS_WIIMOTE ON)
 		add_compile_definitions(HAS_BLUEZ)
 	endif()
 
@@ -188,7 +188,7 @@ endif()
 
 if (ENABLE_HIDAPI)
 	find_package(hidapi REQUIRED)
-	set(ENABLE_WIIMOTE ON)
+	set(SUPPORTS_WIIMOTE ON)
 	add_compile_definitions(HAS_HIDAPI)
 endif ()
 
@@ -222,11 +222,20 @@ endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
 
+<<<<<<< camera
 set(BUILD_SHARED_LIBS OFF)
 add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL SYSTEM)
 set(BUILD_SHARED_LIBS "")
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+=======
+if (CMAKE_OSX_ARCHITECTURES)
+	set(CEMU_ARCHITECTURE ${CMAKE_OSX_ARCHITECTURES})
+else()
+	set(CEMU_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
+endif()
+if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
+>>>>>>> main
 	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
 endif()
 

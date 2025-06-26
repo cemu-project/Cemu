@@ -2,6 +2,7 @@
 
 //#if (_WIN32_WINNT >= 0x0602 /*_WIN32_WINNT_WIN8*/)
 
+#include <wrl/client.h>
 #include <xaudio2.h>
 
 #ifndef XAUDIO2_DLL
@@ -33,17 +34,15 @@ XAudio2API::XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channel
 		throw std::runtime_error("can't find XAudio2Create import");
 
 	HRESULT hres;
-	IXAudio2* xaudio;
-	if (FAILED((hres = _XAudio2Create(&xaudio, 0, XAUDIO2_DEFAULT_PROCESSOR))))
+	if (FAILED((hres = _XAudio2Create(&m_xaudio, 0, XAUDIO2_DEFAULT_PROCESSOR))))
 		throw std::runtime_error(fmt::format("can't create xaudio device (hres: {:#x})", hres));
 
-	m_xaudio = decltype(m_xaudio)(xaudio);
 
 	IXAudio2MasteringVoice* mastering_voice;
 	if (FAILED((hres = m_xaudio->CreateMasteringVoice(&mastering_voice, channels, samplerate, 0, m_device_id.empty() ? nullptr : m_device_id.c_str()))))
 		throw std::runtime_error(fmt::format("can't create xaudio mastering voice (hres: {:#x})", hres));
 
-	m_mastering_voice = decltype(m_mastering_voice)(mastering_voice);
+	m_mastering_voice.reset(mastering_voice);
 
 	m_wfx.Format.wFormatTag = WAVE_FORMAT_EXTENSIBLE;
 	m_wfx.Format.nChannels = channels;
@@ -88,12 +87,6 @@ XAudio2API::XAudio2API(std::wstring device_id, uint32 samplerate, uint32 channel
 	m_xaudio->StartEngine();
 }
 
-void XAudio2API::XAudioDeleter::operator()(IXAudio2* ptr) const
-{
-	if (ptr)
-		ptr->Release();
-}
-
 void XAudio2API::VoiceDeleter::operator()(IXAudio2Voice* ptr) const
 {
 	if (ptr)
@@ -106,10 +99,6 @@ XAudio2API::~XAudio2API()
 		m_xaudio->StopEngine();
 
 	XAudio2API::Stop();
-
-	m_source_voice.reset();
-	m_mastering_voice.reset();
-	m_xaudio.reset();
 }
 
 void XAudio2API::SetVolume(sint32 volume)
@@ -179,10 +168,10 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 
 	try
 	{
-		struct IWbemLocator *wbem_locator = nullptr;
+		Microsoft::WRL::ComPtr<IWbemLocator> wbem_locator;
 
-		HRESULT hres = CoCreateInstance(__uuidof(WbemLocator), nullptr, CLSCTX_INPROC_SERVER, __uuidof(IWbemLocator), (LPVOID*)&wbem_locator);
-		if (FAILED(hres) || !wbem_locator)
+		HRESULT hres = CoCreateInstance(__uuidof(WbemLocator), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&wbem_locator));
+		if (FAILED(hres))
 			throw std::system_error(hres, std::system_category());
 
 		std::shared_ptr<OLECHAR> path(SysAllocString(LR"(\\.\root\cimv2)"), SysFreeString);
@@ -191,20 +180,19 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 		std::shared_ptr<OLECHAR> name_row(SysAllocString(L"Name"), SysFreeString);
 		std::shared_ptr<OLECHAR> device_id_row(SysAllocString(L"DeviceID"), SysFreeString);
 
-		IWbemServices *wbem_services = nullptr;
+		Microsoft::WRL::ComPtr<IWbemServices> wbem_services;
 		hres = wbem_locator->ConnectServer(path.get(), nullptr, nullptr, nullptr, 0, nullptr, nullptr, &wbem_services);
-		wbem_locator->Release(); // Free memory resources.
 
-		if (FAILED(hres) || !wbem_services)
-			throw std::system_error(hres, std::system_category());
-
-		hres = CoSetProxyBlanket(wbem_services, RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
 		if (FAILED(hres))
 			throw std::system_error(hres, std::system_category());
 
-		IEnumWbemClassObject* wbem_enum = nullptr;
+		hres = CoSetProxyBlanket(wbem_services.Get(), RPC_C_AUTHN_WINNT, RPC_C_AUTHZ_NONE, nullptr, RPC_C_AUTHN_LEVEL_CALL, RPC_C_IMP_LEVEL_IMPERSONATE, nullptr, EOAC_NONE);
+		if (FAILED(hres))
+			throw std::system_error(hres, std::system_category());
+
+		Microsoft::WRL::ComPtr<IEnumWbemClassObject> wbem_enum;
 		hres = wbem_services->ExecQuery(language.get(), query.get(), WBEM_FLAG_RETURN_WBEM_COMPLETE | WBEM_FLAG_FORWARD_ONLY, nullptr, &wbem_enum);
-		if (FAILED(hres) || !wbem_enum)
+		if (FAILED(hres))
 			throw std::system_error(hres, std::system_category());
 
 		ULONG returned;
@@ -250,11 +238,6 @@ const std::vector<XAudio2API::DeviceDescriptionPtr>& XAudio2API::RefreshDevices(
 			auto default_device = std::make_shared<XAudio2DeviceDescription>(L"Primary Sound Driver", L"");
 			s_devices.insert(s_devices.begin(), default_device);
 		}
-		
-		wbem_enum->Release();
-
-		// Clean up
-		wbem_services->Release();
 	}
 	catch (const std::system_error& ex)
 	{

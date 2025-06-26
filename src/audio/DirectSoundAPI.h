@@ -2,8 +2,8 @@
 
 #define DIRECTSOUND_VERSION 0x0800
 #include <mmsystem.h>
-//#include <mmreg.h>
 #include <dsound.h>
+#include <wrl/client.h>
 
 #include "IAudioAPI.h"
 
@@ -41,15 +41,10 @@ public:
 	static std::vector<DeviceDescriptionPtr> GetInputDevices();
 
 private:
-	struct DirectSoundDeleter
-	{
-		void operator()(IUnknown* ptr) const { if (ptr) ptr->Release(); }
-	};
-
-	std::unique_ptr<IDirectSound8, DirectSoundDeleter> m_direct_sound;
-	//std::unique_ptr<IDirectSoundCapture8, DirectSoundDeleter> m_direct_sound_capture;
-	std::unique_ptr<IDirectSoundBuffer8, DirectSoundDeleter> m_sound_buffer;
-	std::unique_ptr<IDirectSoundNotify8, DirectSoundDeleter> m_notify;
+	Microsoft::WRL::ComPtr<IDirectSound8> m_direct_sound;
+	//Microsoft::WRL::ComPtr<IDirectSoundCapture8> m_direct_sound_capture;
+	Microsoft::WRL::ComPtr<IDirectSoundBuffer8> m_sound_buffer;
+	Microsoft::WRL::ComPtr<IDirectSoundNotify8> m_notify;
 
 	DWORD m_sound_buffer_size = 0;
 	uint32_t m_offset = 0;

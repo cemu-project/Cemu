@@ -356,7 +356,7 @@ void TitleManager::OnTitleSearchComplete(wxCommandEvent& event)
 
 void TitleManager::OnSetStatusBarText(wxSetStatusBarTextEvent& event)
 {
-	m_status_bar->SetStatusText(_(event.GetText()), event.GetNumber());
+	m_status_bar->SetStatusText(event.GetText(), event.GetNumber());
 }
 
 void TitleManager::OnFilterChanged(wxCommandEvent& event)

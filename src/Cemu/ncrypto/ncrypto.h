@@ -13,10 +13,17 @@ namespace NCrypto
 	std::string base64Encode(const void* inputMem, size_t inputLen);
 	std::vector<uint8> base64Decode(std::string_view inputStr);
 	
-	/* key helper struct */
+	/* key and iv helper struct */
 	struct AesKey 
 	{
-		uint8 b[16];
+		static constexpr size_t SIZE = 16;
+		uint8 b[SIZE];
+	};
+
+	struct AesIv
+	{
+		static constexpr size_t SIZE = 16;
+		uint8 iv[SIZE];
 	};
 
 	/* ECC Certificate */

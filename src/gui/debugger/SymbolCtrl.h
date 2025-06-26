@@ -2,7 +2,7 @@
 
 #include <wx/listctrl.h>
 
-class SymbolListCtrl : public wxListCtrl
+class SymbolListCtrl : public wxListView
 {
 public:
 	SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size);

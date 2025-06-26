@@ -92,7 +92,11 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_GENERAL2,
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
+<<<<<<< camera
 	MAINFRAME_MENU_ID_OPTIONS_CAMERA,
+=======
+	MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS,
+>>>>>>> main
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_12 = 20350 + 11,
@@ -141,6 +145,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
 
 	// debug->logging
+	MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE = 21499,
 	MAINFRAME_MENU_ID_DEBUG_LOGGING0 = 21500,
 	MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO = 21599,
 	// debug->dump
@@ -189,7 +194,11 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_AUDIO, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
+<<<<<<< camera
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_CAMERA, MainWindow::OnOptionsInput)
+=======
+EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, MainWindow::OnOptionsInput)
+>>>>>>> main
 // tools menu
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
@@ -289,8 +298,13 @@ private:
 };
 
 MainWindow::MainWindow()
-	: wxFrame(nullptr, -1, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
+	: wxFrame(nullptr, wxID_ANY, GetInitialWindowTitle(), wxDefaultPosition, wxSize(1280, 720), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER)
 {
+#ifdef __WXMAC__
+	// Not necessary to set wxApp::s_macExitMenuItemId as automatically handled
+	wxApp::s_macAboutMenuItemId = MAINFRAME_MENU_ID_HELP_ABOUT;
+	wxApp::s_macPreferencesMenuItemId = MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS;
+#endif
 	gui_initHandleContextFromWxWidgetsWindow(g_window_info.window_main, this);
 	g_mainFrame = this;
 	CafeSystem::SetImplementation(this);
@@ -914,6 +928,7 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 		break;
 	}
 
+	case MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS:
 	case MAINFRAME_MENU_ID_OPTIONS_GENERAL2:
 	{
 		OpenSettings();
@@ -1868,7 +1883,7 @@ public:
 		auto versionString = formatWxString(_("Cemu\nVersion {0}\nCompiled on {1}\nOriginal authors: {2}"), BUILD_VERSION_STRING, BUILD_DATE, "Exzap, Petergov");
 
 		sizer->Add(new wxStaticText(parent, wxID_ANY, versionString), wxSizerFlags().Border(wxALL, 3).Border(wxTOP, 10));
-		sizer->Add(new wxHyperlinkCtrl(parent, -1, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
+		sizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://cemu.info", "https://cemu.info"), wxSizerFlags().Expand().Border(wxTOP | wxBOTTOM, 3));
 
 		sizer->AddSpacer(3);
 		sizer->Add(new wxStaticLine(parent), wxSizerFlags().Expand().Border(wxRIGHT, 4));
@@ -1888,95 +1903,105 @@ public:
 		// zLib
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "zLib ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.zlib.net", "https://www.zlib.net"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "zLib ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.zlib.net", "https://www.zlib.net"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// wxWidgets
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "wxWidgets ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.wxwidgets.org/", "https://www.wxwidgets.org/"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "wxWidgets ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.wxwidgets.org/", "https://www.wxwidgets.org/"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// OpenSSL
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "OpenSSL ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.openssl.org/", "https://www.openssl.org/"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "OpenSSL ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.openssl.org/", "https://www.openssl.org/"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// libcurl
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "libcurl ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://curl.haxx.se/libcurl/", "https://curl.haxx.se/libcurl/"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libcurl ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://curl.haxx.se/libcurl/", "https://curl.haxx.se/libcurl/"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// imgui
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "imgui ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/ocornut/imgui", "https://github.com/ocornut/imgui"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "imgui ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/ocornut/imgui", "https://github.com/ocornut/imgui"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// fontawesome
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "fontawesome ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/FortAwesome/Font-Awesome", "https://github.com/FortAwesome/Font-Awesome"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "fontawesome ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/FortAwesome/Font-Awesome", "https://github.com/FortAwesome/Font-Awesome"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// boost
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "boost ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://www.boost.org", "https://www.boost.org"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "boost ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.boost.org", "https://www.boost.org"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// libusb
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "libusb ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://libusb.info", "https://libusb.info"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libusb ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://libusb.info", "https://libusb.info"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			sizer->Add(lineSizer);
+		}
+#if BOOST_OS_MACOS
+		// MoltenVK
+		{
+			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
+			lineSizer->Add(new wxStaticText(parent, -1, "MoltenVK ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/KhronosGroup/MoltenVK", "https://github.com/KhronosGroup/MoltenVK"), 0);
 			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
 			sizer->Add(lineSizer);
 		}
+#endif
 		// icons
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "icons from "), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://icons8.com", "https://icons8.com"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "icons from "), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://icons8.com", "https://icons8.com"), 0);
 			sizer->Add(lineSizer);
 		}
 		// Lato font (are we still using it?)
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "\"Lato\" font by tyPoland Lukasz Dziedzic (OFL, V1.1)"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "\"Lato\" font by tyPoland Lukasz Dziedzic (OFL, V1.1)"), 0);
 			sizer->Add(lineSizer);
 		}
 		// SDL
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "SDL ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/libsdl-org/SDL", "https://github.com/libsdl-org/SDL"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "SDL ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/libsdl-org/SDL", "https://github.com/libsdl-org/SDL"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 		// IH264
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "Modified ih264 from Android project ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "Source", "https://cemu.info/oss/ih264d.zip"), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, "  "), 0);
-			wxHyperlinkCtrl* noticeLink = new wxHyperlinkCtrl(parent, -1, "NOTICE", "");
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "Modified ih264 from Android project ("), 0);
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "Source", "https://cemu.info/oss/ih264d.zip"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "  "), 0);
+			wxHyperlinkCtrl* noticeLink = new wxHyperlinkCtrl(parent, wxID_ANY, "NOTICE", "");
 			noticeLink->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& event)
 				{
 					fs::path tempPath = fs::temp_directory_path();
@@ -2010,7 +2035,7 @@ public:
 					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath))));
 				});
 			lineSizer->Add(noticeLink, 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
 			sizer->Add(lineSizer);
 		}
 	}
@@ -2044,7 +2069,7 @@ public:
 			wxString& nameList = ((i % 2) == 0) ? nameListLeft : nameListRight;
 			if (i >= 2)
 				nameList.append("\n");
-			nameList.append(name);
+			nameList.append(wxString::FromUTF8(name));
 		}
 
 		gridSizer->Add(new wxStaticText(parent, wxID_ANY, nameListLeft), wxSizerFlags());
@@ -2174,6 +2199,9 @@ void MainWindow::RecreateMenu()
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
 	m_padViewMenuItem->Check(GetConfig().pad_open);
 	optionsMenu->AppendSeparator();
+	#if BOOST_OS_MACOS
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, _("&Settings..." "\tCtrl-,"));
+	#endif
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_CAMERA, _("&Camera settings"));
@@ -2223,7 +2251,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendSeparator();
 
 	wxMenu* logCosModulesMenu = new wxMenu();
-	logCosModulesMenu->AppendCheckItem(0, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
 	logCosModulesMenu->AppendSeparator();
 	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
 	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));

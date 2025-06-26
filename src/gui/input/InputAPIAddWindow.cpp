@@ -23,7 +23,7 @@ using wxControllerData = wxCustomData<ControllerPtr>;
 
 InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
                                      const std::vector<ControllerPtr>& controllers)
-	: wxDialog(parent, wxID_ANY, "Add input API", position, wxDefaultSize, 0), m_controllers(controllers)
+	: wxDialog(parent, wxID_ANY, "Add input API", position, wxDefaultSize, wxCAPTION), m_controllers(controllers)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
