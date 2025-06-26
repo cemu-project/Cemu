@@ -179,7 +179,7 @@ namespace LatteDecompiler
 	{
 		auto* src = shaderContext->shaderSource;
 
-		src->add("struct Out {" _CRLF);
+		src->add("struct VertexOut {" _CRLF);
 		src->add("float4 position [[position]] [[invariant]];" _CRLF);
 		if (shaderContext->analyzer.outputPointSize)
 		    src->add("float pointSize [[point_size]];" _CRLF);
@@ -239,7 +239,7 @@ namespace LatteDecompiler
 		if (isRectVertexShader)
 		{
 		    src->add("struct ObjectPayload {" _CRLF);
-            src->add("Out vertexOut[VERTICES_PER_VERTEX_PRIMITIVE];" _CRLF);
+            src->add("VertexOut vertexOut[VERTICES_PER_VERTEX_PRIMITIVE];" _CRLF);
             src->add("};" _CRLF _CRLF);
 		}
 	}
@@ -282,7 +282,7 @@ namespace LatteDecompiler
 		{
 		    _emitPSInputs(decompilerContext);
 
-			src->add("struct Out {" _CRLF);
+			src->add("struct FragmentOut {" _CRLF);
 
             // generate pixel outputs for pixel shader
             for (uint32 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
@@ -306,14 +306,14 @@ namespace LatteDecompiler
 
 		if (!usesGeometryShader || isRectVertexShader)
 		{
-    		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
+    		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->contextRegistersNew->IsRasterizationEnabled())
     			_emitVSOutputs(decompilerContext, isRectVertexShader);
 		}
 		else
 		{
             if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
     		{
-                src->add("struct Out {" _CRLF);
+                src->add("struct VertexOut {" _CRLF);
     			uint32 ringParameterCountVS2GS = 0;
     			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
     			{
@@ -327,7 +327,7 @@ namespace LatteDecompiler
     				src->addFmt("int4 passParameterSem{};" _CRLF, f);
     			src->add("};" _CRLF _CRLF);
                 src->add("struct ObjectPayload {" _CRLF);
-                src->add("Out vertexOut[VERTICES_PER_VERTEX_PRIMITIVE];" _CRLF);
+                src->add("VertexOut vertexOut[VERTICES_PER_VERTEX_PRIMITIVE];" _CRLF);
                 src->add("};" _CRLF _CRLF);
     		}
     		if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -339,7 +339,7 @@ namespace LatteDecompiler
     			if (((decompilerContext->contextRegisters[mmSQ_GSVS_RING_ITEMSIZE] & 0x7FFF) & 0xF) != 0)
     				debugBreakpoint();
 
-                src->add("struct Out {" _CRLF);
+                src->add("struct GeometryOut {" _CRLF);
                 src->add("float4 position [[position]];" _CRLF);
     			for (sint32 p = 0; p < decompilerContext->parsedGSCopyShader->numParam; p++)
     			{
@@ -352,7 +352,7 @@ namespace LatteDecompiler
                 const uint32 MAX_VERTEX_COUNT = 32;
 
                 // Define the mesh shader output type
-                src->addFmt("using MeshType = mesh<Out, void, {}, GET_PRIMITIVE_COUNT({}), topology::MTL_PRIMITIVE_TYPE>;" _CRLF, MAX_VERTEX_COUNT, MAX_VERTEX_COUNT);
+                src->addFmt("using MeshType = mesh<GeometryOut, void, {}, GET_PRIMITIVE_COUNT({}), topology::MTL_PRIMITIVE_TYPE>;" _CRLF, MAX_VERTEX_COUNT, MAX_VERTEX_COUNT);
     		}
 		}
 	}
