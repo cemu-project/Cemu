@@ -825,7 +825,7 @@ void GraphicPack2::AddConstantsForCurrentPreset(ExpressionParser& ep)
 	}
 }
 
-void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC)
+void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC, const char* virtualMountBase)
 {
 	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
 	uint64 aocTitleId = (currentTitleId & 0xFFFFFFFFull) | 0x0005000c00000000ull;
@@ -840,7 +840,7 @@ void GraphicPack2::_iterateReplacedFiles(const fs::path& currentPath, bool isAOC
 			}
 			else
 			{
-				virtualMountPath = fs::path("vol/content/") / virtualMountPath;
+				virtualMountPath = fs::path(virtualMountBase) / virtualMountPath;
 			}
 			fscDeviceRedirect_add(virtualMountPath.generic_string(), it.file_size(), it.path().generic_string(), m_fs_priority);
 		}
@@ -865,7 +865,7 @@ void GraphicPack2::LoadReplacedFiles()
 	{
 		// setup redirections
 		fscDeviceRedirect_map();
-		_iterateReplacedFiles(contentPath, false);
+		_iterateReplacedFiles(contentPath, false, "vol/content/");
 	}
 	// /aoc/
 	fs::path aocPath(gfxPackPath);
@@ -878,7 +878,18 @@ void GraphicPack2::LoadReplacedFiles()
 		aocTitleId |= 0x0005000c00000000ULL;
 		// setup redirections
 		fscDeviceRedirect_map();
-		_iterateReplacedFiles(aocPath, true);
+		_iterateReplacedFiles(aocPath, true, nullptr);
+	}
+	
+	// /code/
+	fs::path codePath(gfxPackPath);
+	codePath.append("code");
+	
+	if (fs::exists(codePath, ec))
+	{
+	    // setup redirections
+		fscDeviceRedirect_map();
+		_iterateReplacedFiles(codePath, false, CafeSystem::GetInternalVirtualCodeFolder().c_str());
 	}
 }
 

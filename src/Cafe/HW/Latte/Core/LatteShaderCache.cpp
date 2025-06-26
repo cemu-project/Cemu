@@ -213,7 +213,7 @@ class BootSoundPlayer
 
 		try
 		{
-			bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(true, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
+			bootSndAudioDev = IAudioAPI::CreateDeviceFromConfig(IAudioAPI::AudioType::TV, sampleRate, nChannels, samplesPerBlock, bitsPerSample);
 			if(!bootSndAudioDev)
 				return;
 		}

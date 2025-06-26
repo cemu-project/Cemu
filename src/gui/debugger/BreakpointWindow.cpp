@@ -230,8 +230,8 @@ void BreakpointWindow::OnRightDown(wxMouseEvent& event)
 	}
 	else
 	{
-		m_breakpoints->SetItemState(index, wxLIST_STATE_FOCUSED, wxLIST_STATE_FOCUSED);
-		m_breakpoints->SetItemState(index, wxLIST_STATE_SELECTED, wxLIST_STATE_SELECTED);
+		m_breakpoints->Focus(index);
+		m_breakpoints->Select(index);
 
 		wxMenu menu;
 		menu.Append(MENU_ID_DELETE_BP, _("Delete breakpoint"));
@@ -245,8 +245,8 @@ void BreakpointWindow::OnContextMenuClickSelected(wxCommandEvent& evt)
 {
 	if (evt.GetId() == MENU_ID_DELETE_BP)
 	{
-		long sel = m_breakpoints->GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
-		if (sel != -1)
+		long sel = m_breakpoints->GetFirstSelected();
+		if (sel != wxNOT_FOUND)
 		{
 			if (sel >= debuggerState.breakpoints.size())
 				return;

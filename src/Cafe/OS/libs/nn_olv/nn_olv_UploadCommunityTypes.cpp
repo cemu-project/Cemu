@@ -250,7 +250,8 @@ namespace nn
 
 				if (name.size() != 0)
 				{
-					auto name_utf16 = StringHelpers::FromUtf8(name).substr(0, 128);
+					auto name_utf16 = StringHelpers::FromUtf8(name);
+					name_utf16.resize(std::min<size_t>(name_utf16.size(), 128));
 					if (name_utf16.size() != 0)
 					{
 						for (int i = 0; i < name_utf16.size(); i++)
@@ -265,7 +266,8 @@ namespace nn
 
 				if (description.size() != 0)
 				{
-					auto description_utf16 = StringHelpers::FromUtf8(description).substr(0, 256);
+					auto description_utf16 = StringHelpers::FromUtf8(description);
+					description_utf16.resize(std::min<size_t>(description_utf16.size(), 256));
 					if (description_utf16.size() != 0)
 					{
 						for (int i = 0; i < description_utf16.size(); i++)

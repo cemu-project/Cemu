@@ -126,7 +126,7 @@ void ModuleWindow::OnGameLoaded()
 void ModuleWindow::OnLeftDClick(wxMouseEvent& event)
 {
 	long selected = m_modules->GetFirstSelected();
-	if (selected == -1)
+	if (selected == wxNOT_FOUND)
 		return;
 	const auto text = m_modules->GetItemText(selected, ColumnAddress);
 	const auto address = std::stoul(text.ToStdString(), nullptr, 16);

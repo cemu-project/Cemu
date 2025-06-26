@@ -15,9 +15,6 @@ DirectInputController::DirectInputController(const GUID& guid, std::string_view 
 
 DirectInputController::~DirectInputController()
 {
-	if (m_effect)
-		m_effect->Release();
-	
 	if (m_device)
 	{
 		m_device->Unacquire();
@@ -39,8 +36,8 @@ DirectInputController::~DirectInputController()
 		if (kGameCubeController == m_product_guid)
 			should_release_device = false;
 
-		if (should_release_device)
-			m_device->Release();
+		if (!should_release_device)
+			m_device.Detach();
 	}
 }
 
@@ -104,7 +101,6 @@ bool DirectInputController::connect()
 	// set data format
 	if (FAILED(m_device->SetDataFormat(m_provider->get_data_format())))
 	{
-		SAFE_RELEASE(m_device);
 		return false;
 	}
 
@@ -115,7 +111,6 @@ bool DirectInputController::connect()
 	{
 		if (FAILED(m_device->SetCooperativeLevel(hwndMainWindow, DISCL_BACKGROUND | DISCL_NONEXCLUSIVE)))
 		{
-			SAFE_RELEASE(m_device);
 			return false;
 		}
 		// rumble can only be used with exclusive access

@@ -13,6 +13,8 @@
 
 #define SET_FST_ERROR(__code) 	if (errorCodeOut) *errorCodeOut = ErrorCode::__code
 
+static_assert(sizeof(NCrypto::AesIv) == 16); // make sure IV is actually 16 bytes
+
 class FSTDataSource
 {
 public:
@@ -868,7 +870,7 @@ static_assert(sizeof(FSTHashedBlock) == BLOCK_SIZE);
 struct FSTCachedRawBlock
 {
 	FSTRawBlock blockData;
-	uint8 ivForNextBlock[16];
+	NCrypto::AesIv ivForNextBlock;
 	uint64 lastAccess;
 };
 
@@ -919,13 +921,13 @@ void FSTVolume::TrimCacheIfRequired(FSTCachedRawBlock** droppedRawBlock, FSTCach
 	}
 }
 
-void FSTVolume::DetermineUnhashedBlockIV(uint32 clusterIndex, uint32 blockIndex, uint8 ivOut[16])
+void FSTVolume::DetermineUnhashedBlockIV(uint32 clusterIndex, uint32 blockIndex, NCrypto::AesIv& ivOut)
 {
-	memset(ivOut, 0, sizeof(ivOut));
+	ivOut = {};
 	if(blockIndex == 0)
 	{
-		ivOut[0] = (uint8)(clusterIndex >> 8);
-		ivOut[1] = (uint8)(clusterIndex >> 0);
+		ivOut.iv[0] = (uint8)(clusterIndex >> 8);
+		ivOut.iv[1] = (uint8)(clusterIndex >> 0);
 	}
 	else
 	{
@@ -936,20 +938,20 @@ void FSTVolume::DetermineUnhashedBlockIV(uint32 clusterIndex, uint32 blockIndex,
 		auto itr = m_cacheDecryptedRawBlocks.find(cacheBlockId);
 		if (itr != m_cacheDecryptedRawBlocks.end())
 		{
-			memcpy(ivOut, itr->second->ivForNextBlock, 16);
+			ivOut = itr->second->ivForNextBlock;
 		}
 		else
 		{
-			cemu_assert(m_sectorSize >= 16);
+			cemu_assert(m_sectorSize >= NCrypto::AesIv::SIZE);
 			uint64 clusterOffset = (uint64)m_cluster[clusterIndex].offset * m_sectorSize;
-			uint8 prevIV[16];
-			if (m_dataSource->readData(clusterIndex, clusterOffset, blockIndex * m_sectorSize - 16, prevIV, 16) != 16)
+			NCrypto::AesIv prevIV{};
+			if (m_dataSource->readData(clusterIndex, clusterOffset, blockIndex * m_sectorSize - NCrypto::AesIv::SIZE, prevIV.iv, NCrypto::AesIv::SIZE) != NCrypto::AesIv::SIZE)
 			{
 				cemuLog_log(LogType::Force, "Failed to read IV for raw FST block");
 				m_detectedCorruption = true;
 				return;
 			}
-			memcpy(ivOut, prevIV, 16);
+			ivOut = prevIV;
 		}
 	}
 }
@@ -984,10 +986,10 @@ FSTCachedRawBlock* FSTVolume::GetDecryptedRawBlock(uint32 clusterIndex, uint32 b
 		return nullptr;
 	}
 	// decrypt hash data
-	uint8 iv[16]{};
+	NCrypto::AesIv iv{};
 	DetermineUnhashedBlockIV(clusterIndex, blockIndex, iv);
-	memcpy(block->ivForNextBlock, block->blockData.rawData.data() + m_sectorSize - 16, 16);
-	AES128_CBC_decrypt(block->blockData.rawData.data(), block->blockData.rawData.data(), m_sectorSize, m_partitionTitlekey.b, iv);
+	std::copy(block->blockData.rawData.data() + m_sectorSize - NCrypto::AesIv::SIZE, block->blockData.rawData.data() + m_sectorSize, block->ivForNextBlock.iv);
+	AES128_CBC_decrypt(block->blockData.rawData.data(), block->blockData.rawData.data(), m_sectorSize, m_partitionTitlekey.b, iv.iv);
 	// if this is the next block, then hash it
 	if(cluster.hasContentHash)
 	{

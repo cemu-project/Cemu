@@ -6,6 +6,7 @@
 
 #include <numeric>
 
+#include <wx/listctrl.h>
 #include <wx/wupdlock.h>
 #include <wx/menu.h>
 #include <wx/mstream.h>
@@ -44,6 +45,7 @@
 #include <objidl.h>
 #include <shlguid.h>
 #include <shlobj.h>
+#include <wrl/client.h>
 #endif
 
 // public events
@@ -85,8 +87,58 @@ std::list<fs::path> _getCachesPaths(const TitleId& titleId)
 	return cachePaths;
 }
 
+// Convert PNG to Apple icon image format
+bool writeICNS(const fs::path& pngPath, const fs::path& icnsPath) {
+	// Read PNG file
+	std::ifstream pngFile(pngPath, std::ios::binary);
+	if (!pngFile)
+		return false;
+
+	// Get PNG size
+	pngFile.seekg(0, std::ios::end);
+	uint32 pngSize = static_cast<uint32>(pngFile.tellg());
+	pngFile.seekg(0, std::ios::beg);
+
+	// Calculate total file size (header + size + type + data)
+	uint32 totalSize = 8 + 8 + pngSize;
+
+	// Create output file
+	std::ofstream icnsFile(icnsPath, std::ios::binary);
+	if (!icnsFile)
+		return false;
+
+	// Write ICNS header
+	icnsFile.put(0x69); // 'i'
+	icnsFile.put(0x63); // 'c'
+	icnsFile.put(0x6e); // 'n'
+	icnsFile.put(0x73); // 's'
+
+	// Write total file size (big endian)
+	icnsFile.put((totalSize >> 24) & 0xFF);
+	icnsFile.put((totalSize >> 16) & 0xFF);
+	icnsFile.put((totalSize >> 8) & 0xFF);
+	icnsFile.put(totalSize & 0xFF);
+
+	// Write icon type (ic07 = 128x128 PNG)
+	icnsFile.put(0x69); // 'i'
+	icnsFile.put(0x63); // 'c'
+	icnsFile.put(0x30); // '0'
+	icnsFile.put(0x37); // '7'
+
+	// Write PNG size (big endian)
+	icnsFile.put((pngSize >> 24) & 0xFF);
+	icnsFile.put((pngSize >> 16) & 0xFF);
+	icnsFile.put((pngSize >> 8) & 0xFF);
+	icnsFile.put(pngSize & 0xFF);
+
+	// Copy PNG data
+	icnsFile << pngFile.rdbuf();
+
+	return true;
+}
+
 wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
-	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
+	: wxListView(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
 	const auto& config = GetConfig();
 
@@ -145,6 +197,8 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	// start async worker (for icon loading)
 	m_async_worker_active = true;
 	m_async_worker_thread = std::thread(&wxGameList::AsyncWorkerThread, this);
+
+	ShowSortIndicator(ColumnName);
 }
 
 wxGameList::~wxGameList()
@@ -346,7 +400,7 @@ void wxGameList::SetStyle(Style style, bool save)
 	SetWindowStyleFlag(GetStyleFlags(m_style));
 
 	uint64 selected_title_id = 0;
-	auto selection = GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		selected_title_id = (uint64)GetItemData(selection);
@@ -369,8 +423,8 @@ void wxGameList::SetStyle(Style style, bool save)
 
 	if(selection != wxNOT_FOUND)
 	{
-		SetItemState(selection, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
-		EnsureVisible(selection);
+		Select(selection);
+		Focus(selection);
 	}
 
 	if(save)
@@ -437,44 +491,71 @@ static inline int order_to_int(const std::weak_ordering &wo)
 	return 0;
 }
 
-int wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData)
+std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData)
 {
-	const auto isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
-	const auto isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
-	const auto& name1 = GetNameByTitleId(titleId1);
-	const auto& name2 = GetNameByTitleId(titleId2);
+	auto titleLastPlayed = [](uint64_t id)
+	{
+	  iosu::pdm::GameListStat playTimeStat{};
+	  iosu::pdm::GetStatForGamelist(id, playTimeStat);
+	  return playTimeStat;
+	};
 
-	if(sortData->dir > 0)
-		return order_to_int(std::tie(isFavoriteB, name1) <=> std::tie(isFavoriteA, name2));
-	else
-		return order_to_int(std::tie(isFavoriteB, name2) <=> std::tie(isFavoriteA, name1));
+	auto titlePlayMinutes = [](uint64_t id)
+	{
+	  iosu::pdm::GameListStat playTimeStat;
+	  if (!iosu::pdm::GetStatForGamelist(id, playTimeStat))
+		  return 0u;
+	  return playTimeStat.numMinutesPlayed;
+	};
+
+	auto titleRegion = [](uint64_t id)
+	{
+	  return CafeTitleList::GetGameInfo(id).GetRegion();
+	};
+
+	switch(sortData->column)
+	{
+	default:
+	case ColumnName:
+	{
+		const auto isFavoriteA = GetConfig().IsGameListFavorite(titleId1);
+		const auto isFavoriteB = GetConfig().IsGameListFavorite(titleId2);
+		const auto nameA = GetNameByTitleId(titleId1);
+		const auto nameB = GetNameByTitleId(titleId2);
+		return std::tie(isFavoriteB, nameA) <=> std::tie(isFavoriteA, nameB);
+	}
+	case ColumnGameStarted:
+		return titleLastPlayed(titleId1).last_played <=> titleLastPlayed(titleId2).last_played;
+	case ColumnGameTime:
+		return titlePlayMinutes(titleId1) <=> titlePlayMinutes(titleId2);
+	case ColumnRegion:
+		return titleRegion(titleId1) <=> titleRegion(titleId2);
+	case ColumnTitleID:
+		return titleId1 <=> titleId2;
+	}
+	// unreachable
+	cemu_assert_debug(false);
+	return std::weak_ordering::less;
 }
 
 int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
 {
 	const auto sort_data = (SortData*)sortData;
-	const int dir = sort_data->dir;
-
-	return sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data);
+	return sort_data->dir * order_to_int(sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data));
 }
 
 void wxGameList::SortEntries(int column)
 {
+	bool ascending;
 	if (column == -1)
-		column = s_last_column;
-	else
 	{
-		if (s_last_column == column)
-		{
-			s_last_column = 0;
-			s_direction = -1;
-		}
-		else
-		{
-			s_last_column = column;
-			s_direction = 1;
-		}
+		column = GetSortIndicator();
+		if (column == -1)
+			column = ColumnName;
+		ascending = IsAscendingSortIndicator();
 	}
+	else
+		ascending = GetUpdatedAscendingSortIndicator(column);
 
 	switch (column)
 	{
@@ -482,9 +563,11 @@ void wxGameList::SortEntries(int column)
 	case ColumnGameTime:
 	case ColumnGameStarted:
 	case ColumnRegion:
+	case ColumnTitleID:
 	{
-		SortData data{ this, column, s_direction };
+		SortData data{this, ItemColumns{column}, ascending ? 1 : -1};
 		SortItems(SortFunction, (wxIntPtr)&data);
+		ShowSortIndicator(column, ascending);
 		break;
 	}
 	}
@@ -496,21 +579,20 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 	if (m_style != Style::kList)
 		return;
 
-	const auto keycode = std::tolower(event.m_code);
+	const auto keycode = event.GetKeyCode();
 	if (keycode == WXK_LEFT)
 	{
 		const auto item_count = GetItemCount();
 		if (item_count > 0)
 		{
-			auto selection = (int)GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+			auto selection = (int)GetFirstSelected();
 			if (selection == wxNOT_FOUND)
 				selection = 0;
 			else
 				selection = std::max(0, selection - GetCountPerPage());
 
-			SetItemState(wxNOT_FOUND, 0, wxLIST_STATE_SELECTED);
-			SetItemState(selection, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
-			EnsureVisible(selection);
+			Select(selection);
+			Focus(selection);
 		}
 	}
 	else if (keycode == WXK_RIGHT)
@@ -518,15 +600,14 @@ void wxGameList::OnKeyDown(wxListEvent& event)
 		const auto item_count = GetItemCount();
 		if (item_count > 0)
 		{
-			auto selection = (int)GetNextItem(wxNOT_FOUND, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+			auto selection = (int)GetFirstSelected();
 			if (selection == wxNOT_FOUND)
 				selection = 0;
 
 			selection = std::min(item_count - 1, selection + GetCountPerPage());
 
-			SetItemState(wxNOT_FOUND, 0, wxLIST_STATE_SELECTED);
-			SetItemState(selection, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED, wxLIST_STATE_SELECTED | wxLIST_STATE_FOCUSED);
-			EnsureVisible(selection);
+			Select(selection);
+			Focus(selection);
 		}
 	}
 }
@@ -566,7 +647,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 	wxMenu menu;
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxGameList::OnContextMenuSelected, this);
 
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto title_id = (uint64)GetItemData(selection);
@@ -599,9 +680,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 			menu.Append(kContextMenuEditGameProfile, _("&Edit game profile"));
 
             menu.AppendSeparator();
-#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
             menu.Append(kContextMenuCreateShortcut, _("&Create shortcut"));
-#endif
             menu.AppendSeparator();
             menu.Append(kContextMenuCopyTitleName, _("&Copy Title Name"));
             menu.Append(kContextMenuCopyTitleId, _("&Copy Title ID"));
@@ -727,9 +806,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 			}
             case kContextMenuCreateShortcut:
             {
-#if BOOST_OS_LINUX || BOOST_OS_WINDOWS
                 CreateShortcut(gameInfo);
-#endif
                 break;
             }
             case kContextMenuCopyTitleName:
@@ -1007,7 +1084,7 @@ void wxGameList::OnClose(wxCloseEvent& event)
 
 int wxGameList::FindInsertPosition(TitleId titleId)
 {
-	SortData data{ this, s_last_column, s_direction };
+	SortData data{this, ItemColumns(GetSortIndicator()), IsAscendingSortIndicator()};
 	const auto itemCount = GetItemCount();
 	if (itemCount == 0)
 		return 0;
@@ -1375,6 +1452,135 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 	}
 	outputStream << desktopEntryString;
 }
+#elif BOOST_OS_MACOS
+void wxGameList::CreateShortcut(GameInfo2& gameInfo)
+{
+	const auto titleId = gameInfo.GetBaseTitleId();
+	const auto titleName = wxString::FromUTF8(gameInfo.GetTitleName());
+	auto exePath = ActiveSettings::GetExecutablePath();
+
+	const wxString appName = wxString::Format("%s.app", titleName);
+	wxFileDialog entryDialog(this, _("Choose shortcut location"), "~/Applications", appName,
+							 "Application (*.app)|*.app", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+	const auto result = entryDialog.ShowModal();
+	if (result == wxID_CANCEL)
+		return;
+	const auto output_path = entryDialog.GetPath();
+	// Create .app folder
+	const fs::path appPath = output_path.utf8_string();
+	if (!fs::create_directories(appPath))
+	{
+		cemuLog_log(LogType::Force, "Failed to create app directory");
+		return;
+	}
+	const fs::path infoPath = appPath / "Contents/Info.plist";
+	const fs::path scriptPath = appPath / "Contents/MacOS/run.sh";
+	const fs::path icnsPath = appPath / "Contents/Resources/shortcut.icns";
+	if (!(fs::create_directories(scriptPath.parent_path()) && fs::create_directories(icnsPath.parent_path())))
+	{
+		cemuLog_log(LogType::Force, "Failed to create app shortcut directories");
+		return;
+	}
+
+	std::optional<fs::path> iconPath;
+	// Obtain and convert icon
+	[&]()
+	{
+		int iconIndex, smallIconIndex;
+
+		if (!QueryIconForTitle(titleId, iconIndex, smallIconIndex))
+		{
+			cemuLog_log(LogType::Force, "Icon hasn't loaded");
+			return;
+		}
+		const fs::path outIconDir = fs::temp_directory_path();
+
+		if (!fs::exists(outIconDir) && !fs::create_directories(outIconDir))
+		{
+			cemuLog_log(LogType::Force, "Failed to create icon directory");
+			return;
+		}
+
+		iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
+		wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
+
+		auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
+		wxPNGHandler pngHandler;
+		if (!pngHandler.SaveFile(&image, pngFileStream, false))
+		{
+			iconPath = std::nullopt;
+			cemuLog_log(LogType::Force, "Icon failed to save");
+		}
+	}();
+
+	std::string runCommand = fmt::format("#!/bin/zsh\n\n{0:?} --title-id {1:016x}", _pathToUtf8(exePath), titleId);
+	const std::string infoPlist = fmt::format(
+	"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+	"<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n"
+	"<plist version=\"1.0\">\n"
+	"<dict>\n"
+	"	<key>CFBundleDisplayName</key>\n"
+	"	<string>{0}</string>\n"
+	"	<key>CFBundleExecutable</key>\n"
+	"	<string>run.sh</string>\n"
+	"	<key>CFBundleIconFile</key>\n"
+	"	<string>shortcut.icns</string>\n"
+	"	<key>CFBundleName</key>\n"
+	"	<string>{0}</string>\n"
+	"	<key>CFBundlePackageType</key>\n"
+	"	<string>APPL</string>\n"
+	"	<key>CFBundleSignature</key>\n"
+	"	<string>\?\?\?\?</string>\n"
+	"	<key>LSApplicationCategoryType</key>\n"
+	"	<string>public.app-category.games</string>\n"
+	"	<key>CFBundleShortVersionString</key>\n"
+	"	<string>{1}</string>\n"
+	"	<key>CFBundleVersion</key>\n"
+	"	<string>{1}</string>\n"
+	"</dict>\n"
+	"</plist>\n",
+	gameInfo.GetTitleName(),
+	std::to_string(gameInfo.GetVersion())
+	);
+	// write Info.plist to infoPath
+	std::ofstream infoStream(infoPath);
+	std::ofstream scriptStream(scriptPath);
+	if (!infoStream.good() || !scriptStream.good())
+	{
+		auto errorMsg = formatWxString(_("Failed to save app shortcut to {}"), output_path.utf8_string());
+		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+		return;
+	}
+	infoStream << infoPlist;
+	scriptStream << runCommand;
+	scriptStream.close();
+
+	// Set execute permissions for script
+	fs::permissions(
+		scriptPath,
+		fs::perms::owner_exec | fs::perms::group_exec | fs::perms::others_exec,
+		fs::perm_options::add
+	);
+
+	// Return if iconPath is empty
+	if (!iconPath)
+	{
+		cemuLog_log(LogType::Force, "Icon not found");
+		return;
+	}
+
+	// Convert icon to icns, only works for 128x128 PNG
+	// Alternatively, can run the command "sips -s format icns {iconPath} --out '{icnsPath}'"
+	// using std::system() to handle images of any size
+	if (!writeICNS(*iconPath, icnsPath))
+	{
+		cemuLog_log(LogType::Force, "Failed to convert icon to icns");
+		return;
+	}
+
+	// Remove temp file
+	fs::remove(*iconPath);
+}
 #elif BOOST_OS_WINDOWS
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
@@ -1428,8 +1634,8 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		}
 	}
 
-	IShellLinkW* shellLink;
-	HRESULT hres = CoCreateInstance(CLSID_ShellLink, nullptr, CLSCTX_INPROC_SERVER, IID_IShellLink, reinterpret_cast<LPVOID*>(&shellLink));
+	Microsoft::WRL::ComPtr<IShellLinkW> shellLink;
+	HRESULT hres = CoCreateInstance(__uuidof(ShellLink), nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&shellLink));
 	if (SUCCEEDED(hres))
 	{
 		const auto description = wxString::Format("Play %s on Cemu", titleName);
@@ -1445,15 +1651,13 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		else
 			shellLink->SetIconLocation(exePath.wstring().c_str(), 0);
 
-		IPersistFile* shellLinkFile;
+		Microsoft::WRL::ComPtr<IPersistFile> shellLinkFile;
 		// save the shortcut
-		hres = shellLink->QueryInterface(IID_IPersistFile, reinterpret_cast<LPVOID*>(&shellLinkFile));
+		hres = shellLink.As(&shellLinkFile);
 		if (SUCCEEDED(hres))
 		{
 			hres = shellLinkFile->Save(outputPath.wc_str(), TRUE);
-			shellLinkFile->Release();
 		}
-		shellLink->Release();
 	}
 	if (!SUCCEEDED(hres)) {
 		auto errorMsg = formatWxString(_("Failed to save shortcut to {}"), outputPath);

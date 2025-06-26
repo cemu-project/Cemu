@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-class wxDownloadManagerList : public wxListCtrl
+class wxDownloadManagerList : public wxListView
 {
 	friend class TitleManager;
 public:
@@ -49,7 +49,7 @@ public:
 		// error state?
 	};
 
-	void SortEntries();
+	void SortEntries(int column = -1);
 	void RefreshPage();
 	void Filter(const wxString& filter);
 	void Filter2(bool showTitles, bool showUpdates, bool showInstalled);
@@ -137,9 +137,6 @@ private:
 	using ItemDataPtr = std::unique_ptr<ItemData>;
 	std::vector<ItemDataPtr> m_data;
 	std::vector<std::reference_wrapper<ItemData>> m_sorted_data;
-
-	int m_sort_by_column = ItemColumn::ColumnName;
-	bool m_sort_less = true;
 
 	bool m_filterShowTitles = true;
 	bool m_filterShowUpdates = true;

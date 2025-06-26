@@ -144,6 +144,11 @@ namespace GX2
 
 	void GX2Command_StartNewCommandBuffer(uint32 numU32s)
 	{
+		// On submission command buffers are padded to 32 byte alignment
+		// but nowhere is it guaranteed that internal command buffers have their size aligned to 32 byte (even on console, but testing is required)
+		// Thus the padding can write out of bounds but this seems to trigger only very rarely in partice. As a workaround we always pad the command buffer size to 32 bytes here
+		numU32s = (numU32s + 7) & ~0x7;
+
 		uint32 coreIndex = coreinit::OSGetCoreId();
 		auto& coreCBState = s_perCoreCBState[coreIndex];
 		numU32s = std::max<uint32>(numU32s, 0x100);
