@@ -31,7 +31,7 @@ static void PPCInterpreter_STW(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STWU(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS;
+	sint32 rA, rS;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(Opcode, rS, rA, imm);
 	ppcItpCtrl::ppcMem_writeDataU32(hCPU, hCPU->gpr[rA] + imm, hCPU->gpr[rS]);
@@ -42,7 +42,7 @@ static void PPCInterpreter_STWU(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STWX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU32(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], hCPU->gpr[rS]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -103,7 +103,7 @@ static void PPCInterpreter_STWCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STWUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU32(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], hCPU->gpr[rS]);
 	if (rA)
@@ -113,7 +113,7 @@ static void PPCInterpreter_STWUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STWBRX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU32(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], _swapEndianU32(hCPU->gpr[rS]));
 	PPCInterpreter_nextInstruction(hCPU);
@@ -121,7 +121,7 @@ static void PPCInterpreter_STWBRX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STMW(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rS, rA;
+	sint32 rS, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(Opcode, rS, rA, imm);
 	uint32 ea = (rA ? hCPU->gpr[rA] : 0) + imm;
@@ -136,7 +136,7 @@ static void PPCInterpreter_STMW(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STH(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS;
+	sint32 rA, rS;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(Opcode, rS, rA, imm);
 	ppcItpCtrl::ppcMem_writeDataU16(hCPU, (rA ? hCPU->gpr[rA] : 0) + imm, (uint16)hCPU->gpr[rS]);
@@ -145,7 +145,7 @@ static void PPCInterpreter_STH(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STHU(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS;
+	sint32 rA, rS;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(Opcode, rS, rA, imm);
 	ppcItpCtrl::ppcMem_writeDataU16(hCPU, (rA ? hCPU->gpr[rA] : 0) + imm, (uint16)hCPU->gpr[rS]);
@@ -156,7 +156,7 @@ static void PPCInterpreter_STHU(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STHX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU16(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], (uint16)hCPU->gpr[rS]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -164,7 +164,7 @@ static void PPCInterpreter_STHX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STHUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU16(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], (uint16)hCPU->gpr[rS]);
 	if (rA)
@@ -174,7 +174,7 @@ static void PPCInterpreter_STHUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STHBRX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU16(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], _swapEndianU16((uint16)hCPU->gpr[rS]));
 	PPCInterpreter_nextInstruction(hCPU);
@@ -182,7 +182,7 @@ static void PPCInterpreter_STHBRX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STB(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS;
+	sint32 rA, rS;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(Opcode, rS, rA, imm);
 	ppcItpCtrl::ppcMem_writeDataU8(hCPU, (rA ? hCPU->gpr[rA] : 0) + imm, (uint8)hCPU->gpr[rS]);
@@ -191,7 +191,7 @@ static void PPCInterpreter_STB(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STBU(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS;
+	sint32 rA, rS;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(Opcode, rS, rA, imm);
 	ppcItpCtrl::ppcMem_writeDataU8(hCPU, hCPU->gpr[rA] + imm, (uint8)hCPU->gpr[rS]);
@@ -201,7 +201,7 @@ static void PPCInterpreter_STBU(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STBX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU8(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], (uint8)hCPU->gpr[rS]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -209,7 +209,7 @@ static void PPCInterpreter_STBX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STBUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, rB;
+	sint32 rA, rS, rB;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
 	ppcItpCtrl::ppcMem_writeDataU8(hCPU, (rA ? hCPU->gpr[rA] : 0) + hCPU->gpr[rB], (uint8)hCPU->gpr[rS]);
 	if (rA)
@@ -219,7 +219,7 @@ static void PPCInterpreter_STBUX(PPCInterpreter_t* hCPU, uint32 Opcode)
 
 static void PPCInterpreter_STSWI(PPCInterpreter_t* hCPU, uint32 Opcode)
 {
-	int rA, rS, nb;
+	sint32 rA, rS, nb;
 	PPC_OPC_TEMPL_X(Opcode, rS, rA, nb);
 	if (nb == 0) nb = 32;
 	uint32 ea = rA ? hCPU->gpr[rA] : 0;
@@ -229,7 +229,39 @@ static void PPCInterpreter_STSWI(PPCInterpreter_t* hCPU, uint32 Opcode)
 	{
 		if (i == 0)
 		{
-			r = hCPU->gpr[rS];
+			r = rS < 32 ? hCPU->gpr[rS] : 0; // what happens if rS is out of bounds?
+			rS++;
+			rS %= 32;
+			i = 4;
+		}
+		ppcItpCtrl::ppcMem_writeDataU8(hCPU, ea, (r >> 24));
+		r <<= 8;
+		ea++;
+		i--;
+		nb--;
+	}
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
+static void PPCInterpreter_STSWX(PPCInterpreter_t* hCPU, uint32 Opcode)
+{
+	sint32 rA, rS, rB;
+	PPC_OPC_TEMPL_X(Opcode, rS, rA, rB);
+	sint32 nb = hCPU->spr.XER&0x7F;
+	if (nb == 0)
+	{
+		PPCInterpreter_nextInstruction(hCPU);
+		return;
+	}
+	uint32 ea = rA ? hCPU->gpr[rA] : 0;
+	ea += hCPU->gpr[rB];
+	uint32 r = 0;
+	int i = 0;
+	while (nb > 0)
+	{
+		if (i == 0)
+		{
+			r = rS < 32 ? hCPU->gpr[rS] : 0; // what happens if rS is out of bounds?
 			rS++;
 			rS %= 32;
 			i = 4;
@@ -460,7 +492,6 @@ static void PPCInterpreter_LSWI(PPCInterpreter_t* hCPU, uint32 Opcode)
 	PPC_OPC_TEMPL_X(Opcode, rD, rA, nb);
 	if (nb == 0)
 		nb = 32;
-
 	uint32 ea = rA ? hCPU->gpr[rA] : 0;
 	uint32 r = 0;
 	int i = 4;
@@ -470,7 +501,8 @@ static void PPCInterpreter_LSWI(PPCInterpreter_t* hCPU, uint32 Opcode)
 		if (i == 0)
 		{
 			i = 4;
-			hCPU->gpr[rD] = r;
+			if(rD < 32)
+				hCPU->gpr[rD] = r;
 			rD++;
 			rD %= 32;
 			r = 0;
@@ -487,7 +519,52 @@ static void PPCInterpreter_LSWI(PPCInterpreter_t* hCPU, uint32 Opcode)
 		r <<= 8;
 		i--;
 	}
-	hCPU->gpr[rD] = r;
+	if(rD < 32)
+		hCPU->gpr[rD] = r;
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
+static void PPCInterpreter_LSWX(PPCInterpreter_t* hCPU, uint32 Opcode)
+{
+	sint32 rA, rD, rB;
+	PPC_OPC_TEMPL_X(Opcode, rD, rA, rB);
+	// byte count comes from XER
+	uint32 nb = (hCPU->spr.XER>>0)&0x7F;
+	if (nb == 0)
+	{
+		PPCInterpreter_nextInstruction(hCPU);
+		return; // no-op
+	}
+	uint32 ea = rA ? hCPU->gpr[rA] : 0;
+	ea += hCPU->gpr[rB];
+	uint32 r = 0;
+	int i = 4;
+	uint8 v;
+	while (nb>0)
+	{
+		if (i == 0)
+		{
+			i = 4;
+			if(rD < 32)
+				hCPU->gpr[rD] = r;
+			rD++;
+			rD %= 32;
+			r = 0;
+		}
+		v = ppcItpCtrl::ppcMem_readDataU8(hCPU, ea);
+		r <<= 8;
+		r |= v;
+		ea++;
+		i--;
+		nb--;
+	}
+	while (i)
+	{
+		r <<= 8;
+		i--;
+	}
+	if(rD < 32)
+		hCPU->gpr[rD] = r;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
