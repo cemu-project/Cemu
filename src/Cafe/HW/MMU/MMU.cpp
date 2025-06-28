@@ -500,7 +500,7 @@ namespace MMU
 
 	// todo - instead of passing the physical address to Read/WriteMMIO we should pass an interface id and a relative address? This would allow remapping the hardware address (tho we can just unregister + register at different addresses)
 
-	uint16 ReadMMIO_32(PAddr address)
+	uint32 ReadMMIO_32(PAddr address)
 	{
 		cemu_assert_debug((address & 0x3) == 0);
 		auto itr = g_mmioHandlerR32->find(address);

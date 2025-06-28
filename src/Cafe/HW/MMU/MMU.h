@@ -261,7 +261,7 @@ namespace MMU
 
 	void WriteMMIO_32(PAddr address, uint32 value);
 	void WriteMMIO_16(PAddr address, uint16 value);
-	uint16 ReadMMIO_32(PAddr address);
+	uint32 ReadMMIO_32(PAddr address);
 	uint16 ReadMMIO_16(PAddr address);
 
 }
