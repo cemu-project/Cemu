@@ -5,6 +5,7 @@
 #include <wx/statbox.h>
 #include <wx/msgdlg.h>
 #include <wx/radiobox.h>
+#include <wx/button.h>
 
 #include "config/ActiveSettings.h"
 #include "gui/CemuApp.h"
