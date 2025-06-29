@@ -182,14 +182,14 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	if (checkGraphicPackDownloadedVersion(assetName, hasVersionFile))
 	{
 		// already up to date
-		wxMessageBox(_("No updates available."), _("Graphic packs"), wxOK | wxCENTRE, this->GetParent());
+		wxMessageBox(_("No updates available."), _("Graphic packs"), wxOK | wxCENTRE, this);
 		m_threadState = ThreadFinished;
 		return;
 	}
 	if (hasVersionFile)
 	{
 		// if a version file already exists (and graphic packs are installed) ask the user if he really wants to update
-		if (wxMessageBox(_("Updated graphic packs are available. Do you want to download and install them?"), _("Graphic packs"), wxYES_NO, this->GetParent()) != wxYES)
+		if (wxMessageBox(_("Updated graphic packs are available. Do you want to download and install them?"), _("Graphic packs"), wxYES_NO, this) != wxYES)
 		{
 			// cancel update
 			m_threadState = ThreadFinished;
@@ -336,7 +336,7 @@ int DownloadGraphicPacksWindow::ShowModal()
 {
 	if(CafeSystem::IsTitleRunning())
 	{
-		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this->GetParent());
+		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this);
 		return wxID_CANCEL;
 	}
 	m_thread = std::thread(&DownloadGraphicPacksWindow::UpdateThread, this);
