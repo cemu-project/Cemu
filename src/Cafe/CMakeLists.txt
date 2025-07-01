@@ -552,7 +552,7 @@ target_include_directories(CemuCafe PUBLIC "../")
 if (glslang_VERSION VERSION_LESS "15.0.0")
 	set(glslang_target "glslang::SPIRV")
 else()
-	set(glslang_target "glslang")
+	set(glslang_target "glslang::glslang")
 endif()
 
 target_link_libraries(CemuCafe PRIVATE
