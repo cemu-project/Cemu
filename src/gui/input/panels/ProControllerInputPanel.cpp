@@ -9,10 +9,10 @@
 #include "gui/helpers/wxHelpers.h"
 #include "gui/components/wxInputDraw.h"
 
-const ProController::ButtonId g_kFirstColumnItems[] = { ProController::kButtonId_A, ProController::kButtonId_B, ProController::kButtonId_X, ProController::kButtonId_Y, ProController::kButtonId_L, ProController::kButtonId_R, ProController::kButtonId_ZL, ProController::kButtonId_ZR, ProController::kButtonId_Plus, ProController::kButtonId_Minus };
-const ProController::ButtonId g_kSecondColumnItems[] = { ProController::kButtonId_StickL, ProController::kButtonId_StickL_Up, ProController::kButtonId_StickL_Down, ProController::kButtonId_StickL_Left, ProController::kButtonId_StickL_Right };
-const ProController::ButtonId g_kThirdColumnItems[] = { ProController::kButtonId_StickR, ProController::kButtonId_StickR_Up, ProController::kButtonId_StickR_Down, ProController::kButtonId_StickR_Left, ProController::kButtonId_StickR_Right };
-const ProController::ButtonId g_kFourthRowItems[] = { ProController::kButtonId_Up, ProController::kButtonId_Down, ProController::kButtonId_Left, ProController::kButtonId_Right };
+constexpr ProController::ButtonId g_kFirstColumnItems[] = { ProController::kButtonId_A, ProController::kButtonId_B, ProController::kButtonId_X, ProController::kButtonId_Y, ProController::kButtonId_L, ProController::kButtonId_R, ProController::kButtonId_ZL, ProController::kButtonId_ZR, ProController::kButtonId_Plus, ProController::kButtonId_Minus };
+constexpr ProController::ButtonId g_kSecondColumnItems[] = { ProController::kButtonId_StickL, ProController::kButtonId_StickL_Up, ProController::kButtonId_StickL_Down, ProController::kButtonId_StickL_Left, ProController::kButtonId_StickL_Right };
+constexpr ProController::ButtonId g_kThirdColumnItems[] = { ProController::kButtonId_StickR, ProController::kButtonId_StickR_Up, ProController::kButtonId_StickR_Down, ProController::kButtonId_StickR_Left, ProController::kButtonId_StickR_Right };
+constexpr ProController::ButtonId g_kFourthRowItems[] = { ProController::kButtonId_Up, ProController::kButtonId_Down, ProController::kButtonId_Left, ProController::kButtonId_Right };
 
 
 ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)

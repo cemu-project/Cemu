@@ -961,7 +961,7 @@ sint32 h264GetUnitLength(h264ParserState_t* h264ParserState, uint8* data, uint32
 	return -1;
 }
 
-static const unsigned char h264_default_4x4_Intra[16] =
+static constexpr unsigned char h264_default_4x4_Intra[16] =
 {
 	6, 13, 13, 20,
 	20, 20, 28, 28,
@@ -969,7 +969,7 @@ static const unsigned char h264_default_4x4_Intra[16] =
 	32, 37, 37, 42
 };
 
-static const unsigned char h264_default_4x4_Inter[16] =
+static constexpr unsigned char h264_default_4x4_Inter[16] =
 {
 	10, 14, 14, 20,
 	20, 20, 24, 24,
@@ -977,7 +977,7 @@ static const unsigned char h264_default_4x4_Inter[16] =
 	27, 30, 30, 34
 };
 
-static const unsigned char h264_default_8x8_Intra[64] =
+static constexpr unsigned char h264_default_8x8_Intra[64] =
 {
 	6, 10, 10, 13, 11, 13, 16, 16,
 	16, 16, 18, 18, 18, 18, 18, 23,
@@ -989,7 +989,7 @@ static const unsigned char h264_default_8x8_Intra[64] =
 	36, 36, 38, 38, 38, 40, 40, 42
 };
 
-static const unsigned char h264_default_8x8_Inter[64] =
+static constexpr unsigned char h264_default_8x8_Inter[64] =
 {
 	9, 13, 13, 15, 13, 15, 17, 17,
 	17, 17, 19, 19, 19, 19, 19, 21,
