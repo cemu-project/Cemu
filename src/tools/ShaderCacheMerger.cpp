@@ -106,6 +106,8 @@ void MergeShaderAndPipelineCacheFiles()
 		auto filename = it.path().filename().generic_string();
 		if (std::regex_match(filename, std::regex("^[0-9a-fA-F]{16}(?:_shaders.bin)")))
 			MergeShaderCacheFile(filename);
+		if (std::regex_match(filename, std::regex("^[0-9a-fA-F]{16}(?:_mtlshaders.bin)")))
+			MergeShaderCacheFile(filename);
 	}
 	printf("\nScanning for pipeline cache files to merge...\n");
 	for (const auto& it : fs::directory_iterator("shaderCache/transferable/"))
@@ -114,6 +116,8 @@ void MergeShaderAndPipelineCacheFiles()
 			continue;
 		auto filename = it.path().filename().generic_string();
 		if (std::regex_match(filename, std::regex("^[0-9a-fA-F]{16}(?:_vkpipeline.bin)")))
+			MergePipelineCacheFile(filename);
+		if (std::regex_match(filename, std::regex("^[0-9a-fA-F]{16}(?:_mtlpipeline.bin)")))
 			MergePipelineCacheFile(filename);
 	}
 }

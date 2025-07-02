@@ -10,7 +10,7 @@
 #include <arm_neon.h>
 #endif
 
-struct  
+struct
 {
 	struct CacheEntry
 	{
@@ -102,6 +102,21 @@ uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, L
 	else if (primitiveMode == LattePrimitiveMode::LINE_LOOP)
 	{
 		count++; // one extra vertex to reconnect the LINE_STRIP to the beginning
+		if (indexType == LatteIndexType::AUTO)
+		{
+			if (count <= 0xFFFF)
+				return count * sizeof(uint16);
+			return count * sizeof(uint32);
+		}
+		if (indexType == LatteIndexType::U16_BE || indexType == LatteIndexType::U16_LE)
+			return count * sizeof(uint16);
+		if (indexType == LatteIndexType::U32_BE || indexType == LatteIndexType::U32_LE)
+			return count * sizeof(uint32);
+		cemu_assert_suspicious();
+		return 0;
+	}
+	else if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN && g_renderer->GetType() == RendererAPI::Metal)
+	{
 		if (indexType == LatteIndexType::AUTO)
 		{
 			if (count <= 0xFFFF)
@@ -308,6 +323,44 @@ void LatteIndices_generateAutoLineLoopIndices(void* indexDataOutput, uint32 coun
 	indexMax = std::max(count, 1u) - 1;
 }
 
+template<typename T>
+void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+{
+	const betype<T>* src = (betype<T>*)indexDataInput;
+	T* dst = (T*)indexDataOutput;
+	// TODO: check this
+	for (sint32 i = 0; i < count; i++)
+	{
+	    uint32 i0;
+		if (i % 2 == 0)
+		    i0 = i / 2;
+        else
+            i0 = count - 1 - i / 2;
+        T idx = src[i0];
+		indexMin = std::min(indexMin, (uint32)idx);
+		indexMax = std::max(indexMax, (uint32)idx);
+		dst[i] = idx;
+	}
+}
+
+template<typename T>
+void LatteIndices_generateAutoTriangleFanIndices(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
+{
+	const betype<T>* src = (betype<T>*)indexDataInput;
+	T* dst = (T*)indexDataOutput;
+	for (sint32 i = 0; i < count; i++)
+	{
+		T idx = i;
+		if (idx % 2 == 0)
+            idx = idx / 2;
+        else
+            idx = count - 1 - idx / 2;
+		dst[i] = idx;
+	}
+	indexMin = 0;
+	indexMax = std::max(count, 1u) - 1;
+}
+
 #if defined(ARCH_X86_64)
 ATTRIBUTE_AVX2
 void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
@@ -319,7 +372,7 @@ void LatteIndices_fastConvertU16_AVX2(const void* indexDataInput, void* indexDat
 	sint32 countRemaining = count & 15;
 	if (count16)
 	{
-		__m256i mMin = _mm256_set_epi16((sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, 
+		__m256i mMin = _mm256_set_epi16((sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF,
 						           		(sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF, (sint16)0xFFFF);
 		__m256i mMax = _mm256_set_epi16(0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000, 0x0000);
 		__m256i mShuffle16Swap = _mm256_set_epi8(30, 31, 28, 29, 26, 27, 24, 25, 22, 23, 20, 21, 18, 19, 16, 17, 14, 15, 12, 13, 10, 11, 8, 9, 6, 7, 4, 5, 2, 3, 0, 1);
@@ -793,6 +846,29 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
 		else
 			cemu_assert_debug(false);
 		outputCount = count + 1;
+	}
+	else if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN && g_renderer->GetType() == RendererAPI::Metal)
+	{
+        if (indexType == LatteIndexType::AUTO)
+    	{
+    		if (count <= 0xFFFF)
+    		{
+    			LatteIndices_generateAutoTriangleFanIndices<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+    			renderIndexType = Renderer::INDEX_TYPE::U16;
+    		}
+    		else
+    		{
+    			LatteIndices_generateAutoTriangleFanIndices<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+    			renderIndexType = Renderer::INDEX_TYPE::U32;
+    		}
+    	}
+    	else if (indexType == LatteIndexType::U16_BE)
+    		LatteIndices_unpackTriangleFanAndConvert<uint16>(indexData, indexOutputPtr, count, indexMin, indexMax);
+    	else if (indexType == LatteIndexType::U32_BE)
+    		LatteIndices_unpackTriangleFanAndConvert<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
+    	else
+    		cemu_assert_debug(false);
+    	outputCount = count;
 	}
 	else
 	{
