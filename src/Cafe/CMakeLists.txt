@@ -557,6 +557,7 @@ endif()
 
 target_link_libraries(CemuCafe PRIVATE
 	CemuAudio
+    CemuCamera
 	CemuCommon
 	CemuComponents
 	CemuConfig
