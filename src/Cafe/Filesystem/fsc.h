@@ -89,11 +89,19 @@ public:
 
 struct FSCVirtualFile
 {
+	enum class Child : uint32
+	{
+		DIRECTORY_ITERATOR, HOST, WUACTX, WUDCTX, NONE
+	};
+
 	struct FSCDirIteratorState
 	{
 		sint32 index;
 		std::vector<FSCDirEntry> dirEntries;
 	};
+
+	virtual void Save(MemStreamWriter& writer);
+	static FSCVirtualFile* Restore(MemStreamReader& reader);
 
 	FSCVirtualFile()
 	{

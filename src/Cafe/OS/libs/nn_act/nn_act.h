@@ -33,4 +33,7 @@ namespace act
 }
 }
 
+void nnAct_save(MemStreamWriter& s);
+void nnAct_restore(MemStreamReader& s);
+
 void nnAct_load();

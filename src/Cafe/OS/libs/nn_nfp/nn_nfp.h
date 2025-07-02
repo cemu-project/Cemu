@@ -4,6 +4,9 @@ namespace nn::nfp
 {
 	uint32 NFCGetTagInfo(uint32 index, uint32 timeout, MPTR functionPtr, void* userParam);
 
+	void save(MemStreamWriter& s);
+	void restore(MemStreamReader& s);
+
 	void load();
 }
 

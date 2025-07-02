@@ -412,6 +412,57 @@ void memory_createDump()
 	}
 }
 
+template<>
+void MemStreamWriter::write(const MMURange& v)
+{
+	writeBool(v.m_isMapped);
+	write(v.baseAddress);
+	write((uint8)v.areaId);
+	write((uint8)v.flags);
+	write(v.name);
+	write(v.size);
+	write(v.initSize);
+}
+
+template <>
+void MemStreamReader::read(MMURange& v)
+{
+	bool needsMapped = readBool();
+	v.m_isMapped = false;
+	read(v.baseAddress);
+	v.areaId = (MMU_MEM_AREA_ID)read<uint8>();
+	v.flags = (MMURange::MFLAG)read<uint8>();
+	read(v.name);
+	read(v.size);
+	read(v.initSize);
+	if (needsMapped)
+		v.mapMem();
+}
+
+void memory_Serialize(MemStreamWriter& s)
+{
+	for (auto& itr : g_mmuRanges)
+	{
+		s.write(*itr);
+		if (itr->isMapped())
+		{
+			s.writeData(memory_base + itr->getBase(), itr->getSize());
+		}
+	}
+}
+
+void memory_Deserialize(MemStreamReader& s)
+{
+	for (auto& itr : g_mmuRanges)
+	{
+		s.read(*itr);
+		if (itr->isMapped())
+		{
+			s.readData(memory_base + itr->getBase(), itr->getSize());
+		}
+	}
+}
+
 namespace MMU
 {
 	// MMIO access handler

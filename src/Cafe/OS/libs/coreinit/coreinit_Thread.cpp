@@ -14,6 +14,7 @@
 #include "util/Fiber/Fiber.h"
 
 #include "util/helpers/helpers.h"
+#include "Common/FileStream.h"
 
 SlimRWLock srwlock_activeThreadList;
 
@@ -1561,6 +1562,133 @@ namespace coreinit
 			void* stackBase = coreinit::OSGetDefaultThreadStack(i, stackSize);
 			coreinit::OSCreateThreadType(coreDefaultThread, MPTR_NULL, 0, nullptr, (uint8*)stackBase + stackSize, stackSize, 16, 1 << i, OSThread_t::THREAD_TYPE::TYPE_APP);
 			coreinit::OSSetThreadName(coreDefaultThread, _defaultThreadName[i].GetPtr());
+		}
+	}
+
+	void DumpActiveThreads(std::string v)
+	{
+		for (auto& thr : activeThread)
+		{
+			if (thr != MPTR_NULL)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+				MemStreamWriter writer(0);
+				writer.writeData(ptr, sizeof(OSThread_t));
+				FileStream* stream = FileStream::createFile(std::to_string(thr) + "_" + v + ".bin");
+				stream->writeData(writer.getResult().data(), writer.getResult().size_bytes());
+				delete stream;
+			}
+		}
+	}
+
+	void Thread_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_Thread");
+
+		s.writeAtomic(sSchedulerActive);
+		s.writeMPTR(g_activeThreadQueue);
+		s.writeMPTR(g_coreRunQueue);
+
+		s.write(activeThreadCount);
+		for (sint32 i = 0; i < activeThreadCount; i++)
+		{
+			s.write(activeThread[i]);
+			auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(activeThread[i]);
+			//s.write((uint8)ptr->state.value());
+		}
+		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
+		{
+			s.writePTR(__currentCoreThread[i]);
+			s.write(s_lehmer_lcg[i]);
+			s.writeMPTR(s_terminatorThreads[i].terminatorThread);
+			s.writeMPTR(s_terminatorThreads[i].threadStack);
+			s.writeMPTR(s_terminatorThreads[i].threadName);
+			s.writeMPTR(s_terminatorThreads[i].semaphoreQueuedDeallocators);
+			s.writeMPTR(_defaultThreadName[i]);
+		}
+		s.writeMPTR(s_defaultThreads);
+		s.writeMPTR(s_stack);
+
+		DumpActiveThreads("save");
+	}
+
+	void Thread_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_Thread");
+
+		s.readAtomic(sSchedulerActive);
+		s.readMPTR(g_activeThreadQueue);
+		s.readMPTR(g_coreRunQueue);
+
+		bool recreate = false;
+
+		sint32 prevActiveThreadCount = s.read<sint32>();
+		for (sint32 i = 0; i < prevActiveThreadCount; i++)
+		{
+			MPTR threadMPTR = s.read<MPTR>();
+			if (recreate)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(threadMPTR);
+                
+				__OSLockScheduler();
+				__OSActivateThread(ptr);
+				__OSUnlockScheduler();
+				//ptr->state = betype((OSThread_t::THREAD_STATE)s.read<uint8>());
+			}
+			else
+			{
+				activeThreadCount = prevActiveThreadCount;
+				activeThread[i] = threadMPTR;
+			}
+		}
+		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
+		{
+			s.readPTR(__currentCoreThread[i]);
+			s.read(s_lehmer_lcg[i]);
+			s.readMPTR(s_terminatorThreads[i].terminatorThread);
+			s.readMPTR(s_terminatorThreads[i].threadStack);
+			s.readMPTR(s_terminatorThreads[i].threadName);
+			s.readMPTR(s_terminatorThreads[i].semaphoreQueuedDeallocators);
+			s.readMPTR(_defaultThreadName[i]);
+		}
+		s.readMPTR(s_defaultThreads);
+		s.readMPTR(s_stack);
+
+		DumpActiveThreads("restore");
+	}
+
+	void SuspendActiveThreads()
+	{
+
+		for (auto& thr : activeThread)
+		{
+			if (thr != MPTR_NULL)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+				cemuLog_log(LogType::SaveStates, "Before State: {}", ptr->state.value());
+				cemuLog_log(LogType::SaveStates, "Before SusCnt: {}", ptr->suspendCounter);
+				OSSuspendThread(ptr);
+				cemuLog_log(LogType::SaveStates, "After State: {}", ptr->state.value());
+				cemuLog_log(LogType::SaveStates, "After SusCnt: {}", ptr->suspendCounter);
+			}
+		}
+	}
+
+	void ResumeActiveThreads()
+	{
+		for (auto& thr : activeThread)
+		{
+			if (thr != MPTR_NULL)
+			{
+				auto* ptr = (OSThread_t*)memory_getPointerFromVirtualOffset(thr);
+				if (s_threadToFiber.find(ptr) == s_threadToFiber.end())
+				{
+					__OSLockScheduler();
+					__OSCreateHostThread(ptr);
+					__OSUnlockScheduler();
+				}
+				OSResumeThread(ptr);
+			}
 		}
 	}
 

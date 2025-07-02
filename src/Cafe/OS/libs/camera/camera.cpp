@@ -242,6 +242,29 @@ namespace camera
 		g_cameraCounter = 0;
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("camera");
+
+		s.writePODVector(g_table_cameraHandles);
+		s.writePODVector(g_activeCameraInstances);
+		s.writeAtomic(g_cameraCounter);
+		s.writeMPTR(g_alarm_camera);
+		s.writeMPTR(g_cameraHandlerParam);
+	}
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("camera");
+
+		std::unique_lock<std::recursive_mutex> _lock(g_mutex_camera);
+
+		s.readPODVector(g_table_cameraHandles);
+		s.readPODVector(g_activeCameraInstances);
+		s.readAtomic(g_cameraCounter);
+		s.readMPTR(g_alarm_camera);
+		s.readMPTR(g_cameraHandlerParam);
+	}
+
 	void load()
 	{
 		reset();
@@ -254,4 +277,3 @@ namespace camera
 		cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::Placeholder);
 	}
 }
-
