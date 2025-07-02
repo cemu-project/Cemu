@@ -1,7 +1,7 @@
 {
   "name": "cemu",
   "version-string": "1.0",
-  "builtin-baseline": "a4275b7eee79fb24ec2e135481ef5fce8b41c339",
+  "builtin-baseline": "f0fb3ddba5135b80982668de39dbaa139c00d281",
   "dependencies": [
     "pugixml",
     "zlib",
@@ -34,15 +34,14 @@
       "default-features": false
     },
     "zstd",
-    {
-      "name": "wxwidgets",
-      "default-features": false
-    },
+    "wxwidgets",
     "openssl",
     {
       "name": "curl",
       "default-features": false,
-      "features": [ "openssl" ]
+      "features": [
+        "openssl"
+      ]
     },
     {
       "name": "dbus",
@@ -52,7 +51,10 @@
     {
       "name": "tiff",
       "default-features": false,
-      "features": ["jpeg", "zip"]
+      "features": [
+        "jpeg",
+        "zip"
+      ]
     },
     "libusb"
   ],
@@ -64,6 +66,10 @@
     {
       "name": "sdl2",
       "version": "2.30.3"
+    },
+    {
+      "name": "wxwidgets",
+      "version": "3.3.0"
     }
   ]
 }

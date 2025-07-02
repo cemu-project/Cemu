@@ -201,7 +201,7 @@ if(UNIX AND NOT APPLE)
 endif()
 
 if (ENABLE_WXWIDGETS)
-	find_package(wxWidgets 3.2 REQUIRED COMPONENTS base core gl propgrid xrc)
+	find_package(wxWidgets 3.3 REQUIRED COMPONENTS base core gl propgrid xrc)
 endif()
 
 if (ENABLE_CUBEB)
