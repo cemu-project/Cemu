@@ -94,6 +94,14 @@ enum FullscreenScaling
 	kStretch,
 };
 
+enum class MSWThemeOption : int
+{
+	kAuto = 0,
+	kLight = 1,
+	kDark = 2,
+};
+ENABLE_ENUM_ITERATORS(MSWThemeOption, MSWThemeOption::kAuto, MSWThemeOption::kDark);
+
 enum class ScreenPosition
 {
 	kDisabled = 0,

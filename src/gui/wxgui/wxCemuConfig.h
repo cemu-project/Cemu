@@ -20,6 +20,14 @@ namespace DefaultColumnSize
 	};
 };
 
+enum class MSWThemeOption : int
+{
+	kAuto = 0,
+	kLight = 1,
+	kDark = 2,
+};
+ENABLE_ENUM_ITERATORS(MSWThemeOption, MSWThemeOption::kAuto, MSWThemeOption::kDark);
+
 typedef union
 {
 	struct
@@ -67,6 +75,7 @@ struct fmt::formatter<sHotkeyCfg> : formatter<string_view>
 struct wxCemuConfig
 {
 	ConfigValue<sint32> language{wxLANGUAGE_DEFAULT};
+	ConfigValue<int> msw_theme { static_cast<int>(MSWThemeOption::kAuto) };
 	ConfigValue<bool> use_discord_presence{true};
 	ConfigValue<bool> fullscreen{ false };
 	ConfigValue<bool> fullscreen_menubar{false};
