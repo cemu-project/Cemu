@@ -1589,8 +1589,10 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 	PWSTR userShortcutFolder;
 	SHGetKnownFolderPath(FOLDERID_Programs, 0, NULL, &userShortcutFolder);
 	const wxString shortcutName = wxString::Format("%s.lnk", titleName);
-	wxFileDialog shortcutDialog(this, _("Choose shortcut location"), _pathToUtf8(userShortcutFolder), shortcutName,
+	wxFileDialog shortcutDialog(this, _("Choose shortcut location"), userShortcutFolder, shortcutName,
 								"Shortcut (*.lnk)|*.lnk", wxFD_SAVE | wxFD_CHANGE_DIR | wxFD_OVERWRITE_PROMPT);
+
+	CoTaskMemFree(userShortcutFolder);
 
 	const auto result = shortcutDialog.ShowModal();
 	if (result == wxID_CANCEL)
@@ -1621,7 +1623,7 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		}
 
 		icon_path = folder / fmt::format("{:016x}.ico", titleId);
-		auto stream = wxFileOutputStream(_pathToUtf8(*icon_path));
+		auto stream = wxFileOutputStream(icon_path->wstring());
 		auto image = bitmap.ConvertToImage();
 		wxICOHandler icohandler{};
 		if (!icohandler.SaveFile(&image, stream, false))
