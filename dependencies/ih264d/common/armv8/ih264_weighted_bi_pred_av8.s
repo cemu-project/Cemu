@@ -142,19 +142,19 @@ ih264_weighted_bi_pred_luma_av8:
     sxtw      x4, w4
     sxtw      x5, w5
     stp       x19, x20, [sp, #-16]!
-#ifndef __APPLE__
+.ifndef __APPLE__
     ldr       w8, [sp, #80]             //Load wt2 in w8
     ldr       w9, [sp, #88]             //Load ofst1 in w9
     ldr       w10, [sp, #96]            //Load ofst2 in w10
     ldr       w11, [sp, #104]           //Load ht in w11
     ldr       w12, [sp, #112]           //Load wd in w12
-#else
+.else
     ldr       w8, [sp, #80]             //Load wt2 in w8
     ldr       w9, [sp, #84]             //Load ofst1 in w9
     ldr       w10, [sp, #88]            //Load ofst2 in w10
     ldr       w11,  [sp, #92]           //Load ht in w11
     ldr       w12,  [sp, #96]           //Load wd in w12
-#endif
+.endif
     add       w6, w6, #1                //w6  = log_WD + 1
     neg       w10, w6                   //w10 = -(log_WD + 1)
     dup       v0.8h, w10                //Q0  = -(log_WD + 1) (32-bit)
@@ -432,19 +432,19 @@ ih264_weighted_bi_pred_chroma_av8:
     sxtw      x5, w5
     stp       x19, x20, [sp, #-16]!
 
-#ifndef __APPLE__
+.ifndef __APPLE__
     ldr       w8, [sp, #80]             //Load wt2 in w8
     ldr       w9, [sp, #88]             //Load ofst1 in w9
     ldr       w10, [sp, #96]            //Load ofst2 in w10
     ldr       w11, [sp, #104]           //Load ht in w11
     ldr       w12, [sp, #112]           //Load wd in w12
-#else
+.else
     ldr       w8, [sp, #80]             //Load wt2 in w8
     ldr       w9, [sp, #84]             //Load ofst1 in w9
     ldr       w10, [sp, #88]            //Load ofst2 in w10
     ldr       w11,  [sp, #92]           //Load ht in w11
     ldr       w12,  [sp, #96]           //Load wd in w12
-#endif
+.endif
     dup       v4.4s, w8                 //Q2 = (wt2_u, wt2_v) (32-bit)
     dup       v2.4s, w7                 //Q1 = (wt1_u, wt1_v) (32-bit)
     add       w6, w6, #1                //w6  = log_WD + 1
