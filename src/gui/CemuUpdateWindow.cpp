@@ -115,7 +115,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 	urlStr.append("&platform=windows");
 #elif BOOST_OS_MACOS
 	urlStr.append("&platform=macos_bundle_x86");
-#elif
+#else
 #error Name for current platform is missing
 #endif
 #if BOOST_OS_BSD
