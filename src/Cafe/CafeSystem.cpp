@@ -479,7 +479,7 @@ namespace CafeSystem
 		if (result == 0)
 			cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
 		#elif BOOST_OS_BSD
-		int64_t totalRam
+		int64_t totalRam;
 		size_t size = sizeof(totalRam);
 		int result = sysctlbyname("hw.physmem", &totalRam, &size, NULL, 0);
 		if (result == 0)
