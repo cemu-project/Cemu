@@ -154,3 +154,7 @@ endif()
 if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuBin PRIVATE wx::base wx::core)
 endif()
+
+if (BSD)
+	target_link_libraries(CemuBin PRIVATE execinfo SPIRV-Tools SPIRV-Tools-opt)
+endif()

@@ -224,6 +224,8 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			if (!std::getenv("APPIMAGE")) {
 				m_auto_update->Disable();
 			}
+#elif BOOST_OS_BSD // BSD users must update from source so disable auto updates
+			m_auto_update->Disable();
 #endif
 
 			box_sizer->Add(second_row, 0, wxEXPAND, 5);
