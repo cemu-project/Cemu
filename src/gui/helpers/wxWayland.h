@@ -1,6 +1,6 @@
 #pragma once
 
-#if BOOST_OS_LINUX && HAS_WAYLAND
+#if ( BOOST_OS_LINUX || BOOST_OS_BSD ) && HAS_WAYLAND
 
 #include <gdk/gdk.h>
 #include <gdk/gdkwayland.h>
