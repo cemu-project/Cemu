@@ -429,13 +429,13 @@ ih264_intra_pred_chroma_8x8_mode_plane_av8:
     rev64     v7.4h, v2.4h
     ld1       {v3.2s}, [x10]
     sub       x5, x3, #8
-#ifdef __APPLE__
+.ifdef __APPLE__
     adrp      x12, _ih264_gai1_intrapred_chroma_plane_coeffs1@GOTPAGE
     ldr       x12, [x12, _ih264_gai1_intrapred_chroma_plane_coeffs1@GOTPAGEOFF]
-#else
+.else
     adrp      x12, :got:ih264_gai1_intrapred_chroma_plane_coeffs1
     ldr       x12, [x12, #:got_lo12:ih264_gai1_intrapred_chroma_plane_coeffs1]
-#endif
+.endif
     usubl     v10.8h, v5.8b, v1.8b
     ld1       {v8.8b, v9.8b}, [x12]     // Load multiplication factors 1 to 8 into D3
     mov       v8.d[1], v9.d[0]
