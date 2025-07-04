@@ -1029,13 +1029,13 @@ ih264_intra_pred_luma_8x8_mode_horz_u_av8:
     mov       v3.d[0], v2.d[1]
     ext       v4.16b, v2.16b , v2.16b , #1
     mov       v5.d[0], v4.d[1]
-#ifdef __APPLE__
+.ifdef __APPLE__
     adrp      x12, _ih264_gai1_intrapred_luma_8x8_horz_u@GOTPAGE
     ldr       x12, [x12, _ih264_gai1_intrapred_luma_8x8_horz_u@GOTPAGEOFF]
-#else
+.else
     adrp      x12, :got:ih264_gai1_intrapred_luma_8x8_horz_u
     ldr       x12, [x12, #:got_lo12:ih264_gai1_intrapred_luma_8x8_horz_u]
-#endif
+.endif
     uaddl     v20.8h, v0.8b, v2.8b
     uaddl     v22.8h, v1.8b, v3.8b
     uaddl     v24.8h, v2.8b, v4.8b
