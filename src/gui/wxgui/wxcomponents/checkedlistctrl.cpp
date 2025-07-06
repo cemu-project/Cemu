@@ -25,12 +25,7 @@
 
 #if wxUSE_CHECKEDLISTCTRL
 
-// resources
-
-#include "wxgui/wxcomponents/checked.xpm"
-#include "wxgui/wxcomponents/unchecked.xpm"
-#include "wxgui/wxcomponents/checked_dis.xpm"
-#include "wxgui/wxcomponents/unchecked_dis.xpm"
+#include <wx/renderer.h>
 
 IMPLEMENT_CLASS(wxCheckedListCtrl, wxListCtrl)
 BEGIN_EVENT_TABLE(wxCheckedListCtrl, wxListCtrl)
@@ -52,13 +47,52 @@ bool wxCheckedListCtrl::Create(wxWindow* parent, wxWindowID id, const wxPoint& p
 	if (!wxListCtrl::Create(parent, id, pt, sz, style, validator, name))
 		return FALSE;
 
-    SetImageList(&m_imageList, wxIMAGE_LIST_SMALL);
+	// Get the native size of the checkbox
+    int width = wxRendererNative::Get().GetCheckBoxSize(this).GetWidth();
+    int height = wxRendererNative::Get().GetCheckBoxSize(this).GetHeight();
 
-	// the add order must respect the wxCLC_XXX_IMGIDX defines in the headers !
-    m_imageList.Add(wxIcon(unchecked_xpm));
-    m_imageList.Add(wxIcon(checked_xpm));
-    m_imageList.Add(wxIcon(unchecked_dis_xpm));
-    m_imageList.Add(wxIcon(checked_dis_xpm));
+    m_imageList = new wxImageList(width, height, TRUE);
+    SetImageList(m_imageList, wxIMAGE_LIST_SMALL);
+
+    wxBitmap unchecked_bmp(width, height),
+             checked_bmp(width, height),
+             unchecked_disabled_bmp(width, height),
+             checked_disabled_bmp(width, height);
+
+    wxMemoryDC renderer_dc;
+
+    // Unchecked
+    renderer_dc.SelectObject(unchecked_bmp);
+    renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+    renderer_dc.Clear();
+    wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), 0);
+
+    // Checked
+    renderer_dc.SelectObject(checked_bmp);
+    renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+    renderer_dc.Clear();
+    wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED);
+
+    // Unchecked and Disabled
+    renderer_dc.SelectObject(unchecked_disabled_bmp);
+    renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+    renderer_dc.Clear();
+    wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), 0 | wxCONTROL_DISABLED);
+
+    // Checked and Disabled
+    renderer_dc.SelectObject(checked_disabled_bmp);
+    renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+    renderer_dc.Clear();
+    wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_DISABLED);
+
+    // Deselect the renderers Object
+    renderer_dc.SelectObject(wxNullBitmap);
+
+	// the add order is important: the first added image will be
+	m_imageList->Add(unchecked_bmp);
+	m_imageList->Add(checked_bmp);
+	m_imageList->Add(unchecked_disabled_bmp);
+	m_imageList->Add(checked_disabled_bmp);
 
 	return TRUE;
 }
@@ -82,11 +116,10 @@ int wxCheckedListCtrl::GetItemImageFromAdditionalState(int addstate)
 
 wxColour wxCheckedListCtrl::GetBgColourFromAdditionalState(int additionalstate)
 {
-	if ((additionalstate & wxLIST_STATE_ENABLED) &&
-		this->IsEnabled())
-		return *wxWHITE;
+	if ((additionalstate & wxLIST_STATE_ENABLED) && this->IsEnabled())
+		return wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 #ifdef __WXMSW__
-	return wxColour(212, 208, 200);
+	return wxSystemSettings::GetColour(wxSYS_COLOUR_INFOBK);
 #else
 	return wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
 #endif

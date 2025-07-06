@@ -81,11 +81,11 @@ protected:
     wxArrayInt m_stateList;
 
     // our set of checkbox images...
-    wxImageList m_imageList;
+    wxImageList* m_imageList;
 
 public:
     wxCheckedListCtrl()
-        : wxListView(), m_imageList(16, 16, TRUE) {}
+        : wxListView() {}
 
     wxCheckedListCtrl(wxWindow *parent, wxWindowID id = wxID_ANY,
                         const wxPoint& pt = wxDefaultPosition,
@@ -93,7 +93,7 @@ public:
                         long style = wxCLC_CHECK_WHEN_SELECTING,
                         const wxValidator& validator = wxDefaultValidator,
                         const wxString& name = wxListCtrlNameStr)
-                        : wxListView(), m_imageList(16, 16, TRUE)
+                        : wxListView()
         { Create(parent, id, pt, sz, style, validator, name); }
 
     bool Create(wxWindow *parent, wxWindowID id = wxID_ANY,

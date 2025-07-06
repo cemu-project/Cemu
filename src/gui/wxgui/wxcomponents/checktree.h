@@ -82,7 +82,7 @@ class WXDLLIMPEXP_CHECKTREE wxCheckTree : public wxTreeCtrl
         void On_Tree_Focus_Lost( wxFocusEvent& event );
 
         //private data:
-        std::map<wxTreeItemId,wxColor> m_colors;
+        std::map<wxTreeItemId,wxColour> m_colors;
 
         bool mouse_entered_tree_with_left_down = false;
 
