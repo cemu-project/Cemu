@@ -18,13 +18,14 @@ TextList::~TextList()
 	this->Unbind(wxEVT_ERASE_BACKGROUND, &TextList::OnEraseBackground, this);
 }
 
-TextList::TextList(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
-	: wxControl(parent, id, pos, size, style), wxScrollHelper(this)
+TextList::TextList(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style) : wxScrolled<wxControl>(parent, id, pos, size, style)
 {
 	m_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-	wxWindowBase::SetBackgroundStyle(wxBG_STYLE_PAINT);
+	this->wxWindowBase::SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-	wxClientDC dc(this);
+	wxInfoDC dc(this);
+	this->wxScrolled::DoPrepareReadOnlyDC(dc);
+	dc.SetFont(m_font);
 	m_line_height = dc.GetCharHeight();
 	m_char_width = dc.GetCharWidth();
 
@@ -76,7 +77,7 @@ void TextList::RefreshLine(uint32 line)
 
 wxSize TextList::DoGetVirtualSize() const
 {
-	return {wxDefaultCoord, (int)(m_element_count + 1) * m_line_height};
+	return {wxDefaultCoord, (int)m_element_count * m_line_height};
 }
 
 void TextList::DoSetSize(int x, int y, int width, int height, int sizeFlags)
@@ -252,7 +253,6 @@ void TextList::OnContextMenu(wxContextMenuEvent& event)
 	OnContextMenu(clientPosition, line);
 }
 
-
 void TextList::OnTooltipTimer(wxTimerEvent& event)
 {
 	m_tooltip_window->Hide();
@@ -278,40 +278,27 @@ void TextList::OnTooltipTimer(wxTimerEvent& event)
 
 void TextList::OnPaintEvent(wxPaintEvent& event)
 {
-	wxBufferedPaintDC dc(m_targetWindow, wxBUFFER_VIRTUAL_AREA);
+	wxAutoBufferedPaintDC dc(m_targetWindow);
+
 	dc.SetFont(m_font);
+	dc.SetBrush(GetBackgroundColour());
+	dc.SetPen(*wxTRANSPARENT_PEN);
+	dc.DrawRectangle(GetUpdateRegion().GetBox());
 
-	// get window position
-	auto position = GetPosition();
+	// calculate the number of elements visible in the current view
+	auto rect_update = GetClientRect();
+	sint32 start = GetViewStart().y;
+	m_elements_visible = std::min(rect_update.height + m_line_height - 1, (sint32)m_element_count - start);
 
-	// get current real position
-	wxRect rect_update = GetUpdateRegion().GetBox();
-	const auto count = (uint32)std::ceil((float)rect_update.GetHeight() / m_line_height);
+	// add constraints
+	if (m_elements_visible < 0)
+		m_elements_visible = 0;
+	else if (m_elements_visible > m_element_count - start)
+		m_elements_visible = m_element_count - start;
 
-	position.y = (rect_update.y / m_line_height) * m_line_height;
+	m_scrolled_to_end = (start + m_elements_visible >= m_element_count);
 
-	// paint background
-	const wxColour window_colour = COLOR_WHITE;
-	dc.SetBrush(window_colour);
-	dc.SetPen(window_colour);
-	dc.DrawRectangle(rect_update);
+	OnDraw(dc, GetViewStart().y, m_elements_visible, wxPoint(rect_update.x, rect_update.y));
 
-	//// paint selection
-	//if (!m_selected_text.eof())
-	//{
-	//	dc.SetBrush(*wxBLUE_BRUSH);
-	//	dc.SetPen(*wxBLUE_PEN);
-	//	dc.DrawRectangle(m_selection);
-	//}
-
-	sint32 start;
-	CalcUnscrolledPosition(rect_update.x, rect_update.y, nullptr, &start);
-
-	start /= m_line_height;
-	m_scrolled_to_end = (start + count) >= m_element_count;
-
-	OnDraw(dc, start, count, position);
-
-
-	this->Update();
+	// removed Update() here since all text is white
 }

@@ -12,7 +12,7 @@
 #define COLOR_RED				0xFF0000FF
 
 
-class TextList : public wxControl, public wxScrollHelper
+class TextList : public wxScrolled<wxControl>
 {
 public:
 	virtual ~TextList();
