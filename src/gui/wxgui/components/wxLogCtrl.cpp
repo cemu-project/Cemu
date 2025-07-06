@@ -4,13 +4,15 @@
 
 wxDEFINE_EVENT(EVT_ON_LIST_UPDATED, wxEvent);
 
-wxLogCtrl::wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
+wxLogCtrl::wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style, bool alternateRowColours)
 	: TextList(parent, id, pos, size, style)
 {
 	m_timer = new wxTimer(this);
 	this->Bind(wxEVT_TIMER, &wxLogCtrl::OnTimer, this);
 	this->Bind(EVT_ON_LIST_UPDATED, &wxLogCtrl::OnActiveListUpdated, this);
 	m_timer->Start(250);
+
+	m_alternateRowColoursEnabled = alternateRowColours;
 }
 
 wxLogCtrl::~wxLogCtrl()
@@ -93,15 +95,13 @@ void wxLogCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& star
 
 	for (sint32 i = 0; i <= count && it != m_active_entries.cend(); ++i, ++it)
 	{
-		wxColour background_colour;
-		if((start + i) % 2 == 0)
-			background_colour = COLOR_WHITE;
-		else
-			background_colour = 0xFFFDF9F2;
+		wxColour background_colour = GetBackgroundColour();
+		if((start + i) % 2 != 0 && m_alternateRowColoursEnabled)
+			background_colour = GetAlternateRowColour();
 
 		DrawLineBackground(dc, position, background_colour);
 
-		dc.SetTextForeground(COLOR_BLACK);
+		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		dc.DrawText(it->get().second, position);
 
 		NextLine(position, &start_position);
