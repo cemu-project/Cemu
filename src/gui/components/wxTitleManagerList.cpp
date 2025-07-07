@@ -38,7 +38,7 @@ wxDEFINE_EVENT(wxEVT_TITLE_REMOVED, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REMOVE_ENTRY, wxCommandEvent);
 
 wxTitleManagerList::wxTitleManagerList(wxWindow* parent, wxWindowID id)
-	: wxListCtrl(parent, id, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_VIRTUAL)
+	: wxListView(parent, id, wxDefaultPosition, wxDefaultSize, wxLC_REPORT | wxLC_VIRTUAL)
 {
 	AddColumns();
 
@@ -64,6 +64,8 @@ wxTitleManagerList::wxTitleManagerList(wxWindow* parent, wxWindowID id)
 
 	m_callbackIdTitleList = CafeTitleList::RegisterCallback([](CafeTitleListCallbackEvent* evt, void* ctx) { ((wxTitleManagerList*)ctx)->HandleTitleListCallback(evt); }, this);
 	m_callbackIdSaveList = CafeSaveList::RegisterCallback([](CafeSaveListCallbackEvent* evt, void* ctx) { ((wxTitleManagerList*)ctx)->HandleSaveListCallback(evt); }, this);
+
+	ShowSortIndicator(ColumnTitleId);
 }
 
 wxTitleManagerList::~wxTitleManagerList()
@@ -74,7 +76,7 @@ wxTitleManagerList::~wxTitleManagerList()
 
 boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetSelectedTitleEntry() const
 {
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto tmp = GetTitleEntry(selection);
@@ -87,7 +89,7 @@ boost::optional<const wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetSe
 
 boost::optional<wxTitleManagerList::TitleEntry&> wxTitleManagerList::GetSelectedTitleEntry()
 {
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
 	{
 		const auto tmp = GetTitleEntry(selection);
@@ -574,7 +576,7 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 		}
 		else
 		{
-			progressDialog.Update(0, _("Collecting list of files..." + fmt::format(" ({})", writerContext.totalFileCount.load())));
+			progressDialog.Update(0, _("Collecting list of files...") + fmt::format(" ({})", writerContext.totalFileCount.load()));
 		}
 		if (progressDialog.WasCancelled())
 			writerContext.cancelled.store(true);
@@ -757,7 +759,7 @@ void wxTitleManagerList::OnContextMenu(wxContextMenuEvent& event)
 	wxMenu menu;
 	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxTitleManagerList::OnContextMenuSelected, this);
 
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)
 		return;
 
@@ -855,8 +857,8 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	// still doing work
 	if (m_context_worker.valid() && !future_is_ready(m_context_worker))
 		return;
-	
-	const auto selection = GetNextItem(-1, wxLIST_NEXT_ALL, wxLIST_STATE_SELECTED);
+
+	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)
 		return;
 
@@ -869,7 +871,7 @@ void wxTitleManagerList::OnContextMenuSelected(wxCommandEvent& event)
 	case kContextMenuOpenDirectory:
 		{
 			const auto path = fs::is_directory(entry->path) ? entry->path : entry->path.parent_path();
-			wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(path))));
+			wxLaunchDefaultApplication(wxHelper::FromPath(path));
 		}
 		break;
 	case kContextMenuDelete:
@@ -1173,54 +1175,48 @@ bool wxTitleManagerList::SortFunc(int column, const Type_t& v1, const Type_t& v2
 	{
 		if(entry1.version == entry2.version)
 			return SortFunc(ColumnTitleId, v1, v2);
-		
-		return std::underlying_type_t<EntryType>(entry1.version) < std::underlying_type_t<EntryType>(entry2.version);
+
+		return entry1.version < entry2.version;
 	}
 	else if (column == ColumnRegion)
 	{
 		if(entry1.region == entry2.region)
 			return SortFunc(ColumnTitleId, v1, v2);
-		
-		return std::underlying_type_t<EntryType>(entry1.region) < std::underlying_type_t<EntryType>(entry2.region);
+
+		return std::underlying_type_t<CafeConsoleRegion>(entry1.region) < std::underlying_type_t<CafeConsoleRegion>(entry2.region);
 	}
 	else if (column == ColumnFormat)
 	{
 		if(entry1.format == entry2.format)
 			return SortFunc(ColumnType, v1, v2);
 
-		return std::underlying_type_t<EntryType>(entry1.format) < std::underlying_type_t<EntryType>(entry2.format);
+		return std::underlying_type_t<EntryFormat>(entry1.format) < std::underlying_type_t<EntryFormat>(entry2.format);
 	}
 		
 	return false;
 }
 void wxTitleManagerList::SortEntries(int column)
 {
-	if(column == -1)
+	bool ascending;
+	if (column == -1)
 	{
-		column = m_last_column_sorted;
-		m_last_column_sorted = -1;
+		column = GetSortIndicator();
 		if (column == -1)
 			column = ColumnTitleId;
+		ascending = IsAscendingSortIndicator();
 	}
-	
+	else
+		ascending = GetUpdatedAscendingSortIndicator(column);
+
 	if (column != ColumnTitleId && column != ColumnName && column != ColumnType && column != ColumnVersion && column != ColumnRegion && column != ColumnFormat)
 		return;
 
-	if (m_last_column_sorted != column)
-	{
-		m_last_column_sorted = column;
-		m_sort_less = true;
-	}
-	else
-		m_sort_less = !m_sort_less;
-		
 	std::sort(m_sorted_data.begin(), m_sorted_data.end(),
-		[this, column](const Type_t& v1, const Type_t& v2) -> bool
-		{
-			const bool result = SortFunc(column, v1, v2);
-			return m_sort_less ? result : !result;
-		});
-	
+			  [this, column, ascending](const Type_t& v1, const Type_t& v2) -> bool {
+				  return ascending ? SortFunc(column, v1, v2) : SortFunc(column, v2, v1);
+			  });
+
+	ShowSortIndicator(column, ascending);
 	RefreshPage();
 }
 

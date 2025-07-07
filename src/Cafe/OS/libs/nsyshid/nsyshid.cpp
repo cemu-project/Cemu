@@ -256,17 +256,17 @@ namespace nsyshid
 						 device->m_productId);
 	}
 
-	bool FindDeviceById(uint16 vendorId, uint16 productId)
+	std::shared_ptr<Device> FindDeviceById(uint16 vendorId, uint16 productId)
 	{
 		std::lock_guard<std::recursive_mutex> lock(hidMutex);
 		for (const auto& device : deviceList)
 		{
 			if (device->m_vendorId == vendorId && device->m_productId == productId)
 			{
-				return true;
+				return device;
 			}
 		}
-		return false;
+		return nullptr;
 	}
 
 	void export_HIDAddClient(PPCInterpreter_t* hCPU)
@@ -876,7 +876,7 @@ namespace nsyshid
 		return nullptr;
 	}
 
-	bool Backend::FindDeviceById(uint16 vendorId, uint16 productId)
+	std::shared_ptr<Device> Backend::FindDeviceById(uint16 vendorId, uint16 productId)
 	{
 		return nsyshid::FindDeviceById(vendorId, productId);
 	}

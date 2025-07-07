@@ -1,5 +1,4 @@
 #include "Cafe/HW/Espresso/Const.h"
-#include "asm/x64util.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/fspinlock.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"

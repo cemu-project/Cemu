@@ -90,9 +90,9 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook);
-	auto* panelSizer = new wxBoxSizer(wxBOTH);
+	auto* panelSizer = new wxBoxSizer(wxVERTICAL);
 	auto* box = new wxStaticBox(panel, wxID_ANY, _("Infinity Manager"));
-	auto* boxSizer = new wxStaticBoxSizer(box, wxBOTH);
+	auto* boxSizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
 	auto* row = new wxBoxSizer(wxHORIZONTAL);
 
@@ -146,17 +146,15 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 	auto* top_row = new wxBoxSizer(wxHORIZONTAL);
 	auto* bottom_row = new wxBoxSizer(wxHORIZONTAL);
 
-	auto* dummy = new wxStaticText(box, wxID_ANY, "");
-
 	top_row->Add(AddDimensionPanel(2, 0, box), 1, wxEXPAND | wxALL, 2);
-	top_row->Add(dummy, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
+	top_row->Add(0, 0, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
 	top_row->Add(AddDimensionPanel(1, 1, box), 1, wxEXPAND | wxALL, 2);
-	top_row->Add(dummy, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
+	top_row->Add(0, 0, 1, wxEXPAND | wxLEFT | wxRIGHT, 2);
 	top_row->Add(AddDimensionPanel(3, 2, box), 1, wxEXPAND | wxALL, 2);
 
 	bottom_row->Add(AddDimensionPanel(2, 3, box), 1, wxEXPAND | wxALL, 2);
 	bottom_row->Add(AddDimensionPanel(2, 4, box), 1, wxEXPAND | wxALL, 2);
-	bottom_row->Add(dummy, 1, wxEXPAND | wxLEFT | wxRIGHT, 0);
+	bottom_row->Add(0, 0, 1, wxEXPAND | wxLEFT | wxRIGHT, 0);
 	bottom_row->Add(AddDimensionPanel(3, 5, box), 1, wxEXPAND | wxALL, 2);
 	bottom_row->Add(AddDimensionPanel(3, 6, box), 1, wxEXPAND | wxALL, 2);
 
@@ -285,7 +283,7 @@ void EmulatedUSBDeviceFrame::LoadSkylanderPath(uint8 slot, wxString path)
 	std::unique_ptr<FileStream> skyFile(FileStream::openFile2(_utf8ToPath(path.utf8_string()), true));
 	if (!skyFile)
 	{
-		wxMessageDialog open_error(this, "Error Opening File: " + path.c_str());
+		wxMessageDialog open_error(this, "Error Opening File: " + path);
 		open_error.ShowModal();
 		return;
 	}

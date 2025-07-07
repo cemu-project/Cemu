@@ -22,12 +22,18 @@ public:
 	static std::optional<bool> RenderUpsideDownEnabled() { return s_render_upside_down; }
 	static std::optional<bool> FullscreenEnabled() { return s_fullscreen; }
 
+	static bool Verbose() { return s_verbose; }
+
 	static bool GDBStubEnabled() { return s_enable_gdbstub; }
 	static bool NSightModeEnabled() { return s_nsight_mode; }
 
 	static bool ForceInterpreter() { return s_force_interpreter; };
+	static bool ForceMultiCoreInterpreter() { return s_force_multicore_interpreter; }
 
 	static std::optional<uint32> GetPersistentId() { return s_persistent_id; }
+
+	static uint32 GetPPCRecLowerAddr() { return ppcRec_limitLowerAddr; };
+	static uint32 GetPPCRecUpperAddr() { return ppcRec_limitUpperAddr; };
 
 private:
 	inline static std::optional<fs::path> s_load_game_file{};
@@ -36,13 +42,20 @@ private:
 
 	inline static std::optional<bool> s_render_upside_down{};
 	inline static std::optional<bool> s_fullscreen{};
+
+	inline static bool s_verbose = false;
 	
 	inline static bool s_enable_gdbstub = false;
 	inline static bool s_nsight_mode = false;
 
 	inline static bool s_force_interpreter = false;
+	inline static bool s_force_multicore_interpreter = false;
 	
 	inline static std::optional<uint32> s_persistent_id{};
+
+	// for recompiler debugging
+	inline static uint32 ppcRec_limitLowerAddr{};
+	inline static uint32 ppcRec_limitUpperAddr{};
 
 	static bool ExtractorTool(std::wstring_view wud_path, std::string_view output_path, std::wstring_view log_path);
 };

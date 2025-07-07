@@ -36,6 +36,16 @@ void dmaeExport_DMAECopyMem(PPCInterpreter_t* hCPU)
 			dstBuffer[i] = _swapEndianU32(srcBuffer[i]);
 		}
 	}
+	else if( hCPU->gpr[6] == DMAE_ENDIAN_16 )
+	{
+		// swap per uint16
+		uint16* srcBuffer = (uint16*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
+		uint16* dstBuffer = (uint16*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
+		for(uint32 i=0; i<hCPU->gpr[5]*2; i++)
+		{
+			dstBuffer[i] = _swapEndianU16(srcBuffer[i]);
+		}
+	}
 	else
 	{
 		cemuLog_logDebug(LogType::Force, "DMAECopyMem(): Unsupported endian swap\n");

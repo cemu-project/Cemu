@@ -3,6 +3,7 @@
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
+#include "config/LaunchSettings.h"
 
 #include <mutex>
 #include <condition_variable>
@@ -143,6 +144,9 @@ bool cemuLog_log(LogType type, std::string_view text)
 {
 	if (!cemuLog_isLoggingEnabled(type))
 		return false;
+
+	if (LaunchSettings::Verbose())
+		std::cout << text << std::endl;
 
 	cemuLog_writeLineToLog(text);
 

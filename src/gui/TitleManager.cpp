@@ -356,7 +356,7 @@ void TitleManager::OnTitleSearchComplete(wxCommandEvent& event)
 
 void TitleManager::OnSetStatusBarText(wxSetStatusBarTextEvent& event)
 {
-	m_status_bar->SetStatusText(_(event.GetText()), event.GetNumber());
+	m_status_bar->SetStatusText(event.GetText(), event.GetNumber());
 }
 
 void TitleManager::OnFilterChanged(wxCommandEvent& event)
@@ -491,7 +491,7 @@ void TitleManager::OnSaveOpenDirectory(wxCommandEvent& event)
 	if (!fs::exists(target) || !fs::is_directory(target))
 		return;
 
-	wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(target))));
+	wxLaunchDefaultApplication(wxHelper::FromPath(target));
 }
 
 void TitleManager::OnSaveDelete(wxCommandEvent& event)

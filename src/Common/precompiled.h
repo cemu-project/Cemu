@@ -310,7 +310,8 @@ inline uint64 __rdtsc()
 
 inline void _mm_mfence()
 {
-    
+	asm volatile("" ::: "memory");
+	std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
@@ -385,8 +386,6 @@ template <typename T1, typename T2>
 constexpr bool HAS_FLAG(T1 flags, T2 test_flag) { return (flags & (T1)test_flag) == (T1)test_flag; }
 template <typename T1, typename T2>
 constexpr bool HAS_BIT(T1 value, T2 index) { return (value & ((T1)1 << index)) != 0; }
-template <typename T>
-constexpr void SAFE_RELEASE(T& p) { if (p) { p->Release(); p = nullptr; } }
 
 template <typename T>
 constexpr uint32_t ppcsizeof() { return (uint32_t) sizeof(T); }
@@ -616,4 +615,36 @@ namespace stdx
 		scope_exit& operator=(scope_exit) = delete;
 		void release() { m_released = true;}
 	};
+
+	// Xcode 16 doesn't have std::atomic_ref support and we provide a minimalist reimplementation as fallback
+#ifdef __cpp_lib_atomic_ref
+	#include <atomic>
+	template<typename T>
+	using atomic_ref = std::atomic_ref<T>;
+#else
+	template<typename T>
+	class atomic_ref
+	{
+		static_assert(std::is_trivially_copyable<T>::value, "atomic_ref requires trivially copyable types");
+	public:
+		using value_type = T;
+
+		explicit atomic_ref(T& obj) noexcept : ptr_(std::addressof(obj)) {}
+
+		T load(std::memory_order order = std::memory_order_seq_cst) const noexcept
+		{
+			auto aptr = reinterpret_cast<std::atomic<T>*>(ptr_);
+			return aptr->load(order);
+		}
+
+		void store(T desired, std::memory_order order = std::memory_order_seq_cst) const noexcept
+		{
+			auto aptr = reinterpret_cast<std::atomic<T>*>(ptr_);
+			aptr->store(desired, order);
+		}
+
+	private:
+		T* ptr_;
+	};
+#endif
 }

@@ -81,19 +81,68 @@ namespace GX2
 
 	void _test_AddrLib();
 
-	void GX2Init(void* initSettings)
+	using GX2InitArg = uint32;
+	enum class GX2InitArgId : GX2InitArg
+	{
+		EndOfArgs = 0,
+		CommandPoolBase = 1,
+		CommandPoolSize = 2,
+		UknArg7 = 7,
+		UknArg8 = 8,
+		UknArg9 = 9,
+		UknArg11 = 11,
+	};
+
+	void GX2Init(betype<GX2InitArg>* initArgStream)
 	{
 		if (LatteGPUState.gx2InitCalled)
 		{
 			cemuLog_logDebug(LogType::Force, "GX2Init() called while already initialized");
 			return;
 		}
+		// parse init params from the stream
+		MEMPTR<void> commandPoolBase = nullptr;
+		uint32 commandPoolSize = 0;
+		if (initArgStream)
+		{
+			while (true)
+			{
+				GX2InitArgId paramId = static_cast<GX2InitArgId>((GX2InitArg)*initArgStream);
+				initArgStream++;
+				if (paramId == GX2InitArgId::EndOfArgs)
+				{
+					break;
+				}
+				else if (paramId == GX2InitArgId::CommandPoolBase)
+				{
+					commandPoolBase = MEMPTR<void>(*initArgStream);
+					initArgStream++;
+				}
+				else if (paramId == GX2InitArgId::CommandPoolSize)
+				{
+					commandPoolSize = *initArgStream;
+					initArgStream++;
+				}
+				else if (paramId == GX2InitArgId::UknArg7 ||
+					paramId == GX2InitArgId::UknArg8 ||
+					paramId == GX2InitArgId::UknArg9 ||
+					paramId == GX2InitArgId::UknArg11)
+				{
+					initArgStream++;
+				}
+				else
+				{
+					cemuLog_log(LogType::Force, "GX2Init: Unsupported init arg {}", (uint32)paramId);
+				}
+			}
+		}
+		// init main core
 		uint32 coreIndex = coreinit::OSGetCoreId();
 		cemuLog_log(LogType::GX2, "GX2Init() on core {} by thread 0x{:08x}", coreIndex, MEMPTR<OSThread_t>(coreinit::OSGetCurrentThread()).GetMPTR());
 		sGX2MainCoreIndex = coreIndex;
 		// init submodules
 		GX2::GX2Init_event();
-		GX2::GX2Init_writeGather();
+		GX2::GX2Init_commandBufferPool(commandPoolBase, commandPoolSize);
 		// init shared area
 		if (LatteGPUState.sharedAreaAddr == MPTR_NULL)
 		{
@@ -110,6 +159,21 @@ namespace GX2
 		LatteGPUState.gx2InitCalled++;
 		// run tests
 		_test_AddrLib();
+	}
+
+	void GX2Shutdown()
+	{
+		if (!LatteGPUState.gx2InitCalled)
+		{
+			cemuLog_logDebug(LogType::Force, "GX2Shutdown() called while not initialized");
+			return;
+		}
+		LatteGPUState.gx2InitCalled--;
+		if (LatteGPUState.gx2InitCalled != 0)
+			return;
+		GX2DrawDone();
+		GX2Shutdown_commandBufferPool();
+		cemuLog_log(LogType::Force, "GX2 shutdown");
 	}
 
 	void _GX2DriverReset()
@@ -237,6 +301,7 @@ namespace GX2
 	void GX2MiscInit()
 	{
 		cafeExportRegister("gx2", GX2Init, LogType::GX2);
+		cafeExportRegister("gx2", GX2Shutdown, LogType::GX2);
 		cafeExportRegister("gx2", GX2GetMainCoreId, LogType::GX2);
 		cafeExportRegister("gx2", GX2ResetGPU, LogType::GX2);
 

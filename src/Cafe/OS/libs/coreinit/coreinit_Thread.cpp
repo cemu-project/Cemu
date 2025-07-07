@@ -25,7 +25,11 @@ void nnNfp_update();
 
 namespace coreinit
 {
+#ifdef __arm64__
+	void __OSFiberThreadEntry(uint32, uint32);
+#else
 	void __OSFiberThreadEntry(void* thread);
+#endif
 	void __OSAddReadyThreadToRunQueue(OSThread_t* thread);
 	void __OSRemoveThreadFromRunQueues(OSThread_t* thread);
 };
@@ -49,7 +53,7 @@ namespace coreinit
 
 	struct OSHostThread
 	{
-		OSHostThread(OSThread_t* thread) : m_thread(thread), m_fiber(__OSFiberThreadEntry, this, this)
+		OSHostThread(OSThread_t* thread) : m_thread(thread), m_fiber((void(*)(void*))__OSFiberThreadEntry, this, this)
 		{
 		}
 
@@ -713,7 +717,10 @@ namespace coreinit
 		thread->id = 0x8000;
 
 		if (!thread->deallocatorFunc.IsNull())
+		{
 			__OSQueueThreadDeallocation(thread);
+			PPCCore_switchToSchedulerWithLock(); // make sure the deallocation function runs before we return
+		}
 
 		__OSUnlockScheduler();
 
@@ -1304,8 +1311,14 @@ namespace coreinit
 		__OSThreadStartTimeslice(hostThread->m_thread, &hostThread->ppcInstance);
 	}
 
+#ifdef __arm64__
+	void __OSFiberThreadEntry(uint32 _high, uint32 _low)
+	{
+		uint64 _thread = (uint64) _high << 32 | _low;
+#else
 	void __OSFiberThreadEntry(void* _thread)
 	{
+#endif
 		OSHostThread* hostThread = (OSHostThread*)_thread;
 
         #if defined(ARCH_X86_64)
@@ -1515,7 +1528,7 @@ namespace coreinit
 	}
 
 	// queue thread deallocation to run after current thread finishes
-	// the termination threads run at a higher priority on the same threads
+	// the termination threads run at a higher priority on the same core
 	void __OSQueueThreadDeallocation(OSThread_t* thread)
 	{
 		uint32 coreIndex = OSGetCoreId();

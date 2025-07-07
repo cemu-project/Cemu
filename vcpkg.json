@@ -58,6 +58,10 @@
   ],
   "overrides": [
     {
+      "name": "glslang",
+      "version": "15.1.0"
+    },
+    {
       "name": "sdl2",
       "version": "2.30.3"
     }

@@ -201,7 +201,7 @@ void RegisterCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 		if (position.x <= OFFSET_REGISTER + OFFSET_REGISTER_LABEL)
 		{
 			const uint32 register_value = debuggerState.debugSession.ppcSnapshot.gpr[register_index];
-			wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), _(wxString::Format("Set R%d value", register_index)), wxString::Format("%08x", register_value));
+			wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set R%d value"), register_index), wxString::Format("%08x", register_value));
 			if (set_value_dialog.ShowModal() == wxID_OK)
 			{
 				const uint32 new_value = std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
@@ -220,7 +220,7 @@ void RegisterCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 		if (position.x <= OFFSET_REGISTER + OFFSET_FPR)
 		{
 			const double register_value = debuggerState.debugSession.ppcSnapshot.fpr[register_index].fp0;
-			wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), _(wxString::Format("Set FP0_%d value", register_index)), wxString::Format("%lf", register_value));
+			wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set FP0_%d value"), register_index), wxString::Format("%lf", register_value));
 			if (set_value_dialog.ShowModal() == wxID_OK)
 			{
 				const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());
@@ -234,7 +234,7 @@ void RegisterCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 		else
 		{
 			const double register_value = debuggerState.debugSession.ppcSnapshot.fpr[register_index].fp1;
-			wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), _(wxString::Format("Set FP1_%d value", register_index)), wxString::Format("%lf", register_value));
+			wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set FP1_%d value"), register_index), wxString::Format("%lf", register_value));
 			if (set_value_dialog.ShowModal() == wxID_OK)
 			{
 				const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());

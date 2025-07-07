@@ -174,12 +174,7 @@ void InputPanel::load_controller(const EmulatedControllerPtr& controller)
 			continue;
 
 		auto button_name = controller->get_mapping_name(mapping);
-#if BOOST_OS_WINDOWS
-		text->SetLabelText(button_name);
-#else
-        // SetLabelText doesn't seem to work here for some reason on wxGTK
-        text->ChangeValue(button_name);
-#endif
+		text->ChangeValue(button_name);
 	}
 }
 

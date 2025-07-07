@@ -10,6 +10,18 @@ namespace Espresso
 		CR_BIT_INDEX_SO = 3,
 	};
 
+	enum class PSQ_LOAD_TYPE
+	{
+		TYPE_F32 = 0,
+		TYPE_UNUSED1 = 1,
+		TYPE_UNUSED2 = 2,
+		TYPE_UNUSED3 = 3,
+		TYPE_U8 = 4,
+		TYPE_U16 = 5,
+		TYPE_S8 = 6,
+		TYPE_S16 = 7,
+	};
+
 	enum class PrimaryOpcode
 	{
 		// underscore at the end of the name means that this instruction always updates CR0 (as if RC bit is set)
@@ -91,13 +103,15 @@ namespace Espresso
 		BCCTR = 528
 	};
 
-	enum class OPCODE_31
+	enum class Opcode31
 	{
-
+		TW = 4,
+		MFTB = 371,
 	};
 
 	inline PrimaryOpcode GetPrimaryOpcode(uint32 opcode) { return (PrimaryOpcode)(opcode >> 26); };
 	inline Opcode19 GetGroup19Opcode(uint32 opcode) { return (Opcode19)((opcode >> 1) & 0x3FF); };
+	inline Opcode31 GetGroup31Opcode(uint32 opcode) { return (Opcode31)((opcode >> 1) & 0x3FF); };
 
 	struct BOField 
 	{
@@ -131,6 +145,12 @@ namespace Espresso
 
 		uint8 bo;
 	};
+
+	// returns true if LK bit is set, only valid for branch instructions
+	inline bool DecodeLK(uint32 opcode)
+	{
+		return (opcode & 1) != 0;
+	}
 
 	inline void _decodeForm_I(uint32 opcode, uint32& LI, bool& AA, bool& LK)
 	{
@@ -183,13 +203,7 @@ namespace Espresso
 		_decodeForm_D_branch(opcode, BD, BO, BI, AA, LK);
 	}
 
-	inline void decodeOp_BCLR(uint32 opcode, BOField& BO, uint32& BI, bool& LK)
-	{
-		// form XL (with BD field expected to be zero)
-		_decodeForm_XL(opcode, BO, BI, LK);
-	}
-
-	inline void decodeOp_BCCTR(uint32 opcode, BOField& BO, uint32& BI, bool& LK)
+	inline void decodeOp_BCSPR(uint32 opcode, BOField& BO, uint32& BI, bool& LK) // BCLR and BCSPR
 	{
 		// form XL (with BD field expected to be zero)
 		_decodeForm_XL(opcode, BO, BI, LK);

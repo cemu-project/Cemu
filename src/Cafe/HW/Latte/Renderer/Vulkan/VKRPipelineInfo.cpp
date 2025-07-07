@@ -26,7 +26,6 @@ PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFe
 
 	// init VKRObjPipeline
 	m_vkrObjPipeline = new VKRObjectPipeline();
-	m_vkrObjPipeline->pipeline = VK_NULL_HANDLE;
 
 	// track dependency with shaders
 	if (vertexShaderVk)

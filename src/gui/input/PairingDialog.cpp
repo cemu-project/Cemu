@@ -225,7 +225,7 @@ void PairingDialog::WorkerThread()
 		BluetoothFindDeviceClose(deviceFind);
 	}
 }
-#elif BOOST_OS_LINUX
+#elif defined(HAS_BLUEZ)
 void PairingDialog::WorkerThread()
 {
 	constexpr static uint8_t LIAC_LAP[] = {0x00, 0x8b, 0x9e};

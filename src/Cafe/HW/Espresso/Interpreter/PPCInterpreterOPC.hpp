@@ -68,6 +68,8 @@ static void PPCInterpreter_TW(PPCInterpreter_t* hCPU, uint32 opcode)
 	PPC_OPC_TEMPL_X(opcode, to, rA, rB);
 
 	cemu_assert_debug(to == 0);
+	if(to != 0)
+		PPCInterpreter_nextInstruction(hCPU);
 
     if (rA == DEBUGGER_BP_T_DEBUGGER)
 	    debugger_enterTW(hCPU);

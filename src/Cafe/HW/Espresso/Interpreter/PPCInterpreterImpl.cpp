@@ -428,9 +428,6 @@ public:
 	}
 };
 
-uint32 testIP[100];
-uint32 testIPC = 0;
-
 template <typename ppcItpCtrl>
 class PPCInterpreterContainer
 {
@@ -466,6 +463,10 @@ public:
 		case 1: // virtual HLE
 			PPCInterpreter_virtualHLE(hCPU, opcode);
 			break;
+		case 3:
+			cemuLog_logDebug(LogType::Force, "Unsupported TWI instruction executed at {:08x}", hCPU->instructionPointer);
+			PPCInterpreter_nextInstruction(hCPU);
+			break;
 		case 4:
 			switch (PPC_getBits(opcode, 30, 5))
 			{
@@ -482,8 +483,9 @@ public:
 					PPCInterpreter_PS_CMPU1(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [4->0] at %08X\n", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
+					cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [4->0] at {:08x}", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
 					cemu_assert_unimplemented();
+					hCPU->instructionPointer += 4;
 					break;
 				}
 				break;
@@ -509,8 +511,9 @@ public:
 					PPCInterpreter_PS_ABS(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [4->8] at %08X\n", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
+					cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [4->8] at {:08x}", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
 					cemu_assert_unimplemented();
+					hCPU->instructionPointer += 4;
 					break;
 				}
 				break;
@@ -548,8 +551,9 @@ public:
 					PPCInterpreter_PS_MERGE11(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [4->16] at %08X\n", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
-					debugBreakpoint();
+					cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [4->16] at {:08x}", PPC_getBits(opcode, 25, 5), hCPU->instructionPointer);
+					cemu_assert_unimplemented();
+					hCPU->instructionPointer += 4;
 					break;
 				}
 				break;
@@ -590,8 +594,9 @@ public:
 				PPCInterpreter_PS_NMADD(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [4] at %08X\n", PPC_getBits(opcode, 30, 5), hCPU->instructionPointer);
+				cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [4] at {:08x}", PPC_getBits(opcode, 30, 5), hCPU->instructionPointer);
 				cemu_assert_unimplemented();
+				hCPU->instructionPointer += 4;
 				break;
 			}
 			break;
@@ -623,12 +628,15 @@ public:
 			PPCInterpreter_BCX(hCPU, opcode);
 			break;
 		case 17:
-			if (PPC_getBits(opcode, 30, 1) == 1) {
+			if (PPC_getBits(opcode, 30, 1) == 1)
+			{
 				PPCInterpreter_SC(hCPU, opcode);
 			}
-			else {
-				debug_printf("Unsupported Opcode [0x17 --> 0x0]\n");
+			else
+			{
+				cemuLog_logDebug(LogType::Force, "Unsupported Opcode [0x17 --> 0x0]");
 				cemu_assert_unimplemented();
+				hCPU->instructionPointer += 4;
 			}
 			break;
 		case 18:
@@ -658,6 +666,9 @@ public:
 			case 193:
 				PPCInterpreter_CRXOR(hCPU, opcode);
 				break;
+			case 225:
+				PPCInterpreter_CRNAND(hCPU, opcode);
+				break;
 			case 257:
 				PPCInterpreter_CRAND(hCPU, opcode);
 				break;
@@ -674,8 +685,9 @@ public:
 				PPCInterpreter_BCCTR(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [19] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+				cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [19] at {:08x}\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
 				cemu_assert_unimplemented();
+				hCPU->instructionPointer += 4;
 				break;
 			}
 			break;
@@ -713,9 +725,6 @@ public:
 				PPCInterpreter_CMP(hCPU, opcode);
 				break;
 			case 4:
-	#ifdef CEMU_DEBUG_ASSERT
-				debug_printf("TW instruction executed at %08x\n", hCPU->instructionPointer);
-	#endif
 				PPCInterpreter_TW(hCPU, opcode);
 				break;
 			case 8:
@@ -895,6 +904,12 @@ public:
 			case 522:
 				PPCInterpreter_ADDCO(hCPU, opcode);
 				break;
+			case 523: // 11 | OE
+				PPCInterpreter_MULHWU_(hCPU, opcode); // OE is ignored
+				break;
+			case 533:
+				PPCInterpreter_LSWX(hCPU, opcode);
+				break;
 			case 534:
 				PPCInterpreter_LWBRX(hCPU, opcode);
 				break;
@@ -912,6 +927,9 @@ public:
 				break;
 			case 567:
 				PPCInterpreter_LFSUX(hCPU, opcode);
+				break;
+			case 587: // 75 | OE
+				PPCInterpreter_MULHW_(hCPU, opcode); // OE is ignored for MULHW
 				break;
 			case 595:
 				PPCInterpreter_MFSR(hCPU, opcode);
@@ -943,14 +961,29 @@ public:
 			case 663:
 				PPCInterpreter_STFSX(hCPU, opcode);
 				break;
+			case 661:
+				PPCInterpreter_STSWX(hCPU, opcode);
+				break;
 			case 695:
 				PPCInterpreter_STFSUX(hCPU, opcode);
+				break;
+			case 712: // 200 | OE
+				PPCInterpreter_SUBFZEO(hCPU, opcode);
+				break;
+			case 714: // 202 | OE
+				PPCInterpreter_ADDZEO(hCPU, opcode);
 				break;
 			case 725:
 				PPCInterpreter_STSWI(hCPU, opcode);
 				break;
 			case 727:
 				PPCInterpreter_STFDX(hCPU, opcode);
+				break;
+			case 744: // 232 | OE
+				PPCInterpreter_SUBFMEO(hCPU, opcode);
+				break;
+			case 746: // 234 | OE
+				PPCInterpreter_ADDMEO(hCPU, opcode);
 				break;
 			case 747:
 				PPCInterpreter_MULLWO(hCPU, opcode);
@@ -998,10 +1031,8 @@ public:
 				PPCInterpreter_DCBZ(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [31] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
-	#ifdef CEMU_DEBUG_ASSERT
-				assert_dbg();
-	#endif
+				cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [31] at {:08x}\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+				cemu_assert_unimplemented();
 				hCPU->instructionPointer += 4;
 				break;
 			}
@@ -1084,7 +1115,7 @@ public:
 		case 57:
 			PPCInterpreter_PSQ_LU(hCPU, opcode);
 			break;
-		case 59: //Opcode category
+		case 59: // opcode category
 			switch (PPC_getBits(opcode, 30, 5))
 			{
 			case 18:
@@ -1115,8 +1146,9 @@ public:
 				PPCInterpreter_FNMADDS(hCPU, opcode);
 				break;
 			default:
-				debug_printf("Unknown execute %04X as [59] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+				cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [59] at {:08x}\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
 				cemu_assert_unimplemented();
+				hCPU->instructionPointer += 4;
 				break;
 			}
 			break;
@@ -1195,18 +1227,19 @@ public:
 				case 583:
 					PPCInterpreter_MFFS(hCPU, opcode);
 					break;
-				case 711: // IBM documentation has this wrong as 771?
+				case 711:
 					PPCInterpreter_MTFSF(hCPU, opcode);
 					break;
 				default:
-					debug_printf("Unknown execute %04X as [63] at %08X\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
+					cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} as [63] at {:08x}\n", PPC_getBits(opcode, 30, 10), hCPU->instructionPointer);
 					cemu_assert_unimplemented();
+					PPCInterpreter_nextInstruction(hCPU);
 					break;
 				}
 			}
 			break;
 		default:
-			debug_printf("Unknown execute %04X at %08X\n", PPC_getBits(opcode, 5, 6), (unsigned int)hCPU->instructionPointer);
+			cemuLog_logDebug(LogType::Force, "Unknown execute {:04x} at {:08x}\n", PPC_getBits(opcode, 5, 6), (unsigned int)hCPU->instructionPointer);
 			cemu_assert_unimplemented();
 		}
 	}

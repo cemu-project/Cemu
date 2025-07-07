@@ -12,7 +12,7 @@ public:
 		: wxCommandEvent(EVT_LOG), m_filter(filter), m_message(message) { }
 
 	wxLogEvent(const wxLogEvent& event)
-		:  wxCommandEvent(event), m_filter(event.m_filter), m_message(event.m_message) { }
+		:  wxCommandEvent(event), m_filter(event.GetFilter()), m_message(event.GetMessage()) { }
 
 	wxEvent* Clone() const { return new wxLogEvent(*this); }
 
