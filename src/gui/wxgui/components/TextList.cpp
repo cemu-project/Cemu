@@ -1,5 +1,8 @@
 #include "wxgui/wxgui.h"
 #include "TextList.h"
+
+#include "debugger/DisasmCtrl.h"
+
 #include <wx/setup.h>
 #include <wx/tooltip.h>
 
@@ -18,13 +21,14 @@ TextList::~TextList()
 	this->Unbind(wxEVT_ERASE_BACKGROUND, &TextList::OnEraseBackground, this);
 }
 
-TextList::TextList(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style) : wxScrolled<wxControl>(parent, id, pos, size, style)
+TextList::TextList(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style)
+	: wxControl(parent, id, pos, size, style), wxScrollHelper(this)
 {
 	m_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
 	this->wxWindowBase::SetBackgroundStyle(wxBG_STYLE_PAINT);
 
 	wxInfoDC dc(this);
-	this->wxScrolled::DoPrepareReadOnlyDC(dc);
+	this->DoPrepareReadOnlyDC(dc);
 	dc.SetFont(m_font);
 	m_line_height = dc.GetCharHeight();
 	m_char_width = dc.GetCharWidth();
@@ -280,25 +284,37 @@ void TextList::OnPaintEvent(wxPaintEvent& event)
 {
 	wxAutoBufferedPaintDC dc(m_targetWindow);
 
+	// get window position
+	auto position = GetPosition();
+
+	// get current real position
+	wxRect rect_update = GetUpdateRegion().GetBox();
+	const auto count = (uint32)std::ceil((float)rect_update.GetHeight() / m_line_height);
+
+	position.y = (rect_update.y / m_line_height) * m_line_height;
+
+	// paint background
 	dc.SetFont(m_font);
+	const wxColour window_colour = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 	dc.SetBrush(GetBackgroundColour());
 	dc.SetPen(*wxTRANSPARENT_PEN);
-	dc.DrawRectangle(GetUpdateRegion().GetBox());
+	dc.DrawRectangle(rect_update);
 
-	// calculate the number of elements visible in the current view
-	auto rect_update = GetClientRect();
-	sint32 start = GetViewStart().y;
-	m_elements_visible = std::min(rect_update.height + m_line_height - 1, (sint32)m_element_count - start);
+	//// paint selection
+	//if (!m_selected_text.eof())
+	//{
+	//	dc.SetBrush(*wxBLUE_BRUSH);
+	//	dc.SetPen(*wxBLUE_PEN);
+	//	dc.DrawRectangle(m_selection);
+	//}
 
-	// add constraints
-	if (m_elements_visible < 0)
-		m_elements_visible = 0;
-	else if (m_elements_visible > m_element_count - start)
-		m_elements_visible = m_element_count - start;
+	sint32 start;
+	CalcUnscrolledPosition(rect_update.x, rect_update.y, nullptr, &start);
 
-	m_scrolled_to_end = (start + m_elements_visible >= m_element_count);
+	start /= m_line_height;
+	m_scrolled_to_end = (start + count) >= m_element_count;
 
-	OnDraw(dc, GetViewStart().y, m_elements_visible, wxPoint(rect_update.x, rect_update.y));
+	OnDraw(dc, start, count, position);
 
 	// removed Update() here since all text is white
 }
