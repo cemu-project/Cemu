@@ -5,9 +5,6 @@
 #include "util/math/vector2.h"
 #include "Cafe/Account/Account.h"
 
-#include <wx/language.h>
-#include <wx/intl.h>
-
 enum class NetworkService;
 
 struct GameEntry
@@ -261,15 +258,15 @@ struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 		string_view name;
 		switch (v)
 		{
-		case CafeConsoleRegion::JPN: name = wxTRANSLATE("Japan"); break;
-		case CafeConsoleRegion::USA: name = wxTRANSLATE("USA"); break;
-		case CafeConsoleRegion::EUR: name = wxTRANSLATE("Europe"); break;
-		case CafeConsoleRegion::AUS_DEPR: name = wxTRANSLATE("Australia"); break;
-		case CafeConsoleRegion::CHN: name = wxTRANSLATE("China"); break;
-		case CafeConsoleRegion::KOR: name = wxTRANSLATE("Korea"); break;
-		case CafeConsoleRegion::TWN: name = wxTRANSLATE("Taiwan"); break;
-		case CafeConsoleRegion::Auto: name = wxTRANSLATE("Auto"); break;
-		default: name = wxTRANSLATE("many"); break;
+		case CafeConsoleRegion::JPN: name = "Japan"; break;
+		case CafeConsoleRegion::USA: name = "USA"; break;
+		case CafeConsoleRegion::EUR: name = "Europe"; break;
+		case CafeConsoleRegion::AUS_DEPR: name = "Australia"; break;
+		case CafeConsoleRegion::CHN: name = "China"; break;
+		case CafeConsoleRegion::KOR: name = "Korea"; break;
+		case CafeConsoleRegion::TWN: name = "Taiwan"; break;
+		case CafeConsoleRegion::Auto: name = "Auto"; break;
+		default: name = "many"; break;
 		
 		}
 		return formatter<string_view>::format(name, ctx);
@@ -364,7 +361,7 @@ struct CemuConfig
 
 	ConfigValue<bool> permanent_storage{ true };
 	
-	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
+	ConfigValue<sint32> language{ 0 };
 	ConfigValue<bool> use_discord_presence{ true };
 	ConfigValue<std::string> mlc_path{};
 	ConfigValue<bool> fullscreen_menubar{ false };

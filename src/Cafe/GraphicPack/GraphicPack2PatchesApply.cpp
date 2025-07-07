@@ -691,13 +691,13 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 				patchContext.errorHandler.printError(nullptr, -1, "Some symbols could not be resolved because the dependency chain is too deep");
 			for (auto& itr : patchContext.unresolvedSymbols)
 				patchContext.errorHandler.printError(itr.patchGroup, itr.lineNumber, fmt::format("Unresolved symbol: {}", itr.symbolName));
-			patchContext.errorHandler.showStageErrorMessageBox();
+			patchContext.errorHandler.logStageError();
 			return;
 		}
 	}
 	if (!isUnresolvedPatchesEmpty() || patchContext.errorHandler.hasError())
 	{
-		patchContext.errorHandler.showStageErrorMessageBox();
+		patchContext.errorHandler.logStageError();
 		return;
 	}
 	// apply relocated patches

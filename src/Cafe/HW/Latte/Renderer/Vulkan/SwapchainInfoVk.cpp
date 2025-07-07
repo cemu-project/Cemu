@@ -1,7 +1,7 @@
 #include "SwapchainInfoVk.h"
 
 #include "config/CemuConfig.h"
-#include "gui/guiWrapper.h"
+#include "WindowSystem.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteTiming.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
@@ -9,7 +9,7 @@
 
 SwapchainInfoVk::SwapchainInfoVk(bool mainWindow, Vector2i size) : mainWindow(mainWindow), m_desiredExtent(size)
 {
-	auto& windowHandleInfo = mainWindow ? gui_getWindowInfo().canvas_main : gui_getWindowInfo().canvas_pad;
+	auto& windowHandleInfo = mainWindow ? WindowSystem::getWindowInfo().canvas_main : WindowSystem::getWindowInfo().canvas_pad;
 	auto renderer = VulkanRenderer::GetInstance();
 	m_instance = renderer->GetVkInstance();
 	m_logicalDevice = renderer->GetLogicalDevice();

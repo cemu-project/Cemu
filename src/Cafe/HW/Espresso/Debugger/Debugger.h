@@ -15,6 +15,69 @@
 #define DEBUGGER_BP_T_GDBSTUB_TW    0x7C010008
 #define DEBUGGER_BP_T_DEBUGGER_TW   0x7C020008
 
+class DebuggerCallbacks
+{
+  public:
+	virtual void updateViewThreadsafe() {}
+	virtual void notifyDebugBreakpointHit() {}
+	virtual void notifyRun() {}
+	virtual void moveIP() {}
+	virtual void notifyModuleLoaded(void* module) {}
+	virtual void notifyModuleUnloaded(void* module) {}
+	virtual ~DebuggerCallbacks() = default;
+};
+
+class DebuggerDispatcher
+{
+  private:
+	static inline class DefaultDebuggerCallbacks : public DebuggerCallbacks
+	{
+	} s_defaultDebuggerCallbacks;
+	DebuggerCallbacks* m_callbacks = &s_defaultDebuggerCallbacks;
+
+  public:
+	void setDebuggerCallbacks(DebuggerCallbacks* debuggerCallbacks)
+	{
+		cemu_assert_debug(m_callbacks == &s_defaultDebuggerCallbacks);
+		m_callbacks = debuggerCallbacks;
+	}
+
+	void clearDebuggerCallbacks()
+	{
+		cemu_assert_debug(m_callbacks != &s_defaultDebuggerCallbacks);
+		m_callbacks = &s_defaultDebuggerCallbacks;
+	}
+
+	void updateViewThreadsafe()
+	{
+		m_callbacks->updateViewThreadsafe();
+	}
+
+	void notifyDebugBreakpointHit()
+	{
+		m_callbacks->notifyDebugBreakpointHit();
+	}
+
+	void notifyRun()
+	{
+		m_callbacks->notifyRun();
+	}
+
+	void moveIP()
+	{
+		m_callbacks->moveIP();
+	}
+
+	void notifyModuleLoaded(void* module)
+	{
+		m_callbacks->notifyModuleLoaded(module);
+	}
+
+	void notifyModuleUnloaded(void* module)
+	{
+		m_callbacks->notifyModuleUnloaded(module);
+	}
+} extern g_debuggerDispatcher;
 
 struct DebuggerBreakpoint
 {

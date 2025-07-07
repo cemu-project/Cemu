@@ -3,8 +3,6 @@
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 
-#include <wx/language.h>
-
 #include "ActiveSettings.h"
 
 XMLCemuConfig_t g_config(L"settings.xml");
@@ -33,7 +31,7 @@ void CemuConfig::Load(XMLConfigParser& parser)
 
 	permanent_storage = parser.get("permanent_storage", permanent_storage);
 	
-	language = parser.get<sint32>("language", wxLANGUAGE_DEFAULT);
+	language = parser.get<sint32>("language", 0);
 	use_discord_presence = parser.get("use_discord_presence", true);
 	fullscreen_menubar = parser.get("fullscreen_menubar", false);
 	feral_gamemode = parser.get("feral_gamemode", false);

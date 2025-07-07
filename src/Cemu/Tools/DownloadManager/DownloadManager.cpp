@@ -1,7 +1,6 @@
 #include "Cemu/Tools/DownloadManager/DownloadManager.h"
 
 #include "Cafe/Account/Account.h"
-#include "gui/CemuApp.h"
 #include "util/crypto/md5.h"
 #include "Cafe/TitleList/TitleId.h"
 #include "Common/FileStream.h"
@@ -10,7 +9,6 @@
 #include "config/ActiveSettings.h"
 #include "util/ThreadPool/ThreadPool.h"
 #include "util/helpers/enum_array.hpp"
-#include "gui/MainWindow.h"
 
 #include "Cafe/Filesystem/FST/FST.h"
 #include "Cafe/TitleList/TitleList.h"
@@ -20,7 +18,7 @@
 #include <curl/curl.h>
 #include <pugixml.hpp>
 
-#include "gui/helpers/wxHelpers.h"
+#include "WindowSystem.h"
 
 #include "Cemu/napi/napi.h"
 #include "util/helpers/Serializer.h"
@@ -333,9 +331,7 @@ bool DownloadManager::syncAccountTickets()
 	for (auto& tiv : resultTicketIds.tivs)
 	{
 		index++;
-		std::string msg = _("Downloading account ticket").utf8_string();
-		msg.append(fmt::format(" {0}/{1}", index, count));
-		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
+		setStatus(DownloadManagerStatuses::DownloadingAccountTicket{.index = index, .count = count});
 		// skip if already cached
 		ETicketInfo* cachedTicket = findTicketByTicketId(tiv.ticketId);
 		if (cachedTicket)
@@ -386,7 +382,7 @@ bool DownloadManager::syncAccountTickets()
 
 bool DownloadManager::syncSystemTitleTickets()
 {
-	setStatusMessage(_("Downloading system tickets...").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
+	setStatus(DownloadManagerStatuses::DownloadingSystemTickets{});
 	NAPI::AuthInfo authInfo = GetAuthInfo(true);
 	auto querySystemTitleTicket = [&](uint64 titleId) -> void
 	{
@@ -436,7 +432,7 @@ bool DownloadManager::syncSystemTitleTickets()
 // build list of updates for which either an installed game exists or the base title ticket is cached
 bool DownloadManager::syncUpdateTickets()
 {
-	setStatusMessage(_("Retrieving update information...").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
+	setStatus(DownloadManagerStatuses::RetrievingUpdateInformation{});
 	// download update version list
 	downloadTitleVersionList();
 	if (!m_hasTitleVersionList)
@@ -458,10 +454,7 @@ bool DownloadManager::syncUpdateTickets()
 		if (titleIdParser.GetType() != TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
 			continue;
 
-		std::string msg = _("Downloading ticket").utf8_string();
-		msg.append(fmt::format(" {0}/{1}", updateIndex, numUpdates));
-		updateIndex++;
-		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
+		setStatus(DownloadManagerStatuses::DownloadingTicket{.updateIndex = updateIndex, .numUpdates = numUpdates});
 
 		if (!itr.isUpdateAvailable)
 			continue;
@@ -510,12 +503,10 @@ bool DownloadManager::syncTicketCache()
 	for (auto& ticketInfo : m_ticketCache)
 	{
 		index++;
-		std::string msg = _("Downloading meta data").utf8_string();
-		msg.append(fmt::format(" {0}/{1}", index, count));
-		setStatusMessage(msg, DLMGR_STATUS_CODE::CONNECTING);
+		setStatus(DownloadManagerStatuses::DownloadingMetaData{.index = index, .count = count});
 		prepareIDBE(ticketInfo.titleId);
 	}
-	setStatusMessage(_("Connected. Right click entries in the list to start downloading").utf8_string(), DLMGR_STATUS_CODE::CONNECTED);
+	setStatus(DownloadManagerStatuses::Connected{});
 	return true;
 }
 
@@ -601,7 +592,7 @@ void DownloadManager::_handle_connect()
 	// reset login state
 	m_iasToken.serviceAccountId.clear();
 	m_iasToken.deviceToken.clear();
-	setStatusMessage(_("Logging in...").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
+	setStatus(DownloadManagerStatuses::LoggingIn{});
 	// retrieve ECS AccountId + DeviceToken from cache
 	if (s_nupFileCache)
 	{
@@ -624,7 +615,7 @@ void DownloadManager::_handle_connect()
 			cemuLog_log(LogType::Force, "Failed to request IAS token");
 			cemu_assert_debug(false);
 			m_connectState.store(CONNECT_STATE::FAILED);
-			setStatusMessage(_("Login failed. Outdated or incomplete online files?").utf8_string(), DLMGR_STATUS_CODE::FAILED);
+			setStatus(DownloadManagerStatuses::LoginFailed{});
 			return;
 		}
 	}
@@ -632,16 +623,16 @@ void DownloadManager::_handle_connect()
 	if (!_connect_queryAccountStatusAndServiceURLs())
 	{
 		m_connectState.store(CONNECT_STATE::FAILED);
-		setStatusMessage(_("Failed to query account status").utf8_string(), DLMGR_STATUS_CODE::FAILED);
+		setStatus(DownloadManagerStatuses::FailedToQueryAccountStatus{});
 		return;
 	}
 	// load ticket cache and sync
-	setStatusMessage(_("Updating ticket cache").utf8_string(), DLMGR_STATUS_CODE::CONNECTING);
+	setStatus(DownloadManagerStatuses::UpdatingTicketCache{});
 	loadTicketCache();
 	if (!syncTicketCache())
 	{
 		m_connectState.store(CONNECT_STATE::FAILED);
-		setStatusMessage(_("Failed to request tickets").utf8_string(), DLMGR_STATUS_CODE::FAILED);
+		setStatus(DownloadManagerStatuses::FailedToRequestTickets{});
 		return;
 	}
 	searchForIncompleteDownloads();
@@ -923,13 +914,13 @@ void DownloadManager::checkPackagesState()
 	}
 }
 
-void DownloadManager::setPackageError(Package* package, std::string errorMsg)
+void DownloadManager::setPackageError(Package* package, PackageErrorCode errorCode)
 {
 	package->state.isActive = false;
 	if (package->state.hasError)
 		return; // dont overwrite already set error message
 	package->state.hasError = true;
-	package->state.errorMsg = std::move(errorMsg);
+	package->state.errorCode = errorCode;
 	reportPackageStatus(package);
 }
 
@@ -968,7 +959,7 @@ void DownloadManager::reportPackageStatus(Package* package)
 
 	DlMgrTitleReport reportInfo(status, package->titleId, package->version, getNameFromCachedIDBE(package->titleId), package->state.progress, package->state.progressMax, package->state.isPaused);
 	if (package->state.hasError)
-		reportInfo.errorMsg = package->state.errorMsg;
+		reportInfo.errorCode = package->state.errorCode;
 
 	m_mutex.unlock();
 	m_cbAddDownloadableTitle(reportInfo);
@@ -1006,7 +997,7 @@ void DownloadManager::asyncPackageDownloadTMD(Package* package)
 	std::unique_lock<std::recursive_mutex> _l(m_mutex);
 	if (!tmdResult.isValid)
 	{
-		setPackageError(package, _("TMD download failed").utf8_string());
+		setPackageError(package, PackageErrorCode::TMD_DOWNLOAD_FAILED);
 		package->state.isDownloadingTMD = false;
 		return;
 	}
@@ -1015,7 +1006,7 @@ void DownloadManager::asyncPackageDownloadTMD(Package* package)
 	NCrypto::TMDParser tmdParser;
 	if (!tmdParser.parse(tmdResult.tmdData.data(), tmdResult.tmdData.size()))
 	{
-		setPackageError(package, _("Invalid TMD").utf8_string());
+		setPackageError(package, PackageErrorCode::INVALID_TMD);
 		package->state.isDownloadingTMD = false;
 		return;
 	}
@@ -1124,7 +1115,7 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 				size_t bytesWritten = callbackInfo->receiveBuffer.size();
 				if (callbackInfo->fileOutput->writeData(callbackInfo->receiveBuffer.data(), callbackInfo->receiveBuffer.size()) != (uint32)callbackInfo->receiveBuffer.size())
 				{
-					callbackInfo->downloadMgr->setPackageError(callbackInfo->package, _("Cannot write file. Disk full?").utf8_string());
+					callbackInfo->downloadMgr->setPackageError(callbackInfo->package, PackageErrorCode::DISK_FULL_FAILED_TO_WRITE_FILE);
 					return false;
 				}
 				callbackInfo->receiveBuffer.clear();
@@ -1145,12 +1136,12 @@ void DownloadManager::asyncPackageDownloadContentFile(Package* package, uint16 i
 	callbackInfoData.fileOutput = FileStream::createFile2(packageDownloadPath / fmt::format("{:08x}.app", contentId));
 	if (!callbackInfoData.fileOutput)
 	{
-		setPackageError(package, _("Cannot create file").utf8_string());
+		setPackageError(package, PackageErrorCode::CANNOT_CREATE_FILE);
 		return;
 	}
 	if (!NAPI::CCS_GetContentFile(GetDownloadMgrNetworkService(), titleId, contentId, CallbackInfo::writeCallback, &callbackInfoData))
 	{
-		setPackageError(package, _("Download failed").utf8_string());
+		setPackageError(package, PackageErrorCode::DOWNLOAD_FAILED);
 		delete callbackInfoData.fileOutput;
 		return;
 	}
@@ -1193,7 +1184,7 @@ void DownloadManager::asyncPackageVerifyFile(Package* package, uint16 index, boo
 		_l.lock();
 		contentFileItr->second.finishProcessing(newStateOnError);
 		if (!isCheckState)
-			setPackageError(package, "Missing file during verification");
+			setPackageError(package, PackageErrorCode::MISSING_FILE_DURING_VERIFICATION);
 		_l.unlock();
 		updatePackage(package);
 		return;
@@ -1212,7 +1203,7 @@ void DownloadManager::asyncPackageVerifyFile(Package* package, uint16 index, boo
 		_l.lock();
 		contentFileItr->second.finishProcessing(newStateOnError);
 		if (!isCheckState)
-			setPackageError(package, "Verification failed");
+			setPackageError(package, PackageErrorCode::VERIFICATION_FAILED);
 		_l.unlock();
 		updatePackage(package);
 		return;
@@ -1235,7 +1226,7 @@ bool DownloadManager::asyncPackageInstallRecursiveExtractFiles(Package* package,
 	if (!fstVolume->OpenDirectoryIterator(sourcePath, dirItr))
 	{
 		std::unique_lock<std::recursive_mutex> _l(m_mutex);
-		setPackageError(package, "Internal error");
+		setPackageError(package, PackageErrorCode::INTERNAL_ERROR);
 		return false;
 	}
 	if (fstVolume->HasLinkFlag(dirItr.GetDirHandle()))
@@ -1281,7 +1272,7 @@ bool DownloadManager::asyncPackageInstallRecursiveExtractFiles(Package* package,
 				FileStream* fileOut = FileStream::createFile2(nodeDestinationPath);
 				if (!fileOut)
 				{
-					setPackageError(package, "Failed to create file");
+					setPackageError(package, PackageErrorCode::FAILED_TO_CREATE_FILE);
 					return false;
 				}
 				uint32 fileSize = fstVolume->GetFileSize(itr);
@@ -1291,12 +1282,12 @@ bool DownloadManager::asyncPackageInstallRecursiveExtractFiles(Package* package,
 					uint32 numBytesToTransfer = std::min(fileSize - currentPos, (uint32)buffer.size());
 					if (fstVolume->ReadFile(itr, currentPos, numBytesToTransfer, buffer.data()) != numBytesToTransfer)
 					{
-						setPackageError(package, "Failed to extract data");
+						setPackageError(package, PackageErrorCode::FAILED_TO_EXTRACT_DATA);
 						return false;
 					}
 					if (fileOut->writeData(buffer.data(), numBytesToTransfer) != numBytesToTransfer)
 					{
-						setPackageError(package, "Failed to write to file. Disk full?");
+						setPackageError(package, PackageErrorCode::DISK_FULL_FAILED_TO_WRITE_FILE);
 						return false;
 					}
 					currentPos += numBytesToTransfer;
@@ -1326,7 +1317,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	if (!fileStream || fileStream->writeData(package->state.tmdData.data(), package->state.tmdData.size()) != package->state.tmdData.size())
 	{
 		_l.lock();
-		setPackageError(package, "Failed to write title.tmd");
+		setPackageError(package, PackageErrorCode::FAILED_TO_WRITE_TITLE_TMD);
 		package->state.isInstalling = false;
 		return;
 	}
@@ -1336,7 +1327,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	if (!fileStream || fileStream->writeData(package->eTicketData.data(), package->eTicketData.size()) != package->eTicketData.size())
 	{
 		_l.lock();
-		setPackageError(package, "Failed to write title.tik");
+		setPackageError(package, PackageErrorCode::FAILED_TO_WRITE_TITLE_TIK);
 		package->state.isInstalling = false;
 		return;
 	}
@@ -1352,7 +1343,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 		if (!fileStream || fileStream->writeData(package->eTicketData.data(), package->eTicketData.size()) != package->eTicketData.size())
 		{
 			_l.lock();
-			setPackageError(package, "Failed to install title.tik");
+			setPackageError(package, PackageErrorCode::FAILED_TO_INSTALL_TITLE_TIK);
 			package->state.isInstalling = false;
 			return;
 		}
@@ -1363,7 +1354,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	if (!fst)
 	{
 		_l.lock();
-		setPackageError(package, "Failed to extract content");
+		setPackageError(package, PackageErrorCode::FAILED_TO_EXTRACT_CONTENT);
 		package->state.isInstalling = false;
 		return;
 	}
@@ -1374,21 +1365,21 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	if (!asyncPackageInstallRecursiveExtractFiles(package, fst, "code/", installPath / "code"))
 	{
 		_l.lock();
-		setPackageError(package, "Failed to extract code folder");
+		setPackageError(package, PackageErrorCode::FAILED_TO_EXTRACT_CODE_FOLDER);
 		package->state.isInstalling = false;
 		return;
 	}
 	if (!asyncPackageInstallRecursiveExtractFiles(package, fst, "content/", installPath / "content"))
 	{
 		_l.lock();
-		setPackageError(package, "Failed to extract content folder");
+		setPackageError(package, PackageErrorCode::FAILED_TO_EXTRACT_CONTENT_FOLDER);
 		package->state.isInstalling = false;
 		return;
 	}
 	if (!asyncPackageInstallRecursiveExtractFiles(package, fst, "meta/", installPath / "meta"))
 	{
 		_l.lock();
-		setPackageError(package, "Failed to extract meta folder");
+		setPackageError(package, PackageErrorCode::FAILED_TO_EXTRACT_META_FOLDER);
 		package->state.isInstalling = false;
 		return;
 	}
@@ -1405,7 +1396,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	reportPackageStatus(package);
 	checkPackagesState();
 	// lastly request game list to be refreshed
-	MainWindow::RequestGameListRefresh();
+	WindowSystem::refreshGameList();
 	return;
 }
 

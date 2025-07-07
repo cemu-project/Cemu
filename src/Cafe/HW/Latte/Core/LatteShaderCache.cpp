@@ -6,7 +6,7 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cemu/FileCache/FileCache.h"
 #include "Cafe/GameProfile/GameProfile.h"
-#include "gui/guiWrapper.h"
+#include "WindowSystem.h"
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
@@ -24,7 +24,6 @@
 #include "Cafe/HW/Latte/Common/ShaderSerializer.h"
 #include "util/helpers/Serializer.h"
 
-#include <wx/msgdlg.h>
 #include <audio/IAudioAPI.h>
 #include <util/bootSound/BootSoundReader.h>
 #include <thread>
@@ -68,8 +67,6 @@ bool LatteShaderCache_readSeparableShader(uint8* shaderInfoData, sint32 shaderIn
 void LatteShaderCache_LoadVulkanPipelineCache(uint64 cacheTitleId);
 bool LatteShaderCache_updatePipelineLoadingProgress();
 void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateFunc, bool isPipelines);
-
-void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path pathGenericPre1_25_0, fs::path pathGenericPre1_16_0);
 
 struct
 {
@@ -363,7 +360,6 @@ void LatteShaderCache_Load()
 	const auto pathGenericPre1_25_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}.bin", cacheTitleId); // before 1.25.0
 	const auto pathGenericPre1_16_0 = ActiveSettings::GetCachePath("shaderCache/transferable/{:08x}.bin", CafeSystem::GetRPXHashBase()); // before 1.16.0
 
-	LatteShaderCache_handleDeprecatedCacheFiles(pathGeneric, pathGenericPre1_25_0, pathGenericPre1_16_0);
 	// calculate extraVersion for transferable and precompiled shader cache
 	uint32 transferableExtraVersion = SHADER_CACHE_GENERIC_EXTRA_VERSION;
     s_shaderCacheGeneric = FileCache::Open(pathGeneric, false, transferableExtraVersion); // legacy extra version (1.25.0 - 1.25.1b)
@@ -511,7 +507,7 @@ void LatteShaderCache_ShowProgress(const std::function <bool(void)>& loadUpdateF
 			continue;
 
 		int w, h;
-		gui_getWindowPhysSize(w, h);
+		WindowSystem::getWindowPhysSize(w, h);
 		const Vector2f window_size{ (float)w,(float)h };
 
 		ImGui_GetFont(window_size.y / 32.0f); // = 24 by default
@@ -899,31 +895,4 @@ void LatteShaderCache_Close()
     // if Vulkan then also close pipeline cache
     if (g_renderer->GetType() == RendererAPI::Vulkan)
         VulkanPipelineStableCache::GetInstance().Close();
-}
-
-#include <wx/msgdlg.h>
-
-void LatteShaderCache_handleDeprecatedCacheFiles(fs::path pathGeneric, fs::path pathGenericPre1_25_0, fs::path pathGenericPre1_16_0)
-{
-	std::error_code ec;
-
-	bool hasOldCacheFiles = fs::exists(pathGenericPre1_25_0, ec) || fs::exists(pathGenericPre1_16_0, ec);
-	bool hasNewCacheFiles = fs::exists(pathGeneric, ec);
-
-	if (hasOldCacheFiles && !hasNewCacheFiles)
-	{
-		// ask user if they want to delete or keep the old cache file
-		auto infoMsg = _("Cemu detected that the shader cache for this game is outdated.\nOnly shader caches generated with Cemu 1.25.0 or above are supported.\n\nWe recommend deleting the outdated cache file as it will no longer be used by Cemu.");
-			
-		wxMessageDialog dialog(nullptr, infoMsg, _("Outdated shader cache"),
-			wxYES_NO | wxCENTRE | wxICON_EXCLAMATION);
-
-		dialog.SetYesNoLabels(_("Delete outdated cache file [recommended]"), _("Keep outdated cache file"));
-		const auto result = dialog.ShowModal();
-		if (result == wxID_YES)
-		{
-			fs::remove(pathGenericPre1_16_0, ec);
-			fs::remove(pathGenericPre1_25_0, ec);
-		}
-	}
 }

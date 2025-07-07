@@ -1,7 +1,5 @@
-#include "gui/guiWrapper.h"
-#include "gui/wxgui.h"
+#include "WindowSystem.h"
 #include "util/crypto/aes128.h"
-#include "gui/MainWindow.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
@@ -11,7 +9,6 @@
 #include "config/NetworkSettings.h"
 #include "config/LaunchSettings.h"
 #include "input/InputManager.h"
-#include "gui/CemuApp.h"
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/TitleList/TitleList.h"
@@ -20,7 +17,6 @@
 #include "Common/ExceptionHandler/ExceptionHandler.h"
 #include "Common/cpu_features.h"
 
-#include <wx/setup.h>
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
@@ -231,7 +227,7 @@ int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LP
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
-	gui_create();
+	WindowSystem::create();
 	return 0;
 }
 
@@ -243,7 +239,7 @@ int main(int argc, char* argv[])
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-	gui_create();
+	WindowSystem::create();
 	return 0;
 }
 
@@ -256,7 +252,7 @@ int main(int argc, char *argv[])
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-	gui_create();
+	WindowSystem::create();
 	return 0;
 }
 #endif

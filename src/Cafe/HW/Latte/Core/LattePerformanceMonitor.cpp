@@ -1,6 +1,6 @@
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
-#include "gui/guiWrapper.h"
+#include "WindowSystem.h"
 
 performanceMonitor_t performanceMonitor{};
 
@@ -106,12 +106,12 @@ void LattePerformanceMonitor_frameEnd()
 		if (isFirstUpdate)
 		{
 			LatteOverlay_updateStats(0.0, 0, 0);
-			gui_updateWindowTitles(false, false, 0.0);
+			WindowSystem::updateWindowTitles(false, false, 0.0);
 		}
 		else
 		{
 			LatteOverlay_updateStats(fps, drawCallCounter / elapsedFrames, fastDrawCallCounter / elapsedFrames);
-			gui_updateWindowTitles(false, false, fps);
+			WindowSystem::updateWindowTitles(false, false, fps);
 		}
 	}
 }

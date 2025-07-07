@@ -1,5 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
-#include "gui/wxgui.h"
+#include "WindowSystem.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
@@ -65,9 +65,6 @@
 // HW interfaces
 #include "Cafe/HW/SI/si.h"
 
-// dependency to be removed
-#include "gui/guiWrapper.h"
-
 #include <time.h>
 
 #if BOOST_OS_LINUX
@@ -131,7 +128,7 @@ void SetEntryPoint(MPTR entryPoint)
 }
 
 // load executable into virtual memory and set entrypoint
-void LoadMainExecutable()
+bool LoadMainExecutable()
 {
 	isLaunchTypeELF = false;
 	// when launching from a disc image _pathToExecutable is initially empty
@@ -145,6 +142,7 @@ void LoadMainExecutable()
 			cemuLog_log(LogType::Force, "Unable to find RPX executable");
 			cemuLog_waitForFlush();
 			cemu_assert(false);
+			return false;
 		}
 	}
 	// extract and load RPX
@@ -155,6 +153,7 @@ void LoadMainExecutable()
 		cemuLog_log(LogType::Force, "Failed to load \"{}\"", _pathToExecutable);
 		cemuLog_waitForFlush();
 		cemu_assert(false);
+		return false;
 	}
 	currentUpdatedApplicationHash = generateHashFromRawRPXData(rpxData, rpxSize);
 	// determine if this file is an ELF
@@ -172,10 +171,10 @@ void LoadMainExecutable()
 		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
-			wxMessageBox(_("Failed to run this title because the executable is damaged"));
-			cemuLog_createLogFile(false);
+			cemuLog_log(LogType::Force, "Failed to run this title because the executable is damaged");
 			cemuLog_waitForFlush();
-			exit(0);
+			cemu_assert(false);
+			return false;
 		}
 		RPLLoader_SetMainModule(applicationRPX);
 		SetEntryPoint(RPLLoader_GetModuleEntrypoint(applicationRPX));
@@ -194,6 +193,7 @@ void LoadMainExecutable()
 	}
 	free(baseRpxData);
 	debug_printf("RPXHash: 0x%08x\n", currentBaseApplicationHash);
+	return true;
 }
 
 fs::path getTitleSavePath()
@@ -357,7 +357,7 @@ uint32 LoadSharedData()
 
 void cemu_initForGame()
 {
-	gui_updateWindowTitles(false, true, 0.0);
+	WindowSystem::updateWindowTitles(false, true, 0.0);
 	// input manager apply game profile
 	InputManager::instance().apply_game_profile();
 	// log info for launched title
@@ -755,7 +755,12 @@ namespace CafeSystem
 				}
 			}
 		}
-		LoadMainExecutable();
+
+		if (!LoadMainExecutable())
+		{
+			return PREPARE_STATUS_CODE::INVALID_RPX;
+		}
+
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
@@ -855,7 +860,7 @@ namespace CafeSystem
 		PPCTimer_waitForInit();
 		// start system
 		sSystemRunning = true;
-		gui_notifyGameLoaded();
+		WindowSystem::notifyGameLoaded();
 		std::thread t(_LaunchTitleThread);
 		t.detach();
 	}

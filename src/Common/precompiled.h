@@ -98,6 +98,14 @@ using sint32 = int32_t;
 using sint16 = int16_t;
 using sint8 = int8_t;
 
+#if _MSC_VER
+#ifndef _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+#endif
+
 // types with explicit big endian order
 #include "betype.h"
 

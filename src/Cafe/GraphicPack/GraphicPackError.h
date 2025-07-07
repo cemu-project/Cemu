@@ -21,7 +21,7 @@ public:
 	}
 
 	void printError(class PatchGroup* patchGroup, sint32 lineNumber, std::string_view errorMsg);
-	void showStageErrorMessageBox();
+	void logStageError();
 
 	bool hasError() const { return m_anyErrorTriggered; };
 

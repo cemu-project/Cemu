@@ -5,8 +5,6 @@
 #include <cctype>
 #include <random>
 
-#include <wx/translation.h>
-
 #include "config/ActiveSettings.h"
 
 #include <boost/random/uniform_int.hpp>
@@ -68,12 +66,12 @@ std::wstring GetSystemErrorMessageW(DWORD error_code)
 	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPWSTR)&lpMsgBuf, 0, nullptr);
 	if (lpMsgBuf)
 	{
-		std::wstring str = fmt::format(L"{}: {}", _("Error").ToStdWstring(), lpMsgBuf); // TRANSLATE
+		std::wstring str = fmt::format(L"{}: {}", L"Error", lpMsgBuf);
 		LocalFree(lpMsgBuf);
 		return str;
 	}
 
-	return fmt::format(L"{}: {:#x}", _("Error code").ToStdWstring(), error_code);
+	return fmt::format(L"{}: {:#x}", L"Error code", error_code);
 }
 
 std::string GetSystemErrorMessage(DWORD error_code)
@@ -85,12 +83,12 @@ std::string GetSystemErrorMessage(DWORD error_code)
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPSTR)&lpMsgBuf, 0, nullptr);
 	if (lpMsgBuf)
 	{
-		std::string str = fmt::format("{}: {}", _("Error").ToStdString(), lpMsgBuf); // TRANSLATE
+		std::string str = fmt::format("{}: {}", "Error", lpMsgBuf);
 		LocalFree(lpMsgBuf);
 		return str;
 	}
 
-	return fmt::format("{}: {:#x}", _("Error code").ToStdString(), error_code);
+	return fmt::format("{}: {:#x}", "Error code", error_code);
 }
 
 std::string GetSystemErrorMessage()

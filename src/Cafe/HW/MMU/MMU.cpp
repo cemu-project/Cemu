@@ -1,7 +1,7 @@
 #include "Cafe/HW/MMU/MMU.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "Cemu/Logging/CemuLogging.h"
 #include "util/MemMapper/MemMapper.h"
-#include <wx/msgdlg.h>
 #include "config/ActiveSettings.h"
 
 uint8* memory_base = NULL; // base address of the reserved 4GB space
@@ -90,8 +90,7 @@ void MMURange::mapMem()
 	cemu_assert_debug(!m_isMapped);
 	if (MemMapper::AllocateMemory(memory_base + baseAddress, size, MemMapper::PAGE_PERMISSION::P_RW, true) == nullptr)
 	{
-		std::string errorMsg = fmt::format("Unable to allocate {} memory", name);
-		wxMessageBox(errorMsg.c_str(), "Error", wxOK | wxCENTRE | wxICON_ERROR);
+		cemuLog_log(LogType::Force, "Unable to allocate {} memory", name);
 		#if BOOST_OS_WINDOWS
 		ExitProcess(-1);
 		#else
@@ -131,9 +130,8 @@ void memory_init()
 		memory_base = (uint8*)MemMapper::ReserveMemory(nullptr, (size_t)0x100000000, MemMapper::PAGE_PERMISSION::P_RW);
 	if( !memory_base )
 	{
-		debug_printf("memory_init(): Unable to reserve 4GB of memory\n");
 		debugBreakpoint();
-		wxMessageBox("Unable to reserve 4GB of memory\n", "Error", wxOK | wxCENTRE | wxICON_ERROR);
+		cemuLog_log(LogType::Force, "Unable to reserve 4GB of memory");
 		exit(-1);
 	}
 	for (auto& itr : g_mmuRanges)
