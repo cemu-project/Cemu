@@ -99,70 +99,9 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 	SetSizerAndFit(main_sizer);
 }
 
-wxString get_pro_controller_button_name(ProController::ButtonId id)
-{
-	switch (id)
-	{
-	case ProController::kButtonId_A:
-		return "A";
-	case ProController::kButtonId_B:
-		return "B";
-	case ProController::kButtonId_X:
-		return "X";
-	case ProController::kButtonId_Y:
-		return "Y";
-	case ProController::kButtonId_L:
-		return "L";
-	case ProController::kButtonId_R:
-		return "R";
-	case ProController::kButtonId_ZL:
-		return "ZL";
-	case ProController::kButtonId_ZR:
-		return "ZR";
-	case ProController::kButtonId_Plus:
-		return "+";
-	case ProController::kButtonId_Minus:
-		return "-";
-	case ProController::kButtonId_Up:
-		return _("up");
-	case ProController::kButtonId_Down:
-		return _("down");
-	case ProController::kButtonId_Left:
-		return _("left");
-	case ProController::kButtonId_Right:
-		return _("right");
-	case ProController::kButtonId_StickL:
-		return _("click");
-	case ProController::kButtonId_StickR:
-		return _("click");
-	case ProController::kButtonId_StickL_Up:
-		return _("up");
-	case ProController::kButtonId_StickL_Down:
-		return _("down");
-	case ProController::kButtonId_StickL_Left:
-		return _("left");
-	case ProController::kButtonId_StickL_Right:
-		return _("right");
-	case ProController::kButtonId_StickR_Up:
-		return _("up");
-	case ProController::kButtonId_StickR_Down:
-		return _("down");
-	case ProController::kButtonId_StickR_Left:
-		return _("left");
-	case ProController::kButtonId_StickR_Right:
-		return _("right");
-	case ProController::kButtonId_Home:
-		return _("home");
-	default:
-		cemu_assert_debug(false);
-		return "";
-	}
-}
-
-void ProControllerInputPanel::add_button_row(wxGridBagSizer* sizer, sint32 row, sint32 column, const ProController::ButtonId& button_id)
-{
+void ProControllerInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const ProController::ButtonId &button_id) {
 	sizer->Add(
-		new wxStaticText(this, wxID_ANY, get_pro_controller_button_name(button_id)),
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(ProController::get_button_name(button_id)))),
 		wxGBPosition(row, column),
 		wxDefaultSpan,
 		wxALL | wxALIGN_CENTER_VERTICAL, 5);

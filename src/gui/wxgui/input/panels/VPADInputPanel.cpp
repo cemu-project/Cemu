@@ -156,68 +156,8 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	Layout();
 }
 
-wxString get_vpad_controllerbutton_name(VPADController::ButtonId id)
-{
-	switch (id)
-	{
-	case VPADController::kButtonId_A:
-		return "A";
-	case VPADController::kButtonId_B:
-		return "B";
-	case VPADController::kButtonId_X:
-		return "X";
-	case VPADController::kButtonId_Y:
-		return "Y";
-	case VPADController::kButtonId_L:
-		return "L";
-	case VPADController::kButtonId_R:
-		return "R";
-	case VPADController::kButtonId_ZL:
-		return "ZL";
-	case VPADController::kButtonId_ZR:
-		return "ZR";
-	case VPADController::kButtonId_Plus:
-		return "+";
-	case VPADController::kButtonId_Minus:
-		return "-";
-	case VPADController::kButtonId_Up:
-		return _("up");
-	case VPADController::kButtonId_Down:
-		return _("down");
-	case VPADController::kButtonId_Left:
-		return _("left");
-	case VPADController::kButtonId_Right:
-		return _("right");
-	case VPADController::kButtonId_StickL:
-		return _("click");
-	case VPADController::kButtonId_StickR:
-		return _("click");
-	case VPADController::kButtonId_StickL_Up:
-		return _("up");
-	case VPADController::kButtonId_StickL_Down:
-		return _("down");
-	case VPADController::kButtonId_StickL_Left:
-		return _("left");
-	case VPADController::kButtonId_StickL_Right:
-		return _("right");
-	case VPADController::kButtonId_StickR_Up:
-		return _("up");
-	case VPADController::kButtonId_StickR_Down:
-		return _("down");
-	case VPADController::kButtonId_StickR_Left:
-		return _("left");
-	case VPADController::kButtonId_StickR_Right:
-		return _("right");
-	case VPADController::kButtonId_Home:
-		return _("home");
-	default:
-		cemu_assert_debug(false);
-		return "";
-	}
-}
-
 void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const VPADController::ButtonId &button_id) {
-	add_button_row(sizer, row, column, button_id, get_vpad_controllerbutton_name(button_id));
+	add_button_row(sizer, row, column, button_id, wxGetTranslation(to_wxString(VPADController::get_button_name(button_id))));
 }
 
 void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column,

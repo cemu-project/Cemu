@@ -128,7 +128,7 @@ void SetEntryPoint(MPTR entryPoint)
 }
 
 // load executable into virtual memory and set entrypoint
-bool LoadMainExecutable()
+void LoadMainExecutable()
 {
 	isLaunchTypeELF = false;
 	// when launching from a disc image _pathToExecutable is initially empty
@@ -142,7 +142,6 @@ bool LoadMainExecutable()
 			cemuLog_log(LogType::Force, "Unable to find RPX executable");
 			cemuLog_waitForFlush();
 			cemu_assert(false);
-			return false;
 		}
 	}
 	// extract and load RPX
@@ -153,7 +152,6 @@ bool LoadMainExecutable()
 		cemuLog_log(LogType::Force, "Failed to load \"{}\"", _pathToExecutable);
 		cemuLog_waitForFlush();
 		cemu_assert(false);
-		return false;
 	}
 	currentUpdatedApplicationHash = generateHashFromRawRPXData(rpxData, rpxSize);
 	// determine if this file is an ELF
@@ -171,10 +169,10 @@ bool LoadMainExecutable()
 		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
-			cemuLog_log(LogType::Force, "Failed to run this title because the executable is damaged");
+			WindowSystem::showErrorDialog(_tr("Failed to run this title because the executable is damaged"));
+			cemuLog_createLogFile(false);
 			cemuLog_waitForFlush();
-			cemu_assert(false);
-			return false;
+			exit(0);
 		}
 		RPLLoader_SetMainModule(applicationRPX);
 		SetEntryPoint(RPLLoader_GetModuleEntrypoint(applicationRPX));
@@ -193,7 +191,6 @@ bool LoadMainExecutable()
 	}
 	free(baseRpxData);
 	debug_printf("RPXHash: 0x%08x\n", currentBaseApplicationHash);
-	return true;
 }
 
 fs::path getTitleSavePath()
@@ -755,12 +752,7 @@ namespace CafeSystem
 				}
 			}
 		}
-
-		if (!LoadMainExecutable())
-		{
-			return PREPARE_STATUS_CODE::INVALID_RPX;
-		}
-
+		LoadMainExecutable();
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 

@@ -51,29 +51,6 @@ std::string_view& trim(std::string_view& str, const std::string& chars)
 
 #if BOOST_OS_WINDOWS
 
-std::wstring GetSystemErrorMessageW()
-{
-	return GetSystemErrorMessageW(GetLastError());
-}
-
-
-std::wstring GetSystemErrorMessageW(DWORD error_code)
-{
-	if(error_code == ERROR_SUCCESS)
-		return {};
-
-	LPWSTR lpMsgBuf = nullptr;
-	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPWSTR)&lpMsgBuf, 0, nullptr);
-	if (lpMsgBuf)
-	{
-		std::wstring str = fmt::format(L"{}: {}", L"Error", lpMsgBuf);
-		LocalFree(lpMsgBuf);
-		return str;
-	}
-
-	return fmt::format(L"{}: {:#x}", L"Error code", error_code);
-}
-
 std::string GetSystemErrorMessage(DWORD error_code)
 {
 	if(error_code == ERROR_SUCCESS)
@@ -83,12 +60,12 @@ std::string GetSystemErrorMessage(DWORD error_code)
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPSTR)&lpMsgBuf, 0, nullptr);
 	if (lpMsgBuf)
 	{
-		std::string str = fmt::format("{}: {}", "Error", lpMsgBuf);
+		std::string str = fmt::format("{}: {}", _tr("Error") lpMsgBuf); // TRANSLATE
 		LocalFree(lpMsgBuf);
 		return str;
 	}
 
-	return fmt::format("{}: {:#x}", "Error code", error_code);
+	return fmt::format("{}: {:#x}", _tr("Error code"), error_code);
 }
 
 std::string GetSystemErrorMessage()

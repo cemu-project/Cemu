@@ -156,57 +156,9 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 	Layout();
 }
 
-wxString get_wiimote_controller_button_name(WiimoteController::ButtonId id)
-{
-	switch (id)
-	{
-	case WiimoteController::kButtonId_A:
-		return "A";
-	case WiimoteController::kButtonId_B:
-		return "B";
-	case WiimoteController::kButtonId_1:
-		return "1";
-	case WiimoteController::kButtonId_2:
-		return "2";
-
-	case WiimoteController::kButtonId_Home:
-		return _("home");
-	case WiimoteController::kButtonId_Plus:
-		return "+";
-	case WiimoteController::kButtonId_Minus:
-		return "-";
-
-	case WiimoteController::kButtonId_Up:
-		return _("up");
-	case WiimoteController::kButtonId_Down:
-		return _("down");
-	case WiimoteController::kButtonId_Left:
-		return _("left");
-	case WiimoteController::kButtonId_Right:
-		return _("right");
-
-	case WiimoteController::kButtonId_Nunchuck_Z:
-		return "Z";
-	case WiimoteController::kButtonId_Nunchuck_C:
-		return "C";
-
-	case WiimoteController::kButtonId_Nunchuck_Up:
-		return _("up");
-	case WiimoteController::kButtonId_Nunchuck_Down:
-		return _("down");
-	case WiimoteController::kButtonId_Nunchuck_Left:
-		return _("left");
-	case WiimoteController::kButtonId_Nunchuck_Right:
-		return _("right");
-
-	default:
-		return "";
-	}
-}
-
 void WiimoteInputPanel::add_button_row(sint32 row, sint32 column, const WiimoteController::ButtonId &button_id) {
 	m_item_sizer->Add(
-		new wxStaticText(this, wxID_ANY, get_wiimote_controller_button_name(button_id)),
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(button_id)))),
 		wxGBPosition(row, column),
 		wxDefaultSpan,
 		wxALL | wxALIGN_CENTER_VERTICAL, 5);

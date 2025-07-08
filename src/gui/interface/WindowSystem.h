@@ -82,6 +82,18 @@ namespace WindowSystem
 		std::unordered_map<uint32, bool> m_keydown;
 	};
 
+	enum class ErrorCategory
+	{
+		KEYS_TXT_CREATION = 0,
+		GRAPHIC_PACKS = 1,
+	};
+
+	void showErrorDialog(std::string_view message, std::string_view title, std::optional<ErrorCategory> errorCategory = {});
+	inline void showErrorDialog(std::string_view message, std::optional<ErrorCategory> errorCategory = {})
+	{
+		showErrorDialog(message, "", errorCategory);
+	}
+
 	void create();
 
 	WindowInfo& getWindowInfo();

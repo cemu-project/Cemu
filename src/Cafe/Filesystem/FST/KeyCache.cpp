@@ -1,6 +1,7 @@
 #include <mutex>
 
 #include "Cemu/Logging/CemuLogging.h"
+#include "WindowSystem.h"
 #include "config/ActiveSettings.h"
 #include "util/crypto/aes128.h"
 #include "Common/FileStream.h"
@@ -74,7 +75,7 @@ void KeyCache_Prepare()
 		}
 		else
 		{
-			cemuLog_log(LogType::Force, "Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to its own directory, the disk is full or if anti-virus software is blocking Cemu.");
+			WindowSystem::showErrorDialog(_tr("Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to its own directory, the disk is full or if anti-virus software is blocking Cemu."), _tr("Error"), WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
 		}
 		mtxKeyCache.unlock();
 		return;
@@ -107,7 +108,8 @@ void KeyCache_Prepare()
 			continue;
 		if( strishex(line) == false )
 		{
-			cemuLog_log(LogType::Force, "Error in keys.txt at line {}", lineNumber);
+			auto errorMsg = fmt::format(fmt::runtime(_tr("Error in keys.txt at line {}")), lineNumber);
+			WindowSystem::showErrorDialog(errorMsg, WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
 			continue;
 		}
 		if(line.size() == 32 )

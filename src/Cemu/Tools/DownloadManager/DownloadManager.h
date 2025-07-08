@@ -5,8 +5,6 @@
 #include "util/helpers/ConcurrentQueue.h"
 #include "config/NetworkSettings.h"
 
-#include <variant>
-
 // forward declarations
 namespace NAPI
 {
@@ -18,27 +16,6 @@ namespace NCrypto
 {
 	class TMDParser;
 }
-
-enum class PackageErrorCode
-{
-	TMD_DOWNLOAD_FAILED,
-	INVALID_TMD,
-	CANNOT_CREATE_FILE,
-	DOWNLOAD_FAILED,
-	MISSING_FILE_DURING_VERIFICATION,
-	VERIFICATION_FAILED,
-	INTERNAL_ERROR,
-	FAILED_TO_CREATE_FILE,
-	FAILED_TO_EXTRACT_DATA,
-	DISK_FULL_FAILED_TO_WRITE_FILE,
-	FAILED_TO_WRITE_TITLE_TMD,
-	FAILED_TO_WRITE_TITLE_TIK,
-	FAILED_TO_INSTALL_TITLE_TIK,
-	FAILED_TO_EXTRACT_CONTENT,
-	FAILED_TO_EXTRACT_CODE_FOLDER,
-	FAILED_TO_EXTRACT_CONTENT_FOLDER,
-	FAILED_TO_EXTRACT_META_FOLDER,
-};
 
 struct DlMgrTitleReport
 {
@@ -68,7 +45,7 @@ struct DlMgrTitleReport
 	uint32 progress;
 	uint32 progressMax;
 	bool isPaused;
-	PackageErrorCode errorCode;
+	std::string errorMsg;
 };
 
 enum class DLMGR_STATUS_CODE
@@ -78,82 +55,6 @@ enum class DLMGR_STATUS_CODE
 	FAILED,
 	CONNECTED
 };
-
-namespace DownloadManagerStatuses
-{
-	struct Uninitialized
-	{
-	};
-
-	struct DownloadingAccountTicket
-	{
-		size_t index;
-		size_t count;
-	};
-
-	struct DownloadingSystemTickets
-	{
-	};
-
-	struct RetrievingUpdateInformation
-	{
-	};
-
-	struct DownloadingTicket
-	{
-		size_t updateIndex;
-		size_t numUpdates;
-	};
-
-	struct DownloadingMetaData
-	{
-		size_t index;
-		size_t count;
-	};
-
-	struct LoggingIn
-	{
-	};
-
-	struct UpdatingTicketCache
-	{
-	};
-
-	struct Failed
-	{
-	};
-
-	// Outdated or incomplete online files?
-	struct LoginFailed : Failed
-	{
-	};
-
-	struct FailedToQueryAccountStatus : Failed
-	{
-	};
-
-	struct FailedToRequestTickets : Failed
-	{
-	};
-
-	struct Connected
-	{
-	};
-}; // namespace DownloadManagerStatuses
-
-using DownloadManagerStatus = std::variant<
-	DownloadManagerStatuses::Uninitialized,
-	DownloadManagerStatuses::DownloadingAccountTicket,
-	DownloadManagerStatuses::DownloadingSystemTickets,
-	DownloadManagerStatuses::RetrievingUpdateInformation,
-	DownloadManagerStatuses::DownloadingTicket,
-	DownloadManagerStatuses::DownloadingMetaData,
-	DownloadManagerStatuses::LoggingIn,
-	DownloadManagerStatuses::UpdatingTicketCache,
-	DownloadManagerStatuses::LoginFailed,
-	DownloadManagerStatuses::FailedToQueryAccountStatus,
-	DownloadManagerStatuses::FailedToRequestTickets,
-	DownloadManagerStatuses::Connected>;
 
 class DownloadManager
 {
@@ -451,7 +352,7 @@ private:
 			bool isInstalling{};
 			// error state
 			bool hasError{};
-			PackageErrorCode errorCode;
+			std::string errorMsg;
 		}state;
 	};
 
@@ -469,7 +370,7 @@ private:
 	void updatePackage(Package* package);
 	void checkPackagesState();
 
-	void setPackageError(Package* package, PackageErrorCode errorCode);
+	void setPackageError(Package* package, std::string errorMsg);
 	void reportPackageStatus(Package* package);
 	void reportPackageProgress(Package* package, uint32 newProgress);
 
@@ -495,7 +396,7 @@ public:
 	// register/unregister callbacks
 	// setting valid callbacks will also trigger transfer of the entire title/package state and the current status message
 	void registerCallbacks(
-		void(*cbUpdateConnectStatus)(DownloadManagerStatus),
+		void(*cbUpdateConnectStatus)(std::string statusText, DLMGR_STATUS_CODE statusCode),
 		void(*cbAddDownloadableTitle)(const DlMgrTitleReport& titleInfo),
 		void(*cbRemoveDownloadableTitle)(uint64 titleId, uint16 version)
 	)
@@ -508,22 +409,23 @@ public:
 		if (m_cbUpdateConnectStatus || m_cbAddDownloadableTitle)
 		{
 			std::unique_lock<std::recursive_mutex> _l(m_mutex);
-			setStatus(m_status);
+			setStatusMessage(m_statusMessage, m_statusCode);
 			reportAvailableTitles();
 			for (auto& p : m_packageList)
 				reportPackageStatus(p);
 		}
 	}
 
-	void setStatus(DownloadManagerStatus status)
+	void setStatusMessage(std::string_view msg, DLMGR_STATUS_CODE statusCode)
 	{
-		m_status = status;
+		m_statusMessage = msg;
+		m_statusCode = statusCode;
 		if (m_cbUpdateConnectStatus)
-			m_cbUpdateConnectStatus(status);
+			m_cbUpdateConnectStatus(m_statusMessage, statusCode);
 	}
 
 	std::string m_statusMessage{};
-	DownloadManagerStatus m_status = DownloadManagerStatuses::Uninitialized{};
+	DLMGR_STATUS_CODE m_statusCode{ DLMGR_STATUS_CODE::UNINITIALIZED };
 
 	bool hasActiveDownloads()
 	{
@@ -543,12 +445,12 @@ public:
 	{
 		std::unique_lock<std::recursive_mutex> _l(m_mutex);
 		m_packageList.clear();
-		m_status = DownloadManagerStatuses::Uninitialized{};
+		m_statusCode = DLMGR_STATUS_CODE::UNINITIALIZED;
 		m_statusMessage.clear();
 	}
 
 private:
-	void(*m_cbUpdateConnectStatus)(DownloadManagerStatus status) { nullptr };
+	void(*m_cbUpdateConnectStatus)(std::string statusText, DLMGR_STATUS_CODE statusCode) { nullptr };
 	void(*m_cbAddDownloadableTitle)(const DlMgrTitleReport& titleInfo);
 	void(*m_cbRemoveDownloadableTitle)(uint64 titleId, uint16 version);
 	void* m_userData{};

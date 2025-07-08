@@ -247,6 +247,11 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 	}
 }
 
+std::string TranslationCallback(std::string_view msgId)
+{
+	return wxGetTranslation(to_wxString(msgId)).utf8_string();
+}
+
 bool CemuApp::OnInit()
 {
 #if __WXGTK__
@@ -272,6 +277,8 @@ bool CemuApp::OnInit()
 	{
 		LocalizeUI(static_cast<wxLanguage>(wxLocale::GetSystemLanguage()));
 	}
+
+	SetTranslationCallback(TranslationCallback);
 
 	for (auto&& path : failedWriteAccess)
 	{

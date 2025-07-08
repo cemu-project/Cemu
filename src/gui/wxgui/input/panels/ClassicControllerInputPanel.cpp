@@ -101,69 +101,9 @@ ClassicControllerInputPanel::ClassicControllerInputPanel(wxWindow* parent)
 	Layout();
 }
 
-wxString get_classic_controller_button_name(ClassicController::ButtonId id)
-{
-	switch (id)
-	{
-	case ClassicController::kButtonId_A:
-		return "A";
-	case ClassicController::kButtonId_B:
-		return "B";
-	case ClassicController::kButtonId_X:
-		return "X";
-	case ClassicController::kButtonId_Y:
-		return "Y";
-	case ClassicController::kButtonId_L:
-		return "L";
-	case ClassicController::kButtonId_R:
-		return "R";
-	case ClassicController::kButtonId_ZL:
-		return "ZL";
-	case ClassicController::kButtonId_ZR:
-		return "ZR";
-
-	case ClassicController::kButtonId_Plus:
-		return "+";
-	case ClassicController::kButtonId_Minus:
-		return "-";
-	case ClassicController::kButtonId_Home:
-		return _("home");
-
-	case ClassicController::kButtonId_Up:
-		return _("up");
-	case ClassicController::kButtonId_Down:
-		return _("down");
-	case ClassicController::kButtonId_Left:
-		return _("left");
-	case ClassicController::kButtonId_Right:
-		return _("right");
-
-	case ClassicController::kButtonId_StickL_Up:
-		return _("up");
-	case ClassicController::kButtonId_StickL_Down:
-		return _("down");
-	case ClassicController::kButtonId_StickL_Left:
-		return _("left");
-	case ClassicController::kButtonId_StickL_Right:
-		return _("right");
-
-	case ClassicController::kButtonId_StickR_Up:
-		return _("up");
-	case ClassicController::kButtonId_StickR_Down:
-		return _("down");
-	case ClassicController::kButtonId_StickR_Left:
-		return _("left");
-	case ClassicController::kButtonId_StickR_Right:
-		return _("right");
-
-	default:
-		return "";
-	}
-}
-
 void ClassicControllerInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const ClassicController::ButtonId &button_id) {
 	sizer->Add(
-		new wxStaticText(this, wxID_ANY, get_classic_controller_button_name(button_id)),
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(ClassicController::get_button_name(button_id)))),
 		wxGBPosition(row, column),
 		wxDefaultSpan,
 		wxALL | wxALIGN_CENTER_VERTICAL, 5);

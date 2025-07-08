@@ -1,5 +1,7 @@
 #include "interface/WindowSystem.h"
 
+#include "helpers/wxHelpers.h"
+
 #if BOOST_OS_LINUX
 #include <gdk/gdkkeysyms.h>
 #include <gtk/gtk.h>
@@ -51,6 +53,16 @@ void WindowSystem::create()
 	char* argv[1]{};
 	wxEntry(argc, argv);
 #endif
+}
+
+void WindowSystem::showErrorDialog(std::string_view message, std::string_view title, std::optional<WindowSystem::ErrorCategory> /*errorId*/)
+{
+	wxString caption;
+	if (title.empty())
+		caption = wxASCII_STR(wxMessageBoxCaptionStr);
+	else
+		caption = to_wxString(title);
+	wxMessageBox(to_wxString(message), caption, wxOK | wxCENTRE | wxICON_ERROR);
 }
 
 WindowSystem::WindowInfo& WindowSystem::getWindowInfo()

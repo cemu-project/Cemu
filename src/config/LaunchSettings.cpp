@@ -222,7 +222,10 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 	}
 	catch (const std::exception& ex)
 	{
-		cemuLog_log(LogType::Force, "Error while trying to parse command line parameter: {}", ex.what());
+		std::string errorMsg;
+		errorMsg.append("Error while trying to parse command line parameter:\n");
+		errorMsg.append(ex.what());
+		std::cout << errorMsg << std::endl;
 		return false;
 	}
 	

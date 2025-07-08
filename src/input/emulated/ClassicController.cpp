@@ -68,22 +68,22 @@ std::string_view ClassicController::get_button_name(ButtonId id)
 
 	case kButtonId_Plus: return "+";
 	case kButtonId_Minus: return "-";
-	case kButtonId_Home: return "home";
+	case kButtonId_Home: return TR_NOOP("home");
 
-	case kButtonId_Up: return "up";
-	case kButtonId_Down: return "down";
-	case kButtonId_Left: return "left";
-	case kButtonId_Right: return "right";
+	case kButtonId_Up: return TR_NOOP("up");
+	case kButtonId_Down: return TR_NOOP("down");
+	case kButtonId_Left: return TR_NOOP("left");
+	case kButtonId_Right: return TR_NOOP("right");
 
-	case kButtonId_StickL_Up: return "up";
-	case kButtonId_StickL_Down: return "down";
-	case kButtonId_StickL_Left: return "left";
-	case kButtonId_StickL_Right: return "right";
+	case kButtonId_StickL_Up: return TR_NOOP("up");
+	case kButtonId_StickL_Down: return TR_NOOP("down");
+	case kButtonId_StickL_Left: return TR_NOOP("left");
+	case kButtonId_StickL_Right: return TR_NOOP("right");
 
-	case kButtonId_StickR_Up: return "up";
-	case kButtonId_StickR_Down: return "down";
-	case kButtonId_StickR_Left: return "left";
-	case kButtonId_StickR_Right: return "right";
+	case kButtonId_StickR_Up: return TR_NOOP("up");
+	case kButtonId_StickR_Down: return TR_NOOP("down");
+	case kButtonId_StickR_Left: return TR_NOOP("left");
+	case kButtonId_StickR_Right: return TR_NOOP("right");
 
 	default:
 		return "";

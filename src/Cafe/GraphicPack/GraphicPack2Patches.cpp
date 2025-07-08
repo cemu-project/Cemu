@@ -1,6 +1,7 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "Common/FileStream.h"
+#include "WindowSystem.h"
 #include "util/helpers/StringParser.h"
 #include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
@@ -36,15 +37,15 @@ void PatchErrorHandler::printError(class PatchGroup* patchGroup, sint32 lineNumb
 		errorMessages.emplace_back(msg);
 }
 
-void PatchErrorHandler::logStageError()
+void PatchErrorHandler::showStageErrorMessageBox()
 {
 	std::string errorMsg;
 	if (m_gp)
 	{
 		if (m_stage == STAGE::PARSER)
-			errorMsg = fmt::format("Failed to load patches for graphic pack \'{}\'", m_gp->GetName());
+			errorMsg.assign(fmt::format(fmt::runtime(_tr("Failed to load patches for graphic pack \'{}\'")), m_gp->GetName()));
 		else
-			errorMsg = fmt::format("Failed to apply patches for graphic pack \'{}\'", m_gp->GetName());
+			errorMsg.assign(fmt::format(fmt::runtime(_tr("Failed to apply patches for graphic pack \'{}\'")), m_gp->GetName()));
 	}
 	else
 	{
@@ -53,7 +54,7 @@ void PatchErrorHandler::logStageError()
 	if (cemuLog_isLoggingEnabled(LogType::Patches))
 	{
 		errorMsg.append("\n \n")
-			.append("Details:")
+			.append(_tr("Details:"))
 			.append("\n");
 		for (auto& itr : errorMessages)
 		{
@@ -62,7 +63,7 @@ void PatchErrorHandler::logStageError()
 		}
 	}
 
-	cemuLog_log(LogType::Force, errorMsg);
+	WindowSystem::showErrorDialog(errorMsg, _tr("Graphic pack error"), WindowSystem::ErrorCategory::GRAPHIC_PACKS);
 }
 
 // loads Cemu-style patches (patch_<anything>.asm)

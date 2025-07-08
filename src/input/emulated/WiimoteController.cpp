@@ -158,22 +158,22 @@ std::string_view WiimoteController::get_button_name(ButtonId id)
 	case kButtonId_1: return "1";
 	case kButtonId_2: return "2";
 
-	case kButtonId_Home: return "home";
+	case kButtonId_Home: return TR_NOOP("home");
 	case kButtonId_Plus: return "+";
 	case kButtonId_Minus: return "-";
 
-	case kButtonId_Up: return "up";
-	case kButtonId_Down: return "down";
-	case kButtonId_Left: return "left";
-	case kButtonId_Right: return "right";
+	case kButtonId_Up: return TR_NOOP("up");
+	case kButtonId_Down: return TR_NOOP("down");
+	case kButtonId_Left: return TR_NOOP("left");
+	case kButtonId_Right: return TR_NOOP("right");
 
 	case kButtonId_Nunchuck_Z: return "Z";
 	case kButtonId_Nunchuck_C: return "C";
 
-	case kButtonId_Nunchuck_Up: return "up";
-	case kButtonId_Nunchuck_Down: return "down";
-	case kButtonId_Nunchuck_Left: return "left";
-	case kButtonId_Nunchuck_Right: return "right";
+	case kButtonId_Nunchuck_Up: return TR_NOOP("up");
+	case kButtonId_Nunchuck_Down: return TR_NOOP("down");
+	case kButtonId_Nunchuck_Left: return TR_NOOP("left");
+	case kButtonId_Nunchuck_Right: return TR_NOOP("right");
 
 	default:
 		return "";

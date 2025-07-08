@@ -307,7 +307,7 @@ void VulkanRenderer::GetDeviceFeatures()
 		cemuLog_log(LogType::Force, "VK_EXT_pipeline_creation_cache_control not supported. Cannot use asynchronous shader and pipeline compilation");
 		// if async shader compilation is enabled show warning message
 		if (GetConfig().async_compile)
-			LatteOverlay_pushNotification("Async shader compile is enabled but not supported by the graphics driver\nCemu will use synchronous compilation which can cause additional stutter", 10000);
+			LatteOverlay_pushNotification(_tr("Async shader compile is enabled but not supported by the graphics driver\nCemu will use synchronous compilation which can cause additional stutter"), 10000);
 	}
 	if (!m_featureControl.deviceExtensions.custom_border_color_without_format)
 	{

@@ -258,15 +258,15 @@ struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 		string_view name;
 		switch (v)
 		{
-		case CafeConsoleRegion::JPN: name = "Japan"; break;
-		case CafeConsoleRegion::USA: name = "USA"; break;
-		case CafeConsoleRegion::EUR: name = "Europe"; break;
-		case CafeConsoleRegion::AUS_DEPR: name = "Australia"; break;
-		case CafeConsoleRegion::CHN: name = "China"; break;
-		case CafeConsoleRegion::KOR: name = "Korea"; break;
-		case CafeConsoleRegion::TWN: name = "Taiwan"; break;
-		case CafeConsoleRegion::Auto: name = "Auto"; break;
-		default: name = "many"; break;
+		case CafeConsoleRegion::JPN: name = TR_NOOP("Japan"); break;
+		case CafeConsoleRegion::USA: name = TR_NOOP("USA"); break;
+		case CafeConsoleRegion::EUR: name = TR_NOOP("Europe"); break;
+		case CafeConsoleRegion::AUS_DEPR: name = TR_NOOP("Australia"); break;
+		case CafeConsoleRegion::CHN: name = TR_NOOP("China"); break;
+		case CafeConsoleRegion::KOR: name = TR_NOOP("Korea"); break;
+		case CafeConsoleRegion::TWN: name = TR_NOOP("Taiwan"); break;
+		case CafeConsoleRegion::Auto: name = TR_NOOP("Auto"); break;
+		default: name = TR_NOOP("many"); break;
 		
 		}
 		return formatter<string_view>::format(name, ctx);

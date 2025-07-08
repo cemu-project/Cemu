@@ -119,6 +119,27 @@ using uint8le = uint8_t;
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
 
+// localization
+namespace
+{
+	std::function<std::string(std::string_view)> g_translate;
+}
+
+inline void SetTranslationCallback(std::function<std::string(std::string_view)> translate)
+{
+	g_translate = translate;
+}
+
+#define TR_NOOP(str) str
+
+inline std::string _tr(std::string_view msgId)
+{
+	if (g_translate)
+		return g_translate(msgId);
+
+	return std::string{msgId};
+}
+
 // manual endian-swapping
 
 #if _MSC_VER

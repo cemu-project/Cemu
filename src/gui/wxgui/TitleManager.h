@@ -30,6 +30,8 @@ enum class TitleManagerPage
 	DownloadManager = 1
 };
 
+enum class DLMGR_STATUS_CODE;
+
 class TitleManager : public wxFrame
 {
 public:
@@ -89,7 +91,7 @@ private:
 
 	void SetConnected(bool state);
 
-	static void Callback_ConnectStatusUpdate(DownloadManagerStatus status);
+	static void Callback_ConnectStatusUpdate(std::string statusText, DLMGR_STATUS_CODE statusCode);
 	static void Callback_AddDownloadableTitle(const struct DlMgrTitleReport& titleInfo);
 	static void Callback_RemoveDownloadableTitle(uint64 titleId, uint16 version);
 

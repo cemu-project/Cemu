@@ -11,8 +11,6 @@
 #include "wxgui/GameUpdateWindow.h"
 #include "wxgui/dialogs/SaveImport/SaveTransfer.h"
 
-#include <optional>
-#include <type_traits>
 #include <wx/listbase.h>
 #include <wx/sizer.h>
 #include <wx/listctrl.h>
@@ -819,78 +817,16 @@ void TitleManager::SetConnected(bool state)
 	m_download_list->Enable(state);
 }
 
-void TitleManager::Callback_ConnectStatusUpdate(DownloadManagerStatus status)
+void TitleManager::Callback_ConnectStatusUpdate(std::string statusText, DLMGR_STATUS_CODE statusCode)
 {
 	TitleManager* titleManager = static_cast<TitleManager*>(DownloadManager::GetInstance()->getUserData());
-	auto downloadStatusText = std::visit([](auto&& status) -> std::optional<wxString> {
-		using T = std::decay_t<decltype(status)>;
-		if constexpr (std::is_same_v<T, DownloadManagerStatuses::Uninitialized>)
-			return std::nullopt;
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::DownloadingAccountTicket>)
-			return _("Downloading account ticket") + fmt::format(" {0}/{1}", status.index, status.count);
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::DownloadingSystemTickets>)
-			return _("Downloading system tickets...");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::RetrievingUpdateInformation>)
-			return _("Retrieving update information...");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::DownloadingTicket>)
-			return _("Downloading ticket") + fmt::format(" {0}/{1}", status.updateIndex, status.numUpdates);
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::DownloadingMetaData>)
-			return _("Downloading meta data") + fmt::format(" {0}/{1}", status.index, status.count);
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::LoggingIn>)
-			return _("Logging in...");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::UpdatingTicketCache>)
-			return _("Updating ticket cache");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::LoginFailed>)
-			return _("Login failed. Outdated or incomplete online files?");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::FailedToQueryAccountStatus>)
-			return _("Failed to query account status");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::FailedToRequestTickets>)
-			return _("Failed to request tickets");
-		else if constexpr (std::is_same_v<T, DownloadManagerStatuses::Connected>)
-			return _("Connected. Right click entries in the list to start downloading");
-
-		cemu_assert_unimplemented();
-		return std::nullopt; }, status);
-
-	if (!downloadStatusText.has_value())
-	{
-		return;
-	}
-
-	titleManager->SetDownloadStatusText(downloadStatusText.value());
-	bool isFailedStatus = std::visit([](auto&& status) -> bool {
-		constexpr bool isFailedStatus = std::is_base_of_v<DownloadManagerStatuses::Failed, std::decay_t<decltype(status)>>;
-		return isFailedStatus; }, status);
-
-	if (isFailedStatus)
+	titleManager->SetDownloadStatusText(wxString::FromUTF8(statusText));
+	if (statusCode == DLMGR_STATUS_CODE::FAILED)
 	{
 		auto* evt = new wxCommandEvent(wxEVT_DL_DISCONNECT_COMPLETE);
 		wxQueueEvent(titleManager, evt); // this will set SetConnected() to false
 		return;
 	}
-}
-
-wxString getPackageErrorMessage(PackageErrorCode code) {
-    switch (code) {
-        case PackageErrorCode::TMD_DOWNLOAD_FAILED: return _("TMD download failed");
-        case PackageErrorCode::INVALID_TMD: return _("Invalid TMD");
-        case PackageErrorCode::CANNOT_CREATE_FILE: return _("Cannot create file");
-        case PackageErrorCode::DOWNLOAD_FAILED: return _("Download failed");
-        case PackageErrorCode::MISSING_FILE_DURING_VERIFICATION: return _("Missing file during verification");
-        case PackageErrorCode::VERIFICATION_FAILED: return _("Verification failed");
-        case PackageErrorCode::INTERNAL_ERROR: return _("Internal error");
-        case PackageErrorCode::FAILED_TO_CREATE_FILE: return _("Failed to create file");
-        case PackageErrorCode::FAILED_TO_EXTRACT_DATA: return _("Failed to extract data");
-        case PackageErrorCode::DISK_FULL_FAILED_TO_WRITE_FILE: return _("Failed to write to file. Disk full?");
-        case PackageErrorCode::FAILED_TO_WRITE_TITLE_TMD: return _("Failed to write title.tmd");
-        case PackageErrorCode::FAILED_TO_WRITE_TITLE_TIK: return _("Failed to write title.tik");
-        case PackageErrorCode::FAILED_TO_INSTALL_TITLE_TIK: return _("Failed to install title.tik");
-        case PackageErrorCode::FAILED_TO_EXTRACT_CONTENT: return _("Failed to extract content");
-        case PackageErrorCode::FAILED_TO_EXTRACT_CODE_FOLDER: return _("Failed to extract code folder");
-        case PackageErrorCode::FAILED_TO_EXTRACT_CONTENT_FOLDER: return _("Failed to extract content folder");
-        case PackageErrorCode::FAILED_TO_EXTRACT_META_FOLDER: return _("Failed to extract meta folder");
-        default: return _("Unknown error");
-    }
 }
 
 void TitleManager::Callback_AddDownloadableTitle(const DlMgrTitleReport& titleInfo)
@@ -949,7 +885,7 @@ void TitleManager::Callback_AddDownloadableTitle(const DlMgrTitleReport& titleIn
 			break;
 		case DlMgrTitleReport::STATUS::HAS_ERROR:
 			titleEntry.status = wxDownloadManagerList::TitleDownloadStatus::Error;
-			titleEntry.errorMsg = getPackageErrorMessage(titleInfo.errorCode);
+			titleEntry.errorMsg = titleInfo.errorMsg;
 			break;
 		default:
 			titleEntry.status = wxDownloadManagerList::TitleDownloadStatus::None;
