@@ -1,5 +1,8 @@
 #pragma once
 
+#include "config/CemuConfig.h"
+#include "input/api/ControllerState.h"
+
 namespace WindowSystem
 {
 	struct WindowHandleInfo
@@ -118,4 +121,19 @@ namespace WindowSystem
 	void refreshGameList();
 
 	bool isFullScreen();
+
+	void captureInput(const ControllerState& currentState, const ControllerState& lastState);
+
+	enum class HotKey
+	{
+
+		MODIFIERS,
+		EXIT_FULLSCREEN,
+		TOGGLE_FULLSCREEN,
+		TOGGLE_FULLSCREEN_ALT,
+		TAKE_SCREENSHOT,
+		TOGGLE_FAST_FORWARD,
+	};
+
+	sHotkeyCfg getDefaultHotkeyConfig(HotKey hotKey);
 }; // namespace WindowSystem

@@ -18,6 +18,7 @@ target_include_directories(CemuConfig PUBLIC "../")
 target_link_libraries(CemuConfig PRIVATE
 	CemuCafe
 	CemuCommon
+    CemuGui
 	CemuUtil
 	Boost::headers
 	Boost::program_options

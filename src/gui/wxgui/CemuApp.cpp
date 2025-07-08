@@ -10,6 +10,7 @@
 #include "input/InputManager.h"
 #include "wxgui/helpers/wxHelpers.h"
 #include "Cemu/ncrypto/ncrypto.h"
+#include "wxgui/input/HotkeySettings.h"
 
 #if BOOST_OS_LINUX && HAS_WAYLAND
 #include "wxgui/helpers/wxWayland.h"
@@ -336,6 +337,8 @@ bool CemuApp::OnInit()
 
 	std::unique_lock lock(g_mutex);
 	g_window_info.app_active = true;
+
+	HotkeySettings::Init(m_mainFrame);
 
 	SetTopWindow(m_mainFrame);
 	m_mainFrame->Show();

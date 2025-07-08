@@ -41,6 +41,7 @@
 #include "wxgui/helpers/wxHelpers.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "wxgui/input/InputSettings2.h"
+#include "wxgui/input/HotkeySettings.h"
 #include "input/InputManager.h"
 
 #if BOOST_OS_WINDOWS
@@ -92,6 +93,7 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_GENERAL2,
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
+	MAINFRAME_MENU_ID_OPTIONS_HOTKEY,
 	MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS,
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
@@ -190,6 +192,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_AUDIO, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
+EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_HOTKEY, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, MainWindow::OnOptionsInput)
 // tools menu
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
@@ -934,6 +937,12 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 		break;
 	}
 
+	case MAINFRAME_MENU_ID_OPTIONS_HOTKEY:
+	{
+		auto* frame = new HotkeySettings(this);
+		frame->Show();
+		break;
+	}
 	}
 }
 
@@ -1440,102 +1449,6 @@ void MainWindow::OnSetWindowTitle(wxCommandEvent& event)
 	this->SetTitle(event.GetString());
 }
 
-std::optional<fs::path> GenerateScreenshotFilename(bool isDRC)
-{
-	fs::path screendir = ActiveSettings::GetUserDataPath("screenshots");
-	// build screenshot name with format Screenshot_YYYY-MM-DD_HH-MM-SS[_GamePad].png
-	// if the file already exists add a suffix counter (_2.png, _3.png etc)
-	std::time_t time_t = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-	std::tm* tm = std::localtime(&time_t);
-
-	std::string screenshotFileName = fmt::format("Screenshot_{:04}-{:02}-{:02}_{:02}-{:02}-{:02}", tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min, tm->tm_sec);
-	if (isDRC)
-		screenshotFileName.append("_GamePad");
-
-	fs::path screenshotPath;
-	for (sint32 i = 0; i < 999; i++)
-	{
-		screenshotPath = screendir;
-		if (i == 0)
-			screenshotPath.append(fmt::format("{}.png", screenshotFileName));
-		else
-			screenshotPath.append(fmt::format("{}_{}.png", screenshotFileName, i + 1));
-
-		std::error_code ec;
-		bool exists = fs::exists(screenshotPath, ec);
-
-		if (!ec && !exists)
-			return screenshotPath;
-	}
-	return std::nullopt;
-}
-
-bool SaveScreenshotToFile(const fs::path& imagePath, const wxImage& image)
-{
-	std::error_code ec;
-	fs::create_directories(imagePath.parent_path(), ec);
-	if (ec)
-		return false;
-
-	// suspend wxWidgets logging for the lifetime this object, to prevent a message box if wxImage::SaveFile fails
-	wxLogNull _logNo;
-	return image.SaveFile(imagePath.wstring());
-}
-
-bool SaveScreenshotToClipboard(const wxImage& image)
-{
-	static std::mutex s_clipboardMutex;
-	bool success = false;
-
-	s_clipboardMutex.lock();
-	if (wxTheClipboard->Open())
-	{
-		wxTheClipboard->SetData(new wxImageDataObject(image));
-		wxTheClipboard->Close();
-		success = true;
-	}
-	s_clipboardMutex.unlock();
-
-	return success;
-}
-
-std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, int height, bool mainWindow)
-{
-#if BOOST_OS_WINDOWS
-	// on Windows wxWidgets uses OLE API for the clipboard
-	// to make this work we need to call OleInitialize() on the same thread
-	OleInitialize(nullptr);
-#endif
-	bool save_screenshot = g_config.data().save_screenshot;
-	wxImage image(width, height, data.data(), true);
-	if (mainWindow)
-	{
-		if (SaveScreenshotToClipboard(image))
-		{
-			if (!save_screenshot)
-				return "Screenshot saved to clipboard";
-		}
-		else
-		{
-			return "Failed to open clipboard";
-		}
-	}
-	if (save_screenshot)
-	{
-		auto imagePath = GenerateScreenshotFilename(mainWindow);
-		if (imagePath.has_value() && SaveScreenshotToFile(imagePath.value(), image))
-		{
-			if (mainWindow)
-				return "Screenshot saved";
-		}
-		else
-		{
-			return "Failed to save screenshot to file";
-		}
-	}
-	return std::nullopt;
-}
-
 void MainWindow::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
@@ -1543,13 +1456,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
-	const auto code = event.GetKeyCode();
-	if (code == WXK_ESCAPE)
-		SetFullScreen(false);
-	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
-		SetFullScreen(!IsFullScreen());
-	else if (code == WXK_F12 && g_renderer)
-		g_renderer->RequestScreenshot(SaveScreenshot); // async screenshot request
+	HotkeySettings::CaptureInput(event);
 }
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
@@ -2286,6 +2193,7 @@ void MainWindow::RecreateMenu()
 	#endif
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_HOTKEY, _("&Hotkey settings"));
 
 	optionsMenu->AppendSeparator();
 	optionsMenu->AppendSubMenu(m_optionsAccountMenu, _("&Active account"));

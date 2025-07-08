@@ -1,3 +1,4 @@
+#include "input/HotkeySettings.h"
 #include "interface/WindowSystem.h"
 
 #include "helpers/wxHelpers.h"
@@ -334,6 +335,28 @@ void WindowSystem::refreshGameList()
 	if (g_mainFrame)
 	{
 		g_mainFrame->RequestGameListRefresh();
+	}
+}
+
+void WindowSystem::captureInput(const ControllerState& currentState, const ControllerState& lastState)
+{
+	HotkeySettings::CaptureInput(currentState, lastState);
+}
+
+sHotkeyCfg WindowSystem::getDefaultHotkeyConfig(HotKey hotKey)
+{
+	switch (hotKey)
+	{
+	case HotKey::EXIT_FULLSCREEN:
+		return sHotkeyCfg{uKeyboardHotkey{WXK_ESCAPE}};
+	case HotKey::TOGGLE_FULLSCREEN:
+		return sHotkeyCfg{uKeyboardHotkey{WXK_F11}};
+	case HotKey::TOGGLE_FULLSCREEN_ALT:
+		return sHotkeyCfg{uKeyboardHotkey{WXK_CONTROL_M, true}}; // ALT+ENTER
+	case HotKey::TAKE_SCREENSHOT:
+		return sHotkeyCfg{uKeyboardHotkey{WXK_F12}};
+	default:
+		return sHotkeyCfg{};
 	}
 }
 
