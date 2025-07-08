@@ -60,7 +60,7 @@ std::string GetSystemErrorMessage(DWORD error_code)
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPSTR)&lpMsgBuf, 0, nullptr);
 	if (lpMsgBuf)
 	{
-		std::string str = fmt::format("{}: {}", _tr("Error") lpMsgBuf); // TRANSLATE
+		std::string str = fmt::format("{}: {}", _tr("Error"), lpMsgBuf); // TRANSLATE
 		LocalFree(lpMsgBuf);
 		return str;
 	}

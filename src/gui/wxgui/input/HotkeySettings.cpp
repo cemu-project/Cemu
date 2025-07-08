@@ -7,6 +7,10 @@
 
 #include <wx/clipbrd.h>
 
+#if BOOST_OS_WINDOWS
+#include <ole2.h>
+#endif
+
 #if BOOST_OS_LINUX || BOOST_OS_MACOS
 #include "resource/embedded/resources.h"
 #endif
