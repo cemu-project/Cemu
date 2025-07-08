@@ -836,9 +836,6 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 
 	{
 		m_account_information = new wxCollapsiblePane(online_panel, wxID_ANY, _("Account information"));
-		#if BOOST_OS_WINDOWS
-		m_account_information->GetControlWidget()->SetBackgroundColour(*wxWHITE);
-		#endif
 		auto win = m_account_information->GetPane();
 
 		auto content = new wxBoxSizer(wxVERTICAL);

@@ -1861,7 +1861,7 @@ public:
 		scrolledWindow->SetSizer(m_scrolledSizer);
 		scrolledWindow->FitInside();
 		scrolledWindow->SetScrollRate(25, 25);
-		mainSizer->Add(scrolledWindow, wxSizerFlags(1).Expand().Border(wxLEFT | wxRIGHT, 10));
+		mainSizer->Add(scrolledWindow, wxSizerFlags(1).Expand().Border(wxLEFT, 10));
 
 		SetSizer(mainSizer);
 		CentreOnParent();
