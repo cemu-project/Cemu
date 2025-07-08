@@ -401,26 +401,22 @@ namespace snd_core
 		if (vpb != nullptr)
 		{
 			AXVoiceList_AddVoice(vpb, priority);
-			vpb->userParam = userParam;
-			vpb->callback = MPTR_NULL;
-			vpb->callbackEx = callbackEx;
-			AXVPB_SetVoiceDefault(vpb);
 		}
 		else
 		{
-			// no free voice available, drop voice with lower priority
-			AXVPB* droppedVoice = AXVPB_DropVoice(priority);
-			if (droppedVoice == nullptr)
+			// no free voice available, try to drop a voice with lower priority
+			vpb = AXVPB_DropVoice(priority);
+			if (!vpb)
 			{
 				// no voice available
 				__AXVoiceListSpinlock.unlock();
 				return nullptr;
 			}
-			vpb->userParam = userParam;
-			vpb->callback = MPTR_NULL;
-			vpb->callbackEx = callbackEx;
-			AXVPB_SetVoiceDefault(vpb);
 		}
+		vpb->userParam = userParam;
+		vpb->callback = MPTR_NULL;
+		vpb->callbackEx = callbackEx;
+		AXVPB_SetVoiceDefault(vpb);
 		__AXVoiceListSpinlock.unlock();
 		return vpb;
 	}
