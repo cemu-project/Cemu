@@ -228,52 +228,6 @@ namespace save
         return ConvertACPToSaveStatus(acp::ACPUnmountSaveDir());
     }
 
-	void CheckAndMoveLegacySaves()
-	{
-		const uint64 titleId = CafeSystem::GetForegroundTitleId();
-
-		fs::path targetPath, sourcePath;
-		try
-		{
-			bool copiedUser = false, copiedCommon = false;
-
-			const auto sourceSavePath = ActiveSettings::GetMlcPath("emulatorSave/{:08x}", CafeSystem::GetRPXHashBase());
-			sourcePath = sourceSavePath;
-
-			if (fs::exists(sourceSavePath) && is_directory(sourceSavePath))
-			{
-				targetPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/{:08x}", GetTitleIdHigh(titleId), GetTitleIdLow(titleId), 0x80000001);
-				fs::create_directories(targetPath);
-				copy(sourceSavePath, targetPath, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
-				copiedUser = true;
-			}
-
-			const auto sourceCommonPath = ActiveSettings::GetMlcPath("emulatorSave/{:08x}_255", CafeSystem::GetRPXHashBase());
-			sourcePath = sourceCommonPath;
-
-			if (fs::exists(sourceCommonPath) && is_directory(sourceCommonPath))
-			{
-				targetPath = ActiveSettings::GetMlcPath("usr/save/{:08x}/{:08x}/user/common", GetTitleIdHigh(titleId), GetTitleIdLow(titleId));
-				fs::create_directories(targetPath);
-				copy(sourceCommonPath, targetPath, fs::copy_options::overwrite_existing | fs::copy_options::recursive);
-				copiedCommon = true;
-			}
-
-			if (copiedUser)
-				fs::remove_all(sourceSavePath);
-
-			if (copiedCommon)
-				fs::remove_all(sourceCommonPath);
-		}
-		catch (const std::exception& ex)
-		{
-			std::stringstream errorMsg;
-			errorMsg << "Couldn't move save files!" << std::endl << std::endl;
-			errorMsg << "Error: " << ex.what() << std::endl << std::endl;
-			errorMsg << "From:" << std::endl << sourcePath << std::endl << std::endl << "To:" << std::endl << targetPath;
-			cemuLog_log(LogType::Force, errorMsg.str());
-		}
-	}
 
 	SAVEStatus SAVEInit()
 	{
@@ -293,8 +247,6 @@ namespace save
 			
 			SAVEMountSaveDir();
 			g_nn_save->initialized = true;
-
-			CheckAndMoveLegacySaves();
 
 			uint32 high = GetTitleIdHigh(titleId) & (~0xC);
 			uint32 low = GetTitleIdLow(titleId);
