@@ -187,6 +187,47 @@ void osLib_returnFromFunction64(PPCInterpreter_t* hCPU, uint64 returnValue64)
 	hCPU->instructionPointer = hCPU->spr.LR;
 }
 
+void osLib_save(MemStreamWriter& s)
+{
+	coreinit_save(s);
+	dmae_save(s);
+	padscore::save(s);
+	nnAct_save(s);
+	nn::acp::save(s);
+	nnBoss_save(s);
+	nn::nfp::save(s);
+	nnUds_save(s);
+	nn::ndm::save(s);
+	nn::save::save(s);
+	nsysnet_save(s);
+	nn::fp::save(s);
+	nn::olv::save(s);
+	nlibcurl::save(s);
+	nsyshid::save(s);
+	camera::save(s);
+	proc_ui::save(s);
+}
+void osLib_restore(MemStreamReader& s)
+{
+	coreinit_restore(s);
+	dmae_restore(s);
+	padscore::restore(s);
+	nnAct_restore(s);
+	nn::acp::restore(s);
+	nnBoss_restore(s);
+	nn::nfp::restore(s);
+	nnUds_restore(s);
+	nn::ndm::restore(s);
+	nn::save::restore(s);
+	nsysnet_restore(s);
+	nn::fp::restore(s);
+	nn::olv::restore(s);
+	nlibcurl::restore(s);
+	nsyshid::restore(s);
+	camera::restore(s);
+	proc_ui::restore(s);
+}
+
 void osLib_load()
 {
 	// load HLE modules

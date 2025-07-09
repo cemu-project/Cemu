@@ -20,5 +20,8 @@ namespace coreinit
 	void OSDynLoad_Release(uint32 moduleHandle);
 	uint32 OSDynLoad_FindExport(uint32 moduleHandle, uint32 isData, const char* exportName, betype<MPTR>* addrOut);
 
+	void DynLoad_Save(MemStreamWriter& s);
+	void DynLoad_Restore(MemStreamReader& s);
+
 	void InitializeDynLoad();
 }

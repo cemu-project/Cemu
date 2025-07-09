@@ -271,6 +271,22 @@ namespace coreinit
 		osLib_returnFromFunction(hCPU, 0);
 	}
 
+	void LockedCache_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_LockedCache");
+		s.writeData(lcCacheMask, sizeof(uint8) * PPC_CORE_COUNT * (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);
+		s.writeData(lcAllocatedBlocks, sizeof(uint32) * PPC_CORE_COUNT);
+		s.write(_lcDisableErrorCounter);
+	}
+
+	void LockedCache_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_LockedCache");
+		s.readData(lcCacheMask, sizeof(uint8) * PPC_CORE_COUNT * (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);
+		s.readData(lcAllocatedBlocks, sizeof(uint32) * PPC_CORE_COUNT);
+		s.read(_lcDisableErrorCounter);
+	}
+
 	void InitializeLC()
 	{
 		for (sint32 f = 0; f < PPC_CORE_COUNT; f++)

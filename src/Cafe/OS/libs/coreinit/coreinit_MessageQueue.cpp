@@ -124,6 +124,20 @@ namespace coreinit
 		return g_systemMessageQueue.GetPtr();
 	}
 
+	void MessageQueue_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_MessageQueue");
+		s.writeMPTR(g_systemMessageQueue);
+		s.writeMPTR(_systemMessageQueueArray);
+	}
+
+	void MessageQueue_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_MessageQueue");
+		s.readMPTR(g_systemMessageQueue);
+		s.readMPTR(_systemMessageQueueArray);
+	}
+
 	void InitializeMessageQueue()
 	{
 		OSInitMessageQueue(g_systemMessageQueue.GetPtr(), _systemMessageQueueArray.GetPtr(), _systemMessageQueueArray.GetCount());

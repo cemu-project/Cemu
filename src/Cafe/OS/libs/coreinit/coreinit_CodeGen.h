@@ -6,5 +6,8 @@ namespace coreinit
 	void codeGenHandleICBI(uint32 ea);
 	bool codeGenShouldAvoid();
 
+	void CodeGen_Save(MemStreamWriter& s);
+	void CodeGen_Restore(MemStreamReader& s);
+
 	void InitializeCodeGen();
 }

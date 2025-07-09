@@ -16,6 +16,8 @@ namespace coreinit
 
 	struct OSVirtMemoryEntry
 	{
+		OSVirtMemoryEntry() : virtualAddress(0), size(0), alignment(0) {};
+
 		OSVirtMemoryEntry(MPTR virtualAddress, uint32 size, uint32 alignment) : virtualAddress(virtualAddress), size(size), alignment(alignment) {};
 
 		MPTR virtualAddress;
@@ -149,6 +151,30 @@ namespace coreinit
 
 		MemMapper::FreeMemory(virtualPtr, size, true);
 		return 1;
+	}
+
+	void MemoryMapping_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_MemoryMapping");
+		s.write<uint32>(s_allocatedVirtMemory.size());
+		for (auto i : s_allocatedVirtMemory)
+		{
+			s.write(i.virtualAddress);
+			s.write(i.size);
+			s.write(i.alignment);
+		}
+	}
+
+	void MemoryMapping_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_MemoryMapping");
+		uint32 s_allocatedVirtMemorySize = s.read<uint32>();
+		s_allocatedVirtMemory.clear();
+		s_allocatedVirtMemory.reserve(s_allocatedVirtMemorySize);
+		for (sint32 i = 0; i < s_allocatedVirtMemorySize; i++)
+		{
+			s_allocatedVirtMemory.emplace_back(s.read<MPTR>(), s.read<uint32>(), s.read<uint32>());
+		}
 	}
 
 	void InitializeMemoryMapping()

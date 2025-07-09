@@ -875,6 +875,16 @@ namespace proc_ui
 		s_driverInBackground = false;
 	}
 
+	void save(MemStreamWriter& s)
+	{
+		s.writeSection("proc_ui");
+	}
+
+	void restore(MemStreamReader& s)
+	{
+		s.readSection("proc_ui");
+	}
+
 	void load()
 	{
 		reset();

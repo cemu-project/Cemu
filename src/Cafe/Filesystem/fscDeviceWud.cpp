@@ -108,6 +108,11 @@ public:
 		return true;
 	}
 
+	void Save(MemStreamWriter& writer) override
+	{
+		throw std::exception("Not implemented");
+	}
+
 private:
 	FSTVolume* m_volume{nullptr};
 	sint32 m_fscType;

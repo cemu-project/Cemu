@@ -179,5 +179,8 @@ namespace coreinit
 
 	void InitializeMEMUnitHeap();
 
+	void MEM_Save(MemStreamWriter& s);
+	void MEM_Restore(MemStreamReader& s);
+
 	void InitializeMEM();
 }

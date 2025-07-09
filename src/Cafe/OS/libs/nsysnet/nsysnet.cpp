@@ -2223,6 +2223,83 @@ namespace nsysnet
     }
 }
 
+template<>
+void MemStreamWriter::write(const nsysnet::NSSLInternalState_t& v)
+{
+	writeBool(v.destroyed);
+	write(v.sslVersion);
+	write(v.clientPKI);
+
+	write<uint32>(v.serverPKIs.size());
+	for (auto i : v.serverPKIs)
+		write<uint32>(i);
+
+	write<uint32>(v.serverCustomPKIs.size());
+	for (auto i : v.serverCustomPKIs)
+		writePODVector(i);
+}
+
+template<>
+void MemStreamReader::read(nsysnet::NSSLInternalState_t& v)
+{
+	readBool(v.destroyed);
+	read(v.sslVersion);
+	read(v.clientPKI);
+
+	uint32 serverPKIsSize = read<uint32>();
+	v.serverPKIs.clear();
+	for (uint32 i = 0; i < serverPKIsSize; i++)
+		v.serverPKIs.insert(read<uint32>());
+
+	uint32 serverCustomPKIsSize = read<uint32>();
+	v.serverCustomPKIs.clear();
+	v.serverCustomPKIs.resize(serverCustomPKIsSize);
+	for (uint32 i = 0; i < serverCustomPKIsSize; i++)
+	{
+		std::vector<uint8> pki;
+		readPODVector(pki);
+		v.serverCustomPKIs.push_back(pki);
+	}
+}
+
+void nsysnet_save(MemStreamWriter& s)
+{
+	s.writeSection("nsysnet");
+	s.writeMPTR(_ntoa_tempString);
+	s.writeMPTR(_staticHostent);
+	s.writeMPTR(_staticHostentName);
+	s.writeMPTR(_staticHostentPtrList);
+	s.writeMPTR(_staticHostentEntries);
+	s.write<uint32>(nsysnet::g_nsslInternalStates.size());
+	for (auto i : nsysnet::g_nsslInternalStates)
+		s.write(i);
+	s.writeBool(sockLibReady);
+	s.write<uint32>(sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
+	s.writeData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
+}
+
+void nsysnet_restore(MemStreamReader& s)
+{
+	s.readSection("nsysnet");
+	s.readMPTR(_ntoa_tempString);
+	s.readMPTR(_staticHostent);
+	s.readMPTR(_staticHostentName);
+	s.readMPTR(_staticHostentPtrList);
+	s.readMPTR(_staticHostentEntries);
+	uint32 g_nsslInternalStatesSize = s.read<uint32>();
+	nsysnet::g_nsslInternalStates.clear();
+	nsysnet::g_nsslInternalStates.resize(g_nsslInternalStatesSize);
+	for (uint32 i = 0; i < g_nsslInternalStatesSize; i++)
+	{
+		nsysnet::NSSLInternalState_t t;
+		s.read(t);
+		nsysnet::g_nsslInternalStates.push_back(t);
+	}
+	s.readBool(sockLibReady);
+	cemu_assert(s.read<uint32>() == sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
+	s.readData(virtualSocketTable, sizeof(virtualSocket_t) * WU_SOCKET_LIMIT);
+}
+
 // register nsysnet functions
 void nsysnet_load()
 {
@@ -2283,3 +2360,4 @@ void nsysnet_load()
 	osLib_addFunction("nsysnet", "NSSLExportInternalServerCertificate", nsysnet::export_NSSLExportInternalServerCertificate);
 	osLib_addFunction("nsysnet", "NSSLExportInternalClientCertificate", nsysnet::export_NSSLExportInternalClientCertificate);
 }
+

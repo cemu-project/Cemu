@@ -10,6 +10,18 @@ namespace coreinit
 		return *g_system_info.GetPtr();
 	}
 
+	void SystemInfo_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_SysInfo");
+		s.writeMPTR(g_system_info);
+	}
+
+	void SystemInfo_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_SysInfo");
+		s.readMPTR(g_system_info);
+	}
+
 	void InitializeSystemInfo()
 	{
 		cemu_assert(ppcCyclesSince2000 != 0);

@@ -445,6 +445,30 @@ namespace coreinit
 		return r;
 	}
 
+	void IPC_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_IPC");
+		s.writeMPTR(s_ipcResourceBuffers);
+		s.writeMPTR(s_ipcDriver);
+		s.writeMPTR(gIPCThread);
+		s.writeMPTR(_gIPCThreadStack);
+		s.writeMPTR(_gIPCThreadNameStorage);
+		s.writeMPTR(gIPCThreadMsgQueue);
+		s.writeMPTR(_gIPCThreadSemaphoreStorage);
+	}
+
+	void IPC_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_IPC");
+		s.readMPTR(s_ipcResourceBuffers);
+		s.readMPTR(s_ipcDriver);
+		s.readMPTR(gIPCThread);
+		s.readMPTR(_gIPCThreadStack);
+		s.readMPTR(_gIPCThreadNameStorage);
+		s.readMPTR(gIPCThreadMsgQueue);
+		s.readMPTR(_gIPCThreadSemaphoreStorage);
+	}
+
 	void InitializeIPC()
 	{
 		for (uint32 i = 0; i < Espresso::CORE_COUNT; i++)
@@ -461,5 +485,4 @@ namespace coreinit
 		cafeExportRegister("coreinit", IOS_Ioctlv, LogType::PPC_IPC);
 		cafeExportRegister("coreinit", IOS_IoctlvAsync, LogType::PPC_IPC);
 	}
-
 };

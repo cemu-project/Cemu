@@ -15,7 +15,10 @@ namespace coreinit
 	static_assert(sizeof(OSSystemInfo) == 0x20);
 
 	const OSSystemInfo& OSGetSystemInfo();
-		
+	
+	void SystemInfo_Save(MemStreamWriter& s);
+	void SystemInfo_Restore(MemStreamReader& s);
+
 	void InitializeSystemInfo();
 };
 

@@ -683,6 +683,19 @@ void nnActExport_AcquirePrincipalIdByAccountId(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, result);
 }
 
+void nnAct_save(MemStreamWriter& s)
+{
+	s.writeSection("nn_act");
+	s.write(nn::act::g_initializeCount);
+	s.write((uint32)g_isParentalControlCheckEnabled);
+}
+void nnAct_restore(MemStreamReader& s)
+{
+	s.readSection("nn_act");
+	s.read(nn::act::g_initializeCount);
+	g_isParentalControlCheckEnabled = s.read<uint32>();
+}
+
 // register account functions
 void nnAct_load()
 {

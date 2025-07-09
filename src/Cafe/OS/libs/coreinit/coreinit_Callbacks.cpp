@@ -31,6 +31,19 @@ struct CoreinitAsyncCallback
 		s_asyncCallbackSpinlock.unlock();
 	}
 
+	static std::vector<struct CoreinitAsyncCallback*>& getPool()
+	{
+		return s_asyncCallbackPool;
+	}
+
+	static std::vector<struct CoreinitAsyncCallback*>& getQueue()
+	{
+		return s_asyncCallbackQueue;
+	}
+
+	friend void ci_Callbacks_Save(MemStreamWriter& s);
+	friend void ci_Callbacks_Restore(MemStreamReader& s);
+
 private:
 	void doCall()
 	{
@@ -102,6 +115,28 @@ void coreinitAsyncCallback_add(MPTR functionMPTR, uint32 numParameters, uint32 r
 {
 	cemu_assert_debug(__OSHasSchedulerLock() == false); // do not call when holding scheduler lock
 	coreinitAsyncCallback_addWithLock(functionMPTR, numParameters, r3, r4, r5, r6, r7, r8, r9, r10);
+}
+
+void coreinit_Callbacks_Save(MemStreamWriter& s)
+{
+	s.writeSection("coreinit_Callbacks");
+	s.writeMPTR(g_coreinitCallbackThread);
+	s.writeMPTR(_g_coreinitCallbackThreadStack);
+	s.writeMPTR(g_asyncCallbackAsync);
+	s.writeMPTR(_g_coreinitCBThreadName);
+	s.writePODVector(CoreinitAsyncCallback::getPool());
+	s.writePODVector(CoreinitAsyncCallback::getQueue());
+}
+
+void coreinit_Callbacks_Restore(MemStreamReader& s)
+{
+	s.readSection("coreinit_Callbacks");
+	s.readMPTR(g_coreinitCallbackThread);
+	s.readMPTR(_g_coreinitCallbackThreadStack);
+	s.readMPTR(g_asyncCallbackAsync);
+	s.readMPTR(_g_coreinitCBThreadName);
+	s.readPODVector(CoreinitAsyncCallback::getPool());
+	s.readPODVector(CoreinitAsyncCallback::getQueue());
 }
 
 void InitializeAsyncCallback()

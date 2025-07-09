@@ -107,6 +107,11 @@ public:
 		return true;
 	}
 
+	void Save(MemStreamWriter& writer) override
+	{
+		throw std::exception("Not implemented");
+	}
+
 private:
 	ZArchiveReader* m_archive{nullptr};
 	sint32 m_fscType;

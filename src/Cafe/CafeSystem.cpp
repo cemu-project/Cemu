@@ -68,6 +68,8 @@
 // dependency to be removed
 #include "gui/guiWrapper.h"
 
+#include "Cafe/OS/libs/coreinit/coreinit_FS.h"
+
 #include <time.h>
 
 #if BOOST_OS_LINUX
@@ -1006,6 +1008,87 @@ namespace CafeSystem
         UnmountBaseDirectories();
         DestroyMemorySpace();
 		sSystemRunning = false;
+	}
+
+	void PauseTitle()
+	{
+		if (!sSystemRunning)
+			return;
+		coreinit::SuspendActiveThreads();
+		iosu::pdm::Stop();
+		sSystemRunning = false;
+	}
+
+	void ResumeTitle()
+	{
+		if (sSystemRunning)
+			return;
+		coreinit::ResumeActiveThreads();
+		iosu::pdm::StartTrackingTime(GetForegroundTitleId());
+		sSystemRunning = true;
+	}
+
+	void SaveState(std::string path)
+	{
+		cemuLog_log(LogType::SaveStates, "Saving state...");
+		MemStreamWriter writer(0);
+		// pause game
+		PauseTitle();
+		// memory
+		memory_Serialize(writer);
+
+
+		nn::temp::save(writer);
+		nn::aoc::save(writer);
+		osLib_save(writer);
+		iosu::kernel::save(writer);
+		iosu::fsa::save(writer);
+		iosu::odm::save(writer);
+
+		// gpu
+		writer.writeData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
+		writer.writeData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
+		writer.writeData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
+
+		FileStream* stream = FileStream::createFile(path);
+		stream->writeData(writer.getResult().data(), writer.getResult().size_bytes());
+		delete stream;
+		cemuLog_log(LogType::SaveStates, "Saved state to {}.", path);
+
+		ResumeTitle(/*isThreadRunning*/);
+	}
+
+	void LoadState(std::string path)
+	{
+		PauseTitle();
+		//coreinit::__OSDeleteAllActivePPCThreads();
+		DestroyMemorySpace();
+
+		cemuLog_log(LogType::SaveStates, "Loading state...", path);
+
+		auto data = FileStream::LoadIntoMemory(path);
+		assert(data.has_value());
+		MemStreamReader reader(data->data(), data->size());
+
+		// memory
+		
+		memory_Deserialize(reader);
+
+		nn::temp::restore(reader);
+		nn::aoc::restore(reader);
+		osLib_restore(reader);
+		iosu::kernel::restore(reader);
+		iosu::fsa::restore(reader);
+		iosu::odm::restore(reader);
+
+		// gpu
+		reader.readData(LatteGPUState.contextRegister, sizeof(LatteGPUState.contextRegister));
+		reader.readData(LatteGPUState.contextRegisterShadowAddr, sizeof(LatteGPUState.contextRegister));
+		reader.readData(LatteGPUState.sharedArea, sizeof(gx2GPUSharedArea_t));
+
+		cemuLog_log(LogType::SaveStates, "Loaded state from {}.", path);
+
+		ResumeTitle(/*isThreadRunning*/);
 	}
 
 	/* Virtual mlc storage */

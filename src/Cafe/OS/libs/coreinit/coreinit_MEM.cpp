@@ -630,6 +630,42 @@ namespace coreinit
         memset(&g_list3, 0, sizeof(g_list3));
     }
 
+	void MEM_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_MEM");
+		s.write(sysAreaAllocatorOffset);
+		s.write(g_heapTableCount);
+		s.writeData(g_heapTable, sizeof(MEMHeapBase) * MEM_MAX_HEAP_TABLE);
+		s.writeBool(g_slockInitialized);
+		s.writeBool(g_listsInitialized);
+		s.writeData(&g_list1, sizeof(MEMList));
+		s.writeData(&g_list2, sizeof(MEMList));
+		s.writeData(&g_list3, sizeof(MEMList));
+		s.writeData(&gHeapFillValues, sizeof(uint32) * 3);
+		s.writeMPTR(gHeapGlobalLock);
+		s.writeData(&gDefaultHeap, sizeof(MEMHeapBase));
+		s.writeData(&sHeapBaseHandle, sizeof(MEMHeapBase) * 9);
+		s.writeMPTR(gDefaultHeapAllocator);
+	}
+
+	void MEM_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_MEM");
+		s.read(sysAreaAllocatorOffset);
+		s.read(g_heapTableCount);
+		s.readData(g_heapTable, sizeof(MEMHeapBase) * MEM_MAX_HEAP_TABLE);
+		s.readBool(g_slockInitialized);
+		s.readBool(g_listsInitialized);
+		s.readData(&g_list1, sizeof(MEMList));
+		s.readData(&g_list2, sizeof(MEMList));
+		s.readData(&g_list3, sizeof(MEMList));
+		s.readData(&gHeapFillValues, sizeof(uint32) * 3);
+		s.readMPTR(gHeapGlobalLock);
+		s.readData(&gDefaultHeap, sizeof(MEMHeapBase));
+		s.readData(&sHeapBaseHandle, sizeof(MEMHeapBase) * 9);
+		s.readMPTR(gDefaultHeapAllocator);
+	}
+
 	void InitializeMEM()
 	{
         MEMResetToDefaultState();

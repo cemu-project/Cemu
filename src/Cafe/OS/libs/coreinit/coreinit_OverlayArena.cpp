@@ -25,6 +25,17 @@ namespace coreinit
 		*areaSize = MEMORY_OVERLAY_AREA_SIZE;
 	}
 
+	void OverlayArena_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_OverlayArena");
+		s.writeBool(g_coreinitOverlayArena.isEnabled);
+	}
+	void OverlayArena_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_OverlayArena");
+		s.readBool(g_coreinitOverlayArena.isEnabled);
+	}
+
 	void InitializeOverlayArena()
 	{
 		cafeExportRegister("coreinit", OSIsEnabledOverlayArena, LogType::Placeholder);

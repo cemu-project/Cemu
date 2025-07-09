@@ -149,6 +149,30 @@ namespace nn
 			return AOC_RESULT::ERROR_OK;
 		}
 
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("nn_aoc");
+			s.write<uint32>(sAocCache.size());
+			for (auto i : sAocCache)
+			{
+				s.write(i.aocTitleId);
+			}
+			s.writeBool(sAocCacheGenerated);
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("nn_aoc");
+			uint32 sAocCacheSize = s.read<uint32>();
+			sAocCache.clear();
+			sAocCache.reserve(sAocCacheSize);
+			for (sint32 i = 0; i < sAocCacheSize; i++)
+			{
+				sAocCache.emplace_back(s.read<uint64>());
+			}
+			s.readBool(sAocCacheGenerated);
+		}
+
 		void Initialize()
 		{
 			cafeExportRegister("nn_aoc", AOC_CalculateWorkBufferSize, LogType::NN_AOC);

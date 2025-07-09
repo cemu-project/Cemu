@@ -79,6 +79,8 @@ enum
 	MAINFRAME_MENU_ID_FILE_OPEN_CEMU_FOLDER,
 	MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER,
 	MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER,
+	MAINFRAME_MENU_ID_FILE_SAVESTATE,
+	MAINFRAME_MENU_ID_FILE_LOADSTATE,
 	MAINFRAME_MENU_ID_FILE_EXIT,
 	MAINFRAME_MENU_ID_FILE_END_EMULATION,
 	MAINFRAME_MENU_ID_FILE_RECENT_0,
@@ -130,6 +132,13 @@ enum
 	MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE = 21000,
 	MAINFRAME_MENU_ID_NFC_RECENT_0,
 	MAINFRAME_MENU_ID_NFC_RECENT_LAST = MAINFRAME_MENU_ID_NFC_RECENT_0 + 15,
+
+	// savestates
+	MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE,
+	MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE,
+	MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE,
+	MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE,
+
 	// debug
 	MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN = 21100,
 	MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW,
@@ -209,6 +218,11 @@ EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, MainWindow::OnDebugSetting)
 // nfc menu
 EVT_MENU(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, MainWindow::OnNFCMenu)
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_NFC_RECENT_0 + 0, MAINFRAME_MENU_ID_NFC_RECENT_LAST, MainWindow::OnNFCMenu)
+// savestates menu
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE, MainWindow::OnSavestatesMenu)
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE, MainWindow::OnSavestatesMenu)
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE, MainWindow::OnSavestatesMenu)
+EVT_MENU(MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE, MainWindow::OnSavestatesMenu)
 // debug -> logging menu
 EVT_MENU_RANGE(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 0, MAINFRAME_MENU_ID_DEBUG_LOGGING0 + 98, MainWindow::OnDebugLoggingToggleFlagGeneric)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, MainWindow::OnPPCInfoToggle)
@@ -787,6 +801,27 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 				}
 			}
 		}
+	}
+}
+
+void MainWindow::OnSavestatesMenu(wxCommandEvent& event)
+{
+	const auto menuId = event.GetId();
+	if (menuId == MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE)
+	{
+		CafeSystem::PauseTitle();
+	}
+	if (menuId == MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE)
+	{
+		CafeSystem::ResumeTitle();
+	}
+	else if (menuId == MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE)
+	{
+		CafeSystem::SaveState("state.bin");
+	}
+	else if (menuId == MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE)
+	{
+		CafeSystem::LoadState("state.bin");
 	}
 }
 
@@ -2230,6 +2265,16 @@ void MainWindow::RecreateMenu()
 	nfcMenu->Append(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, _("&Scan NFC tag from file"))->Enable(false);
 	m_menuBar->Append(nfcMenu, _("&NFC"));
 	m_nfcMenuSeparator0 = nullptr;
+
+	// savestates menu
+	wxMenu* savestatesMenu = new wxMenu;
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_PAUSE_TITLE, _("&Pause"), wxEmptyString);
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_RESUME_TITLE, _("&Resume"), wxEmptyString);
+	savestatesMenu->AppendSeparator();
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_SAVE_STATE, _("&Save state"), wxEmptyString);
+	savestatesMenu->Append(MAINFRAME_MENU_ID_SAVESTATES_LOAD_STATE, _("&Load state"), wxEmptyString);
+	m_menuBar->Append(savestatesMenu, _("&Savestates"));
+
 	// debug->logging submenu
 	wxMenu* debugLoggingMenu = new wxMenu();
 
@@ -2264,6 +2309,7 @@ void MainWindow::RecreateMenu()
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Patches));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureReadback), _("&Texture readback"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureReadback));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SaveStates), _("&Save states"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SaveStates));
 	debugLoggingMenu->AppendSeparator();
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), _("&OpenGL debug output"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::OpenGLLogging));
 	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::VulkanValidation));

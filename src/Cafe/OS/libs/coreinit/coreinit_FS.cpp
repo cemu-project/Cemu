@@ -2645,6 +2645,32 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
+	void FS_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_FS");
+		s.writePTR(g_fsRegisteredClientBodies);
+		s.writeBool(_sdCard01Mounted);
+		s.writeBool(_mlc01Mounted);
+		s.writeMPTR(_tempFSSpace);
+		s.writePODVector(s_fsa_activeClients);
+		s.writeMPTR(s_fsaIpcPool);
+		s.writeMPTR(s_fsaIpcPoolBuffer);
+		s.writeMPTR(s_fsaIpcPoolBufferNumItems);
+	}
+
+	void FS_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_FS");
+		s.readPTR(g_fsRegisteredClientBodies);
+		s.readBool(_sdCard01Mounted);
+		s.readBool(_mlc01Mounted);
+		s.readMPTR(_tempFSSpace);
+		s.readPODVector(s_fsa_activeClients);
+		s.readMPTR(s_fsaIpcPool);
+		s.readMPTR(s_fsaIpcPoolBuffer);
+		s.readMPTR(s_fsaIpcPoolBufferNumItems);
+	}
+
 	void InitializeFS()
 	{
 		OSInitMutex(&s_fsGlobalMutex);

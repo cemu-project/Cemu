@@ -268,6 +268,24 @@ namespace coreinit
 		return memory_getPointerFromVirtualOffset(_swapEndianU32(tlsBlock->addr) + _swapEndianU32(tlsIndex->ukn04));
 	}
 
+	void GHS_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_GHS");
+		s.writeMPTR(g_ghs_data);
+		s.writeMPTR(_flockMutexArray);
+		s.writeData(reinterpret_cast<uint8*>(_flockMutexMask), sizeof(uint8) * GHS_FOPEN_MAX);
+	}
+
+	void GHS_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_GHS");
+		s.readMPTR(g_ghs_data);
+		s.readMPTR(_flockMutexArray);
+		uint8 _flockMutexMaskTmp[GHS_FOPEN_MAX] = { 0 };
+		s.readData(_flockMutexMaskTmp, sizeof(uint8) * GHS_FOPEN_MAX);
+		memcpy(_flockMutexMask, reinterpret_cast<bool*>(_flockMutexMaskTmp), sizeof(bool) * GHS_FOPEN_MAX);
+	}
+
 	void InitializeGHS()
 	{
 		cafeExportRegister("coreinit", __ghs_flock_create, LogType::Placeholder);

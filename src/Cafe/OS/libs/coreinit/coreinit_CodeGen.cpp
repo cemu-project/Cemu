@@ -25,9 +25,10 @@ namespace coreinit
 		}
 	}
 
+	static constexpr uint32 const codegenSize = 0x01000000; // todo: Read from cos.xml
+
 	void OSGetCodegenVirtAddrRange(betype<uint32>* rangeStart, betype<uint32>* rangeSize)
 	{
-		uint32 codegenSize = 0x01000000; // todo: Read from cos.xml
 		//debug_printf("OSGetCodegenVirtAddrRange(0x%08x,0x%08x)\n", hCPU->gpr[3], hCPU->gpr[4]);
 		// on first call, allocate range
 		if( coreinitCodeGen.rangeIsAllocated == false )
@@ -134,6 +135,26 @@ namespace coreinit
 		_avoidCodeGenJIT = true; // this function getting called is usually a sign that 
 		// does this have a return value?
 		return true;
+	}
+
+	void CodeGen_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_CodeGen");
+		s.writeBool(coreinitCodeGen.rangeIsAllocated);
+		s.write(coreinitCodeGen.rangeStart);
+		s.write(coreinitCodeGen.rangeSize);
+		s.write(codegenSize);
+		s.writeNullableData(coreinitCodeGen.cacheStateCopy, codegenSize);
+	}
+
+	void CodeGen_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_CodeGen");
+		s.readBool(coreinitCodeGen.rangeIsAllocated);
+		s.read(coreinitCodeGen.rangeStart);
+		s.read(coreinitCodeGen.rangeSize);
+		cemu_assert(s.read<uint32>() == codegenSize);
+		s.readNullableData(coreinitCodeGen.cacheStateCopy, codegenSize);
 	}
 
 	void InitializeCodeGen()

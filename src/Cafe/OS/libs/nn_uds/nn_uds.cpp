@@ -15,6 +15,18 @@ void nnUdsExport___sti___11_uds_Api_cpp_f5d9abb2(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(udsWorkspace));
 }
 
+void nnUds_save(MemStreamWriter& s)
+{
+	s.writeSection("nn_uds");
+	s.writeNullableData(udsWorkspace, sizeof(udsWorkspace_t));
+}
+
+void nnUds_restore(MemStreamReader& s)
+{
+	s.readSection("nn_uds");
+	s.readNullableData(udsWorkspace, sizeof(udsWorkspace_t));
+}
+
 /*
  * Load UDS functions
  */

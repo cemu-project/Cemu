@@ -29,6 +29,22 @@ namespace coreinit
 		_sysHeapFreeCounter = 0;
 	}
 
+	void SysHeap_Save(MemStreamWriter& s)
+	{
+		s.writeSection("coreinit_SysHeap");
+		s.writePTR(_sysHeapHandle);
+		s.write(_sysHeapAllocCounter);
+		s.write(_sysHeapFreeCounter);
+	}
+
+	void SysHeap_Restore(MemStreamReader& s)
+	{
+		s.readSection("coreinit_SysHeap");
+		s.readPTR(_sysHeapHandle);
+		s.read(_sysHeapAllocCounter);
+		s.read(_sysHeapFreeCounter);
+	}
+
 	void InitializeSysHeap()
 	{
 		cafeExportRegister("h264", OSAllocFromSystem, LogType::CoreinitMem);

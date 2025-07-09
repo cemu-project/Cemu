@@ -74,6 +74,20 @@ namespace nn
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NDM, 0);
 		}
 
+		void save(MemStreamWriter& s)
+		{
+			s.writeSection("nn_ndm");
+			s.writeData(s_daemonStatus, sizeof(DAEMON_STATUS) * NUM_DAEMONS);
+			s.write(s_initializeRefCount);
+		}
+
+		void restore(MemStreamReader& s)
+		{
+			s.readSection("nn_ndm");
+			s.readData(s_daemonStatus, sizeof(DAEMON_STATUS) * NUM_DAEMONS);
+			s.read(s_initializeRefCount);
+		}
+
 		void load()
 		{
 			for(size_t i=0; i<NUM_DAEMONS; i++)
