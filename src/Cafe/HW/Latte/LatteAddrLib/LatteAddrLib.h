@@ -3,16 +3,16 @@
 
 namespace LatteAddrLib
 {
-	static const uint32 m_banks = 4;
-	static const uint32 m_banksBitcount = 2;
-	static const uint32 m_pipes = 2;
-	static const uint32 m_pipesBitcount = 1;
-	static const uint32 m_pipeInterleaveBytes = 256;
-	static const uint32 m_pipeInterleaveBytesBitcount = 8;
-	static const uint32 m_rowSize = 2048;
-	static const uint32 m_swapSize = 256;
-	static const uint32 m_splitSize = 2048;
-	static const uint32 m_chipFamily = 2;
+	static constexpr uint32 m_banks = 4;
+	static constexpr uint32 m_banksBitcount = 2;
+	static constexpr uint32 m_pipes = 2;
+	static constexpr uint32 m_pipesBitcount = 1;
+	static constexpr uint32 m_pipeInterleaveBytes = 256;
+	static constexpr uint32 m_pipeInterleaveBytesBitcount = 8;
+	static constexpr uint32 m_rowSize = 2048;
+	static constexpr uint32 m_swapSize = 256;
+	static constexpr uint32 m_splitSize = 2048;
+	static constexpr uint32 m_chipFamily = 2;
 
 	union AddrSurfaceFlags
 	{

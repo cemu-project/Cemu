@@ -8,23 +8,23 @@ struct PPCInterpreter_t;
 namespace snd_core
 {
 	// sndcore2 - AX init param config
-	const int AX_RENDERER_FREQ_32KHZ = 0;
-	const int AX_RENDERER_FREQ_48KHZ = 1;
-	const int AX_FRAMELENGTH_3MS = 0;
+	constexpr int AX_RENDERER_FREQ_32KHZ = 0;
+	constexpr int AX_RENDERER_FREQ_48KHZ = 1;
+	constexpr int AX_FRAMELENGTH_3MS = 0;
 
-	const int AX_SAMPLES_PER_3MS_48KHZ = (144); // 48000*3/1000
-	const int AX_SAMPLES_PER_3MS_32KHZ = (96);  // 32000*3/1000
-	const int AX_SAMPLES_MAX = AX_SAMPLES_PER_3MS_48KHZ; // the maximum amount of samples in a single frame
+	constexpr int AX_SAMPLES_PER_3MS_48KHZ = (144); // 48000*3/1000
+	constexpr int AX_SAMPLES_PER_3MS_32KHZ = (96);  // 32000*3/1000
+	constexpr int AX_SAMPLES_MAX = AX_SAMPLES_PER_3MS_48KHZ; // the maximum amount of samples in a single frame
 
-	const int AX_DEV_TV = 0;
-	const int AX_DEV_DRC = 1;
-	const int AX_DEV_RMT = 2;
-	const int AX_DEV_COUNT = 3;
+	constexpr int AX_DEV_TV = 0;
+	constexpr int AX_DEV_DRC = 1;
+	constexpr int AX_DEV_RMT = 2;
+	constexpr int AX_DEV_COUNT = 3;
 
-	const int AX_UPSAMPLE_STAGE_BEFORE_FINALMIX = 0;
-	const int AX_UPSAMPLE_STAGE_AFTER_FINALMIX = 1;
+	constexpr int AX_UPSAMPLE_STAGE_BEFORE_FINALMIX = 0;
+	constexpr int AX_UPSAMPLE_STAGE_AFTER_FINALMIX = 1;
 
-	const int AX_PIPELINE_SINGLE = 0;
+	constexpr int AX_PIPELINE_SINGLE = 0;
 
 	struct AXINITPARAM
 	{
@@ -34,48 +34,48 @@ namespace snd_core
 	};
 
 	// maximum number of supported channels per device
-	const int AX_TV_CHANNEL_COUNT = 6;
-	const int AX_DRC_CHANNEL_COUNT = 4;
-	const int AX_RMT_CHANNEL_COUNT = 1;
+	constexpr int AX_TV_CHANNEL_COUNT = 6;
+	constexpr int AX_DRC_CHANNEL_COUNT = 4;
+	constexpr int AX_RMT_CHANNEL_COUNT = 1;
 	
-	const int AX_APP_FRAME_CALLBACK_MAX = 64;
+	constexpr int AX_APP_FRAME_CALLBACK_MAX = 64;
 
-	const int AX_MODE_STEREO = 0;
-	const int AX_MODE_SURROUND = 1;
-	const int AX_MODE_DPL2 = 2;
-	const int AX_MODE_6CH = 3;
-	const int AX_MODE_MONO = 5;
+	constexpr int AX_MODE_STEREO = 0;
+	constexpr int AX_MODE_SURROUND = 1;
+	constexpr int AX_MODE_DPL2 = 2;
+	constexpr int AX_MODE_6CH = 3;
+	constexpr int AX_MODE_MONO = 5;
 
-	const int AX_PRIORITY_MAX = 32;
-	const int AX_PRIORITY_FREE = 0;
-	const int AX_PRIORITY_NODROP = 31;
-	const int AX_PRIORITY_LOWEST = 1;
-	const int AX_MAX_VOICES = 96;
+	constexpr int AX_PRIORITY_MAX = 32;
+	constexpr int AX_PRIORITY_FREE = 0;
+	constexpr int AX_PRIORITY_NODROP = 31;
+	constexpr int AX_PRIORITY_LOWEST = 1;
+	constexpr int AX_MAX_VOICES = 96;
 
-	const int AX_AUX_BUS_COUNT = 3;
-	const int AX_MAX_NUM_BUS = 4;
+	constexpr int AX_AUX_BUS_COUNT = 3;
+	constexpr int AX_MAX_NUM_BUS = 4;
 
-	const int AX_FORMAT_ADPCM = 0x0;
-	const int AX_FORMAT_PCM16 = 0xA;
-	const int AX_FORMAT_PCM8 = 0x19;
+	constexpr int AX_FORMAT_ADPCM = 0x0;
+	constexpr int AX_FORMAT_PCM16 = 0xA;
+	constexpr int AX_FORMAT_PCM8 = 0x19;
 
-	const int AX_LPF_OFF = 0x0;
+	constexpr int AX_LPF_OFF = 0x0;
 
-	const int AX_BIQUAD_OFF = 0x0;
+	constexpr int AX_BIQUAD_OFF = 0x0;
 
-	const int AX_SRC_TYPE_NONE = 0x0;
-	const int AX_SRC_TYPE_LINEAR = 0x1;
-	const int AX_SRC_TYPE_LOWPASS1 = 0x2;
-	const int AX_SRC_TYPE_LOWPASS2 = 0x3;
-	const int AX_SRC_TYPE_LOWPASS3 = 0x4;
+	constexpr int AX_SRC_TYPE_NONE = 0x0;
+	constexpr int AX_SRC_TYPE_LINEAR = 0x1;
+	constexpr int AX_SRC_TYPE_LOWPASS1 = 0x2;
+	constexpr int AX_SRC_TYPE_LOWPASS2 = 0x3;
+	constexpr int AX_SRC_TYPE_LOWPASS3 = 0x4;
 
-	const int AX_FILTER_MODE_TAP = 0x0;
-	const int AX_FILTER_MODE_LINEAR = 0x1;
-	const int AX_FILTER_MODE_NONE = 0x2;
+	constexpr int AX_FILTER_MODE_TAP = 0x0;
+	constexpr int AX_FILTER_MODE_LINEAR = 0x1;
+	constexpr int AX_FILTER_MODE_NONE = 0x2;
 
-	const int AX_FILTER_LOWPASS_8K = 0x0;
-	const int AX_FILTER_LOWPASS_12K = 0x1;
-	const int AX_FILTER_LOWPASS_16K = 0x2;
+	constexpr int AX_FILTER_LOWPASS_8K = 0x0;
+	constexpr int AX_FILTER_LOWPASS_12K = 0x1;
+	constexpr int AX_FILTER_LOWPASS_16K = 0x2;
 
 	void loadExports();
 	bool isInitialized();
@@ -314,9 +314,9 @@ namespace snd_core
 
 	// AXMix
 	// mixer select constants (for AXSetDefaultMixerSelect / AXGetDefaultMixerSelect)
-	const int AX_MIXER_SELECT_DSP = (0);
-	const int AX_MIXER_SELECT_PPC = (1);
-	const int AX_MIXER_SELECT_BOTH = (2);
+	constexpr int AX_MIXER_SELECT_DSP = (0);
+	constexpr int AX_MIXER_SELECT_PPC = (1);
+	constexpr int AX_MIXER_SELECT_BOTH = (2);
 
 	void AXMix_Init();
 	void AXSetDefaultMixerSelect(uint32 mixerSelect);
