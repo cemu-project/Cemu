@@ -91,7 +91,7 @@ void MMURange::mapMem()
 	cemu_assert_debug(!m_isMapped);
 	if (MemMapper::AllocateMemory(memory_base + baseAddress, size, MemMapper::PAGE_PERMISSION::P_RW, true) == nullptr)
 	{
-		std::string errorMsg = fmt::format(fmt::runtime(_tr("Unable to allocate {} memory")), name);
+		std::string errorMsg = _tr("Unable to allocate {} memory", name);
 		WindowSystem::showErrorDialog(errorMsg, _tr("Error"));
 		#if BOOST_OS_WINDOWS
 		ExitProcess(-1);

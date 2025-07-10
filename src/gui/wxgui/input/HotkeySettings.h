@@ -30,7 +30,7 @@ private:
 	wxTimer* m_controllerTimer{ nullptr };
 	const wxSize m_minButtonSize{ 250, 45 };
 	const wxString m_disabledHotkeyText{ _("----") };
-	const wxString m_editModeHotkeyText{ _("") };
+	const wxString m_editModeHotkeyText{ "" };
 
 	std::vector<HotkeyEntry> m_hotkeys;
 	std::weak_ptr<ControllerBase> m_activeController{};

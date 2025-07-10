@@ -108,7 +108,7 @@ void KeyCache_Prepare()
 			continue;
 		if( strishex(line) == false )
 		{
-			auto errorMsg = fmt::format(fmt::runtime(_tr("Error in keys.txt at line {}")), lineNumber);
+			auto errorMsg = _tr("Error in keys.txt at line {}", lineNumber);
 			WindowSystem::showErrorDialog(errorMsg, WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
 			continue;
 		}

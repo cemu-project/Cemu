@@ -132,12 +132,24 @@ inline void SetTranslationCallback(std::function<std::string(std::string_view)> 
 
 #define TR_NOOP(str) str
 
-inline std::string _tr(std::string_view msgId)
+inline std::string _tr(std::string_view text)
 {
 	if (g_translate)
-		return g_translate(msgId);
+		return g_translate(text);
 
-	return std::string{msgId};
+	return std::string{text};
+}
+
+template<typename... TArgs>
+inline std::string _tr(fmt::format_string<TArgs...> text, TArgs... args)
+{
+	if (g_translate)
+	{
+		std::string_view textSV{text.get().data(), text.get().size()};
+		return fmt::format(fmt::runtime(g_translate(textSV)), std::forward<TArgs>(args)...);
+	}
+
+	return fmt::format(text, std::forward<TArgs>(args)...);
 }
 
 // manual endian-swapping
