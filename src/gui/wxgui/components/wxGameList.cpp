@@ -140,31 +140,32 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 {
 	const auto& config = GetWxGUIConfig();
 
+	char transparent_bitmap[kIconWidth * kIconWidth * 4] = {wxIMAGE_ALPHA_TRANSPARENT};
+	memset((void*)transparent_bitmap, wxIMAGE_ALPHA_TRANSPARENT, sizeof(transparent_bitmap));
+	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
+	blank.UseAlpha(true);
+
+	m_image_list_data = {};
+	m_image_list_data.emplace_back(wxBitmapBundle::FromBitmap(blank));
+	wxListCtrl::SetNormalImages(m_image_list_data);
+
+	m_image_list_small_data = {};
+	wxBitmap::Rescale(blank, {kListIconWidth, kListIconWidth});
+	m_image_list_small_data.emplace_back(wxBitmapBundle::FromBitmap(blank));
+	wxListCtrl::SetSmallImages(m_image_list_small_data);
+
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
 	if(config.show_icon_column)
-		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, kListIconWidth);
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, GetColumnDefaultWidth(ColumnIcon));
 	else
 		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, 0);
 	InsertColumn(ColumnName, _("Game"), wxLIST_FORMAT_LEFT, config.column_width.name);
-	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_RIGHT, config.column_width.version);
-	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_RIGHT, config.column_width.dlc);
+	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_LEFT, config.column_width.version);
+	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_LEFT, config.column_width.dlc);
 	InsertColumn(ColumnGameTime, _("You've played"), wxLIST_FORMAT_LEFT, config.column_width.game_time);
 	InsertColumn(ColumnGameStarted, _("Last played"), wxLIST_FORMAT_LEFT, config.column_width.game_started);
 	InsertColumn(ColumnRegion, _("Region"), wxLIST_FORMAT_LEFT, config.column_width.region);
     InsertColumn(ColumnTitleID, _("Title ID"), wxLIST_FORMAT_LEFT, config.column_width.title_id);
-
-	const char transparent_bitmap[kIconWidth * kIconWidth * 4] = {0};
-	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
-	blank.UseAlpha(true);
-
-	m_image_list = new wxImageList(kIconWidth, kIconWidth);
-	m_image_list->Add(blank);
-	wxListCtrl::SetImageList(m_image_list, wxIMAGE_LIST_NORMAL);
-
-	m_image_list_small = new wxImageList(kListIconWidth, kListIconWidth);
-	wxBitmap::Rescale(blank, {kListIconWidth, kListIconWidth});
-	m_image_list_small->Add(blank);
-	wxListCtrl::SetImageList(m_image_list_small, wxIMAGE_LIST_SMALL);
 
 	m_tooltip_window = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxNO_BORDER);
 	auto* tooltip_sizer = new wxBoxSizer(wxVERTICAL);
@@ -209,10 +210,6 @@ wxGameList::~wxGameList()
 	m_async_worker_active.store(false);
 	m_async_task_count.increment();
 	m_async_worker_thread.join();
-
-	// destroy image lists
-	delete m_image_list;
-	delete m_image_list_small;
 
 	// clear image cache
 	m_icon_cache_mtx.lock();
@@ -306,6 +303,12 @@ int wxGameList::GetColumnDefaultWidth(int column)
 	switch (column)
 	{
 	case ColumnIcon:
+#if __WXMSW__
+		// note: this is another workaround that could be used to fix the icon offset, but instead of this there's a vcpkg patch for wxWidgets that fixes the icon offset
+		// wxWidgets offsets the icon in the REPORT view so it's cut off if the column width is set to 64px, see https://github.com/wxWidgets/wxWidgets/blob/09f433faf39aab3f25b3c564b82448bb845fae56/src/msw/listctrl.cpp#L3091
+		// so add 6px to the column width to compensate, and add another 6px to the right side so that it has equal whitespace on both sides
+		// return kListIconWidth + 6 + 6;
+#endif
 		return kListIconWidth;
 	case ColumnName:
 		return DefaultColumnSize::name;
@@ -408,10 +411,11 @@ void wxGameList::SetStyle(Style style, bool save)
 	switch(style)
 	{
 	case Style::kIcons:
-		wxListCtrl::SetImageList(m_image_list, wxIMAGE_LIST_NORMAL);
+		wxListCtrl::SetNormalImages(m_image_list_data);
 		break;
 	case Style::kSmallIcons:
-		wxListCtrl::SetImageList(m_image_list_small, wxIMAGE_LIST_NORMAL);
+	case Style::kList:
+		wxListCtrl::SetSmallImages(m_image_list_small_data);
 		break;
 	}
 
@@ -440,14 +444,14 @@ long wxGameList::GetStyleFlags(Style style) const
 	switch (style)
 	{
 	case Style::kList:
-		return (wxLC_SINGLE_SEL | wxLC_REPORT);
+		return (wxLC_SINGLE_SEL | wxLC_REPORT | wxLC_VRULES);
 	case Style::kIcons:
 		return (wxLC_SINGLE_SEL | wxLC_ICON);
 	case Style::kSmallIcons:
 		return (wxLC_SINGLE_SEL | wxLC_ICON);
 	default:
 		wxASSERT(false);
-		return (wxLC_SINGLE_SEL | wxLC_REPORT);
+		return (wxLC_SINGLE_SEL | wxLC_REPORT | wxLC_VRULES);
 	}
 }
 
@@ -464,7 +468,7 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 		if (GetConfig().IsGameListFavorite(titleId))
 		{
 			SetItemBackgroundColour(i, kFavoriteColor);
-			SetItemTextColour(i, 0x000000UL);
+			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else if ((i&1) != 0)
 		{
@@ -809,33 +813,34 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
             }
             case kContextMenuCopyTitleName:
             {
-                if (wxTheClipboard->Open())
+                if (wxClipboard::Get()->Open())
                 {
-                    wxTheClipboard->SetData(new wxTextDataObject(wxString::FromUTF8(gameInfo.GetTitleName())));
-                    wxTheClipboard->Close();
+                    wxClipboard::Get()->SetData(new wxTextDataObject(wxString::FromUTF8(gameInfo.GetTitleName())));
+                    wxClipboard::Get()->Close();
                 }
                 break;
             }
             case kContextMenuCopyTitleId:
             {
-                if (wxTheClipboard->Open())
+                if (wxClipboard::Get()->Open())
                 {
-                    wxTheClipboard->SetData(new wxTextDataObject(fmt::format("{:016x}", gameInfo.GetBaseTitleId())));
-                    wxTheClipboard->Close();
+                    wxClipboard::Get()->SetData(new wxTextDataObject(fmt::format("{:016x}", gameInfo.GetBaseTitleId())));
+                    wxClipboard::Get()->Close();
                 }
                 break;
             }
             case kContextMenuCopyTitleImage:
             {
-                if (wxTheClipboard->Open())
+                if (wxClipboard::Get()->Open())
                 {
                     int icon_large;
                     int icon_small;
                     if (!QueryIconForTitle(title_id, icon_large, icon_small))
                         break;
-                    auto icon = m_image_list->GetBitmap(icon_large);
-                    wxTheClipboard->SetData(new wxBitmapDataObject(icon));
-                    wxTheClipboard->Close();
+                    auto icon = m_image_list_data[icon_large];
+                	auto newClipboardData = wxBitmapDataObject(icon.GetBitmap(icon.GetDefaultSize()));
+                    wxClipboard::Get()->SetData(&newClipboardData);
+                    wxClipboard::Get()->Close();
                 }
                 break;
             }
@@ -994,7 +999,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	const auto& config = GetWxGUIConfig();
 	wxWindowUpdateLocker lock(this);
 	if(config.show_icon_column)
-		SetColumnWidth(ColumnIcon, kListIconWidth);
+		SetColumnWidth(ColumnIcon, GetColumnDefaultWidth(ColumnIcon));
 	else
 		SetColumnWidth(ColumnIcon, 0);
 	SetColumnWidth(ColumnName, config.column_width.name);
@@ -1109,6 +1114,23 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 	TitleId baseTitleId = gameInfo.GetBaseTitleId();
 	bool isNewEntry = false;
 
+	if (m_style == Style::kIcons)
+	{
+		wxListCtrl::SetNormalImages(m_image_list_data);
+	}
+	else if (m_style == Style::kSmallIcons)
+	{
+		wxListCtrl::SetSmallImages(m_image_list_small_data);
+	}
+	else if (m_style == Style::kList)
+	{
+		wxListCtrl::SetSmallImages(m_image_list_small_data);
+	}
+
+	int icon = -1; /* 0 is the default empty icon */
+	int icon_small = -1; /* 0 is the default empty icon */
+	QueryIconForTitle(baseTitleId, icon, icon_small);
+
 	auto index = FindListItemByTitleId(baseTitleId);
 	if(index == wxNOT_FOUND)
 	{
@@ -1117,10 +1139,6 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 		SetItemPtrData(index, baseTitleId);
 		isNewEntry = true;
 	}
-
-	int icon = 0; /* 0 is the default empty icon */
-	int icon_small = 0; /* 0 is the default empty icon */
-	QueryIconForTitle(baseTitleId, icon, icon_small);
 
 	if (m_style == Style::kList)
 	{
@@ -1324,17 +1342,18 @@ void wxGameList::AsyncWorkerThread()
 			wxMemoryInputStream tmp_stream(tgaData->data(), tgaData->size());
 			const wxImage image(tmp_stream);
 			// todo - is wxImageList thread safe?
-			int icon = m_image_list->Add(image.Scale(kIconWidth, kIconWidth, wxIMAGE_QUALITY_BICUBIC));
-			int icon_small = m_image_list_small->Add(image.Scale(kListIconWidth, kListIconWidth, wxIMAGE_QUALITY_BICUBIC));
+			m_image_list_data.emplace_back(image.Scale(kIconWidth, kIconWidth, wxIMAGE_QUALITY_BICUBIC));
+			m_image_list_small_data.emplace_back(image.Scale(kListIconWidth, kListIconWidth, wxIMAGE_QUALITY_BICUBIC));
 			// store in cache
 			m_icon_cache_mtx.lock();
-			m_icon_cache.try_emplace(titleId, icon, icon_small);
+			m_icon_cache.try_emplace(titleId, m_image_list_data.size() - 1, m_image_list_small_data.size() - 1);
 			m_icon_cache_mtx.unlock();
 			iconSuccessfullyLoaded = true;
 		}
 		else
 		{
 			cemuLog_log(LogType::Force, "Failed to load icon for title {:016x}", titleId);
+			cemu_assert_debug(false);
 		}
 		titleInfo.Unmount(tempMountPath);
 		// notify UI about loaded icon
@@ -1609,19 +1628,14 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 			cemuLog_log(LogType::Force, "Icon hasn't loaded");
 			return;
 		}
-		const auto icon = m_image_list->GetIcon(iconIdx);
+		const auto icon = m_image_list_data[iconIdx];
 		const auto folder = ActiveSettings::GetUserDataPath("icons");
 		if (!fs::exists(folder) && !fs::create_directories(folder))
 		{
 			cemuLog_log(LogType::Force, "Failed to create icon directory");
 			return;
 		}
-		wxBitmap bitmap{};
-		if (!bitmap.CopyFromIcon(icon))
-		{
-			cemuLog_log(LogType::Force, "Failed to copy icon");
-			return;
-		}
+		wxBitmap bitmap{icon.GetBitmap(wxDefaultSize)};
 
 		icon_path = folder / fmt::format("{:016x}.ico", titleId);
 		auto stream = wxFileOutputStream(icon_path->wstring());
