@@ -130,7 +130,7 @@ VKFUNC_DEVICE(vkDestroyPipeline);
 VKFUNC_DEVICE(vkCmdBindPipeline);
 
 // swapchain
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_BSD
 VKFUNC_INSTANCE(vkCreateXlibSurfaceKHR);
 VKFUNC_INSTANCE(vkCreateXcbSurfaceKHR);
 #ifdef HAS_WAYLAND
