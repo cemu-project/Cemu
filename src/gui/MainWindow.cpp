@@ -40,6 +40,7 @@
 #include "gui/helpers/wxHelpers.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #include "gui/input/InputSettings2.h"
+#include "gui/input/HotkeySettings.h"
 #include "input/InputManager.h"
 
 #if BOOST_OS_WINDOWS
@@ -91,6 +92,7 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_GENERAL2,
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
+	MAINFRAME_MENU_ID_OPTIONS_HOTKEY,
 	MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS,
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
@@ -189,6 +191,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_AUDIO, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
+EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_HOTKEY, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, MainWindow::OnOptionsInput)
 // tools menu
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
@@ -933,6 +936,12 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 		break;
 	}
 
+	case MAINFRAME_MENU_ID_OPTIONS_HOTKEY:
+	{
+		auto* frame = new HotkeySettings(this);
+		frame->Show();
+		break;
+	}
 	}
 }
 
@@ -1446,13 +1455,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 	if (swkbd_hasKeyboardInputHook())
 		return;
 
-	const auto code = event.GetKeyCode();
-	if (code == WXK_ESCAPE)
-		SetFullScreen(false);
-	else if (code == WXK_RETURN && event.AltDown() || code == WXK_F11)
-		SetFullScreen(!IsFullScreen());
-	else if (code == WXK_F12)
-		g_window_info.has_screenshot_request = true; // async screenshot request
+	HotkeySettings::CaptureInput(event);
 }
 
 void MainWindow::OnKeyDown(wxKeyEvent& event)
@@ -2189,6 +2192,7 @@ void MainWindow::RecreateMenu()
 	#endif
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_HOTKEY, _("&Hotkey settings"));
 
 	optionsMenu->AppendSeparator();
 	optionsMenu->AppendSubMenu(m_optionsAccountMenu, _("&Active account"));
