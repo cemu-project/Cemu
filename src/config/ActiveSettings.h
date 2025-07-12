@@ -83,7 +83,6 @@ public:
 	// general
 	[[nodiscard]] static bool LoadSharedLibrariesEnabled();
 	[[nodiscard]] static bool DisplayDRCEnabled();
-	[[nodiscard]] static bool FullscreenEnabled();
 
 	// cpu
 	[[nodiscard]] static CPUMode GetCPUMode();

@@ -1,5 +1,5 @@
 #include "CemuLogging.h"
-#include "gui/LoggingWindow.h"
+#include "Common/precompiled.h"
 #include "util/helpers/helpers.h"
 #include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
@@ -12,6 +12,64 @@
 #include <fmt/printf.h>
 
 uint64 s_loggingFlagMask = cemuLog_getFlag(LogType::Force);
+
+class LoggingDispatcher
+{
+  private:
+	static inline class DefaultLoggingCallbacks : public LoggingCallbacks
+	{
+	} s_defaultCallbacks;
+
+	LoggingCallbacks* m_loggingCallbacks = &s_defaultCallbacks;
+	std::shared_mutex m_mutex;
+
+  public:
+	void Log(std::string_view filter, std::string_view message)
+	{
+		std::shared_lock lock(m_mutex);
+		m_loggingCallbacks->Log(filter, message);
+	}
+
+	void Log(std::string_view message)
+	{
+		Log("", message);
+	}
+
+	void Log(std::string_view filter, std::wstring_view message)
+	{
+		std::shared_lock lock(m_mutex);
+		m_loggingCallbacks->Log(filter, message);
+	}
+
+	void Log(std::wstring_view message)
+	{
+		Log("", message);
+	}
+
+	void setCallbacks(LoggingCallbacks* loggingCallbacks)
+	{
+		std::unique_lock lock(m_mutex);
+		cemu_assert_debug(m_loggingCallbacks == &s_defaultCallbacks);
+		m_loggingCallbacks = loggingCallbacks;
+	}
+
+	void clearCallbacks()
+	{
+		std::unique_lock lock(m_mutex);
+		cemu_assert_debug(m_loggingCallbacks != &s_defaultCallbacks);
+		m_loggingCallbacks = &s_defaultCallbacks;
+	}
+} s_loggingDispatcher;
+
+void cemuLog_setCallbacks(LoggingCallbacks* loggingCallbacks)
+{
+	s_loggingDispatcher.setCallbacks(loggingCallbacks);
+}
+
+void cemuLog_clearCallbacks()
+{
+	s_loggingDispatcher.clearCallbacks();
+}
 
 struct _LogContext
 {
@@ -153,9 +211,9 @@ bool cemuLog_log(LogType type, std::string_view text)
 	const auto it = std::find_if(g_logging_window_mapping.cbegin(), g_logging_window_mapping.cend(),
 		[type](const auto& entry) { return entry.first == type; });
 	if (it == g_logging_window_mapping.cend())
-		LoggingWindow::Log(text);
+		s_loggingDispatcher.Log(text);
 	else
-		LoggingWindow::Log(it->second, text);
+		s_loggingDispatcher.Log(it->second, text);
 
 	return true;
 }

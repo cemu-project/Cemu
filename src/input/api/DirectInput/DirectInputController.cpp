@@ -1,5 +1,5 @@
 #include "input/api/DirectInput/DirectInputController.h"
-#include "gui/guiWrapper.h"
+#include "WindowSystem.h"
 
 DirectInputController::DirectInputController(const GUID& guid)
 	: base_type(StringFromGUID(guid), fmt::format("[{}]", StringFromGUID(guid))),
@@ -104,7 +104,7 @@ bool DirectInputController::connect()
 		return false;
 	}
 
-	HWND hwndMainWindow = gui_getWindowInfo().window_main.hwnd;
+	HWND hwndMainWindow = static_cast<HWND>(WindowSystem::GetWindowInfo().window_main.surface);
 
 	// set access
 	if (FAILED(m_device->SetCooperativeLevel(hwndMainWindow, DISCL_BACKGROUND | DISCL_EXCLUSIVE)))

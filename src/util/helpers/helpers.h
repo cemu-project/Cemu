@@ -76,8 +76,6 @@ std::string_view& trim(std::string_view& str, const std::string& chars = "\t\n\v
 std::string GenerateRandomString(size_t length);
 std::string GenerateRandomString(size_t length, std::string_view characters);
 
-std::wstring GetSystemErrorMessageW();
-std::wstring GetSystemErrorMessageW(DWORD error_code);
 std::string GetSystemErrorMessage();
 std::string GetSystemErrorMessage(DWORD error_code);
 std::string GetSystemErrorMessage(const std::exception& ex);

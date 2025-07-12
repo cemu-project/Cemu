@@ -2,7 +2,6 @@
 #include "iosu_ioctl.h"
 
 #include "Cafe/OS/libs/nn_common.h"
-#include "gui/CemuApp.h"
 
 #include <algorithm>
 #include <mutex>

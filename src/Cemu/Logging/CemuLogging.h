@@ -133,3 +133,14 @@ uint64 cemuLog_getFlag(LogType type);
 fs::path cemuLog_GetLogFilePath();
 void cemuLog_createLogFile(bool triggeredByCrash);
 [[nodiscard]] std::unique_lock<std::recursive_mutex> cemuLog_acquire(); // used for logging multiple lines at once
+
+class LoggingCallbacks
+{
+  public:
+	virtual void Log(std::string_view filter, std::string_view message) {};
+	virtual void Log(std::string_view filter, std::wstring_view message) {};
+	virtual ~LoggingCallbacks() = default;
+};
+
+void cemuLog_setCallbacks(LoggingCallbacks* loggingCallbacks);
+void cemuLog_clearCallbacks();

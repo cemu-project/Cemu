@@ -60,14 +60,6 @@ bool ActiveSettings::DisplayDRCEnabled()
 	return g_current_game_profile->StartWithGamepadView();
 }
 
-bool ActiveSettings::FullscreenEnabled()
-{
-	if (LaunchSettings::FullscreenEnabled().has_value())
-		return LaunchSettings::FullscreenEnabled().value();
-
-	return GetConfig().fullscreen;
-}
-
 CPUMode ActiveSettings::GetCPUMode()
 {
 	auto mode = g_current_game_profile->GetCPUMode().value_or(CPUMode::Auto);

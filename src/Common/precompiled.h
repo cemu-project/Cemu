@@ -98,6 +98,14 @@ using sint32 = int32_t;
 using sint16 = int16_t;
 using sint8 = int8_t;
 
+#if _MSC_VER
+#ifndef _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED
+#include <basetsd.h>
+typedef SSIZE_T ssize_t;
+#endif
+#endif
+
 // types with explicit big endian order
 #include "betype.h"
 
@@ -110,6 +118,39 @@ using uint8le = uint8_t;
 // logging
 #include "Cemu/Logging/CemuDebugLogging.h"
 #include "Cemu/Logging/CemuLogging.h"
+
+// localization
+namespace
+{
+	std::function<std::string(std::string_view)> g_translate;
+}
+
+inline void SetTranslationCallback(std::function<std::string(std::string_view)> translate)
+{
+	g_translate = translate;
+}
+
+#define TR_NOOP(str) str
+
+inline std::string _tr(std::string_view text)
+{
+	if (g_translate)
+		return g_translate(text);
+
+	return std::string{text};
+}
+
+template<typename... TArgs>
+inline std::string _tr(fmt::format_string<TArgs...> text, TArgs... args)
+{
+	if (g_translate)
+	{
+		std::string_view textSV{text.get().data(), text.get().size()};
+		return fmt::format(fmt::runtime(g_translate(textSV)), std::forward<TArgs>(args)...);
+	}
+
+	return fmt::format(text, std::forward<TArgs>(args)...);
+}
 
 // manual endian-swapping
 

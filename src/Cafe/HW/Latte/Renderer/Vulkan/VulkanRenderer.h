@@ -120,6 +120,11 @@ public:
 	bool neverSkipAccurateBarrier{false};
 };
 
+namespace WindowSystem
+{
+	struct WindowHandleInfo;
+};
+
 class VulkanRenderer : public Renderer
 {
 	friend class LatteQueryObjectVk;
@@ -204,7 +209,7 @@ public:
 	#endif
 #endif
 
-	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowHandleInfo& windowInfo);
+	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowSystem::WindowHandleInfo& windowInfo);
 
 	void AppendOverlayDebugInfo() override;
 

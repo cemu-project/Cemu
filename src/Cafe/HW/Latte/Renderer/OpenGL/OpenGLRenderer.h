@@ -6,6 +6,28 @@
 
 #define GPU_GL_MAX_NUM_ATTRIBUTE		(16) // Wii U GPU supports more than 16 but not all desktop GPUs do. Have to keep this at 16 until we find a better solution
 
+class OpenGLCanvasCallbacks
+{
+  public:
+	virtual bool HasPadViewOpen() const
+	{
+		return false;
+	}
+	virtual bool MakeCurrent(bool padView)
+	{
+		return false;
+	}
+	virtual void SwapBuffers(bool swapTV, bool swapDRC) {}
+	virtual ~OpenGLCanvasCallbacks() = default;
+};
+
+void SetOpenGLCanvasCallbacks(OpenGLCanvasCallbacks* callbacks);
+void ClearOpenGLCanvasCallbacks();
+
+bool GLCanvas_HasPadViewOpen();
+bool GLCanvas_MakeCurrent(bool padView);
+void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC);
+
 class OpenGLRenderer : public Renderer
 {
 	friend class OpenGLCanvas;

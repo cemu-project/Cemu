@@ -1,11 +1,10 @@
 #include "input/emulated/VPADController.h"
 #include "input/api/Controller.h"
 #include "input/api/SDL/SDLController.h"
-#include "gui/guiWrapper.h"
+#include "WindowSystem.h"
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/CafeSystem.h"
-#include <wx/intl.h>
 
 enum ControllerVPADMapping2 : uint32
 {
@@ -287,9 +286,9 @@ void VPADController::update_motion(VPADStatus_t& status)
 
 		int w, h;
 		if (pad_view)
-			gui_getPadWindowPhysSize(w, h);
+			WindowSystem::GetPadWindowPhysSize(w, h);
 		else
-			gui_getWindowPhysSize(w, h);
+			WindowSystem::GetWindowPhysSize(w, h);
 
 		float wx = mousePos.x / w;
 		float wy = mousePos.y / h;
@@ -367,21 +366,21 @@ std::string_view VPADController::get_button_name(ButtonId id)
 	case kButtonId_ZR: return "ZR";
 	case kButtonId_Plus: return "+";
 	case kButtonId_Minus: return "-";
-	case kButtonId_Up: return wxTRANSLATE("up");
-	case kButtonId_Down: return wxTRANSLATE("down");
-	case kButtonId_Left: return wxTRANSLATE("left");
-	case kButtonId_Right: return wxTRANSLATE("right");
-	case kButtonId_StickL: return wxTRANSLATE("click");
-	case kButtonId_StickR: return wxTRANSLATE("click");
-	case kButtonId_StickL_Up: return wxTRANSLATE("up");
-	case kButtonId_StickL_Down: return wxTRANSLATE("down");
-	case kButtonId_StickL_Left: return wxTRANSLATE("left");
-	case kButtonId_StickL_Right: return wxTRANSLATE("right");
-	case kButtonId_StickR_Up: return wxTRANSLATE("up");
-	case kButtonId_StickR_Down: return wxTRANSLATE("down");
-	case kButtonId_StickR_Left: return wxTRANSLATE("left");
-	case kButtonId_StickR_Right: return wxTRANSLATE("right");
-	case kButtonId_Home: return wxTRANSLATE("home");
+	case kButtonId_Up: return TR_NOOP("up");
+	case kButtonId_Down: return TR_NOOP("down");
+	case kButtonId_Left: return TR_NOOP("left");
+	case kButtonId_Right: return TR_NOOP("right");
+	case kButtonId_StickL: return TR_NOOP("click");
+	case kButtonId_StickR: return TR_NOOP("click");
+	case kButtonId_StickL_Up: return TR_NOOP("up");
+	case kButtonId_StickL_Down: return TR_NOOP("down");
+	case kButtonId_StickL_Left: return TR_NOOP("left");
+	case kButtonId_StickL_Right: return TR_NOOP("right");
+	case kButtonId_StickR_Up: return TR_NOOP("up");
+	case kButtonId_StickR_Down: return TR_NOOP("down");
+	case kButtonId_StickR_Left: return TR_NOOP("left");
+	case kButtonId_StickR_Right: return TR_NOOP("right");
+	case kButtonId_Home: return TR_NOOP("home");
 	default:
 		cemu_assert_debug(false);
 		return "";

@@ -320,7 +320,15 @@ private:
 	bool m_is_root;
 };
 
-template <typename T, void(T::*L)(XMLConfigParser&) = nullptr, void(T::*S)(XMLConfigParser&) = nullptr>
+using ChildXMLConfigParser = std::pair<std::function<void(XMLConfigParser&)>, std::function<void(XMLConfigParser&)>>;
+
+template<typename T>
+concept XMLConfigurable = requires(T t, XMLConfigParser& configParser) {
+	{ t.Save(configParser) } -> std::same_as<XMLConfigParser>;
+	{ t.Load(configParser) } -> std::same_as<XMLConfigParser>;
+};
+
+template <XMLConfigurable T>
 class XMLConfig
 {
 public:
@@ -339,9 +347,6 @@ public:
 
 	bool Load()
 	{
-		if (L == nullptr)
-			return false;
-
 		if (m_filename.empty())
 			return false;
 
@@ -350,8 +355,6 @@ public:
 
 	bool Load(const std::wstring& filename)
 	{
-		if (L == nullptr)
-			return false;
 		FileStream* fs = FileStream::openFile(filename.c_str());
 		if (!fs)
 		{
@@ -370,19 +373,23 @@ public:
 		{
 			cemuLog_logDebug(LogType::Force, "XMLConfig::Load > LoadFile {}", error);
 		}
-		if (success)
+
+		if (!success)
 		{
-			auto parser = XMLConfigParser(&doc);
-			(m_instance.*L)(parser);
+			return false;
 		}
+
+		auto parser = XMLConfigParser(&doc);
+		auto parentParser = m_instance.Load(parser);
+
+		for (auto [save, load] : m_childConfigParsers)
+			load(parentParser);
+
 		return true;
 	}
 
 	bool Save()
 	{
-		if (S == nullptr)
-			return false;
-
 		if (m_filename.empty())
 			return false;
 
@@ -391,9 +398,6 @@ public:
 
 	bool Save(const std::wstring& filename)
 	{
-		if (S == nullptr)
-			return false;
-
 		std::wstring tmp_name = fmt::format(L"{}_{}.tmp", filename,rand() % 1000);
 		std::error_code err;
 		fs::create_directories(fs::path(filename).parent_path(), err);
@@ -420,7 +424,10 @@ public:
 		doc.InsertFirstChild(declaration);
 
 		auto parser = XMLConfigParser(&doc);
-		(m_instance.*S)(parser);
+		auto parentParser = m_instance.Save(parser);
+
+		for (auto [save, load] : m_childConfigParsers)
+			save(parentParser);
 
 		const tinyxml2::XMLError error = doc.SaveFile(file);
 		const bool success = error == tinyxml2::XML_SUCCESS;
@@ -445,24 +452,96 @@ public:
 
 	std::unique_lock<std::mutex> Lock() { return std::unique_lock(m_mutex); }
 
-private:
+	void AddChildConfig(ChildXMLConfigParser childConfigParser)
+	{
+		m_childConfigParsers.push_back(childConfigParser);
+	}
+
+  private:
+	std::vector<ChildXMLConfigParser> m_childConfigParsers;
 	T& m_instance;
 	std::wstring m_filename;
 	std::mutex m_mutex;
 };
 
-template <typename T, void(T::*L)(XMLConfigParser&), void(T::*S)(XMLConfigParser&)>
-class XMLDataConfig : public XMLConfig<T, L, S>
+template<typename T>
+concept XMLConfigProvider = requires(T t, ChildXMLConfigParser& configParser) {
+	{ t().Save() } -> std::same_as<bool>;
+	{ t().Load() } -> std::same_as<bool>;
+	{ t().Lock() } -> std::same_as<std::unique_lock<std::mutex>>;
+	{ t().AddChildConfig(configParser) } -> std::same_as<void>;
+};
+
+template<typename T, void (T::*L)(XMLConfigParser&), void (T::*S)(XMLConfigParser&)>
+class XMLChildConfig
+{
+  public:
+	XMLChildConfig(XMLConfigProvider auto getParentConfig)
+	{
+		m_parentConfig = {
+			.lock = [getParentConfig]() { return getParentConfig().Lock(); },
+			.save = [getParentConfig]() { return getParentConfig().Load(); },
+			.load = [getParentConfig]() { return getParentConfig().Save(); },
+		};
+
+		auto configParser = std::make_pair(
+			[this](XMLConfigParser& parser) {
+				(m_data.*S)(parser);
+			},
+			[this](XMLConfigParser& parser) {
+				(m_data.*L)(parser);
+			});
+
+		getParentConfig().AddChildConfig(configParser);
+	}
+
+	bool Save()
+	{
+		return m_parentConfig.save();
+	}
+
+	bool Load()
+	{
+		return m_parentConfig.load();
+	}
+
+	T& Data()
+	{
+		return m_data;
+	}
+
+	std::unique_lock<std::mutex> Lock()
+	{
+		return m_parentConfig.lock();
+	}
+
+	virtual ~XMLChildConfig() = default;
+
+  private:
+	T m_data;
+	struct
+	{
+		std::function<std::unique_lock<std::mutex>()> lock;
+		std::function<bool()> save;
+		std::function<bool()> load;
+	} m_parentConfig;
+};
+
+template<typename T>
+struct XMLDataConfig {};
+
+template <XMLConfigurable T>
+class XMLDataConfig<T> : public XMLConfig<T>
 {
 public:
 	XMLDataConfig()
-		: XMLConfig<T, L, S>::XMLConfig(m_data), m_data() {}
+		: XMLConfig<T>::XMLConfig(m_data), m_data() {}
 
 	XMLDataConfig(std::wstring_view filename)
-		: XMLConfig<T, L, S>::XMLConfig(m_data, filename), m_data() {}
+		: XMLConfig<T>::XMLConfig(m_data, filename), m_data() {}
 
 	XMLDataConfig(std::wstring_view filename, T init_data)
-		: XMLConfig<T, L, S>::XMLConfig(m_data, filename), m_data(std::move(init_data)) {}
+		: XMLConfig<T>::XMLConfig(m_data, filename), m_data(std::move(init_data)) {}
 
 	XMLDataConfig(const XMLDataConfig& o) = delete;
 
@@ -470,4 +549,52 @@ public:
 
 private:
 	T m_data;
+};
+
+template<typename T>
+concept XMLStandaloneConfigurable = requires(T t, XMLConfigParser& configParser) {
+	{ t.Save(configParser) } -> std::same_as<void>;
+	{ t.Load(configParser) } -> std::same_as<void>;
+};
+
+template<XMLStandaloneConfigurable T>
+struct XMLConfigWrapper
+{
+	XMLConfigParser Save(XMLConfigParser& configParser)
+	{
+		data.Save(configParser);
+		return configParser;
+	}
+
+	XMLConfigParser Load(XMLConfigParser& configParser)
+	{
+		data.Load(configParser);
+		return configParser;
+	}
+
+	T data;
+};
+
+template<XMLStandaloneConfigurable T>
+class XMLDataConfig<T> : public XMLConfig<XMLConfigWrapper<T>>
+{
+  public:
+	XMLDataConfig()
+		: XMLConfig<XMLConfigWrapper<T>>::XMLConfig(m_configWrapper), m_configWrapper() {}
+
+	XMLDataConfig(std::wstring_view filename)
+		: XMLConfig<XMLConfigWrapper<T>>::XMLConfig(m_configWrapper, filename), m_configWrapper() {}
+
+	XMLDataConfig(std::wstring_view filename, T init_data)
+		: XMLConfig<XMLConfigWrapper<T>>::XMLConfig(m_configWrapper, filename), m_configWrapper{.data = std::move(init_data)} {}
+
+	XMLDataConfig(const XMLDataConfig& o) = delete;
+
+	T& data()
+	{
+		return m_configWrapper.data;
+	}
+
+  private:
+	XMLConfigWrapper<T> m_configWrapper;
 };

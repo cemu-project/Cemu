@@ -104,10 +104,6 @@ if (ENABLE_HIDAPI)
 	target_link_libraries(CemuInput PRIVATE hidapi::hidapi)
 endif()
 
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuInput PRIVATE wx::base wx::core)
-endif()
-
 if (ENABLE_BLUEZ)
 	target_link_libraries(CemuInput PRIVATE bluez::bluez)
 endif ()

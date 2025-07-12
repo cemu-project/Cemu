@@ -3,8 +3,6 @@
 #include "input/api/Controller.h"
 #include "input/api/SDL/SDLController.h"
 
-#include <wx/intl.h>
-
 ClassicController::ClassicController(size_t player_index)
 	: WPADController(player_index, kDataFormat_CLASSIC)
 {
@@ -70,22 +68,22 @@ std::string_view ClassicController::get_button_name(ButtonId id)
 
 	case kButtonId_Plus: return "+";
 	case kButtonId_Minus: return "-";
-	case kButtonId_Home: return wxTRANSLATE("home");
+	case kButtonId_Home: return TR_NOOP("home");
 
-	case kButtonId_Up: return wxTRANSLATE("up");
-	case kButtonId_Down: return wxTRANSLATE("down");
-	case kButtonId_Left: return wxTRANSLATE("left");
-	case kButtonId_Right: return wxTRANSLATE("right");
+	case kButtonId_Up: return TR_NOOP("up");
+	case kButtonId_Down: return TR_NOOP("down");
+	case kButtonId_Left: return TR_NOOP("left");
+	case kButtonId_Right: return TR_NOOP("right");
 
-	case kButtonId_StickL_Up: return wxTRANSLATE("up");
-	case kButtonId_StickL_Down: return wxTRANSLATE("down");
-	case kButtonId_StickL_Left: return wxTRANSLATE("left");
-	case kButtonId_StickL_Right: return wxTRANSLATE("right");
+	case kButtonId_StickL_Up: return TR_NOOP("up");
+	case kButtonId_StickL_Down: return TR_NOOP("down");
+	case kButtonId_StickL_Left: return TR_NOOP("left");
+	case kButtonId_StickL_Right: return TR_NOOP("right");
 
-	case kButtonId_StickR_Up: return wxTRANSLATE("up");
-	case kButtonId_StickR_Down: return wxTRANSLATE("down");
-	case kButtonId_StickR_Left: return wxTRANSLATE("left");
-	case kButtonId_StickR_Right: return wxTRANSLATE("right");
+	case kButtonId_StickR_Up: return TR_NOOP("up");
+	case kButtonId_StickR_Down: return TR_NOOP("down");
+	case kButtonId_StickR_Left: return TR_NOOP("left");
+	case kButtonId_StickR_Right: return TR_NOOP("right");
 
 	default:
 		return "";
