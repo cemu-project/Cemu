@@ -9,7 +9,7 @@
 
 SwapchainInfoVk::SwapchainInfoVk(bool mainWindow, Vector2i size) : mainWindow(mainWindow), m_desiredExtent(size)
 {
-	auto& windowHandleInfo = mainWindow ? WindowSystem::getWindowInfo().canvas_main : WindowSystem::getWindowInfo().canvas_pad;
+	auto& windowHandleInfo = mainWindow ? WindowSystem::GetWindowInfo().canvas_main : WindowSystem::GetWindowInfo().canvas_pad;
 	auto renderer = VulkanRenderer::GetInstance();
 	m_instance = renderer->GetVkInstance();
 	m_logicalDevice = renderer->GetLogicalDevice();

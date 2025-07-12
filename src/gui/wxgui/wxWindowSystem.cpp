@@ -41,7 +41,7 @@ void _wxLaunch()
 }
 #endif
 
-void WindowSystem::create()
+void WindowSystem::Create()
 {
 	SetThreadName("cemu");
 #if BOOST_OS_WINDOWS
@@ -56,7 +56,7 @@ void WindowSystem::create()
 #endif
 }
 
-void WindowSystem::showErrorDialog(std::string_view message, std::string_view title, std::optional<WindowSystem::ErrorCategory> /*errorId*/)
+void WindowSystem::ShowErrorDialog(std::string_view message, std::string_view title, std::optional<WindowSystem::ErrorCategory> /*errorId*/)
 {
 	wxString caption;
 	if (title.empty())
@@ -66,12 +66,12 @@ void WindowSystem::showErrorDialog(std::string_view message, std::string_view ti
 	wxMessageBox(to_wxString(message), caption, wxOK | wxCENTRE | wxICON_ERROR);
 }
 
-WindowSystem::WindowInfo& WindowSystem::getWindowInfo()
+WindowSystem::WindowInfo& WindowSystem::GetWindowInfo()
 {
 	return g_window_info;
 }
 
-void WindowSystem::updateWindowTitles(bool isIdle, bool isLoading, double fps)
+void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 {
 	std::string windowText;
 	windowText = BUILD_VERSION_WITH_NAME_STRING;
@@ -152,13 +152,13 @@ void WindowSystem::updateWindowTitles(bool isIdle, bool isLoading, double fps)
 	}
 }
 
-void WindowSystem::getWindowSize(int& w, int& h)
+void WindowSystem::GetWindowSize(int& w, int& h)
 {
 	w = g_window_info.width;
 	h = g_window_info.height;
 }
 
-void WindowSystem::getPadWindowSize(int& w, int& h)
+void WindowSystem::GetPadWindowSize(int& w, int& h)
 {
 	if (g_window_info.pad_open)
 	{
@@ -172,13 +172,13 @@ void WindowSystem::getPadWindowSize(int& w, int& h)
 	}
 }
 
-void WindowSystem::getWindowPhysSize(int& w, int& h)
+void WindowSystem::GetWindowPhysSize(int& w, int& h)
 {
 	w = g_window_info.phys_width;
 	h = g_window_info.phys_height;
 }
 
-void WindowSystem::getPadWindowPhysSize(int& w, int& h)
+void WindowSystem::GetPadWindowPhysSize(int& w, int& h)
 {
 	if (g_window_info.pad_open)
 	{
@@ -192,27 +192,27 @@ void WindowSystem::getPadWindowPhysSize(int& w, int& h)
 	}
 }
 
-double WindowSystem::getWindowDPIScale()
+double WindowSystem::GetWindowDPIScale()
 {
 	return g_window_info.dpi_scale;
 }
 
-double WindowSystem::getPadDPIScale()
+double WindowSystem::GetPadDPIScale()
 {
 	return g_window_info.pad_open ? g_window_info.pad_dpi_scale.load() : 1.0;
 }
 
-bool WindowSystem::isPadWindowOpen()
+bool WindowSystem::IsPadWindowOpen()
 {
 	return g_window_info.pad_open;
 }
 
-bool WindowSystem::isKeyDown(uint32 key)
+bool WindowSystem::IsKeyDown(uint32 key)
 {
 	return g_window_info.get_keystate(key);
 }
 
-bool WindowSystem::isKeyDown(PlatformKeyCodes platformKey)
+bool WindowSystem::IsKeyDown(PlatformKeyCodes platformKey)
 {
 	uint32 key = 0;
 
@@ -262,10 +262,10 @@ bool WindowSystem::isKeyDown(PlatformKeyCodes platformKey)
 		return false;
 	}
 
-	return WindowSystem::isKeyDown(key);
+	return WindowSystem::IsKeyDown(key);
 }
 
-std::string WindowSystem::getKeyCodeName(uint32 button)
+std::string WindowSystem::GetKeyCodeName(uint32 button)
 {
 #if BOOST_OS_WINDOWS
 	LONG scan_code = MapVirtualKeyA((UINT)button, MAPVK_VK_TO_VSC_EX);
@@ -307,12 +307,12 @@ std::string WindowSystem::getKeyCodeName(uint32 button)
 #endif
 }
 
-bool WindowSystem::inputConfigWindowHasFocus()
+bool WindowSystem::InputConfigWindowHasFocus()
 {
 	return g_inputConfigWindowHasFocus;
 }
 
-void WindowSystem::notifyGameLoaded()
+void WindowSystem::NotifyGameLoaded()
 {
 	std::shared_lock lock(g_mutex);
 	if (g_mainFrame)
@@ -322,14 +322,14 @@ void WindowSystem::notifyGameLoaded()
 	}
 }
 
-void WindowSystem::notifyGameExited()
+void WindowSystem::NotifyGameExited()
 {
 	std::shared_lock lock(g_mutex);
 	if (g_mainFrame)
 		g_mainFrame->RestoreSettingsAfterGameExited();
 }
 
-void WindowSystem::refreshGameList()
+void WindowSystem::RefreshGameList()
 {
 	std::shared_lock lock(g_mutex);
 	if (g_mainFrame)
@@ -338,12 +338,12 @@ void WindowSystem::refreshGameList()
 	}
 }
 
-void WindowSystem::captureInput(const ControllerState& currentState, const ControllerState& lastState)
+void WindowSystem::CaptureInput(const ControllerState& currentState, const ControllerState& lastState)
 {
 	HotkeySettings::CaptureInput(currentState, lastState);
 }
 
-bool WindowSystem::isFullScreen()
+bool WindowSystem::IsFullScreen()
 {
 	return g_window_info.is_fullscreen;
 }

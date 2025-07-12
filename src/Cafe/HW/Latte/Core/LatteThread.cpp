@@ -115,7 +115,7 @@ int Latte_ThreadEntry()
 {
 	SetThreadName("LatteThread");
 	sint32 w,h;
-	WindowSystem::getWindowPhysSize(w,h);
+	WindowSystem::GetWindowPhysSize(w,h);
 
 	// renderer
 	g_renderer->Initialize();

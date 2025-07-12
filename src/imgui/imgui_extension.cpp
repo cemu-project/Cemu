@@ -122,7 +122,7 @@ ImFont* ImGui_GetFont(float size)
 void ImGui_UpdateWindowInformation(bool mainWindow)
 {
 	static std::map<uint32, ImGuiKey> keyboard_mapping;
-	auto& windowInfo = WindowSystem::getWindowInfo();
+	auto& windowInfo = WindowSystem::GetWindowInfo();
 	static uint32 current_key = 0;
 	ImGuiIO& io = ImGui::GetIO();
 	io.BackendFlags |= ImGuiBackendFlags_HasMouseCursors;

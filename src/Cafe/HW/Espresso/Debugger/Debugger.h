@@ -18,12 +18,12 @@
 class DebuggerCallbacks
 {
   public:
-	virtual void updateViewThreadsafe() {}
-	virtual void notifyDebugBreakpointHit() {}
-	virtual void notifyRun() {}
-	virtual void moveIP() {}
-	virtual void notifyModuleLoaded(void* module) {}
-	virtual void notifyModuleUnloaded(void* module) {}
+	virtual void UpdateViewThreadsafe() {}
+	virtual void NotifyDebugBreakpointHit() {}
+	virtual void NotifyRun() {}
+	virtual void MoveIP() {}
+	virtual void NotifyModuleLoaded(void* module) {}
+	virtual void NotifyModuleUnloaded(void* module) {}
 	virtual ~DebuggerCallbacks() = default;
 };
 
@@ -36,46 +36,46 @@ class DebuggerDispatcher
 	DebuggerCallbacks* m_callbacks = &s_defaultDebuggerCallbacks;
 
   public:
-	void setDebuggerCallbacks(DebuggerCallbacks* debuggerCallbacks)
+	void SetDebuggerCallbacks(DebuggerCallbacks* debuggerCallbacks)
 	{
 		cemu_assert_debug(m_callbacks == &s_defaultDebuggerCallbacks);
 		m_callbacks = debuggerCallbacks;
 	}
 
-	void clearDebuggerCallbacks()
+	void ClearDebuggerCallbacks()
 	{
 		cemu_assert_debug(m_callbacks != &s_defaultDebuggerCallbacks);
 		m_callbacks = &s_defaultDebuggerCallbacks;
 	}
 
-	void updateViewThreadsafe()
+	void UpdateViewThreadsafe()
 	{
-		m_callbacks->updateViewThreadsafe();
+		m_callbacks->UpdateViewThreadsafe();
 	}
 
-	void notifyDebugBreakpointHit()
+	void NotifyDebugBreakpointHit()
 	{
-		m_callbacks->notifyDebugBreakpointHit();
+		m_callbacks->NotifyDebugBreakpointHit();
 	}
 
-	void notifyRun()
+	void NotifyRun()
 	{
-		m_callbacks->notifyRun();
+		m_callbacks->NotifyRun();
 	}
 
-	void moveIP()
+	void MoveIP()
 	{
-		m_callbacks->moveIP();
+		m_callbacks->MoveIP();
 	}
 
-	void notifyModuleLoaded(void* module)
+	void NotifyModuleLoaded(void* module)
 	{
-		m_callbacks->notifyModuleLoaded(module);
+		m_callbacks->NotifyModuleLoaded(module);
 	}
 
-	void notifyModuleUnloaded(void* module)
+	void NotifyModuleUnloaded(void* module)
 	{
-		m_callbacks->notifyModuleUnloaded(module);
+		m_callbacks->NotifyModuleUnloaded(module);
 	}
 } extern g_debuggerDispatcher;
 

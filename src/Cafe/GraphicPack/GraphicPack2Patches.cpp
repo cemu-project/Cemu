@@ -63,7 +63,7 @@ void PatchErrorHandler::showStageErrorMessageBox()
 		}
 	}
 
-	WindowSystem::showErrorDialog(errorMsg, _tr("Graphic pack error"), WindowSystem::ErrorCategory::GRAPHIC_PACKS);
+	WindowSystem::ShowErrorDialog(errorMsg, _tr("Graphic pack error"), WindowSystem::ErrorCategory::GRAPHIC_PACKS);
 }
 
 // loads Cemu-style patches (patch_<anything>.asm)

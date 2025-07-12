@@ -338,7 +338,7 @@ void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* b
 			{
 				bp->enabled = state;
 				debugger_updateExecutionBreakpoint(address);
-				g_debuggerDispatcher.updateViewThreadsafe();
+				g_debuggerDispatcher.UpdateViewThreadsafe();
 			}
 			else if (bpItr->isMemBP())
 			{
@@ -360,7 +360,7 @@ void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* b
 					debugger_updateMemoryBreakpoint(bpItr);
 				else
 					debugger_updateMemoryBreakpoint(nullptr);
-				g_debuggerDispatcher.updateViewThreadsafe();
+				g_debuggerDispatcher.UpdateViewThreadsafe();
 			}
 			return;
 		}
@@ -497,7 +497,7 @@ void debugger_stepInto(PPCInterpreter_t* hCPU, bool updateDebuggerWindow = true)
 	debugger_updateExecutionBreakpoint(initialIP);
 	debuggerState.debugSession.instructionPointer = hCPU->instructionPointer;
 	if(updateDebuggerWindow)
-		g_debuggerDispatcher.moveIP();
+		g_debuggerDispatcher.MoveIP();
 	ppcRecompilerEnabled = isRecEnabled;
 }
 
@@ -516,7 +516,7 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 		// nothing to skip, use step-into
 		debugger_stepInto(hCPU);
 		debugger_updateExecutionBreakpoint(initialIP);
-		g_debuggerDispatcher.moveIP();
+		g_debuggerDispatcher.MoveIP();
 		ppcRecompilerEnabled = isRecEnabled;
 		return false;
 	}
@@ -524,7 +524,7 @@ bool debugger_stepOver(PPCInterpreter_t* hCPU)
 	debugger_createCodeBreakpoint(initialIP + 4, DEBUGGER_BP_T_ONE_SHOT);
 	// step over current instruction (to avoid breakpoint)
 	debugger_stepInto(hCPU);
-	g_debuggerDispatcher.moveIP();
+	g_debuggerDispatcher.MoveIP();
 	// restore breakpoints
 	debugger_updateExecutionBreakpoint(initialIP);
 	// run
@@ -622,8 +622,8 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 	DebuggerBreakpoint* singleshotBP = debugger_getFirstBP(debuggerState.debugSession.instructionPointer, DEBUGGER_BP_T_ONE_SHOT);
 	if (singleshotBP)
 		debugger_deleteBreakpoint(singleshotBP);
-	g_debuggerDispatcher.notifyDebugBreakpointHit();
-	g_debuggerDispatcher.updateViewThreadsafe();
+	g_debuggerDispatcher.NotifyDebugBreakpointHit();
+	g_debuggerDispatcher.UpdateViewThreadsafe();
 	// reset step control
 	debuggerState.debugSession.stepInto = false;
 	debuggerState.debugSession.stepOver = false;
@@ -640,14 +640,14 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 				break; // if true is returned, continue with execution
 			}
 			debugger_createPPCStateSnapshot(hCPU);
-			g_debuggerDispatcher.updateViewThreadsafe();
+			g_debuggerDispatcher.UpdateViewThreadsafe();
 			debuggerState.debugSession.stepOver = false;
 		}
 		if (debuggerState.debugSession.stepInto)
 		{
 			debugger_stepInto(hCPU);
 			debugger_createPPCStateSnapshot(hCPU);
-			g_debuggerDispatcher.updateViewThreadsafe();
+			g_debuggerDispatcher.UpdateViewThreadsafe();
 			debuggerState.debugSession.stepInto = false;
 			continue;
 		}
@@ -664,8 +664,8 @@ void debugger_enterTW(PPCInterpreter_t* hCPU)
 
 	debuggerState.debugSession.isTrapped = false;
 	debuggerState.debugSession.hCPU = nullptr;
-	g_debuggerDispatcher.updateViewThreadsafe();
-	g_debuggerDispatcher.notifyRun();
+	g_debuggerDispatcher.UpdateViewThreadsafe();
+	g_debuggerDispatcher.NotifyRun();
 }
 
 void debugger_shouldBreak(PPCInterpreter_t* hCPU)

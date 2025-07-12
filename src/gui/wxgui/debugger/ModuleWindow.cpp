@@ -132,5 +132,5 @@ void ModuleWindow::OnLeftDClick(wxMouseEvent& event)
 	if (address == 0)
 		return;
 	debuggerState.debugSession.instructionPointer = address;
-	g_debuggerDispatcher.moveIP();
+	g_debuggerDispatcher.MoveIP();
 }

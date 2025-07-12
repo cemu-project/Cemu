@@ -106,12 +106,12 @@ void LattePerformanceMonitor_frameEnd()
 		if (isFirstUpdate)
 		{
 			LatteOverlay_updateStats(0.0, 0, 0);
-			WindowSystem::updateWindowTitles(false, false, 0.0);
+			WindowSystem::UpdateWindowTitles(false, false, 0.0);
 		}
 		else
 		{
 			LatteOverlay_updateStats(fps, drawCallCounter / elapsedFrames, fastDrawCallCounter / elapsedFrames);
-			WindowSystem::updateWindowTitles(false, false, fps);
+			WindowSystem::UpdateWindowTitles(false, false, fps);
 		}
 	}
 }

@@ -92,7 +92,7 @@ void MMURange::mapMem()
 	if (MemMapper::AllocateMemory(memory_base + baseAddress, size, MemMapper::PAGE_PERMISSION::P_RW, true) == nullptr)
 	{
 		std::string errorMsg = _tr("Unable to allocate {} memory", name);
-		WindowSystem::showErrorDialog(errorMsg, _tr("Error"));
+		WindowSystem::ShowErrorDialog(errorMsg, _tr("Error"));
 		#if BOOST_OS_WINDOWS
 		ExitProcess(-1);
 		#else
@@ -134,7 +134,7 @@ void memory_init()
 	{
 		debug_printf("memory_init(): Unable to reserve 4GB of memory\n");
 		debugBreakpoint();
-		WindowSystem::showErrorDialog(_tr("Unable to reserve 4GB of memory"), _tr("Error"));
+		WindowSystem::ShowErrorDialog(_tr("Unable to reserve 4GB of memory"), _tr("Error"));
 		exit(-1);
 	}
 	for (auto& itr : g_mmuRanges)

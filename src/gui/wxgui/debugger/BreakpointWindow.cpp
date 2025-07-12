@@ -179,7 +179,7 @@ void BreakpointWindow::OnLeftDClick(wxMouseEvent& event)
 		const auto item = m_breakpoints->GetItemText(index, ColumnAddress);
 		const auto address = std::stoul(item.ToStdString(), nullptr, 16);
 		debuggerState.debugSession.instructionPointer = address;
-		g_debuggerDispatcher.moveIP();
+		g_debuggerDispatcher.MoveIP();
 		return;
 	}
 

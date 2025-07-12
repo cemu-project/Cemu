@@ -438,7 +438,7 @@ void MainWindow::OnClose(wxCloseEvent& event)
 	if(m_game_list)
 		m_game_list->OnClose(event);
 
-	if (!IsMaximized() && !WindowSystem::isFullScreen())
+	if (!IsMaximized() && !WindowSystem::IsFullScreen())
 		m_restored_size = GetSize();
 
 	SaveSettings();
@@ -1641,7 +1641,7 @@ void MainWindow::DestroyCanvas()
 
 void MainWindow::OnSizeEvent(wxSizeEvent& event)
 {
-	if (!IsMaximized() && !WindowSystem::isFullScreen())
+	if (!IsMaximized() && !WindowSystem::IsFullScreen())
 		m_restored_size = GetSize();
 
 	const wxSize client_size = GetClientSize();
@@ -1672,7 +1672,7 @@ void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
 
 void MainWindow::OnMove(wxMoveEvent& event)
 {
-	if (!IsMaximized() && !WindowSystem::isFullScreen())
+	if (!IsMaximized() && !WindowSystem::IsFullScreen())
 		m_restored_position = GetPosition();
 
 	if (m_debugger_window && m_debugger_window->IsShown())

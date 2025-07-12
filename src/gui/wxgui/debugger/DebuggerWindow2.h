@@ -92,12 +92,12 @@ private:
 	void CreateMenuBar();
 	void UpdateModuleLabel(uint32 address = 0);
 
-	void updateViewThreadsafe() override;
-	void notifyDebugBreakpointHit() override;
-	void notifyRun() override;
-	void moveIP() override;
-	void notifyModuleLoaded(void* module) override;
-	void notifyModuleUnloaded(void* module) override;
+	void UpdateViewThreadsafe() override;
+	void NotifyDebugBreakpointHit() override;
+	void NotifyRun() override;
+	void MoveIP() override;
+	void NotifyModuleLoaded(void* module) override;
+	void NotifyModuleUnloaded(void* module) override;
 
 	XMLDebuggerConfig m_config;
 	std::vector<std::unique_ptr<XMLDebuggerModuleConfig>> m_modules_storage;

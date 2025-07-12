@@ -252,7 +252,7 @@ int main(int argc, char *argv[])
 #endif
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-	WindowSystem::create();
+	WindowSystem::Create();
 	return 0;
 }
 #endif

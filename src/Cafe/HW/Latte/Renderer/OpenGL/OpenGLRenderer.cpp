@@ -21,35 +21,35 @@
 
 class DefaultOpenGLCanvasCallbacks : public OpenGLCanvasCallbacks
 {
-} s_defaultOpenGLCanvasCallbacks;
+} g_defaultOpenGLCanvasCallbacks;
 
-OpenGLCanvasCallbacks* s_openGLCanvasCallbacks = &s_defaultOpenGLCanvasCallbacks;
+OpenGLCanvasCallbacks* g_openGLCanvasCallbacks = &g_defaultOpenGLCanvasCallbacks;
 
 void SetOpenGLCanvasCallbacks(OpenGLCanvasCallbacks* callbacks)
 {
-	cemu_assert_debug(s_openGLCanvasCallbacks == &s_defaultOpenGLCanvasCallbacks);
-	s_openGLCanvasCallbacks = callbacks;
+	cemu_assert_debug(g_openGLCanvasCallbacks == &g_defaultOpenGLCanvasCallbacks);
+	g_openGLCanvasCallbacks = callbacks;
 }
 
 void ClearOpenGLCanvasCallbacks()
 {
-	cemu_assert_debug(s_openGLCanvasCallbacks != &s_defaultOpenGLCanvasCallbacks);
-	s_openGLCanvasCallbacks = &s_defaultOpenGLCanvasCallbacks;
+	cemu_assert_debug(g_openGLCanvasCallbacks != &g_defaultOpenGLCanvasCallbacks);
+	g_openGLCanvasCallbacks = &g_defaultOpenGLCanvasCallbacks;
 }
 
 bool GLCanvas_HasPadViewOpen()
 {
-	return s_openGLCanvasCallbacks->HasPadViewOpen();
+	return g_openGLCanvasCallbacks->HasPadViewOpen();
 }
 
 bool GLCanvas_MakeCurrent(bool padView)
 {
-	return s_openGLCanvasCallbacks->MakeCurrent(padView);
+	return g_openGLCanvasCallbacks->MakeCurrent(padView);
 }
 
 void GLCanvas_SwapBuffers(bool swapTV, bool swapDRC)
 {
-	s_openGLCanvasCallbacks->SwapBuffers(swapTV, swapDRC);
+	g_openGLCanvasCallbacks->SwapBuffers(swapTV, swapDRC);
 }
 
 #define STRINGIFY2(X) #X
@@ -593,9 +593,9 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	{
 		int windowWidth, windowHeight;
 		if (padView)
-			WindowSystem::getPadWindowPhysSize(windowWidth, windowHeight);
+			WindowSystem::GetPadWindowPhysSize(windowWidth, windowHeight);
 		else
-			WindowSystem::getWindowPhysSize(windowWidth, windowHeight);
+			WindowSystem::GetWindowPhysSize(windowWidth, windowHeight);
 		g_renderer->renderTarget_setViewport(0, 0, windowWidth, windowHeight, 0.0f, 1.0f);
 		g_renderer->ClearColorbuffer(padView);
 	}

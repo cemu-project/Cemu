@@ -519,17 +519,17 @@ void LatteOverlay_render(bool pad_view)
 		return;
 
 	sint32 w = 0, h = 0;
-	if (pad_view && WindowSystem::isPadWindowOpen())
-		WindowSystem::getPadWindowPhysSize(w, h);
+	if (pad_view && WindowSystem::IsPadWindowOpen())
+		WindowSystem::GetPadWindowPhysSize(w, h);
 	else
-		WindowSystem::getWindowPhysSize(w, h);
+		WindowSystem::GetWindowPhysSize(w, h);
 
 	if (w == 0 || h == 0)
 		return;
 
 	const Vector2f window_size{ (float)w,(float)h };
 
-	float fontDPIScale = !pad_view ? WindowSystem::getWindowDPIScale() : WindowSystem::getPadDPIScale();
+	float fontDPIScale = !pad_view ? WindowSystem::GetWindowDPIScale() : WindowSystem::GetPadDPIScale();
 
 	float overlayFontSize = 14.0f * (float)config.overlay.text_scale / 100.0f * fontDPIScale;
 

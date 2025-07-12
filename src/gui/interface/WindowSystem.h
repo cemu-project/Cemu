@@ -91,36 +91,36 @@ namespace WindowSystem
 		GRAPHIC_PACKS = 1,
 	};
 
-	void showErrorDialog(std::string_view message, std::string_view title, std::optional<ErrorCategory> errorCategory = {});
-	inline void showErrorDialog(std::string_view message, std::optional<ErrorCategory> errorCategory = {})
+	void ShowErrorDialog(std::string_view message, std::string_view title, std::optional<ErrorCategory> errorCategory = {});
+	inline void ShowErrorDialog(std::string_view message, std::optional<ErrorCategory> errorCategory = {})
 	{
-		showErrorDialog(message, "", errorCategory);
+		ShowErrorDialog(message, "", errorCategory);
 	}
 
-	void create();
+	void Create();
 
-	WindowInfo& getWindowInfo();
+	WindowInfo& GetWindowInfo();
 
-	void updateWindowTitles(bool isIdle, bool isLoading, double fps);
-	void getWindowSize(int& w, int& h);
-	void getPadWindowSize(int& w, int& h);
-	void getWindowPhysSize(int& w, int& h);
-	void getPadWindowPhysSize(int& w, int& h);
-	double getWindowDPIScale();
-	double getPadDPIScale();
-	bool isPadWindowOpen();
-	bool isKeyDown(uint32 key);
-	bool isKeyDown(PlatformKeyCodes key);
-	std::string getKeyCodeName(uint32 key);
+	void UpdateWindowTitles(bool isIdle, bool isLoading, double fps);
+	void GetWindowSize(int& w, int& h);
+	void GetPadWindowSize(int& w, int& h);
+	void GetWindowPhysSize(int& w, int& h);
+	void GetPadWindowPhysSize(int& w, int& h);
+	double GetWindowDPIScale();
+	double GetPadDPIScale();
+	bool IsPadWindowOpen();
+	bool IsKeyDown(uint32 key);
+	bool IsKeyDown(PlatformKeyCodes key);
+	std::string GetKeyCodeName(uint32 key);
 
-	bool inputConfigWindowHasFocus();
+	bool InputConfigWindowHasFocus();
 
-	void notifyGameLoaded();
-	void notifyGameExited();
+	void NotifyGameLoaded();
+	void NotifyGameExited();
 
-	void refreshGameList();
+	void RefreshGameList();
 
-	bool isFullScreen();
+	bool IsFullScreen();
 
-	void captureInput(const ControllerState& currentState, const ControllerState& lastState);
+	void CaptureInput(const ControllerState& currentState, const ControllerState& lastState);
 }; // namespace WindowSystem

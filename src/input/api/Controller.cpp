@@ -67,7 +67,7 @@ const ControllerState& ControllerBase::update_state()
 
 #undef APPLY_AXIS_BUTTON
 
-	WindowSystem::captureInput(result, m_last_state);
+	WindowSystem::CaptureInput(result, m_last_state);
 
 	m_last_state = std::move(result);
 	return m_last_state;

@@ -36,7 +36,7 @@ void mainEmulatorLLE()
 	memory_initPhysicalLayout();
 	
 	// start GUI thread
-	WindowSystem::create();
+	WindowSystem::Create();
 	// load kernel ancast image
 	loadPPCBootrom();
 	loadEncryptedPPCAncastKernel();

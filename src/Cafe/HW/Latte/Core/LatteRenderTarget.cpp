@@ -838,10 +838,10 @@ sint32 _currentOutputImageHeight = 0;
 void LatteRenderTarget_getScreenImageArea(sint32* x, sint32* y, sint32* width, sint32* height, sint32* fullWidth, sint32* fullHeight, bool padView)
 {
 	int w, h;
-	if(padView && WindowSystem::isPadWindowOpen())
-		WindowSystem::getPadWindowPhysSize(w, h);
+	if(padView && WindowSystem::IsPadWindowOpen())
+		WindowSystem::GetPadWindowPhysSize(w, h);
 	else
-		WindowSystem::getWindowPhysSize(w, h);
+		WindowSystem::GetWindowPhysSize(w, h);
 
 	sint32 scaledOutputX;
 	sint32 scaledOutputY;
@@ -999,8 +999,8 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		return {pressed && !toggle, pressed && toggle};
 	};
 
-	const bool tabPressed = WindowSystem::isKeyDown(WindowSystem::PlatformKeyCodes::TAB);
-	const bool ctrlPressed = WindowSystem::isKeyDown(WindowSystem::PlatformKeyCodes::LCONTROL);
+	const bool tabPressed = WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::TAB);
+	const bool ctrlPressed = WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::LCONTROL);
 	const auto [vpad0Active, vpad0Toggle] = getVPADScreenActive(0);
 	const auto [vpad1Active, vpad1Toggle] = getVPADScreenActive(1);
 

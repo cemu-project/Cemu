@@ -1403,7 +1403,7 @@ void DownloadManager::asyncPackageInstall(Package* package)
 	reportPackageStatus(package);
 	checkPackagesState();
 	// lastly request game list to be refreshed
-	WindowSystem::refreshGameList();
+	WindowSystem::RefreshGameList();
 	return;
 }
 

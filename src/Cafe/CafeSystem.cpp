@@ -169,7 +169,7 @@ void LoadMainExecutable()
 		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
-			WindowSystem::showErrorDialog(_tr("Failed to run this title because the executable is damaged"));
+			WindowSystem::ShowErrorDialog(_tr("Failed to run this title because the executable is damaged"));
 			cemuLog_createLogFile(false);
 			cemuLog_waitForFlush();
 			exit(0);
@@ -354,7 +354,7 @@ uint32 LoadSharedData()
 
 void cemu_initForGame()
 {
-	WindowSystem::updateWindowTitles(false, true, 0.0);
+	WindowSystem::UpdateWindowTitles(false, true, 0.0);
 	// input manager apply game profile
 	InputManager::instance().apply_game_profile();
 	// log info for launched title
@@ -852,7 +852,7 @@ namespace CafeSystem
 		PPCTimer_waitForInit();
 		// start system
 		sSystemRunning = true;
-		WindowSystem::notifyGameLoaded();
+		WindowSystem::NotifyGameLoaded();
 		std::thread t(_LaunchTitleThread);
 		t.detach();
 	}

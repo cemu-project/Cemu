@@ -111,7 +111,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
-	auto backend = WindowSystem::getWindowInfo().window_main.backend;
+	auto backend = WindowSystem::GetWindowInfo().window_main.backend;
 	if(backend == WindowSystem::WindowHandleInfo::Backend::X11)
 		requiredExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#ifdef HAS_WAYLAND
@@ -154,7 +154,7 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 			throw std::runtime_error("Failed to find a GPU with Vulkan support.");
 
 		// create tmp surface to create a logical device
-		auto surface = CreateFramebufferSurface(instance, WindowSystem::getWindowInfo().window_main);
+		auto surface = CreateFramebufferSurface(instance, WindowSystem::GetWindowInfo().window_main);
 		std::vector<VkPhysicalDevice> devices(device_count);
 		vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
 		for (const auto& device : devices)
@@ -400,7 +400,7 @@ VulkanRenderer::VulkanRenderer()
 		throw std::runtime_error("Failed to find a GPU with Vulkan support.");
 
 	// create tmp surface to create a logical device
-	auto surface = CreateFramebufferSurface(m_instance, WindowSystem::getWindowInfo().window_main);
+	auto surface = CreateFramebufferSurface(m_instance, WindowSystem::GetWindowInfo().window_main);
 
 	auto& config = GetConfig();
 	decltype(config.graphic_device_uuid) zero{};
@@ -1308,7 +1308,7 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX
-	auto backend = WindowSystem::getWindowInfo().window_main.backend;
+	auto backend = WindowSystem::GetWindowInfo().window_main.backend;
 	if(backend == WindowSystem::WindowHandleInfo::Backend::X11)
 		requiredInstanceExtensions.emplace_back(VK_KHR_XLIB_SURFACE_EXTENSION_NAME);
 	#if HAS_WAYLAND
@@ -2744,11 +2744,11 @@ void VulkanRenderer::RecreateSwapchain(bool mainWindow, bool skipCreate)
 	if (mainWindow)
 	{
 		ImGui_ImplVulkan_Shutdown();
-		WindowSystem::getWindowPhysSize(size.x, size.y);
+		WindowSystem::GetWindowPhysSize(size.x, size.y);
 	}
 	else
 	{
-		WindowSystem::getPadWindowPhysSize(size.x, size.y);
+		WindowSystem::GetPadWindowPhysSize(size.x, size.y);
 	}
 
 	chainInfo.swapchainImageIndex = -1;
@@ -2778,9 +2778,9 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	int width, height;
 	if (mainWindow)
-		WindowSystem::getWindowPhysSize(width, height);
+		WindowSystem::GetWindowPhysSize(width, height);
 	else
-		WindowSystem::getPadWindowPhysSize(width, height);
+		WindowSystem::GetPadWindowPhysSize(width, height);
 	auto extent = chainInfo.getExtent();
 	if (width != extent.width || height != extent.height)
 		stateChanged = true;

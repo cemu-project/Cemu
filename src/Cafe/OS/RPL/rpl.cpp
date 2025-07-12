@@ -1795,7 +1795,7 @@ void RPLLoader_UnloadModule(RPLModule* rpl)
 	RPLLoader_decrementModuleDependencyRefs(rpl);
 
 	// save module config for this module in the debugger
-	g_debuggerDispatcher.notifyModuleUnloaded(rpl);
+	g_debuggerDispatcher.NotifyModuleUnloaded(rpl);
 
 	// release memory
 	rplLoaderHeap_codeArea2.free(rpl->regionMappingBase_text.GetPtr());
@@ -1878,7 +1878,7 @@ void RPLLoader_Link()
 		RPLLoader_LoadDebugSymbols(rplModuleList[i]);
 		rplModuleList[i]->isLinked = true; // mark as linked
 		GraphicPack2::NotifyModuleLoaded(rplModuleList[i]);
-		g_debuggerDispatcher.notifyModuleLoaded(rplModuleList[i]);
+		g_debuggerDispatcher.NotifyModuleLoaded(rplModuleList[i]);
 	}
 }
 

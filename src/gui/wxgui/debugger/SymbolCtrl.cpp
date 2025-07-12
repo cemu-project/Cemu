@@ -113,7 +113,7 @@ void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 	if (address == 0)
 		return;
 	debuggerState.debugSession.instructionPointer = address;
-	g_debuggerDispatcher.moveIP();
+	g_debuggerDispatcher.MoveIP();
 }
 
 void SymbolListCtrl::OnRightClick(wxListEvent& event)

@@ -470,7 +470,7 @@ sint32 _KPADRead(uint32 channel, KPADStatus_t* samplingBufs, uint32 length, bety
 	samplingBufs->wpadErr = WPAD_ERR_NONE;
 	samplingBufs->data_format = controller->get_data_format();
 	samplingBufs->devType = controller->get_device_type();
-	if(!WindowSystem::inputConfigWindowHasFocus())
+	if(!WindowSystem::InputConfigWindowHasFocus())
 	{
 		const auto btn_repeat = padscore::g_padscore.controller_data[channel].btn_repeat;
 		controller->KPADRead(*samplingBufs, btn_repeat);

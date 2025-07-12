@@ -14,7 +14,7 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 	Bind(wxEVT_PAINT, &VulkanCanvas::OnPaint, this);
 	Bind(wxEVT_SIZE, &VulkanCanvas::OnResize, this);
 
-	auto& canvas = is_main_window ? WindowSystem::getWindowInfo().canvas_main : WindowSystem::getWindowInfo().canvas_pad;
+	auto& canvas = is_main_window ? WindowSystem::GetWindowInfo().canvas_main : WindowSystem::GetWindowInfo().canvas_pad;
 	canvas = initHandleContextFromWxWidgetsWindow(this);
 	#if BOOST_OS_LINUX && HAS_WAYLAND
 	if (canvas.backend == WindowSystem::WindowHandleInfo::Backend::Wayland)

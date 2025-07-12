@@ -263,7 +263,7 @@ namespace vpad
 			PPCCore_switchToScheduler();
 		}
 
-		if (!WindowSystem::inputConfigWindowHasFocus())
+		if (!WindowSystem::InputConfigWindowHasFocus())
 		{
 			if (channel <= 1 && vpadDelayEnabled)
 			{

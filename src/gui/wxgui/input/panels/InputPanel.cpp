@@ -26,7 +26,7 @@ void InputPanel::on_timer(const EmulatedControllerPtr& emulated_controller, cons
 	const auto mapping = reinterpret_cast<uint64>(element->GetClientData());
 
 	// reset mapping
-	if(std::exchange(m_right_down, false) || WindowSystem::isKeyDown(WindowSystem::PlatformKeyCodes::ESCAPE))
+	if(std::exchange(m_right_down, false) || WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::ESCAPE))
 	{
 		element->SetBackgroundColour(kKeyColourNormalMode);
 		m_color_backup[element->GetId()] = kKeyColourNormalMode;

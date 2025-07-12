@@ -286,9 +286,9 @@ void VPADController::update_motion(VPADStatus_t& status)
 
 		int w, h;
 		if (pad_view)
-			WindowSystem::getPadWindowPhysSize(w, h);
+			WindowSystem::GetPadWindowPhysSize(w, h);
 		else
-			WindowSystem::getWindowPhysSize(w, h);
+			WindowSystem::GetWindowPhysSize(w, h);
 
 		float wx = mousePos.x / w;
 		float wy = mousePos.y / h;

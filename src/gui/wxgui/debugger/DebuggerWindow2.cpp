@@ -270,7 +270,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	: wxFrame(&parent, wxID_ANY, _("PPC Debugger"), wxDefaultPosition, wxSize(1280, 300), wxMINIMIZE_BOX | wxMAXIMIZE_BOX | wxSYSTEM_MENU | wxCAPTION | wxCLOSE_BOX | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT),
 		m_module_address(0)
 {
-	g_debuggerDispatcher.setDebuggerCallbacks(this);
+	g_debuggerDispatcher.SetDebuggerCallbacks(this);
 
 	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 
@@ -337,7 +337,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 
 DebuggerWindow2::~DebuggerWindow2()
 {
-	g_debuggerDispatcher.clearDebuggerCallbacks();
+	g_debuggerDispatcher.ClearDebuggerCallbacks();
 
 	debuggerState.breakOnEntry = false;
 	g_debugger_window = nullptr;
@@ -686,38 +686,38 @@ void DebuggerWindow2::UpdateModuleLabel(uint32 address)
 	}
 }
 
-void DebuggerWindow2::updateViewThreadsafe()
+void DebuggerWindow2::UpdateViewThreadsafe()
 {
 	auto* evt = new wxCommandEvent(wxEVT_UPDATE_VIEW);
 	wxQueueEvent(this, evt);
 }
 
-void DebuggerWindow2::notifyDebugBreakpointHit()
+void DebuggerWindow2::NotifyDebugBreakpointHit()
 {
 	auto* evt = new wxCommandEvent(wxEVT_BREAKPOINT_HIT);
 	wxQueueEvent(this, evt);
 }
 
-void DebuggerWindow2::notifyRun()
+void DebuggerWindow2::NotifyRun()
 {
 	auto* evt = new wxCommandEvent(wxEVT_RUN);
 	wxQueueEvent(this, evt);
 }
 
-void DebuggerWindow2::moveIP()
+void DebuggerWindow2::MoveIP()
 {
 	auto* evt = new wxCommandEvent(wxEVT_MOVE_IP);
 	wxQueueEvent(this, evt);
 }
 
-void DebuggerWindow2::notifyModuleLoaded(void* module)
+void DebuggerWindow2::NotifyModuleLoaded(void* module)
 {
 	auto* evt = new wxCommandEvent(wxEVT_NOTIFY_MODULE_LOADED);
 	evt->SetClientData(module);
 	wxQueueEvent(this, evt);
 }
 
-void DebuggerWindow2::notifyModuleUnloaded(void* module)
+void DebuggerWindow2::NotifyModuleUnloaded(void* module)
 {
 	auto* evt = new wxCommandEvent(wxEVT_NOTIFY_MODULE_UNLOADED);
 	evt->SetClientData(module);

@@ -75,7 +75,7 @@ void KeyCache_Prepare()
 		}
 		else
 		{
-			WindowSystem::showErrorDialog(_tr("Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to its own directory, the disk is full or if anti-virus software is blocking Cemu."), _tr("Error"), WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
+			WindowSystem::ShowErrorDialog(_tr("Unable to create file keys.txt\nThis can happen if Cemu does not have write permission to its own directory, the disk is full or if anti-virus software is blocking Cemu."), _tr("Error"), WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
 		}
 		mtxKeyCache.unlock();
 		return;
@@ -109,7 +109,7 @@ void KeyCache_Prepare()
 		if( strishex(line) == false )
 		{
 			auto errorMsg = _tr("Error in keys.txt at line {}", lineNumber);
-			WindowSystem::showErrorDialog(errorMsg, WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
+			WindowSystem::ShowErrorDialog(errorMsg, WindowSystem::ErrorCategory::KEYS_TXT_CREATION);
 			continue;
 		}
 		if(line.size() == 32 )
