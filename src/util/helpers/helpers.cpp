@@ -143,9 +143,7 @@ void SetThreadName(const char* name)
 {
 #if BOOST_OS_WINDOWS
 	using SetThreadDescription_t = HRESULT (*)(HANDLE hThread, PCWSTR lpThreadDescription);
-	static SetThreadDescription_t pSetThreadDescription = nullptr;
-	if (!pSetThreadDescription)
-		pSetThreadDescription = (SetThreadDescription_t)GetProcAddress(LoadLibraryW(L"Kernel32.dll"), "SetThreadDescription");
+	SetThreadDescription_t pSetThreadDescription = (SetThreadDescription_t)GetProcAddress(LoadLibraryW(L"Kernel32.dll"), "SetThreadDescription");
 	if (pSetThreadDescription)
 	{
 		std::wstring threadDescription = boost::nowide::widen(name);
