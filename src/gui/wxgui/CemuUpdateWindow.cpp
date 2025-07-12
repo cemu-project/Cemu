@@ -5,6 +5,7 @@
 #include "util/helpers/SystemException.h"
 #include "config/ActiveSettings.h"
 #include "Common/FileStream.h"
+#include "wxCemuConfig.h"
 
 #include <wx/sizer.h>
 #include <wx/gauge.h>
@@ -118,7 +119,7 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 #elif
 #error Name for current platform is missing
 #endif
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 	if(config.receive_untested_updates)
 		urlStr.append("&allowNewUpdates=1");
 

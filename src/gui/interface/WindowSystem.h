@@ -123,17 +123,4 @@ namespace WindowSystem
 	bool isFullScreen();
 
 	void captureInput(const ControllerState& currentState, const ControllerState& lastState);
-
-	enum class HotKey
-	{
-
-		MODIFIERS,
-		EXIT_FULLSCREEN,
-		TOGGLE_FULLSCREEN,
-		TOGGLE_FULLSCREEN_ALT,
-		TAKE_SCREENSHOT,
-		TOGGLE_FAST_FORWARD,
-	};
-
-	sHotkeyCfg getDefaultHotkeyConfig(HotKey hotKey);
 }; // namespace WindowSystem

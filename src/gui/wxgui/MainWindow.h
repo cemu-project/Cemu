@@ -145,6 +145,7 @@ public:
 	static void RequestLaunchGame(fs::path filePath, wxLaunchGameEvent::INITIATED_BY initiatedBy);
 
 private:
+	bool FullscreenEnabled() const;
 	void RecreateMenu();
 	void UpdateChildWindowTitleRunningState();
 	static wxString GetInitialWindowTitle();

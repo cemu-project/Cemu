@@ -104,6 +104,8 @@ add_library(CemuWxGui
   PadViewFrame.h
   TitleManager.cpp
   TitleManager.h
+  wxCemuConfig.cpp
+  wxCemuConfig.h
   EmulatedUSBDevices/EmulatedUSBDeviceFrame.cpp
   EmulatedUSBDevices/EmulatedUSBDeviceFrame.h
   windows/PPCThreadsViewer

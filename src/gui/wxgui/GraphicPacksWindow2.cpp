@@ -325,7 +325,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 void GraphicPacksWindow2::SaveStateToConfig()
 {
-	auto& data = g_config.data();
+	auto& data = GetConfigHandle().data();
 	data.graphic_pack_entries.clear();
 
 	for (const auto& gp : GraphicPack2::GetGraphicPacks())
@@ -348,7 +348,7 @@ void GraphicPacksWindow2::SaveStateToConfig()
 		}
 	}
 
-	g_config.Save();
+	GetConfigHandle().Save();
 }
 
 GraphicPacksWindow2::~GraphicPacksWindow2()

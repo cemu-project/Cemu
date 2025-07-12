@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "interface/WindowSystem.h"
+#include "wxCemuConfig.h"
 #include "wxgui/wxgui.h"
 #include "wxgui/MainWindow.h"
 
@@ -274,7 +275,7 @@ public:
 		std::string path = filenames[0].utf8_string();
 		if (nfc::TouchTagFromFile(_utf8ToPath(path), &nfcError))
 		{
-			GetConfig().AddRecentNfcFile(path);
+			GetWxGUIConfig().AddRecentNfcFile(path);
 			m_window->UpdateNFCMenu();
 			return true;
 		}
@@ -363,9 +364,8 @@ MainWindow::MainWindow()
 
     LoadSettings();
 
-    auto& config = GetConfig();
     #ifdef ENABLE_DISCORD_RPC
-    if (config.use_discord_presence)
+    if (GetWxGUIConfig().use_discord_presence)
             m_discord = std::make_unique<DiscordPresence>();
     #endif
 
@@ -374,7 +374,7 @@ MainWindow::MainWindow()
 
     if (LaunchSettings::GDBStubEnabled())
     {
-            g_gdbstub = std::make_unique<GDBServer>(config.gdb_port);
+            g_gdbstub = std::make_unique<GDBServer>(GetConfig().gdb_port);
     }
 }
 
@@ -572,9 +572,9 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	}
 
 	if(launchTitle.IsValid())
-		GetConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchTitle.GetPath()));
+		GetWxGUIConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchTitle.GetPath()));
 	else
-		GetConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchPath));
+		GetWxGUIConfig().AddRecentlyLaunchedFile(_pathToUtf8(launchPath));
 
 	wxWindowUpdateLocker lock(this);
 
@@ -599,12 +599,12 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 		// ScreenSaver::SetInhibit(false);
 	}
 
-	if (ActiveSettings::FullscreenEnabled())
+	if (FullscreenEnabled())
 		SetFullScreen(true);
 
     //GameMode support
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-    if(GetConfig().feral_gamemode)
+    if(GetWxGUIConfig().feral_gamemode)
     {
         // attempt to start gamemode
         if(gamemode_request_start() < 0)
@@ -666,7 +666,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	}
 	else if (menuId >= MAINFRAME_MENU_ID_FILE_RECENT_0 && menuId <= MAINFRAME_MENU_ID_FILE_RECENT_LAST)
 	{
-		const auto& config = GetConfig();
+		const auto& config = GetWxGUIConfig();
 		const size_t index = menuId - MAINFRAME_MENU_ID_FILE_RECENT_0;
 		if (index < config.recent_launch_files.size())
 		{
@@ -760,14 +760,14 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 		}
 		else
 		{
-			GetConfig().AddRecentNfcFile(wxStrFilePath.utf8_string());
+			GetWxGUIConfig().AddRecentNfcFile(wxStrFilePath.utf8_string());
 			UpdateNFCMenu();
 		}
 	}
 	else if (event.GetId() >= MAINFRAME_MENU_ID_NFC_RECENT_0 && event.GetId() <= MAINFRAME_MENU_ID_NFC_RECENT_LAST)
 	{
 		const size_t index = event.GetId() - MAINFRAME_MENU_ID_NFC_RECENT_0;
-		auto& config = GetConfig();
+		auto& config = GetWxGUIConfig();
 		if (index < config.recent_nfc_files.size())
 		{
 			const auto& path = config.recent_nfc_files[index];
@@ -800,7 +800,7 @@ void MainWindow::OnFileExit(wxCommandEvent& event)
 
 void MainWindow::TogglePadView()
 {
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 	if (config.pad_open)
 	{
 		if (m_padView)
@@ -849,7 +849,7 @@ WXLRESULT MainWindow::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lPara
 
 void MainWindow::OpenSettings()
 {
-	auto& config = GetConfig();
+	auto& config = GetWxGUIConfig();
 	const auto language = config.language;
 
 	GeneralSettings2 frame(this, m_game_launched);
@@ -901,8 +901,8 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 	}
 	case MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW:
 	{
-		GetConfig().pad_open = !GetConfig().pad_open;
-		g_config.Save();
+		GetWxGUIConfig().pad_open = !GetWxGUIConfig().pad_open;
+		g_wxConfig.Save();
 
 		TogglePadView();
 		break;
@@ -954,7 +954,7 @@ void MainWindow::OnAccountSelect(wxCommandEvent& event)
 	auto& config = GetConfig();
 	config.account.m_persistent_id = accounts[index].GetPersistentId();
 	// config.account.online_enabled.value = false; // reset online for safety
-	g_config.Save();
+	GetConfigHandle().Save();
 }
 
 void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
@@ -1005,7 +1005,7 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 		m_game_list->DeleteCachedStrings();
 		m_game_list->ReloadGameEntries(false);
 	}
-	g_config.Save();
+	GetConfigHandle().Save();
 }
 
 //void MainWindow::OnCPUMode(wxCommandEvent& event)
@@ -1021,7 +1021,7 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 //	else
 //		cemu_assert_debug(false);
 //	
-//	g_config.Save();
+//	GetConfigHandle().Save();
 //}
 
 void MainWindow::OnDebugSetting(wxCommandEvent& event)
@@ -1085,7 +1085,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 	else
 		cemu_assert_debug(false);
 	
-	g_config.Save();
+	GetConfigHandle().Save();
 }
 
 void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
@@ -1102,14 +1102,14 @@ void MainWindow::OnDebugLoggingToggleFlagGeneric(wxCommandEvent& event)
 		else
 			GetConfig().log_flag = GetConfig().log_flag.GetValue() & ~cemuLog_getFlag(loggingType);
 		cemuLog_setActiveLoggingFlags(GetConfig().log_flag.GetValue());
-		g_config.Save();
+		GetConfigHandle().Save();
 	}
 }
 
 void MainWindow::OnPPCInfoToggle(wxCommandEvent& event)
 {
 	GetConfig().advanced_ppc_logging = !GetConfig().advanced_ppc_logging.GetValue();
-	g_config.Save();
+	GetConfigHandle().Save();
 }
 
 void MainWindow::OnDebugDumpGeneric(wxCommandEvent& event)
@@ -1290,8 +1290,8 @@ wxRect MainWindow::GetDesktopRect()
 
 void MainWindow::LoadSettings()
 {
-	g_config.Load();
-	const auto& config = GetConfig();
+	GetConfigHandle().Load();
+	const auto& config = GetWxGUIConfig();
 
 	if(config.check_update)
 		m_update_available = CemuUpdateWindow::IsUpdateAvailableAsync();
@@ -1329,8 +1329,8 @@ void MainWindow::LoadSettings()
 
 void MainWindow::SaveSettings()
 {
-	auto lock = g_config.Lock();
-	auto& config = GetConfig();
+	auto lock = GetConfigHandle().Lock();
+	auto& config = GetWxGUIConfig();
 	
 	if (config.window_position != Vector2i{ -1,-1 })
 	{
@@ -1369,7 +1369,7 @@ void MainWindow::SaveSettings()
 	if(m_game_list)
 		m_game_list->SaveConfig();
 	
-	g_config.Save();
+	g_wxConfig.Save();
 }
 
 void MainWindow::OnMouseMove(wxMouseEvent& event)
@@ -1389,7 +1389,7 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	if (!IsFullScreen())
 		return;
 
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 	// if mouse goes to upper screen then show our menu in fullscreen mode
 	if (config.fullscreen_menubar)
 		SetMenuVisible(event.GetPosition().y < 50);
@@ -1688,7 +1688,7 @@ void MainWindow::OnDebuggerClose(wxCloseEvent& event)
 
 void MainWindow::OnPadClose(wxCloseEvent& event)
 {
-	auto& config = GetConfig();
+	auto& config = GetWxGUIConfig();
 	config.pad_open = false;
 	if (config.pad_position != Vector2i{ -1,-1 })
 		m_padView->GetPosition(&config.pad_position.x, &config.pad_position.y);
@@ -1696,7 +1696,7 @@ void MainWindow::OnPadClose(wxCloseEvent& event)
 	if (config.pad_size != Vector2i{ -1,-1 })
 		m_padView->GetSize(&config.pad_size.x, &config.pad_size.y);
 
-	g_config.Save();
+	g_wxConfig.Save();
 
 	// already deleted by wxwidget
 	m_padView = nullptr;
@@ -1727,8 +1727,8 @@ void MainWindow::SetFullScreen(bool state)
 	// only update config entry if we dont't have launch parameters
 	if (!LaunchSettings::FullscreenEnabled().has_value())
 	{
-		GetConfig().fullscreen = state;
-		g_config.Save();
+		GetWxGUIConfig().fullscreen = state;
+		g_wxConfig.Save();
 	}
 	if (state && !m_game_launched)
 		return;
@@ -1760,14 +1760,14 @@ void MainWindow::UpdateNFCMenu()
 		m_nfcMenuSeparator0 = nullptr;
 	}
 	// remove recent files list
-	for (sint32 i = 0; i < CemuConfig::kMaxRecentEntries; i++)
+	for (sint32 i = 0; i < wxCemuConfig::kMaxRecentEntries; i++)
 	{
 		if (m_nfcMenu->FindChildItem(MAINFRAME_MENU_ID_NFC_RECENT_0 + i) == nullptr)
 			continue;
 		m_nfcMenu->Remove(MAINFRAME_MENU_ID_NFC_RECENT_0 + i);
 	}
 	// add entries
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 	sint32 recentFileIndex = 0;
 	for (size_t i = 0; i < config.recent_nfc_files.size(); i++)
 	{
@@ -2098,7 +2098,7 @@ void MainWindow::RecreateMenu()
 		m_menuBar = nullptr;
 	}
 	
-	auto& config = GetConfig();
+	auto& guiConfig = GetWxGUIConfig();
 	
 	m_menuBar = new wxMenuBar();
 	// file submenu
@@ -2112,9 +2112,9 @@ void MainWindow::RecreateMenu()
 		sint32 recentFileIndex = 0;
 		m_fileMenuSeparator0 = nullptr;
 		m_fileMenuSeparator1 = nullptr;
-		for (size_t i = 0; i < config.recent_launch_files.size(); i++)
+		for (size_t i = 0; i < guiConfig.recent_launch_files.size(); i++)
 		{
-			const std::string& pathStr = config.recent_launch_files[i];
+			const std::string& pathStr = guiConfig.recent_launch_files[i];
 			if (pathStr.empty())
 				continue;
 			if (recentFileIndex == 0)
@@ -2156,6 +2156,8 @@ void MainWindow::RecreateMenu()
 		++index;
 	}
 
+	auto& config = GetConfig();
+	auto& wxConfig = GetWxGUIConfig();
 	// options->console language submenu
 	wxMenu* optionsConsoleLanguageMenu = new wxMenu();
 	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH, _("&English"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::EN);
@@ -2182,11 +2184,11 @@ void MainWindow::RecreateMenu()
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu();
 	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"), wxEmptyString);
-	m_fullscreenMenuItem->Check(ActiveSettings::FullscreenEnabled());		
+	m_fullscreenMenuItem->Check(FullscreenEnabled());		
 	
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2, _("&Graphic packs"));
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
-	m_padViewMenuItem->Check(GetConfig().pad_open);
+	m_padViewMenuItem->Check(wxConfig.pad_open);
 	optionsMenu->AppendSeparator();
 	#if BOOST_OS_MACOS
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, _("&Settings..." "\tCtrl-,"));
@@ -2408,4 +2410,9 @@ void MainWindow::CafeRecreateCanvas()
 	evt->SetClientData((void*)&sem);
 	wxQueueEvent(g_mainFrame, evt);
 	sem.decrementWithWait();
+}
+
+bool MainWindow::FullscreenEnabled() const
+{
+	return LaunchSettings::FullscreenEnabled().value_or(GetWxGUIConfig().fullscreen);
 }

@@ -42,7 +42,7 @@ struct DebuggerConfig
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
 };
-typedef XMLDataConfig<DebuggerConfig, &DebuggerConfig::Load, &DebuggerConfig::Save> XMLDebuggerConfig;
+typedef XMLDataConfig<DebuggerConfig> XMLDebuggerConfig;
 
 struct DebuggerModuleStorage
 {
@@ -54,7 +54,7 @@ struct DebuggerModuleStorage
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
 };
-typedef XMLDataConfig<DebuggerModuleStorage, &DebuggerModuleStorage::Load, &DebuggerModuleStorage::Save> XMLDebuggerModuleConfig;
+typedef XMLDataConfig<DebuggerModuleStorage> XMLDebuggerModuleConfig;
 
 class DebuggerWindow2 : public wxFrame, public DebuggerCallbacks
 {

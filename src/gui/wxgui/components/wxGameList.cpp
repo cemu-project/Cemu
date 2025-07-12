@@ -1,6 +1,7 @@
 #include "wxgui/components/wxGameList.h"
 
 #include "wxgui/helpers/wxCustomData.h"
+#include "wxCemuConfig.h"
 #include "util/helpers/helpers.h"
 #include "wxgui/GameProfileWindow.h"
 
@@ -137,7 +138,7 @@ bool writeICNS(const fs::path& pngPath, const fs::path& icnsPath) {
 wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	: wxListView(parent, id, wxDefaultPosition, wxDefaultSize, GetStyleFlags(Style::kList)), m_style(Style::kList)
 {
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
 	if(config.show_icon_column)
@@ -221,7 +222,7 @@ wxGameList::~wxGameList()
 
 void wxGameList::LoadConfig()
 {
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 	SetStyle((Style)config.game_list_style, false);
 
 	if (!config.game_list_column_order.empty())
@@ -327,7 +328,7 @@ int wxGameList::GetColumnDefaultWidth(int column)
 
 void wxGameList::SaveConfig(bool flush)
 {
-	auto& config = GetConfig();
+	auto& config = GetWxGUIConfig();
 
 	config.game_list_style = (int)m_style;
 	#ifdef wxHAS_LISTCTRL_COLUMN_ORDER
@@ -335,7 +336,7 @@ void wxGameList::SaveConfig(bool flush)
 	#endif
 
 	if (flush)
-		g_config.Save();
+		GetConfigHandle().Save();
 }
 
 bool wxGameList::IsVisible(long item) const
@@ -426,8 +427,8 @@ void wxGameList::SetStyle(Style style, bool save)
 
 	if(save)
 	{
-		GetConfig().game_list_style = (int)m_style;
-		g_config.Save();
+		GetWxGUIConfig().game_list_style = (int)m_style;
+		GetConfigHandle().Save();
 	}
 
 	if (style == Style::kList)
@@ -726,7 +727,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 					const auto custom_name = dialog.GetValue();
 					GetConfig().SetGameListCustomName(title_id, custom_name.utf8_string());
 					m_name_cache.clear();
-					g_config.Save();
+					GetConfigHandle().Save();
 					// update list entry
 					for (int i = 0; i < GetItemCount(); ++i)
 					{
@@ -906,7 +907,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 
 			const auto menu = dynamic_cast<wxMenu*>(event.GetEventObject());
 			const int column = dynamic_cast<wxCustomData<int>*>(menu->GetClientObject())->GetData();
-			auto& config = GetConfig();
+			auto& config = GetWxGUIConfig();
 
 			switch (event.GetId())
 			{
@@ -980,7 +981,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 			}
 			}
 
-			g_config.Save();
+			GetConfigHandle().Save();
 			ApplyGameListColumnWidths();
 		});
 
@@ -990,7 +991,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 
 void wxGameList::ApplyGameListColumnWidths()
 {
-	const auto& config = GetConfig();
+	const auto& config = GetWxGUIConfig();
 	wxWindowUpdateLocker lock(this);
 	if(config.show_icon_column)
 		SetColumnWidth(ColumnIcon, kListIconWidth);
@@ -1044,7 +1045,7 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 	const int column = event.GetColumn();
 	const int width = GetColumnWidth(column);
 
-	auto& config = GetConfig();
+	auto& config = GetWxGUIConfig();
 	switch (column)
 	{
 	case ColumnName:
@@ -1069,7 +1070,7 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 		break;
 	}
 
-	g_config.Save();
+	GetConfigHandle().Save();
 	AdjustLastColumnWidth();
 }
 

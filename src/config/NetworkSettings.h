@@ -71,7 +71,7 @@ struct PretendoURLs {
    inline static std::string OLVURL = "https://discovery.olv.pretendo.cc/v1/endpoint";
 };
 
-typedef XMLDataConfig<NetworkConfig, &NetworkConfig::Load, &NetworkConfig::Save> XMLNetworkConfig_t;
+typedef XMLDataConfig<NetworkConfig> XMLNetworkConfig_t;
 extern XMLNetworkConfig_t n_config;
 inline NetworkConfig& GetNetworkConfig() { return n_config.data();};
 

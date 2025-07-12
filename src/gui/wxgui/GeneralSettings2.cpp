@@ -1,3 +1,4 @@
+#include "wxCemuConfig.h"
 #include "wxgui/wxgui.h"
 #include "wxgui/GeneralSettings2.h"
 #include "wxgui/CemuApp.h"
@@ -959,14 +960,15 @@ void GeneralSettings2::StoreConfig()
 {
 	auto* app = (CemuApp*)wxTheApp;
 	auto& config = GetConfig();
+	auto& wxGuiConfig = GetWxGUIConfig();
 
-	config.use_discord_presence = m_discord_presence->IsChecked();
-	config.fullscreen_menubar = m_fullscreen_menubar->IsChecked();
-	config.check_update = m_auto_update->IsChecked();
-	config.save_screenshot = m_save_screenshot->IsChecked();
-	config.receive_untested_updates = m_receive_untested_releases->IsChecked();
+	wxGuiConfig.use_discord_presence = m_discord_presence->IsChecked();
+	wxGuiConfig.fullscreen_menubar = m_fullscreen_menubar->IsChecked();
+	wxGuiConfig.check_update = m_auto_update->IsChecked();
+	wxGuiConfig.save_screenshot = m_save_screenshot->IsChecked();
+	wxGuiConfig.receive_untested_updates = m_receive_untested_releases->IsChecked();
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-    config.feral_gamemode = m_feral_gamemode->IsChecked();
+    wxGuiConfig.feral_gamemode = m_feral_gamemode->IsChecked();
 #endif
 	config.play_boot_sound = m_play_boot_sound->IsChecked();
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
@@ -978,10 +980,10 @@ void GeneralSettings2::StoreConfig()
 
 
 	// -1 is default wx widget value -> set to dummy 0 so mainwindow and padwindow will update it
-	config.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
-	config.window_size = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
-	config.pad_position = m_save_padwindow_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
-	config.pad_size = m_save_padwindow_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
+	wxGuiConfig.window_position = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
+	wxGuiConfig.window_size = m_save_window_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
+	wxGuiConfig.pad_position = m_save_padwindow_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
+	wxGuiConfig.pad_size = m_save_padwindow_position_size->IsChecked() ? Vector2i{ 0,0 } : Vector2i{-1,-1};
 
 	config.game_paths.clear();
 	for (auto& path : m_game_paths->GetStrings())
@@ -989,7 +991,7 @@ void GeneralSettings2::StoreConfig()
 
 	auto selection = m_language->GetSelection();
 	if (selection == 0)
-		GetConfig().language = wxLANGUAGE_DEFAULT;
+		wxGuiConfig.language = wxLANGUAGE_DEFAULT;
 	else
 	{
 		const auto language = m_language->GetStringSelection();
@@ -997,7 +999,7 @@ void GeneralSettings2::StoreConfig()
 		{
 			if (lang->DescriptionNative == language)
 			{
-				GetConfig().language = lang->Language;
+				wxGuiConfig.language = lang->Language;
 				break;
 			}
 		}
@@ -1112,7 +1114,7 @@ void GeneralSettings2::StoreConfig()
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
 	config.gdb_port = m_gdb_port->GetValue();
 
-	g_config.Save();
+	GetConfigHandle().Save();
 }
 
 GeneralSettings2::~GeneralSettings2()
@@ -1133,9 +1135,9 @@ void GeneralSettings2::OnClose(wxCloseEvent& event)
 
 void GeneralSettings2::ValidateConfig()
 {
-	g_config.Load();
+	GetConfigHandle().Load();
 
-	auto& data = g_config.data();
+	auto& data = GetConfigHandle().data();
 	// todo
 	//data.fullscreen_scaling = min(max(data.fullscreen_scaling,))
 }
@@ -1610,6 +1612,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 void GeneralSettings2::ApplyConfig()
 {
 	ValidateConfig();
+	auto& wxGUIconfig = GetWxGUIConfig();
 	auto& config = GetConfig();
 
 	if (LaunchSettings::GetMLCPath().has_value())
@@ -1617,20 +1620,20 @@ void GeneralSettings2::ApplyConfig()
 	else
 		m_mlc_path->SetValue(wxHelper::FromUtf8(config.mlc_path.GetValue()));
 
-	m_save_window_position_size->SetValue(config.window_position != Vector2i{-1,-1});
-	m_save_padwindow_position_size->SetValue(config.pad_position != Vector2i{-1,-1});
+	m_save_window_position_size->SetValue(wxGUIconfig.window_position != Vector2i{-1,-1});
+	m_save_padwindow_position_size->SetValue(wxGUIconfig.pad_position != Vector2i{-1,-1});
 
-	m_discord_presence->SetValue(config.use_discord_presence);
-	m_fullscreen_menubar->SetValue(config.fullscreen_menubar);
+	m_discord_presence->SetValue(wxGUIconfig.use_discord_presence);
+	m_fullscreen_menubar->SetValue(wxGUIconfig.fullscreen_menubar);
 
-	m_auto_update->SetValue(config.check_update);
-	m_receive_untested_releases->SetValue(config.receive_untested_updates);
-	m_save_screenshot->SetValue(config.save_screenshot);
+	m_auto_update->SetValue(wxGUIconfig.check_update);
+	m_receive_untested_releases->SetValue(wxGUIconfig.receive_untested_updates);
+	m_save_screenshot->SetValue(wxGUIconfig.save_screenshot);
 
 	m_disable_screensaver->SetValue(config.disable_screensaver);
 	m_play_boot_sound->SetValue(config.play_boot_sound);
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-    	m_feral_gamemode->SetValue(config.feral_gamemode);
+    	m_feral_gamemode->SetValue(wxGUIconfig.feral_gamemode);
 #endif
 	// temporary workaround because feature crashes on macOS
 #if BOOST_OS_MACOS
@@ -1646,7 +1649,7 @@ void GeneralSettings2::ApplyConfig()
 	const auto app = (CemuApp*)wxTheApp;
 	for (const auto& language : app->GetLanguages())
 	{
-		if (config.language == language->Language)
+		if (wxGUIconfig.language == language->Language)
 		{
 			m_language->SetStringSelection(language->DescriptionNative);
 			break;
@@ -2124,7 +2127,7 @@ void GeneralSettings2::OnMLCPathClear(wxCommandEvent& event)
 		return;
 	GetConfig().SetMLCPath("");
 	StoreConfig();
-	g_config.Save();
+	GetConfigHandle().Save();
 	wxMessageBox(_("Cemu needs to be restarted for the changes to take effect."), _("Information"), wxOK | wxCENTRE | wxICON_INFORMATION, this);
 	// close settings and then cemu
 	wxCloseEvent closeEvent(wxEVT_CLOSE_WINDOW);

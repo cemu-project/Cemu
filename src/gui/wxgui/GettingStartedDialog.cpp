@@ -8,6 +8,7 @@
 #include <wx/button.h>
 
 #include "config/ActiveSettings.h"
+#include "wxCemuConfig.h"
 #include "wxgui/CemuApp.h"
 #include "wxgui/DownloadGraphicPacksWindow.h"
 #include "wxgui/GraphicPacksWindow2.h"
@@ -204,7 +205,7 @@ wxPanel* GettingStartedDialog::CreatePage2()
 
 void GettingStartedDialog::ApplySettings()
 {
-	auto& config = GetConfig();
+	auto& config = GetWxGUIConfig();
 	m_page2.fullscreenCheckbox->SetValue(config.fullscreen.GetValue());
 	m_page2.updateCheckbox->SetValue(config.check_update.GetValue());
 	m_page2.separateCheckbox->SetValue(config.pad_open.GetValue());
@@ -225,11 +226,12 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 {
 	event.Skip();
 
-	auto& config = GetConfig();
-	config.fullscreen = m_page2.fullscreenCheckbox->GetValue();
-	config.check_update = m_page2.updateCheckbox->GetValue();
-	config.pad_open = m_page2.separateCheckbox->GetValue();
+	auto& wxGUIConfig = GetWxGUIConfig();
+	wxGUIConfig.fullscreen = m_page2.fullscreenCheckbox->GetValue();
+	wxGUIConfig.check_update = m_page2.updateCheckbox->GetValue();
+	wxGUIConfig.pad_open = m_page2.separateCheckbox->GetValue();
 
+	auto& config = GetConfig();
 	const fs::path gamePath = wxHelper::MakeFSPath(m_page1.gamePathPicker->GetPath());
 	std::error_code ec;
 	if (!gamePath.empty() && fs::exists(gamePath, ec))

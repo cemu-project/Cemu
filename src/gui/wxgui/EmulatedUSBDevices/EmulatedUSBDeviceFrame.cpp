@@ -73,7 +73,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 	m_emulatePortal->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
 		GetConfig().emulated_usb_devices.emulate_skylander_portal =
 			m_emulatePortal->IsChecked();
-		g_config.Save();
+		GetConfigHandle().Save();
 	});
 	row->Add(m_emulatePortal, 1, wxEXPAND | wxALL, 2);
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
@@ -103,7 +103,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 	m_emulateBase->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
 		GetConfig().emulated_usb_devices.emulate_infinity_base =
 			m_emulateBase->IsChecked();
-		g_config.Save();
+		GetConfigHandle().Save();
 	});
 	row->Add(m_emulateBase, 1, wxEXPAND | wxALL, 2);
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
@@ -139,7 +139,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 	m_emulateToypad->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
 		GetConfig().emulated_usb_devices.emulate_dimensions_toypad =
 			m_emulateToypad->IsChecked();
-		g_config.Save();
+		GetConfigHandle().Save();
 	});
 	row->Add(m_emulateToypad, 1, wxEXPAND | wxALL, 2);
 	box_sizer->Add(row, 1, wxEXPAND | wxALL, 2);

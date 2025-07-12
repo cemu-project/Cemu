@@ -1,4 +1,5 @@
 #include "wxgui/CemuApp.h"
+#include "wxCemuConfig.h"
 #include "wxgui/MainWindow.h"
 #include "wxgui/wxgui.h"
 #include "config/CemuConfig.h"
@@ -11,6 +12,7 @@
 #include "wxgui/helpers/wxHelpers.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "wxgui/input/HotkeySettings.h"
+#include <wx/language.h>
 
 #if BOOST_OS_LINUX && HAS_WAYLAND
 #include "wxgui/helpers/wxWayland.h"
@@ -237,7 +239,7 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 		else // reset path
 		{
 			GetConfig().mlc_path = "";
-			g_config.Save();
+			GetConfigHandle().Save();
 		}
 	}
 	else
@@ -263,16 +265,19 @@ bool CemuApp::OnInit()
 	// make sure default cemu directories exist
 	CreateDefaultCemuFiles();
 
-	g_config.SetFilename(ActiveSettings::GetConfigPath("settings.xml").generic_wstring());
+	GetConfigHandle().SetFilename(ActiveSettings::GetConfigPath("settings.xml").generic_wstring());
+
+	auto& config = GetWxGUIConfig();
 
 	std::error_code ec;
 	bool isFirstStart = !fs::exists(ActiveSettings::GetConfigPath("settings.xml"), ec);
 
 	NetworkConfig::LoadOnce();
-	if(!isFirstStart)
+	if (!isFirstStart)
 	{
-		g_config.Load();
-		LocalizeUI(static_cast<wxLanguage>(GetConfig().language == wxLANGUAGE_DEFAULT ? wxLocale::GetSystemLanguage() : GetConfig().language.GetValue()));
+		GetConfigHandle().Load();
+		sint32 language = config.language.GetValue();
+		LocalizeUI(static_cast<wxLanguage>(language == wxLANGUAGE_DEFAULT ? wxLocale::GetSystemLanguage() : language));
 	}
 	else
 	{
@@ -293,7 +298,7 @@ bool CemuApp::OnInit()
 		GettingStartedDialog dia(nullptr);
 		dia.ShowModal();
 		// make sure config is created. Gfx pack UI and input UI may create it earlier already, but we still want to update it
-		g_config.Save();
+		GetConfigHandle().Save();
 		// create mlc, on failure the user can quit here. So do this after the Getting Started dialog
 		InitializeNewMLCOrFail(ActiveSettings::GetMlcPath());
 	}
@@ -332,7 +337,6 @@ bool CemuApp::OnInit()
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);
 
-	auto& config = GetConfig();
 	m_mainFrame = new MainWindow();
 
 	std::unique_lock lock(g_mutex);
@@ -350,7 +354,7 @@ bool CemuApp::OnInit()
 
 	// show warning on macOS about state of builds
 #if BOOST_OS_MACOS
-	if (!GetConfig().did_show_macos_disclaimer)
+	if (!config.did_show_macos_disclaimer)
 	{
 		const auto message = _(
 			"Thank you for testing the in-development build of Cemu for macOS.\n \n"
@@ -359,8 +363,8 @@ bool CemuApp::OnInit()
 		wxMessageDialog dialog(nullptr, message, _("Preview version"), wxCENTRE | wxOK | wxICON_WARNING);
 		dialog.SetOKLabel(_("I understand"));
 		dialog.ShowModal();
-		GetConfig().did_show_macos_disclaimer = true;
-		g_config.Save();
+		config.did_show_macos_disclaimer = true;
+		GetConfigHandle().Save();
 	}
 #endif
 

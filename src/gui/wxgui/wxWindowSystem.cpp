@@ -343,23 +343,6 @@ void WindowSystem::captureInput(const ControllerState& currentState, const Contr
 	HotkeySettings::CaptureInput(currentState, lastState);
 }
 
-sHotkeyCfg WindowSystem::getDefaultHotkeyConfig(HotKey hotKey)
-{
-	switch (hotKey)
-	{
-	case HotKey::EXIT_FULLSCREEN:
-		return sHotkeyCfg{uKeyboardHotkey{WXK_ESCAPE}};
-	case HotKey::TOGGLE_FULLSCREEN:
-		return sHotkeyCfg{uKeyboardHotkey{WXK_F11}};
-	case HotKey::TOGGLE_FULLSCREEN_ALT:
-		return sHotkeyCfg{uKeyboardHotkey{WXK_CONTROL_M, true}}; // ALT+ENTER
-	case HotKey::TAKE_SCREENSHOT:
-		return sHotkeyCfg{uKeyboardHotkey{WXK_F12}};
-	default:
-		return sHotkeyCfg{};
-	}
-}
-
 bool WindowSystem::isFullScreen()
 {
 	return g_window_info.is_fullscreen;

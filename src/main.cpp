@@ -120,7 +120,7 @@ void CemuCommonInit()
 	WindowsInitCwd();
     ExceptionHandler_Init();
 	// read config
-	g_config.Load();
+	GetConfigHandle().Load();
 	if (NetworkConfig::XMLExists())
 		n_config.Load();
 	// parallelize expensive init code

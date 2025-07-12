@@ -1,7 +1,7 @@
 #pragma once
 
 #include <wx/wx.h>
-#include "config/CemuConfig.h"
+#include "wxCemuConfig.h"
 #include "input/api/Controller.h"
 
 class HotkeyEntry;
@@ -22,7 +22,7 @@ private:
 	static const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> s_cfgHotkeyToFuncMap;
 	inline static std::unordered_map<uint16, std::function<void(void)>> s_keyboardHotkeyToFuncMap{};
 	inline static std::unordered_map<uint16, std::function<void(void)>> s_controllerHotkeyToFuncMap{};
-	inline static auto& s_cfgHotkeys = GetConfig().hotkeys;
+	inline static auto& s_cfgHotkeys = GetWxGUIConfig().hotkeys;
 
 	wxPanel* m_panel;
 	wxFlexGridSizer* m_sizer;

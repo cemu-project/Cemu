@@ -81,7 +81,7 @@ std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, in
 	// to make this work we need to call OleInitialize() on the same thread
 	OleInitialize(nullptr);
 #endif
-	bool save_screenshot = g_config.data().save_screenshot;
+	bool save_screenshot = GetWxGUIConfig().save_screenshot;
 	wxImage image(width, height, data.data(), true);
 	if (mainWindow)
 	{
@@ -174,7 +174,7 @@ HotkeySettings::~HotkeySettings()
 	m_controllerTimer->Stop();
 	if (m_needToSave)
 	{
-		g_config.Save();
+		GetConfigHandle().Save();
 	}
 }
 
