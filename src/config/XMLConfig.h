@@ -586,7 +586,7 @@ class XMLDataConfig<T> : public XMLConfig<XMLConfigWrapper<T>>
 		: XMLConfig<XMLConfigWrapper<T>>::XMLConfig(m_configWrapper, filename), m_configWrapper() {}
 
 	XMLDataConfig(std::wstring_view filename, T init_data)
-		: XMLConfig<XMLConfigWrapper<T>>::XMLConfig(m_configWrapper, filename), m_configWrapper(std::move(init_data)) {}
+		: XMLConfig<XMLConfigWrapper<T>>::XMLConfig(m_configWrapper, filename), m_configWrapper{.data = std::move(init_data)} {}
 
 	XMLDataConfig(const XMLDataConfig& o) = delete;
 

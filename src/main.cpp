@@ -227,7 +227,7 @@ int wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LP
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
-	WindowSystem::create();
+	WindowSystem::Create();
 	return 0;
 }
 
@@ -239,7 +239,7 @@ int main(int argc, char* argv[])
 	SDL_SetMainReady();
 	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
-	WindowSystem::create();
+	WindowSystem::Create();
 	return 0;
 }
 

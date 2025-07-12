@@ -104,7 +104,7 @@ bool DirectInputController::connect()
 		return false;
 	}
 
-	HWND hwndMainWindow = static_cast<HWND>(WindowSystem::getWindowInfo().window_main.surface);
+	HWND hwndMainWindow = static_cast<HWND>(WindowSystem::GetWindowInfo().window_main.surface);
 
 	// set access
 	if (FAILED(m_device->SetCooperativeLevel(hwndMainWindow, DISCL_BACKGROUND | DISCL_EXCLUSIVE)))

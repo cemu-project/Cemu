@@ -53,7 +53,7 @@ public:
 private:
 	bool HasMonitorChanged()
 	{
-		HWND hWnd = (HWND)WindowSystem::getWindowInfo().canvas_main.surface;
+		HWND hWnd = (HWND)WindowSystem::GetWindowInfo().canvas_main.surface;
 		if (hWnd == 0)
 			return true;
 		HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);
@@ -71,7 +71,7 @@ private:
 
 	HRESULT GetAdapterHandleFromHwnd(D3DKMT_HANDLE* phAdapter, UINT* pOutput)
 	{
-		HWND hWnd = (HWND)WindowSystem::getWindowInfo().canvas_main.surface;
+		HWND hWnd = (HWND)WindowSystem::GetWindowInfo().canvas_main.surface;
 		if (hWnd == 0)
 			return E_FAIL;
 
