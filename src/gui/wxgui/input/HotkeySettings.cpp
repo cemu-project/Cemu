@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "interface/WindowSystem.h"
 #include <config/ActiveSettings.h>
+#include "config/CemuConfig.h"
 #include "input/InputManager.h"
 #include "HotkeySettings.h"
 
@@ -111,15 +112,6 @@ std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, in
 	return std::nullopt;
 }
 
-extern WindowSystem::WindowInfo g_window_info;
-const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> HotkeySettings::s_cfgHotkeyToFuncMap{
-	{&s_cfgHotkeys.toggleFullscreen, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
-	{&s_cfgHotkeys.toggleFullscreenAlt, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
-	{&s_cfgHotkeys.exitFullscreen, [](void) { s_mainWindow->ShowFullScreen(false); }},
-	{&s_cfgHotkeys.takeScreenshot, [](void) { if(g_renderer) g_renderer->RequestScreenshot(SaveScreenshot); }},
-	{&s_cfgHotkeys.toggleFastForward, [](void) { ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1); }},
-};
-
 struct HotkeyEntry
 {
 	std::unique_ptr<wxStaticText> name;
@@ -178,22 +170,50 @@ HotkeySettings::~HotkeySettings()
 	}
 }
 
+const std::unordered_map<sHotkeyCfg*, std::function<void(void)>>& HotkeySettings::GetConfigHotkeyToFuncMap()
+{
+	static const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> s_cfgHotkeyToFuncMap{
+	{&s_cfgHotkeys.toggleFullscreen, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
+	{&s_cfgHotkeys.toggleFullscreenAlt, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
+	{&s_cfgHotkeys.exitFullscreen, [](void) { s_mainWindow->ShowFullScreen(false); }},
+	{&s_cfgHotkeys.takeScreenshot, [](void) { if(g_renderer) g_renderer->RequestScreenshot(SaveScreenshot); }},
+	{&s_cfgHotkeys.toggleFastForward, [](void) { ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1); }},
+	};
+
+	return s_cfgHotkeyToFuncMap;
+}
+
+std::unordered_map<uint16, std::function<void(void)>>& HotkeySettings::GetKeyboardHotkeyToFuncMap()
+{
+	static std::unordered_map<uint16, std::function<void(void)>> s_keyboardHotkeyToFuncMap = []() {
+		std::unordered_map<uint16, std::function<void(void)>> keyboardHotkeyToFuncMap;
+		keyboardHotkeyToFuncMap.reserve(GetConfigHotkeyToFuncMap().size());
+		for (const auto& [cfgHotkey, func] : GetConfigHotkeyToFuncMap())
+		{
+			auto keyboardHotkey = cfgHotkey->keyboard.raw;
+			if (keyboardHotkey > sHotkeyCfg::keyboardNone)
+			{
+				keyboardHotkeyToFuncMap[keyboardHotkey] = func;
+			}
+			auto controllerHotkey = cfgHotkey->controller;
+			if (controllerHotkey > sHotkeyCfg::controllerNone)
+			{
+				GetControllerHotkeyToFuncMap()[controllerHotkey] = func;
+			}
+		}
+		return keyboardHotkeyToFuncMap;
+	}();
+	return s_keyboardHotkeyToFuncMap;
+}
+
+std::unordered_map<uint16, std::function<void(void)>>& HotkeySettings::GetControllerHotkeyToFuncMap()
+{
+	static std::unordered_map<uint16, std::function<void(void)>> s_controllerHotkeyToFuncMap;
+	return s_controllerHotkeyToFuncMap;
+}
+
 void HotkeySettings::Init(wxFrame* mainWindowFrame)
 {
-	s_keyboardHotkeyToFuncMap.reserve(s_cfgHotkeyToFuncMap.size());
-	for (const auto& [cfgHotkey, func] : s_cfgHotkeyToFuncMap)
-	{
-		auto keyboardHotkey = cfgHotkey->keyboard.raw;
-		if (keyboardHotkey > sHotkeyCfg::keyboardNone)
-		{
-			s_keyboardHotkeyToFuncMap[keyboardHotkey] = func;
-		}
-		auto controllerHotkey = cfgHotkey->controller;
-		if (controllerHotkey > sHotkeyCfg::controllerNone)
-		{
-			s_controllerHotkeyToFuncMap[controllerHotkey] = func;
-		}
-	}
 	s_mainWindow = mainWindowFrame;
 }
 
@@ -265,15 +285,15 @@ void HotkeySettings::OnControllerTimer(wxTimerEvent& event)
 			const bool isModifier = (&cfgHotkey == &s_cfgHotkeys.modifiers);
 			/* ignore same hotkeys and block duplicate hotkeys */
 			if ((newHotkey != oldHotkey) && (isModifier || (newHotkey != s_cfgHotkeys.modifiers.controller)) &&
-				(s_controllerHotkeyToFuncMap.find(newHotkey) == s_controllerHotkeyToFuncMap.end()))
+				(GetControllerHotkeyToFuncMap().find(newHotkey) == GetControllerHotkeyToFuncMap().end()))
 			{
 				m_needToSave |= true;
 				cfgHotkey.controller = newHotkey;
 				/* don't bind modifier to map */
 				if (!isModifier)
 				{
-					s_controllerHotkeyToFuncMap.erase(oldHotkey);
-					s_controllerHotkeyToFuncMap[newHotkey] = s_cfgHotkeyToFuncMap.at(&cfgHotkey);
+					GetControllerHotkeyToFuncMap().erase(oldHotkey);
+					GetControllerHotkeyToFuncMap()[newHotkey] = GetConfigHotkeyToFuncMap().at(&cfgHotkey);
 				}
 			}
 			FinalizeInput<ControllerHotkey_t>(inputButton);
@@ -329,7 +349,7 @@ void HotkeySettings::OnKeyboardHotkeyInputRightClick(wxMouseEvent& event)
 	if (cfgHotkey.keyboard.raw != newHotkey.raw)
 	{
 		m_needToSave |= true;
-		s_keyboardHotkeyToFuncMap.erase(cfgHotkey.keyboard.raw);
+		GetKeyboardHotkeyToFuncMap().erase(cfgHotkey.keyboard.raw);
 		cfgHotkey.keyboard = newHotkey;
 		FinalizeInput<uKeyboardHotkey>(inputButton);
 	}
@@ -348,7 +368,7 @@ void HotkeySettings::OnControllerHotkeyInputRightClick(wxMouseEvent& event)
 	if (cfgHotkey.controller != newHotkey)
 	{
 		m_needToSave |= true;
-		s_controllerHotkeyToFuncMap.erase(cfgHotkey.controller);
+		GetControllerHotkeyToFuncMap().erase(cfgHotkey.controller);
 		cfgHotkey.controller = newHotkey;
 		FinalizeInput<ControllerHotkey_t>(inputButton);
 	}
@@ -383,12 +403,12 @@ void HotkeySettings::OnKeyUp(wxKeyEvent& event)
 		newHotkey.ctrl = event.ControlDown();
 		newHotkey.shift = event.ShiftDown();
 		if ((newHotkey.raw != oldHotkey.raw) &&
-			(s_keyboardHotkeyToFuncMap.find(newHotkey.raw) == s_keyboardHotkeyToFuncMap.end()))
+			(GetKeyboardHotkeyToFuncMap().find(newHotkey.raw) == GetKeyboardHotkeyToFuncMap().end()))
 		{
 			m_needToSave |= true;
 			cfgHotkey.keyboard = newHotkey;
-			s_keyboardHotkeyToFuncMap.erase(oldHotkey.raw);
-			s_keyboardHotkeyToFuncMap[newHotkey.raw] = s_cfgHotkeyToFuncMap.at(&cfgHotkey);
+			GetKeyboardHotkeyToFuncMap().erase(oldHotkey.raw);
+			GetKeyboardHotkeyToFuncMap()[newHotkey.raw] = GetConfigHotkeyToFuncMap().at(&cfgHotkey);
 		}
 	}
 	FinalizeInput<uKeyboardHotkey>(inputButton);
@@ -467,8 +487,8 @@ void HotkeySettings::CaptureInput(wxKeyEvent& event)
 	hotkey.alt = event.AltDown();
 	hotkey.ctrl = event.ControlDown();
 	hotkey.shift = event.ShiftDown();
-	const auto it = s_keyboardHotkeyToFuncMap.find(hotkey.raw);
-	if (it != s_keyboardHotkeyToFuncMap.end())
+	const auto it = GetKeyboardHotkeyToFuncMap().find(hotkey.raw);
+	if (it != GetKeyboardHotkeyToFuncMap().end())
 		it->second();
 }
 
@@ -479,8 +499,8 @@ void HotkeySettings::CaptureInput(const ControllerState& currentState, const Con
 	{
 		for (const auto& buttonId : currentState.buttons.GetButtonList())
 		{
-			const auto it = s_controllerHotkeyToFuncMap.find(buttonId);
-			if (it == s_controllerHotkeyToFuncMap.end())
+			const auto it = GetControllerHotkeyToFuncMap().find(buttonId);
+			if (it == GetControllerHotkeyToFuncMap().end())
 				continue;
 			/* only capture clicks */
 			if (lastState.buttons.GetButtonState(buttonId))

@@ -19,9 +19,9 @@ public:
 
 private:
 	inline static wxFrame* s_mainWindow = nullptr;
-	static const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> s_cfgHotkeyToFuncMap;
-	inline static std::unordered_map<uint16, std::function<void(void)>> s_keyboardHotkeyToFuncMap{};
-	inline static std::unordered_map<uint16, std::function<void(void)>> s_controllerHotkeyToFuncMap{};
+	static const std::unordered_map<sHotkeyCfg*, std::function<void(void)>>& GetConfigHotkeyToFuncMap();
+	static std::unordered_map<uint16, std::function<void(void)>>& GetKeyboardHotkeyToFuncMap();
+	static std::unordered_map<uint16, std::function<void(void)>>& GetControllerHotkeyToFuncMap();
 	inline static auto& s_cfgHotkeys = GetWxGUIConfig().hotkeys;
 
 	wxPanel* m_panel;
