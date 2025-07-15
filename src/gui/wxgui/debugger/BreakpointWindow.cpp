@@ -32,8 +32,8 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 	
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_breakpoints = new wxCheckedListCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
-
+	m_breakpoints = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+	m_breakpoints->EnableCheckBoxes(true);
 	
 	wxListItem col0;
 	col0.SetId(ColumnEnabled);
@@ -69,8 +69,8 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 	if (parent.GetConfig().data().pin_to_main)
 		OnMainMove(main_position, main_size);
 
-	m_breakpoints->Bind(wxEVT_COMMAND_LIST_ITEM_CHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
-	m_breakpoints->Bind(wxEVT_COMMAND_LIST_ITEM_UNCHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Bind(wxEVT_LIST_ITEM_CHECKED, &BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Bind(wxEVT_LIST_ITEM_UNCHECKED, &BreakpointWindow::OnBreakpointToggled, this);
 	m_breakpoints->Bind(wxEVT_LEFT_DCLICK, &BreakpointWindow::OnLeftDClick, this);
 	m_breakpoints->Bind(wxEVT_RIGHT_DOWN, &BreakpointWindow::OnRightDown, this);
 
@@ -79,8 +79,10 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 
 BreakpointWindow::~BreakpointWindow()
 {
-	m_breakpoints->Unbind(wxEVT_COMMAND_LIST_ITEM_CHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
-	m_breakpoints->Unbind(wxEVT_COMMAND_LIST_ITEM_UNCHECKED, (wxObjectEventFunction)&BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Unbind(wxEVT_LIST_ITEM_CHECKED, &BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Unbind(wxEVT_LIST_ITEM_UNCHECKED, &BreakpointWindow::OnBreakpointToggled, this);
+	m_breakpoints->Unbind(wxEVT_LEFT_DCLICK, &BreakpointWindow::OnLeftDClick, this);
+	m_breakpoints->Unbind(wxEVT_RIGHT_DOWN, &BreakpointWindow::OnRightDown, this);
 }
 
 void BreakpointWindow::OnMainMove(const wxPoint& main_position, const wxSize& main_size)
@@ -105,11 +107,10 @@ void BreakpointWindow::OnUpdateView()
 		uint32_t i = 0;
 		for (const auto bpBase : debuggerState.breakpoints)
 		{
-
 			DebuggerBreakpoint* bp = bpBase;
 			while (bp)
 			{
-				wxListItem item;
+				wxListItem item = {};
 				item.SetId(i++);
 
 				const auto index = m_breakpoints->InsertItem(item);
@@ -128,12 +129,11 @@ void BreakpointWindow::OnUpdateView()
 
 				m_breakpoints->SetItem(index, ColumnType, typeName);
 				m_breakpoints->SetItem(index, ColumnComment, bp->comment);
-				m_breakpoints->SetItemPtrData(item, (wxUIntPtr)bp);
-				m_breakpoints->Check(index, bp->enabled);
+				m_breakpoints->CheckItem(index, bp->enabled);
+				m_breakpoints->SetItemPtrData(index, (wxUIntPtr)bp);
 
 				bp = bp->next;
 			}
-
 		}
 	}
 	
@@ -150,11 +150,12 @@ void BreakpointWindow::OnBreakpointToggled(wxListEvent& event)
 	const int32_t index = event.GetIndex();
 	if (0 <= index && index < m_breakpoints->GetItemCount())
 	{
-		const bool state = m_breakpoints->IsChecked(index);
+		const bool state = m_breakpoints->IsItemChecked(index);
 		wxString line = m_breakpoints->GetItemText(index, ColumnAddress);
 		DebuggerBreakpoint* bp = (DebuggerBreakpoint*)m_breakpoints->GetItemData(index);
 		const uint32 address = std::stoul(line.c_str().AsChar(), nullptr, 16);
 		debugger_toggleBreakpoint(address, state, bp);
+		m_breakpoints->CheckItem(index, state);
 	}
 }
 

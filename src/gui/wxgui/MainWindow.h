@@ -3,7 +3,6 @@
 #include <wx/wx.h>
 #include <wx/dataview.h>
 #include <wx/infobar.h>
-#include "wxcomponents/checkedlistctrl.h"
 
 #include "wxgui/PadViewFrame.h"
 #include "wxgui/MemorySearcherTool.h"

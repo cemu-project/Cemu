@@ -4,6 +4,8 @@
 #include <thread>
 #include <atomic>
 
+#include <wx/listctrl.h>
+
 #include "Cafe/HW/MMU/MMU.h"
 #include "util/helpers/helpers.h"
 #include "wxgui/helpers/wxCustomEvents.h"
