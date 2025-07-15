@@ -8,6 +8,7 @@
 
 #include <wx/bitmap.h>
 #include <wx/frame.h>
+#include <wx/mstream.h>
 
 class BreakpointWindow;
 class RegisterWindow;
@@ -55,6 +56,14 @@ struct DebuggerModuleStorage
 	void Save(XMLConfigParser& parser);
 };
 typedef XMLDataConfig<DebuggerModuleStorage> XMLDebuggerModuleConfig;
+
+static wxBitmap LoadThemedBitmapFromPNG(const uint8* data, size_t size, const wxColour& tint)
+{
+	wxMemoryInputStream strm(data, size);
+	wxImage img(strm, wxBITMAP_TYPE_PNG);
+	img.Replace(0x00, 0x00, 0x00, tint.Red(), tint.Green(), tint.Blue());
+	return wxBitmap(img);
+}
 
 class DebuggerWindow2 : public wxFrame, public DebuggerCallbacks
 {

@@ -29,8 +29,6 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 	: wxFrame(&parent, wxID_ANY, _("Breakpoints"), wxDefaultPosition, wxSize(420, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
-
-	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 	
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 

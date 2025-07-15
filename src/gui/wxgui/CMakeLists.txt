@@ -114,22 +114,10 @@ add_library(CemuWxGui
   windows/TextureRelationViewer
   windows/TextureRelationViewer/TextureRelationWindow.cpp
   windows/TextureRelationViewer/TextureRelationWindow.h
-  wxcomponents/checked2.xpm
-  wxcomponents/checked_dis.xpm
-  wxcomponents/checked_d.xpm
-  wxcomponents/checked_ld.xpm
   wxcomponents/checkedlistctrl.cpp
   wxcomponents/checkedlistctrl.h
-  wxcomponents/checked_mo.xpm
-  wxcomponents/checked.xpm
   wxcomponents/checktree.cpp
   wxcomponents/checktree.h
-  wxcomponents/unchecked2.xpm
-  wxcomponents/unchecked_dis.xpm
-  wxcomponents/unchecked_d.xpm
-  wxcomponents/unchecked_ld.xpm
-  wxcomponents/unchecked_mo.xpm
-  wxcomponents/unchecked.xpm
   wxgui.h
   wxHelper.h
 )

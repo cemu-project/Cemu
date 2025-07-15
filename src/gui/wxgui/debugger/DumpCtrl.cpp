@@ -7,30 +7,10 @@
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 
-#define COLOR_BLACK				0xFF000000
-#define COLOR_GREY				0xFFA0A0A0
-#define COLOR_WHITE				0xFFFFFFFF
-
-#define COLOR_DEBUG_ACTIVE_BP	0xFFFFA0FF
-#define COLOR_DEBUG_ACTIVE		0xFFFFA080
-#define COLOR_DEBUG_BP			0xFF8080FF
-
-#define SYNTAX_COLOR_GPR		0xFF000066
-#define SYNTAX_COLOR_FPR		0xFF006666
-#define SYNTAX_COLOR_SPR		0xFF666600
-#define SYNTAX_COLOR_CR			0xFF666600
-#define SYNTAX_COLOR_IMM		0xFF006600
-#define SYNTAX_COLOR_IMM_OFFSET	0xFF006600
-#define SYNTAX_COLOR_CIMM		0xFF880000
-#define SYNTAX_COLOR_PSEUDO		0xFFA0A0A0 // color for pseudo code
-#define SYNTAX_COLOR_SYMBOL		0xFF0000A0 // color for function symbol
 
 #define OFFSET_ADDRESS (60)
 #define OFFSET_ADDRESS_RELATIVE (90)
 #define OFFSET_MEMORY (450)
-
-#define OFFSET_DISASSEMBLY_OPERAND (80)
-
 
 DumpCtrl::DumpCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size, long style)
 	: TextList(parent, id, pos, size, style)
@@ -68,11 +48,11 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 	{
 		const uint32 virtual_address = m_memoryRegion.baseAddress + (start + i) * 0x10;
 
-		dc.SetTextForeground(wxColour(COLOR_BLACK));
+		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		dc.DrawText(wxString::Format("%08x", virtual_address), position);
 		position.x += OFFSET_ADDRESS;
 
-		dc.SetTextForeground(wxColour(COLOR_GREY));
+		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
 		if (currentCodeRPL)
 		{
 			dc.DrawText(wxString::Format("+0x%-8x", virtual_address - currentCodeRPL->regionMappingBase_text.GetMPTR()), position);
@@ -110,7 +90,7 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 				position.x += (m_char_width * 3);
 			}
 			position.x = start_width = OFFSET_MEMORY;
-			dc.SetTextForeground(wxColour(COLOR_BLACK));
+			dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 			for (auto b : data)
 			{
 				if (isprint(b))
@@ -144,7 +124,7 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 		start_position.y
 	);
 	wxPoint line_to(line_from.x, line_from.y + m_line_height * (count + 1));
-	dc.SetPen(*wxLIGHT_GREY_PEN);
+	dc.SetPen(wxSystemSettings::GetColour(wxSYS_COLOUR_INACTIVECAPTIONTEXT));
 	for (sint32 i = 0; i < 3; i++)
 	{
 		dc.DrawLine(line_from, line_to);

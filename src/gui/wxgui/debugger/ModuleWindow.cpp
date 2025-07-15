@@ -23,7 +23,7 @@ ModuleWindow::ModuleWindow(DebuggerWindow2& parent, const wxPoint& main_position
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
-	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
+	// this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 

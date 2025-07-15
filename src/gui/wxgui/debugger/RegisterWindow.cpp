@@ -33,8 +33,8 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 {
 	SetSizeHints(wxDefaultSize, wxDefaultSize);
 	SetMaxSize({ 400, 975 });
-	wxWindowBase::SetBackgroundColour(*wxWHITE);
-	
+	this->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto scrolled_win = new wxScrolledWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxVSCROLL);
@@ -47,29 +47,33 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 	{
 		gpr_sizer->Add(new wxStaticText(scrolled_win, wxID_ANY, wxString::Format("R%d", i)), 0, wxLEFT, 5);
 
-		auto value = new wxTextCtrl(scrolled_win, kRegisterValueR0 + i, wxString::Format("%08x", 0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
-		value->SetBackgroundColour(*wxWHITE);
+		auto value = new wxTextCtrl(scrolled_win, kRegisterValueR0 + i, wxString::Format("%08x", 0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		value->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		value->Bind(wxEVT_LEFT_DCLICK, &RegisterWindow::OnMouseDClickEvent, this);
 		//value->Bind(wxEVT_CONTEXT_MENU, &RegisterWindow::OnValueContextMenu, this);
 		gpr_sizer->Add(value, 0, wxLEFT|wxRIGHT, 5);
 
-		auto label = new wxTextCtrl(scrolled_win, kRegisterLabelR0 + i, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
+		auto label = new wxTextCtrl(scrolled_win, kRegisterLabelR0 + i, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		label->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		label->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		label->SetMinSize(wxSize(500, -1));
-		label->SetBackgroundColour(*wxWHITE);
 		gpr_sizer->Add(label, 0, wxEXPAND);
 	}
 
 	{
 		// LR
 		gpr_sizer->Add(new wxStaticText(scrolled_win, wxID_ANY, wxString::Format("LR")), 0, wxLEFT, 5);
-		auto value = new wxTextCtrl(scrolled_win, kRegisterValueLR, wxString::Format("%08x", 0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
-		value->SetBackgroundColour(*wxWHITE);
+		auto value = new wxTextCtrl(scrolled_win, kRegisterValueLR, wxString::Format("%08x", 0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		value->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		value->Bind(wxEVT_LEFT_DCLICK, &RegisterWindow::OnMouseDClickEvent, this);
 		//value->Bind(wxEVT_CONTEXT_MENU, &RegisterWindow::OnValueContextMenu, this);
 		gpr_sizer->Add(value, 0, wxLEFT | wxRIGHT, 5);
-		auto label = new wxTextCtrl(scrolled_win, kRegisterLabelLR, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
+		auto label = new wxTextCtrl(scrolled_win, kRegisterLabelLR, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		label->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		label->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		label->SetMinSize(wxSize(500, -1));
-		label->SetBackgroundColour(*wxWHITE);
 		gpr_sizer->Add(label, 0, wxEXPAND);
 	}
 
@@ -84,13 +88,15 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 	{
 		fp_sizer->Add(new wxStaticText(scrolled_win, wxID_ANY, wxString::Format("FP%d", i)), 0, wxLEFT, 5);
 
-		auto value0 = new wxTextCtrl(scrolled_win, kRegisterValueFPR0_0 + i, wxString::Format("%lf", 0.0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
-		value0->SetBackgroundColour(*wxWHITE);
+		auto value0 = new wxTextCtrl(scrolled_win, kRegisterValueFPR0_0 + i, wxString::Format("%lf", 0.0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		value0->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		value0->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		value0->Bind(wxEVT_LEFT_DCLICK, &RegisterWindow::OnMouseDClickEvent, this);
 		fp_sizer->Add(value0, 0, wxLEFT | wxRIGHT, 5);
 
-		auto value1 = new wxTextCtrl(scrolled_win, kRegisterValueFPR1_0 + i, wxString::Format("%lf", 0.0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
-		value1->SetBackgroundColour(*wxWHITE);
+		auto value1 = new wxTextCtrl(scrolled_win, kRegisterValueFPR1_0 + i, wxString::Format("%lf", 0.0), wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		value1->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		value1->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		value1->Bind(wxEVT_LEFT_DCLICK, &RegisterWindow::OnMouseDClickEvent, this);
 		fp_sizer->Add(value1, 0, wxLEFT | wxRIGHT, 5);
 	}
@@ -102,8 +108,9 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 	for (sint32 i = 0; i < 8; ++i)
 	{
 		cr_sizer->Add(new wxStaticText(scrolled_win, wxID_ANY, wxString::Format("CR%d", i)), 0, wxLEFT, 5);
-		auto value = new wxTextCtrl(scrolled_win, kRegisterValueCR0 + i, "-", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER);
-		value->SetBackgroundColour(*wxWHITE);
+		auto value = new wxTextCtrl(scrolled_win, kRegisterValueCR0 + i, "-", wxDefaultPosition, wxDefaultSize, wxTE_READONLY | wxNO_BORDER | wxTE_RICH2);
+		value->SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+		value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		//value->Bind(wxEVT_CONTEXT_MENU, &RegisterWindow::OnValueContextMenu, this);
 		cr_sizer->Add(value, 0, wxRIGHT, 5);
 	}
@@ -141,15 +148,15 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 
 	//const bool has_changed = register_value != m_prev_snapshot.gpr[i];
 	if (hasChanged)
-		value->SetForegroundColour(COLOR_RED);
-	else if (value->GetForegroundColour() != COLOR_BLACK)
-		value->SetForegroundColour(COLOR_BLACK);
+		value->SetForegroundColour(m_changed_color);
+	else if (value->GetForegroundColour() != wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT))
+		value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 
 	value->ChangeValue(wxString::Format("%08x", registerValue));
 
 	//const auto label = dynamic_cast<wxTextCtrl*>(GetWindowChild(kRegisterLabelR0 + i));
 	//wxASSERT(label);
-	label->SetForegroundColour(hasChanged ? COLOR_RED : COLOR_BLACK);
+	label->SetForegroundColour(hasChanged ? m_changed_color : wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 
 	// check if address is a string
 	if (registerValue >= MEMORY_DATA_AREA_ADDR && registerValue < (MEMORY_DATA_AREA_ADDR + MEMORY_DATA_AREA_SIZE))
@@ -257,9 +264,9 @@ void RegisterWindow::OnUpdateView()
 
 		const bool has_changed = register_value != m_prev_snapshot.fpr[i].fp0int;
 		if (has_changed)
-			value->SetForegroundColour(COLOR_RED);
-		else if (value->GetForegroundColour() != COLOR_BLACK)
-			value->SetForegroundColour(COLOR_BLACK);
+			value->SetForegroundColour(m_changed_color);
+		else if (value->GetForegroundColour() != wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT))
+			value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		else
 			continue;
 
@@ -278,9 +285,9 @@ void RegisterWindow::OnUpdateView()
 
 		const bool has_changed = register_value != m_prev_snapshot.fpr[i].fp1int;
 		if (has_changed)
-			value->SetForegroundColour(COLOR_RED);
-		else if (value->GetForegroundColour() != COLOR_BLACK)
-			value->SetForegroundColour(COLOR_BLACK);
+			value->SetForegroundColour(m_changed_color);
+		else if (value->GetForegroundColour() != wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT))
+			value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		else
 			continue;
 
@@ -301,9 +308,9 @@ void RegisterWindow::OnUpdateView()
 
 		const bool has_changed = !std::equal(cr_bits_ptr, cr_bits_ptr + 4, cr_bits_ptr_cmp);
 		if (has_changed)
-			value->SetForegroundColour(COLOR_RED);
-		else if (value->GetForegroundColour() != COLOR_BLACK)
-			value->SetForegroundColour(COLOR_BLACK);
+			value->SetForegroundColour(m_changed_color);
+		else if (value->GetForegroundColour() != wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT))
+			value->SetForegroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		else
 			continue;
 
