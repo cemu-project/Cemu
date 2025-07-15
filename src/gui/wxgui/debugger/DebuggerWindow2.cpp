@@ -1,6 +1,8 @@
 #include "wxgui/wxgui.h"
 #include "wxgui/debugger/DebuggerWindow2.h"
 
+#include "wxHelper.h"
+
 #include <filesystem>
 
 #include "config/ActiveSettings.h"
@@ -220,20 +222,20 @@ void DebuggerWindow2::CreateToolBar()
 	m_toolbar = wxFrame::CreateToolBar(wxTB_HORIZONTAL, wxID_ANY);
 	m_toolbar->SetToolBitmapSize(wxSize(16, 16));
 
-	wxBitmap goto_bitmap = LoadThemedBitmapFromPNG(DEBUGGER_GOTO_png, sizeof(DEBUGGER_GOTO_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	wxBitmap goto_bitmap = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_GOTO_png, sizeof(DEBUGGER_GOTO_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 	m_toolbar->AddTool(TOOL_ID_GOTO, wxEmptyString, goto_bitmap, wxNullBitmap, wxITEM_NORMAL, _("GoTo (CTRL + G)"), "test", NULL);
 	m_toolbar->AddSeparator();
 
-	wxBitmap bp_bitmap = LoadThemedBitmapFromPNG(DEBUGGER_BP_RED_png, sizeof(DEBUGGER_BP_RED_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	wxBitmap bp_bitmap = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_BP_RED_png, sizeof(DEBUGGER_BP_RED_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 	m_toolbar->AddTool(TOOL_ID_BP, wxEmptyString, bp_bitmap, wxNullBitmap, wxITEM_NORMAL, _("Toggle Breakpoint (F9)"), wxEmptyString, NULL);
 	m_toolbar->AddSeparator();
 
-	m_pause = LoadThemedBitmapFromPNG(DEBUGGER_PAUSE_png, sizeof(DEBUGGER_PAUSE_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
-	m_run = LoadThemedBitmapFromPNG(DEBUGGER_PLAY_png, sizeof(DEBUGGER_PLAY_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	m_pause = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_PAUSE_png, sizeof(DEBUGGER_PAUSE_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	m_run = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_PLAY_png, sizeof(DEBUGGER_PLAY_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 	m_toolbar->AddTool(TOOL_ID_PAUSE, wxEmptyString, m_pause, wxNullBitmap, wxITEM_NORMAL, _("Break (F5)"), wxEmptyString, NULL);
 
-	wxBitmap step_into_bitmap = LoadThemedBitmapFromPNG(DEBUGGER_STEP_INTO_png, sizeof(DEBUGGER_STEP_INTO_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
-	wxBitmap step_over_bitmap = LoadThemedBitmapFromPNG(DEBUGGER_STEP_OVER_png, sizeof(DEBUGGER_STEP_OVER_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	wxBitmap step_into_bitmap = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_STEP_INTO_png, sizeof(DEBUGGER_STEP_INTO_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	wxBitmap step_over_bitmap = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_STEP_OVER_png, sizeof(DEBUGGER_STEP_OVER_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 	m_toolbar->AddTool(TOOL_ID_STEP_INTO, wxEmptyString, step_into_bitmap, wxNullBitmap, wxITEM_NORMAL, _("Step Into (F11)"), wxEmptyString, NULL);
 	m_toolbar->AddTool(TOOL_ID_STEP_OVER, wxEmptyString, step_over_bitmap, wxNullBitmap, wxITEM_NORMAL, _("Step Over (F10)"), wxEmptyString, NULL);
 	m_toolbar->AddSeparator();

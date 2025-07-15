@@ -14,15 +14,9 @@ class wxComboBox;
 class InputPanel : public wxPanel
 {
 public:
-#if BOOST_OS_WINDOWS
-	const wxColour kKeyColourNormalMode = 0xfafafa;
-	const wxColour kKeyColourEditMode = 0x99ccff;
-	const wxColour kKeyColourActiveMode = 0xE0E0E0;
-#else
 	const wxColour kKeyColourNormalMode = GetBackgroundColour();
-	const wxColour kKeyColourEditMode = GetBackgroundColour();
-	const wxColour kKeyColourActiveMode = wxHelper::CalculateAccentColour(kKeyColourNormalMode);
-#endif
+	const wxColour kKeyColourEditMode = wxSystemSettings::GetColour(wxSYS_COLOUR_HIGHLIGHT);
+	const wxColour kKeyColourActiveMode = wxHelper::CalculateAccentColour(GetBackgroundColour());
 
 	InputPanel(wxWindow* parent);
 
