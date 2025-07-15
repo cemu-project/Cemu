@@ -1,7 +1,7 @@
 #pragma once
 
 #include <tuple>
-#include <wx/math.h>
+#include "util/helpers/helpers.h"
 #include "util/math/vector3.h"
 #define DEG2RAD(__d__) ((__d__ * M_PI) / 180.0f )
 #define RAD2DEG(__r__) ((__r__ * 180.0f) / M_PI)

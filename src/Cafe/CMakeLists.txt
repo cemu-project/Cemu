@@ -597,10 +597,6 @@ else ()
   target_link_libraries(CemuCafe PRIVATE libusb::libusb)
 endif ()
 
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuCafe PRIVATE wx::base wx::core)
-endif()
-
 if(WIN32)
 	target_link_libraries(CemuCafe PRIVATE iphlpapi)
 endif()
