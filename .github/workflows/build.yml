@@ -67,14 +67,14 @@ jobs:
     - name: "cmake"
       run: |
         cmake -S . -B build ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
-        
+
     - name: "Build Cemu"
       run: |
         cmake --build build
-        
+
     - name: Prepare artifact
       run: mv bin/Cemu_release bin/Cemu
-              
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -138,7 +138,7 @@ jobs:
     - name: "Bootstrap vcpkg"
       run: |
         ./dependencies/vcpkg/bootstrap-vcpkg.bat
-        
+
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
       run: |
@@ -152,7 +152,7 @@ jobs:
         `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
         setapikey "${{ secrets.GITHUB_TOKEN }}" \
         -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-        
+
     - name: "cmake"
       run: |
         mkdir -p build
@@ -160,7 +160,7 @@ jobs:
         echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
         echo "[INFO] BUILD_MODE: ${{ env.BUILD_MODE }}"
         cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DVCPKG_INSTALL_OPTIONS="--clean-after-build"
-        
+
     - name: "Build Cemu"
       run: |
         cd build
@@ -168,12 +168,24 @@ jobs:
 
     - name: Prepare artifact
       run: Rename-Item bin/Cemu_release.exe Cemu.exe
-      
+
+    - name: Build NSIS Installer
+      shell: cmd
+      run: |
+        cd src\resource
+        makensis /DPRODUCT_VERSION=${{ inputs.next_version_major }}.${{ inputs.next_version_minor }} installer.nsi
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: cemu-bin-windows-x64
         path: ./bin/Cemu.exe
+
+    - name: Upload NSIS Installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: cemu-installer-windows-x64
+        path: ./src/resource/cemu-${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}-windows-x64-installer.exe
 
   build-macos:
     runs-on: macos-14
@@ -185,7 +197,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: "recursive"
-        
+
     - name: Setup release mode parameters
       run: |
         echo "BUILD_MODE=release" >> $GITHUB_ENV
@@ -197,7 +209,7 @@ jobs:
       run: |
         echo "[INFO] Version ${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}"
         echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_VERSION_MAJOR=${{ inputs.next_version_major }} -DEMULATOR_VERSION_MINOR=${{ inputs.next_version_minor }}" >> $GITHUB_ENV
-        
+
     - name: "Install system dependencies"
       run: |
         brew update
@@ -218,7 +230,7 @@ jobs:
     - name: "Bootstrap vcpkg"
       run: |
         bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
-        
+
     - name: 'Setup NuGet Credentials for vcpkg'
       shell: 'bash'
       run: |
@@ -232,7 +244,7 @@ jobs:
         mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
         setapikey "${{ secrets.GITHUB_TOKEN }}" \
         -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
-        
+
     - name: "cmake"
       run: |
         mkdir build
@@ -242,7 +254,7 @@ jobs:
         -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
         -DMACOS_BUNDLE=ON \
         -G Ninja
-        
+
     - name: "Build Cemu"
       run: |
         cmake --build build
@@ -258,7 +270,7 @@ jobs:
         hdiutil create ./bin/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./bin/Cemu_app"
         hdiutil convert ./bin/tmp.dmg -format UDZO -o bin/Cemu.dmg
         rm bin/tmp.dmg
-              
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
