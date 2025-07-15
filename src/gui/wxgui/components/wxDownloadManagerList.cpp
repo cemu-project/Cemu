@@ -6,7 +6,6 @@
 #include "wxgui/components/wxGameList.h"
 #include "wxgui/helpers/wxCustomEvents.h"
 
-#include <wx/imaglist.h>
 #include <wx/wupdlock.h>
 #include <wx/menu.h>
 #include <wx/msgdlg.h>
@@ -167,8 +166,8 @@ wxItemAttr* wxDownloadManagerList::OnGetItemAttr(long item) const
 		}
 	}
 
-	const wxColour kSecondColor{ 0xFDF9F2 };
-	static wxListItemAttr s_coloured_attr(GetTextColour(), kSecondColor, GetFont());
+	wxColour bgColourSecondary = wxHelper::CalculateAccentColour(GetBackgroundColour());
+	static wxListItemAttr s_coloured_attr(GetTextColour(), bgColourSecondary, GetFont());
 	return item % 2 == 0 ? nullptr : &s_coloured_attr;
 }
 
