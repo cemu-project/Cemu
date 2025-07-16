@@ -138,7 +138,6 @@ void wxCemuConfig::Save(XMLConfigParser& config)
 	wpos.set<sint32>("y", window_position.y);
 	auto wsize = config.set("window_size");
 	wsize.set<sint32>("x", window_size.x);
-	cemu_assert_debug(window_size.x != 0);
 	wsize.set<sint32>("y", window_size.y);
 	config.set<bool>("window_maximized", window_maximized);
 

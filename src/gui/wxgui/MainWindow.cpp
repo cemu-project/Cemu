@@ -1299,7 +1299,7 @@ void MainWindow::LoadSettings()
 	if (config.window_position != Vector2i{ -1,-1 })
 		this->SetPosition({ config.window_position.x, config.window_position.y });
 
-	if (config.window_size != Vector2i{ -1,-1 })
+	if (config.window_size.x > 0 && config.window_size.y > 0)
 	{
 		this->SetSize({ config.window_size.x, config.window_size.y });
 
