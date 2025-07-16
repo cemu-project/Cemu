@@ -480,8 +480,8 @@ class XMLChildConfig
 	{
 		m_parentConfig = {
 			.lock = [getParentConfig]() { return getParentConfig().Lock(); },
-			.save = [getParentConfig]() { return getParentConfig().Load(); },
-			.load = [getParentConfig]() { return getParentConfig().Save(); },
+			.save = [getParentConfig]() { return getParentConfig().Save(); },
+			.load = [getParentConfig]() { return getParentConfig().Load(); },
 		};
 
 		auto configParser = std::make_pair(
