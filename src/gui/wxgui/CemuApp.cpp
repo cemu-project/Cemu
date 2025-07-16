@@ -286,11 +286,12 @@ bool CemuApp::OnInit()
 
 	SetTranslationCallback(TranslationCallback);
 #if __WXMSW__
-	if (g_config.data().msw_theme.GetValue() == static_cast<int>(MSWThemeOption::kAuto))
+	auto& wxGuiConfig = GetWxGUIConfig();
+	if (wxGuiConfig.msw_theme.GetValue() == static_cast<int>(MSWThemeOption::kAuto))
 	{
 		MSWEnableDarkMode(DarkMode_Auto);
 	}
-	else if (g_config.data().msw_theme.GetValue() == static_cast<int>(MSWThemeOption::kDark))
+	else if (wxGuiConfig.msw_theme.GetValue() == static_cast<int>(MSWThemeOption::kDark))
 	{
 		MSWEnableDarkMode(DarkMode_Always);
 	}

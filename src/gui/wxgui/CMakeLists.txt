@@ -34,8 +34,6 @@ add_library(CemuWxGui
   debugger/DumpWindow.h
   debugger/ModuleWindow.cpp
   debugger/ModuleWindow.h
-  debugger/RegisterCtrl.cpp
-  debugger/RegisterCtrl.h
   debugger/RegisterWindow.cpp
   debugger/RegisterWindow.h
   debugger/SymbolCtrl.cpp

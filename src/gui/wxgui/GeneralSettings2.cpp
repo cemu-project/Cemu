@@ -990,7 +990,7 @@ void GeneralSettings2::StoreConfig()
     wxGuiConfig.feral_gamemode = m_feral_gamemode->IsChecked();
 #endif
 #if BOOST_OS_WINDOWS
-	config.msw_theme = m_msw_theme->GetSelection();
+	wxGuiConfig.msw_theme = m_msw_theme->GetSelection();
 #endif
 	config.play_boot_sound = m_play_boot_sound->IsChecked();
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
@@ -1654,7 +1654,7 @@ void GeneralSettings2::ApplyConfig()
 	m_disable_screensaver->SetValue(config.disable_screensaver);
 	m_play_boot_sound->SetValue(config.play_boot_sound);
 #if BOOST_OS_WINDOWS
-	m_msw_theme->SetSelection(config.msw_theme);
+	m_msw_theme->SetSelection(wxGUIconfig.msw_theme);
 #endif
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     	m_feral_gamemode->SetValue(wxGUIconfig.feral_gamemode);

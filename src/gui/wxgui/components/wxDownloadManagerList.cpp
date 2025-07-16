@@ -1,5 +1,6 @@
 #include "wxgui/components/wxDownloadManagerList.h"
 
+#include "wxHelper.h"
 #include "wxgui/helpers/wxHelpers.h"
 #include "util/helpers/SystemException.h"
 #include "Cafe/TitleList/GameInfo.h"

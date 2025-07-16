@@ -3,7 +3,7 @@ index 2b9e0d7f7e..7eab8b37df 100644
 --- a/src/msw/listctrl.cpp
 +++ b/src/msw/listctrl.cpp
 @@ -3110,6 +3110,11 @@ bool HandleSubItemPrepaint(wxListCtrl* listctrl, LPNMLVCUSTOMDRAW pLVCD, HFONT h
-
+ 
          if ( it.iImage != -1 )
          {
 +            if ( !listctrl->HasCheckBoxes() )
@@ -22,4 +22,4 @@ index 2b9e0d7f7e..7eab8b37df 100644
 +        if ( !::IsRectEmpty(&rcIcon) && listctrl->HasCheckBoxes() )
              rc.left = rcIcon.right + listctrl->FromDIP(GAP_BETWEEN_CHECKBOX_AND_TEXT);
      }
-
+ 
