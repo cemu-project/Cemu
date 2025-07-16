@@ -59,9 +59,6 @@ target_precompile_headers(CemuCommon PUBLIC precompiled.h)
 target_include_directories(CemuCommon PUBLIC "../")
 
 target_link_libraries(CemuCommon PRIVATE
-	CemuCafe
-	CemuConfig
-	CemuComponents
 	Boost::nowide
 	Boost::filesystem
 	glm::glm

@@ -43,17 +43,8 @@ set_property(TARGET CemuComponents PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$
 target_include_directories(CemuComponents PUBLIC "../")
 
 target_link_libraries(CemuComponents PRIVATE
-	CemuCafe
 	CemuCommon
-	CemuConfig
-	CemuGui
-	CemuUtil
-	Boost::headers
-	CURL::libcurl
-	OpenSSL::Crypto
-	OpenSSL::SSL
-	pugixml::pugixml
-	ZLIB::ZLIB
+  CemuGui
 )
 
 # PUBLIC because fmt/format.h is included in ExpressionParser/ExpressionParser.h

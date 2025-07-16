@@ -559,28 +559,17 @@ else()
 endif()
 
 target_link_libraries(CemuCafe PRIVATE
-	CemuAudio
 	CemuCommon
-	CemuComponents
-	CemuConfig
-	CemuGui
-	CemuInput
-	CemuResource
-	CemuUtil
-	imguiImpl
-	Boost::headers
-	Boost::nowide
-	CURL::libcurl
-	fmt::fmt
-	${glslang_target}
-	ih264d
-	OpenSSL::Crypto
-	OpenSSL::SSL
-	PNG::PNG
-	pugixml::pugixml
-	ZArchive::zarchive
-	ZLIB::ZLIB
-	zstd::zstd
+  CemuGui
+  ZArchive::zarchive
+  imguiImpl
+  pugixml::pugixml
+  ZLIB::ZLIB
+  CURL::libcurl
+  ih264d
+  ${glslang_target}
+  PUBLIC
+  OpenSSL::SSL
 )
 
 if (ENABLE_WAYLAND)

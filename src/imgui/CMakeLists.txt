@@ -22,10 +22,6 @@ target_sources(imguiImpl PRIVATE
 target_include_directories(imguiImpl PUBLIC "../../dependencies/imgui/")
 
 target_link_libraries(imguiImpl PRIVATE
-	CemuCafe
 	CemuCommon
 	CemuGui
-	CemuInput
-	CemuResource
-	CemuUtil
 )
