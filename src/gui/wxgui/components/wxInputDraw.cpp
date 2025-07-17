@@ -1,6 +1,7 @@
 #include "wxgui/components/wxInputDraw.h"
 
 #include <wx/dcbuffer.h>
+#include <wx/settings.h>
 
 wxInputDraw::wxInputDraw(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size)
 	: wxWindow(parent, id, pos, size, 0, wxPanelNameStr)

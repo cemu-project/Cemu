@@ -642,6 +642,7 @@ enum ContextMenuEntries
     kContextMenuCopyTitleId,
     kContextMenuCopyTitleImage
 };
+
 void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 {
 	auto& config = GetConfig();
@@ -1430,7 +1431,9 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
 		wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
 
-		auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
+		const auto icon = m_image_list_data[iconIndex];
+		wxBitmap bitmap{icon.GetBitmap(wxDefaultSize)};
+		wxImage image = bitmap.ConvertToImage();
 		wxPNGHandler pngHandler;
 		if (!pngHandler.SaveFile(&image, pngFileStream, false))
 		{
@@ -1521,7 +1524,9 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 		iconPath = outIconDir / fmt::format("{:016x}.png", gameInfo.GetBaseTitleId());
 		wxFileOutputStream pngFileStream(_pathToUtf8(iconPath.value()));
 
-		auto image = m_image_list->GetIcon(iconIndex).ConvertToImage();
+		const auto icon = m_image_list_data[iconIndex];
+		wxBitmap bitmap{icon.GetBitmap(wxDefaultSize)};
+		wxImage image = bitmap.ConvertToImage();
 		wxPNGHandler pngHandler;
 		if (!pngHandler.SaveFile(&image, pngFileStream, false))
 		{

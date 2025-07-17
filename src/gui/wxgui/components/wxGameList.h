@@ -10,6 +10,7 @@
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
+#include <wx/settings.h>
 #include <Cafe/TitleList/GameInfo.h>
 #include "util/helpers/Semaphore.h"
 
