@@ -1,6 +1,7 @@
 #pragma once
 
 #include <wx/panel.h>
+#include <wx/settings.h>
 
 #include "input/emulated/EmulatedController.h"
 #include "input/api/Controller.h"

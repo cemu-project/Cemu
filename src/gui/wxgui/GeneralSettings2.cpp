@@ -188,7 +188,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_save_window_position_size->SetToolTip(_("Restores the last known window position and size when starting Cemu"));
 			third_row->Add(m_save_window_position_size, 0, topflag, 5);
 			CountRowElement();
-			//second_row->AddSpacer(10);
+			//third_row->AddSpacer(10);
 			m_save_padwindow_position_size = new wxCheckBox(box, wxID_ANY, _("Remember pad window position"));
 			m_save_padwindow_position_size->SetToolTip(_("Restores the last known pad window position and size when opening it"));
 			third_row->Add(m_save_padwindow_position_size, 0, topflag, 5);
@@ -202,7 +202,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 #ifndef ENABLE_DISCORD_RPC
 			m_discord_presence->Disable();
 #endif
-			//second_row->AddSpacer(10);
+			//third_row->AddSpacer(10);
 			m_fullscreen_menubar = new wxCheckBox(box, wxID_ANY, _("Fullscreen menu bar"));
 			m_fullscreen_menubar->SetToolTip(_("Displays the menu bar when Cemu is running in fullscreen mode and the mouse cursor is moved to the top"));
 			third_row->Add(m_fullscreen_menubar, 0, botflag, 5);
@@ -222,7 +222,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
 			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
 			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
-			second_row->Add(m_feral_gamemode, 0, botflag, 5);
+			third_row->Add(m_feral_gamemode, 0, botflag, 5);
 			CountRowElement();
 #endif
 

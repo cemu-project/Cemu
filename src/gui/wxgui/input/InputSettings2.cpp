@@ -15,6 +15,7 @@
 #include <wx/button.h>
 #include <wx/statline.h>
 #include <wx/bmpbuttn.h>
+#include <wx/settings.h>
 
 #include "config/ActiveSettings.h"
 #include "wxgui/input/InputAPIAddWindow.h"
