@@ -1,10 +1,16 @@
 ; Copyright Dolphin Emulator Project / Azahar Emulator Project / Team Cemu
-; Licensed under MPL 2.0
+; Licensed under MPL 2.0 with permission from authors
 
-; Require /DPRODUCT_VERSION=<release-name> to makensis.
+; Usage:
+;   get the latest nsis: https://nsis.sourceforge.io/Download
+;   probably also want vscode extension: https://marketplace.visualstudio.com/items?itemName=idleberg.nsis
+
+; Require /DPRODUCT_VERSION for makensis.
 !ifndef PRODUCT_VERSION
   !error "PRODUCT_VERSION must be defined"
 !endif
+
+ManifestDPIAware true
 
 !define PRODUCT_NAME "Cemu"
 !define PRODUCT_PUBLISHER "Team Cemu"
@@ -17,18 +23,9 @@
 Name "${PRODUCT_NAME}"
 OutFile "cemu-${PRODUCT_VERSION}-windows-x64-installer.exe"
 SetCompressor /SOLID lzma
+InstallDir "$LOCALAPPDATA\Cemu" 
 ShowInstDetails show
 ShowUnInstDetails show
-
-; Setup MultiUser support:
-; If launched without ability to elevate, user will not see any extra options.
-; If user has ability to elevate, they can choose to install system-wide, with default to CurrentUser.
-!define MULTIUSER_EXECUTIONLEVEL Highest
-!define MULTIUSER_INSTALLMODE_INSTDIR "${PRODUCT_NAME}"
-!define MULTIUSER_MUI
-!define MULTIUSER_INSTALLMODE_COMMANDLINE
-!define MULTIUSER_USE_PROGRAMFILES64
-!include "MultiUser.nsh"
 
 !include "MUI2.nsh"
 ; Custom page plugin
@@ -40,8 +37,6 @@ ShowUnInstDetails show
 
 ; License page
 !insertmacro MUI_PAGE_LICENSE "..\..\LICENSE.txt"
-; All/Current user selection page
-!insertmacro MULTIUSER_PAGE_INSTALLMODE
 ; Desktop Shortcut page
 Page custom desktopShortcutPageCreate desktopShortcutPageLeave
 ; Directory page
@@ -49,13 +44,13 @@ Page custom desktopShortcutPageCreate desktopShortcutPageLeave
 ; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
 ; Finish page
+!define MUI_FINISHPAGE_RUN "$INSTDIR\Cemu.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
 !insertmacro MUI_UNPAGE_INSTFILES
 
 ; Variables
-Var DisplayName
 Var DesktopShortcutPageDialog
 Var DesktopShortcutCheckbox
 Var DesktopShortcut
@@ -85,28 +80,11 @@ Var DesktopShortcut
 
 ; MUI end ------
 
-!include "WinVer.nsh"
-; Declare the installer itself as win10/win11 compatible, so WinVer.nsh works correctly.
-ManifestSupportedOS {8e0f7a12-bfb3-4fe8-b9a5-48fd50a15a9a}
-
 Function .onInit
   StrCpy $DesktopShortcut 1
-  !insertmacro MULTIUSER_INIT
 
   !insertmacro MUI_LANGDLL_DISPLAY
 FunctionEnd
-
-Function un.onInit
-  !insertmacro MULTIUSER_UNINIT
-FunctionEnd
-
-!macro UPDATE_DISPLAYNAME
-  ${If} $MultiUser.InstallMode == "CurrentUser"
-    StrCpy $DisplayName "$(^Name) (User)"
-  ${Else}
-    StrCpy $DisplayName "$(^Name)"
-  ${EndIf}
-!macroend
 
 Function desktopShortcutPageCreate
   !insertmacro MUI_HEADER_TEXT "Create Desktop Shortcut" "Would you like to create a desktop shortcut?"
@@ -137,16 +115,11 @@ Section "Base"
   ; The binplaced build output will be included verbatim.
   File /r "${BINARY_SOURCE_DIR}\*"
 
-  !insertmacro UPDATE_DISPLAYNAME
-
   ; Create start menu and desktop shortcuts
-  CreateShortCut "$SMPROGRAMS\$DisplayName.lnk" "$INSTDIR\Cemu.exe"
+  CreateShortCut "$SMPROGRAMS\$(^Name).lnk" "$INSTDIR\Cemu.exe"
   ${If} $DesktopShortcut == 1
-    CreateShortCut "$DESKTOP\$DisplayName.lnk" "$INSTDIR\Cemu.exe"
+    CreateShortCut "$DESKTOP\$(^Name).lnk" "$INSTDIR\Cemu.exe"
   ${EndIf}
-
-  ; ??
-  SetOutPath "$TEMP"
 SectionEnd
 
 !include "FileFunc.nsh"
@@ -154,51 +127,46 @@ SectionEnd
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
 
-  WriteRegStr SHCTX "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\Cemu.exe"
+  WriteRegStr HKCU "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\Cemu.exe"
 
   ; Write metadata for add/remove programs applet
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "DisplayName" "$DisplayName"
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe /$MultiUser.InstallMode"
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Cemu.exe"
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
-  WriteRegStr SHCTX "${PRODUCT_UNINST_KEY}" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Cemu.exe"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "URLInfoAbout" "${PRODUCT_WEB_SITE}"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "Publisher" "${PRODUCT_PUBLISHER}"
+  WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "InstallLocation" "$INSTDIR"
   ${GetSize} "$INSTDIR" "/S=0K" $0 $1 $2
   IntFmt $0 "0x%08X" $0
-  WriteRegDWORD SHCTX "${PRODUCT_UNINST_KEY}" "EstimatedSize" "$0"
+  WriteRegDWORD HKCU "${PRODUCT_UNINST_KEY}" "EstimatedSize" "$0"
 
-  WriteRegStr HKCR ".wud" "" "Cemu"
-  WriteRegStr HKCR ".wux" "" "Cemu"
-  WriteRegStr HKCR ".wua" "" "Cemu"
-  WriteRegStr HKCR "Cemu\DefaultIcon" "" "$INSTDIR\Cemu.exe,0"
-  WriteRegStr HKCR "Cemu\Shell\open\command" "" '"$INSTDIR\Cemu.exe" %1'
+  WriteRegStr HKCU "Software\Classes\.wud" "" "$(^Name)"
+  WriteRegStr HKCU "Software\Classes\.wux" "" "$(^Name)"
+  WriteRegStr HKCU "Software\Classes\.wua" "" "$(^Name)"
+  WriteRegStr HKCU "Software\Classes\$(^Name)\DefaultIcon" "" "$INSTDIR\Cemu.exe,0"
+  WriteRegStr HKCU "Software\Classes\$(^Name)\Shell\open\command" "" '"$INSTDIR\Cemu.exe" %1'
 SectionEnd
 
 Section Uninstall
-  !insertmacro UPDATE_DISPLAYNAME
+  Delete "$DESKTOP\$(^Name).lnk"
+  Delete "$SMPROGRAMS\$(^Name).lnk"
 
-  Delete "$DESKTOP\$DisplayName.lnk"
-  Delete "$SMPROGRAMS\$DisplayName.lnk"
-
-  ; Be a bit careful to not delete files a user may have put into the install directory.
+; Be a bit careful to not delete files a user may have put into the install directory
   Delete "$INSTDIR\Cemu.exe"
   Delete "$INSTDIR\uninst.exe"
   RMDir /r "$INSTDIR\gameProfiles"
   RMDir /r "$INSTDIR\resources"
   RMDir "$INSTDIR"
 
-  ; Delete both system wide and user defined file associations.
-  DeleteRegKey HKCR ".wud"
-  DeleteRegKey HKCR ".wux"
-  DeleteRegKey HKCR ".wua"
-  DeleteRegKey HKCR "Cemu"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wud"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wux"
-  DeleteRegKey HKCU "Software\Microsoft\Windows\CurrentVersion\Explorer\FileExts\.wua"
+  DeleteRegKey HKCU "Software\Classes\.wud"
+  DeleteRegKey HKCU "Software\Classes\.wux"
+  DeleteRegKey HKCU "Software\Classes\.wua"
+  DeleteRegKey HKCU "Software\Classes\$(^Name)"
 
-  DeleteRegKey SHCTX "${PRODUCT_UNINST_KEY}"
-  DeleteRegKey SHCTX "${PRODUCT_DIR_REGKEY}"
   DeleteRegKey HKCU "Software\Classes\discord-460807638964371468"
+
+  DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
+  DeleteRegKey HKCU "${PRODUCT_DIR_REGKEY}"
 
   SetAutoClose true
 SectionEnd
