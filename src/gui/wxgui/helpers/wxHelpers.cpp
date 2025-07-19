@@ -81,7 +81,7 @@ WindowSystem::WindowHandleInfo initHandleContextFromWxWidgetsWindow(wxWindow* wx
 #if BOOST_OS_WINDOWS
 	handleInfo.backend = WindowSystem::WindowHandleInfo::Backend::Windows;
 	handleInfo.surface = reinterpret_cast<void*>(wxw->GetHWND());
-#elif BOOST_OS_LINUX
+#elif BOOST_OS_LINUX || BOOST_OS_BSD
 	GtkWidget* gtkWidget = (GtkWidget*)wxw->GetHandle(); // returns GtkWidget
 	gtk_widget_realize(gtkWidget);
 	GdkWindow* gdkWindow = gtk_widget_get_window(gtkWidget);
