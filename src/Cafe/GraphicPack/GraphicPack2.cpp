@@ -85,7 +85,7 @@ bool GraphicPack2::LoadGraphicPack(const fs::path& rulesPath, IniParser& rules)
 		auto gp = std::make_shared<GraphicPack2>(rulesPath, rules);
 
 		// check if enabled and preset set
-		const auto& config_entries = g_config.data().graphic_pack_entries;
+		const auto& config_entries = GetConfigHandle().data().graphic_pack_entries;
 
 		// legacy absolute path checking for not breaking compatibility
 		auto file = gp->GetRulesPath();

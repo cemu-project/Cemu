@@ -31,6 +31,7 @@ jobs:
           find src -name *.cpp -o -name *.hpp -o -name *.h | 
           xargs xgettext --from-code=utf-8 -w 100
           --keyword="_" --keyword="wxTRANSLATE" --keyword="wxPLURAL:1,2"
+          --keyword="_tr" --keyword="TR_NOOP"
           --check=space-ellipsis --omit-header
           -o cemu.pot
 
