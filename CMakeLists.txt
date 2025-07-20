@@ -182,8 +182,6 @@ endif()
 
 if (ENABLE_DISCORD_RPC)
 	add_compile_definitions(ENABLE_DISCORD_RPC)
-	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
-	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
 
 if (ENABLE_HIDAPI)
