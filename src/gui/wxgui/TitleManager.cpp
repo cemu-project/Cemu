@@ -30,6 +30,7 @@
 #include <zip.h>
 #include <wx/dirdlg.h>
 #include <wx/notebook.h>
+#include <wx/settings.h>
 
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "config/ActiveSettings.h"
