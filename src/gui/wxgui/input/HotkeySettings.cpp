@@ -146,7 +146,6 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 
 	m_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE);
 	m_panel->SetSizer(m_sizer);
-	m_panel->SetBackgroundColour(*wxWHITE);
 
 	Center();
 
@@ -229,11 +228,7 @@ void HotkeySettings::CreateHotkeyRow(const wxString& label, sHotkeyCfg& cfgHotke
 	keyInput->SetMinSize(m_minButtonSize);
 	controllerInput->SetMinSize(m_minButtonSize);
 
-#if BOOST_OS_WINDOWS
-	const wxColour inputButtonColor = 0xfafafa;
-#else
 	const wxColour inputButtonColor = GetBackgroundColour();
-#endif
 	keyInput->SetBackgroundColour(inputButtonColor);
 	controllerInput->SetBackgroundColour(inputButtonColor);
 
