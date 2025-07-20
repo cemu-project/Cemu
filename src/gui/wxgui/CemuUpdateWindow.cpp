@@ -111,14 +111,22 @@ bool CemuUpdateWindow::QueryUpdateInfo(std::string& downloadUrlOut, std::string&
 	auto* curl = curl_easy_init();
 	urlStr.append(_curlUrlEscape(curl, BUILD_VERSION_STRING));
 #if BOOST_OS_LINUX
-	urlStr.append("&platform=linux_appimage_x86");
+	urlStr.append("&platform=linux_appimage");
 #elif BOOST_OS_WINDOWS
 	urlStr.append("&platform=windows");
 #elif BOOST_OS_MACOS
-	urlStr.append("&platform=macos_bundle_x86");
+	urlStr.append("&platform=macos_bundle");
 #elif
 #error Name for current platform is missing
 #endif
+#if defined(__aarch64__)
+	urlStr.append("_aarch64");
+#elif defined(ARCH_X86_64)
+	urlStr.append("_x86_64");
+#else
+	urlStr.append("_unknown");
+#endif
+
 	const auto& config = GetWxGUIConfig();
 	if(config.receive_untested_updates)
 		urlStr.append("&allowNewUpdates=1");
