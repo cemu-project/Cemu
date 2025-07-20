@@ -1,4 +1,5 @@
 #include "wxgui/wxgui.h"
+#include "wxHelper.h"
 #include "TextureRelationWindow.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
@@ -184,7 +185,7 @@ void TextureRelationViewerWindow::_setTextureRelationListItemTexture(wxListCtrl*
 	wxListItem item;
 	item.SetId(rowIndex);
 	item.SetText(tempStr);
-	item.SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW).ChangeLightness(238));
+	item.SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
 	uiList->InsertItem(item);
 
 	sint32 columnIndex = 1;
@@ -279,7 +280,7 @@ void TextureRelationViewerWindow::_setTextureRelationListItemView(wxListCtrl* ui
 	wxListItem item;
 	item.SetId(rowIndex);
 	item.SetText(tempStr);
-	item.SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW).ChangeLightness(221));
+	item.SetBackgroundColour(wxHelper::CalculateAccentColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
 	uiList->InsertItem(item);
 	//uiList->SetItemPtrData(item, (wxUIntPtr)viewInfo);
 	sint32 columnIndex = 1;
