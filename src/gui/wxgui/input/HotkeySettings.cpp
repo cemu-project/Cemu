@@ -4,6 +4,7 @@
 #include <config/ActiveSettings.h>
 #include "input/InputManager.h"
 #include "HotkeySettings.h"
+#include "MainWindow.h"
 
 #include <wx/clipbrd.h>
 
@@ -113,9 +114,9 @@ std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, in
 
 extern WindowSystem::WindowInfo g_window_info;
 const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> HotkeySettings::s_cfgHotkeyToFuncMap{
-	{&s_cfgHotkeys.toggleFullscreen, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
-	{&s_cfgHotkeys.toggleFullscreenAlt, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
-	{&s_cfgHotkeys.exitFullscreen, [](void) { s_mainWindow->ShowFullScreen(false); }},
+	{&s_cfgHotkeys.toggleFullscreen, [](void) { s_mainWindow->SetFullScreen(!s_mainWindow->IsFullScreen()); }},
+	{&s_cfgHotkeys.toggleFullscreenAlt, [](void) { s_mainWindow->SetFullScreen(!s_mainWindow->IsFullScreen()); }},
+	{&s_cfgHotkeys.exitFullscreen, [](void) { s_mainWindow->SetFullScreen(false); }},
 	{&s_cfgHotkeys.takeScreenshot, [](void) { if(g_renderer) g_renderer->RequestScreenshot(SaveScreenshot); }},
 	{&s_cfgHotkeys.toggleFastForward, [](void) { ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1); }},
 };
@@ -177,7 +178,7 @@ HotkeySettings::~HotkeySettings()
 	}
 }
 
-void HotkeySettings::Init(wxFrame* mainWindowFrame)
+void HotkeySettings::Init(MainWindow* mainWindowFrame)
 {
 	s_keyboardHotkeyToFuncMap.reserve(s_cfgHotkeyToFuncMap.size());
 	for (const auto& [cfgHotkey, func] : s_cfgHotkeyToFuncMap)
@@ -397,7 +398,8 @@ void HotkeySettings::FinalizeInput(wxButton* inputButton)
 	{
 		inputButton->Unbind(wxEVT_KEY_UP, &HotkeySettings::OnKeyUp, this);
 		inputButton->SetLabelText(To_wxString(cfgHotkey.keyboard));
-	} else if constexpr (std::is_same_v<T, ControllerHotkey_t>)
+	}
+	else if constexpr (std::is_same_v<T, ControllerHotkey_t>)
 	{
 		inputButton->SetLabelText(To_wxString(cfgHotkey.controller));
 	}

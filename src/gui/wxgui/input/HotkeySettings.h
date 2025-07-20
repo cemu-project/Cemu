@@ -9,7 +9,7 @@ class HotkeyEntry;
 class HotkeySettings : public wxFrame
 {
 public:
-	static void Init(wxFrame* mainWindowFrame);
+	static void Init(class MainWindow* mainWindow);
 
 	static void CaptureInput(wxKeyEvent& event);
 	static void CaptureInput(const ControllerState& currentState, const ControllerState& lastState);
@@ -18,7 +18,7 @@ public:
 	~HotkeySettings();
 
 private:
-	inline static wxFrame* s_mainWindow = nullptr;
+	inline static class MainWindow* s_mainWindow = nullptr;
 	static const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> s_cfgHotkeyToFuncMap;
 	inline static std::unordered_map<uint16, std::function<void(void)>> s_keyboardHotkeyToFuncMap{};
 	inline static std::unordered_map<uint16, std::function<void(void)>> s_controllerHotkeyToFuncMap{};
