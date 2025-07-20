@@ -444,14 +444,14 @@ long wxGameList::GetStyleFlags(Style style) const
 	switch (style)
 	{
 	case Style::kList:
-		return (wxLC_SINGLE_SEL | wxLC_REPORT | wxLC_VRULES);
+		return (wxLC_SINGLE_SEL | wxLC_REPORT);
 	case Style::kIcons:
 		return (wxLC_SINGLE_SEL | wxLC_ICON);
 	case Style::kSmallIcons:
 		return (wxLC_SINGLE_SEL | wxLC_ICON);
 	default:
 		wxASSERT(false);
-		return (wxLC_SINGLE_SEL | wxLC_REPORT | wxLC_VRULES);
+		return (wxLC_SINGLE_SEL | wxLC_REPORT);
 	}
 }
 
