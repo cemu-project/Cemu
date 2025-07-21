@@ -65,7 +65,7 @@ private:
 	long GetStyleFlags(Style style) const;
 
 	const wxColour kUpdateColor{ wxSystemSettings::SelectLightDark(wxColour(195, 57, 57), wxColour(84, 29, 29)) };
-	const wxColour kFavoriteColor{ wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(79, 76, 10)) };
+	const wxColour kFavoriteColor{ wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48)) };
 	const wxColour kSecondColor{ wxSystemSettings::SelectLightDark(wxColour(242, 249, 253), wxColour(34, 34, 34)) };
 	void UpdateItemColors(sint32 startIndex = 0);
 
