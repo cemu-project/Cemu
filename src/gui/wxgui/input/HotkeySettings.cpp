@@ -112,13 +112,7 @@ std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, in
 }
 
 extern WindowSystem::WindowInfo g_window_info;
-const std::unordered_map<sHotkeyCfg*, std::function<void(void)>> HotkeySettings::s_cfgHotkeyToFuncMap{
-	{&s_cfgHotkeys.toggleFullscreen, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
-	{&s_cfgHotkeys.toggleFullscreenAlt, [](void) { s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen()); }},
-	{&s_cfgHotkeys.exitFullscreen, [](void) { s_mainWindow->ShowFullScreen(false); }},
-	{&s_cfgHotkeys.takeScreenshot, [](void) { if(g_renderer) g_renderer->RequestScreenshot(SaveScreenshot); }},
-	{&s_cfgHotkeys.toggleFastForward, [](void) { ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1); }},
-};
+std::unordered_map<sHotkeyCfg*, std::function<void(void)>> HotkeySettings::s_cfgHotkeyToFuncMap;
 
 struct HotkeyEntry
 {
@@ -180,6 +174,25 @@ HotkeySettings::~HotkeySettings()
 
 void HotkeySettings::Init(wxFrame* mainWindowFrame)
 {
+	s_cfgHotkeyToFuncMap.insert({
+		{&s_cfgHotkeys.toggleFullscreen, [](void) {
+			 s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen());
+		 }},
+		{&s_cfgHotkeys.toggleFullscreenAlt, [](void) {
+			 s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen());
+		 }},
+		{&s_cfgHotkeys.exitFullscreen, [](void) {
+			 s_mainWindow->ShowFullScreen(false);
+		 }},
+		{&s_cfgHotkeys.takeScreenshot, [](void) {
+			 if (g_renderer)
+				 g_renderer->RequestScreenshot(SaveScreenshot);
+		 }},
+		{&s_cfgHotkeys.toggleFastForward, [](void) {
+			 ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);
+		 }},
+	});
+
 	s_keyboardHotkeyToFuncMap.reserve(s_cfgHotkeyToFuncMap.size());
 	for (const auto& [cfgHotkey, func] : s_cfgHotkeyToFuncMap)
 	{
@@ -325,7 +338,7 @@ void HotkeySettings::OnKeyboardHotkeyInputRightClick(wxMouseEvent& event)
 	}
 	auto* inputButton = static_cast<wxButton*>(event.GetEventObject());
 	auto& cfgHotkey = *static_cast<sHotkeyCfg*>(inputButton->GetClientData());
-	uKeyboardHotkey newHotkey{ sHotkeyCfg::keyboardNone };
+	uKeyboardHotkey newHotkey{sHotkeyCfg::keyboardNone};
 	if (cfgHotkey.keyboard.raw != newHotkey.raw)
 	{
 		m_needToSave |= true;
@@ -344,7 +357,7 @@ void HotkeySettings::OnControllerHotkeyInputRightClick(wxMouseEvent& event)
 	}
 	auto* inputButton = static_cast<wxButton*>(event.GetEventObject());
 	auto& cfgHotkey = *static_cast<sHotkeyCfg*>(inputButton->GetClientData());
-	ControllerHotkey_t newHotkey{ sHotkeyCfg::controllerNone };
+	ControllerHotkey_t newHotkey{sHotkeyCfg::controllerNone};
 	if (cfgHotkey.controller != newHotkey)
 	{
 		m_needToSave |= true;
@@ -394,7 +407,7 @@ void HotkeySettings::OnKeyUp(wxKeyEvent& event)
 	FinalizeInput<uKeyboardHotkey>(inputButton);
 }
 
-template <typename T>
+template<typename T>
 void HotkeySettings::FinalizeInput(wxButton* inputButton)
 {
 	auto& cfgHotkey = *static_cast<sHotkeyCfg*>(inputButton->GetClientData());
@@ -409,7 +422,7 @@ void HotkeySettings::FinalizeInput(wxButton* inputButton)
 	m_activeInputButton = nullptr;
 }
 
-template <typename T>
+template<typename T>
 void HotkeySettings::RestoreInputButton(void)
 {
 	FinalizeInput<T>(m_activeInputButton);
