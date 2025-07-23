@@ -1,4 +1,5 @@
 #include "wxgui/wxgui.h"
+#include "wxHelper.h"
 #include "TextureRelationWindow.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
@@ -113,14 +114,14 @@ TextureRelationViewerWindow::TextureRelationViewerWindow(wxFrame& parent)
 	wxBoxSizer* sizerBottom = new wxBoxSizer(wxHORIZONTAL);
 
 	sizer->Add(textureRelationListA, 1, wxEXPAND | wxBOTTOM, 0);
-	wxButton* button = new wxButton(mainPane, REFRESH_ID, _("Refresh"), wxPoint(0, 0), wxSize(80, 26));
-	sizerBottom->Add(button, 0, wxBOTTOM | wxTOP | wxLEFT, 10);
+	wxButton* button = new wxButton(mainPane, REFRESH_ID, _("Refresh"));
+	sizerBottom->Add(button, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxTOP | wxLEFT, 10);
 
-	wxCheckBox* checkboxShowOnlyActive = new wxCheckBox(mainPane, CHECKBOX_SHOW_ONLY_ACTIVE, _("Show only active"), wxPoint(0, 0), wxSize(110, 26));
-	sizerBottom->Add(checkboxShowOnlyActive, 0, wxBOTTOM | wxTOP | wxLEFT, 10);
+	wxCheckBox* checkboxShowOnlyActive = new wxCheckBox(mainPane, CHECKBOX_SHOW_ONLY_ACTIVE, _("Show only active"));
+	sizerBottom->Add(checkboxShowOnlyActive, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxTOP | wxLEFT, 10);
 
-	wxCheckBox* checkboxShowViews = new wxCheckBox(mainPane, CHECKBOX_SHOW_VIEWS, _("Show views"), wxPoint(0, 0), wxSize(90, 26));
-	sizerBottom->Add(checkboxShowViews, 0, wxBOTTOM | wxTOP | wxLEFT, 10);
+	wxCheckBox* checkboxShowViews = new wxCheckBox(mainPane, CHECKBOX_SHOW_VIEWS, _("Show views"));
+	sizerBottom->Add(checkboxShowViews, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxTOP | wxLEFT, 10);
 	checkboxShowViews->SetValue(true);
 
 	textureRelationListA->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(TextureRelationViewerWindow::OnTextureListRightClick), NULL, this);
@@ -132,8 +133,6 @@ TextureRelationViewerWindow::TextureRelationViewerWindow(wxFrame& parent)
 	mainPane->SetSizer(sizer);
 
 	RefreshTextureList();
-
-	wxFrame::SetBackgroundColour(*wxWHITE);
 }
 
 TextureRelationViewerWindow::~TextureRelationViewerWindow()
@@ -183,11 +182,10 @@ void TextureRelationViewerWindow::_setTextureRelationListItemTexture(wxListCtrl*
 	{
 		sprintf(tempStr + strlen(tempStr), "(%d)", alternativeViewCount + 1);
 	}
-	uint32 bgColor = 0xFFEEEEEE;
 	wxListItem item;
 	item.SetId(rowIndex);
 	item.SetText(tempStr);
-	item.SetBackgroundColour(wxColour(bgColor));
+	item.SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
 	uiList->InsertItem(item);
 
 	sint32 columnIndex = 1;
@@ -279,11 +277,10 @@ void TextureRelationViewerWindow::_setTextureRelationListItemView(wxListCtrl* ui
 	else
 		sprintf(tempStr, "> VIEW(%d)", alternativeViewCount+1);
 	// find and handle highlight entry
-	uint32 bgColor = 0xFFDDDDDD;
 	wxListItem item;
 	item.SetId(rowIndex);
 	item.SetText(tempStr);
-	item.SetBackgroundColour(wxColour(bgColor));
+	item.SetBackgroundColour(wxHelper::CalculateAccentColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
 	uiList->InsertItem(item);
 	//uiList->SetItemPtrData(item, (wxUIntPtr)viewInfo);
 	sint32 columnIndex = 1;
@@ -392,7 +389,6 @@ void TextureRelationViewerWindow::RefreshTextureList()
 
 void TextureRelationViewerWindow::OnTextureListRightClick(wxMouseEvent& event)
 {
-	
 }
 
 void TextureRelationViewerWindow::Close()

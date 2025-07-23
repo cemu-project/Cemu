@@ -21,6 +21,7 @@ private:
 
 	PPCSnapshot m_prev_snapshot;
 	bool m_show_double_values;
+	wxColour m_changed_color = {0xFF0000FF};
 
 	wxTextCtrl* m_context_ctrl;
 };

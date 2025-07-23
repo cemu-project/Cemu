@@ -1,5 +1,8 @@
 #include "wxgui/wxgui.h"
 #include "TextList.h"
+
+#include "debugger/DisasmCtrl.h"
+
 #include <wx/setup.h>
 #include <wx/tooltip.h>
 
@@ -22,9 +25,11 @@ TextList::TextList(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wx
 	: wxControl(parent, id, pos, size, style), wxScrollHelper(this)
 {
 	m_font = wxSystemSettings::GetFont(wxSYS_DEFAULT_GUI_FONT);
-	wxWindowBase::SetBackgroundStyle(wxBG_STYLE_PAINT);
+	this->wxWindowBase::SetBackgroundStyle(wxBG_STYLE_PAINT);
 
-	wxClientDC dc(this);
+	wxInfoDC dc(this);
+	this->DoPrepareReadOnlyDC(dc);
+	dc.SetFont(m_font);
 	m_line_height = dc.GetCharHeight();
 	m_char_width = dc.GetCharWidth();
 
@@ -76,7 +81,7 @@ void TextList::RefreshLine(uint32 line)
 
 wxSize TextList::DoGetVirtualSize() const
 {
-	return {wxDefaultCoord, (int)(m_element_count + 1) * m_line_height};
+	return {wxDefaultCoord, (int)m_element_count * m_line_height};
 }
 
 void TextList::DoSetSize(int x, int y, int width, int height, int sizeFlags)
@@ -252,7 +257,6 @@ void TextList::OnContextMenu(wxContextMenuEvent& event)
 	OnContextMenu(clientPosition, line);
 }
 
-
 void TextList::OnTooltipTimer(wxTimerEvent& event)
 {
 	m_tooltip_window->Hide();
@@ -278,8 +282,7 @@ void TextList::OnTooltipTimer(wxTimerEvent& event)
 
 void TextList::OnPaintEvent(wxPaintEvent& event)
 {
-	wxBufferedPaintDC dc(m_targetWindow, wxBUFFER_VIRTUAL_AREA);
-	dc.SetFont(m_font);
+	wxAutoBufferedPaintDC dc(m_targetWindow);
 
 	// get window position
 	auto position = GetPosition();
@@ -291,9 +294,10 @@ void TextList::OnPaintEvent(wxPaintEvent& event)
 	position.y = (rect_update.y / m_line_height) * m_line_height;
 
 	// paint background
-	const wxColour window_colour = COLOR_WHITE;
-	dc.SetBrush(window_colour);
-	dc.SetPen(window_colour);
+	dc.SetFont(m_font);
+	const wxColour window_colour = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+	dc.SetBrush(GetBackgroundColour());
+	dc.SetPen(*wxTRANSPARENT_PEN);
 	dc.DrawRectangle(rect_update);
 
 	//// paint selection
@@ -312,6 +316,5 @@ void TextList::OnPaintEvent(wxPaintEvent& event)
 
 	OnDraw(dc, start, count, position);
 
-
-	this->Update();
+	// removed Update() here since all text is white
 }

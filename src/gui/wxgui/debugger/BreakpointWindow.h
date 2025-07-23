@@ -1,5 +1,4 @@
 #pragma once
-#include "wxgui/wxcomponents/checkedlistctrl.h"
 
 class DebuggerWindow2;
 
@@ -21,5 +20,5 @@ private:
 	void OnContextMenuClick(wxCommandEvent& evt);
 	void OnContextMenuClickSelected(wxCommandEvent& evt);
 
-	wxCheckedListCtrl* m_breakpoints;
+	wxListView* m_breakpoints;
 };

@@ -5,12 +5,6 @@
 #include <unordered_map>
 #include <sstream>
 
-#define COLOR_BLACK				0xFF000000
-#define COLOR_GREY				0xFFA0A0A0
-#define COLOR_LIGHT_GREY		0xFFE0E0E0
-#define COLOR_WHITE				0xFFFFFFFF
-#define COLOR_RED				0xFF0000FF
-
 
 class TextList : public wxControl, public wxScrollHelper
 {

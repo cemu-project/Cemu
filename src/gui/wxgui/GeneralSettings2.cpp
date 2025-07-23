@@ -137,10 +137,32 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			box_sizer->Add(first_row, 1, wxEXPAND, 5);
 		}
 
+#if BOOST_OS_WINDOWS
 		{
-			auto* second_row = new wxFlexGridSizer(0, 3, 0, 0);
+			auto* second_row = new wxFlexGridSizer(0, 2, 0, 0);
 			second_row->SetFlexibleDirection(wxBOTH);
 			second_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+			second_row->Add(new wxStaticText(box, wxID_ANY, _("Theme"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+			m_msw_theme = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+			m_msw_theme->SetToolTip(_("Changes the Windows theme used by Cemu\nThis only works on Windows 10 and later\nA restart will be required for any changes to take effect"));
+
+			m_msw_theme->AppendString(_("Follow Windows theme"));
+			m_msw_theme->AppendString(_("Light Theme"));
+			m_msw_theme->AppendString(_("Dark Theme"));
+			m_msw_theme->SetSelection(0);
+
+			second_row->Add(m_msw_theme, 0, wxALL, 5);
+
+			box_sizer->Add(second_row, 0, wxEXPAND, 5);
+		}
+#endif
+
+		{
+			auto* third_row = new wxFlexGridSizer(0, 3, 0, 0);
+			third_row->SetFlexibleDirection(wxBOTH);
+			third_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
 			sint32 checkboxCount = 0;
 			auto CountRowElement = [&]()
@@ -148,7 +170,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 				checkboxCount++;
 				if(checkboxCount != 2)
 					return;
-				second_row->AddSpacer(10);
+				third_row->AddSpacer(10);
 				checkboxCount = 0;
 			};
 
@@ -156,51 +178,51 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			{
 				while(checkboxCount != 0)
 					CountRowElement();
-				second_row->AddSpacer(10);
-				second_row->AddSpacer(10);
-				second_row->AddSpacer(10);
+				third_row->AddSpacer(10);
+				third_row->AddSpacer(10);
+				third_row->AddSpacer(10);
 			};
 
 			const int topflag = wxALIGN_CENTER_VERTICAL | wxALL;
 			m_save_window_position_size = new wxCheckBox(box, wxID_ANY, _("Remember main window position"));
 			m_save_window_position_size->SetToolTip(_("Restores the last known window position and size when starting Cemu"));
-			second_row->Add(m_save_window_position_size, 0, topflag, 5);
+			third_row->Add(m_save_window_position_size, 0, topflag, 5);
 			CountRowElement();
-			//second_row->AddSpacer(10);
+			//third_row->AddSpacer(10);
 			m_save_padwindow_position_size = new wxCheckBox(box, wxID_ANY, _("Remember pad window position"));
 			m_save_padwindow_position_size->SetToolTip(_("Restores the last known pad window position and size when opening it"));
-			second_row->Add(m_save_padwindow_position_size, 0, topflag, 5);
+			third_row->Add(m_save_padwindow_position_size, 0, topflag, 5);
 			CountRowElement();
 
 			const int botflag = wxALIGN_CENTER_VERTICAL | wxLEFT | wxRIGHT | wxBOTTOM;
 			m_discord_presence = new wxCheckBox(box, wxID_ANY, _("Discord Presence"));
 			m_discord_presence->SetToolTip(_("Enables the Discord Rich Presence feature\nYou will also need to enable it in the Discord settings itself!"));
-			second_row->Add(m_discord_presence, 0, botflag, 5);
+			third_row->Add(m_discord_presence, 0, botflag, 5);
 			CountRowElement();
 #ifndef ENABLE_DISCORD_RPC
 			m_discord_presence->Disable();
 #endif
-			//second_row->AddSpacer(10);
+			//third_row->AddSpacer(10);
 			m_fullscreen_menubar = new wxCheckBox(box, wxID_ANY, _("Fullscreen menu bar"));
 			m_fullscreen_menubar->SetToolTip(_("Displays the menu bar when Cemu is running in fullscreen mode and the mouse cursor is moved to the top"));
-			second_row->Add(m_fullscreen_menubar, 0, botflag, 5);
+			third_row->Add(m_fullscreen_menubar, 0, botflag, 5);
 			CountRowElement();
 
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
 			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
-			second_row->Add(m_save_screenshot, 0, botflag, 5);
+			third_row->Add(m_save_screenshot, 0, botflag, 5);
 			CountRowElement();
 
 			m_disable_screensaver = new wxCheckBox(box, wxID_ANY, _("Disable screen saver"));
 			m_disable_screensaver->SetToolTip(_("Prevents the system from activating the screen saver or going to sleep while running a game."));
-			second_row->Add(m_disable_screensaver, 0, botflag, 5);
+			third_row->Add(m_disable_screensaver, 0, botflag, 5);
 			CountRowElement();
 
 			// Enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
 			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
 			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
-			second_row->Add(m_feral_gamemode, 0, botflag, 5);
+			third_row->Add(m_feral_gamemode, 0, botflag, 5);
 			CountRowElement();
 #endif
 
@@ -210,17 +232,17 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 #endif
 			m_play_boot_sound = new wxCheckBox(box, wxID_ANY, _("Enable intro sound"));
 			m_play_boot_sound->SetToolTip(_("Play bootSound file while compiling shaders/pipelines."));
-			second_row->Add(m_play_boot_sound, 0, botflag, 5);
+			third_row->Add(m_play_boot_sound, 0, botflag, 5);
 			CountRowElement();
 
 			m_auto_update = new wxCheckBox(box, wxID_ANY, _("Automatically check for updates"));
 			m_auto_update->SetToolTip(_("Automatically checks for new cemu versions on startup"));
-			second_row->Add(m_auto_update, 0, botflag, 5);
+			third_row->Add(m_auto_update, 0, botflag, 5);
 			CountRowElement();
 
 			m_receive_untested_releases = new wxCheckBox(box, wxID_ANY, _("Receive untested updates"));
 			m_receive_untested_releases->SetToolTip(_("When checking for updates, include brand new and untested releases. These may contain bugs!"));
-			second_row->Add(m_receive_untested_releases, 0, botflag, 5);
+			third_row->Add(m_receive_untested_releases, 0, botflag, 5);
 #if BOOST_OS_LINUX
 			if (!std::getenv("APPIMAGE")) {
 				m_auto_update->Disable();
@@ -229,7 +251,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			m_auto_update->Disable();
 #endif
 
-			box_sizer->Add(second_row, 0, wxEXPAND, 5);
+			box_sizer->Add(third_row, 0, wxEXPAND, 5);
 		}
 
 		general_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -270,7 +292,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 		auto* general_gamepath_sizer = new wxStaticBoxSizer(general_gamepath_box, wxVERTICAL);
 
 		m_game_paths = new wxListBox(general_gamepath_box, wxID_ANY);
-		m_game_paths->SetMinSize(wxSize(150, 100));
+		m_game_paths->SetMinSize(wxSize(150, 70));
 		m_game_paths->SetToolTip(_("Add the root directory of your game(s). It will scan all directories in it for games"));
 		general_gamepath_sizer->Add(m_game_paths, 1, wxALL | wxEXPAND, 5);
 
@@ -816,9 +838,6 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 
 	{
 		m_account_information = new wxCollapsiblePane(online_panel, wxID_ANY, _("Account information"));
-		#if BOOST_OS_WINDOWS
-		m_account_information->GetControlWidget()->SetBackgroundColour(*wxWHITE);
-		#endif
 		auto win = m_account_information->GetPane();
 
 		auto content = new wxBoxSizer(wxVERTICAL);
@@ -971,6 +990,9 @@ void GeneralSettings2::StoreConfig()
 	wxGuiConfig.receive_untested_updates = m_receive_untested_releases->IsChecked();
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     wxGuiConfig.feral_gamemode = m_feral_gamemode->IsChecked();
+#endif
+#if BOOST_OS_WINDOWS
+	wxGuiConfig.msw_theme = m_msw_theme->GetSelection();
 #endif
 	config.play_boot_sound = m_play_boot_sound->IsChecked();
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
@@ -1146,7 +1168,6 @@ void GeneralSettings2::ValidateConfig()
 
 void GeneralSettings2::DisableSettings(bool game_launched)
 {
-	
 }
 
 void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
@@ -1634,6 +1655,9 @@ void GeneralSettings2::ApplyConfig()
 
 	m_disable_screensaver->SetValue(config.disable_screensaver);
 	m_play_boot_sound->SetValue(config.play_boot_sound);
+#if BOOST_OS_WINDOWS
+	m_msw_theme->SetSelection(wxGUIconfig.msw_theme);
+#endif
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
     	m_feral_gamemode->SetValue(wxGUIconfig.feral_gamemode);
 #endif

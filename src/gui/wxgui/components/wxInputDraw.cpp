@@ -1,6 +1,7 @@
 #include "wxgui/components/wxInputDraw.h"
 
 #include <wx/dcbuffer.h>
+#include <wx/settings.h>
 
 wxInputDraw::wxInputDraw(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size)
 	: wxWindow(parent, id, pos, size, 0, wxPanelNameStr)
@@ -21,33 +22,35 @@ void wxInputDraw::OnRender(wxDC& dc)
 {
 	dc.Clear();
 
-	glm::vec2 position;
-	const wxPen *black, *red, *grey;
-	const wxBrush *black_brush, *red_brush, *grey_brush;
-	if(IsEnabled())
-	{
-		position = m_position;
+	glm::vec2 position = m_position;
 
-		black = wxBLACK_PEN;
-		red = wxRED_PEN;
-		grey = wxGREY_PEN;
+	wxPen black = wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	wxPen red = *wxRED_PEN;
+	wxPen grey = wxPen(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+	wxPen green = wxSystemSettings::SelectLightDark(0x336600, 0x99FF99);
 
-		black_brush = wxBLACK_BRUSH;
-		red_brush = wxRED_BRUSH;
-		grey_brush = wxGREY_BRUSH;
-	}
-	else
+	wxBrush black_brush = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+	wxBrush red_brush = *wxRED_BRUSH;
+	wxBrush grey_brush = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+	wxBrush green_brush = wxSystemSettings::SelectLightDark(0x336600, 0x99FF99);
+
+	if(!IsEnabled())
 	{
 		position = {};
-		black = red = wxMEDIUM_GREY_PEN;
-		grey = wxLIGHT_GREY_PEN;
+		black.SetColour(black.GetColour());
+		red.SetColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
+		grey.SetColour(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT).MakeDisabled());
 
-		black_brush = red_brush = wxMEDIUM_GREY_BRUSH;
-		grey_brush = wxLIGHT_GREY_BRUSH;
+		black_brush = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+		red_brush = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT).MakeDisabled();
+		grey_brush = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT).MakeDisabled();
 	}
 
 	dc.SetBackgroundMode(wxSOLID);
-	dc.SetBackground(*wxWHITE_BRUSH);
+	dc.SetBackground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+	dc.SetPen(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+	dc.SetBrush(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
+	dc.Clear();
 
 	const auto size = GetSize();
 	const auto min_size = (float)std::min(size.GetWidth(), size.GetHeight()) - 1.0f;
@@ -55,16 +58,16 @@ void wxInputDraw::OnRender(wxDC& dc)
 
 	// border
 	const wxRect border{0, 0, (int)min_size, (int)min_size};
-	dc.SetPen(*black);
+	dc.SetPen(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT));
 	dc.DrawRectangle(border);
 
-	dc.SetPen(IsEnabled() ? wxPen(wxColour(0x336600)) : *grey); // dark green
+	dc.SetPen(IsEnabled() ? green.GetColour() : grey.GetColour());
 	dc.DrawCircle((int)middle.x, (int)middle.y, (int)middle.x);
 
 	if (m_deadzone > 0)
 	{
-		dc.SetPen(*grey);
-		dc.SetBrush(*wxLIGHT_GREY_BRUSH);
+		dc.SetPen(grey);
+		dc.SetBrush(grey_brush);
 		const auto deadzone_size = m_deadzone * min_size / 2.0f;
 		dc.DrawCircle(
 			static_cast<int>(middle.x),
@@ -73,25 +76,25 @@ void wxInputDraw::OnRender(wxDC& dc)
 
 		if (length(position) >= m_deadzone)
 		{
-			dc.SetPen(*red);
-			dc.SetBrush(*red_brush);
+			dc.SetPen(red);
+			dc.SetBrush(red_brush);
 
 			if (std::abs(1.0f - length(position)) < 0.05f)
 			{
-				dc.SetPen(wxPen(wxColour(0x336600)));
-				dc.SetBrush(wxColour(0x336600));
+				dc.SetPen(green);
+				dc.SetBrush(green_brush);
 			}
 		}
 		else
 		{
-			dc.SetPen(*black);
-			dc.SetBrush(*black_brush);
+			dc.SetPen(black);
+			dc.SetBrush(black_brush);
 		}
 	}
 	else
 	{
-		dc.SetPen(*red);
-		dc.SetBrush(*red_brush);
+		dc.SetPen(red);
+		dc.SetBrush(red_brush);
 	}
 
 	// draw axis

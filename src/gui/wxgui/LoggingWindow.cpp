@@ -12,7 +12,7 @@ wxDEFINE_EVENT(EVT_LOG, wxLogEvent);
 LoggingWindow::LoggingWindow(wxFrame* parent)
 	: wxFrame(parent, wxID_ANY, _("Logging window"), wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
-	auto*  sizer = new wxBoxSizer( wxVERTICAL );
+	auto* sizer = new wxBoxSizer( wxVERTICAL );
 	{
 		auto filter_row = new wxBoxSizer( wxHORIZONTAL );
 
@@ -31,7 +31,7 @@ LoggingWindow::LoggingWindow(wxFrame* parent)
 		sizer->Add( filter_row, 0, wxEXPAND, 5 );
 	}
 
-	m_log_list = new wxLogCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxScrolledWindowStyle|wxVSCROLL);//( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, NULL, wxLB_HSCROLL );
+	m_log_list = new wxLogCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxScrolledWindowStyle|wxVSCROLL, true);//( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, NULL, wxLB_HSCROLL );
 	sizer->Add( m_log_list, 1, wxALL | wxEXPAND, 5 );
 
 	this->SetSizer( sizer );

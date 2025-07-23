@@ -15,6 +15,7 @@
 #include <wx/button.h>
 #include <wx/statline.h>
 #include <wx/bmpbuttn.h>
+#include <wx/settings.h>
 
 #include "config/ActiveSettings.h"
 #include "wxgui/input/InputAPIAddWindow.h"
@@ -70,9 +71,9 @@ InputSettings2::InputSettings2(wxWindow* parent)
 
 	g_inputConfigWindowHasFocus = true;
 
-	m_connected = wxBITMAP_PNG_FROM_DATA(INPUT_CONNECTED);
-	m_disconnected = wxBITMAP_PNG_FROM_DATA(INPUT_DISCONNECTED);
-	m_low_battery = wxBITMAP_PNG_FROM_DATA(INPUT_LOW_BATTERY);
+	m_connected = wxHelper::LoadThemedBitmapFromPNG(INPUT_CONNECTED_png, sizeof(INPUT_CONNECTED_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	m_disconnected = wxHelper::LoadThemedBitmapFromPNG(INPUT_DISCONNECTED_png, sizeof(INPUT_DISCONNECTED_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+	m_low_battery = wxHelper::LoadThemedBitmapFromPNG(INPUT_LOW_BATTERY_png, sizeof(INPUT_LOW_BATTERY_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 

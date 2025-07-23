@@ -1,14 +1,9 @@
 #include "wxgui/wxcomponents/checktree.h"
-#include "wxgui/wxcomponents/checked2.xpm"
-#include "wxgui/wxcomponents/checked_d.xpm"
-#include "wxgui/wxcomponents/checked_ld.xpm"
-#include "wxgui/wxcomponents/checked_mo.xpm"
-#include "wxgui/wxcomponents/unchecked2.xpm"
-#include "wxgui/wxcomponents/unchecked_d.xpm"
-#include "wxgui/wxcomponents/unchecked_ld.xpm"
-#include "wxgui/wxcomponents/unchecked_mo.xpm"
+
+#include <wx/dcmemory.h>
 #include <wx/icon.h>
 #include <wx/imaglist.h>
+#include <wx/renderer.h>
 
 wxDEFINE_EVENT(wxEVT_CHECKTREE_FOCUS, wxTreeEvent);
 wxDEFINE_EVENT(wxEVT_CHECKTREE_CHOICE, wxTreeEvent);
@@ -108,16 +103,80 @@ wxCheckTree::wxCheckTree(wxWindow* parent, const wxWindowID id, const wxPoint& p
 
 void wxCheckTree::Init()
 {
-	wxIcon icons[8] = 
-	{
-		wxIcon(unchecked2_xpm), wxIcon(unchecked_mo_xpm), wxIcon(unchecked_ld_xpm), wxIcon(unchecked_d_xpm), wxIcon(checked2_xpm), wxIcon(checked_mo_xpm), wxIcon(checked_ld_xpm), wxIcon(checked_d_xpm)
-	};
+	int width = wxRendererNative::Get().GetCheckBoxSize(this).GetWidth();
+	int height = wxRendererNative::Get().GetCheckBoxSize(this).GetHeight();
 
-	// Make an state image list containing small icons
-	auto states = new wxImageList(icons[0].GetWidth(), icons[0].GetHeight(), true);
+	auto states = new wxImageList(width, height, true);
 
-	for (const auto& icon : icons)
-		states->Add(icon);
+	wxBitmap unchecked_bmp(width, height);
+	wxBitmap unchecked_mouse_over_bmp(width, height);
+	wxBitmap unchecked_left_down_bmp(width, height);
+	wxBitmap unchecked_disabled_bmp(width, height);
+	wxBitmap checked_bmp(width, height);
+	wxBitmap checked_mouse_over_bmp(width, height);
+	wxBitmap checked_left_down_bmp(width, height);
+	wxBitmap checked_disabled_bmp(width, height);
+
+	wxMemoryDC renderer_dc;
+
+	// Unchecked
+	renderer_dc.SelectObject(unchecked_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_NONE);
+
+	// Unchecked Mouse Over
+	renderer_dc.SelectObject(unchecked_mouse_over_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CURRENT);
+
+	// Unchecked and Disabled
+	renderer_dc.SelectObject(unchecked_disabled_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_DISABLED);
+
+	// Unchecked Left Down
+	renderer_dc.SelectObject(unchecked_left_down_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CURRENT | wxCONTROL_PRESSED);
+
+	// Checked
+	renderer_dc.SelectObject(checked_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED);
+
+	// Checked Mouse Over
+	renderer_dc.SelectObject(checked_mouse_over_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_CURRENT);
+
+	// Checked Left Down
+	renderer_dc.SelectObject(checked_left_down_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_CURRENT | wxCONTROL_PRESSED);
+
+	// Checked and Disabled
+	renderer_dc.SelectObject(checked_disabled_bmp);
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.Clear();
+	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_DISABLED);
+
+	renderer_dc.SelectObject(wxNullBitmap);
+
+	states->Add(unchecked_bmp);
+	states->Add(unchecked_mouse_over_bmp);
+	states->Add(unchecked_left_down_bmp);
+	states->Add(unchecked_disabled_bmp);
+	states->Add(checked_bmp);
+	states->Add(checked_mouse_over_bmp);
+	states->Add(checked_left_down_bmp);
+	states->Add(checked_disabled_bmp);
 
 	AssignStateImageList(states);
 
@@ -173,7 +232,7 @@ void wxCheckTree::SetItemTextColour(const wxTreeItemId& item, const wxColour& co
 {
 	const auto it = m_colors.find(item);
 	if (it == m_colors.end())
-		m_colors.emplace(std::pair<wxTreeItemId,wxColor>(item, col));
+		m_colors.emplace(std::pair<wxTreeItemId,wxColour>(item, col));
 	else
 		m_colors[item] = col;
 
@@ -218,7 +277,7 @@ bool wxCheckTree::EnableCheckBox(const wxTreeItemId& item, bool enable)
 	else if (state == CHECKED || state == CHECKED_MOUSE_OVER || state == CHECKED_LEFT_DOWN)
 		SetItemState(item, CHECKED_DISABLED);
 
-	const wxColor col = GetItemTextColour(item);
+	const wxColour col = GetItemTextColour(item);
 	SetItemTextColour(item, wxColour(161, 161, 146));
 	m_colors[item] = col;
 	return true;

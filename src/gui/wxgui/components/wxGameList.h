@@ -10,6 +10,7 @@
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
+#include <wx/settings.h>
 #include <Cafe/TitleList/GameInfo.h>
 #include "util/helpers/Semaphore.h"
 
@@ -63,9 +64,9 @@ private:
 	Style m_style;
 	long GetStyleFlags(Style style) const;
 
-	inline static const wxColour kUpdateColor{ 0x3939c3 };
-	inline static const wxColour kFavoriteColor{ 0xD3F6FD };
-	inline static const wxColour kSecondColor{ 0xFDF9F2 };
+	const wxColour kUpdateColor{ wxSystemSettings::SelectLightDark(wxColour(195, 57, 57), wxColour(84, 29, 29)) };
+	const wxColour kFavoriteColor{ wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48)) };
+	const wxColour kSecondColor{ wxSystemSettings::SelectLightDark(wxColour(242, 249, 253), wxColour(34, 34, 34)) };
 	void UpdateItemColors(sint32 startIndex = 0);
 
 	enum ItemColumns : int
@@ -121,7 +122,7 @@ private:
 
 	inline static constexpr int kListIconWidth = 64;
 	inline static constexpr int kIconWidth = 128;
-	wxImageList* m_image_list, *m_image_list_small;
+	wxWithImages::Images m_image_list_data, m_image_list_small_data;
 
 	std::mutex m_icon_cache_mtx;
 	std::set<TitleId> m_icon_loaded;

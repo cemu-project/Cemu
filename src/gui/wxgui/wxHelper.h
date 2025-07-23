@@ -1,5 +1,7 @@
 #pragma once
 #include <wx/string.h>
+#include <wx/bitmap.h>
+#include <wx/mstream.h>
 
 namespace wxHelper
 {
@@ -33,4 +35,11 @@ namespace wxHelper
 		return bgColourSecondary;
 	}
 
+	static wxBitmap LoadThemedBitmapFromPNG(const uint8* data, size_t size, const wxColour& tint)
+    {
+    	wxMemoryInputStream strm(data, size);
+    	wxImage img(strm, wxBITMAP_TYPE_PNG);
+    	img.Replace(0x00, 0x00, 0x00, tint.Red(), tint.Green(), tint.Blue());
+    	return wxBitmap(img);
+    }
 };

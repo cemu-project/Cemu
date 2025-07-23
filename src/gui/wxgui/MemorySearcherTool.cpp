@@ -51,7 +51,6 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	: wxFrame(parent, wxID_ANY, _("Memory Searcher"), wxDefaultPosition, wxSize(600, 540), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
-	this->wxWindowBase::SetBackgroundColour(*wxWHITE);
 	this->wxTopLevelWindowBase::SetMinSize(wxSize(600, 540));
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);

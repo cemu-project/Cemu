@@ -30,8 +30,6 @@ public:
 	void CenterOffset(uint32 offset);
 	void GoToAddressDialog();
 
-	
-
 protected:
 	void OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start_position) override;
 	void OnMouseMove(const wxPoint& position, uint32 line) override;

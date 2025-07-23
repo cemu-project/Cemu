@@ -4,6 +4,7 @@
 #include <config/ActiveSettings.h>
 #include "input/InputManager.h"
 #include "HotkeySettings.h"
+#include "MainWindow.h"
 
 #include <wx/clipbrd.h>
 
@@ -112,6 +113,7 @@ std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, in
 }
 
 extern WindowSystem::WindowInfo g_window_info;
+
 std::unordered_map<sHotkeyCfg*, std::function<void(void)>> HotkeySettings::s_cfgHotkeyToFuncMap;
 
 struct HotkeyEntry
@@ -140,7 +142,6 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 
 	m_panel = new wxPanel(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxBORDER_SIMPLE);
 	m_panel->SetSizer(m_sizer);
-	m_panel->SetBackgroundColour(*wxWHITE);
 
 	Center();
 
@@ -172,17 +173,17 @@ HotkeySettings::~HotkeySettings()
 	}
 }
 
-void HotkeySettings::Init(wxFrame* mainWindowFrame)
+void HotkeySettings::Init(MainWindow* mainWindowFrame)
 {
 	s_cfgHotkeyToFuncMap.insert({
 		{&s_cfgHotkeys.toggleFullscreen, [](void) {
-			 s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen());
+			 s_mainWindow->SetFullScreen(!s_mainWindow->IsFullScreen());
 		 }},
 		{&s_cfgHotkeys.toggleFullscreenAlt, [](void) {
-			 s_mainWindow->ShowFullScreen(!s_mainWindow->IsFullScreen());
+			 s_mainWindow->SetFullScreen(!s_mainWindow->IsFullScreen());
 		 }},
 		{&s_cfgHotkeys.exitFullscreen, [](void) {
-			 s_mainWindow->ShowFullScreen(false);
+			 s_mainWindow->SetFullScreen(false);
 		 }},
 		{&s_cfgHotkeys.takeScreenshot, [](void) {
 			 if (g_renderer)
@@ -242,11 +243,7 @@ void HotkeySettings::CreateHotkeyRow(const wxString& label, sHotkeyCfg& cfgHotke
 	keyInput->SetMinSize(m_minButtonSize);
 	controllerInput->SetMinSize(m_minButtonSize);
 
-#if BOOST_OS_WINDOWS
-	const wxColour inputButtonColor = 0xfafafa;
-#else
 	const wxColour inputButtonColor = GetBackgroundColour();
-#endif
 	keyInput->SetBackgroundColour(inputButtonColor);
 	controllerInput->SetBackgroundColour(inputButtonColor);
 
@@ -415,7 +412,8 @@ void HotkeySettings::FinalizeInput(wxButton* inputButton)
 	{
 		inputButton->Unbind(wxEVT_KEY_UP, &HotkeySettings::OnKeyUp, this);
 		inputButton->SetLabelText(To_wxString(cfgHotkey.keyboard));
-	} else if constexpr (std::is_same_v<T, ControllerHotkey_t>)
+	}
+	else if constexpr (std::is_same_v<T, ControllerHotkey_t>)
 	{
 		inputButton->SetLabelText(To_wxString(cfgHotkey.controller));
 	}

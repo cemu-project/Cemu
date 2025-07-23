@@ -30,6 +30,7 @@
 #include <zip.h>
 #include <wx/dirdlg.h>
 #include <wx/notebook.h>
+#include <wx/settings.h>
 
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "config/ActiveSettings.h"
@@ -60,14 +61,15 @@ wxPanel* TitleManager::CreateTitleManagerPage()
 		m_filter->Bind(wxEVT_TEXT, &TitleManager::OnFilterChanged, this);
 		row->Add(m_filter, 1, wxALL | wxEXPAND, 5);
 
-		const wxImage refresh = wxBITMAP_PNG_FROM_DATA(PNG_REFRESH).ConvertToImage();
+		const wxImage refresh = wxHelper::LoadThemedBitmapFromPNG(PNG_REFRESH_png, sizeof(PNG_REFRESH_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT)).ConvertToImage();
 		m_refresh_button = new wxBitmapButton(panel, wxID_ANY, refresh.Scale(16, 16));
 		m_refresh_button->Disable();
 		m_refresh_button->Bind(wxEVT_BUTTON, &TitleManager::OnRefreshButton, this);
 		m_refresh_button->SetToolTip(_("Refresh"));
 		row->Add(m_refresh_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		auto* help_button = new wxStaticBitmap(panel, wxID_ANY, wxBITMAP_PNG_FROM_DATA(PNG_HELP));
+		const wxBitmap help_bitmap = wxHelper::LoadThemedBitmapFromPNG(PNG_HELP_png, sizeof(PNG_HELP_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
+		auto* help_button = new wxStaticBitmap(panel, wxID_ANY, help_bitmap);
 		help_button->SetToolTip(formatWxString(_("The following prefixes are supported:\n{0}\n{1}\n{2}\n{3}\n{4}"),
 			"titleid:", "name:", "type:", "version:", "region:"));
 		row->Add(help_button, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);

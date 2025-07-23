@@ -40,8 +40,6 @@ DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
 	: wxFrame(&parent, wxID_ANY, _("PPC threads"), wxDefaultPosition, wxSize(930, 280),
 			  wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
-	wxFrame::SetBackgroundColour(*wxWHITE);
-
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	m_thread_list = new wxListView(this, GPLIST_ID, wxPoint(0, 0), wxSize(930, 240), wxLC_REPORT);
 

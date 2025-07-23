@@ -4,7 +4,7 @@
 class wxLogCtrl : public TextList
 {
 public:
-	wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style);
+	wxLogCtrl(wxWindow* parent, wxWindowID id, const wxPoint& pos, const wxSize& size, long style, bool alternateRowColours = false);
 	~wxLogCtrl();
 
 	void SetActiveFilter(const std::string& active_filter);
@@ -22,6 +22,22 @@ private:
 	void OnActiveListUpdated(wxEvent& event);
 
 	wxTimer* m_timer;
+
+	bool m_alternateRowColoursEnabled = false;
+	wxColour m_alternateRowColour;
+
+	wxColour GetAlternateRowColour()
+	{
+		if (m_alternateRowColour.IsOk())
+			return m_alternateRowColour;
+
+		// Depending on the background, alternate row colour should be a bit
+		// darker or brighter.
+		const wxColour bgColour = GetBackgroundColour();
+		int alpha = bgColour.GetRGB() > 0x808080 ? 97 : 110;
+		m_alternateRowColour = bgColour.ChangeLightness(alpha);
+		return m_alternateRowColour;
+	}
 
 	std::string m_active_filter;
 	std::thread m_update_worker;
