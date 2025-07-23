@@ -159,7 +159,7 @@ if (UNIX AND NOT APPLE)
 			BASENAME viewporter)
 		add_library(CemuWaylandProtocols STATIC ${WAYLAND_PROTOCOL_SRCS})
 		target_include_directories(CemuWaylandProtocols PUBLIC "${CMAKE_CURRENT_BINARY_DIR}")
-
+		target_include_directories(CemuWaylandProtocols PRIVATE ${Wayland_INCLUDE_DIRS})
 		add_compile_definitions(HAS_WAYLAND)
 	endif()
 	find_package(GTK3 REQUIRED)
@@ -182,8 +182,6 @@ endif()
 
 if (ENABLE_DISCORD_RPC)
 	add_compile_definitions(ENABLE_DISCORD_RPC)
-	add_subdirectory(dependencies/discord-rpc EXCLUDE_FROM_ALL)
-	target_include_directories(discord-rpc INTERFACE ./dependencies/discord-rpc/include)
 endif()
 
 if (ENABLE_HIDAPI)

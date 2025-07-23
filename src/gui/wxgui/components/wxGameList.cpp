@@ -1393,7 +1393,7 @@ void wxGameList::DeleteCachedStrings()
 	m_name_cache.clear();
 }
 
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX || BOOST_OS_BSD
 void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 {
 	const auto titleId = gameInfo.GetBaseTitleId();

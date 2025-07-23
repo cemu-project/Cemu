@@ -150,3 +150,7 @@ if(UNIX AND NOT APPLE)
 	# most likely not helpful in debugging problems with cemu code
 	target_link_options(CemuBin PRIVATE "$<$<CONFIG:Release>:-Xlinker;--strip-debug>")
 endif()
+
+if (BSD)
+	target_link_libraries(CemuBin PRIVATE execinfo SPIRV-Tools SPIRV-Tools-opt)
+endif()
