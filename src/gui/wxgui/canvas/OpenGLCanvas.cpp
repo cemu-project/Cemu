@@ -124,7 +124,7 @@ public:
 #if BOOST_OS_WINDOWS
 			if(wglSwapIntervalEXT)
 				wglSwapIntervalEXT(configValue); // 1 = enabled, 0 = disabled
-#elif BOOST_OS_LINUX
+#elif BOOST_OS_LINUX || BOOST_OS_BSD
 			if (eglSwapInterval)
 			{
 				if (eglSwapInterval(eglGetCurrentDisplay(), configValue) == EGL_FALSE)
