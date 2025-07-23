@@ -21,8 +21,8 @@
    - [Installing Library Dependencies](#installing-library-dependencies)
    - [Build Cemu using CMake](#build-cemu-using-cmake)
 - [FreeBSD](#freebsd)
-	- [Dependencies](#dependencies)
-	- [Build Cemu](#build-cemu)
+	- [Installing Dependencies](#installing-dependencies)
+	- [Build Cemu on BSD with CMake](#build-cemu-on-bsd-with-cmake)
 - [Updating Cemu and source code](#updating-cemu-and-source-code)
 
 ## Windows
@@ -198,11 +198,11 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 Or a higher version as desired.
 
-### Dependencies
+### Installing Dependencies
 
-`sudo pkg install boost-libs cmake-core curl glslang gtk3 ninja png pkgconf rapidjson wayland wayland-protocols wx32-gtk3 xorg zstd`
+`sudo pkg install boost-libs cmake-core curl glslang gtk3 libzip ninja png pkgconf pugixml rapidjson sdl2 wayland wayland-protocols wx32-gtk3 xorg zstd`
 
-### Build Cemu
+### Build Cemu on BSD with CMake
 
 ```
 git clone --recursive https://github.com/cemu-project/Cemu
