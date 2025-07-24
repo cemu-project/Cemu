@@ -767,7 +767,7 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (vertexShader->shader)
-			vertexShader->shader->PreponeCompilation(true);
+			vertexShader->shader->PreponeCompilation();
 		LatteShader_FinishCompilation(vertexShader);
 	}
 
@@ -796,7 +796,7 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (geometryShader->shader)
-			geometryShader->shader->PreponeCompilation(true);
+			geometryShader->shader->PreponeCompilation();
 		LatteShader_FinishCompilation(geometryShader);
 	}
 
@@ -825,7 +825,7 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (pixelShader->shader)
-			pixelShader->shader->PreponeCompilation(true);
+			pixelShader->shader->PreponeCompilation();
 		LatteShader_FinishCompilation(pixelShader);
 	}
 
