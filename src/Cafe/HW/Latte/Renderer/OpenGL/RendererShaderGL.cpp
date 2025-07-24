@@ -146,9 +146,16 @@ bool RendererShaderGL::IsCompiled()
 {
 	if(m_isCompiled)
 		return true;
-	GLint isShaderComplete;
+
+	if(!glMaxShaderCompilerThreadsARB)
+	{
+		WaitForCompiled();
+		return true;
+	}
+
+	GLint isShaderComplete = 0;
 	glGetShaderiv(m_shader_object, GL_COMPLETION_STATUS_ARB, &isShaderComplete);
-	if(isShaderComplete)
+	if (isShaderComplete)
 		WaitForCompiled(); // since COMPLETION_STATUS == true, this should be very fast
 	return m_isCompiled;
 }
