@@ -276,8 +276,8 @@ void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	{
 		const uint32 cacheMagic = GeneratePrecompiledCacheId();
 		const std::string cacheFilename = fmt::format("{:016x}_gl.bin", cacheTitleId);
-        s_programBinaryCache = FileCache::Open(ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename), true, cacheMagic);
-		if (s_programBinaryCache == nullptr)
+        s_programBinaryCache.reset(FileCache::Open(ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename), true, cacheMagic));
+		if (!s_programBinaryCache)
 			cemuLog_log(LogType::Force, "Unable to open OpenGL precompiled cache {}", cacheFilename);
 	}
 	s_isLoadingShaders = true;
@@ -290,13 +290,10 @@ void RendererShaderGL::ShaderCacheLoading_end()
 
 void RendererShaderGL::ShaderCacheLoading_Close()
 {
-    if(s_programBinaryCache)
-    {
-        delete s_programBinaryCache;
-        s_programBinaryCache = nullptr;
-    }
+	s_programBinaryCache.reset();
     g_compiled_shaders_total = 0;
     g_compiled_shaders_async = 0;
 }
 
-FileCache* RendererShaderGL::s_programBinaryCache{};
+
+std::unique_ptr<class FileCache> RendererShaderGL::s_programBinaryCache{};
