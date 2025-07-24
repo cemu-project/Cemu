@@ -108,7 +108,10 @@ void LatteShaderCache_updateCompileQueue(sint32 maxRemainingEntries)
 			break;
 		auto shader = shaderCompileQueue.entry[0].shader;
 		if (shader)
-			LatteShader_FinishCompilation(shader);
+		{
+			shader->shader->PreponeCompilation();
+			LatteShader_prepareSeparableUniforms(shader);
+		}
 		LatteShaderCache_removeFromCompileQueue(0);
 	}
 }
