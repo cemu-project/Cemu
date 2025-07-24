@@ -116,6 +116,13 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 		glObjectLabel(GL_SHADER, m_shader_object, objNameStr.size(), objNameStr.c_str());
 	}
 
+	m_program = glCreateProgram();
+	glProgramParameteri(m_program, GL_PROGRAM_SEPARABLE, GL_TRUE);
+	glProgramParameteri(m_program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
+	glAttachShader(m_program, m_shader_object);
+	m_shader_attached = true;
+	glLinkProgram(m_program);
+
 	// we can throw away the GLSL code to conserve RAM
 	m_glslSource.clear();
 	m_glslSource.shrink_to_fit();
@@ -153,9 +160,12 @@ bool RendererShaderGL::IsCompiled()
 		return true;
 	}
 
-	GLint isShaderComplete = 0;
+	GLint isShaderComplete = 0, isProgramComplete = 0;
 	glGetShaderiv(m_shader_object, GL_COMPLETION_STATUS_ARB, &isShaderComplete);
-	if (isShaderComplete)
+	if(!isShaderComplete)
+		return false;
+	glGetProgramiv(m_program, GL_COMPLETION_STATUS_ARB, &isProgramComplete);
+	if (isProgramComplete)
 		WaitForCompiled(); // since COMPLETION_STATUS == true, this should be very fast
 	return m_isCompiled;
 }
@@ -186,16 +196,12 @@ bool RendererShaderGL::WaitForCompiled()
 
 		if (m_shader_object != 0)
 			glDeleteShader(m_shader_object);
+		if (m_program != 0)
+			glDeleteProgram(m_program);
+		m_program = m_shader_object = 0;
 		m_isCompiled = true;
 		return false;
 	}
-
-	m_program = glCreateProgram();
-	glProgramParameteri(m_program, GL_PROGRAM_SEPARABLE, GL_TRUE);
-	glProgramParameteri(m_program, GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GL_TRUE);
-	glAttachShader(m_program, m_shader_object);
-	m_shader_attached = true;
-	glLinkProgram(m_program);
 
 	// get shader binary
 	GLint linkStatus = GL_FALSE;
