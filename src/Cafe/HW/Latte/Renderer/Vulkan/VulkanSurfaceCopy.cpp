@@ -181,7 +181,7 @@ RendererShaderVk* _vkGenSurfaceCopyShader_vs()
 
 	std::string shaderStr(vsShaderSrc);
 	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kVertex, 0, 0, false, false, shaderStr);
-	vkShader->PreponeCompilation(true);
+	vkShader->PreponeCompilation();
 	return vkShader;
 }
 
@@ -199,7 +199,7 @@ RendererShaderVk* _vkGenSurfaceCopyShader_ps_colorToDepth()
 
 	std::string shaderStr(psShaderSrc);
 	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kFragment, 0, 0, false, false, shaderStr);
-	vkShader->PreponeCompilation(true);
+	vkShader->PreponeCompilation();
 	return vkShader;
 }
 
@@ -218,7 +218,7 @@ RendererShaderVk* _vkGenSurfaceCopyShader_ps_depthToColor()
 
 	std::string shaderStr(psShaderSrc);
 	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kFragment, 0, 0, false, false, shaderStr);
-	vkShader->PreponeCompilation(true);
+	vkShader->PreponeCompilation();
 	return vkShader;
 }
 

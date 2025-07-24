@@ -159,7 +159,7 @@ RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader,
 	gsSrc.append("}\r\n");
 
 	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
-	vkShader->PreponeCompilation(true);
+	vkShader->PreponeCompilation();
 	return vkShader;
 }
 
@@ -966,11 +966,11 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 	{
 		// if some shader stages are not compiled yet, compile them now
 		if (m_vkVertexShader && m_vkVertexShader->IsCompiled() == false)
-			m_vkVertexShader->PreponeCompilation(isRenderThread);
+			m_vkVertexShader->PreponeCompilation();
 		if (m_vkPixelShader && m_vkPixelShader->IsCompiled() == false)
-			m_vkPixelShader->PreponeCompilation(isRenderThread);
+			m_vkPixelShader->PreponeCompilation();
 		if (m_vkGeometryShader && m_vkGeometryShader->IsCompiled() == false)
-			m_vkGeometryShader->PreponeCompilation(isRenderThread);
+			m_vkGeometryShader->PreponeCompilation();
 	}
 
 	if (shaderStages.empty())

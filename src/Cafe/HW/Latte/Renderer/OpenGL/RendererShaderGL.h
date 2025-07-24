@@ -10,7 +10,7 @@ public:
 
 	virtual ~RendererShaderGL();
 
-	void PreponeCompilation(bool isRenderThread) override;
+	void PreponeCompilation() override;
 	bool IsCompiled() override;
 	bool WaitForCompiled() override;
 

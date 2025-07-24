@@ -157,7 +157,7 @@ RendererShaderGL::~RendererShaderGL()
 		glDeleteProgram(m_program);
 }
 
-void RendererShaderGL::PreponeCompilation(bool isRenderThread)
+void RendererShaderGL::PreponeCompilation()
 {
 	// the logic for initiating compilation is currently in the constructor
 	// here we only guarantee that it is finished before we return

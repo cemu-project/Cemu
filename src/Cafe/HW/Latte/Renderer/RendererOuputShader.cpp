@@ -254,8 +254,8 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 	m_vertex_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kVertex, 0, 0, vertex_source, false, false));
 	m_fragment_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, finalFragmentSrc, false, false));
 
-	m_vertex_shader->PreponeCompilation(true);
-	m_fragment_shader->PreponeCompilation(true);
+	m_vertex_shader->PreponeCompilation();
+	m_fragment_shader->PreponeCompilation();
 
 	if (!m_vertex_shader->WaitForCompiled())
 		throw std::exception();
