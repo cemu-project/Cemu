@@ -106,6 +106,18 @@ void LatteShaderCache_removeFromCompileQueue(sint32 index)
  */
 void LatteShaderCache_updateCompileQueue(sint32 maxRemainingEntries)
 {
+	// remove any shaders that are already done
+	for (size_t i = 0; i < shaderCompileQueue.count; i++)
+	{
+		auto shaderEntry = shaderCompileQueue.entry[i].shader;
+		if (!shaderEntry)
+			continue;
+		if (shaderEntry->shader->IsCompiled())
+		{
+			LatteShader_prepareSeparableUniforms(shaderEntry);
+			LatteShaderCache_removeFromCompileQueue(i);
+		}
+	}
 	while (true)
 	{
 		if (shaderCompileQueue.count <= maxRemainingEntries)
