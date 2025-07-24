@@ -100,7 +100,6 @@ void LatteShader_GetDecompilerOptions(struct LatteDecompilerOptions& options, La
 LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompilerOutput_t& decompilerOutput, uint64 baseHash, bool calculateAuxHash, uint64 optionalAuxHash, uint32* contextRegister);
 
 void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compileAsync);
-void LatteShader_FinishCompilation(LatteDecompilerShader* shader);
 
 void LatteShader_prepareSeparableUniforms(LatteDecompilerShader* shader);
 
