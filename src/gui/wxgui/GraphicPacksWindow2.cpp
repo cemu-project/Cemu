@@ -131,11 +131,11 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 			{
 				auto tmp_text = m_graphic_pack_tree->GetItemText(node);
 				m_graphic_pack_tree->SetItemText(node, tmp_text + " (Unsupported version)");
-				m_graphic_pack_tree->SetItemTextColour(node, 0x0000CC);
+				m_graphic_pack_tree->SetItemTextColour(node, m_incompatible_colour);
 				canEnable = false;
 			}
 			else if (p->IsActivated())
-				m_graphic_pack_tree->SetItemTextColour(node, 0x009900);
+				m_graphic_pack_tree->SetItemTextColour(node, m_activated_colour);
 
 			m_graphic_pack_tree->MakeCheckable(node, p->IsEnabled());
 			if (!canEnable)
@@ -509,7 +509,7 @@ void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
 			if (!requiresRestart)
 			{
 				ReloadPack(graphic_pack);
-				m_graphic_pack_tree->SetItemTextColour(item, 0x009900);
+				m_graphic_pack_tree->SetItemTextColour(item, m_activated_colour);
 			}
 		}
 		else
@@ -517,7 +517,7 @@ void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
 			if (!requiresRestart)
 			{
 				DeleteShadersFromRuntimeCache(graphic_pack);
-				m_graphic_pack_tree->SetItemTextColour(item, *wxBLACK);
+				m_graphic_pack_tree->SetItemTextColour(item, m_default_colour);
 			}
 			GraphicPack2::DeactivateGraphicPack(graphic_pack);
 		}

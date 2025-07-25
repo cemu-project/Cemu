@@ -53,6 +53,9 @@ private:
 	std::string m_gp_name, m_gp_description;
 
 	float m_ratio = 0.55f;
+	wxColour m_default_colour = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+	wxColour m_activated_colour = wxSystemSettings::SelectLightDark(wxColour(0x00, 0xCC, 0x00), wxColour(0x42, 0xB3, 0x42));
+	wxColour m_incompatible_colour = wxSystemSettings::SelectLightDark(wxColour(0xCC, 0x00, 0x00), wxColour(0xDE, 0x49, 0x49));
 
 	wxTreeItemId FindTreeItem(const wxTreeItemId& root, const wxString& text) const;
 	void LoadPresetSelections(const GraphicPackPtr& gp);
