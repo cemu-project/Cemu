@@ -116,6 +116,19 @@ typedef struct tagTHREADNAME_INFO
 void SetThreadName(const char* name)
 {
 #if BOOST_OS_WINDOWS
+	using SetThreadDescription_t = HRESULT (*)(HANDLE hThread, PCWSTR lpThreadDescription);
+	static SetThreadDescription_t pSetThreadDescription = nullptr;
+	if (!pSetThreadDescription)
+		pSetThreadDescription = (SetThreadDescription_t)GetProcAddress(LoadLibraryW(L"Kernel32.dll"), "SetThreadDescription");
+	if (pSetThreadDescription)
+	{
+		size_t len = strlen(name) * 2 + 1;
+		auto threadDescription = new wchar_t[len];
+		if (boost::nowide::widen(threadDescription, len, name))
+			pSetThreadDescription(GetCurrentThread(), threadDescription);
+		delete[] threadDescription;
+	}
+#ifdef _MSC_VER
 	THREADNAME_INFO info;
 	info.dwType = 0x1000;
 	info.szName = name;
@@ -129,6 +142,7 @@ void SetThreadName(const char* name)
 	__except (EXCEPTION_EXECUTE_HANDLER) {
 	}
 #pragma warning(pop)
+#endif
 #elif BOOST_OS_MACOS
 	pthread_setname_np(name);
 #else
