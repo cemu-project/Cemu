@@ -54,6 +54,7 @@ wxDEFINE_EVENT(wxEVT_MOVE_IP, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_RUN, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_NOTIFY_MODULE_LOADED, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_NOTIFY_MODULE_UNLOADED, wxCommandEvent);
+wxDEFINE_EVENT(wxEVT_NOTIFY_GRAPHIC_PACKS_MODIFIED, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	EVT_SHOW(DebuggerWindow2::OnShow)
@@ -66,6 +67,7 @@ wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	EVT_COMMAND(wxID_ANY, wxEVT_RUN, DebuggerWindow2::OnRunProgram)
 	EVT_COMMAND(wxID_ANY, wxEVT_NOTIFY_MODULE_LOADED, DebuggerWindow2::OnNotifyModuleLoaded)
 	EVT_COMMAND(wxID_ANY, wxEVT_NOTIFY_MODULE_UNLOADED, DebuggerWindow2::OnNotifyModuleUnloaded)
+	EVT_COMMAND(wxID_ANY, wxEVT_NOTIFY_GRAPHIC_PACKS_MODIFIED, DebuggerWindow2::OnNotifyGraphicPacksModified)
 	EVT_COMMAND(wxID_ANY, wxEVT_DISASMCTRL_NOTIFY_GOTO_ADDRESS, DebuggerWindow2::OnDisasmCtrlGotoAddress)
 	// file menu
 	EVT_MENU(MENU_ID_FILE_EXIT, DebuggerWindow2::OnExit)
@@ -437,6 +439,13 @@ void DebuggerWindow2::OnNotifyModuleUnloaded(wxCommandEvent& event)
 	m_disasm_ctrl->Init();
 }
 
+void DebuggerWindow2::OnNotifyGraphicPacksModified(wxCommandEvent& event)
+{
+	m_module_window->OnGameLoaded();
+	m_symbol_window->OnGameLoaded();
+	m_disasm_ctrl->Init();
+}
+
 void DebuggerWindow2::OnGameLoaded()
 {
 	m_disasm_ctrl->Init();
@@ -717,6 +726,12 @@ void DebuggerWindow2::NotifyModuleLoaded(void* module)
 {
 	auto* evt = new wxCommandEvent(wxEVT_NOTIFY_MODULE_LOADED);
 	evt->SetClientData(module);
+	wxQueueEvent(this, evt);
+}
+
+void DebuggerWindow2::NotifyGraphicPacksModified()
+{
+	auto* evt = new wxCommandEvent(wxEVT_NOTIFY_GRAPHIC_PACKS_MODIFIED);
 	wxQueueEvent(this, evt);
 }
 
