@@ -11,7 +11,7 @@ public:
 	template<typename T>
 	T* GetControl() const
 	{
-		static_assert(std::is_base_of<wxControl, T>::value, "T must inherit from wxControl");
+		static_assert(std::is_base_of_v<wxControl, T>, "T must inherit from wxControl");
 		return dynamic_cast<T*>(m_control);
 	}
 
@@ -30,7 +30,7 @@ public:
 	template<typename T = wxControl>
 	T* GetControl(int index) const
 	{
-		static_assert(std::is_base_of<wxControl, T>::value, "T must inherit from wxControl");
+		static_assert(std::is_base_of_v<wxControl, T>, "T must inherit from wxControl");
 		if (index < 0 || index >= m_controls.size())
 			return nullptr;
 		

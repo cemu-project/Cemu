@@ -22,7 +22,7 @@ constexpr T bswap(T i)
 template <typename T>
 constexpr T SwapEndian(T value)
 {
-	if constexpr (std::is_integral<T>::value)
+	if constexpr (std::is_integral_v<T>)
 	{
 #ifdef _MSC_VER
 		if constexpr (sizeof(T) == sizeof(uint32_t))
@@ -33,7 +33,7 @@ constexpr T SwapEndian(T value)
 
 		return (T)bswap((std::make_unsigned_t<T>)value);
 	}
-	else if constexpr (std::is_floating_point<T>::value)
+	else if constexpr (std::is_floating_point_v<T>)
 	{
 		if constexpr (sizeof(T) == sizeof(uint32_t))
 		{
@@ -46,18 +46,18 @@ constexpr T SwapEndian(T value)
 			return *(T*)&tmp;
 		}
 	}
-	else if constexpr (std::is_enum<T>::value)
+	else if constexpr (std::is_enum_v<T>)
 	{
 		return (T)SwapEndian((std::underlying_type_t<T>)value);
 	}
-	else if constexpr (std::is_base_of<Latte::LATTEREG, T>::value)
+	else if constexpr (std::is_base_of_v<Latte::LATTEREG, T>)
 	{
 		const auto tmp = bswap<uint32_t>(*(uint32_t*)&value);
 		return *(T*)&tmp;
 	}
     else
     {
-        static_assert(std::is_integral<T>::value, "unsupported betype specialization!");
+        static_assert(std::is_integral_v<T>, "unsupported betype specialization!");
     }
 
 	return value;

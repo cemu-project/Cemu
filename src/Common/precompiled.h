@@ -653,7 +653,8 @@ struct fmt::formatter<betype<T>> : fmt::formatter<T>
 namespace stdx
 {
 	// std::to_underlying
-    template <typename EnumT, typename = std::enable_if_t < std::is_enum<EnumT>{} >>
+    template <typename EnumT>
+		requires (std::is_enum_v<EnumT>)
         constexpr std::underlying_type_t<EnumT> to_underlying(EnumT e) noexcept {
         return static_cast<std::underlying_type_t<EnumT>>(e);
     };
@@ -689,7 +690,7 @@ namespace stdx
 	template<typename T>
 	class atomic_ref
 	{
-		static_assert(std::is_trivially_copyable<T>::value, "atomic_ref requires trivially copyable types");
+		static_assert(std::is_trivially_copyable_v<T>, "atomic_ref requires trivially copyable types");
 	public:
 		using value_type = T;
 

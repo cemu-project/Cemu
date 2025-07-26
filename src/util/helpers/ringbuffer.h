@@ -10,9 +10,8 @@ public:
 
 	bool Push(const T& v);
 
-	template<class Q = T>
-	typename std::enable_if< !std::is_array<T>::value, Q >::type
-	Pop()
+	T Pop()
+		requires (!std::is_array_v<T>)
 	{
 		std::unique_lock<std::mutex> lock(m_mutex);
 		if (m_readPointer == m_writePointer)

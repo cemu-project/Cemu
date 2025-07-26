@@ -37,7 +37,7 @@ public:
 	template<typename T>
 	T Evaluate(std::string_view expression) const
 	{
-		static_assert(std::is_arithmetic<T>::value, "type T must be an arithmetic type");
+		static_assert(std::is_arithmetic_v<T>, "type T must be an arithmetic type");
 		return (T)Evaluate(expression);
 	}
 
