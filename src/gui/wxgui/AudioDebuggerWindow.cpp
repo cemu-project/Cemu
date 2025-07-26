@@ -24,7 +24,6 @@ wxEND_EVENT_TABLE()
 AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 	: wxFrame(&parent, wxID_ANY, _("AX voice viewer"), wxDefaultPosition, wxSize(1126, 580), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
-	
 	wxPanel* mainPane = new wxPanel(this);
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	
@@ -140,8 +139,6 @@ AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 		voiceListbox->InsertItem(item);
 	}
 	RefreshVoiceList();
-
-	wxFrame::SetBackgroundColour(*wxWHITE);
 
 	// start refresh timer
 	static const int INTERVAL = 100; // milliseconds

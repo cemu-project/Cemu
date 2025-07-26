@@ -140,8 +140,8 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 {
 	const auto& config = GetWxGUIConfig();
 
-	char transparent_bitmap[kIconWidth * kIconWidth * 4] = {wxIMAGE_ALPHA_TRANSPARENT};
-	memset((void*)transparent_bitmap, wxIMAGE_ALPHA_TRANSPARENT, sizeof(transparent_bitmap));
+	char transparent_bitmap[kIconWidth * kIconWidth * 4] = {};
+	memset((void*)transparent_bitmap, wxSystemSettings::GetAppearance().IsDark() ? 0xFF : 0x00, sizeof(transparent_bitmap));
 	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
 	blank.UseAlpha(true);
 
