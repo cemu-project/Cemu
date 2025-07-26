@@ -357,19 +357,6 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	LatteShader_CleanupAfterCompile(shader);
 }
 
-void LatteShader_FinishCompilation(LatteDecompilerShader* shader)
-{
-	if (shader->hasError)
-	{
-		cemuLog_logDebug(LogType::Force, "LatteShader_finishCompilation(): Skipped because of error in shader {:x}", shader->baseHash);
-		return;
-	}
-	shader->shader->WaitForCompiled();
-
-	LatteShader_prepareSeparableUniforms(shader);
-	LatteShader_CleanupAfterCompile(shader);
-}
-
 void LatteSHRC_RegisterShader(LatteDecompilerShader* shader, uint64 baseHash, uint64 auxHash)
 {
 	auto& cache = LatteSHRC_GetCacheByType(shader->shaderType);
@@ -767,8 +754,8 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (vertexShader->shader)
-			vertexShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(vertexShader);
+			vertexShader->shader->PreponeCompilation();
+		LatteShader_prepareSeparableUniforms(vertexShader);
 	}
 
 	LatteSHRC_RegisterShader(vertexShader, vertexShader->baseHash, vertexShader->auxHash);
@@ -796,8 +783,8 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (geometryShader->shader)
-			geometryShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(geometryShader);
+			geometryShader->shader->PreponeCompilation();
+		LatteShader_prepareSeparableUniforms(geometryShader);
 	}
 
 	LatteSHRC_RegisterShader(geometryShader, geometryShader->baseHash, geometryShader->auxHash);
@@ -825,8 +812,8 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (pixelShader->shader)
-			pixelShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(pixelShader);
+			pixelShader->shader->PreponeCompilation();
+		LatteShader_prepareSeparableUniforms(pixelShader);
 	}
 
 	LatteSHRC_RegisterShader(pixelShader, _shaderBaseHash_ps, psAuxHash);
