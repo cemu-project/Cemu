@@ -113,10 +113,7 @@ jobs:
 
       - name: Create release from windows-bin
         run: |
-          ls ./
-          ls ./bin/
-          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-windows-x64/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu.exe
+          mv cemu-bin-windows-x64 ./${{ env.CEMU_FOLDER_NAME }}
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-windows-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
 
@@ -129,10 +126,7 @@ jobs:
         
       - name: Create release from linux-bin
         run: |
-          ls ./
-          ls ./bin/
-          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
-          mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
+          mv cemu-bin-linux-x64 ./${{ env.CEMU_FOLDER_NAME }}
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-22.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
           
