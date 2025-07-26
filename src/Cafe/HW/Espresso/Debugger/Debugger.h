@@ -24,6 +24,7 @@ class DebuggerCallbacks
 	virtual void MoveIP() {}
 	virtual void NotifyModuleLoaded(void* module) {}
 	virtual void NotifyModuleUnloaded(void* module) {}
+	virtual void NotifyGraphicPacksModified() {}
 	virtual ~DebuggerCallbacks() = default;
 };
 
@@ -76,6 +77,11 @@ class DebuggerDispatcher
 	void NotifyModuleUnloaded(void* module)
 	{
 		m_callbacks->NotifyModuleUnloaded(module);
+	}
+
+	void NotifyGraphicPacksModified()
+	{
+		m_callbacks->NotifyGraphicPacksModified();
 	}
 } extern g_debuggerDispatcher;
 
