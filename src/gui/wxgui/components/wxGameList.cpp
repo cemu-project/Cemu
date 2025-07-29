@@ -143,7 +143,6 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	char transparent_bitmap[kIconWidth * kIconWidth * 4] = {};
 	memset((void*)transparent_bitmap, wxSystemSettings::GetAppearance().IsDark() ? 0xFF : 0x00, sizeof(transparent_bitmap));
 	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
-	blank.UseAlpha(true);
 
 	m_image_list_data = {};
 	m_image_list_data.emplace_back(wxBitmapBundle::FromBitmap(blank));
