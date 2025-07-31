@@ -1,8 +1,8 @@
 # **Cemu - Wii U emulator**
 
-[![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
-[![Discord](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
-[![Matrix Server](https://img.shields.io/matrix/cemu:cemu.info?server_fqdn=matrix.cemu.info&label=cemu:cemu.info&logo=matrix&logoColor=FFFFFF)](https://matrix.to/#/#cemu:cemu.info)
+[![Build process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
+[![Discord server](https://img.shields.io/discord/286429969104764928?label=Cemu&logo=discord&logoColor=FFFFFF)](https://discord.gg/5psYsup)
+[![Matrix server](https://img.shields.io/matrix/cemu:cemu.info?server_fqdn=matrix.cemu.info&label=cemu:cemu.info&logo=matrix&logoColor=FFFFFF)](https://matrix.to/#/#cemu:cemu.info)
 
 This is the code repository of Cemu, a Wii U emulator that is able to run most Wii U games and homebrew in a playable state.
 It's written in C/C++ and is being actively developed with new features and fixes.
@@ -10,21 +10,21 @@ It's written in C/C++ and is being actively developed with new features and fixe
 Cemu is currently only available for 64-bit Windows, Linux & macOS devices.
 
 ### Links:
- - [Open Source Announcement](https://www.reddit.com/r/cemu/comments/wwa22c/cemu_20_announcement_linux_builds_opensource_and/)
- - [Official Website](https://cemu.info)
- - [Compatibility List/Wiki](https://wiki.cemu.info/wiki/Main_Page)
- - [Official Subreddit](https://reddit.com/r/Cemu)
- - [Official Discord](https://discord.gg/5psYsup)
- - [Official Matrix Server](https://matrix.to/#/#cemu:cemu.info)
+ - [Open source announcement](https://www.reddit.com/r/cemu/comments/wwa22c/cemu_20_announcement_linux_builds_opensource_and/)
+ - [Official website](https://cemu.info)
+ - [Compatibility list/wiki](https://wiki.cemu.info/wiki/Main_Page)
+ - [Official subreddit](https://reddit.com/r/Cemu)
+ - [Official Discord server](https://discord.gg/5psYsup)
+ - [Official Matrix server](https://matrix.to/#/#cemu:cemu.info)
  - [Setup Guide](https://cemu.cfw.guide)
 
 #### Other relevant repositories:
  - [Cemu-Language](https://github.com/cemu-project/Cemu-Language)
- - [Cemu's Community Graphic Packs](https://github.com/cemu-project/cemu_graphic_packs)
+ - [Cemu's community graphic packs](https://github.com/cemu-project/cemu_graphic_packs)
 
 ## Download
 
-You can download the latest Cemu releases for Windows, Linux and Mac from the [GitHub Releases](https://github.com/cemu-project/Cemu/releases/). For Linux you can also find Cemu on [flathub](https://flathub.org/apps/info.cemu.Cemu).
+You can download the Cemu releases for Linux, macOS and Windows from the [GitHub Releases](https://github.com/cemu-project/Cemu/releases/). For Linux you can also find Cemu on [Flathub](https://flathub.org/apps/info.cemu.Cemu).
 
 On Windows Cemu is currently only available in a portable format so no installation is required besides extracting it in a safe place.
 
@@ -32,7 +32,7 @@ The native macOS build is currently purely experimental and should not be consid
 
 Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/changelog.html).
 
-## Build Instructions
+## Build instructions
 
 To compile Cemu yourself on Windows, Linux or macOS, view [BUILD.md](/BUILD.md).
 
@@ -43,7 +43,7 @@ The old bug tracker can be found at [bugs.cemu.info](https://bugs.cemu.info) and
 
 ## Contributing
 
-Pull requests are very welcome. For easier coordination you can visit the developer discussion channel on [Discord](https://discord.gg/5psYsup) or alternatively the [Matrix Server](https://matrix.to/#/#cemu:cemu.info).
+Pull requests are very welcome. For easier coordination you can visit the developer discussion channel on [Discord](https://discord.gg/5psYsup) or alternatively the [Matrix server](https://matrix.to/#/#cemu:cemu.info).
 Before submitting a pull request, please read and follow our code style guidelines listed in [CODING_STYLE.md](/CODING_STYLE.md).
 
 If coding isn't your thing, testing games and making detailed bug reports or updating the (usually outdated) compatibility wiki is also appreciated!
