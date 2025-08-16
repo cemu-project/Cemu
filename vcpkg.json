@@ -71,7 +71,7 @@
     },
     {
       "name": "sdl2",
-      "version": "2.30.3"
+      "version": "2.32.8"
     },
     {
       "name": "wxwidgets",
