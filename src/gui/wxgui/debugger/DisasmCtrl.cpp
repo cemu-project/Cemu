@@ -693,7 +693,8 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	}
 }
 
-void DisasmCtrl::CopyToClipboard(std::string text) {
+void DisasmCtrl::CopyToClipboard(std::string text)
+{
 #if BOOST_OS_WINDOWS
 	if (OpenClipboard(nullptr))
 	{
@@ -703,9 +704,7 @@ void DisasmCtrl::CopyToClipboard(std::string text) {
 		{
 			memcpy(GlobalLock(hGlobal), text.c_str(), text.size() + 1);
 			GlobalUnlock(hGlobal);
-
 			SetClipboardData(CF_TEXT, hGlobal);
-			GlobalFree(hGlobal);
 		}
 		CloseClipboard();
 	}
