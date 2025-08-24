@@ -1,0 +1,54 @@
+name: Update language repository
+
+on:
+  workflow_dispatch:
+  push:
+    paths-ignore:
+      - "*.md"
+    branches:
+      - main
+
+jobs:
+  update-language-repository:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v3
+        with:
+          path: Cemu
+
+      - name: Install gettext
+        run: |
+          sudo apt update -qq
+          sudo apt install -y gettext
+
+      - name: Generate POT file using xgettext
+        working-directory: Cemu
+        run: >
+          find src -name *.cpp -o -name *.hpp -o -name *.h | 
+          xargs xgettext --from-code=utf-8 -w 100
+          --keyword="_" --keyword="wxTRANSLATE" --keyword="wxPLURAL:1,2"
+          --keyword="_tr" --keyword="TR_NOOP"
+          --check=space-ellipsis --omit-header
+          -o cemu.pot
+
+      - name: Checkout language repo
+        uses: actions/checkout@v3
+        with:
+          repository: ${{ github.repository_owner }}/Cemu-Language
+          path: Cemu-Language
+          token: ${{ secrets.CI_CEMU_LANG_PUSH_TOKEN }}
+
+      - name: Copy POT file
+        run: |
+          mkdir -p Cemu-Language/resources/en
+          cp Cemu/cemu.pot Cemu-Language/resources/en
+
+      - name: Commit and push POT file
+        run: |
+          cd Cemu-Language
+          git config user.name "Cemu-Language CI"
+          git config user.email "github-actions@github.com"
+          git add resources/en/cemu.pot
+          git commit -m "Update POT file" || exit 0  # Don't fail if no changes
+          git push
