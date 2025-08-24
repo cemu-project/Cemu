@@ -106,7 +106,7 @@ bool gameProfile_loadIntegerOption(IniParser* iniParser, const char* optionName,
 template <typename T>
 bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName, T& option, T minVal, T maxVal)
 {
-	static_assert(std::is_integral<T>::value);
+	static_assert(std::is_integral_v<T>);
 	auto option_value = iniParser.FindOption(optionName);
 	if (!option_value)
 		return false;
@@ -133,7 +133,7 @@ bool gameProfile_loadIntegerOption(IniParser& iniParser, const char* optionName,
 template<typename T>
 bool gameProfile_loadEnumOption(IniParser& iniParser, const char* optionName, T& option)
 {
-	static_assert(std::is_enum<T>::value);
+	static_assert(std::is_enum_v<T>);
 	auto option_value = iniParser.FindOption(optionName);
 	if (!option_value)
 		return false;
