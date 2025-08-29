@@ -38,12 +38,12 @@ namespace nn
 				if (!pParam->communityId)
 					return OLV_RESULT_INVALID_PARAMETER;
 
-				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.delete", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
+				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%u.delete", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			}
 			else
 			{
 				if (pParam->communityId)
-					snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
+					snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%u", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 				else
 					snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities", g_DiscoveryResults.apiEndpoint);
 			}

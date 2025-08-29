@@ -36,9 +36,9 @@ namespace nn
 
 			char requestUrl[512];
 			if (pParam->flags & UploadFavoriteToCommunityDataParam::FLAG_DELETION)
-				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.unfavorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
+				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%u.unfavorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			else 
-				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%lu.favorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
+				snprintf(requestUrl, sizeof(requestUrl), "%s/v1/communities/%u.favorite", g_DiscoveryResults.apiEndpoint, pParam->communityId.value());
 			
 			CurlRequestHelper req;
 			req.initate(ActiveSettings::GetNetworkService(), requestUrl, CurlRequestHelper::SERVER_SSL_CONTEXT::OLIVE);
