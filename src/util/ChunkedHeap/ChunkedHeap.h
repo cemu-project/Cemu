@@ -283,7 +283,7 @@ private:
 				{
 					if (itr.chunkIndex != dbgRange.chunkIndex)
 						continue;
-					if (itr.offset < (dbgRange.offset + dbgRange.size) && (itr.offset + itr.size) >(dbgRange.offset))
+					if (itr.offset < (dbgRange.offset + dbgRange.size) && (itr.offset + itr.size) > dbgRange.offset)
 						cemu_assert_error();
 				}
 
