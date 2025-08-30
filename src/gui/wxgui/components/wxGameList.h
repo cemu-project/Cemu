@@ -89,7 +89,7 @@ private:
 	{
 		wxGameList* thisptr;
 		ItemColumns column;
-		int dir;
+		bool asc;
 	};
 
 	int FindInsertPosition(TitleId titleId);
