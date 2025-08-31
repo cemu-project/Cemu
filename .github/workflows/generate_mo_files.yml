@@ -1,0 +1,32 @@
+name: Generate mo files
+on: workflow_call
+
+jobs:
+  generate-mo-files:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Cemu-Language repo
+        uses: actions/checkout@v2
+        with:
+          repository: Cemu-Project/Cemu-Language
+          path: Cemu-Language
+
+      - name: Install gettext
+        run: sudo apt-get install -y gettext
+
+      - name: Convert .po to .mo
+        working-directory: Cemu-Language
+        run: |
+          for po_file in $(find . -name "*.po"); do
+            mo_file="${po_file%.po}.mo"
+            msgfmt $po_file -o $mo_file || true # skip invalid .po files
+          done
+          mkdir mo-files
+          find -name "*.mo" | xargs cp --parents -t  mo-files
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mo-files
+          path: Cemu-Language/mo-files

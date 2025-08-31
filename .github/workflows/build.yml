@@ -15,8 +15,12 @@ env:
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
 jobs:
+  generate-mo-files:
+    uses: ./.github/workflows/generate_mo_files.yml
+
   build-ubuntu:
     runs-on: ubuntu-22.04
+    needs: generate-mo-files
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v4
@@ -74,12 +78,15 @@ jobs:
         
     - name: Prepare artifact
       run: mv bin/Cemu_release bin/Cemu
-              
+
+    - name: Copy MO files
+      uses: ./.github/actions/get_mo_files
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: cemu-bin-linux-x64
-        path: ./bin/Cemu
+        path: ./bin
 
   build-appimage:
     runs-on: ubuntu-22.04
@@ -112,6 +119,7 @@ jobs:
 
   build-windows:
     runs-on: windows-2022
+    needs: generate-mo-files
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v4
@@ -168,15 +176,19 @@ jobs:
 
     - name: Prepare artifact
       run: Rename-Item bin/Cemu_release.exe Cemu.exe
-      
+
+    - name: Copy MO files
+      uses: ./.github/actions/get_mo_files
+
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: cemu-bin-windows-x64
-        path: ./bin/Cemu.exe
+        path: ./bin
 
   build-macos:
     runs-on: macos-14
+    needs: generate-mo-files
     strategy:
       matrix:
         arch: [x86_64, arm64]
@@ -185,7 +197,10 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: "recursive"
-        
+
+    - name: Copy MO files
+      uses: ./.github/actions/get_mo_files
+
     - name: Setup release mode parameters
       run: |
         echo "BUILD_MODE=release" >> $GITHUB_ENV

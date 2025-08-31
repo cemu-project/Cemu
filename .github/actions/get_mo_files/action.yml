@@ -1,0 +1,10 @@
+name: "Copy mo files from artifacts"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Copy mo files
+      uses: actions/download-artifact@v4
+      with:
+        name: mo-files
+        path: bin
