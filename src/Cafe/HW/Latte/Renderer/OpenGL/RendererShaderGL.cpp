@@ -232,6 +232,11 @@ void RendererShaderGL::SetUniform1i(sint32 location, sint32 value)
 	glProgramUniform1i(m_program, location, value);
 }
 
+void RendererShaderGL::SetUniform1f(sint32 location, float value)
+{
+	glProgramUniform1f(m_program, location, value);
+}
+
 void RendererShaderGL::SetUniform2fv(sint32 location, void* data, sint32 count)
 {
 	glProgramUniform2fv(m_program, location, count, (const GLfloat*)data);

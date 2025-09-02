@@ -2659,7 +2659,9 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	VkPushConstantRange pushConstantRange{
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 		.offset = 0,
-		.size = 3 * sizeof(float) * 2 + 1 // 3 vec2's + 1 bool
+		.size = 3 * sizeof(float) * 2 // 3 vec2's
+				+ 4 // + 1 VkBool32
+				+ 4 // + 1 float
 	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -3051,7 +3053,8 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	struct
 	{
 		Vector2f vecs[3];
-		bool applySRGBEncoding;
+		VkBool32 applySRGBEncoding;
+		float targetGamma;
 	} pushData;
 
 	// textureSrcResolution
@@ -3068,8 +3071,8 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	// outputResolution
 	pushData.vecs[2] = {(float)imageWidth,(float)imageHeight};
 
-	// applySRGBEncoding
 	pushData.applySRGBEncoding = padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB;
+	pushData.targetGamma = RendererOutputShader::GetTargetGamma(padView);
 
 	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &pushData);
 

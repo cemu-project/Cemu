@@ -136,11 +136,13 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 		m_uniformLocations[0].m_loc_nativeResolution = m_vertex_shader->GetUniformLocation("nativeResolution");
 		m_uniformLocations[0].m_loc_outputResolution = m_vertex_shader->GetUniformLocation("outputResolution");
 		m_uniformLocations[0].m_loc_applySRGBEncoding = m_vertex_shader->GetUniformLocation("applySRGBEncoding");
+		m_uniformLocations[0].m_loc_targetGamma = m_fragment_shader->GetUniformLocation("targetGamma");
 
 		m_uniformLocations[1].m_loc_textureSrcResolution = m_fragment_shader->GetUniformLocation("textureSrcResolution");
 		m_uniformLocations[1].m_loc_nativeResolution = m_fragment_shader->GetUniformLocation("nativeResolution");
 		m_uniformLocations[1].m_loc_outputResolution = m_fragment_shader->GetUniformLocation("outputResolution");
 		m_uniformLocations[1].m_loc_applySRGBEncoding = m_fragment_shader->GetUniformLocation("applySRGBEncoding");
+		m_uniformLocations[1].m_loc_targetGamma = m_fragment_shader->GetUniformLocation("targetGamma");
 	}
 }
 
@@ -175,6 +177,12 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 	  {
 		  shader->SetUniform1i(locations.m_loc_applySRGBEncoding, padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB);
 	  }
+
+	  if (locations.m_loc_targetGamma != -1)
+	  {
+		  shader->SetUniform1f(locations.m_loc_targetGamma, GetTargetGamma(padView)); // TODO: hook up to user-pref override or GX calls
+	  }
+
 	};
 	setUniforms(m_vertex_shader.get(), m_uniformLocations[0]);
 	setUniforms(m_fragment_shader.get(), m_uniformLocations[1]);
@@ -298,12 +306,14 @@ layout(push_constant) uniform pc {
 	vec2 nativeResolution;
 	vec2 outputResolution;
 	bool applySRGBEncoding; // true = app requested sRGB encoding
+	float targetGamma;
 };
 #else
 uniform vec2 textureSrcResolution;
 uniform vec2 nativeResolution;
 uniform vec2 outputResolution;
 uniform bool applySRGBEncoding;
+uniform float targetGamma;
 #endif
 
 layout(location = 0) smooth in vec2 passUV;
@@ -333,6 +343,8 @@ void main()
 	{
 		colorOut0 = vec4(sRGBEncode(colorOut0.xyz), 1.0f);
 	}
+
+	colorOut0 = pow(colorOut0, vec4(targetGamma / 2.2f) );
 }
 
 )" + shaderSrc;
@@ -371,4 +383,9 @@ void RendererOutputShader::ShutdownStatic()
 
 	delete s_hermit_shader;
 	delete s_hermit_shader_ud;
+}
+
+float RendererOutputShader::GetTargetGamma(const bool padView)
+{
+	return 2.4f;
 }

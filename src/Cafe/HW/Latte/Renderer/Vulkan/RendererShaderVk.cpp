@@ -237,6 +237,11 @@ void RendererShaderVk::SetUniform1i(sint32 location, sint32 value)
 	cemu_assert_suspicious();
 }
 
+void RendererShaderVk::SetUniform1f(sint32 location, float value)
+{
+	cemu_assert_suspicious();
+}
+
 void RendererShaderVk::SetUniform2fv(sint32 location, void* data, sint32 count)
 {
 	cemu_assert_suspicious();

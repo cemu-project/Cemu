@@ -46,6 +46,8 @@ public:
 
 	static std::string PrependFragmentPreamble(const std::string& shaderSrc);
 
+	static float GetTargetGamma(const bool padView);
+
 protected:
 	std::unique_ptr<RendererShader> m_vertex_shader;
 	std::unique_ptr<RendererShader> m_fragment_shader;
@@ -56,6 +58,7 @@ protected:
 		sint32 m_loc_nativeResolution = -1;
 		sint32 m_loc_outputResolution = -1;
 		sint32 m_loc_applySRGBEncoding = -1;
+		sint32 m_loc_targetGamma = -1;
 	} m_uniformLocations[2]{};
 
 private:
