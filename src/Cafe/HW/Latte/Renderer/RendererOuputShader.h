@@ -17,7 +17,7 @@ public:
 	RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source);
 	virtual ~RendererOutputShader() = default;
 
-	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res) const;
+	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res, const bool padView) const;
 
 	RendererShader* GetVertexShader() const
 	{
@@ -55,6 +55,7 @@ protected:
 		sint32 m_loc_textureSrcResolution = -1;
 		sint32 m_loc_nativeResolution = -1;
 		sint32 m_loc_outputResolution = -1;
+		sint32 m_loc_applySRGBEncoding = -1;
 	} m_uniformLocations[2]{};
 
 private:

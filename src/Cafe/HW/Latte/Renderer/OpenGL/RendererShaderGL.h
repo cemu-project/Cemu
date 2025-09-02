@@ -18,6 +18,8 @@ public:
 	GLuint GetShaderObject() const { cemu_assert_debug(m_isCompiled); return m_shader_object; }
 
 	sint32 GetUniformLocation(const char* name) override;
+
+	void SetUniform1i(sint32 location, sint32 value) override;
 	void SetUniform2fv(sint32 location, void* data, sint32 count) override;
 	void SetUniform4iv(sint32 location, void* data, sint32 count) override;
 

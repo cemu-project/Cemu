@@ -2659,7 +2659,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	VkPushConstantRange pushConstantRange{
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 		.offset = 0,
-		.size = 3 * sizeof(float) * 2 // 3 vec2's
+		.size = 3 * sizeof(float) * 2 + 1 // 3 vec2's + 1 bool
 	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -3046,24 +3046,32 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet, 0, nullptr);
 
+
 	// update push constants
-	Vector2f pushData[3];
+	struct
+	{
+		Vector2f vecs[3];
+		bool applySRGBEncoding;
+	} pushData;
 
 	// textureSrcResolution
 	sint32 effectiveWidth, effectiveHeight;
 	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	pushData[0] = {(float)effectiveWidth, (float)effectiveHeight};
+	pushData.vecs[0] = {(float)effectiveWidth, (float)effectiveHeight};
 
 	// nativeResolution
-	pushData[1] = {
+	pushData.vecs[1] = {
 		(float)texViewVk->baseTexture->width,
 		(float)texViewVk->baseTexture->height,
 	};
 
 	// outputResolution
-	pushData[2] = {(float)imageWidth,(float)imageHeight};
+	pushData.vecs[2] = {(float)imageWidth,(float)imageHeight};
 
-	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float) * 2 * 3, &pushData);
+	// applySRGBEncoding
+	pushData.applySRGBEncoding = padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB;
+
+	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &pushData);
 
 	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);
 
