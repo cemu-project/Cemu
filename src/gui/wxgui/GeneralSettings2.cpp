@@ -381,7 +381,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_userDisplayisSRGB->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnUserDisplaySRGBSelected, this);
 
 		test->Add(m_userDisplayGamma, 0, wxALL, 5);
-		test->Add(m_userDisplayisSRGB, 0, wxALL, 5);
+		test->Add(m_userDisplayisSRGB, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 		box_sizer->Add(row, 0, wxEXPAND, 5);
 
