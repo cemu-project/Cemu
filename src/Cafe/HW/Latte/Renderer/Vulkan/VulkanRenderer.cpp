@@ -2773,10 +2773,6 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 	if(chainInfo.m_vsyncState != configValue)
 		stateChanged = true;
 
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-		stateChanged = true;
-
 	int width, height;
 	if (mainWindow)
 		WindowSystem::GetWindowPhysSize(width, height);
@@ -2801,7 +2797,7 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	chainInfo.m_shouldRecreate = false;
 	chainInfo.m_vsyncState = configValue;
-	chainInfo.m_usesSRGB = latteBufferUsesSRGB;
+	chainInfo.m_usesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
 	return true;
 }
 
