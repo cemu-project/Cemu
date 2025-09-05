@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
+#include "config/ActiveSettings.h"
 
 const std::string RendererOutputShader::s_copy_shader_source =
 R"(
@@ -137,12 +138,14 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 		m_uniformLocations[0].m_loc_outputResolution = m_vertex_shader->GetUniformLocation("outputResolution");
 		m_uniformLocations[0].m_loc_applySRGBEncoding = m_vertex_shader->GetUniformLocation("applySRGBEncoding");
 		m_uniformLocations[0].m_loc_targetGamma = m_fragment_shader->GetUniformLocation("targetGamma");
+		m_uniformLocations[0].m_loc_displayGamma = m_fragment_shader->GetUniformLocation("displayGamma");
 
 		m_uniformLocations[1].m_loc_textureSrcResolution = m_fragment_shader->GetUniformLocation("textureSrcResolution");
 		m_uniformLocations[1].m_loc_nativeResolution = m_fragment_shader->GetUniformLocation("nativeResolution");
 		m_uniformLocations[1].m_loc_outputResolution = m_fragment_shader->GetUniformLocation("outputResolution");
 		m_uniformLocations[1].m_loc_applySRGBEncoding = m_fragment_shader->GetUniformLocation("applySRGBEncoding");
 		m_uniformLocations[1].m_loc_targetGamma = m_fragment_shader->GetUniformLocation("targetGamma");
+		m_uniformLocations[1].m_loc_displayGamma = m_fragment_shader->GetUniformLocation("displayGamma");
 	}
 }
 
@@ -180,7 +183,12 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 
 	  if (locations.m_loc_targetGamma != -1)
 	  {
-		  shader->SetUniform1f(locations.m_loc_targetGamma, GetTargetGamma(padView)); // TODO: hook up to user-pref override or GX calls
+		  shader->SetUniform1f(locations.m_loc_targetGamma, padView ? ActiveSettings::GetDRCGamma() : ActiveSettings::GetTVGamma());
+	  }
+
+	  if (locations.m_loc_displayGamma != -1)
+	  {
+		  shader->SetUniform1f(locations.m_loc_displayGamma, GetConfig().userDisplayGamma);
 	  }
 
 	};
@@ -307,6 +315,7 @@ layout(push_constant) uniform pc {
 	vec2 outputResolution;
 	bool applySRGBEncoding; // true = app requested sRGB encoding
 	float targetGamma;
+	float displayGamma;
 };
 #else
 uniform vec2 textureSrcResolution;
@@ -314,6 +323,7 @@ uniform vec2 nativeResolution;
 uniform vec2 outputResolution;
 uniform bool applySRGBEncoding;
 uniform float targetGamma;
+uniform float displayGamma;
 #endif
 
 layout(location = 0) smooth in vec2 passUV;
@@ -340,11 +350,13 @@ void main()
 {
 	outputShader(); // sets colorOut0
 	if(applySRGBEncoding)
-	{
-		colorOut0 = vec4(sRGBEncode(colorOut0.xyz), 1.0f);
-	}
+		colorOut0 = vec4(sRGBEncode(colorOut0.rgb), 1.0f);
 
-	colorOut0 = pow(colorOut0, vec4(targetGamma / 2.2f) );
+	if (displayGamma > 0.0f)
+		colorOut0 = pow(colorOut0, vec4(targetGamma / displayGamma) );
+	else
+		colorOut0 = vec4( sRGBEncode( pow(colorOut0.rgb, vec3(targetGamma)) ), 1.0f);
+
 }
 
 )" + shaderSrc;
@@ -383,9 +395,4 @@ void RendererOutputShader::ShutdownStatic()
 
 	delete s_hermit_shader;
 	delete s_hermit_shader_ud;
-}
-
-float RendererOutputShader::GetTargetGamma(const bool padView)
-{
-	return 2.4f;
 }

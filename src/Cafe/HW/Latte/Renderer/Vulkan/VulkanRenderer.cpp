@@ -2661,7 +2661,7 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 		.offset = 0,
 		.size = 3 * sizeof(float) * 2 // 3 vec2's
 				+ 4 // + 1 VkBool32
-				+ 4 // + 1 float
+				+ 4 * 2 // + 2 float
 	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -3055,6 +3055,7 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 		Vector2f vecs[3];
 		VkBool32 applySRGBEncoding;
 		float targetGamma;
+		float displayGamma;
 	} pushData;
 
 	// textureSrcResolution
@@ -3072,7 +3073,8 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	pushData.vecs[2] = {(float)imageWidth,(float)imageHeight};
 
 	pushData.applySRGBEncoding = padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB;
-	pushData.targetGamma = RendererOutputShader::GetTargetGamma(padView);
+	pushData.targetGamma = padView ? ActiveSettings::GetDRCGamma() : ActiveSettings::GetTVGamma();
+	pushData.displayGamma = GetConfig().userDisplayGamma;
 
 	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &pushData);
 

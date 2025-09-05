@@ -129,6 +129,13 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	graphic_api = graphic.get("api", kOpenGL);
 	graphic.get("device", graphic_device_uuid);
 	vsync = graphic.get("VSync", 0);
+	overrideAppGammaPreference = graphic.get("OverrideAppGammaPreference", false);
+	overrideGammaValue = graphic.get("OverrideGammaValue", 2.2f);
+	if(overrideGammaValue < 0)
+		overrideGammaValue = 2.2f;
+	userDisplayGamma = graphic.get("UserDisplayGamma", 2.2f);
+	if(userDisplayGamma < 0)
+		userDisplayGamma = 2.2f;
 	gx2drawdone_sync = graphic.get("GX2DrawdoneSync", true);
 	upscale_filter = graphic.get("UpscaleFilter", kBicubicHermiteFilter);
 	downscale_filter = graphic.get("DownscaleFilter", kLinearFilter);
@@ -346,6 +353,9 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	graphic.set("api", graphic_api);
 	graphic.set("device", graphic_device_uuid);
 	graphic.set("VSync", vsync);
+	graphic.set("OverrideAppGammaPreference", overrideAppGammaPreference);
+	graphic.set("OverrideGammaValue", overrideGammaValue);
+	graphic.set("UserDisplayGamma", userDisplayGamma);
 	graphic.set("GX2DrawdoneSync", gx2drawdone_sync);
 	//graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());
 	graphic.set("UpscaleFilter", upscale_filter);

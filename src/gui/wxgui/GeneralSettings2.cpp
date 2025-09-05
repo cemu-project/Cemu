@@ -361,6 +361,28 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_vsync->SetToolTip(_("Controls the vsync state"));
 		row->Add(m_vsync, 0, wxALL, 5);
 
+		row->Add(new wxStaticText(box, wxID_ANY, _("Override gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_overrideGamma = new wxCheckBox(box, wxID_ANY, "", wxDefaultPosition, {230, -1});
+		m_overrideGamma->SetToolTip(_("Ignore app gamma preference"));
+		row->Add(m_overrideGamma, 0, wxALL, 5);
+
+		row->Add(new wxStaticText(box, wxID_ANY, _("Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_overrideGammaValue = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
+		row->Add(m_overrideGammaValue, 0, wxALL, 5);
+
+
+		row->Add(new wxStaticText(box, wxID_ANY, _("Display Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+		wxBoxSizer* test = new wxBoxSizer(wxHORIZONTAL);
+		row->Add(test);
+		m_userDisplayGamma = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
+		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
+		m_userDisplayisSRGB->SetToolTip(_("Select this if your screen is standard compliant sRGB.\nMore accurate but may result in banding and/or crushed shadows."));
+		m_userDisplayisSRGB->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnUserDisplaySRGBSelected, this);
+
+		test->Add(m_userDisplayGamma, 0, wxALL, 5);
+		test->Add(m_userDisplayisSRGB, 0, wxALL, 5);
+
 		box_sizer->Add(row, 0, wxEXPAND, 5);
 
 		auto* graphic_misc_row = new wxFlexGridSizer(0, 2, 0, 0);
@@ -1104,6 +1126,9 @@ void GeneralSettings2::StoreConfig()
 	
 
 	config.vsync = m_vsync->GetSelection();
+	config.overrideAppGammaPreference = m_overrideGamma->IsChecked();
+	config.overrideGammaValue = m_overrideGammaValue->GetValue();
+	config.userDisplayGamma = m_userDisplayGamma->GetValue() * !m_userDisplayisSRGB->GetValue();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
 	config.async_compile = m_async_compile->IsChecked();
 	
@@ -1685,6 +1710,15 @@ void GeneralSettings2::ApplyConfig()
 	// graphics
 	m_graphic_api->SetSelection(config.graphic_api);
 	m_vsync->SetSelection(config.vsync);
+	m_overrideGamma->SetValue(config.overrideAppGammaPreference);
+	m_overrideGammaValue->SetValue(config.overrideGammaValue);
+	m_userDisplayisSRGB->SetValue(config.userDisplayGamma == 0.0f);
+	m_userDisplayGamma->SetValue(config.userDisplayGamma);
+	if(m_userDisplayisSRGB->GetValue())
+	{
+		m_userDisplayGamma->Disable();
+		m_userDisplayGamma->SetValue(2.2f);
+	}
 	m_async_compile->SetValue(config.async_compile);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
 	m_upscale_filter->SetSelection(config.upscale_filter);
@@ -2038,6 +2072,15 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 void GeneralSettings2::OnGraphicAPISelected(wxCommandEvent& event)
 {
 	HandleGraphicsApiSelection();
+}
+
+void GeneralSettings2::OnUserDisplaySRGBSelected(wxCommandEvent& event)
+{
+	m_userDisplayGamma->SetValue(2.2f);
+	if(event.GetInt())
+		m_userDisplayGamma->Disable();
+	else
+		m_userDisplayGamma->Enable();
 }
 
 void GeneralSettings2::OnAddPathClicked(wxCommandEvent& event)
