@@ -95,6 +95,11 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: cemu-installer-windows-x64
+          path: cemu-installer-windows-x64
+
+      - uses: actions/download-artifact@v4
+        with:
           pattern: cemu-bin-macos*
           path: cemu-macos
 
@@ -102,7 +107,7 @@ jobs:
         run: |
           mkdir upload
           sudo apt install zip
-          
+
       - name: Set version dependent vars
         run: |
           echo "Version: ${{ needs.calculate-version.outputs.next_version }}"
@@ -119,6 +124,9 @@ jobs:
           mv cemu-bin-windows-x64/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu.exe
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-windows-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
+
+      - name: Create release from windows-installer
+        run: cp cemu-installer-windows-x64/cemu-${{ env.CEMU_VERSION }}-windows-x64-installer.exe upload/cemu-${{ env.CEMU_VERSION }}-windows-x64-installer.exe
 
       - name: Create appimage
         run: |
