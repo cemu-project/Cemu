@@ -205,7 +205,7 @@ ImTextureID OpenGLRenderer::GenerateTexture(const std::vector<uint8>& data, cons
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
 	glActiveTexture(GL_TEXTURE0);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB8, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_SRGB, size.x, size.y, 0, GL_RGB, GL_UNSIGNED_BYTE, data.data());
 	return (ImTextureID)(uintptr_t)textureId;
 }
 
@@ -318,8 +318,8 @@ void OpenGLRenderer::Initialize()
 	cemuLog_log(LogType::Force, "ARB_copy_image: {}", (glCopyImageSubData != NULL) ? "available" : "not supported");
 	cemuLog_log(LogType::Force, "NV_depth_buffer_float: {}", (glDepthRangedNV != NULL) ? "available" : "not supported");
 
-	// display raw fragment shader output, we handle gamma encoding manually.
-	glDisable(GL_FRAMEBUFFER_SRGB);
+	// enable framebuffer SRGB support
+	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	if (this->m_vendor != GfxVendor::AMD)
 	{
@@ -620,8 +620,12 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, useLinearTexFilter ? GL_LINEAR : GL_NEAREST);
 	texViewGL->samplerState.filterMag = 0xFFFFFFFF;
 
+	glDisable(GL_FRAMEBUFFER_SRGB);
+
 	uint16 indexData[6] = { 0,1,2,3,4,5 };
 	glDrawRangeElements(GL_TRIANGLES, 0, 5, 6, GL_UNSIGNED_SHORT, indexData);
+
+	glEnable(GL_FRAMEBUFFER_SRGB);
 
 	// unbind texture
 	texture_bindAndActivate(nullptr, 0);
