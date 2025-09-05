@@ -389,6 +389,11 @@ struct CemuConfig
 	ConfigValue<bool> render_upside_down{ false };
 	ConfigValue<bool> async_compile{ true };
 
+	// Gamma
+	ConfigValue<bool> overrideAppGammaPreference{ false };
+	ConfigValue<float> overrideGammaValue{ 2.2f };
+	ConfigValue<float> userDisplayGamma { 2.2f }; // 0 = sRGB, >0 gamma
+
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
 	struct
