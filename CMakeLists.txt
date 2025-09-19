@@ -25,7 +25,7 @@ if (ENABLE_VCPKG)
 	OUTPUT_VARIABLE is_vcpkg_shallow
 	OUTPUT_STRIP_TRAILING_WHITESPACE
     )
-	
+
 	if(is_vcpkg_shallow STREQUAL "true")
 		message(STATUS "vcpkg is shallow. Unshallowing it now...")
 		execute_process(
@@ -93,7 +93,7 @@ endif()
 
 if (APPLE)
     enable_language(OBJC OBJCXX)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.4")
 endif()
 
 if (UNIX AND NOT APPLE)
