@@ -614,7 +614,7 @@ target_include_directories(CemuCafe PUBLIC "../")
 if (glslang_VERSION VERSION_LESS "15.0.0")
 	set(glslang_target "glslang::SPIRV")
 else()
-	set(glslang_target "glslang")
+	set(glslang_target "glslang::glslang")
 endif()
 
 target_link_libraries(CemuCafe PRIVATE
@@ -658,10 +658,6 @@ else ()
   find_package(libusb MODULE REQUIRED)
   target_link_libraries(CemuCafe PRIVATE libusb::libusb)
 endif ()
-
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuCafe PRIVATE wx::base wx::core)
-endif()
 
 if(WIN32)
 	target_link_libraries(CemuCafe PRIVATE iphlpapi)

@@ -96,7 +96,6 @@ namespace coreinit
 	{
 		ppcDefineParamU32(screenIndex, 0);
 		cemu_assert(screenIndex < 2);
-		cemuLog_logDebug(LogType::Force, "OSScreenFlipBuffersEx {}", screenIndex);
 		LatteGPUState.osScreen.screen[screenIndex].flipRequestCount++;
 		_updateCurrentDrawScreen(screenIndex);
 		osLib_returnFromFunction(hCPU, 0);

@@ -5,8 +5,6 @@
 #include <cctype>
 #include <random>
 
-#include <wx/translation.h>
-
 #include "config/ActiveSettings.h"
 
 #include <boost/random/uniform_int.hpp>
@@ -53,29 +51,6 @@ std::string_view& trim(std::string_view& str, const std::string& chars)
 
 #if BOOST_OS_WINDOWS
 
-std::wstring GetSystemErrorMessageW()
-{
-	return GetSystemErrorMessageW(GetLastError());
-}
-
-
-std::wstring GetSystemErrorMessageW(DWORD error_code)
-{
-	if(error_code == ERROR_SUCCESS)
-		return {};
-
-	LPWSTR lpMsgBuf = nullptr;
-	FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPWSTR)&lpMsgBuf, 0, nullptr);
-	if (lpMsgBuf)
-	{
-		std::wstring str = fmt::format(L"{}: {}", _("Error").ToStdWstring(), lpMsgBuf); // TRANSLATE
-		LocalFree(lpMsgBuf);
-		return str;
-	}
-
-	return fmt::format(L"{}: {:#x}", _("Error code").ToStdWstring(), error_code);
-}
-
 std::string GetSystemErrorMessage(DWORD error_code)
 {
 	if(error_code == ERROR_SUCCESS)
@@ -85,12 +60,12 @@ std::string GetSystemErrorMessage(DWORD error_code)
 	FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code, 0, (LPSTR)&lpMsgBuf, 0, nullptr);
 	if (lpMsgBuf)
 	{
-		std::string str = fmt::format("{}: {}", _("Error").ToStdString(), lpMsgBuf); // TRANSLATE
+		std::string str = fmt::format("{}: {}", _tr("Error"), lpMsgBuf); // TRANSLATE
 		LocalFree(lpMsgBuf);
 		return str;
 	}
 
-	return fmt::format("{}: {:#x}", _("Error code").ToStdString(), error_code);
+	return fmt::format("{}: {:#x}", _tr("Error code"), error_code);
 }
 
 std::string GetSystemErrorMessage()
@@ -141,6 +116,19 @@ typedef struct tagTHREADNAME_INFO
 void SetThreadName(const char* name)
 {
 #if BOOST_OS_WINDOWS
+	using SetThreadDescription_t = HRESULT (*)(HANDLE hThread, PCWSTR lpThreadDescription);
+	static SetThreadDescription_t pSetThreadDescription = nullptr;
+	if (!pSetThreadDescription)
+		pSetThreadDescription = (SetThreadDescription_t)GetProcAddress(LoadLibraryW(L"Kernel32.dll"), "SetThreadDescription");
+	if (pSetThreadDescription)
+	{
+		size_t len = strlen(name) * 2 + 1;
+		auto threadDescription = new wchar_t[len];
+		if (boost::nowide::widen(threadDescription, len, name))
+			pSetThreadDescription(GetCurrentThread(), threadDescription);
+		delete[] threadDescription;
+	}
+#ifdef _MSC_VER
 	THREADNAME_INFO info;
 	info.dwType = 0x1000;
 	info.szName = name;
@@ -154,6 +142,7 @@ void SetThreadName(const char* name)
 	__except (EXCEPTION_EXECUTE_HANDLER) {
 	}
 #pragma warning(pop)
+#endif
 #elif BOOST_OS_MACOS
 	pthread_setname_np(name);
 #else

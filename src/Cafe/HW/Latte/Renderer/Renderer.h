@@ -66,6 +66,10 @@ public:
 	virtual void DrawEmptyFrame(bool mainWindow) = 0;
 	virtual void SwapBuffers(bool swapTV, bool swapDRC) = 0;
 
+	using ScreenshotSaveFunction = std::function<std::optional<std::string>(const std::vector<uint8>&, int, int, bool)>;
+	void RequestScreenshot(ScreenshotSaveFunction onSaveScreenshot);
+	void CancelScreenshotRequest();
+
 	virtual void HandleScreenshotRequest(LatteTextureView* texView, bool padView){}
 
 	virtual void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
@@ -170,7 +174,10 @@ protected:
 		Pad,
 	};
 	ScreenshotState m_screenshot_state = ScreenshotState::None;
-	void SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow) const;
+	bool m_screenshot_requested = false;
+	ScreenshotSaveFunction m_on_save_screenshot;
+
+	void SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow);
 
 
 	ImFontAtlas* imguiFontAtlas{};

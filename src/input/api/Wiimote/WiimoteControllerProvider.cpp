@@ -323,6 +323,7 @@ void WiimoteControllerProvider::reader_thread()
 							break;
 						case kExtensionClassicPro:
                             cemuLog_logDebug(LogType::Force,"Extension Type Received: Classic Pro");
+							new_state.m_extension = ClassicData{};
                             break;
 						case kExtensionGuitar:
                             cemuLog_logDebug(LogType::Force,"Extension Type Received: Guitar");
@@ -342,6 +343,9 @@ void WiimoteControllerProvider::reader_thread()
                             cemuLog_logDebug(LogType::Force,"Extension only partially inserted");
 							new_state.m_extension = {};
 							request_status(index);
+							break;
+						case kExtensionMotionPlusInactive:
+                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Inactive MotionPlus");
 							break;
 						default:
                             cemuLog_logDebug(LogType::Force,"Unknown extension: {:#x}", be_type.value());

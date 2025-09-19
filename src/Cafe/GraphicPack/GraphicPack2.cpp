@@ -11,6 +11,8 @@
 #include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/CafeSystem.h"
+#include "HW/Espresso/Debugger/Debugger.h"
+
 #include <cinttypes>
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
@@ -85,7 +87,7 @@ bool GraphicPack2::LoadGraphicPack(const fs::path& rulesPath, IniParser& rules)
 		auto gp = std::make_shared<GraphicPack2>(rulesPath, rules);
 
 		// check if enabled and preset set
-		const auto& config_entries = g_config.data().graphic_pack_entries;
+		const auto& config_entries = GetConfigHandle().data().graphic_pack_entries;
 
 		// legacy absolute path checking for not breaking compatibility
 		auto file = gp->GetRulesPath();
@@ -130,6 +132,7 @@ bool GraphicPack2::ActivateGraphicPack(const std::shared_ptr<GraphicPack2>& grap
 	if (graphic_pack->Activate())
 	{
 		s_active_graphic_packs.push_back(graphic_pack);
+		g_debuggerDispatcher.NotifyGraphicPacksModified();
 		return true;
 	}
 
@@ -153,6 +156,7 @@ bool GraphicPack2::DeactivateGraphicPack(const std::shared_ptr<GraphicPack2>& gr
 
 	graphic_pack->Deactivate();
 	s_active_graphic_packs.erase(it);
+	g_debuggerDispatcher.NotifyGraphicPacksModified();
 	return true;
 }
 

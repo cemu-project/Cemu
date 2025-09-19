@@ -1,5 +1,3 @@
-#pragma once
-
 #include "nn_olv_InitializeTypes.h"
 #include "CafeSystem.h"
 #include "Cafe/OS/libs/nn_act/nn_act.h"

@@ -1,5 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
-#include "gui/wxgui.h"
+#include "WindowSystem.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
@@ -65,14 +65,11 @@
 // HW interfaces
 #include "Cafe/HW/SI/si.h"
 
-// dependency to be removed
-#include "gui/guiWrapper.h"
-
 #include <time.h>
 
 #if BOOST_OS_LINUX
 #include <sys/sysinfo.h>
-#elif BOOST_OS_MACOS
+#elif BOOST_OS_MACOS || BOOST_OS_BSD
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
@@ -172,7 +169,7 @@ void LoadMainExecutable()
 		applicationRPX = RPLLoader_LoadFromMemory(rpxData, rpxSize, (char*)_pathToExecutable.c_str());
 		if (!applicationRPX)
 		{
-			wxMessageBox(_("Failed to run this title because the executable is damaged"));
+			WindowSystem::ShowErrorDialog(_tr("Failed to run this title because the executable is damaged"));
 			cemuLog_createLogFile(false);
 			cemuLog_waitForFlush();
 			exit(0);
@@ -367,7 +364,7 @@ uint32 LoadSharedData()
 
 void cemu_initForGame()
 {
-	gui_updateWindowTitles(false, true, 0.0);
+	WindowSystem::UpdateWindowTitles(false, true, 0.0);
 	// input manager apply game profile
 	InputManager::instance().apply_game_profile();
 	// log info for launched title
@@ -488,6 +485,12 @@ namespace CafeSystem
 		int result = sysctlbyname("hw.memsize", &totalRam, &size, NULL, 0);
 		if (result == 0)
 			cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
+		#elif BOOST_OS_BSD
+		int64_t totalRam;
+		size_t size = sizeof(totalRam);
+		int result = sysctlbyname("hw.physmem", &totalRam, &size, NULL, 0);
+		if (result == 0)
+			cemuLog_log(LogType::Force, "RAM: {}MB", (totalRam / 1024LL / 1024LL));
 		#endif
 	}
 
@@ -536,6 +539,16 @@ namespace CafeSystem
 			platform = "Linux";
 		#elif BOOST_OS_MACOS
 		platform = "MacOS";
+		#elif BOOST_OS_BSD
+		#if defined(__FreeBSD__)
+		platform = "FreeBSD";
+		#elif defined(__OpenBSD__)
+		platform = "OpenBSD";
+		#elif defined(__NetBSD__)
+		platform = "NetBSD";
+		#else
+		platform = "Unknown BSD";
+		#endif
 		#endif
 		cemuLog_log(LogType::Force, "Platform: {}", platform);
 	}
@@ -865,7 +878,7 @@ namespace CafeSystem
 		PPCTimer_waitForInit();
 		// start system
 		sSystemRunning = true;
-		gui_notifyGameLoaded();
+		WindowSystem::NotifyGameLoaded();
 		std::thread t(_LaunchTitleThread);
 		t.detach();
 	}

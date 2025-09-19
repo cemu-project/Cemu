@@ -1,5 +1,6 @@
 #pragma once
 
+#undef GetHwnd
 #include <dxgi1_4.h>
 #include <wrl/client.h>
 

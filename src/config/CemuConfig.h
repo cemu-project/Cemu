@@ -5,9 +5,6 @@
 #include "util/math/vector2.h"
 #include "Cafe/Account/Account.h"
 
-#include <wx/language.h>
-#include <wx/intl.h>
-
 enum class NetworkService;
 
 struct GameEntry
@@ -310,15 +307,15 @@ struct fmt::formatter<CafeConsoleRegion> : formatter<string_view> {
 		string_view name;
 		switch (v)
 		{
-		case CafeConsoleRegion::JPN: name = wxTRANSLATE("Japan"); break;
-		case CafeConsoleRegion::USA: name = wxTRANSLATE("USA"); break;
-		case CafeConsoleRegion::EUR: name = wxTRANSLATE("Europe"); break;
-		case CafeConsoleRegion::AUS_DEPR: name = wxTRANSLATE("Australia"); break;
-		case CafeConsoleRegion::CHN: name = wxTRANSLATE("China"); break;
-		case CafeConsoleRegion::KOR: name = wxTRANSLATE("Korea"); break;
-		case CafeConsoleRegion::TWN: name = wxTRANSLATE("Taiwan"); break;
-		case CafeConsoleRegion::Auto: name = wxTRANSLATE("Auto"); break;
-		default: name = wxTRANSLATE("many"); break;
+		case CafeConsoleRegion::JPN: name = TR_NOOP("Japan"); break;
+		case CafeConsoleRegion::USA: name = TR_NOOP("USA"); break;
+		case CafeConsoleRegion::EUR: name = TR_NOOP("Europe"); break;
+		case CafeConsoleRegion::AUS_DEPR: name = TR_NOOP("Australia"); break;
+		case CafeConsoleRegion::CHN: name = TR_NOOP("China"); break;
+		case CafeConsoleRegion::KOR: name = TR_NOOP("Korea"); break;
+		case CafeConsoleRegion::TWN: name = TR_NOOP("Taiwan"); break;
+		case CafeConsoleRegion::Auto: name = TR_NOOP("Auto"); break;
+		default: name = TR_NOOP("many"); break;
 
 		}
 		return formatter<string_view>::format(name, ctx);
@@ -384,17 +381,6 @@ struct fmt::formatter<CrashDump> : formatter<string_view> {
 };
 #endif
 
-namespace DefaultColumnSize {
-	enum : uint32 {
-		name = 500u,
-		version = 60u,
-		dlc = 50u,
-		game_time = 140u,
-		game_started = 160u,
-		region = 80u,
-        title_id = 160u
-	};
-};
 
 struct CemuConfig
 {
@@ -413,12 +399,7 @@ struct CemuConfig
 
 	ConfigValue<bool> permanent_storage{ true };
 
-	ConfigValue<sint32> language{ wxLANGUAGE_DEFAULT };
-	ConfigValue<bool> use_discord_presence{ true };
 	ConfigValue<std::string> mlc_path{};
-	ConfigValue<bool> fullscreen_menubar{ false };
-	ConfigValue<bool> fullscreen{ false };
-	ConfigValue<bool> feral_gamemode{false};
 	ConfigValue<std::string> proxy_server{};
 
 	// temporary workaround because feature crashes on macOS
@@ -448,43 +429,6 @@ struct CemuConfig
 
 	ConfigValueBounds<CPUMode> cpu_mode{ CPUMode::Auto };
 	ConfigValueBounds<CafeConsoleLanguage> console_language{ CafeConsoleLanguage::EN };
-
-	// max 15 entries
-	static constexpr size_t kMaxRecentEntries = 15;
-	std::vector<std::string> recent_launch_files;
-	std::vector<std::string> recent_nfc_files;
-
-	Vector2i window_position{-1,-1};
-	Vector2i window_size{ -1,-1 };
-	ConfigValue<bool> window_maximized;
-
-	ConfigValue<bool> pad_open;
-	Vector2i pad_position{ -1,-1 };
-	Vector2i pad_size{ -1,-1 };
-	ConfigValue<bool> pad_maximized;
-
-	ConfigValue<bool> check_update{true};
-	ConfigValue<bool> receive_untested_updates{false};
-	ConfigValue<bool> save_screenshot{true};
-
-	ConfigValue<bool> did_show_vulkan_warning{false};
-	ConfigValue<bool> did_show_graphic_pack_download{false}; // no longer used but we keep the config value around in case people downgrade Cemu. Despite the name this was used for the Getting Started dialog
-	ConfigValue<bool> did_show_macos_disclaimer{false};
-
-	ConfigValue<bool> show_icon_column{ true };
-
-	int game_list_style = 0;
-	std::string game_list_column_order;
-	struct
-	{
-		uint32 name = DefaultColumnSize::name;
-		uint32 version = DefaultColumnSize::version;
-		uint32 dlc = DefaultColumnSize::dlc;
-		uint32 game_time = DefaultColumnSize::game_time;
-		uint32 game_started = DefaultColumnSize::game_started;
-		uint32 region = DefaultColumnSize::region;
-        uint32 title_id = 0;
-	} column_width{};
 
 	// graphics
 	ConfigValue<GraphicAPI> graphic_api{ kVulkan };
@@ -556,11 +500,8 @@ struct CemuConfig
 	ConfigValue<std::string> gpu_capture_dir{ "" };
 	ConfigValue<bool> framebuffer_fetch{ true };
 
-	void Load(XMLConfigParser& parser);
-	void Save(XMLConfigParser& parser);
-
-	void AddRecentlyLaunchedFile(std::string_view file);
-	void AddRecentNfcFile(std::string_view file);
+	XMLConfigParser Load(XMLConfigParser& parser);
+	XMLConfigParser Save(XMLConfigParser& parser);
 
 	bool IsGameListFavorite(uint64 titleId);
 	void SetGameListFavorite(uint64 titleId, bool isFavorite);
@@ -596,6 +537,15 @@ struct CemuConfig
 	GameEntry* CreateGameEntry(uint64 titleId);
 };
 
-typedef XMLDataConfig<CemuConfig, &CemuConfig::Load, &CemuConfig::Save> XMLCemuConfig_t;
-extern XMLCemuConfig_t g_config;
-inline CemuConfig& GetConfig() { return g_config.data(); }
+typedef XMLDataConfig<CemuConfig> XMLCemuConfig_t;
+
+inline XMLCemuConfig_t& GetConfigHandle()
+{
+	static XMLCemuConfig_t config;
+	return config;
+}
+
+inline CemuConfig& GetConfig()
+{
+	return GetConfigHandle().data();
+}

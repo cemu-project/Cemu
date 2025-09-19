@@ -1,7 +1,5 @@
 #pragma once
 
-#ifdef ENABLE_DISCORD_RPC
-
 class DiscordPresence
 {
 public:
@@ -16,6 +14,7 @@ public:
 
 	void UpdatePresence(State state, const std::string& text = {}) const;
 	void ClearPresence() const;
-};
 
-#endif
+private:
+	class DiscordRPCLite* m_rpcClient = nullptr;
+};

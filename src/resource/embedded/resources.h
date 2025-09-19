@@ -2,6 +2,7 @@ extern const char* X_GAME_PROFILE_xpm[];
 extern const char* M_WND_ICON128_xpm[];
 extern const char* X_BOX_xpm[];
 extern const char* X_SETTINGS_xpm[];
+extern const char* X_HOTKEY_SETTINGS_xpm[];
 
 extern unsigned char PNG_CHECK_YES_png[573];
 extern unsigned char PNG_ERROR_png[472];

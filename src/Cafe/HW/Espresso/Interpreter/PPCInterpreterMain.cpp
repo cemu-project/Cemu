@@ -77,7 +77,8 @@ uint32 PPCInterpreter_getXER(PPCInterpreter_t* hCPU)
 
 void PPCInterpreter_setXER(PPCInterpreter_t* hCPU, uint32 v)
 {
-	hCPU->spr.XER = v;
+	const uint32 XER_MASK = 0xE0FFFFFF; // some bits are masked out. Figure out which ones exactly
+	hCPU->spr.XER = v & XER_MASK;
 	hCPU->xer_ca = (v >> XER_BIT_CA) & 1;
 	hCPU->xer_so = (v >> XER_BIT_SO) & 1;
 	hCPU->xer_ov = (v >> XER_BIT_OV) & 1;

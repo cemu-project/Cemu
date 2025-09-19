@@ -2,6 +2,7 @@
 #include "M_WND_ICON128.xpm"
 #include "X_BOX.xpm"
 #include "X_SETTINGS.xpm"
+#include "X_HOTKEY_SETTINGS.xpm"
 
 #include "icons8-checkmark-yes-32.hpng"
 #include "icons8-error-32.hpng"

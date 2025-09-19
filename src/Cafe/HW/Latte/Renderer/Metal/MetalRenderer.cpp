@@ -22,7 +22,6 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "config/CemuConfig.h"
-#include "gui/guiWrapper.h"
 
 #define IMGUI_IMPL_METAL_CPP
 #include "imgui/imgui_extension.h"
@@ -394,8 +393,7 @@ void MetalRenderer::SwapBuffers(bool swapTV, bool swapDRC)
 }
 
 void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padView) {
-    const bool hasScreenshotRequest = gui_hasScreenshotRequest();
-	if (!hasScreenshotRequest && m_screenshot_state == ScreenshotState::None)
+	if (!m_screenshot_requested && m_screenshot_state == ScreenshotState::None)
 		return;
 
 	if (m_mainLayer.GetDrawable())

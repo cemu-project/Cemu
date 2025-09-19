@@ -39,9 +39,9 @@ inline void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const b
 }
 
 template <typename T, typename ...Targs>
+	requires std::is_floating_point_v<T>
 inline
-typename std::enable_if< std::is_floating_point<T>::value, void>::type
-gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
+void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
 {
 	static_assert(sizeof(T) == sizeof(uint32));
 	*writePtr = *(uint32*)&arg;
@@ -50,9 +50,9 @@ gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs
 }
 
 template <typename T, typename ...Targs>
+	requires std::is_base_of_v<Latte::LATTEREG, T>
 inline
-typename std::enable_if< std::is_base_of<Latte::LATTEREG, T>::value, void>::type
-gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
+void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
 {
 	static_assert(sizeof(Latte::LATTEREG) == sizeof(uint32be));
 	*writePtr = arg.getRawValue();
@@ -61,9 +61,9 @@ gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs
 }
 
 template <typename T, typename ...Targs>
+	requires (!std::is_base_of_v<Latte::LATTEREG, T>) && (!std::is_floating_point_v<T>)
 inline
-typename std::enable_if< !std::is_base_of<Latte::LATTEREG, T>::value && !std::is_floating_point<T>::value, void>::type
-gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
+void gx2WriteGather_submit_(uint32 coreIndex, uint32be* writePtr, const T& arg, Targs... args)
 {
 	*writePtr = arg;
 	writePtr++;

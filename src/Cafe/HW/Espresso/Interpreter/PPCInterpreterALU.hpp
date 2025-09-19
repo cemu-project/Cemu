@@ -41,7 +41,7 @@ static void PPCInterpreter_ADD(PPCInterpreter_t* hCPU, uint32 opcode)
 
 static void PPCInterpreter_ADDO(PPCInterpreter_t* hCPU, uint32 opcode)
 {
-	// untested (Don't Starve Giant Edition uses this instruction + BSO)
+	// Don't Starve Giant Edition uses this instruction + BSO
 	PPC_OPC_TEMPL3_XO();
 	uint32 result = hCPU->gpr[rA] + hCPU->gpr[rB];
 	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(hCPU->gpr[rA], hCPU->gpr[rB], result));
@@ -113,7 +113,6 @@ static void PPCInterpreter_ADDEO(PPCInterpreter_t* hCPU, uint32 opcode)
 	else
 		hCPU->xer_ca = 0;
 	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(a, b, hCPU->gpr[rD]));
-	// update CR
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -130,7 +129,7 @@ static void PPCInterpreter_ADDI(PPCInterpreter_t* hCPU, uint32 opcode)
 
 static void PPCInterpreter_ADDIC(PPCInterpreter_t* hCPU, uint32 opcode)
 {
-	int rD, rA;
+	sint32 rD, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
 	uint32 a = hCPU->gpr[rA];
@@ -145,7 +144,7 @@ static void PPCInterpreter_ADDIC(PPCInterpreter_t* hCPU, uint32 opcode)
 
 static void PPCInterpreter_ADDIC_(PPCInterpreter_t* hCPU, uint32 opcode)
 {
-	int rD, rA;
+	sint32 rD, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
 	uint32 a = hCPU->gpr[rA];
@@ -155,14 +154,13 @@ static void PPCInterpreter_ADDIC_(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->xer_ca = 1;
 	else
 		hCPU->xer_ca = 0;
-	// update cr0 flags
 	ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
 static void PPCInterpreter_ADDIS(PPCInterpreter_t* hCPU, uint32 opcode)
 {
-	int rD, rA;
+	sint32 rD, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_Shift16(opcode, rD, rA, imm);
 	hCPU->gpr[rD] = (rA ? hCPU->gpr[rA] : 0) + imm;
@@ -185,6 +183,23 @@ static void PPCInterpreter_ADDZE(PPCInterpreter_t* hCPU, uint32 opcode)
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
+static void PPCInterpreter_ADDZEO(PPCInterpreter_t* hCPU, uint32 opcode)
+{
+	PPC_OPC_TEMPL3_XO();
+	PPC_ASSERT(rB == 0);
+	uint32 a = hCPU->gpr[rA];
+	uint32 ca = hCPU->xer_ca;
+	hCPU->gpr[rD] = a + ca;
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(a, 0, hCPU->gpr[rD]));
+	if ((a == 0xffffffff) && ca)
+		hCPU->xer_ca = 1;
+	else
+		hCPU->xer_ca = 0;
+	if (opHasRC())
+		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
 static void PPCInterpreter_ADDME(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
@@ -192,6 +207,23 @@ static void PPCInterpreter_ADDME(PPCInterpreter_t* hCPU, uint32 opcode)
 	uint32 a = hCPU->gpr[rA];
 	uint32 ca = hCPU->xer_ca;
 	hCPU->gpr[rD] = a + ca + 0xffffffff;
+	if (a || ca)
+		hCPU->xer_ca = 1;
+	else
+		hCPU->xer_ca = 0;
+	if (opHasRC())
+		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
+static void PPCInterpreter_ADDMEO(PPCInterpreter_t* hCPU, uint32 opcode)
+{
+	PPC_OPC_TEMPL3_XO();
+	PPC_ASSERT(rB == 0);
+	uint32 a = hCPU->gpr[rA];
+	uint32 ca = hCPU->xer_ca;
+	hCPU->gpr[rD] = a + ca + 0xffffffff;
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(a, 0xffffffff, hCPU->gpr[rD]));
 	if (a || ca)
 		hCPU->xer_ca = 1;
 	else
@@ -260,7 +292,7 @@ static void PPCInterpreter_SUBFCO(PPCInterpreter_t* hCPU, uint32 opcode)
 
 static void PPCInterpreter_SUBFIC(PPCInterpreter_t* hCPU, uint32 opcode)
 {
-	int rD, rA;
+	sint32 rD, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
 	uint32 a = hCPU->gpr[rA];
@@ -284,7 +316,6 @@ static void PPCInterpreter_SUBFE(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->xer_ca = 1;
 	else
 		hCPU->xer_ca = 0;
-	// update cr0
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -304,7 +335,6 @@ static void PPCInterpreter_SUBFEO(PPCInterpreter_t* hCPU, uint32 opcode)
 	else
 		hCPU->xer_ca = 0;
 	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(~a, b, result));
-	// update cr0
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -326,9 +356,25 @@ static void PPCInterpreter_SUBFZE(PPCInterpreter_t* hCPU, uint32 opcode)
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
+static void PPCInterpreter_SUBFZEO(PPCInterpreter_t* hCPU, uint32 opcode)
+{
+	PPC_OPC_TEMPL3_XO();
+	PPC_ASSERT(rB == 0);
+	uint32 a = hCPU->gpr[rA];
+	uint32 ca = hCPU->xer_ca;
+	hCPU->gpr[rD] = ~a + ca;
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(~a, 0, hCPU->gpr[rD]));
+	if (a == 0 && ca)
+		hCPU->xer_ca = 1;
+	else
+		hCPU->xer_ca = 0;
+	if (opHasRC())
+		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
 static void PPCInterpreter_SUBFME(PPCInterpreter_t* hCPU, uint32 opcode)
 {
-	// untested
 	PPC_OPC_TEMPL3_XO();
 	PPC_ASSERT(rB == 0);
 	uint32 a = hCPU->gpr[rA];
@@ -339,7 +385,24 @@ static void PPCInterpreter_SUBFME(PPCInterpreter_t* hCPU, uint32 opcode)
 		hCPU->xer_ca = 1;
 	else
 		hCPU->xer_ca = 0;
-	// update cr0
+	if (opcode & PPC_OPC_RC)
+		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
+static void PPCInterpreter_SUBFMEO(PPCInterpreter_t* hCPU, uint32 opcode)
+{
+	PPC_OPC_TEMPL3_XO();
+	PPC_ASSERT(rB == 0);
+	uint32 a = hCPU->gpr[rA];
+	uint32 ca = hCPU->xer_ca;
+	hCPU->gpr[rD] = ~a + 0xFFFFFFFF + ca;
+	PPCInterpreter_setXerOV(hCPU, checkAdditionOverflow(~a, 0xFFFFFFFF, hCPU->gpr[rD]));
+	// update xer carry
+	if (ppc_carry_3(~a, 0xFFFFFFFF, ca))
+		hCPU->xer_ca = 1;
+	else
+		hCPU->xer_ca = 0;
 	if (opcode & PPC_OPC_RC)
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -352,13 +415,8 @@ static void PPCInterpreter_MULHW_(PPCInterpreter_t* hCPU, uint32 opcode)
 	sint64 b = (sint32)hCPU->gpr[rB];
 	sint64 c = a * b;
 	hCPU->gpr[rD] = ((uint64)c) >> 32;
-	if (opcode & PPC_OPC_RC) {
-		// update cr0 flags
-#ifdef CEMU_DEBUG_ASSERT
-		assert_dbg();
-#endif
+	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
-	}
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
@@ -409,14 +467,14 @@ static void PPCInterpreter_MULLI(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_DIVW(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	sint32 a = hCPU->gpr[rA];
-	sint32 b = hCPU->gpr[rB];
+	sint32 a = (sint32)hCPU->gpr[rA];
+	sint32 b = (sint32)hCPU->gpr[rB];
 	if (b == 0)
-	{
-		cemuLog_logDebug(LogType::Force, "Error: Division by zero! [{:08x}]", (uint32)hCPU->instructionPointer);
-		b++;
-	}
-	hCPU->gpr[rD] = a / b;
+		hCPU->gpr[rD] = a < 0 ? 0xFFFFFFFF : 0;
+	else if (a == 0x80000000 && b == 0xFFFFFFFF)
+		hCPU->gpr[rD] = 0xFFFFFFFF;
+	else
+		hCPU->gpr[rD] = a / b;
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -425,16 +483,23 @@ static void PPCInterpreter_DIVW(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_DIVWO(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	sint32 a = hCPU->gpr[rA];
-	sint32 b = hCPU->gpr[rB];
+	sint32 a = (sint32)hCPU->gpr[rA];
+	sint32 b = (sint32)hCPU->gpr[rB];
 	if (b == 0)
 	{
 		PPCInterpreter_setXerOV(hCPU, true);
-		PPCInterpreter_nextInstruction(hCPU);
-		return;
+		hCPU->gpr[rD] = a < 0 ? 0xFFFFFFFF : 0;
 	}
-	hCPU->gpr[rD] = a / b;
-	PPCInterpreter_setXerOV(hCPU, false);
+	else if(a == 0x80000000 && b == 0xFFFFFFFF)
+	{
+		PPCInterpreter_setXerOV(hCPU, true);
+		hCPU->gpr[rD] = 0xFFFFFFFF;
+	}
+	else
+	{
+		hCPU->gpr[rD] = a / b;
+		PPCInterpreter_setXerOV(hCPU, false);
+	}
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -443,12 +508,14 @@ static void PPCInterpreter_DIVWO(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_DIVWU(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	if (hCPU->gpr[rB] == 0)
-	{
-		PPCInterpreter_nextInstruction(hCPU);
-		return;
-	}
-	hCPU->gpr[rD] = hCPU->gpr[rA] / hCPU->gpr[rB];
+	uint32 a = hCPU->gpr[rA];
+	uint32 b = hCPU->gpr[rB];
+	if (b == 0)
+		hCPU->gpr[rD] = 0;
+	else if (a == 0x80000000 && b == 0xFFFFFFFF)
+		hCPU->gpr[rD] = 0;
+	else
+		hCPU->gpr[rD] = a / b;
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -457,14 +524,23 @@ static void PPCInterpreter_DIVWU(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_DIVWUO(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	if (hCPU->gpr[rB] == 0)
+	uint32 a = hCPU->gpr[rA];
+	uint32 b = hCPU->gpr[rB];
+	if (b == 0)
 	{
 		PPCInterpreter_setXerOV(hCPU, true);
-		PPCInterpreter_nextInstruction(hCPU);
-		return;
+		hCPU->gpr[rD] = 0;
 	}
-	hCPU->gpr[rD] = hCPU->gpr[rA] / hCPU->gpr[rB];
-	PPCInterpreter_setXerOV(hCPU, false);
+	else if(a == 0x80000000 && b == 0xFFFFFFFF)
+	{
+		PPCInterpreter_setXerOV(hCPU, false);
+		hCPU->gpr[rD] = 0;
+	}
+	else
+	{
+		hCPU->gpr[rD] = a / b;
+		PPCInterpreter_setXerOV(hCPU, false);
+	}
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -488,6 +564,13 @@ static void PPCInterpreter_CRANDC(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL_X_CR();
 	ppc_setCRBit(hCPU, crD, ppc_getCRBit(hCPU, crA)&(ppc_getCRBit(hCPU, crB) ^ 1));
+	PPCInterpreter_nextInstruction(hCPU);
+}
+
+static void PPCInterpreter_CRNAND(PPCInterpreter_t* hCPU, uint32 opcode)
+{
+	PPC_OPC_TEMPL_X_CR();
+	ppc_setCRBit(hCPU, crD, (ppc_getCRBit(hCPU, crA)&ppc_getCRBit(hCPU, crB)) ^ 1);
 	PPCInterpreter_nextInstruction(hCPU);
 }
 

@@ -151,6 +151,6 @@ if(UNIX AND NOT APPLE)
 	target_link_options(CemuBin PRIVATE "$<$<CONFIG:Release>:-Xlinker;--strip-debug>")
 endif()
 
-if (ENABLE_WXWIDGETS)
-	target_link_libraries(CemuBin PRIVATE wx::base wx::core)
+if (BSD)
+	target_link_libraries(CemuBin PRIVATE execinfo SPIRV-Tools SPIRV-Tools-opt)
 endif()
