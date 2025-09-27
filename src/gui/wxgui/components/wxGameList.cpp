@@ -517,6 +517,9 @@ std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, 
 	  return CafeTitleList::GetGameInfo(id).GetRegion();
 	};
 
+	if (!sortData->asc)
+		std::swap(titleId1, titleId2);
+
 	switch(sortData->column)
 	{
 	default:
@@ -545,7 +548,7 @@ std::weak_ordering wxGameList::SortComparator(uint64 titleId1, uint64 titleId2, 
 int wxGameList::SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData)
 {
 	const auto sort_data = (SortData*)sortData;
-	return sort_data->dir * order_to_int(sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data));
+	return order_to_int(sort_data->thisptr->SortComparator((uint64)item1, (uint64)item2, sort_data));
 }
 
 void wxGameList::SortEntries(int column)
@@ -569,7 +572,7 @@ void wxGameList::SortEntries(int column)
 	case ColumnRegion:
 	case ColumnTitleID:
 	{
-		SortData data{this, ItemColumns{column}, ascending ? 1 : -1};
+		SortData data{this, ItemColumns{column}, ascending};
 		SortItems(SortFunction, (wxIntPtr)&data);
 		ShowSortIndicator(column, ascending);
 		break;
@@ -1680,7 +1683,8 @@ void wxGameList::CreateShortcut(GameInfo2& gameInfo)
 			hres = shellLinkFile->Save(outputPath.wc_str(), TRUE);
 		}
 	}
-	if (!SUCCEEDED(hres)) {
+	if (FAILED(hres))
+	{
 		auto errorMsg = formatWxString(_("Failed to save shortcut to {}"), outputPath);
 		wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 	}
