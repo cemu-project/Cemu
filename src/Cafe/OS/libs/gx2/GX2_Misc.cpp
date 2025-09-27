@@ -206,8 +206,12 @@ namespace GX2
 
 	void GX2SetTVGamma(float gamma)
 	{
-		if (abs(gamma - 1.0f) > 0.01f)
-			cemuLog_logDebug(LogType::Force, "TV gamma set to {} which is not supported", gamma);
+		LatteGPUState.tvGamma = (1.0f - gamma);
+	}
+
+	void GX2SetDRCGamma(float gamma)
+	{
+		LatteGPUState.drcGamma = (1.0f - gamma);
 	}
 
 	bool GX2GetLastFrame(uint32 deviceId, GX2Texture* textureOut)
@@ -307,6 +311,7 @@ namespace GX2
 
 		cafeExportRegister("gx2", GX2SetTVBuffer, LogType::GX2);
 		cafeExportRegister("gx2", GX2SetTVGamma, LogType::GX2);
+		cafeExportRegister("gx2", GX2SetDRCGamma, LogType::GX2);
 
 		cafeExportRegister("gx2", GX2GetLastFrame, LogType::GX2);
 		cafeExportRegister("gx2", GX2GetLastFrameGammaA, LogType::GX2);
