@@ -57,7 +57,7 @@ public:
 			sint32 lod_bias = -1; // in 1/64th steps
 			sint32 relative_lod_bias = -1; // in 1/64th steps
 			sint32 anistropic_value = -1; // 1<<n
-		} overwrite_settings;		
+		} overwrite_settings;
 	};
 
 	struct CustomShader
@@ -67,6 +67,7 @@ public:
 		uint64 shader_aux_hash;
 		GP_SHADER_TYPE type;
 		bool isPreVulkanShader{}; // set to true for V3 packs since the shaders are not compatible with the Vulkan renderer
+		bool isMetalShader{}; // set to true if the shader is written in Metal Shading Language
 	};
 
 	enum VarType
@@ -85,13 +86,13 @@ public:
 		bool active = false; // selected/active preset
 		bool visible = true; // set by condition or true
 		bool is_default = false; // selected by default
-		
+
 		Preset(std::string_view name, std::unordered_map<std::string, PresetVar> vars)
 			: name(name), variables(std::move(vars)) {}
 
 		Preset(std::string_view category, std::string_view name, std::unordered_map<std::string, PresetVar> vars)
 			: category(category), name(name), variables(std::move(vars)) {}
-		
+
 		Preset(std::string_view category, std::string_view name, std::string_view condition, std::unordered_map<std::string, PresetVar> vars)
 			: category(category), name(name), condition(condition), variables(std::move(vars)) {}
 	};
@@ -136,19 +137,19 @@ public:
 	bool SetActivePreset(std::string_view category, std::string_view name, bool update_visibility = true);
 	bool SetActivePreset(std::string_view name);
 	void UpdatePresetVisibility();
-	
+
 	void AddConstantsForCurrentPreset(ExpressionParser& ep);
 	bool ResolvePresetConstant(const std::string& varname, double& value) const;
 
 	[[nodiscard]] const std::vector<PresetPtr>& GetPresets() const { return m_presets; }
 	[[nodiscard]] std::unordered_map<std::string, std::vector<PresetPtr>> GetCategorizedPresets(std::vector<std::string>& order) const;
-	
+
 	// shaders
 	void LoadShaders();
 	bool HasShaders() const;
 	const std::vector<CustomShader>& GetCustomShaders() const { return m_custom_shaders; }
 
-	static const std::string* FindCustomShaderSource(uint64 shaderBaseHash, uint64 shaderAuxHash, GP_SHADER_TYPE type, bool isVulkanRenderer);
+	static const std::string* FindCustomShaderSource(uint64 shaderBaseHash, uint64 shaderAuxHash, GP_SHADER_TYPE type, bool isVulkanRenderer, bool isMetalRenderer);
 
 	const std::string& GetOutputShaderSource() const { return m_output_shader_source; }
 	const std::string& GetDownscalingShaderSource() const { return m_downscaling_shader_source; }
@@ -194,7 +195,7 @@ private:
 			{
 				for (auto& var : preset->variables)
 					parser.AddConstant(var.first, (TType)var.second.second);
-			}	
+			}
 		}
 		for(const auto& preset : active_presets)
 		{
@@ -202,7 +203,7 @@ private:
 			{
 				for (auto& var : preset->variables)
 					parser.TryAddConstant(var.first, (TType)var.second.second);
-			}	
+			}
 		}
 
 		for (auto& var : m_preset_vars)
@@ -228,7 +229,7 @@ private:
 	bool m_activated = false; // set if the graphic pack is currently used by the running game
 	std::vector<uint64_t> m_title_ids;
 	bool m_patchedFilesLoaded = false; // set to true once patched files are loaded
-	
+
 	sint32 m_vsync_frequency = -1;
 	sint32 m_fs_priority = 100;
 
@@ -241,12 +242,12 @@ private:
 	std::vector<PresetPtr> m_presets;
 	// default preset vars
 	std::unordered_map<std::string, PresetVar> m_preset_vars;
-	
+
 	std::vector<CustomShader> m_custom_shaders;
 	std::vector<TextureRule> m_texture_rules;
 	std::string m_output_shader_source, m_upscaling_shader_source, m_downscaling_shader_source;
 	std::unique_ptr<RendererOutputShader> m_output_shader, m_upscaling_shader, m_downscaling_shader, m_output_shader_ud, m_upscaling_shader_ud, m_downscaling_shader_ud;
-	
+
 	template<typename T>
 	bool ParseRule(const ExpressionParser& parser, IniParser& iniParser, const char* option_name, T* value_out) const;
 
@@ -257,7 +258,7 @@ private:
 
 	std::vector<uint64> ParseTitleIds(IniParser& rules, const char* option_name) const;
 
-	CustomShader LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type) const;
+	CustomShader LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type, bool isMetalShader) const;
 	void ApplyShaderPresets(std::string& shader_source) const;
 	void LoadReplacedFiles();
 	void _iterateReplacedFiles(const fs::path& currentPath, bool isAOC, const char* virtualMountBase);
@@ -330,6 +331,6 @@ std::vector<T> GraphicPack2::ParseList(const ExpressionParser& parser, IniParser
 		}
 		catch (const std::invalid_argument&) {}
 	}
-	
+
 	return result;
 }

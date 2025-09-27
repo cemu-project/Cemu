@@ -33,6 +33,7 @@ enum class RendererAPI
 {
 	OpenGL,
 	Vulkan,
+	Metal,
 
 	MAX
 };
@@ -70,9 +71,9 @@ public:
 	void CancelScreenshotRequest();
 
 	virtual void HandleScreenshotRequest(LatteTextureView* texView, bool padView){}
-	
-	virtual void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, 
-												sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, 
+
+	virtual void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
+												sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,
 												bool padView, bool clearBackground) = 0;
 	virtual bool BeginFrame(bool mainWindow) = 0;
 
@@ -88,6 +89,7 @@ public:
 	virtual void DeleteFontTextures() = 0;
 
 	GfxVendor GetVendor() const { return m_vendor; }
+	virtual bool UseTFViaSSBO() const { return false; }
 	virtual void AppendOverlayDebugInfo() = 0;
 
 	// rendertarget

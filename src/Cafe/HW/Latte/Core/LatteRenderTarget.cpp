@@ -449,14 +449,6 @@ bool LatteMRT::UpdateCurrentFBO()
 	uint8 colorBufferMask = GetActiveColorBufferMask(pixelShader, LatteGPUState.contextNew);
 	bool depthBufferMask = GetActiveDepthBufferMask(LatteGPUState.contextNew);
 
-	// if depth test is not used then detach the depth buffer
-	bool depthEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_ENABLE();
-	bool stencilTestEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_STENCIL_ENABLE();
-	bool backStencilEnable = LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_BACK_STENCIL_ENABLE();
-
-	if (!depthEnable && !stencilTestEnable && !backStencilEnable)
-		depthBufferMask = false;
-
 	bool hasResizedTexture = false; // set to true if any of the color buffers or the depth buffer reference a resized texture (via graphic pack texture rules)
 	sLatteRenderTargetState.renderTargetIsResized = false;
 	// real size
@@ -723,8 +715,8 @@ void LatteRenderTarget_applyTextureColorClear(LatteTexture* texture, uint32 slic
 
 void LatteRenderTarget_applyTextureDepthClear(LatteTexture* texture, uint32 sliceIndex, uint32 mipIndex, bool hasDepthClear, bool hasStencilClear, float depthValue, uint8 stencilValue, uint64 eventCounter)
 {
-	if(texture->isDepth)	
-	{ 
+	if(texture->isDepth)
+	{
 		g_renderer->texture_clearDepthSlice(texture, sliceIndex, mipIndex, hasDepthClear, hasStencilClear, depthValue, stencilValue);
 	}
 	else
@@ -883,7 +875,7 @@ void LatteRenderTarget_copyToBackbuffer(LatteTextureView* textureView, bool isPa
 	textureView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
 	_currentOutputImageWidth = effectiveWidth;
 	_currentOutputImageHeight = effectiveHeight;
-	
+
 	sint32 imageX, imageY;
 	sint32 imageWidth, imageHeight;
 	sint32 fullscreenWidth, fullscreenHeight;
@@ -1037,7 +1029,7 @@ void LatteRenderTarget_updateViewport()
 	float vpX = LatteGPUState.contextNew.PA_CL_VPORT_XOFFSET.get_OFFSET() - LatteGPUState.contextNew.PA_CL_VPORT_XSCALE.get_SCALE();
 	float vpHeight = LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE() / -0.5f;
 	float vpY = LatteGPUState.contextNew.PA_CL_VPORT_YOFFSET.get_OFFSET() + LatteGPUState.contextNew.PA_CL_VPORT_YSCALE.get_SCALE();
-	
+
 	bool halfZ = LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF();
 
 	// calculate near/far
