@@ -70,6 +70,18 @@ add_definitions(-DEMULATOR_VERSION_PATCH=${EMULATOR_VERSION_PATCH})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+option(ENABLE_SSE42 "Enable SSE4.2 optimizations on x86_64" ON)
+
+# enable SSE optimizations
+if (ENABLE_SSE42 AND (CMAKE_SYSTEM_PROCESSOR MATCHES "(x86_64)|(AMD64)" OR CMAKE_OSX_ARCHITECTURES MATCHES "x86_64"))
+	message(STATUS "SSE4.2 enabled for x86_64")
+	if (MSVC)
+		add_compile_options(/arch:SSE4.2)
+	else()
+		add_compile_options(-msse4.2)
+	endif()
+endif()
+
 # enable link time optimization for release builds
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
