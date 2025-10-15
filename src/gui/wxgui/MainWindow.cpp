@@ -2109,7 +2109,8 @@ void MainWindow::RecreateMenu()
 		m_loadMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_LOAD, _("&Load..."));
 		m_installUpdateMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_INSTALL_UPDATE, _("&Install game title, update or DLC..."));
 
-		sint32 recentFileIndex = 0;
+		wxMenu* recentMenu = new wxMenu();
+		sint32 recentFileIndex = 1;
 		m_fileMenuSeparator0 = nullptr;
 		m_fileMenuSeparator1 = nullptr;
 		for (size_t i = 0; i < guiConfig.recent_launch_files.size(); i++)
@@ -2117,15 +2118,21 @@ void MainWindow::RecreateMenu()
 			const std::string& pathStr = guiConfig.recent_launch_files[i];
 			if (pathStr.empty())
 				continue;
-			if (recentFileIndex == 0)
-				m_fileMenuSeparator0 = m_fileMenu->AppendSeparator();
-			m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, pathStr)));
+			recentMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, pathStr)));
 			recentFileIndex++;
 
-			if (recentFileIndex >= 8)
+			if (recentFileIndex >= 10)
 				break;
 		}
-		m_fileMenuSeparator1 = m_fileMenu->AppendSeparator();
+		if (recentFileIndex == 0)
+		{
+			wxMenuItem* placeholder = recentMenu->Append(wxID_NONE, _("(No recent files)"));
+			placeholder->Enable(false);
+		}
+
+		m_fileMenu->AppendSeparator();
+		m_fileMenu->AppendSubMenu(recentMenu, _("Recent files"));
+		m_fileMenu->AppendSeparator();
 	}
 	else
 	{
