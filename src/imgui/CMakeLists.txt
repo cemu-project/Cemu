@@ -7,6 +7,15 @@ add_library(imguiImpl
 	imgui_extension.h
 )
 
+if (ENABLE_METAL)
+    target_sources(imguiImpl PRIVATE
+        imgui_impl_metal.mm
+        imgui_impl_metal.h
+    )
+
+    target_compile_definitions(imguiImpl PRIVATE IMGUI_IMPL_METAL_CPP)
+endif ()
+
 set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(imguiImpl PUBLIC "../")
