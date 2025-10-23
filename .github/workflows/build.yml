@@ -13,10 +13,22 @@ on:
 env:
   VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
-
+  VCPKG_FORCE_DOWNLOADED_BINARIES: true
+  
 jobs:
   build-ubuntu:
-    runs-on: ubuntu-22.04
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x64
+          - os: ubuntu-22.04-arm
+            arch: arm
+            
+    name: build-ubuntu-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v4
@@ -40,11 +52,6 @@ jobs:
       run: |
         sudo apt update -qq
         sudo apt install -y clang-15 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libudev-dev nasm ninja-build libbluetooth-dev
-
-    - name: "Setup cmake"
-      uses: jwlawson/actions-setup-cmake@v2
-      with:
-        cmake-version: '3.29.0'
 
     - name: "Bootstrap vcpkg"
       run: |
@@ -78,11 +85,21 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: cemu-bin-linux-x64
+        name: cemu-bin-linux-${{ matrix.arch }}
         path: ./bin/Cemu
 
   build-appimage:
-    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x64
+          - os: ubuntu-22.04-arm
+            arch: arm
+            
+    name: build-appimage-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
     needs: build-ubuntu
     steps:
     - name: Checkout Upstream Repo
@@ -90,7 +107,7 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
-        name: cemu-bin-linux-x64
+        name: cemu-bin-linux-${{ matrix.arch }}
         path: bin
 
     - name: "Install system dependencies"
@@ -102,12 +119,12 @@ jobs:
       run: |
         export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
         export DEPLOY_GTK_VERSION=3
-        dist/linux/appimage.sh
+        dist/linux/appimage.sh ${{ runner.arch }}
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: cemu-appimage-x64
+        name: cemu-appimage-${{ matrix.arch }}
         path: artifacts
 
   build-windows:
