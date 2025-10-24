@@ -270,11 +270,11 @@ private:
 	// occlusion queries
 	std::vector<class LatteQueryObjectGL*> list_queryCacheOcclusion; // cache for unused queries
 
-	// resource garbage collection	
+	// resource garbage collection
 	struct BufferCacheReleaseQueueEntry
 	{
 		BufferCacheReleaseQueueEntry(VirtualBufferHeap_t* heap, VirtualBufferHeapEntry_t* entry) : m_heap(heap), m_entry(entry) {};
-		
+
 		void free()
 		{
 			virtualBufferHeap_free(m_heap, m_entry);
