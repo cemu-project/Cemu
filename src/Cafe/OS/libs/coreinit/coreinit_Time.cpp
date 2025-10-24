@@ -278,6 +278,95 @@ namespace coreinit
 		return 31;
 	}
 
+	void dayNumberToCalendarDate(sint64 absoluteDayNumber, OSCalendarTime_t* cal)
+	{
+		cal->dayOfWeek = (absoluteDayNumber + 6) % 7;
+
+		sint32 year = static_cast<sint32>(absoluteDayNumber / 365);
+
+		sint64 numLeapsBeforeYear = getLeapDaysUntilYear(year);
+		sint64 startDayOfYear = numLeapsBeforeYear + (sint64)year * 365;
+
+		while (absoluteDayNumber < startDayOfYear)
+		{
+			year--;
+			numLeapsBeforeYear = getLeapDaysUntilYear(year);
+			startDayOfYear = numLeapsBeforeYear + (sint64)year * 365;
+		}
+
+		cal->year = year;
+
+		sint32 dayOfYear = static_cast<sint32>(absoluteDayNumber - startDayOfYear);
+		cal->dayOfYear = dayOfYear;
+
+		const uint32* monthCumulativeDaysTable = IsLeapYear(year) ? dayToMonthLeapYear : dayToMonth;
+
+		sint32 determinedMonth = 11;
+
+		for (sint32 i = 1; i < 12; ++i)
+		{
+			if (dayOfYear < monthCumulativeDaysTable[i])
+			{
+				determinedMonth = i - 1;
+				break;
+			}
+		}
+
+		cal->month = determinedMonth;
+		cal->dayOfMonth = (dayOfYear - monthCumulativeDaysTable[determinedMonth]) + 1;
+	}
+
+	void FSTimeToCalendarTime(uint64 fsTime, OSCalendarTime_t* outCalendarTime)
+	{
+		if (!outCalendarTime)
+		{
+			return;
+		}
+
+		uint64 totalMicroseconds = fsTime;
+
+		const uint64 MICROSECONDS_PER_MILLISECOND = 1000ULL;
+		const uint64 MICROSECONDS_PER_SECOND = 1000000ULL;
+		const sint64 SECONDS_PER_DAY = 86400LL;
+		// The FS epoch begins on 1980-01-01
+		// This is the number of days from 0000-01-01 to 1980-01-01
+		const sint64 FS_DAY_EPOCH_OFFSET = 723180LL;
+
+		uint64 remainderMicrosecondsInSecond = totalMicroseconds % MICROSECONDS_PER_SECOND;
+
+		outCalendarTime->millisecond = static_cast<sint32>(remainderMicrosecondsInSecond / MICROSECONDS_PER_MILLISECOND);
+		outCalendarTime->microsecond = static_cast<sint32>(remainderMicrosecondsInSecond % MICROSECONDS_PER_MILLISECOND);
+
+		sint64 totalSecondsSinceFsEpoch = static_cast<sint64>(totalMicroseconds / MICROSECONDS_PER_SECOND);
+
+		sint64 totalDaysRawSinceFsEpoch;
+		sint64 secondsInDay;
+
+		if (totalSecondsSinceFsEpoch >= 0)
+		{
+			totalDaysRawSinceFsEpoch = totalSecondsSinceFsEpoch / SECONDS_PER_DAY;
+			secondsInDay = totalSecondsSinceFsEpoch % SECONDS_PER_DAY;
+		}
+		else
+		{
+			totalDaysRawSinceFsEpoch = totalSecondsSinceFsEpoch / SECONDS_PER_DAY;
+			secondsInDay = totalSecondsSinceFsEpoch % SECONDS_PER_DAY;
+			if (secondsInDay < 0)
+			{
+				secondsInDay += SECONDS_PER_DAY;
+				totalDaysRawSinceFsEpoch--;
+			}
+		}
+
+		sint64 absoluteDayNumber = totalDaysRawSinceFsEpoch + FS_DAY_EPOCH_OFFSET;
+
+		dayNumberToCalendarDate(absoluteDayNumber, outCalendarTime);
+
+		outCalendarTime->second = static_cast<sint32>(secondsInDay % 60);
+		outCalendarTime->minute = static_cast<sint32>((secondsInDay / 60) % 60);
+		outCalendarTime->hour = static_cast<sint32>((secondsInDay / 3600));
+	}
+
 	void verifyDateMatch(OSCalendarTime_t* ct1, OSCalendarTime_t* ct2)
 	{
 		sint64 m1 = ct1->millisecond * 1000 + ct1->microsecond;
@@ -360,6 +449,7 @@ namespace coreinit
 
 		cafeExportRegister("coreinit", OSTicksToCalendarTime, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSCalendarTimeToTicks, LogType::Placeholder);
+		cafeExportRegister("coreinit", FSTimeToCalendarTime, LogType::Placeholder);
 
 		//timeTest();
 	}
