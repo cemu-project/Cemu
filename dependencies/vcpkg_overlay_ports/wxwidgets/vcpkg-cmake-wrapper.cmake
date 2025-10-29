@@ -9,7 +9,7 @@ set(WX_ROOT_DIR "${_vcpkg_wx_root}" CACHE INTERNAL "")
 unset(_vcpkg_wx_root)
 
 if(WIN32)
-    # Find all libs with "32" infix which is unknown to FindwxWidgets.cmake
+    # Find all libs with "33" infix which is unknown to FindwxWidgets.cmake
     function(z_vcpkg_wxwidgets_find_base_library BASENAME)
         find_library(WX_${BASENAME}d wx${BASENAME}33ud NAMES wx${BASENAME}d PATHS "${wxWidgets_ROOT_DIR}/debug/lib" NO_DEFAULT_PATH)
         find_library(WX_${BASENAME}  wx${BASENAME}33u  NAMES wx${BASENAME}  PATHS "${wxWidgets_ROOT_DIR}/lib" NO_DEFAULT_PATH REQUIRED)
