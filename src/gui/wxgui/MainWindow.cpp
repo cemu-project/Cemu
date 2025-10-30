@@ -14,6 +14,7 @@
 #include "AudioDebuggerWindow.h"
 #include "wxgui/canvas/OpenGLCanvas.h"
 #include "wxgui/canvas/VulkanCanvas.h"
+#include "wxgui/canvas/MetalCanvas.h"
 #include "Cafe/OS/libs/nfc/nfc.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
 #include "wxgui/debugger/DebuggerWindow2.h"
@@ -64,6 +65,10 @@
 #include "gamemode_client.h"
 #endif
 
+#if ENABLE_METAL
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#endif
+
 #include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -100,7 +105,7 @@ enum
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_12 = 20350 + 11,
-	
+
 	// options -> system language
 	MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_JAPANESE = 20500,
 	MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH,
@@ -143,6 +148,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS,
 	MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY,
 	MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS,
+	MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE,
 
 	// debug->logging
 	MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE = 21499,
@@ -225,6 +231,7 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, MainWindow::OnDebugSetting)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, MainWindow::OnDebugSetting)
 // debug -> View ...
@@ -257,7 +264,7 @@ public:
 	{
 		if(!m_window->IsGameLaunched() && filenames.GetCount() == 1)
 			return m_window->FileLoad(_utf8ToPath(filenames[0].utf8_string()), wxLaunchGameEvent::INITIATED_BY::DRAG_AND_DROP);
-		
+
 		return false;
 	}
 
@@ -473,7 +480,7 @@ bool MainWindow::InstallUpdate(const fs::path& metaFilePath)
 			{
 				throw std::runtime_error(frame.GetExceptionMessage());
 			}
-		}		
+		}
 	}
 	catch(const AbortException&)
 	{
@@ -657,13 +664,13 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 			_("Wii U executable (*.rpx, *.elf)"),
 			_("All files (*.*)")
 		);
-		
+
 		wxFileDialog openFileDialog(this, _("Open file to launch"), wxEmptyString, wxEmptyString, wildcard, wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 		if (openFileDialog.ShowModal() == wxID_CANCEL || openFileDialog.GetPath().IsEmpty())
 			return;
 
-		const wxString wxStrFilePath = openFileDialog.GetPath();	
+		const wxString wxStrFilePath = openFileDialog.GetPath();
 		FileLoad(_utf8ToPath(wxStrFilePath.utf8_string()), wxLaunchGameEvent::INITIATED_BY::MENU);
 	}
 	else if (menuId >= MAINFRAME_MENU_ID_FILE_RECENT_0 && menuId <= MAINFRAME_MENU_ID_FILE_RECENT_LAST)
@@ -814,7 +821,7 @@ void MainWindow::TogglePadView()
 	{
 		if (m_padView)
 			return;
-		
+
 		m_padView = new PadViewFrame(this);
 
 		m_padView->Bind(wxEVT_CLOSE_WINDOW, &MainWindow::OnPadClose, this);
@@ -1029,7 +1036,7 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 //		GetConfig().cpu_mode = CPUMode::TriplecoreRecompiler;
 //	else
 //		cemu_assert_debug(false);
-//	
+//
 //	GetConfigHandle().Save();
 //}
 
@@ -1043,6 +1050,14 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		if(!GetConfig().vk_accurate_barriers)
 			wxMessageBox(_("Warning: Disabling the accurate barriers option will lead to flickering graphics but may improve performance. It is highly recommended to leave it turned on."), _("Accurate barriers are off"), wxOK);
 	}
+	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE)
+    {
+        cemu_assert_debug(g_renderer->GetType() == RendererAPI::Metal);
+
+#if ENABLE_METAL
+        static_cast<MetalRenderer*>(g_renderer.get())->CaptureFrame();
+#endif
+    }
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY)
 		ActiveSettings::EnableAudioOnlyAux(event.IsChecked());
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_RAM)
@@ -1093,7 +1108,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		ActiveSettings::SetTimerShiftFactor(6);
 	else
 		cemu_assert_debug(false);
-	
+
 	GetConfigHandle().Save();
 }
 
@@ -1165,7 +1180,7 @@ void MainWindow::OnLoggingWindow(wxCommandEvent& event)
 		return;
 
 	m_logging_window = new LoggingWindow(this);
-	m_logging_window->Bind(wxEVT_CLOSE_WINDOW, 
+	m_logging_window->Bind(wxEVT_CLOSE_WINDOW,
 		[this](wxCloseEvent& event) {
 		m_logging_window = nullptr;
 		event.Skip();
@@ -1340,7 +1355,7 @@ void MainWindow::SaveSettings()
 {
 	auto lock = GetConfigHandle().Lock();
 	auto& config = GetWxGUIConfig();
-	
+
 	if (config.window_position != Vector2i{ -1,-1 })
 	{
 		config.window_position.x = m_restored_position.x;
@@ -1377,7 +1392,7 @@ void MainWindow::SaveSettings()
 
 	if(m_game_list)
 		m_game_list->SaveConfig();
-	
+
 	g_wxConfig.Save();
 }
 
@@ -1407,14 +1422,14 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 void MainWindow::OnMouseLeft(wxMouseEvent& event)
 {
 	auto& instance = InputManager::instance();
-	
+
 	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
 	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
 		instance.m_main_mouse.left_down_toggle = true;
-	
+
 	event.Skip();
 }
 
@@ -1428,7 +1443,7 @@ void MainWindow::OnMouseRight(wxMouseEvent& event)
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
 	if(event.ButtonDown(wxMOUSE_BTN_RIGHT))
 		instance.m_main_mouse.right_down_toggle = true;
-	
+
 	event.Skip();
 }
 
@@ -1485,7 +1500,7 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
 #endif
     else
     {
-        event.Skip(); 
+        event.Skip();
     }
 }
 
@@ -1493,7 +1508,7 @@ void MainWindow::OnChar(wxKeyEvent& event)
 {
 	if (swkbd_hasKeyboardInputHook())
 		swkbd_keyInput(event.GetUnicodeKey());
-	
+
 	// event.Skip();
 }
 
@@ -1518,7 +1533,7 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 	case MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER:
 	{
 		const auto default_tab = id == MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER ? TitleManagerPage::TitleManager : TitleManagerPage::DownloadManager;
-			
+
 		if (m_title_manager)
 			m_title_manager->SetFocusAndTab(default_tab);
 		else
@@ -1568,7 +1583,7 @@ void MainWindow::OnGesturePan(wxPanGestureEvent& event)
 	instance.m_main_touch.left_down = event.IsGestureStart() || !event.IsGestureEnd();
 	if (event.IsGestureStart() || !event.IsGestureEnd())
 		instance.m_main_touch.left_down_toggle = true;
-	
+
 
 	event.Skip();
 }
@@ -1602,8 +1617,12 @@ void MainWindow::CreateCanvas()
     // create canvas
     if (ActiveSettings::GetGraphicsAPI() == kVulkan)
 		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
-	else
+	else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
+#if ENABLE_METAL
+	else
+	    m_render_canvas = new MetalCanvas(m_game_panel, wxSize(1280, 720), true);
+#endif
 
 	// mouse events
 	m_render_canvas->Bind(wxEVT_MOTION, &MainWindow::OnMouseMove, this);
@@ -1783,10 +1802,10 @@ void MainWindow::UpdateNFCMenu()
 		const auto& entry = config.recent_nfc_files[i];
 		if (entry.empty())
 			continue;
-		
+
 		if (!fs::exists(_utf8ToPath(entry)))
 			continue;
-		
+
 		if (recentFileIndex == 0)
 			m_nfcMenuSeparator0 = m_nfcMenu->AppendSeparator();
 
@@ -1837,7 +1856,7 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 	{
 		ShowCursor(false);
 	}
-		
+
 }
 
 #define BUILD_DATE __DATE__ " " __TIME__
@@ -2106,9 +2125,9 @@ void MainWindow::RecreateMenu()
 		m_menuBar->Destroy();
 		m_menuBar = nullptr;
 	}
-	
+
 	auto& guiConfig = GetWxGUIConfig();
-	
+
 	m_menuBar = new wxMenuBar();
 	// file submenu
 	m_fileMenu = new wxMenu();
@@ -2171,7 +2190,7 @@ void MainWindow::RecreateMenu()
 		item->Check(account_id == account.GetPersistentId());
 		if (m_game_launched || LaunchSettings::GetPersistentId().has_value())
 			item->Enable(false);
-		
+
 		++index;
 	}
 
@@ -2203,8 +2222,8 @@ void MainWindow::RecreateMenu()
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu();
 	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"), wxEmptyString);
-	m_fullscreenMenuItem->Check(FullscreenEnabled());		
-	
+	m_fullscreenMenuItem->Check(FullscreenEnabled());
+
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2, _("&Graphic packs"));
 	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
 	m_padViewMenuItem->Check(wxConfig.pad_open);
@@ -2303,7 +2322,7 @@ void MainWindow::RecreateMenu()
 	debugMenu->AppendSubMenu(debugLoggingMenu, _("&Logging"));
 	debugMenu->AppendSubMenu(debugDumpMenu, _("&Dump"));
 	debugMenu->AppendSeparator();
-	
+
 	auto upsidedownItem = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, _("&Render upside-down"), wxEmptyString);
 	upsidedownItem->Check(ActiveSettings::RenderUpsideDownEnabled());
 	if(LaunchSettings::RenderUpsideDownEnabled().has_value())
@@ -2311,6 +2330,9 @@ void MainWindow::RecreateMenu()
 
 	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"), wxEmptyString);
 	accurateBarriers->Check(GetConfig().vk_accurate_barriers);
+
+    auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, _("&GPU capture (Metal)"));
+    gpuCapture->Enable(m_game_launched && g_renderer->GetType() == RendererAPI::Metal);
 
 	debugMenu->AppendSeparator();
 

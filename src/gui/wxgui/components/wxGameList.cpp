@@ -72,8 +72,11 @@ std::list<fs::path> _getCachesPaths(const TitleId& titleId)
 		ActiveSettings::GetCachePath(L"shaderCache/driver/vk/{:016x}.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_spirv.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_gl.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_air.bin", titleId),
 		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_shaders.bin", titleId),
-		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_vkpipeline.bin", titleId)};
+		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_mtlshaders.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_vkpipeline.bin", titleId),
+		ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_mtlpipeline.bin", titleId)};
 
 	cachePaths.remove_if(
 		[](const fs::path& cachePath)
@@ -251,13 +254,13 @@ void wxGameList::OnGameListSize(wxSizeEvent &event)
 	for(int i = GetColumnCount() - 1; i > 0; i--)
 	{
 #ifdef wxHAS_LISTCTRL_COLUMN_ORDER
-		if(GetColumnWidth(GetColumnIndexFromOrder(i)) > 0) 
+		if(GetColumnWidth(GetColumnIndexFromOrder(i)) > 0)
 		{
 			last_col_index = GetColumnIndexFromOrder(i);
 			break;
 		}
 #else
-		if(GetColumnWidth(i) > 0) 
+		if(GetColumnWidth(i) > 0)
 		{
 			last_col_index = i;
 			break;
@@ -1024,13 +1027,13 @@ void wxGameList::OnColumnBeginResize(wxListEvent& event)
 	for(int i = GetColumnCount() - 1; i > 0; i--)
 	{
 #ifdef wxHAS_LISTCTRL_COLUMN_ORDER
-		if(GetColumnWidth(GetColumnIndexFromOrder(i)) > 0) 
+		if(GetColumnWidth(GetColumnIndexFromOrder(i)) > 0)
 		{
 			last_col_index = GetColumnIndexFromOrder(i);
 			break;
 		}
 #else
-		if(GetColumnWidth(i) > 0) 
+		if(GetColumnWidth(i) > 0)
 		{
 			last_col_index = i;
 			break;
@@ -1175,7 +1178,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 					wxString minutesText = formatWxString(wxPLURAL("{} minute", "{} minutes", minutes), minutes);
 					SetItem(index, ColumnGameTime, hoursText + " " + minutesText);
 				}
-				
+
 				// last played
 				if (playTimeStat.last_played.year != 0)
 				{
@@ -1390,7 +1393,7 @@ bool wxGameList::QueryIconForTitle(TitleId titleId, int& icon, int& iconSmall)
 	return true;
 }
 
-void wxGameList::DeleteCachedStrings() 
+void wxGameList::DeleteCachedStrings()
 {
 	m_name_cache.clear();
 }

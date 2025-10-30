@@ -220,7 +220,7 @@ bool cemuLog_log(LogType type, std::string_view text)
 
 bool cemuLog_log(LogType type, std::u8string_view text)
 {
-	std::basic_string_view<char> s((char*)text.data(), text.size());	
+	std::basic_string_view<char> s((char*)text.data(), text.size());
 	return cemuLog_log(type, s);
 }
 
