@@ -54,6 +54,8 @@ struct LatteGPUState_t
 	// temporary (replace with proper solution later)
 	bool tvBufferUsesSRGB;
 	bool drcBufferUsesSRGB;
+	float tvGamma = 0.0f;
+	float drcGamma = 0.0f;
 	// draw state
 	bool activeShaderHasError; // if try, at least one currently bound shader stage has an error and cannot be used for drawing
 	bool repeatTextureInitialization; // if set during rendertarget or texture initialization, repeat the process (textures likely have been invalidated)
