@@ -344,6 +344,9 @@ void WiimoteControllerProvider::reader_thread()
 							new_state.m_extension = {};
 							request_status(index);
 							break;
+						case kExtensionMotionPlusInactive:
+                            cemuLog_logDebug(LogType::Force,"Extension Type Received: Inactive MotionPlus");
+							break;
 						default:
                             cemuLog_logDebug(LogType::Force,"Unknown extension: {:#x}", be_type.value());
                             new_state.m_extension = {};

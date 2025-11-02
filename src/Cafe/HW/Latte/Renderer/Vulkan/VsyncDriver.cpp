@@ -80,7 +80,7 @@ private:
 
 		D3DKMT_OPENADAPTERFROMHDC OpenAdapterData;
 
-		*phAdapter = NULL;
+		*phAdapter = 0;
 		*pOutput = 0;
 
 		HMONITOR hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONEAREST);

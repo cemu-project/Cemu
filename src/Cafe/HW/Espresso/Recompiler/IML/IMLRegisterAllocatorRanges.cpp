@@ -276,7 +276,7 @@ void IMLRA_DeleteAllRanges(ppcImlGenContext_t* ppcImlGenContext)
 	for(auto& seg : ppcImlGenContext->segmentList2)
 	{
 		raLivenessRange* cur;
-		while(cur = seg->raInfo.linkedList_allSubranges)
+		while ((cur = seg->raInfo.linkedList_allSubranges))
 			IMLRA_DeleteRange(ppcImlGenContext, cur);
 		seg->raInfo.linkedList_allSubranges = nullptr;
 		seg->raInfo.linkedList_perVirtualRegister.clear();

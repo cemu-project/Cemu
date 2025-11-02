@@ -1216,10 +1216,9 @@ void GeneralSettings2::OnVolumeChanged(wxCommandEvent& event)
 		if(event.GetEventObject() == m_pad_volume)
 		{
 			if (g_padAudio)
-			{
 				g_padAudio->SetVolume(event.GetInt());
-				g_padVolume = event.GetInt();
-			}
+
+			g_padVolume = event.GetInt();
 		}
 		else if (event.GetEventObject() == m_tv_volume)
 		{
@@ -1241,11 +1240,8 @@ void GeneralSettings2::OnInputVolumeChanged(wxCommandEvent& event)
 {
 	std::shared_lock lock(g_audioMutex);
 	if (g_padAudio)
-	{
 		g_padAudio->SetInputVolume(event.GetInt());
-		g_padVolume = event.GetInt();
-	}
-		
+
 	event.Skip();
 }
 
@@ -1947,11 +1943,12 @@ void GeneralSettings2::UpdateAudioDevice()
 				else
 					channels = CemuConfig::AudioChannelsToNChannels(config.pad_channels);
 
+				g_padVolume = m_pad_volume->GetValue();
+
 				try
 				{
 					g_padAudio = IAudioAPI::CreateDevice((IAudioAPI::AudioAPI)config.audio_api, description->GetDescription(), 48000, channels, snd_core::AX_SAMPLES_PER_3MS_48KHZ * AX_FRAMES_PER_GROUP, 16);
 					g_padAudio->SetVolume(m_pad_volume->GetValue());
-					g_padVolume = m_pad_volume->GetValue();
 				}
 				catch (std::runtime_error& ex)
 				{
