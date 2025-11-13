@@ -406,9 +406,9 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 
 		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
 		m_userDisplayisSRGB->SetToolTip(_("Select this if Cemu is being displayed using a piecewise sRGB gamma curve\n"
-										  "This is usually only the case if you use an HDR display (with HDR enabled), if you calibrated your SDR display and use windows 11's Auto Color Management, "
+										  "This is usually only the case if you use an HDR display (with HDR enabled), if you calibrated your SDR display and use Windows 11's Auto Color Management, "
 										  "or if you use a display profile with a VCGT tag that targets piecewise sRGB\n"
-										  "Colors will be more accurate, especially in dark scenes, but this may result in banding and/or crushed shadows\n"
+										  "Colors will be more accurate, especially in dark scenes, but this may result in banding or crushed shadows\n"
 										  "To avoid this, display Cemu with a pure gamma curve if possible and leave this box unchecked."));
 		m_userDisplayisSRGB->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnUserDisplaySRGBSelected, this);
 
