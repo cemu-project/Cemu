@@ -361,28 +361,6 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_vsync->SetToolTip(_("Controls the vsync state"));
 		row->Add(m_vsync, 0, wxALL, 5);
 
-		row->Add(new wxStaticText(box, wxID_ANY, _("Override gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_overrideGamma = new wxCheckBox(box, wxID_ANY, "", wxDefaultPosition, {230, -1});
-		m_overrideGamma->SetToolTip(_("Ignore app gamma preference"));
-		row->Add(m_overrideGamma, 0, wxALL, 5);
-
-		row->Add(new wxStaticText(box, wxID_ANY, _("Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_overrideGammaValue = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
-		row->Add(m_overrideGammaValue, 0, wxALL, 5);
-
-
-		row->Add(new wxStaticText(box, wxID_ANY, _("Display Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-
-		wxBoxSizer* test = new wxBoxSizer(wxHORIZONTAL);
-		row->Add(test);
-		m_userDisplayGamma = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
-		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
-		m_userDisplayisSRGB->SetToolTip(_("Select this if your screen is standard compliant sRGB.\nMore accurate but may result in banding and/or crushed shadows."));
-		m_userDisplayisSRGB->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnUserDisplaySRGBSelected, this);
-
-		test->Add(m_userDisplayGamma, 0, wxALL, 5);
-		test->Add(m_userDisplayisSRGB, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-
 		box_sizer->Add(row, 0, wxEXPAND, 5);
 
 		auto* graphic_misc_row = new wxFlexGridSizer(0, 2, 0, 0);
@@ -396,6 +374,53 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		graphic_misc_row->Add(m_gx2drawdone_sync, 0, wxALL, 5);
 
 		box_sizer->Add(graphic_misc_row, 1, wxEXPAND, 5);
+		graphics_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
+	}
+
+	{
+		auto box = new wxStaticBox(graphics_panel, wxID_ANY, _("Gamma settings"));
+		auto box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
+		auto row = new wxFlexGridSizer(0, 2, 0, 0);
+		row->SetFlexibleDirection(wxBOTH);
+		row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+		auto targetGammaLabel = new wxStaticText(box, wxID_ANY, _("Target Gamma"));
+		row->Add(targetGammaLabel, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_overrideGammaValue = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
+		row->Add(m_overrideGammaValue, 0, wxALL, 5);
+		auto targetGammaTooltip = _("The display gamma to reproduce\nIf you are unsure, set this to 2.2");
+		targetGammaLabel->SetToolTip(targetGammaTooltip);
+		m_overrideGammaValue->SetToolTip(targetGammaTooltip);
+
+
+		auto displayGammaLabel = new wxStaticText(box, wxID_ANY, _("Display Gamma"));
+		row->Add(displayGammaLabel, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+		wxBoxSizer* srgbCheckBoxSizer = new wxBoxSizer(wxHORIZONTAL);
+		row->Add(srgbCheckBoxSizer);
+		m_userDisplayGamma = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
+
+		auto displayGammaTooltip = _("The gamma of your monitor\nIf you are unsure, set this to 2.2");
+		m_userDisplayGamma->SetToolTip(displayGammaTooltip);
+		displayGammaLabel->SetToolTip(displayGammaTooltip);
+
+		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
+		m_userDisplayisSRGB->SetToolTip(_("Select this if cemu is being displayed using a piecewise sRGB gamma curve\n"
+										  "This is usually only the case if you use an HDR screen (with HDR enabled), if you calibrated your SDR display and use windows 11's Auto Color Management, "
+										  "or use a display profile with a VCGT tag that targets piecewise sRGB\n"
+										  "Colors will be more accurate especially in dark scenes but this may result in banding and/or crushed shadows\n"
+										  "To avoid this you should display cemu with a pure gamma curve if possible"));
+		m_userDisplayisSRGB->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnUserDisplaySRGBSelected, this);
+
+		srgbCheckBoxSizer->Add(m_userDisplayGamma, 0, wxALL, 5);
+		srgbCheckBoxSizer->Add(m_userDisplayisSRGB, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+		row->Add(new wxStaticText(box, wxID_ANY, _("Override Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_overrideGamma = new wxCheckBox(box, wxID_ANY, "", wxDefaultPosition, {230, -1});
+		m_overrideGamma->SetToolTip(_("Ignore title's gamma preference"));
+		row->Add(m_overrideGamma, 0, wxALL, 5);
+
+		box_sizer->Add(row, 0, wxEXPAND, 5);
 		graphics_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
 	}
 
