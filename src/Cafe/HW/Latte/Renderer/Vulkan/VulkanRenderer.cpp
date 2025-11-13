@@ -2590,7 +2590,6 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	uint64 hash = 0;
 	hash += (uint64)vertexRendererShader;
 	hash += (uint64)fragmentRendererShader;
-	hash += (uint64)(chainInfo.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
 	const auto it = m_backbufferBlitPipelineCache.find(hash);
@@ -2797,7 +2796,6 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	chainInfo.m_shouldRecreate = false;
 	chainInfo.m_vsyncState = configValue;
-	chainInfo.m_usesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
 	return true;
 }
 

@@ -121,7 +121,6 @@ private:
 	void UpdateAccountInformation();
 	void UpdateOnlineAccounts();
 	void HandleGraphicsApiSelection();
-	void HandleGammaSettings();
 	void ApplyConfig();
 };
 
