@@ -2590,7 +2590,6 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	uint64 hash = 0;
 	hash += (uint64)vertexRendererShader;
 	hash += (uint64)fragmentRendererShader;
-	hash += (uint64)(chainInfo.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
 	const auto it = m_backbufferBlitPipelineCache.find(hash);
@@ -2660,6 +2659,8 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 		.offset = 0,
 		.size = 3 * sizeof(float) * 2 // 3 vec2's
+				+ 4 // + 1 VkBool32
+				+ 4 * 2 // + 2 float
 	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -2771,10 +2772,6 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 	if(chainInfo.m_vsyncState != configValue)
 		stateChanged = true;
 
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-		stateChanged = true;
-
 	int width, height;
 	if (mainWindow)
 		WindowSystem::GetWindowPhysSize(width, height);
@@ -2799,7 +2796,6 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	chainInfo.m_shouldRecreate = false;
 	chainInfo.m_vsyncState = configValue;
-	chainInfo.m_usesSRGB = latteBufferUsesSRGB;
 	return true;
 }
 
@@ -3046,24 +3042,35 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet, 0, nullptr);
 
+
 	// update push constants
-	Vector2f pushData[3];
+	struct
+	{
+		Vector2f vecs[3];
+		VkBool32 applySRGBEncoding;
+		float targetGamma;
+		float displayGamma;
+	} pushData;
 
 	// textureSrcResolution
 	sint32 effectiveWidth, effectiveHeight;
 	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	pushData[0] = {(float)effectiveWidth, (float)effectiveHeight};
+	pushData.vecs[0] = {(float)effectiveWidth, (float)effectiveHeight};
 
 	// nativeResolution
-	pushData[1] = {
+	pushData.vecs[1] = {
 		(float)texViewVk->baseTexture->width,
 		(float)texViewVk->baseTexture->height,
 	};
 
 	// outputResolution
-	pushData[2] = {(float)imageWidth,(float)imageHeight};
+	pushData.vecs[2] = {(float)imageWidth,(float)imageHeight};
 
-	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float) * 2 * 3, &pushData);
+	pushData.applySRGBEncoding = padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB;
+	pushData.targetGamma = padView ? ActiveSettings::GetDRCGamma() : ActiveSettings::GetTVGamma();
+	pushData.displayGamma = GetConfig().userDisplayGamma;
+
+	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &pushData);
 
 	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);
 

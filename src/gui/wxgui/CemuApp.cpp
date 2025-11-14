@@ -295,6 +295,10 @@ bool CemuApp::OnInit()
 	{
 		MSWEnableDarkMode(DarkMode_Always);
 	}
+
+	// extend tooltip duration to the maximum possible value
+	wxToolTip::SetDelay(-1);
+	wxToolTip::SetAutoPop(MAKELPARAM(std::numeric_limits<short>::max(),0));
 #endif
 
 	for (auto&& path : failedWriteAccess)

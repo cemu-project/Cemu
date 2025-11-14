@@ -378,6 +378,55 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 	}
 
 	{
+		auto box = new wxStaticBox(graphics_panel, wxID_ANY, _("Gamma settings"));
+		auto box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
+		auto row = new wxFlexGridSizer(0, 2, 0, 0);
+		row->SetFlexibleDirection(wxBOTH);
+		row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
+
+		auto targetGammaLabel = new wxStaticText(box, wxID_ANY, _("Target Gamma"));
+		row->Add(targetGammaLabel, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_overrideGammaValue = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
+		row->Add(m_overrideGammaValue, 0, wxALL, 5);
+		auto targetGammaTooltip = _("The display gamma to reproduce\nIf you are unsure, set this to 2.2");
+		targetGammaLabel->SetToolTip(targetGammaTooltip);
+		m_overrideGammaValue->SetToolTip(targetGammaTooltip);
+
+
+		auto displayGammaLabel = new wxStaticText(box, wxID_ANY, _("Display Gamma"));
+		row->Add(displayGammaLabel, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+
+		wxBoxSizer* srgbCheckBoxSizer = new wxBoxSizer(wxHORIZONTAL);
+		row->Add(srgbCheckBoxSizer);
+		m_userDisplayGamma = new wxSpinCtrlDouble(box, wxID_ANY, "2.2f", wxDefaultPosition, {230, -1}, wxSP_ARROW_KEYS, 0.1f, 4.0f, 2.2f, 0.1f);
+
+		auto displayGammaTooltip = _("The gamma of your monitor\nIf you are unsure, set this to 2.2");
+		m_userDisplayGamma->SetToolTip(displayGammaTooltip);
+		displayGammaLabel->SetToolTip(displayGammaTooltip);
+
+		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
+		m_userDisplayisSRGB->SetToolTip(_("Select this if Cemu is being displayed using a piecewise sRGB gamma curve.\n"
+										  "This is typically not the case so you can probably leave this unchecked.\n"
+										  "Exceptions include HDR displays (with HDR enabled), calibrated SDR displays with Windows 11's Auto Color Management enabled, "
+										  "or when using a display profile with a VCGT tag that targets piecewise sRGB.\n"
+										  "When this box is selected Cemu will compensate for the piecewise curve to approximate the pure gamma curve of a TV.\n"
+										  "Colors will be more accurate, especially in dark scenes, but this may result in banding or crushed shadows, "
+										  "so it is best if you display Cemu with pure gamma and do not use this setting."));
+		m_userDisplayisSRGB->Bind(wxEVT_CHECKBOX, &GeneralSettings2::OnUserDisplaySRGBSelected, this);
+
+		srgbCheckBoxSizer->Add(m_userDisplayGamma, 0, wxALL, 5);
+		srgbCheckBoxSizer->Add(m_userDisplayisSRGB, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+		row->Add(new wxStaticText(box, wxID_ANY, _("Override Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		m_overrideGamma = new wxCheckBox(box, wxID_ANY, "", wxDefaultPosition, {230, -1});
+		m_overrideGamma->SetToolTip(_("Ignore title's gamma preference"));
+		row->Add(m_overrideGamma, 0, wxALL, 5);
+
+		box_sizer->Add(row, 0, wxEXPAND, 5);
+		graphics_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
+	}
+
+	{
 		wxString choices[] = { _("Bilinear"), _("Bicubic"), _("Hermite"), _("Nearest Neighbor") };
 		m_upscale_filter = new wxRadioBox(graphics_panel, wxID_ANY, _("Upscale filter"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 5, wxRA_SPECIFY_COLS);
 		m_upscale_filter->SetToolTip(_("Upscaling filters are used when the game resolution is smaller than the window size"));
@@ -1104,6 +1153,9 @@ void GeneralSettings2::StoreConfig()
 	
 
 	config.vsync = m_vsync->GetSelection();
+	config.overrideAppGammaPreference = m_overrideGamma->IsChecked();
+	config.overrideGammaValue = m_overrideGammaValue->GetValue();
+	config.userDisplayGamma = m_userDisplayGamma->GetValue() * !m_userDisplayisSRGB->GetValue();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
 	config.async_compile = m_async_compile->IsChecked();
 	
@@ -1681,6 +1733,15 @@ void GeneralSettings2::ApplyConfig()
 	// graphics
 	m_graphic_api->SetSelection(config.graphic_api);
 	m_vsync->SetSelection(config.vsync);
+	m_overrideGamma->SetValue(config.overrideAppGammaPreference);
+	m_overrideGammaValue->SetValue(config.overrideGammaValue);
+	m_userDisplayisSRGB->SetValue(config.userDisplayGamma == 0.0f);
+	m_userDisplayGamma->SetValue(config.userDisplayGamma);
+	if(m_userDisplayisSRGB->GetValue())
+	{
+		m_userDisplayGamma->Disable();
+		m_userDisplayGamma->SetValue(2.2f);
+	}
 	m_async_compile->SetValue(config.async_compile);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
 	m_upscale_filter->SetSelection(config.upscale_filter);
@@ -2035,6 +2096,15 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 void GeneralSettings2::OnGraphicAPISelected(wxCommandEvent& event)
 {
 	HandleGraphicsApiSelection();
+}
+
+void GeneralSettings2::OnUserDisplaySRGBSelected(wxCommandEvent& event)
+{
+	m_userDisplayGamma->SetValue(2.2f);
+	if(event.GetInt())
+		m_userDisplayGamma->Disable();
+	else
+		m_userDisplayGamma->Enable();
 }
 
 void GeneralSettings2::OnAddPathClicked(wxCommandEvent& event)

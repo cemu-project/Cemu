@@ -1,9 +1,10 @@
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
+#include "config/ActiveSettings.h"
 
 const std::string RendererOutputShader::s_copy_shader_source =
 R"(
-void main()
+void outputShader()
 {
 	colorOut0 = vec4(texture(textureSrc, passUV).rgb,1.0);
 }
@@ -49,7 +50,7 @@ vec4 bcFilter(vec2 uv, vec4 texelSize)
 		mix(sample1, sample0, sx), sy);
 }
 
-void main(){
+void outputShader(){
 	vec4 texelSize = vec4( 1.0 / textureSrcResolution.xy, textureSrcResolution.xy);
 	colorOut0 = vec4(bcFilter(passUV, texelSize).rgb,1.0);
 }
@@ -108,7 +109,7 @@ vec3 BicubicHermiteTexture(vec2 uv, vec4 texelSize)
     return CubicHermite(CP0X, CP1X, CP2X, CP3X, frac.y);
 }
 
-void main(){
+void outputShader(){
 	vec4 texelSize = vec4( 1.0 / textureSrcResolution.xy, textureSrcResolution.xy);
 	colorOut0 = vec4(BicubicHermiteTexture(passUV, texelSize), 1.0);
 }
@@ -135,14 +136,20 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
 		m_uniformLocations[0].m_loc_textureSrcResolution = m_vertex_shader->GetUniformLocation("textureSrcResolution");
 		m_uniformLocations[0].m_loc_nativeResolution = m_vertex_shader->GetUniformLocation("nativeResolution");
 		m_uniformLocations[0].m_loc_outputResolution = m_vertex_shader->GetUniformLocation("outputResolution");
+		m_uniformLocations[0].m_loc_applySRGBEncoding = m_vertex_shader->GetUniformLocation("applySRGBEncoding");
+		m_uniformLocations[0].m_loc_targetGamma = m_fragment_shader->GetUniformLocation("targetGamma");
+		m_uniformLocations[0].m_loc_displayGamma = m_fragment_shader->GetUniformLocation("displayGamma");
 
 		m_uniformLocations[1].m_loc_textureSrcResolution = m_fragment_shader->GetUniformLocation("textureSrcResolution");
 		m_uniformLocations[1].m_loc_nativeResolution = m_fragment_shader->GetUniformLocation("nativeResolution");
 		m_uniformLocations[1].m_loc_outputResolution = m_fragment_shader->GetUniformLocation("outputResolution");
+		m_uniformLocations[1].m_loc_applySRGBEncoding = m_fragment_shader->GetUniformLocation("applySRGBEncoding");
+		m_uniformLocations[1].m_loc_targetGamma = m_fragment_shader->GetUniformLocation("targetGamma");
+		m_uniformLocations[1].m_loc_displayGamma = m_fragment_shader->GetUniformLocation("displayGamma");
 	}
 }
 
-void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res) const
+void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res, const bool padView) const
 {
 	sint32 effectiveWidth, effectiveHeight;
 	texture_view.baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
@@ -168,6 +175,22 @@ void RendererOutputShader::SetUniformParameters(const LatteTextureView& texture_
 		  res[1] = (float)output_res.y;
 		  shader->SetUniform2fv(locations.m_loc_outputResolution, res, 1);
 	  }
+
+	  if (locations.m_loc_applySRGBEncoding != -1)
+	  {
+		  shader->SetUniform1i(locations.m_loc_applySRGBEncoding, padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB);
+	  }
+
+	  if (locations.m_loc_targetGamma != -1)
+	  {
+		  shader->SetUniform1f(locations.m_loc_targetGamma, padView ? ActiveSettings::GetDRCGamma() : ActiveSettings::GetTVGamma());
+	  }
+
+	  if (locations.m_loc_displayGamma != -1)
+	  {
+		  shader->SetUniform1f(locations.m_loc_displayGamma, GetConfig().userDisplayGamma);
+	  }
+
 	};
 	setUniforms(m_vertex_shader.get(), m_uniformLocations[0]);
 	setUniforms(m_fragment_shader.get(), m_uniformLocations[1]);
@@ -290,16 +313,52 @@ layout(push_constant) uniform pc {
 	vec2 textureSrcResolution;
 	vec2 nativeResolution;
 	vec2 outputResolution;
+	bool applySRGBEncoding; // true = app requested sRGB encoding
+	float targetGamma;
+	float displayGamma;
 };
 #else
 uniform vec2 textureSrcResolution;
 uniform vec2 nativeResolution;
 uniform vec2 outputResolution;
+uniform bool applySRGBEncoding;
+uniform float targetGamma;
+uniform float displayGamma;
 #endif
 
 layout(location = 0) smooth in vec2 passUV;
 layout(binding = 0) uniform sampler2D textureSrc;
 layout(location = 0) out vec4 colorOut0;
+
+float sRGBEncode(float linear)
+{
+	if(linear <= 0.0031308)
+		return 12.92f * linear;
+	else
+		return 1.055f * pow(linear, 1.0f / 2.4f) - 0.055f;
+
+}
+
+vec3 sRGBEncode(vec3 linear)
+{
+	return vec3(sRGBEncode(linear.r), sRGBEncode(linear.g), sRGBEncode(linear.b));
+}
+
+// fwd. declaration
+void outputShader();
+void main()
+{
+	outputShader(); // sets colorOut0
+	if(applySRGBEncoding)
+		colorOut0 = vec4(sRGBEncode(colorOut0.rgb), 1.0f);
+
+	if (displayGamma > 0.0f)
+		colorOut0 = pow(colorOut0, vec4(targetGamma / displayGamma) );
+	else
+		colorOut0 = vec4( sRGBEncode( pow(colorOut0.rgb, vec3(targetGamma)) ), 1.0f);
+
+}
+
 )" + shaderSrc;
 }
 void RendererOutputShader::InitializeStatic()

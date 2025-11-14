@@ -56,6 +56,11 @@ private:
 	// Graphics
 	wxChoice* m_graphic_api, * m_graphic_device;
 	wxChoice* m_vsync;
+	wxCheckBox* m_overrideGamma;
+	wxSpinCtrlDouble* m_overrideGammaValue;
+	wxSpinCtrlDouble* m_userDisplayGamma;
+	wxCheckBox* m_userDisplayisSRGB;
+
 	wxCheckBox *m_async_compile, *m_gx2drawdone_sync;
 	wxRadioBox* m_upscale_filter, *m_downscale_filter, *m_fullscreen_scaling;
 	wxChoice* m_overlay_position, *m_notification_position, *m_overlay_scale, *m_notification_scale;
@@ -95,6 +100,7 @@ private:
 	void OnAudioDeviceSelected(wxCommandEvent& event);
 	void OnAudioChannelsSelected(wxCommandEvent& event);
 	void OnGraphicAPISelected(wxCommandEvent& event);
+	void OnUserDisplaySRGBSelected(wxCommandEvent& event);
 	void OnAddPathClicked(wxCommandEvent& event);
 	void OnRemovePathClicked(wxCommandEvent& event);
 	void OnActiveAccountChanged(wxCommandEvent& event);
