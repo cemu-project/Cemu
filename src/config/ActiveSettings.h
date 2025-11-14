@@ -99,7 +99,6 @@ public:
 	// gamma
 	[[nodiscard]] static float GetTVGamma();
 	[[nodiscard]] static float GetDRCGamma();
-	[[nodiscard]] static float GetPCDisplayGamma();
 
 	// audio
 	[[nodiscard]] static bool AudioOutputOnlyAux();
