@@ -297,6 +297,10 @@ bool CemuApp::OnInit()
 	}
 #endif
 
+	// extend tooltip view duration on platforms that support it (windows)
+	wxToolTip::SetDelay(-1);
+	wxToolTip::SetAutoPop(MAKELPARAM(std::numeric_limits<short>::max(),0));
+
 	for (auto&& path : failedWriteAccess)
 	{
 		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), wxString::FromUTF8(_pathToUtf8(path))),
