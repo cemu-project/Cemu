@@ -154,3 +154,8 @@ endif()
 if (BSD)
 	target_link_libraries(CemuBin PRIVATE execinfo SPIRV-Tools SPIRV-Tools-opt)
 endif()
+# shadercache auxiliary files (added by feat/shader-bg-compile)
+target_sources(CemuBin PRIVATE
+  src/render/shadercache/ShaderCache.cpp
+  src/render/shadercache/ShaderCompileWorker.cpp
+)
