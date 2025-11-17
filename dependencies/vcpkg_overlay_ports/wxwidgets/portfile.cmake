@@ -1,8 +1,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO wxWidgets/wxWidgets
-    REF "v${VERSION}"
-    SHA512 8ad17582c4ba721ffe76ada4bb8bd7bc4b050491220aca335fd0506a51354fb789d5bc3d965f0f459dc81784d6427c88272e2acc2099cddf73730231b5a16f62
+    REF "f3da561"
+    SHA512 04e273b83ec683ed18ff5278371441b5ecf5897d34a896307cb59c58fb7adf68a70f6af3b3193bb1c63b9985edd5e6807202c05af3202a54c4142518ed15a71b
     HEAD_REF master
     PATCHES
         install-layout.patch
@@ -123,7 +123,7 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/wxWidgets)
+vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/wxWidgets-3.3)
 
 # The CMake export is not ready for use: It lacks a config file.
 file(REMOVE_RECURSE
@@ -218,12 +218,30 @@ endif()
 
 if("example" IN_LIST FEATURES)
     file(INSTALL
-        "${CMAKE_CURRENT_LIST_DIR}/example/CMakeLists.txt"
-        "${SOURCE_PATH}/samples/popup/popup.cpp"
-        "${SOURCE_PATH}/samples/sample.xpm"
-        DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/example"
+            "${CMAKE_CURRENT_LIST_DIR}/minimal_example/CMakeLists.txt"
+            "${SOURCE_PATH}/samples/minimal/minimal.cpp"
+            "${SOURCE_PATH}/samples/sample.xpm"
+            "${SOURCE_PATH}/samples/sample.rc"
+            DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/minimal_example"
     )
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/example/popup.cpp" "../sample.xpm" "sample.xpm")
+
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/minimal_example/minimal.cpp" "../sample.xpm" "sample.xpm")
+endif()
+
+if("example" IN_LIST FEATURES)
+    file(INSTALL
+        "${CMAKE_CURRENT_LIST_DIR}/listctrl_example/CMakeLists.txt"
+        "${SOURCE_PATH}/samples/listctrl/listtest.cpp"
+        "${SOURCE_PATH}/samples/listctrl/listtest.h"
+        "${SOURCE_PATH}/samples/listctrl/listtest.rc"
+        "${SOURCE_PATH}/samples/sample.xpm"
+        "${SOURCE_PATH}/samples/sample.rc"
+        "${SOURCE_PATH}/samples/listctrl/bitmaps"
+        DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/listctrl_example"
+    )
+
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/listctrl_example/listtest.cpp" "../sample.xpm" "sample.xpm")
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/listctrl_example/listtest.rc" "../sample.rc" "sample.rc")
 endif()
 
 configure_file("${CMAKE_CURRENT_LIST_DIR}/vcpkg-cmake-wrapper.cmake" "${CURRENT_PACKAGES_DIR}/share/${PORT}/vcpkg-cmake-wrapper.cmake" @ONLY)
