@@ -51,7 +51,7 @@ public:
 	void SaveConfig(bool flush = false);
 	bool IsVisible(long item) const; // only available in wxwidgets 3.1.3
 
-	void ReloadGameEntries(bool cached = false);
+	void ReloadGameEntries();
 	void DeleteCachedStrings();
 
     void CreateShortcut(GameInfo2& gameInfo);

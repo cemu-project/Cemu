@@ -350,7 +350,7 @@ bool wxGameList::IsVisible(long item) const
 	return visible;
 }
 
-void wxGameList::ReloadGameEntries(bool cached)
+void wxGameList::ReloadGameEntries()
 {
 	wxWindowUpdateLocker windowlock(this);
 	DeleteAllItems();
@@ -854,7 +854,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 	switch (event.GetId())
 	{
 	case kContextMenuRefreshGames:
-		ReloadGameEntries(false);
+		ReloadGameEntries();
 		break;
 	case kContextMenuStyleList:
 		SetStyle(Style::kList);
