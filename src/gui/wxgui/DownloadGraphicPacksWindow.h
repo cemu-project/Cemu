@@ -1,10 +1,12 @@
 #pragma once
 
 #include <atomic>
+#include <curl/system.h>
 #include <thread>
 #include <string>
 #include <memory>
 
+#include <wx/dialog.h>
 #include <wx/timer.h>
 #include <wx/gauge.h>
 
@@ -55,6 +57,6 @@ private:
 	std::unique_ptr<curlDownloadFileState_t> m_downloadState;
 
 	static size_t curlDownloadFile_writeData(void* ptr, size_t size, size_t nmemb, curlDownloadFileState_t* downloadState);
-	static int progress_callback(curlDownloadFileState_t* downloadState, double dltotal, double dlnow, double ultotal, double ulnow);
+	static int progress_callback(curlDownloadFileState_t* downloadState, curl_off_t dltotal, curl_off_t dlnow, curl_off_t ultotal, curl_off_t ulnow);
 	static bool curlDownloadFile(const char* url, curlDownloadFileState_t* downloadState);
 };
