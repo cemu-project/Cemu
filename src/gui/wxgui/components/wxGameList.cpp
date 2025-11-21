@@ -141,14 +141,14 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	const auto& config = GetWxGUIConfig();
 
 	char transparent_bitmap[kIconWidth * kIconWidth * 4] = {};
-	memset((void*)transparent_bitmap, wxSystemSettings::GetAppearance().IsDark() ? 0xFF : 0x00, sizeof(transparent_bitmap));
+	memset(transparent_bitmap, wxSystemSettings::GetAppearance().IsDark() ? 0xFF : 0x00, sizeof(transparent_bitmap));
 	wxBitmap blank(transparent_bitmap, kIconWidth, kIconWidth);
 
-	m_image_list_data.Replace(0, blank);
+	m_image_list_data.Add(blank);
 	wxListCtrl::SetImageList(&m_image_list_data, wxIMAGE_LIST_NORMAL);
 
 	wxBitmap::Rescale(blank, {kListIconWidth, kListIconWidth});
-	m_image_list_small_data.Replace(0, blank);
+	m_image_list_small_data.Add(blank);
 	wxListCtrl::SetImageList(&m_image_list_small_data, wxIMAGE_LIST_SMALL);
 
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
