@@ -89,7 +89,7 @@ private:
 	{
 		wxGameList* thisptr;
 		ItemColumns column;
-		bool asc;
+		int dir;
 	};
 
 	int FindInsertPosition(TitleId titleId);
@@ -109,7 +109,7 @@ private:
 	std::vector<TitleId> m_icon_load_queue;
 
 	uint64 m_callbackIdTitleList;
-	
+
 	std::string GetNameByTitleId(uint64 titleId);
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
@@ -122,7 +122,8 @@ private:
 
 	inline static constexpr int kListIconWidth = 64;
 	inline static constexpr int kIconWidth = 128;
-	wxWithImages::Images m_image_list_data, m_image_list_small_data;
+	wxImageList m_image_list_data = wxImageList(kIconWidth, kIconWidth, false, 1);
+	wxImageList m_image_list_small_data = wxImageList(kListIconWidth, kListIconWidth, false, 1);
 
 	std::mutex m_icon_cache_mtx;
 	std::set<TitleId> m_icon_loaded;
