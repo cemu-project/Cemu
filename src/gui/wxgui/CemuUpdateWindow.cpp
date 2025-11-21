@@ -590,16 +590,16 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 	if (m_restartRequired && !m_restartFile.empty() && fs::exists(m_restartFile))
 	{
 		PROCESS_INFORMATION pi{};
-		STARTUPINFO si{};
+		STARTUPINFOW si{};
 		si.cb = sizeof(si);
 
 		std::wstring cmdline = GetCommandLineW();
 		const auto index = cmdline.find('"', 1);
 		cemu_assert_debug(index != std::wstring::npos);
-		cmdline = L"\"" + m_restartFile.wstring() + L"\"" + cmdline.substr(index + 1);
+		cmdline = L"\"" + boost::nowide::widen(_pathToUtf8(m_restartFile)) + L"\"" + cmdline.substr(index + 1);
 
-		HANDLE lock = CreateMutex(nullptr, TRUE, L"Global\\cemu_update_lock");
-		CreateProcess(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+		HANDLE lock = CreateMutexW(nullptr, TRUE, L"Global\\cemu_update_lock");
+		CreateProcessW(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
 
 		exit(0);
 	}

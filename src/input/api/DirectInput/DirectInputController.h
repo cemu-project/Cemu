@@ -42,7 +42,7 @@ private:
 	GUID m_product_guid{};
 
 	std::shared_mutex m_mutex;
-	Microsoft::WRL::ComPtr<IDirectInputDevice8> m_device;
+	Microsoft::WRL::ComPtr<IDirectInputDevice8W> m_device;
 	Microsoft::WRL::ComPtr<IDirectInputEffect> m_effect;
 
 	std::array<LONG, 6> m_min_axis{};

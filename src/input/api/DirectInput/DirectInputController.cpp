@@ -22,9 +22,10 @@ DirectInputController::~DirectInputController()
 		// TODO: test if really needed
 		// workaround for gamecube controllers crash on release?
 		bool should_release_device = true;
-		if (m_product_guid == GUID{}) {
-			DIDEVICEINSTANCE info{};
-			info.dwSize = sizeof(DIDEVICEINSTANCE);
+		if (m_product_guid == GUID{})
+		{
+			DIDEVICEINSTANCEW info{};
+			info.dwSize = sizeof(DIDEVICEINSTANCEW);
 			if (SUCCEEDED(m_device->GetDeviceInfo(&info)))
 			{
 				m_product_guid = info.guidProduct;
@@ -90,8 +91,8 @@ bool DirectInputController::connect()
 	if (FAILED(hr) || m_device == nullptr)
 		return false;
 
-	DIDEVICEINSTANCE idi{};
-	idi.dwSize = sizeof(DIDEVICEINSTANCE);
+	DIDEVICEINSTANCEW idi{};
+	idi.dwSize = sizeof(DIDEVICEINSTANCEW);
 	if (SUCCEEDED(m_device->GetDeviceInfo(&idi)))
 	{
 		// overwrite guid name with "real" display name
@@ -147,8 +148,8 @@ bool DirectInputController::connect()
 		}
 	}
 
-	DIDEVICEINSTANCE info{};
-	info.dwSize = sizeof(DIDEVICEINSTANCE);
+	DIDEVICEINSTANCEW info{};
+	info.dwSize = sizeof(DIDEVICEINSTANCEW);
 	if (SUCCEEDED(m_device->GetDeviceInfo(&info)))
 	{
 		m_product_guid = info.guidProduct;
@@ -157,7 +158,7 @@ bool DirectInputController::connect()
 	std::fill(m_min_axis.begin(), m_min_axis.end(), 0);
 	std::fill(m_max_axis.begin(), m_max_axis.end(), std::numeric_limits<uint16>::max());
 	m_device->EnumObjects(
-		[](LPCDIDEVICEOBJECTINSTANCE lpddoi, LPVOID pvRef) -> BOOL
+		[](LPCDIDEVICEOBJECTINSTANCEW lpddoi, LPVOID pvRef) -> BOOL
 		{
 			auto* thisptr = (DirectInputController*)pvRef;
 
