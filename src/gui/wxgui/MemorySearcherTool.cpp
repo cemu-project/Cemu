@@ -382,7 +382,7 @@ void MemorySearcherTool::OnEntryListRightClick(wxDataViewEvent& event)
 	//mnu.SetClientData(data);
 	mnu.Append(LIST_ENTRY_ADD, _("&Add new entry"))->Enable(false);
 	mnu.Append(LIST_ENTRY_REMOVE, _("&Remove entry"));
-	mnu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(MemorySearcherTool::OnPopupClick), nullptr, this);
+	mnu.Bind(wxEVT_COMMAND_MENU_SELECTED, &MemorySearcherTool::OnPopupClick, this);
 	PopupMenu(&mnu);
 }
 

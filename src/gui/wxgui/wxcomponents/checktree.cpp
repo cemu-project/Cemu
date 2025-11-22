@@ -121,49 +121,49 @@ void wxCheckTree::Init()
 
 	// Unchecked
 	renderer_dc.SelectObject(unchecked_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_NONE);
 
 	// Unchecked Mouse Over
 	renderer_dc.SelectObject(unchecked_mouse_over_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CURRENT);
 
 	// Unchecked and Disabled
 	renderer_dc.SelectObject(unchecked_disabled_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_DISABLED);
 
 	// Unchecked Left Down
 	renderer_dc.SelectObject(unchecked_left_down_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CURRENT | wxCONTROL_PRESSED);
 
 	// Checked
 	renderer_dc.SelectObject(checked_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED);
 
 	// Checked Mouse Over
 	renderer_dc.SelectObject(checked_mouse_over_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_CURRENT);
 
 	// Checked Left Down
 	renderer_dc.SelectObject(checked_left_down_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_CURRENT | wxCONTROL_PRESSED);
 
 	// Checked and Disabled
 	renderer_dc.SelectObject(checked_disabled_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour(), wxSOLID));
+	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
 	renderer_dc.Clear();
 	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_DISABLED);
 

@@ -239,8 +239,8 @@ void HotkeySettings::CreateHotkeyRow(const wxString& label, sHotkeyCfg& cfgHotke
 	controllerInput->Bind(wxEVT_BUTTON, &HotkeySettings::OnControllerHotkeyInputLeftClick, this);
 
 	/* for cancelling and clearing input */
-	keyInput->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(HotkeySettings::OnKeyboardHotkeyInputRightClick), NULL, this);
-	controllerInput->Connect(wxEVT_RIGHT_UP, wxMouseEventHandler(HotkeySettings::OnControllerHotkeyInputRightClick), NULL, this);
+	keyInput->Bind(wxEVT_RIGHT_UP, &HotkeySettings::OnKeyboardHotkeyInputRightClick, this);
+	controllerInput->Bind(wxEVT_RIGHT_UP, &HotkeySettings::OnControllerHotkeyInputRightClick, this);
 
 	keyInput->SetMinSize(m_minButtonSize);
 	controllerInput->SetMinSize(m_minButtonSize);

@@ -124,7 +124,7 @@ DebugPPCThreadsWindow::DebugPPCThreadsWindow(wxFrame& parent)
 
 	sizer->Add(row, 0, wxEXPAND | wxALL, 5);
 
-	m_thread_list->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(DebugPPCThreadsWindow::OnThreadListRightClick), nullptr, this);
+	m_thread_list->Bind(wxEVT_RIGHT_DOWN, &DebugPPCThreadsWindow::OnThreadListRightClick, this);
 
 	SetSizer(sizer);
 
@@ -466,7 +466,7 @@ void DebugPPCThreadsWindow::OnThreadListRightClick(wxMouseEvent& event)
 	menu.AppendSeparator();
 	menu.Append(THREADLIST_MENU_DUMP_STACK_TRACE, _("Write stack trace to log"));
 	menu.Append(THREADLIST_MENU_PROFILE_THREAD, _("Profile thread"));
-	menu.Connect(wxEVT_COMMAND_MENU_SELECTED, wxCommandEventHandler(DebugPPCThreadsWindow::OnThreadListPopupClick), nullptr, this);
+	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &DebugPPCThreadsWindow::OnThreadListPopupClick, this);
 	PopupMenu(&menu);
 }
 

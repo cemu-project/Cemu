@@ -124,7 +124,7 @@ TextureRelationViewerWindow::TextureRelationViewerWindow(wxFrame& parent)
 	sizerBottom->Add(checkboxShowViews, 0, wxALIGN_CENTER_VERTICAL | wxBOTTOM | wxTOP | wxLEFT, 10);
 	checkboxShowViews->SetValue(true);
 
-	textureRelationListA->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(TextureRelationViewerWindow::OnTextureListRightClick), NULL, this);
+	textureRelationListA->Bind(wxEVT_RIGHT_DOWN, &TextureRelationViewerWindow::OnTextureListRightClick, this);
 
 	sizer->Add(
 		sizerBottom,
