@@ -3,6 +3,7 @@
 #include <charconv>
 #include <filesystem>
 #include <string_view>
+#include <set>
 
 #include "util/math/vector2.h"
 #include "util/math/vector3.h"
