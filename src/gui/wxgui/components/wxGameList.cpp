@@ -452,25 +452,22 @@ void wxGameList::UpdateItemColors(sint32 startIndex)
 {
     wxWindowUpdateLocker lock(this);
 
-	wxColour bgColourPrimary = GetBackgroundColour();
-	wxColour bgColourSecondary = wxHelper::CalculateAccentColour(bgColourPrimary);
-
     for (int i = startIndex; i < GetItemCount(); ++i)
     {
-        const auto titleId = (uint64)GetItemData(i);
+        const uint64 titleId = GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))
 		{
 			SetItemBackgroundColour(i, kFavoriteColor);
 			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
-		else if ((i&1) != 0)
+		else if ((i % 2) != 0)
 		{
-            SetItemBackgroundColour(i, bgColourPrimary);
+            SetItemBackgroundColour(i, kPrimaryColor);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else
 		{
-            SetItemBackgroundColour(i, bgColourSecondary);
+            SetItemBackgroundColour(i, kAlternateColor);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 	}

@@ -3,15 +3,15 @@
 #include "config/CemuConfig.h"
 #include "Cafe/TitleList/TitleId.h"
 
-#include <future>
 #include <mutex>
-#include <optional>
 
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <Cafe/TitleList/GameInfo.h>
+
+#include "wxHelper.h"
 #include "util/helpers/Semaphore.h"
 
 class wxTitleIdEvent : public wxCommandEvent
@@ -66,7 +66,8 @@ private:
 
 	const wxColour kUpdateColor{ wxSystemSettings::SelectLightDark(wxColour(195, 57, 57), wxColour(84, 29, 29)) };
 	const wxColour kFavoriteColor{ wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48)) };
-	const wxColour kSecondColor{ wxSystemSettings::SelectLightDark(wxColour(242, 249, 253), wxColour(34, 34, 34)) };
+	const wxColour kPrimaryColor = GetBackgroundColour();
+	const wxColour kAlternateColor = wxHelper::CalculateAccentColour(kPrimaryColor);
 	void UpdateItemColors(sint32 startIndex = 0);
 
 	enum ItemColumns : int
