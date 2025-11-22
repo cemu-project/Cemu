@@ -1,8 +1,8 @@
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO wxWidgets/wxWidgets
-    REF "v${VERSION}"
-    SHA512 8ad17582c4ba721ffe76ada4bb8bd7bc4b050491220aca335fd0506a51354fb789d5bc3d965f0f459dc81784d6427c88272e2acc2099cddf73730231b5a16f62
+    REF "bfd436b"
+    SHA512 bd3fd6d0d0db3b6fa34eceae1119e21ffd2f62221dcd249f8b8b82a6e65d83a05101e4e1e4ca9b9c4d7937add73b113bb029b03b05d2c3d87d17c1922d800a24
     HEAD_REF master
     PATCHES
         install-layout.patch
@@ -12,8 +12,25 @@ vcpkg_from_github(
         fix-pcre2.patch
         gtk3-link-libraries.patch
         sdl2.patch
-        fix-dark-mode-offset.patch
 )
+
+# Submodule dependencies
+vcpkg_from_github(
+    OUT_SOURCE_PATH lexilla_SOURCE_PATH
+    REPO wxWidgets/lexilla
+    REF "27c20a6ae5eebf418debeac0166052ed6fb653bc"
+    SHA512 7e5de7f664509473b691af8261fca34c2687772faca7260eeba5f2984516e6f8edf88c27192e056c9dda996e2ad2c20f6d1dff1c4bd2f3c0d74852cb50ca424a
+    HEAD_REF wx
+)
+file(COPY "${lexilla_SOURCE_PATH}/" DESTINATION "${SOURCE_PATH}/src/stc/lexilla")
+vcpkg_from_github(
+    OUT_SOURCE_PATH scintilla_SOURCE_PATH
+    REPO wxWidgets/scintilla
+    REF "0b90f31ced23241054e8088abb50babe9a44ae67"
+    SHA512 db1f3007f4bd8860fad0817b6cf87980a4b713777025128cf5caea8d6d17b6fafe23fd22ff6886d7d5a420f241d85b7502b85d7e52b4ddb0774edc4b0a0203e7
+    HEAD_REF wx
+)
+file(COPY "${scintilla_SOURCE_PATH}/" DESTINATION "${SOURCE_PATH}/src/stc/scintilla")
 
 vcpkg_check_features(
     OUT_FEATURE_OPTIONS FEATURE_OPTIONS
@@ -52,14 +69,20 @@ if(VCPKG_TARGET_IS_WINDOWS)
     endif()
 endif()
 
+if("webview" IN_LIST FEATURES AND VCPKG_LIBRARY_LINKAGE STREQUAL "static")
+  list(APPEND OPTIONS -DwxUSE_WEBVIEW_EDGE_STATIC=ON)
+endif()
+
 vcpkg_find_acquire_program(PKGCONFIG)
 
 # This may be set to ON by users in a custom triplet.
-# The use of 'wxUSE_STL' and 'WXWIDGETS_USE_STD_CONTAINERS' (ON or OFF) are not API compatible
-# which is why they must be set in a custom triplet rather than a port feature.
+# The use of 'WXWIDGETS_USE_STD_CONTAINERS' (ON or OFF) is not API compatible
+# which is why it must be set in a custom triplet rather than a port feature.
+# For backwards compatibility, we also replace 'wxUSE_STL' (which no longer
+# exists) with 'wxUSE_STD_STRING_CONV_IN_WXSTRING' which still exists and was
+# set by `wxUSE_STL` previously.
 if(NOT DEFINED WXWIDGETS_USE_STL)
     set(WXWIDGETS_USE_STL OFF)
-    set(WXWIDGETS_USE_STD_STRING_CONV_IN_WXSTRING OFF)
 endif()
 
 if(NOT DEFINED WXWIDGETS_USE_STD_CONTAINERS)
@@ -70,19 +93,18 @@ vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
         ${FEATURE_OPTIONS}
-        -DwxUSE_STC=OFF
         -DwxUSE_REGEX=sys
         -DwxUSE_ZLIB=sys
         -DwxUSE_EXPAT=sys
         -DwxUSE_LIBJPEG=sys
         -DwxUSE_LIBPNG=sys
         -DwxUSE_LIBTIFF=sys
-        -DwxUSE_LIBWEBP=sys
         -DwxUSE_NANOSVG=sys
+        -DwxUSE_LIBWEBP=sys
         -DwxUSE_GLCANVAS=ON
         -DwxUSE_LIBGNOMEVFS=OFF
         -DwxUSE_LIBNOTIFY=OFF
-        -DwxUSE_STD_STRING_CONV_IN_WXSTRING=${WXWIDGETS_USE_STD_STRING_CONV_IN_WXSTRING}
+        -DwxUSE_STD_STRING_CONV_IN_WXSTRING=${WXWIDGETS_USE_STL}
         -DwxUSE_STD_CONTAINERS=${WXWIDGETS_USE_STD_CONTAINERS}
         -DwxUSE_UIACTIONSIMULATOR=OFF
         -DCMAKE_DISABLE_FIND_PACKAGE_GSPELL=ON
@@ -101,7 +123,7 @@ vcpkg_cmake_configure(
 )
 
 vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/wxWidgets)
+vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/wxWidgets-3.3)
 
 # The CMake export is not ready for use: It lacks a config file.
 file(REMOVE_RECURSE
@@ -126,6 +148,11 @@ vcpkg_copy_pdbs()
 
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/include/msvc")
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include")
+file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/lib/mswu")
+if(VCPKG_BUILD_TYPE STREQUAL "release")
+    file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/lib/mswud")
+endif()
+
 file(GLOB_RECURSE INCLUDES "${CURRENT_PACKAGES_DIR}/include/*.h")
 if(EXISTS "${CURRENT_PACKAGES_DIR}/lib/mswu/wx/setup.h")
     list(APPEND INCLUDES "${CURRENT_PACKAGES_DIR}/lib/mswu/wx/setup.h")
@@ -191,12 +218,30 @@ endif()
 
 if("example" IN_LIST FEATURES)
     file(INSTALL
-        "${CMAKE_CURRENT_LIST_DIR}/example/CMakeLists.txt"
-        "${SOURCE_PATH}/samples/popup/popup.cpp"
-        "${SOURCE_PATH}/samples/sample.xpm"
-        DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/example"
+            "${CMAKE_CURRENT_LIST_DIR}/minimal_example/CMakeLists.txt"
+            "${SOURCE_PATH}/samples/minimal/minimal.cpp"
+            "${SOURCE_PATH}/samples/sample.xpm"
+            "${SOURCE_PATH}/samples/sample.rc"
+            DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/minimal_example"
     )
-    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/example/popup.cpp" "../sample.xpm" "sample.xpm")
+
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/minimal_example/minimal.cpp" "../sample.xpm" "sample.xpm")
+endif()
+
+if("example" IN_LIST FEATURES)
+    file(INSTALL
+        "${CMAKE_CURRENT_LIST_DIR}/listctrl_example/CMakeLists.txt"
+        "${SOURCE_PATH}/samples/listctrl/listtest.cpp"
+        "${SOURCE_PATH}/samples/listctrl/listtest.h"
+        "${SOURCE_PATH}/samples/listctrl/listtest.rc"
+        "${SOURCE_PATH}/samples/sample.xpm"
+        "${SOURCE_PATH}/samples/sample.rc"
+        "${SOURCE_PATH}/samples/listctrl/bitmaps"
+        DESTINATION "${CURRENT_PACKAGES_DIR}/share/${PORT}/listctrl_example"
+    )
+
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/listctrl_example/listtest.cpp" "../sample.xpm" "sample.xpm")
+    vcpkg_replace_string("${CURRENT_PACKAGES_DIR}/share/${PORT}/listctrl_example/listtest.rc" "../sample.rc" "sample.rc")
 endif()
 
 configure_file("${CMAKE_CURRENT_LIST_DIR}/vcpkg-cmake-wrapper.cmake" "${CURRENT_PACKAGES_DIR}/share/${PORT}/vcpkg-cmake-wrapper.cmake" @ONLY)
