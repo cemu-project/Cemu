@@ -76,8 +76,6 @@ add_library(CemuWxGui STATIC
   input/InputAPIAddWindow.h
   input/InputSettings2.cpp
   input/InputSettings2.h
-  input/PairingDialog.cpp
-  input/PairingDialog.h
   input/panels/ClassicControllerInputPanel.cpp
   input/panels/ClassicControllerInputPanel.h
   input/panels/InputPanel.cpp
@@ -117,6 +115,13 @@ add_library(CemuWxGui STATIC
   wxgui.h
   wxHelper.h
 )
+
+if (ENABLE_BLUEZ)
+  add_library(CemuWxGui STATIC
+    input/PairingDialog.cpp
+    input/PairingDialog.h
+  )
+endif()
 
 set_property(TARGET CemuWxGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
