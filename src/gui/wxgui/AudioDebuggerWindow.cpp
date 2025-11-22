@@ -133,9 +133,7 @@ AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 	{
 		wxListItem item;
 		item.SetId(i);
-		char tempStr[32];
-		sprintf(tempStr, "%d", snd_core::AX_MAX_VOICES-i-1);
-		item.SetText(wxString(tempStr));
+		item.SetText(wxString::Format("%d", snd_core::AX_MAX_VOICES-i-1));
 		voiceListbox->InsertItem(item);
 	}
 	RefreshVoiceList();
@@ -178,21 +176,15 @@ void AudioDebuggerWindow::RefreshVoiceList_sndgeneric()
 
 	voiceListbox->Freeze();
 
-	char tempStr[64];
 	for (sint32 i = 0; i < snd_core::AX_MAX_VOICES; i++)
 	{
 		sint32 voiceIndex = snd_core::AX_MAX_VOICES - 1 - i;
 		snd_core::AXVPBInternal_t* internal = snd_core::__AXVPBInternalVoiceArray + voiceIndex;
 		// index
-		sprintf(tempStr, "%d", (sint32)tempVoiceArray[voiceIndex].index);
-		voiceListbox->SetItem(i, 0, tempStr);
+		voiceListbox->SetItem(i, 0, wxString::Format("%d", (sint32)tempVoiceArray[voiceIndex].index));
 		// state
 		uint16 playbackState = _swapEndianU16(internal->playbackState);
-		if (playbackState)
-			strcpy(tempStr, "on");
-		else
-			strcpy(tempStr, "off");
-		voiceListbox->SetItem(i, 1, tempStr);
+		voiceListbox->SetItem(i, 1, playbackState ? "on" : "off");
 		// if voice index is invalid then stop updating here to prevent crashes
 		if (voiceIndex < 0 || playbackState == 0)
 		{
@@ -217,49 +209,38 @@ void AudioDebuggerWindow::RefreshVoiceList_sndgeneric()
 			continue;
 		}
 		// format
+		wxString formatLabel;
 		if (tempVoiceArray[voiceIndex].offsets.format == _swapEndianU16(snd_core::AX_FORMAT_ADPCM))
-			strcpy(tempStr, "adpcm");
+			formatLabel = "adpcm";
 		else if (tempVoiceArray[voiceIndex].offsets.format == _swapEndianU16(snd_core::AX_FORMAT_PCM16))
-			strcpy(tempStr, "pcm16");
+			formatLabel = "pcm16";
 		else if (tempVoiceArray[voiceIndex].offsets.format == _swapEndianU16(snd_core::AX_FORMAT_PCM8))
-			strcpy(tempStr, "pcm8");
+			formatLabel = "pcm8";
 		else
-			strcpy(tempStr, "ukn");
-		voiceListbox->SetItem(i, 2, tempStr);
+			formatLabel = "ukn";
+		voiceListbox->SetItem(i, 2, formatLabel);
 		// update offsets
 		snd_core::AXPBOFFSET_t tempOffsets;
 		snd_core::AXGetVoiceOffsets(tempVoiceArray + voiceIndex, &tempOffsets);
 		// sample base
-		sprintf(tempStr, "%08x", _swapEndianU32(tempOffsets.samples));
-		voiceListbox->SetItem(i, 3, tempStr);
+		voiceListbox->SetItem(i, 3, wxString::Format("%08x", _swapEndianU32(tempOffsets.samples)));
 		// current offset
-		sprintf(tempStr, "%08x", _swapEndianU32(tempOffsets.currentOffset));
-		voiceListbox->SetItem(i, 4, tempStr);
+		voiceListbox->SetItem(i, 4, wxString::Format("%08x", _swapEndianU32(tempOffsets.currentOffset)));
 		// loop offset
-		if (tempOffsets.loopFlag)
-			sprintf(tempStr, "%08x", _swapEndianU32(tempOffsets.loopOffset));
-		else
-			sprintf(tempStr, "");
-		voiceListbox->SetItem(i, 5, tempStr);
+		voiceListbox->SetItem(i, 5, tempOffsets.loopFlag ? wxString::Format("%08x", _swapEndianU32(tempOffsets.loopOffset)) : "");
 		// end offset
-		sprintf(tempStr, "%08x", _swapEndianU32(tempOffsets.endOffset));
-		voiceListbox->SetItem(i, 6, tempStr);
+		voiceListbox->SetItem(i, 6, wxString::Format("%08x", _swapEndianU32(tempOffsets.endOffset)));
 		// volume
-		sprintf(tempStr, "%04x", (uint16)internal->veVolume);
-		voiceListbox->SetItem(i, 7, tempStr);
+		voiceListbox->SetItem(i, 7, wxString::Format("%04x", (uint16)internal->veVolume));
 		// volume delta
-		sprintf(tempStr, "%04x", (uint16)internal->veDelta);
-		voiceListbox->SetItem(i, 8, tempStr);
+		voiceListbox->SetItem(i, 8, wxString::Format("%04x", (uint16)internal->veDelta));
 		// src
-		sprintf(tempStr, "%04x%04x", _swapEndianU16(internal->src.ratioHigh), _swapEndianU16(internal->src.ratioLow));
-		voiceListbox->SetItem(i, 9, tempStr);
+		voiceListbox->SetItem(i, 9, wxString::Format("%04x%04x", _swapEndianU16(internal->src.ratioHigh), _swapEndianU16(internal->src.ratioLow)));
 		// lpf
 		if (internal->lpf.on)
 		{
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->lpf.a0));
-			voiceListbox->SetItem(i, 10, tempStr);
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->lpf.b0));
-			voiceListbox->SetItem(i, 11, tempStr);
+			voiceListbox->SetItem(i, 10, wxString::Format("%04x", _swapEndianU16(internal->lpf.a0)));
+			voiceListbox->SetItem(i, 11, wxString::Format("%04x", _swapEndianU16(internal->lpf.b0)));
 		}
 		else
 		{
@@ -269,16 +250,11 @@ void AudioDebuggerWindow::RefreshVoiceList_sndgeneric()
 		// biquad
 		if (internal->biquad.on)
 		{
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->biquad.b0));
-			voiceListbox->SetItem(i, 12, tempStr);
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->biquad.b1));
-			voiceListbox->SetItem(i, 13, tempStr);
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->biquad.b2));
-			voiceListbox->SetItem(i, 14, tempStr);
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->biquad.a1));
-			voiceListbox->SetItem(i, 15, tempStr);
-			sprintf(tempStr, "%04x", _swapEndianU16(internal->biquad.a2));
-			voiceListbox->SetItem(i, 16, tempStr);
+			voiceListbox->SetItem(i, 12, wxString::Format("%04x", _swapEndianU16(internal->biquad.b0)));
+			voiceListbox->SetItem(i, 13, wxString::Format("%04x", _swapEndianU16(internal->biquad.b1)));
+			voiceListbox->SetItem(i, 14, wxString::Format("%04x", _swapEndianU16(internal->biquad.b2)));
+			voiceListbox->SetItem(i, 15, wxString::Format("%04x", _swapEndianU16(internal->biquad.a1)));
+			voiceListbox->SetItem(i, 16, wxString::Format("%04x", _swapEndianU16(internal->biquad.a2)));
 		}
 		else
 		{
@@ -288,6 +264,7 @@ void AudioDebuggerWindow::RefreshVoiceList_sndgeneric()
 			voiceListbox->SetItem(i, 15, "");
 			voiceListbox->SetItem(i, 16, "");
 		}
+		wxString label;
 		// device mix
 		for (uint32 f = 0; f < snd_core::AX_TV_CHANNEL_COUNT*snd_core::AX_MAX_NUM_BUS; f++)
 		{
@@ -297,10 +274,10 @@ void AudioDebuggerWindow::RefreshVoiceList_sndgeneric()
 			//debug_printf("DeviceMix TV Voice %08x b%02d/c%02d vol %04x delta %04x\n", hCPU->gpr[3], busIndex, channelIndex, _swapEndianU16(mixArrayBE[f].vol), _swapEndianU16(mixArrayBE[f].volDelta));
 			uint32 mixVol = internal->deviceMixTV[channelIndex * 4 + busIndex].vol;
 			mixVol = (mixVol + 0x0FFF) >> (12);
-			sprintf(tempStr + f, "%x", mixVol);
+			label += wxString::Format("%x", mixVol);
 			//ax.voiceInternal[voiceIndex].deviceMixTVChannel[channelIndex].bus[busIndex].vol = _swapEndianU16(mixArrayBE[f].vol);
 		}
-		voiceListbox->SetItem(i, 17, tempStr);
+		voiceListbox->SetItem(i, 17, label);
 	}
 	voiceListbox->Thaw();
 }

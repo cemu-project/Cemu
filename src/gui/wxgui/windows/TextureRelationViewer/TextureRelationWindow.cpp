@@ -171,173 +171,153 @@ void TextureRelationViewerWindow::OnClose(wxCloseEvent& event)
 
 void TextureRelationViewerWindow::_setTextureRelationListItemTexture(wxListCtrl* uiList, sint32 rowIndex, struct LatteTextureInformation* texInfo)
 {
-	char tempStr[512];
+	wxString typeLabel;
 	// count number of alternative views for base view
 	sint32 alternativeViewCount = texInfo->alternativeViewCount;
 	if (texInfo->isUpdatedOnGPU)
-		sprintf(tempStr, "TEXTURE*");
+		typeLabel = "TEXTURE*";
 	else
-		sprintf(tempStr, "TEXTURE");
+		typeLabel = "TEXTURE";
 	if (alternativeViewCount > 0)
 	{
-		sprintf(tempStr + strlen(tempStr), "(%d)", alternativeViewCount + 1);
+		typeLabel += wxString::Format("(%d)", alternativeViewCount + 1);
 	}
 	wxListItem item;
 	item.SetId(rowIndex);
-	item.SetText(tempStr);
+	item.SetText(typeLabel);
 	item.SetBackgroundColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW));
 	uiList->InsertItem(item);
 
 	sint32 columnIndex = 1;
     // phys address
-    sprintf(tempStr, "%08X", texInfo->physAddress);
-    uiList->SetItem(rowIndex, columnIndex, tempStr);
+    uiList->SetItem(rowIndex, columnIndex, wxString::Format("%08X", texInfo->physAddress));
     columnIndex++;
     // phys mip address
-    sprintf(tempStr, "%08X", texInfo->physMipAddress);
-    uiList->SetItem(rowIndex, columnIndex, tempStr);
+    uiList->SetItem(rowIndex, columnIndex, wxString::Format("%08X", texInfo->physMipAddress));
     columnIndex++;
 	// dim
+	wxString dimLabel;
 	if (texInfo->dim == Latte::E_DIM::DIM_2D)
-		strcpy(tempStr, "2D");
+		dimLabel = "2D";
 	else if (texInfo->dim == Latte::E_DIM::DIM_2D_ARRAY)
-		strcpy(tempStr, "2D_ARRAY");
+		dimLabel = "2D_ARRAY";
 	else if (texInfo->dim == Latte::E_DIM::DIM_3D)
-		strcpy(tempStr, "3D");
+		dimLabel = "3D";
 	else if (texInfo->dim == Latte::E_DIM::DIM_CUBEMAP)
-		strcpy(tempStr, "CUBEMAP");
+		dimLabel = "CUBEMAP";
 	else if (texInfo->dim == Latte::E_DIM::DIM_1D)
-		strcpy(tempStr, "1D");
+		dimLabel = "1D";
 	else if (texInfo->dim == Latte::E_DIM::DIM_2D_MSAA)
-		strcpy(tempStr, "2D_MSAA");
+		dimLabel = "2D_MSAA";
 	else if (texInfo->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
-		strcpy(tempStr, "2D_MS_ARRAY");
+		dimLabel = "2D_MS_ARRAY";
 	else
-		strcpy(tempStr, "UKN");
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+		dimLabel = "UKN";
+	uiList->SetItem(rowIndex, columnIndex, dimLabel);
 	columnIndex++;
 	// resolution
+	wxString resolutionLabel;
 	if (texInfo->depth == 1)
-		sprintf(tempStr, "%dx%d", texInfo->width, texInfo->height);
+		resolutionLabel = wxString::Format("%dx%d", texInfo->width, texInfo->height);
 	else
-		sprintf(tempStr, "%dx%dx%d", texInfo->width, texInfo->height, texInfo->depth);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+		resolutionLabel = wxString::Format("%dx%dx%d", texInfo->width, texInfo->height, texInfo->depth);
+	uiList->SetItem(rowIndex, columnIndex, resolutionLabel);
 	columnIndex++;
 	// format
+	wxString formatLabel;
 	if(texInfo->isDepth)
-		sprintf(tempStr, "%04x(d)", (uint32)texInfo->format);
+		formatLabel = wxString::Format("%04x(d)", (uint32)texInfo->format);
 	else
-		sprintf(tempStr, "%04x", (uint32)texInfo->format);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+		formatLabel = wxString::Format("%04x", (uint32)texInfo->format);
+	uiList->SetItem(rowIndex, columnIndex, formatLabel);
 	columnIndex++;
 	// pitch
-	sprintf(tempStr, "%d", texInfo->pitch);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%d", texInfo->pitch));
 	columnIndex++;
 	// tilemode
-	sprintf(tempStr, "%d", (int)texInfo->tileMode);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%d", (int)texInfo->tileMode));
 	columnIndex++;
 	// sliceRange
-	sprintf(tempStr, "");
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, "");
 	columnIndex++;
 	// mipRange
-	if(texInfo->mipLevels == 1)
-		sprintf(tempStr, "1 mip");
-	else
-		sprintf(tempStr, "%d mips", texInfo->mipLevels);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, texInfo->mipLevels == 1 ? "1 mip" : wxString::Format("%d mips", texInfo->mipLevels));
 	columnIndex++;
 	// last access
-	sprintf(tempStr, "%ds", (GetTickCount() - texInfo->lastAccessTick + 499) / 1000);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%lus", (GetTickCount() - texInfo->lastAccessTick + 499) / 1000));
 	columnIndex++;
 	// overwrite resolution
-	strcpy(tempStr, "");
+	wxString overwriteResLabel;
 	if (texInfo->overwriteInfo.hasResolutionOverwrite)
 	{
 		if(texInfo->overwriteInfo.depth != 1 || texInfo->depth != 1)
-			sprintf(tempStr, "%dx%dx%d", texInfo->overwriteInfo.width, texInfo->overwriteInfo.height, texInfo->overwriteInfo.depth);
+			overwriteResLabel = wxString::Format("%dx%dx%d", texInfo->overwriteInfo.width, texInfo->overwriteInfo.height, texInfo->overwriteInfo.depth);
 		else
-			sprintf(tempStr, "%dx%d", texInfo->overwriteInfo.width, texInfo->overwriteInfo.height);
+			overwriteResLabel = wxString::Format("%dx%d", texInfo->overwriteInfo.width, texInfo->overwriteInfo.height);
 	}
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, overwriteResLabel);
 	columnIndex++;
 }
 
 void TextureRelationViewerWindow::_setTextureRelationListItemView(wxListCtrl* uiList, sint32 rowIndex, struct LatteTextureInformation* texInfo, struct LatteTextureViewInformation* viewInfo)
 {
-	char tempStr[512];
 	// count number of alternative views
 	sint32 alternativeViewCount = 0; // todo
 	// set type string
-	if(alternativeViewCount == 0)
-		sprintf(tempStr, "> VIEW");
-	else
-		sprintf(tempStr, "> VIEW(%d)", alternativeViewCount+1);
 	// find and handle highlight entry
 	wxListItem item;
 	item.SetId(rowIndex);
-	item.SetText(tempStr);
+	item.SetText(alternativeViewCount == 0 ? "> VIEW" : wxString::Format("> VIEW(%d)", alternativeViewCount+1));
 	item.SetBackgroundColour(wxHelper::CalculateAccentColour(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW)));
 	uiList->InsertItem(item);
 	//uiList->SetItemPtrData(item, (wxUIntPtr)viewInfo);
 	sint32 columnIndex = 1;
     // phys address
-    sprintf(tempStr, "");
-    uiList->SetItem(rowIndex, columnIndex, tempStr);
+    uiList->SetItem(rowIndex, columnIndex, "");
     columnIndex++;
     // phys mip address
-    sprintf(tempStr, "");
-    uiList->SetItem(rowIndex, columnIndex, tempStr);
+    uiList->SetItem(rowIndex, columnIndex, "");
     columnIndex++;
 	// dim
+	wxString dimLabel;
 	if (viewInfo->dim == Latte::E_DIM::DIM_2D)
-		strcpy(tempStr, "2D");
+		dimLabel = "2D";
 	else if (viewInfo->dim == Latte::E_DIM::DIM_2D_ARRAY)
-		strcpy(tempStr, "2D_ARRAY");
+		dimLabel = "2D_ARRAY";
 	else if (viewInfo->dim == Latte::E_DIM::DIM_3D)
-		strcpy(tempStr, "3D");
+		dimLabel = "3D";
 	else if (viewInfo->dim == Latte::E_DIM::DIM_CUBEMAP)
-		strcpy(tempStr, "CUBEMAP");
+		dimLabel = "CUBEMAP";
 	else if (viewInfo->dim == Latte::E_DIM::DIM_1D)
-		strcpy(tempStr, "1D");
+		dimLabel = "1D";
 	else if (viewInfo->dim == Latte::E_DIM::DIM_2D_MSAA)
-		strcpy(tempStr, "2D_MSAA");
+		dimLabel = "2D_MSAA";
 	else if (viewInfo->dim == Latte::E_DIM::DIM_2D_ARRAY_MSAA)
-		strcpy(tempStr, "2D_ARRAY_MSAA");
+		dimLabel = "2D_ARRAY_MSAA";
 	else
-		strcpy(tempStr, "UKN");
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+		dimLabel = "UKN";
+	uiList->SetItem(rowIndex, columnIndex, dimLabel);
 	columnIndex++;
 	// resolution
-	tempStr[0] = '\0';
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, "");
 	columnIndex++;
 	// format
-	sprintf(tempStr, "%04x", (uint32)viewInfo->format);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%04x", (uint32)viewInfo->format));
 	columnIndex++;
 	// pitch
-	tempStr[0] = '\0';
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, "");
 	columnIndex++;
 	// tilemode
-	tempStr[0] = '\0';
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, "");
 	columnIndex++;
 	// sliceRange
-	sprintf(tempStr, "%d-%d", viewInfo->firstSlice, viewInfo->firstSlice+ viewInfo->numSlice-1);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%d-%d", viewInfo->firstSlice, viewInfo->firstSlice+ viewInfo->numSlice-1));
 	columnIndex++;
 	// mipRange
-	sprintf(tempStr, "%d-%d", viewInfo->firstMip, viewInfo->firstMip + viewInfo->numMip - 1);
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%d-%d", viewInfo->firstMip, viewInfo->firstMip + viewInfo->numMip - 1));
 	columnIndex++;
 	// last access
-	tempStr[0] = '\0';
-	uiList->SetItem(rowIndex, columnIndex, tempStr);
+	uiList->SetItem(rowIndex, columnIndex, "");
 	columnIndex++;
 }
 
