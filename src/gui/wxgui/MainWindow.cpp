@@ -867,7 +867,7 @@ void MainWindow::OpenSettings()
 	const bool mlc_modified = frame.MLCModified();
 
 	if (paths_modified)
-		m_game_list->ReloadGameEntries(false);
+		m_game_list->ReloadGameEntries();
 	else
 		SaveSettings();
 
@@ -1012,7 +1012,7 @@ void MainWindow::OnConsoleLanguage(wxCommandEvent& event)
 	if (m_game_list)
 	{
 		m_game_list->DeleteCachedStrings();
-		m_game_list->ReloadGameEntries(false);
+		m_game_list->ReloadGameEntries();
 	}
 	GetConfigHandle().Save();
 }
@@ -1450,7 +1450,7 @@ void MainWindow::OnAccountListRefresh(wxCommandEvent& event)
 
 void MainWindow::OnRequestGameListRefresh(wxCommandEvent& event)
 {
-	m_game_list->ReloadGameEntries(false);
+	m_game_list->ReloadGameEntries();
 }
 
 void MainWindow::OnSetWindowTitle(wxCommandEvent& event)

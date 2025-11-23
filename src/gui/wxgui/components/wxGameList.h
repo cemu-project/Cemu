@@ -51,7 +51,7 @@ public:
 	void SaveConfig(bool flush = false);
 	bool IsVisible(long item) const; // only available in wxwidgets 3.1.3
 
-	void ReloadGameEntries(bool cached = false);
+	void ReloadGameEntries();
 	void DeleteCachedStrings();
 
     void CreateShortcut(GameInfo2& gameInfo);
@@ -115,7 +115,7 @@ private:
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
 
-	void RemoveCache(const std::list<fs::path>& cachePath, const std::string& titleName);
+	void RemoveCache(const std::vector<fs::path>& cachePath, const std::string& titleName);
 
 	void AsyncWorkerThread();
 	void RequestLoadIconAsync(TitleId titleId);
