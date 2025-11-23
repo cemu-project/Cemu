@@ -9,6 +9,7 @@ vcpkg_from_github(
         relocatable-wx-config.patch
         nanosvg-ext-depend.patch
         fix-libs-export.patch
+        fix-linux-clipboard-hang.patch
         fix-pcre2.patch
         gtk3-link-libraries.patch
         sdl2.patch

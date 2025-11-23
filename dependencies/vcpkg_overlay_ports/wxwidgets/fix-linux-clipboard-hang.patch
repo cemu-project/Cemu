@@ -1,0 +1,10 @@
+--- a/src/gtk/clipbrd.cpp
++++ a/src/gtk/clipbrd.cpp
+@@ -623,7 +623,6 @@
+         GtkClipboard* clipboard = gtk_clipboard_get(GDK_SELECTION_CLIPBOARD);
+ 
+         gtk_clipboard_set_can_store(clipboard, nullptr, 0);
+-        gtk_clipboard_store(clipboard);
+ 
+         return true;
+     }
