@@ -269,6 +269,7 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	case PPCASM_OP_PS_NMSUB: return "PS_NMSUB";
 
 	case PPCASM_OP_FMR: return "FMR";
+	case PPCASM_OP_FABS: return "FABS";
 	case PPCASM_OP_FNEG: return "FNEG";
 	case PPCASM_OP_FRSP: return "FRSP";
 	case PPCASM_OP_FRSQRTE: return "FRSQRTE";
@@ -1325,6 +1326,7 @@ PPCInstructionDef ppcInstructionTable[] =
 	{PPCASM_OP_FCMPO, 0, 63, 32|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_X_FP_CMP, FLG_DEFAULT, 0, 0, nullptr },
 	{PPCASM_OP_FNEG, 0, 63, 40|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
 	{PPCASM_OP_FMR, 0, 63, 72|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
+	{PPCASM_OP_FABS, 0, 63, 264|OPC_EXTENDED_BIT, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, { EncodedOperand_FPR(21), EncodedOperand_FPR(11) } },
 
 };
 
@@ -3193,6 +3195,13 @@ void ppcAsmTestDisassembler()
 	checkOperandMask(true, true);
 	checkOpFPR(0, 7);
 	checkOpFPR(1, 12);
+
+	// FABS
+	_testAsm(0xFC200A10, "fabs f1, f1");
+	disassemble(0xFC200A10, PPCASM_OP_FABS);
+	checkOperandMask(true, true);
+	checkOpFPR(0, 1);
+	checkOpFPR(1, 1);
 
 	// FCTIWZ
 	_testAsm(0xFD80401E, "fctiwz f12, f8");
