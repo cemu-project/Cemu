@@ -14,7 +14,7 @@ namespace nsyshid::backend::libusb
 		{
 			m_ctx = nullptr;
 			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb: failed to initialize libusb, return code: {}",
-						m_initReturnCode);
+							 m_initReturnCode);
 			return;
 		}
 
@@ -33,8 +33,8 @@ namespace nsyshid::backend::libusb
 			if (ret != LIBUSB_SUCCESS)
 			{
 				cemuLog_logDebug(LogType::Force,
-							"nsyshid::BackendLibusb: failed to register hotplug callback with return code {}",
-							ret);
+								 "nsyshid::BackendLibusb: failed to register hotplug callback with return code {}",
+								 ret);
 			}
 			else
 			{
@@ -51,8 +51,8 @@ namespace nsyshid::backend::libusb
 						if (ret != 0)
 						{
 							cemuLog_logDebug(LogType::Force,
-										"nsyshid::BackendLibusb: hotplug thread: error handling events: {}",
-										ret);
+											 "nsyshid::BackendLibusb: hotplug thread: error handling events: {}",
+											 ret);
 							std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 						}
 					}
@@ -137,8 +137,8 @@ namespace nsyshid::backend::libusb
 		case LIBUSB_HOTPLUG_EVENT_DEVICE_ARRIVED:
 		{
 			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device arrived: {:04x}:{:04x}",
-						desc.idVendor,
-						desc.idProduct);
+							 desc.idVendor,
+							 desc.idProduct);
 			auto device = CheckAndCreateDevice(dev);
 			if (device != nullptr)
 			{
@@ -165,8 +165,8 @@ namespace nsyshid::backend::libusb
 		case LIBUSB_HOTPLUG_EVENT_DEVICE_LEFT:
 		{
 			cemuLog_logDebug(LogType::Force, "nsyshid::BackendLibusb::OnHotplug(): device left: {:04x}:{:04x}",
-						desc.idVendor,
-						desc.idProduct);
+							 desc.idVendor,
+							 desc.idProduct);
 			auto device = FindLibusbDevice(dev);
 			if (device != nullptr)
 			{
@@ -202,7 +202,7 @@ namespace nsyshid::backend::libusb
 		if (ret < 0)
 		{
 			cemuLog_logDebug(LogType::Force,
-						"nsyshid::BackendLibusb::FindLibusbDevice(): failed to get device descriptor");
+							 "nsyshid::BackendLibusb::FindLibusbDevice(): failed to get device descriptor");
 			return nullptr;
 		}
 		uint8 busNumber = libusb_get_bus_number(dev);
@@ -267,7 +267,7 @@ namespace nsyshid::backend::libusb
 		if (desc.idVendor == 0x0e6f && desc.idProduct == 0x0241)
 		{
 			cemuLog_logDebug(LogType::Force,
-						"nsyshid::BackendLibusb::CheckAndCreateDevice(): lego dimensions portal detected");
+							 "nsyshid::BackendLibusb::CheckAndCreateDevice(): lego dimensions portal detected");
 		}
 		auto device = std::make_shared<DeviceLibusb>(m_ctx,
 													 desc.idVendor,
@@ -492,7 +492,7 @@ namespace nsyshid::backend::libusb
 		if (!handleLock->IsValid())
 		{
 			cemuLog_logDebug(LogType::Force,
-						"nsyshid::DeviceLibusb::read(): cannot read from a non-opened device\n");
+							 "nsyshid::DeviceLibusb::read(): cannot read from a non-opened device\n");
 			return ReadResult::Error;
 		}
 
@@ -525,8 +525,8 @@ namespace nsyshid::backend::libusb
 			return ReadResult::Success;
 		}
 		cemuLog_logDebug(LogType::Force,
-					"nsyshid::DeviceLibusb::read(): failed at endpoint 0x{:02x} with error message: {}", this->m_libusbEndpointIn,
-					libusb_error_name(ret));
+						 "nsyshid::DeviceLibusb::read(): failed at endpoint 0x{:02x} with error message: {}", this->m_libusbEndpointIn,
+						 libusb_error_name(ret));
 		return ReadResult::Error;
 	}
 
@@ -536,7 +536,7 @@ namespace nsyshid::backend::libusb
 		if (!handleLock->IsValid())
 		{
 			cemuLog_logDebug(LogType::Force,
-						"nsyshid::DeviceLibusb::write(): cannot write to a non-opened device\n");
+							 "nsyshid::DeviceLibusb::write(): cannot write to a non-opened device\n");
 			return WriteResult::Error;
 		}
 
@@ -565,8 +565,8 @@ namespace nsyshid::backend::libusb
 			return WriteResult::Success;
 		}
 		cemuLog_logDebug(LogType::Force,
-					"nsyshid::DeviceLibusb::write(): failed with error code: {}",
-					ret);
+						 "nsyshid::DeviceLibusb::write(): failed with error code: {}",
+						 ret);
 		return WriteResult::Error;
 	}
 
@@ -763,6 +763,9 @@ namespace nsyshid::backend::libusb
 	int DeviceLibusb::ClaimAllInterfaces(uint8 config_num)
 	{
 		const int ret = DoForEachInterface(m_config_descriptors, config_num, [this](uint8 i) {
+		// On macos detaching would fail without root or entitlement.
+		// We assume user is using GCAdapterDriver and therefore don't want to detach anything
+#if !defined(__APPLE__)
 			if (libusb_kernel_driver_active(this->m_libusbHandle, i))
 			{
 				const int ret2 = libusb_detach_kernel_driver(this->m_libusbHandle, i);
@@ -773,6 +776,7 @@ namespace nsyshid::backend::libusb
 					return ret2;
 				}
 			}
+#endif
 			return libusb_claim_interface(this->m_libusbHandle, i);
 		});
 		if (ret < LIBUSB_SUCCESS)
