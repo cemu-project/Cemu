@@ -446,8 +446,6 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	CheckDeviceExtensionSupport(m_physicalDevice, m_featureControl); // todo - merge this with GetDeviceFeatures and separate from IsDeviceSuitable?
-	if (m_featureControl.debugMarkersSupported)
-		cemuLog_log(LogType::Force, "Debug: Frame debugger attached, will use vkDebugMarkerSetObjectNameEXT");
 
 	DetermineVendor();
 	GetDeviceFeatures();
@@ -582,10 +580,14 @@ VulkanRenderer::VulkanRenderer()
 		debugCallback.pfnUserCallback = &DebugUtilsCallback;
 
 		vkCreateDebugUtilsMessengerEXT(m_instance, &debugCallback, nullptr, &m_debugCallback);
+
+		cemuLog_log(LogType::Force, "Debug: Vulkan validation layer enabled, vkCreateDebugUtilsMessengerEXT will be used to log validation errors");
 	}
 
-	if (m_featureControl.instanceExtensions.debug_utils)
-		cemuLog_log(LogType::Force, "Using available debug function: vkCreateDebugUtilsMessengerEXT()");
+	if (this->IsTracingToolEnabled())
+		cemuLog_log(LogType::Force, "Debug: Tracing tool detected, will recompile all shaders with debug info enabled. This disables the SPIR-V cache.");
+	if (this->IsDebugMarkersEnabled())
+		cemuLog_log(LogType::Force, "Debug: Detected tool capable of using debug markers, will use vkDebugMarkerSetObjectNameEXT to identify Vulkan objects");
 
 	// set initial viewport and scissor box size
 	m_state.currentViewport.width = 4;
@@ -1256,8 +1258,9 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
 	info.deviceExtensions.present_wait = isExtensionAvailable(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && isExtensionAvailable(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 
-	// check for framedebuggers
-	info.debugMarkersSupported = false;
+	// check for validation layers and frame debuggers
+	info.usingDebugMarkerTool = false;
+	info.usingTracingTool = false;
 	if (info.deviceExtensions.tooling_info && vkGetPhysicalDeviceToolPropertiesEXT)
 	{
 		uint32_t toolCount = 0;
@@ -1268,8 +1271,10 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 			{
 				for (auto& itr : toolProperties)
 				{
-					if ((itr.purposes & VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT) != 0)
-						info.debugMarkersSupported = true;
+					if ((itr.purposes & VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT) != 0 && info.instanceExtensions.debug_utils && vkSetDebugUtilsObjectNameEXT)
+						info.usingDebugMarkerTool = true;
+					if ((itr.purposes & VK_TOOL_PURPOSE_TRACING_BIT) != 0)
+						info.usingTracingTool = true;
 				}
 			}
 		}

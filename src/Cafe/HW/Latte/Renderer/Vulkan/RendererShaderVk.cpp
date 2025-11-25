@@ -271,7 +271,7 @@ void RendererShaderVk::CreateVkShaderModule(std::span<uint32> spirvBuffer)
 	}
 
 	// set debug name
-	if (vkr->IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT)
+	if (vkr->IsDebugMarkersEnabled())
 	{
 		VkDebugUtilsObjectNameInfoEXT objName{};
 		objName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -292,7 +292,7 @@ void RendererShaderVk::FinishCompilation()
 
 void RendererShaderVk::CompileInternal(bool isRenderThread)
 {
-	bool compileWithDebugInfo = ((VulkanRenderer*)g_renderer.get())->IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT;
+	const bool compileWithDebugInfo = ((VulkanRenderer*)g_renderer.get())->IsTracingToolEnabled();
 
 	// try to retrieve SPIR-V module from cache
 	if (s_isLoadingShadersVk && (m_isGameShader && !m_isGfxPackShader) && s_spirvCache && !compileWithDebugInfo)
