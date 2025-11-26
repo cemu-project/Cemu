@@ -117,7 +117,7 @@ add_library(CemuWxGui STATIC
 )
 
 if (ENABLE_BLUEZ)
-  add_library(CemuWxGui STATIC
+  target_sources(CemuWxGui PRIVATE
     input/PairingDialog.cpp
     input/PairingDialog.h
   )
