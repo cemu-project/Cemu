@@ -1082,7 +1082,7 @@ uint32 GeneralSettings2::GetSelectedAccountPersistentId()
 
 void GeneralSettings2::StoreConfig()
 {
-	auto* app = (CemuApp*)wxTheApp;
+	auto& app = wxGetApp();
 	auto& config = GetConfig();
 	auto& wxGuiConfig = GetWxGUIConfig();
 
@@ -1121,7 +1121,7 @@ void GeneralSettings2::StoreConfig()
 	else
 	{
 		const auto language = m_language->GetStringSelection();
-		for (const auto& lang : app->GetLanguages())
+		for (const auto& lang : app.GetLanguages())
 		{
 			if (lang->DescriptionNative == language)
 			{
@@ -1841,8 +1841,8 @@ void GeneralSettings2::ApplyConfig()
 		m_game_paths->Append(wxString::FromUTF8(path));
 	}
 
-	const auto app = (CemuApp*)wxTheApp;
-	for (const auto& language : app->GetLanguages())
+	const auto& app = wxGetApp();
+	for (const auto& language : app.GetLanguages())
 	{
 		if (wxGUIconfig.language == language->Language)
 		{

@@ -75,13 +75,13 @@ wxPanel* GettingStartedDialog::CreatePage1()
 				GetConfig().language = wxLANGUAGE_DEFAULT;
 			else
 			{
-				auto* app = (CemuApp*)wxTheApp;
+				auto& app = wxGetApp();
 				const auto language = m_language->GetStringSelection();
-				for (const auto& lang : app->GetLanguages())
+				for (const auto& lang : app.GetLanguages())
 				{
 					if (lang->DescriptionNative == language)
 					{
-						app->LocalizeUI(static_cast<wxLanguage>(lang->Language));
+						app.LocalizeUI(static_cast<wxLanguage>(lang->Language));
 						wxCommandEvent event(EVT_REFRESH_FIRST_PAGE);
 						wxPostEvent(this, event);
 						break;
