@@ -4,6 +4,9 @@
 
 #include <mutex>
 #include <atomic>
+#include <shared_mutex>
+#include <cassert>
+#include <string>
 
 template<typename TType>
 class ConfigValueAtomic

@@ -3,6 +3,7 @@
 #include <mutex>
 #include <thread>
 #include <atomic>
+#include <future>
 
 #include <wx/listctrl.h>
 
