@@ -174,7 +174,7 @@ public:
 			job->m_compilationState.setValue(RendererShaderVk::COMPILATION_STATE::COMPILING);
 			s_compilationQueueMutex.unlock();
 			// compile
-			job->CompileInternal(false);
+			job->CompileInternal();
 			++g_compiled_shaders_async;
 			// mark as compiled
 			cemu_assert_debug(job->m_compilationState.getValue() == RendererShaderVk::COMPILATION_STATE::COMPILING);
@@ -290,7 +290,7 @@ void RendererShaderVk::FinishCompilation()
 	m_glslCode.shrink_to_fit();
 }
 
-void RendererShaderVk::CompileInternal(bool isRenderThread)
+void RendererShaderVk::CompileInternal()
 {
 	const bool compileWithDebugInfo = ((VulkanRenderer*)g_renderer.get())->IsTracingToolEnabled();
 
@@ -419,7 +419,7 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	FinishCompilation();
 }
 
-void RendererShaderVk::PreponeCompilation(bool isRenderThread)
+void RendererShaderVk::PreponeCompilation()
 {
 	ShaderVkThreadPool.s_compilationQueueMutex.lock();
 	bool isStillQueued = m_compilationState.hasState(COMPILATION_STATE::QUEUED);
@@ -439,7 +439,7 @@ void RendererShaderVk::PreponeCompilation(bool isRenderThread)
 	else
 	{
 		// compile synchronously
-		CompileInternal(isRenderThread);
+		CompileInternal();
 		m_compilationState.setValue(COMPILATION_STATE::DONE);
 	}
 }
