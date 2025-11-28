@@ -27,11 +27,6 @@ struct LatteGPUState_t
 	uint32 contextControl1;
 	// optional features
 	bool allowFramebufferSizeOptimization{false}; // allow using scissor box as size hint to determine non-padded rendertarget size
-	// draw context
-	struct  
-	{
-		uint32 numInstances;
-	}drawContext;
 	// stats
 	uint32 frameCounter;
 	uint32 flipCounter; // increased by one everytime a vsync + flip happens

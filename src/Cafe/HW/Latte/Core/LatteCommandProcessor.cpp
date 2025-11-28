@@ -62,16 +62,7 @@ public:
 	{
 		uint32 baseVertex = LatteGPUState.contextRegister[mmSQ_VTX_BASE_VTX_LOC];
 		uint32 baseInstance = LatteGPUState.contextRegister[mmSQ_VTX_START_INST_LOC];
-		uint32 numInstances = LatteGPUState.drawContext.numInstances;
-		if (numInstances == 0)
-			return;
-
-		/*
-		if (GetAsyncKeyState('B'))
-		{
-			cemuLog_force("[executeDraw] {} Count {} BaseVertex {} BaseInstance {}", m_isFirstDraw?"Init":"Fast", count, baseVertex, baseInstance);
-		}
-		*/
+		uint32 numInstances = LatteGPUState.contextNew.VGT_DMA_NUM_INSTANCES.get_NUM_INSTANCES();
 
 		if (!isAutoIndex)
 		{
@@ -391,7 +382,10 @@ LatteCMDPtr LatteCP_itIndexType(LatteCMDPtr cmd, uint32 nWords)
 LatteCMDPtr LatteCP_itNumInstances(LatteCMDPtr cmd, uint32 nWords)
 {
 	cemu_assert_debug(nWords == 1);
-	LatteGPUState.drawContext.numInstances = LatteReadCMD();
+	uint32 numInstances = LatteReadCMD();
+	if (numInstances == 0)
+		numInstances = 1;
+	LatteGPUState.contextNew.VGT_DMA_NUM_INSTANCES.set_NUM_INSTANCES(numInstances);
 	return cmd;
 }
 
@@ -690,9 +684,6 @@ LatteCMDPtr LatteCP_itDrawIndexAuto(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 	cemu_assert_debug(nWords == 2);
 	uint32 count = LatteReadCMD();
 	uint32 ukn = LatteReadCMD();
-
-	if (LatteGPUState.drawContext.numInstances == 0)
-		return cmd;
 	LatteGPUState.currentDrawCallTick = GetTickCount();
 	// todo - better way to identify compute drawcalls
 	if ((LatteGPUState.contextRegister[mmSQ_CONFIG] >> 24) == 0xE4)
@@ -750,13 +741,7 @@ LatteCMDPtr LatteCP_itDrawImmediate(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 		cemuLog_log(LogType::Force, "itDrawImmediate - Unsupported index type");
 		return cmd;
 	}
-	// verify packet size
-	if (nWords != (2 + numIndexU32s))
-		debugBreakpoint();
-
-	uint32 baseVertex = LatteGPUState.contextRegister[mmSQ_VTX_BASE_VTX_LOC];
-	uint32 baseInstance = LatteGPUState.contextRegister[mmSQ_VTX_START_INST_LOC];
-	uint32 numInstances = LatteGPUState.drawContext.numInstances;
+	cemu_assert_debug(nWords == (2 + numIndexU32s)); // verify packet size
 
 	drawPassCtx.executeDraw(count, false, _tempIndexArrayMPTR);
 	return cmd;

@@ -445,6 +445,7 @@ namespace Latte
 		VGT_DMA_INDEX_TYPE					= 0xA29F, // todo - verify offset
 
 		VGT_PRIMITIVEID_EN					= 0xA2A1,
+		VGT_DMA_NUM_INSTANCES				= 0xA2A2,
 
 		VGT_MULTI_PRIM_IB_RESET_EN 			= 0xA2A5,
 
@@ -975,6 +976,11 @@ float get_##__regname() const \
 	struct LATTE_VGT_PRIMITIVEID_EN : LATTEREG // 0xA2A1
 	{
 		LATTE_BITFIELD_BOOL(PRIMITIVEID_EN, 0);
+	};
+
+	struct LATTE_VGT_DMA_NUM_INSTANCES : LATTEREG // 0xA2A2
+	{
+		LATTE_BITFIELD_FULL_TYPED(NUM_INSTANCES, uint32);
 	};
 
 	struct LATTE_VGT_MULTI_PRIM_IB_RESET_EN : LATTEREG // 0xA2A5
@@ -1541,7 +1547,7 @@ struct LatteContextRegister
 	/* +0x28A7C */ Latte::LATTE_VGT_DMA_INDEX_TYPE VGT_DMA_INDEX_TYPE;
 	/* +0x28A80 */ uint32 ukn28A80;
 	/* +0x28A84 */ Latte::LATTE_VGT_PRIMITIVEID_EN VGT_PRIMITIVEID_EN;
-	/* +0x28A88 */ uint32 ukn28A88;
+	/* +0x28A88 */ Latte::LATTE_VGT_DMA_NUM_INSTANCES VGT_DMA_NUM_INSTANCES;
 	/* +0x28A8C */ uint32 ukn28A8C;
 	/* +0x28A90 */ uint32 ukn28A90;
 	/* +0x28A94 */ Latte::LATTE_VGT_MULTI_PRIM_IB_RESET_EN VGT_MULTI_PRIM_IB_RESET_EN;
@@ -1611,6 +1617,7 @@ static_assert(offsetof(LatteContextRegister, PA_SC_GENERIC_SCISSOR_TL) == Latte:
 static_assert(offsetof(LatteContextRegister, PA_SC_GENERIC_SCISSOR_BR) == Latte::REGADDR::PA_SC_GENERIC_SCISSOR_BR * 4);
 static_assert(offsetof(LatteContextRegister, VGT_MULTI_PRIM_IB_RESET_INDX) == Latte::REGADDR::VGT_MULTI_PRIM_IB_RESET_INDX * 4);
 static_assert(offsetof(LatteContextRegister, VGT_PRIMITIVEID_EN) == Latte::REGADDR::VGT_PRIMITIVEID_EN * 4);
+static_assert(offsetof(LatteContextRegister, VGT_DMA_NUM_INSTANCES) == Latte::REGADDR::VGT_DMA_NUM_INSTANCES * 4);
 static_assert(offsetof(LatteContextRegister, VGT_MULTI_PRIM_IB_RESET_EN) == Latte::REGADDR::VGT_MULTI_PRIM_IB_RESET_EN * 4);
 static_assert(offsetof(LatteContextRegister, VGT_INSTANCE_STEP_RATE_0) == Latte::REGADDR::VGT_INSTANCE_STEP_RATE_0 * 4);
 static_assert(offsetof(LatteContextRegister, VGT_INSTANCE_STEP_RATE_1) == Latte::REGADDR::VGT_INSTANCE_STEP_RATE_1 * 4);

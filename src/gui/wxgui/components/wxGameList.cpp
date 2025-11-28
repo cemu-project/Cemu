@@ -1331,7 +1331,6 @@ void wxGameList::AsyncWorkerThread()
 		else
 		{
 			cemuLog_log(LogType::Force, "Failed to load icon for title {:016x}", titleId);
-			cemu_assert_debug(false);
 		}
 		titleInfo.Unmount(tempMountPath);
 		// notify UI about loaded icon
