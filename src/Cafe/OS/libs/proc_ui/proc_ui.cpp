@@ -808,42 +808,6 @@ namespace proc_ui
 		OSMemoryBarrier();
 	}
 
-	sint32 rpl_entry(uint32 moduleHandle, RplEntryReason reason)
-	{
-		if ( reason == RplEntryReason::Loaded )
-		{
-			s_ProcUIDriver->getDriverName = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {MEMPTR<const char> namePtr(ProcUIDriver_GetName()); osLib_returnFromFunction(hCPU, namePtr.GetMPTR()); });
-			s_ProcUIDriver->init = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_Init(); osLib_returnFromFunction(hCPU, 0); });
-			s_ProcUIDriver->onAcquireForeground = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_OnAcquiredForeground(); osLib_returnFromFunction(hCPU, 0); });
-			s_ProcUIDriver->onReleaseForeground = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_OnReleaseForeground(); osLib_returnFromFunction(hCPU, 0); });
-			s_ProcUIDriver->done = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_OnDone(); osLib_returnFromFunction(hCPU, 0); });
-
-			s_driverIsActive = false;
-			s_driverArgUkn1 = 0;
-			s_driverArgUkn2 = 0;
-			s_driverInBackground = false;
-			uint32be ukn3;
-			OSDriver_Register(moduleHandle, 200, &s_ProcUIDriver, 0, &s_driverArgUkn1, &s_driverArgUkn2, &ukn3);
-			if ( ukn3 )
-			{
-				if ( OSGetForegroundBucket(nullptr, nullptr) )
-				{
-					ProcUIDriver_Init();
-					OSMemoryBarrier();
-					return 0;
-				}
-				s_driverInBackground = true;
-			}
-			OSMemoryBarrier();
-		}
-		else if ( reason == RplEntryReason::Unloaded )
-		{
-			ProcUIDriver_OnDone();
-			OSDriver_Deregister(moduleHandle, 0);
-		}
-		return 0;
-	}
-
 	void reset()
 	{
 		// set variables to their initial state as if the RPL was just loaded
@@ -877,32 +841,84 @@ namespace proc_ui
 
 	void load()
 	{
-		reset();
 
-		cafeExportRegister("proc_ui", ProcUIInit, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIInitEx, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIShutdown, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIIsRunning, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIInForeground, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIInShutdown, LogType::ProcUi);
-
-		cafeExportRegister("proc_ui", ProcUIRegisterCallbackCore, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIRegisterCallback, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIRegisterBackgroundCallback, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIClearCallbacks, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUISetSaveCallback, LogType::ProcUi);
-
-		cafeExportRegister("proc_ui", ProcUISetCallbackStackSize, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUICalcMemorySize, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUISetMemoryPool, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUISetBucketStorage, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUISetMEM1Storage, LogType::ProcUi);
-
-		cafeExportRegister("proc_ui", ProcUIDrawDoneRelease, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUIProcessMessages, LogType::ProcUi);
-		cafeExportRegister("proc_ui", ProcUISubProcessMessages, LogType::ProcUi);
-
-		// manually call rpl_entry for now
-		rpl_entry(-1, RplEntryReason::Loaded);
 	}
+
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "proc_ui";
+		}
+
+		void RPLMapped() override
+		{
+			reset();
+
+			cafeExportRegister("proc_ui", ProcUIInit, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIInitEx, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIShutdown, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIIsRunning, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIInForeground, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIInShutdown, LogType::ProcUi);
+
+			cafeExportRegister("proc_ui", ProcUIRegisterCallbackCore, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIRegisterCallback, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIRegisterBackgroundCallback, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIClearCallbacks, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUISetSaveCallback, LogType::ProcUi);
+
+			cafeExportRegister("proc_ui", ProcUISetCallbackStackSize, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUICalcMemorySize, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUISetMemoryPool, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUISetBucketStorage, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUISetMEM1Storage, LogType::ProcUi);
+
+			cafeExportRegister("proc_ui", ProcUIDrawDoneRelease, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUIProcessMessages, LogType::ProcUi);
+			cafeExportRegister("proc_ui", ProcUISubProcessMessages, LogType::ProcUi);
+		};
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if ( reason == RplEntryReason::Loaded )
+			{
+				s_ProcUIDriver->getDriverName = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {MEMPTR<const char> namePtr(ProcUIDriver_GetName()); osLib_returnFromFunction(hCPU, namePtr.GetMPTR()); });
+				s_ProcUIDriver->init = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_Init(); osLib_returnFromFunction(hCPU, 0); });
+				s_ProcUIDriver->onAcquireForeground = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_OnAcquiredForeground(); osLib_returnFromFunction(hCPU, 0); });
+				s_ProcUIDriver->onReleaseForeground = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_OnReleaseForeground(); osLib_returnFromFunction(hCPU, 0); });
+				s_ProcUIDriver->done = RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) {ProcUIDriver_OnDone(); osLib_returnFromFunction(hCPU, 0); });
+
+				s_driverIsActive = false;
+				s_driverArgUkn1 = 0;
+				s_driverArgUkn2 = 0;
+				s_driverInBackground = false;
+				uint32be ukn3;
+				OSDriver_Register(moduleHandle, 200, &s_ProcUIDriver, 0, &s_driverArgUkn1, &s_driverArgUkn2, &ukn3);
+				if ( ukn3 )
+				{
+					if ( OSGetForegroundBucket(nullptr, nullptr) )
+					{
+						ProcUIDriver_Init();
+						OSMemoryBarrier();
+						return;
+					}
+					s_driverInBackground = true;
+				}
+				OSMemoryBarrier();
+			}
+			else if ( reason == RplEntryReason::Unloaded )
+			{
+				ProcUIDriver_OnDone();
+				OSDriver_Deregister(moduleHandle, 0);
+			}
+		}
+	}s_COSprocuiModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSprocuiModule;
+	}
+
 };

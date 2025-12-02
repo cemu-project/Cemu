@@ -1,6 +1,7 @@
 #pragma once
+#include "Cafe/OS/RPL/COSModule.h"
 
 namespace nn::temp
 {
-	void Initialize();
+	COSModule* GetModule();
 };

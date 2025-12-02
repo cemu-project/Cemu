@@ -1040,13 +1040,27 @@ namespace nn::nfp
 		osLib_addFunction("nn_nfp", "GetAmiiboSettingsArgs__Q2_2nn3nfpFPQ3_2nn3nfp18AmiiboSettingsArgs", nnNfpExport_GetAmiiboSettingsArgs);
 	}
 
-	void load()
+	class : public COSModule
 	{
-		nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc
+		public:
+		std::string_view GetName() override
+		{
+			return "nn_nfp";
+		}
 
-		cafeExportRegisterFunc(nn::nfp::GetErrorCode, "nn_nfp", "GetErrorCode__Q2_2nn3nfpFRCQ2_2nn6Result", LogType::NN_NFP);
-		cafeExportRegisterFunc(nn::nfp::GetNfpRomInfo, "nn_nfp", "GetNfpRomInfo__Q2_2nn3nfpFPQ3_2nn3nfp7RomInfo", LogType::NN_NFP);
-		cafeExportRegisterFunc(nn::nfp::GetNfpReadOnlyInfo, "nn_nfp", "GetNfpReadOnlyInfo__Q2_2nn3nfpFPQ3_2nn3nfp12ReadOnlyInfo", LogType::NN_NFP);
+		void RPLMapped() override
+		{
+			nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc
+
+			cafeExportRegisterFunc(nn::nfp::GetErrorCode, "nn_nfp", "GetErrorCode__Q2_2nn3nfpFRCQ2_2nn6Result", LogType::NN_NFP);
+			cafeExportRegisterFunc(nn::nfp::GetNfpRomInfo, "nn_nfp", "GetNfpRomInfo__Q2_2nn3nfpFPQ3_2nn3nfp7RomInfo", LogType::NN_NFP);
+			cafeExportRegisterFunc(nn::nfp::GetNfpReadOnlyInfo, "nn_nfp", "GetNfpReadOnlyInfo__Q2_2nn3nfpFPQ3_2nn3nfp12ReadOnlyInfo", LogType::NN_NFP);
+		};
+
+	}s_COSnnNfpModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnnNfpModule;
 	}
-
 }

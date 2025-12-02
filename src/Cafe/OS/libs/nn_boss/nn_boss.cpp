@@ -1191,138 +1191,164 @@ namespace boss
 
 }
 }
-void nnBoss_load()
+
+namespace nn::boss
 {
-	OSInitMutexEx(&nn::boss::g_mutex, nullptr);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "nn_boss";
+		}
 
-	nn::boss::g_initCounter = 0;
-	nn::boss::g_isInitialized = false;
+		void RPLMapped() override
+		{
+			cafeExportRegisterFunc(nn::boss::GetBossState, "nn_boss", "GetBossState__Q2_2nn4bossFv", LogType::NN_BOSS);
 
-	cafeExportRegisterFunc(nn::boss::GetBossState, "nn_boss", "GetBossState__Q2_2nn4bossFv", LogType::NN_BOSS);
+			// boss lib
+			cafeExportRegisterFunc(nn::boss::Initialize, "nn_boss", "Initialize__Q2_2nn4bossFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::IsInitialized, "nn_boss", "IsInitialized__Q2_2nn4bossFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Finalize, "nn_boss", "Finalize__Q2_2nn4bossFv", LogType::NN_BOSS);
 
-	// boss lib
-	cafeExportRegisterFunc(nn::boss::Initialize, "nn_boss", "Initialize__Q2_2nn4bossFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::IsInitialized, "nn_boss", "IsInitialized__Q2_2nn4bossFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Finalize, "nn_boss", "Finalize__Q2_2nn4bossFv", LogType::NN_BOSS);
+			// taskId
+			cafeExportRegisterFunc(nn::boss::TaskId::ctorDefault, "nn_boss", "__ct__Q3_2nn4boss6TaskIDFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::TaskId::ctorFromString, "nn_boss", "__ct__Q3_2nn4boss6TaskIDFPCc", LogType::NN_BOSS);
 
-	// taskId
-	cafeExportRegisterFunc(nn::boss::TaskId::ctorDefault, "nn_boss", "__ct__Q3_2nn4boss6TaskIDFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::TaskId::ctorFromString, "nn_boss", "__ct__Q3_2nn4boss6TaskIDFPCc", LogType::NN_BOSS);
+			// task
+			nn::boss::Task::InitVTable();
+			cafeExportRegisterFunc(nn::boss::Task::ctor1, "nn_boss", "__ct__Q3_2nn4boss4TaskFUcPCc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::ctor2, "nn_boss", "__ct__Q3_2nn4boss4TaskFPCcUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::ctor3, "nn_boss", "__ct__Q3_2nn4boss4TaskFPCc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::ctor4, "nn_boss", "__ct__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::dtor, "nn_boss", "__dt__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Initialize1, "nn_boss", "Initialize__Q3_2nn4boss4TaskFPCcUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Initialize2, "nn_boss", "Initialize__Q3_2nn4boss4TaskFUcPCc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Initialize3, "nn_boss", "Initialize__Q3_2nn4boss4TaskFPCc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Run, "nn_boss", "Run__Q3_2nn4boss4TaskFb", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Wait, "nn_boss", "Wait__Q3_2nn4boss4TaskFUiQ3_2nn4boss13TaskWaitState", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::GetTurnState, "nn_boss", "GetTurnState__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::GetHttpStatusCode, "nn_boss", "GetHttpStatusCode__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::GetContentLength, "nn_boss", "GetContentLength__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::GetProcessedLength, "nn_boss", "GetProcessedLength__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Register, "nn_boss", "Register__Q3_2nn4boss4TaskFRQ3_2nn4boss11TaskSetting", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::Unregister, "nn_boss", "Unregister__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::IsRegistered, "nn_boss", "IsRegistered__Q3_2nn4boss4TaskCFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::RegisterForImmediateRun, "nn_boss", "RegisterForImmediateRun__Q3_2nn4boss4TaskFRCQ3_2nn4boss11TaskSetting", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::StartScheduling, "nn_boss", "StartScheduling__Q3_2nn4boss4TaskFb", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Task::StopScheduling, "nn_boss", "StopScheduling__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
 
-	// task
-	nn::boss::Task::InitVTable();
-	cafeExportRegisterFunc(nn::boss::Task::ctor1, "nn_boss", "__ct__Q3_2nn4boss4TaskFUcPCc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::ctor2, "nn_boss", "__ct__Q3_2nn4boss4TaskFPCcUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::ctor3, "nn_boss", "__ct__Q3_2nn4boss4TaskFPCc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::ctor4, "nn_boss", "__ct__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::dtor, "nn_boss", "__dt__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Initialize1, "nn_boss", "Initialize__Q3_2nn4boss4TaskFPCcUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Initialize2, "nn_boss", "Initialize__Q3_2nn4boss4TaskFUcPCc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Initialize3, "nn_boss", "Initialize__Q3_2nn4boss4TaskFPCc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Run, "nn_boss", "Run__Q3_2nn4boss4TaskFb", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Wait, "nn_boss", "Wait__Q3_2nn4boss4TaskFUiQ3_2nn4boss13TaskWaitState", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::GetTurnState, "nn_boss", "GetTurnState__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::GetHttpStatusCode, "nn_boss", "GetHttpStatusCode__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::GetContentLength, "nn_boss", "GetContentLength__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::GetProcessedLength, "nn_boss", "GetProcessedLength__Q3_2nn4boss4TaskCFPUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Register, "nn_boss", "Register__Q3_2nn4boss4TaskFRQ3_2nn4boss11TaskSetting", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::Unregister, "nn_boss", "Unregister__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::IsRegistered, "nn_boss", "IsRegistered__Q3_2nn4boss4TaskCFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::RegisterForImmediateRun, "nn_boss", "RegisterForImmediateRun__Q3_2nn4boss4TaskFRCQ3_2nn4boss11TaskSetting", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::StartScheduling, "nn_boss", "StartScheduling__Q3_2nn4boss4TaskFb", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Task::StopScheduling, "nn_boss", "StopScheduling__Q3_2nn4boss4TaskFv", LogType::NN_BOSS);
+			// TaskSetting
+			nn::boss::TaskSetting::InitVTable();
+			cafeExportRegisterFunc(nn::boss::TaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss11TaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::TaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss11TaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::TaskSetting::IsPrivileged, "nn_boss", "Initialize__Q3_2nn4boss11TaskSettingFPCcUi", LogType::NN_BOSS);
 
-	// TaskSetting
-	nn::boss::TaskSetting::InitVTable();
-	cafeExportRegisterFunc(nn::boss::TaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss11TaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::TaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss11TaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::TaskSetting::IsPrivileged, "nn_boss", "Initialize__Q3_2nn4boss11TaskSettingFPCcUi", LogType::NN_BOSS);
+			// NbdlTaskSetting
+			nn::boss::NbdlTaskSetting::InitVTable();
+			cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss15NbdlTaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss15NbdlTaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss15NbdlTaskSettingFPCcLT1", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::SetFileName, "nn_boss", "SetFileName__Q3_2nn4boss15NbdlTaskSettingFPCc", LogType::NN_BOSS);
 
-	// NbdlTaskSetting
-	nn::boss::NbdlTaskSetting::InitVTable();
-	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss15NbdlTaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss15NbdlTaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss15NbdlTaskSettingFPCcLT1", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NbdlTaskSetting::SetFileName, "nn_boss", "SetFileName__Q3_2nn4boss15NbdlTaskSettingFPCc", LogType::NN_BOSS);
+			// PlayReportSetting
+			nn::boss::PlayReportSetting::InitVTable();
+			cafeExportRegisterFunc(nn::boss::PlayReportSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss17PlayReportSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::PlayReportSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss17PlayReportSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::PlayReportSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss17PlayReportSettingFPvUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::PlayReportSetting::Set, "nn_boss", "Set__Q3_2nn4boss17PlayReportSettingFPCcUi", LogType::NN_BOSS);
 
-	// PlayReportSetting
-	nn::boss::PlayReportSetting::InitVTable();
-	cafeExportRegisterFunc(nn::boss::PlayReportSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss17PlayReportSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::PlayReportSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss17PlayReportSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::PlayReportSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss17PlayReportSettingFPvUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::PlayReportSetting::Set, "nn_boss", "Set__Q3_2nn4boss17PlayReportSettingFPCcUi", LogType::NN_BOSS);
+			// RawDlTaskSetting
+			nn::boss::RawDlTaskSetting::InitVTable();
+			cafeExportRegisterFunc(nn::boss::RawDlTaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss16RawDlTaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::RawDlTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss16RawDlTaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::RawDlTaskSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss16RawDlTaskSettingFPCcbT2N21", LogType::NN_BOSS);
 
-	// RawDlTaskSetting
-	nn::boss::RawDlTaskSetting::InitVTable();
-	cafeExportRegisterFunc(nn::boss::RawDlTaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss16RawDlTaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::RawDlTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss16RawDlTaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::RawDlTaskSetting::Initialize, "nn_boss", "Initialize__Q3_2nn4boss16RawDlTaskSettingFPCcbT2N21", LogType::NN_BOSS);
+			// NetTaskSetting
+			nn::boss::NetTaskSetting::InitVTable();
+			cafeExportRegisterFunc(nn::boss::NetTaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss14NetTaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NetTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss14NetTaskSettingFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NetTaskSetting::SetServiceToken, "nn_boss", "SetServiceToken__Q3_2nn4boss14NetTaskSettingFPCUc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NetTaskSetting::AddInternalCaCert, "nn_boss", "AddInternalCaCert__Q3_2nn4boss14NetTaskSettingFSc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NetTaskSetting::SetInternalClientCert, "nn_boss", "SetInternalClientCert__Q3_2nn4boss14NetTaskSettingFSc", LogType::NN_BOSS);
 
-	// NetTaskSetting
-	nn::boss::NetTaskSetting::InitVTable();
-	cafeExportRegisterFunc(nn::boss::NetTaskSetting::ctor, "nn_boss", "__ct__Q3_2nn4boss14NetTaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NetTaskSetting::dtor, "nn_boss", "__dt__Q3_2nn4boss14NetTaskSettingFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NetTaskSetting::SetServiceToken, "nn_boss", "SetServiceToken__Q3_2nn4boss14NetTaskSettingFPCUc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NetTaskSetting::AddInternalCaCert, "nn_boss", "AddInternalCaCert__Q3_2nn4boss14NetTaskSettingFSc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NetTaskSetting::SetInternalClientCert, "nn_boss", "SetInternalClientCert__Q3_2nn4boss14NetTaskSettingFSc", LogType::NN_BOSS);
+			// Title
+			nn::boss::Title::InitVTable();
+			cafeExportRegisterFunc(nn::boss::Title::ctor, "nn_boss", "__ct__Q3_2nn4boss5TitleFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Title::dtor, "nn_boss", "__dt__Q3_2nn4boss5TitleFv", LogType::NN_BOSS);
+			// cafeExportMakeWrapper<nn::boss::Title::SetNewArrivalFlagOff>("nn_boss", "SetNewArrivalFlagOff__Q3_2nn4boss5TitleFv"); SMM bookmarks
 
-	// Title
-	nn::boss::Title::InitVTable();
-	cafeExportRegisterFunc(nn::boss::Title::ctor, "nn_boss", "__ct__Q3_2nn4boss5TitleFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Title::dtor, "nn_boss", "__dt__Q3_2nn4boss5TitleFv", LogType::NN_BOSS);
-	// cafeExportMakeWrapper<nn::boss::Title::SetNewArrivalFlagOff>("nn_boss", "SetNewArrivalFlagOff__Q3_2nn4boss5TitleFv"); SMM bookmarks
+			// TitleId
+			cafeExportRegisterFunc(nn::boss::TitleId::ctorDefault, "nn_boss", "__ct__Q3_2nn4boss7TitleIDFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::TitleId::ctorFromTitleId, "nn_boss", "__ct__Q3_2nn4boss7TitleIDFUL", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::TitleId::ctorCopy, "nn_boss", "__ct__Q3_2nn4boss7TitleIDFRCQ3_2nn4boss7TitleID", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::TitleId::operator_ne, "nn_boss", "__ne__Q3_2nn4boss7TitleIDCFRCQ3_2nn4boss7TitleID", LogType::NN_BOSS);
 
-	// TitleId
-	cafeExportRegisterFunc(nn::boss::TitleId::ctorDefault, "nn_boss", "__ct__Q3_2nn4boss7TitleIDFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::TitleId::ctorFromTitleId, "nn_boss", "__ct__Q3_2nn4boss7TitleIDFUL", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::TitleId::ctorCopy, "nn_boss", "__ct__Q3_2nn4boss7TitleIDFRCQ3_2nn4boss7TitleID", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::TitleId::operator_ne, "nn_boss", "__ne__Q3_2nn4boss7TitleIDCFRCQ3_2nn4boss7TitleID", LogType::NN_BOSS);
+			// DataName
+			cafeExportRegisterFunc(nn::boss::DataName::ctor, "nn_boss", "__ct__Q3_2nn4boss8DataNameFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::DataName::operator_const_char, "nn_boss", "__opPCc__Q3_2nn4boss8DataNameCFv", LogType::NN_BOSS);
 
-	// DataName
-	cafeExportRegisterFunc(nn::boss::DataName::ctor, "nn_boss", "__ct__Q3_2nn4boss8DataNameFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::DataName::operator_const_char, "nn_boss", "__opPCc__Q3_2nn4boss8DataNameCFv", LogType::NN_BOSS);
+			// DirectoryName
+			cafeExportRegisterFunc(nn::boss::DirectoryName::ctor, "nn_boss", "__ct__Q3_2nn4boss13DirectoryNameFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::DirectoryName::operator_const_char, "nn_boss", "__opPCc__Q3_2nn4boss13DirectoryNameCFv", LogType::NN_BOSS);
 
-	// DirectoryName
-	cafeExportRegisterFunc(nn::boss::DirectoryName::ctor, "nn_boss", "__ct__Q3_2nn4boss13DirectoryNameFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::DirectoryName::operator_const_char, "nn_boss", "__opPCc__Q3_2nn4boss13DirectoryNameCFv", LogType::NN_BOSS);
+			// Account
+			nn::boss::BossAccount::InitVTable();
+			cafeExportRegisterFunc(nn::boss::BossAccount::ctor, "nn_boss", "__ct__Q3_2nn4boss7AccountFUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::BossAccount::dtor, "nn_boss", "__dt__Q3_2nn4boss7AccountFv", LogType::NN_BOSS);
 
-	// Account
-	nn::boss::BossAccount::InitVTable();
-	cafeExportRegisterFunc(nn::boss::BossAccount::ctor, "nn_boss", "__ct__Q3_2nn4boss7AccountFUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::BossAccount::dtor, "nn_boss", "__dt__Q3_2nn4boss7AccountFv", LogType::NN_BOSS);
+			// AlmightyTask
+			nn::boss::AlmightyTask::InitVTable();
+			cafeExportRegisterFunc(nn::boss::AlmightyTask::ctor, "nn_boss", "__ct__Q3_2nn4boss12AlmightyTaskFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::AlmightyTask::Initialize, "nn_boss", "Initialize__Q3_2nn4boss12AlmightyTaskFQ3_2nn4boss7TitleIDPCcUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::AlmightyTask::dtor, "nn_boss", "__dt__Q3_2nn4boss12AlmightyTaskFv", LogType::NN_BOSS);
 
-	// AlmightyTask
-	nn::boss::AlmightyTask::InitVTable();
-	cafeExportRegisterFunc(nn::boss::AlmightyTask::ctor, "nn_boss", "__ct__Q3_2nn4boss12AlmightyTaskFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::AlmightyTask::Initialize, "nn_boss", "Initialize__Q3_2nn4boss12AlmightyTaskFQ3_2nn4boss7TitleIDPCcUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::AlmightyTask::dtor, "nn_boss", "__dt__Q3_2nn4boss12AlmightyTaskFv", LogType::NN_BOSS);
+			// Storage
+			nn::boss::Storage::InitVTable();
+			cafeExportRegisterFunc(nn::boss::Storage::ctor1, "nn_boss", "__ct__Q3_2nn4boss7StorageFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Storage::dtor, "nn_boss", "__dt__Q3_2nn4boss7StorageFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Storage::Finalize, "nn_boss", "Finalize__Q3_2nn4boss7StorageFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Storage::Exist, "nn_boss", "Exist__Q3_2nn4boss7StorageCFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Storage::GetDataList, "nn_boss", "GetDataList__Q3_2nn4boss7StorageCFPQ3_2nn4boss8DataNameUiPUiT2", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Storage::Initialize, "nn_boss", "Initialize__Q3_2nn4boss7StorageFPCcUiQ3_2nn4boss11StorageKind", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::Storage::Initialize2, "nn_boss", "Initialize__Q3_2nn4boss7StorageFPCcQ3_2nn4boss11StorageKind", LogType::NN_BOSS);
 
-	// Storage
-	nn::boss::Storage::InitVTable();
-	cafeExportRegisterFunc(nn::boss::Storage::ctor1, "nn_boss", "__ct__Q3_2nn4boss7StorageFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Storage::dtor, "nn_boss", "__dt__Q3_2nn4boss7StorageFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Storage::Finalize, "nn_boss", "Finalize__Q3_2nn4boss7StorageFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Storage::Exist, "nn_boss", "Exist__Q3_2nn4boss7StorageCFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Storage::GetDataList, "nn_boss", "GetDataList__Q3_2nn4boss7StorageCFPQ3_2nn4boss8DataNameUiPUiT2", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Storage::Initialize, "nn_boss", "Initialize__Q3_2nn4boss7StorageFPCcUiQ3_2nn4boss11StorageKind", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::Storage::Initialize2, "nn_boss", "Initialize__Q3_2nn4boss7StorageFPCcQ3_2nn4boss11StorageKind", LogType::NN_BOSS);
+			// AlmightyStorage
+			nn::boss::AlmightyStorage::InitVTable();
+			cafeExportRegisterFunc(nn::boss::AlmightyStorage::ctor, "nn_boss", "__ct__Q3_2nn4boss15AlmightyStorageFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::AlmightyStorage::Initialize, "nn_boss", "Initialize__Q3_2nn4boss15AlmightyStorageFQ3_2nn4boss7TitleIDPCcUiQ3_2nn4boss11StorageKind", LogType::NN_BOSS);
 
-	// AlmightyStorage
-	nn::boss::AlmightyStorage::InitVTable();
-	cafeExportRegisterFunc(nn::boss::AlmightyStorage::ctor, "nn_boss", "__ct__Q3_2nn4boss15AlmightyStorageFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::AlmightyStorage::Initialize, "nn_boss", "Initialize__Q3_2nn4boss15AlmightyStorageFQ3_2nn4boss7TitleIDPCcUiQ3_2nn4boss11StorageKind", LogType::NN_BOSS);
+			// NsData
+			nn::boss::NsData::InitVTable();
+			cafeExportRegisterFunc(nn::boss::NsData::ctor, "nn_boss", "__ct__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::dtor, "nn_boss", "__dt__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::Initialize, "nn_boss", "Initialize__Q3_2nn4boss6NsDataFRCQ3_2nn4boss7StoragePCc", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::DeleteRealFile, "nn_boss", "DeleteRealFile__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::DeleteRealFileWithHistory, "nn_boss", "DeleteRealFileWithHistory__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::Exist, "nn_boss", "Exist__Q3_2nn4boss6NsDataCFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::GetSize, "nn_boss", "GetSize__Q3_2nn4boss6NsDataCFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::GetCreatedTime, "nn_boss", "GetCreatedTime__Q3_2nn4boss6NsDataCFv", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::Read, "nn_boss", "Read__Q3_2nn4boss6NsDataFPvUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::ReadWithSizeOut, "nn_boss", "Read__Q3_2nn4boss6NsDataFPLPvUi", LogType::NN_BOSS);
+			cafeExportRegisterFunc(nn::boss::NsData::Seek, "nn_boss", "Seek__Q3_2nn4boss6NsDataFLQ3_2nn4boss12PositionBase", LogType::NN_BOSS);
+		};
 
-	// NsData
-	nn::boss::NsData::InitVTable();
-	cafeExportRegisterFunc(nn::boss::NsData::ctor, "nn_boss", "__ct__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::dtor, "nn_boss", "__dt__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::Initialize, "nn_boss", "Initialize__Q3_2nn4boss6NsDataFRCQ3_2nn4boss7StoragePCc", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::DeleteRealFile, "nn_boss", "DeleteRealFile__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::DeleteRealFileWithHistory, "nn_boss", "DeleteRealFileWithHistory__Q3_2nn4boss6NsDataFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::Exist, "nn_boss", "Exist__Q3_2nn4boss6NsDataCFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::GetSize, "nn_boss", "GetSize__Q3_2nn4boss6NsDataCFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::GetCreatedTime, "nn_boss", "GetCreatedTime__Q3_2nn4boss6NsDataCFv", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::Read, "nn_boss", "Read__Q3_2nn4boss6NsDataFPvUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::ReadWithSizeOut, "nn_boss", "Read__Q3_2nn4boss6NsDataFPLPvUi", LogType::NN_BOSS);
-	cafeExportRegisterFunc(nn::boss::NsData::Seek, "nn_boss", "Seek__Q3_2nn4boss6NsDataFLQ3_2nn4boss12PositionBase", LogType::NN_BOSS);
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				OSInitMutexEx(&nn::boss::g_mutex, nullptr);
+				nn::boss::g_initCounter = 0;
+				nn::boss::g_isInitialized = false;
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+			}
+		}
+	}s_COSnnBossModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnnBossModule;
+	}
 }

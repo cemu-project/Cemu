@@ -3,6 +3,7 @@
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
+#include "Cafe/OS/libs/coreinit/coreinit_MessageQueue.h"
 
 namespace snd_core
 {

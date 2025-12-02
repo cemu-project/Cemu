@@ -1,5 +1,6 @@
 #pragma once
 #include "Cafe/HW/Latte/Core/LatteConst.h"
+#include "Cafe/OS/RPL/COSModule.h"
 
 // base defines for GX2
 #define GX2_TRUE	1
@@ -11,7 +12,10 @@
 
 // general
 
-void gx2_load();
+namespace GX2
+{
+	COSModule* GetModule();
+}
 
 // shader
 

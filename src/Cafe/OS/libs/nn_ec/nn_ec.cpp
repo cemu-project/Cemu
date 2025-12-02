@@ -1,4 +1,5 @@
 #include "Cafe/OS/common/OSCommon.h"
+#include "nn_ec.h"
 
 typedef struct  
 {
@@ -17,10 +18,25 @@ void nnEcExport___ct__Q3_2nn2ec5MoneyFPCcN21(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(moneyStruct));
 }
 
-/*
- * Load E commerce functions (E-Shop stuff)
- */
-void nnEc_load()
+namespace nn::ec
 {
-	osLib_addFunction("nn_ec", "__ct__Q3_2nn2ec5MoneyFPCcN21", nnEcExport___ct__Q3_2nn2ec5MoneyFPCcN21);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "nn_ec";
+		}
+
+		void RPLMapped() override
+		{
+			osLib_addFunction("nn_ec", "__ct__Q3_2nn2ec5MoneyFPCcN21", nnEcExport___ct__Q3_2nn2ec5MoneyFPCcN21);
+		};
+
+	}s_COSnnEcModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnnEcModule;
+	}
 }

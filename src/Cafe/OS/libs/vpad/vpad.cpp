@@ -1155,53 +1155,73 @@ namespace vpad
 		coreinit::OSSetPeriodicAlarm(&g_vpad.alarm, start_tick, period_tick, handler);
 	}
 
-void load()
-{
-	cafeExportRegister("vpad", VPADSetBtnRepeat, LogType::InputAPI);
-	cafeExportRegister("vpad", VPADSetSamplingCallback, LogType::InputAPI);
-	cafeExportRegister("vpad", VPADRead, LogType::InputAPI);
-	
-	osLib_addFunction("vpad", "VPADGetAccParam", vpadExport_VPADGetAccParam);
-	osLib_addFunction("vpad", "VPADSetAccParam", vpadExport_VPADSetAccParam);
-	osLib_addFunction("vpad", "VPADGetAccPlayMode", vpadExport_VPADGetAccPlayMode);
-	osLib_addFunction("vpad", "VPADSetAccPlayMode", vpadExport_VPADSetAccPlayMode);
+	void load()
+	{
 
-	osLib_addFunction("vpad", "VPADEnableStickCrossClamp", vpadExport_VPADEnableStickCrossClamp);
-	osLib_addFunction("vpad", "VPADDisableStickCrossClamp", vpadExport_VPADDisableStickCrossClamp);
-	osLib_addFunction("vpad", "VPADSetLStickClampThreshold", vpadExport_VPADSetLStickClampThreshold);
-	osLib_addFunction("vpad", "VPADSetRStickClampThreshold", vpadExport_VPADSetRStickClampThreshold);
-	osLib_addFunction("vpad", "VPADGetLStickClampThreshold", vpadExport_VPADGetLStickClampThreshold);
-	osLib_addFunction("vpad", "VPADGetRStickClampThreshold", vpadExport_VPADGetRStickClampThreshold);
 
-	osLib_addFunction("vpad", "VPADSetCrossStickEmulationParamsL", vpadExport_VPADSetCrossStickEmulationParamsL);
-	osLib_addFunction("vpad", "VPADSetCrossStickEmulationParamsR", vpadExport_VPADSetCrossStickEmulationParamsR);
-	osLib_addFunction("vpad", "VPADGetCrossStickEmulationParamsL", vpadExport_VPADGetCrossStickEmulationParamsL);
-	osLib_addFunction("vpad", "VPADGetCrossStickEmulationParamsR", vpadExport_VPADGetCrossStickEmulationParamsR);
+	}
 
-	osLib_addFunction("vpad", "VPADGetButtonProcMode", vpadExport_VPADGetButtonProcMode);
-	osLib_addFunction("vpad", "VPADSetButtonProcMode", vpadExport_VPADSetButtonProcMode);
-	osLib_addFunction("vpad", "VPADGetLcdMode", vpadExport_VPADGetLcdMode);
-	osLib_addFunction("vpad", "VPADSetLcdMode", vpadExport_VPADSetLcdMode);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "vpad";
+		}
 
-	osLib_addFunction("vpad", "VPADControlMotor", vpadExport_VPADControlMotor);
-	osLib_addFunction("vpad", "VPADStopMotor", vpadExport_VPADStopMotor);
+		void RPLMapped() override
+		{
+			cafeExportRegister("vpad", VPADSetBtnRepeat, LogType::InputAPI);
+			cafeExportRegister("vpad", VPADSetSamplingCallback, LogType::InputAPI);
+			cafeExportRegister("vpad", VPADRead, LogType::InputAPI);
 
-	osLib_addFunction("vpad", "VPADGetTPCalibrationParam", vpadExport_VPADGetTPCalibrationParam);
-	osLib_addFunction("vpad", "VPADSetTPCalibrationParam", vpadExport_VPADSetTPCalibrationParam);
-	osLib_addFunction("vpad", "VPADGetTPCalibratedPoint", vpadExport_VPADGetTPCalibratedPoint);
-	osLib_addFunction("vpad", "VPADGetTPCalibratedPointEx", vpadExport_VPADGetTPCalibratedPointEx);
+			osLib_addFunction("vpad", "VPADGetAccParam", vpadExport_VPADGetAccParam);
+			osLib_addFunction("vpad", "VPADSetAccParam", vpadExport_VPADSetAccParam);
+			osLib_addFunction("vpad", "VPADGetAccPlayMode", vpadExport_VPADGetAccPlayMode);
+			osLib_addFunction("vpad", "VPADSetAccPlayMode", vpadExport_VPADSetAccPlayMode);
 
-	//osLib_addFunction("vpad", "VPADRead", vpadExport_VPADRead);
-	//osLib_addFunction("vpad", "VPADSetSamplingCallback", vpadExport_VPADSetSamplingCallback);
-	//osLib_addFunction("vpad", "VPADSetBtnRepeat", vpadExport_VPADSetBtnRepeat);
+			osLib_addFunction("vpad", "VPADEnableStickCrossClamp", vpadExport_VPADEnableStickCrossClamp);
+			osLib_addFunction("vpad", "VPADDisableStickCrossClamp", vpadExport_VPADDisableStickCrossClamp);
+			osLib_addFunction("vpad", "VPADSetLStickClampThreshold", vpadExport_VPADSetLStickClampThreshold);
+			osLib_addFunction("vpad", "VPADSetRStickClampThreshold", vpadExport_VPADSetRStickClampThreshold);
+			osLib_addFunction("vpad", "VPADGetLStickClampThreshold", vpadExport_VPADGetLStickClampThreshold);
+			osLib_addFunction("vpad", "VPADGetRStickClampThreshold", vpadExport_VPADGetRStickClampThreshold);
 
-	osLib_addFunction("vpad", "VPADGetGyroZeroDriftMode", vpadExport_VPADGetGyroZeroDriftMode);
-	osLib_addFunction("vpad", "VPADSetGyroDirection", vpadExport_VPADSetGyroDirection);
-	osLib_addFunction("vpad", "VPADSetGyroZeroDriftMode", vpadExport_VPADSetGyroZeroDriftMode);
+			osLib_addFunction("vpad", "VPADSetCrossStickEmulationParamsL", vpadExport_VPADSetCrossStickEmulationParamsL);
+			osLib_addFunction("vpad", "VPADSetCrossStickEmulationParamsR", vpadExport_VPADSetCrossStickEmulationParamsR);
+			osLib_addFunction("vpad", "VPADGetCrossStickEmulationParamsL", vpadExport_VPADGetCrossStickEmulationParamsL);
+			osLib_addFunction("vpad", "VPADGetCrossStickEmulationParamsR", vpadExport_VPADGetCrossStickEmulationParamsR);
 
-	osLib_addFunction("vpad", "VPADSetGyroDirReviseBase", vpadExport_VPADSetGyroDirReviseBase);
-	osLib_addFunction("vpad", "VPADDisableGyroDirRevise", vpadExport_VPADDisableGyroDirRevise);
-	osLib_addFunction("vpad", "VPADSetGyroDirReviseParam", vpadExport_VPADSetGyroDirReviseParam);
+			osLib_addFunction("vpad", "VPADGetButtonProcMode", vpadExport_VPADGetButtonProcMode);
+			osLib_addFunction("vpad", "VPADSetButtonProcMode", vpadExport_VPADSetButtonProcMode);
+			osLib_addFunction("vpad", "VPADGetLcdMode", vpadExport_VPADGetLcdMode);
+			osLib_addFunction("vpad", "VPADSetLcdMode", vpadExport_VPADSetLcdMode);
 
-}
+			osLib_addFunction("vpad", "VPADControlMotor", vpadExport_VPADControlMotor);
+			osLib_addFunction("vpad", "VPADStopMotor", vpadExport_VPADStopMotor);
+
+			osLib_addFunction("vpad", "VPADGetTPCalibrationParam", vpadExport_VPADGetTPCalibrationParam);
+			osLib_addFunction("vpad", "VPADSetTPCalibrationParam", vpadExport_VPADSetTPCalibrationParam);
+			osLib_addFunction("vpad", "VPADGetTPCalibratedPoint", vpadExport_VPADGetTPCalibratedPoint);
+			osLib_addFunction("vpad", "VPADGetTPCalibratedPointEx", vpadExport_VPADGetTPCalibratedPointEx);
+
+			//osLib_addFunction("vpad", "VPADRead", vpadExport_VPADRead);
+			//osLib_addFunction("vpad", "VPADSetSamplingCallback", vpadExport_VPADSetSamplingCallback);
+			//osLib_addFunction("vpad", "VPADSetBtnRepeat", vpadExport_VPADSetBtnRepeat);
+
+			osLib_addFunction("vpad", "VPADGetGyroZeroDriftMode", vpadExport_VPADGetGyroZeroDriftMode);
+			osLib_addFunction("vpad", "VPADSetGyroDirection", vpadExport_VPADSetGyroDirection);
+			osLib_addFunction("vpad", "VPADSetGyroZeroDriftMode", vpadExport_VPADSetGyroZeroDriftMode);
+
+			osLib_addFunction("vpad", "VPADSetGyroDirReviseBase", vpadExport_VPADSetGyroDirReviseBase);
+			osLib_addFunction("vpad", "VPADDisableGyroDirRevise", vpadExport_VPADDisableGyroDirRevise);
+			osLib_addFunction("vpad", "VPADSetGyroDirReviseParam", vpadExport_VPADSetGyroDirReviseParam);
+		};
+	}s_COSVPADModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSVPADModule;
+	}
+
 }

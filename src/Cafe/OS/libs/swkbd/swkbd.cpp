@@ -624,21 +624,47 @@ void swkbd_keyInput(uint32 keyCode)
 
 namespace swkbd
 {
-	void load()
+	class : public COSModule
 	{
-		osLib_addFunction("swkbd", "SwkbdCreate__3RplFPUcQ3_2nn5swkbd10RegionTypeUiP8FSClient", swkbdExport_SwkbdCreate);
-		osLib_addFunction("swkbd", "SwkbdGetStateKeyboard__3RplFv", swkbdExport_SwkbdGetStateKeyboard);
-		osLib_addFunction("swkbd", "SwkbdGetStateInputForm__3RplFv", swkbdExport_SwkbdGetStateInputForm);
-		osLib_addFunction("swkbd", "SwkbdSetReceiver__3RplFRCQ3_2nn5swkbd11ReceiverArg", swkbdExport_SwkbdSetReceiver);
-		osLib_addFunction("swkbd", "SwkbdAppearInputForm__3RplFRCQ3_2nn5swkbd9AppearArg", swkbdExport_SwkbdAppearInputForm);
-		osLib_addFunction("swkbd", "SwkbdDisappearInputForm__3RplFv", swkbdExport_SwkbdDisappearInputForm);
-		osLib_addFunction("swkbd", "SwkbdDisappearKeyboard__3RplFv", swkbdExport_SwkbdDisappearKeyboard);
-		osLib_addFunction("swkbd", "SwkbdAppearKeyboard__3RplFRCQ3_2nn5swkbd11KeyboardArg", swkbdExport_SwkbdAppearKeyboard);
-		osLib_addFunction("swkbd", "SwkbdGetInputFormString__3RplFv", swkbdExport_SwkbdGetInputFormString);
-		osLib_addFunction("swkbd", "SwkbdIsDecideOkButton__3RplFPb", swkbdExport_SwkbdIsDecideOkButton);
-		osLib_addFunction("swkbd", "SwkbdInitLearnDic__3RplFPv", swkbdExport_SwkbdInitLearnDic);
-		osLib_addFunction("swkbd", "SwkbdGetDrawStringInfo__3RplFPQ3_2nn5swkbd14DrawStringInfo", swkbdExport_SwkbdGetDrawStringInfo);
-		osLib_addFunction("swkbd", "SwkbdIsNeedCalcSubThreadFont__3RplFv", swkbdExport_SwkbdIsNeedCalcSubThreadFont);
-		osLib_addFunction("swkbd", "SwkbdIsNeedCalcSubThreadPredict__3RplFv", swkbdExport_SwkbdIsNeedCalcSubThreadPredict);
+		public:
+		std::string_view GetName() override
+		{
+			return "swkbd";
+		}
+
+		void RPLMapped() override
+		{
+			osLib_addFunction("swkbd", "SwkbdCreate__3RplFPUcQ3_2nn5swkbd10RegionTypeUiP8FSClient", swkbdExport_SwkbdCreate);
+			osLib_addFunction("swkbd", "SwkbdGetStateKeyboard__3RplFv", swkbdExport_SwkbdGetStateKeyboard);
+			osLib_addFunction("swkbd", "SwkbdGetStateInputForm__3RplFv", swkbdExport_SwkbdGetStateInputForm);
+			osLib_addFunction("swkbd", "SwkbdSetReceiver__3RplFRCQ3_2nn5swkbd11ReceiverArg", swkbdExport_SwkbdSetReceiver);
+			osLib_addFunction("swkbd", "SwkbdAppearInputForm__3RplFRCQ3_2nn5swkbd9AppearArg", swkbdExport_SwkbdAppearInputForm);
+			osLib_addFunction("swkbd", "SwkbdDisappearInputForm__3RplFv", swkbdExport_SwkbdDisappearInputForm);
+			osLib_addFunction("swkbd", "SwkbdDisappearKeyboard__3RplFv", swkbdExport_SwkbdDisappearKeyboard);
+			osLib_addFunction("swkbd", "SwkbdAppearKeyboard__3RplFRCQ3_2nn5swkbd11KeyboardArg", swkbdExport_SwkbdAppearKeyboard);
+			osLib_addFunction("swkbd", "SwkbdGetInputFormString__3RplFv", swkbdExport_SwkbdGetInputFormString);
+			osLib_addFunction("swkbd", "SwkbdIsDecideOkButton__3RplFPb", swkbdExport_SwkbdIsDecideOkButton);
+			osLib_addFunction("swkbd", "SwkbdInitLearnDic__3RplFPv", swkbdExport_SwkbdInitLearnDic);
+			osLib_addFunction("swkbd", "SwkbdGetDrawStringInfo__3RplFPQ3_2nn5swkbd14DrawStringInfo", swkbdExport_SwkbdGetDrawStringInfo);
+			osLib_addFunction("swkbd", "SwkbdIsNeedCalcSubThreadFont__3RplFv", swkbdExport_SwkbdIsNeedCalcSubThreadFont);
+			osLib_addFunction("swkbd", "SwkbdIsNeedCalcSubThreadPredict__3RplFv", swkbdExport_SwkbdIsNeedCalcSubThreadPredict);
+		};
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				// todo
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				// todo
+			}
+		}
+	}s_COSswkbdModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSswkbdModule;
 	}
 }

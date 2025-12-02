@@ -1,5 +1,7 @@
+#include "Cafe/OS/RPL/COSModule.h"
+
 namespace nsyskbd
 {
-	void nsyskbd_load();
+	COSModule* GetModule();
 }
 

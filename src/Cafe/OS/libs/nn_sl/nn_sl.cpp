@@ -103,13 +103,37 @@ namespace nn
 		{
 			return s_defaultWhiteListAccessor;
 		}
+
+		class : public COSModule
+		{
+			public:
+			std::string_view GetName() override
+			{
+				return "nn_sl";
+			}
+
+			void RPLMapped() override
+			{
+				cafeExportRegisterFunc(nn::sl::GetDefaultWhiteListAccessor, "nn_sl", "GetDefaultWhiteListAccessor__Q2_2nn2slFv", LogType::NN_SL);
+			};
+
+			void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+			{
+				if (reason == coreinit::RplEntryReason::Loaded)
+				{
+					nn::sl::WhiteListAccessor::InitVTable();
+					nn::sl::WhiteListAccessor::ctor(nn::sl::s_defaultWhiteListAccessor);
+				}
+				else if (reason == coreinit::RplEntryReason::Unloaded)
+				{
+					// nothing to clean up
+				}
+			}
+		}s_COSnnSlModule;
+
+		COSModule* GetModule()
+		{
+			return &s_COSnnSlModule;
+		}
 	} // namespace sl
 } // namespace nn
-
-void nnSL_load()
-{
-	nn::sl::WhiteListAccessor::InitVTable();
-	nn::sl::WhiteListAccessor::ctor(nn::sl::s_defaultWhiteListAccessor);
-
-	cafeExportRegisterFunc(nn::sl::GetDefaultWhiteListAccessor, "nn_sl", "GetDefaultWhiteListAccessor__Q2_2nn2slFv", LogType::NN_SL);
-}

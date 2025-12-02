@@ -1,10 +1,11 @@
 #pragma once
+#include "Cafe/OS/RPL/COSModule.h"
 
 namespace nn::nfp
 {
 	uint32 NFCGetTagInfo(uint32 index, uint32 timeout, MPTR functionPtr, void* userParam);
 
-	void load();
+	COSModule* GetModule();
 }
 
 void nnNfp_load();

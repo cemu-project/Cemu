@@ -670,25 +670,42 @@ namespace sysapp
 	}
 }
 
-// register sysapp functions
-void sysapp_load()
+namespace sysapp
 {
-	osLib_addFunction("sysapp", "_SYSLaunchMiiStudio", sysappExport__SYSLaunchMiiStudio);
-	osLib_addFunction("sysapp", "_SYSGetMiiStudioArgs", sysappExport__SYSGetMiiStudioArgs);
-	osLib_addFunction("sysapp", "_SYSGetSettingsArgs", sysappExport__SYSGetSettingsArgs);
-	osLib_addFunction("sysapp", "_SYSReturnToCallerWithStandardResult", sysappExport__SYSReturnToCallerWithStandardResult);
-	
-	osLib_addFunction("sysapp", "_SYSGetSystemApplicationTitleId", sysappExport__SYSGetSystemApplicationTitleId);
-	osLib_addFunction("sysapp", "SYSGetUPIDFromTitleID", sysappExport_SYSGetUPIDFromTitleID);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "nsysapp";
+		}
 
-	osLib_addFunction("sysapp", "_SYSGetEShopArgs", sysappExport__SYSGetEShopArgs);
+		void RPLMapped() override
+		{
+			osLib_addFunction("sysapp", "_SYSLaunchMiiStudio", sysappExport__SYSLaunchMiiStudio);
+			osLib_addFunction("sysapp", "_SYSGetMiiStudioArgs", sysappExport__SYSGetMiiStudioArgs);
+			osLib_addFunction("sysapp", "_SYSGetSettingsArgs", sysappExport__SYSGetSettingsArgs);
+			osLib_addFunction("sysapp", "_SYSReturnToCallerWithStandardResult", sysappExport__SYSReturnToCallerWithStandardResult);
 
-	osLib_addFunction("sysapp", "SYSGetVodArgs", sysappExport_SYSGetVodArgs);
+			osLib_addFunction("sysapp", "_SYSGetSystemApplicationTitleId", sysappExport__SYSGetSystemApplicationTitleId);
+			osLib_addFunction("sysapp", "SYSGetUPIDFromTitleID", sysappExport_SYSGetUPIDFromTitleID);
 
-	osLib_addFunction("sysapp", "SYSGetStandardResult", sysappExport_SYSGetStandardResult);
+			osLib_addFunction("sysapp", "_SYSGetEShopArgs", sysappExport__SYSGetEShopArgs);
 
-	cafeExportRegisterFunc(_SYSGetLauncherArgs, "sysapp", "_SYSGetLauncherArgs", LogType::Placeholder);
-	cafeExportRegisterFunc(_SYSGetAccountArgs, "sysapp", "_SYSGetAccountArgs", LogType::Placeholder);
+			osLib_addFunction("sysapp", "SYSGetVodArgs", sysappExport_SYSGetVodArgs);
 
-	sysapp::load();
+			osLib_addFunction("sysapp", "SYSGetStandardResult", sysappExport_SYSGetStandardResult);
+
+			cafeExportRegisterFunc(_SYSGetLauncherArgs, "sysapp", "_SYSGetLauncherArgs", LogType::Placeholder);
+			cafeExportRegisterFunc(_SYSGetAccountArgs, "sysapp", "_SYSGetAccountArgs", LogType::Placeholder);
+
+			sysapp::load();
+		};
+
+	}s_COSsysappModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSsysappModule;
+	}
 }

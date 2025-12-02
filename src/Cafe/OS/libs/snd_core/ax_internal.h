@@ -3,18 +3,18 @@
 
 namespace snd_core
 {
-	typedef struct
+	struct sndGeneric_t
 	{
-		bool isInitialized;
-		bool isSoundCore2;
+		bool isInitialized{false};
+		bool isSoundCore2{false};
 		// init params
 		struct
 		{
-			uint32 rendererFreq; // 32Khz or 48Khz
-			uint32 frameLength; // 3MS
-			uint32 pipelineMode;
+			uint32 rendererFreq{0}; // 32Khz or 48Khz
+			uint32 frameLength{0}; // 3MS
+			uint32 pipelineMode{0};
 		}initParam;
-	}sndGeneric_t;
+	};
 
 	extern sndGeneric_t sndGeneric;
 

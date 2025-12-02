@@ -2176,9 +2176,8 @@ void MainWindow::RecreateMenu()
 	}
 	else
 	{
-		// add 'Stop emulation' menu entry to file menu
 #ifdef CEMU_DEBUG_ASSERT
-		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("Stop emulation"));
+		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("Close game"));
 		m_fileMenuSeparator1 = m_fileMenu->AppendSeparator();
 #endif
 	}

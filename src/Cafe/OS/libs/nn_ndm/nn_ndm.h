@@ -1,7 +1,9 @@
+#include "Cafe/OS/RPL/COSModule.h"
+
 namespace nn
 {
 	namespace ndm
 	{
-		void load();
+		COSModule* GetModule();
 	}
 }

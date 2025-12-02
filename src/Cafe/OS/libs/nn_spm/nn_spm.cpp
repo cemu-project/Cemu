@@ -132,19 +132,32 @@ namespace nn
 			return 0;
 		}
 
-		void load()
+		class : public COSModule
 		{
-			cafeExportRegisterFunc(GetDefaultExtendedStorageVolumeId, "nn_spm", "GetDefaultExtendedStorageVolumeId__Q2_2nn3spmFv", LogType::Placeholder);
-			cafeExportRegisterFunc(GetExtendedStorageIndex, "nn_spm", "GetExtendedStorageIndex__Q2_2nn3spmFPQ3_2nn3spm12StorageIndex", LogType::Placeholder);
-			cafeExportRegisterFunc(GetStorageList, "nn_spm", "GetStorageList__Q2_2nn3spmFPQ3_2nn3spm15StorageListItemUi", LogType::Placeholder);
+			public:
+			std::string_view GetName() override
+			{
+				return "nn_spm";
+			}
 
-			cafeExportRegisterFunc(GetStorageInfo, "nn_spm", "GetStorageInfo__Q2_2nn3spmFPQ3_2nn3spm11StorageInfoQ3_2nn3spm12StorageIndex", LogType::Placeholder);
+			void RPLMapped() override
+			{
+				cafeExportRegisterFunc(GetDefaultExtendedStorageVolumeId, "nn_spm", "GetDefaultExtendedStorageVolumeId__Q2_2nn3spmFv", LogType::Placeholder);
+				cafeExportRegisterFunc(GetExtendedStorageIndex, "nn_spm", "GetExtendedStorageIndex__Q2_2nn3spmFPQ3_2nn3spm12StorageIndex", LogType::Placeholder);
+				cafeExportRegisterFunc(GetStorageList, "nn_spm", "GetStorageList__Q2_2nn3spmFPQ3_2nn3spm15StorageListItemUi", LogType::Placeholder);
 
+				cafeExportRegisterFunc(GetStorageInfo, "nn_spm", "GetStorageInfo__Q2_2nn3spmFPQ3_2nn3spm11StorageInfoQ3_2nn3spm12StorageIndex", LogType::Placeholder);
 
+				cafeExportRegisterFunc(VolumeId_Compare, "nn_spm", "Compare__Q3_2nn3spm8VolumeIdCFRCQ3_2nn3spm8VolumeId", LogType::Placeholder);
 
-			cafeExportRegisterFunc(VolumeId_Compare, "nn_spm", "Compare__Q3_2nn3spm8VolumeIdCFRCQ3_2nn3spm8VolumeId", LogType::Placeholder);
+				cafeExportRegisterFunc(WaitStateUpdated, "nn_spm", "WaitStateUpdated__Q2_2nn3spmFPUL", LogType::Placeholder);
+			};
 
-			cafeExportRegisterFunc(WaitStateUpdated, "nn_spm", "WaitStateUpdated__Q2_2nn3spmFPUL", LogType::Placeholder);
+		}s_COSnnSpmModule;
+
+		COSModule* GetModule()
+		{
+			return &s_COSnnSpmModule;
 		}
 	}
 }

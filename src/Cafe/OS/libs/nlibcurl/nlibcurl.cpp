@@ -1503,39 +1503,64 @@ CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_
 	return result;
 }
 
-void load()
-{
-	cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::nlibcurl);
-	cafeExportRegister("nlibcurl", curl_global_init, LogType::nlibcurl);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "nlibcurl";
+		}
 
-	cafeExportRegister("nlibcurl", curl_slist_append, LogType::nlibcurl);
-	cafeExportRegister("nlibcurl", curl_slist_free_all, LogType::nlibcurl);
-	osLib_addFunction("nlibcurl", "curl_easy_strerror", export_curl_easy_strerror);
+		void RPLMapped() override
+		{
+			cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_global_init, LogType::nlibcurl);
 
-	osLib_addFunction("nlibcurl", "curl_share_init", export_curl_share_init);
-	osLib_addFunction("nlibcurl", "curl_share_setopt", export_curl_share_setopt);
-	osLib_addFunction("nlibcurl", "curl_share_cleanup", export_curl_share_cleanup);
+			cafeExportRegister("nlibcurl", curl_slist_append, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_slist_free_all, LogType::nlibcurl);
+			osLib_addFunction("nlibcurl", "curl_easy_strerror", export_curl_easy_strerror);
 
-	cafeExportRegister("nlibcurl", mw_curl_easy_init, LogType::nlibcurl);
-	osLib_addFunction("nlibcurl", "curl_multi_init", export_curl_multi_init);
-	osLib_addFunction("nlibcurl", "curl_multi_add_handle", export_curl_multi_add_handle);
-	osLib_addFunction("nlibcurl", "curl_multi_perform", export_curl_multi_perform);
-	osLib_addFunction("nlibcurl", "curl_multi_info_read", export_curl_multi_info_read);
-	osLib_addFunction("nlibcurl", "curl_multi_remove_handle", export_curl_multi_remove_handle);
-	osLib_addFunction("nlibcurl", "curl_multi_setopt", export_curl_multi_setopt);
-	osLib_addFunction("nlibcurl", "curl_multi_fdset", export_curl_multi_fdset);
-	osLib_addFunction("nlibcurl", "curl_multi_cleanup", export_curl_multi_cleanup);
-	osLib_addFunction("nlibcurl", "curl_multi_timeout", export_curl_multi_timeout);
+			osLib_addFunction("nlibcurl", "curl_share_init", export_curl_share_init);
+			osLib_addFunction("nlibcurl", "curl_share_setopt", export_curl_share_setopt);
+			osLib_addFunction("nlibcurl", "curl_share_cleanup", export_curl_share_cleanup);
 
-	cafeExportRegister("nlibcurl", curl_easy_init, LogType::nlibcurl);
-	osLib_addFunction("nlibcurl", "curl_easy_reset", export_curl_easy_reset);
-	osLib_addFunction("nlibcurl", "curl_easy_setopt", export_curl_easy_setopt);
-	osLib_addFunction("nlibcurl", "curl_easy_getinfo", export_curl_easy_getinfo);
-	cafeExportRegister("nlibcurl", curl_easy_perform, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", mw_curl_easy_init, LogType::nlibcurl);
+			osLib_addFunction("nlibcurl", "curl_multi_init", export_curl_multi_init);
+			osLib_addFunction("nlibcurl", "curl_multi_add_handle", export_curl_multi_add_handle);
+			osLib_addFunction("nlibcurl", "curl_multi_perform", export_curl_multi_perform);
+			osLib_addFunction("nlibcurl", "curl_multi_info_read", export_curl_multi_info_read);
+			osLib_addFunction("nlibcurl", "curl_multi_remove_handle", export_curl_multi_remove_handle);
+			osLib_addFunction("nlibcurl", "curl_multi_setopt", export_curl_multi_setopt);
+			osLib_addFunction("nlibcurl", "curl_multi_fdset", export_curl_multi_fdset);
+			osLib_addFunction("nlibcurl", "curl_multi_cleanup", export_curl_multi_cleanup);
+			osLib_addFunction("nlibcurl", "curl_multi_timeout", export_curl_multi_timeout);
 
+			cafeExportRegister("nlibcurl", curl_easy_init, LogType::nlibcurl);
+			osLib_addFunction("nlibcurl", "curl_easy_reset", export_curl_easy_reset);
+			osLib_addFunction("nlibcurl", "curl_easy_setopt", export_curl_easy_setopt);
+			osLib_addFunction("nlibcurl", "curl_easy_getinfo", export_curl_easy_getinfo);
+			cafeExportRegister("nlibcurl", curl_easy_perform, LogType::nlibcurl);
 
+			osLib_addFunction("nlibcurl", "curl_easy_cleanup", export_curl_easy_cleanup);
+			osLib_addFunction("nlibcurl", "curl_easy_pause", export_curl_easy_pause);
+		};
 
-	osLib_addFunction("nlibcurl", "curl_easy_cleanup", export_curl_easy_cleanup);
-	osLib_addFunction("nlibcurl", "curl_easy_pause", export_curl_easy_pause);
-}
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				// todo
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				// todo
+			}
+		}
+	}s_COSnlibcurlModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnlibcurlModule;
+	}
+
 }

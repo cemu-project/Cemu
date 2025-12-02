@@ -301,79 +301,101 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-void gx2_load()
+namespace GX2
 {
-	osLib_addFunction("gx2", "GX2GetContextStateDisplayList", gx2Export_GX2GetContextStateDisplayList);
+	class : public COSModule
+	{
+		public:
+		std::vector<std::string_view> GetDependencies() override
+		{
+			return {"avm", "coreinit", "tcl"};
+		}
 
-	// swap, vsync & timing
-	osLib_addFunction("gx2", "GX2SwapScanBuffers", gx2Export_GX2SwapScanBuffers);
-	osLib_addFunction("gx2", "GX2GetSwapStatus", gx2Export_GX2GetSwapStatus);
-	osLib_addFunction("gx2", "GX2CopyColorBufferToScanBuffer", gx2Export_GX2CopyColorBufferToScanBuffer);
-	osLib_addFunction("gx2", "GX2WaitForFreeScanBuffer", gx2Export_GX2WaitForFreeScanBuffer);
-	osLib_addFunction("gx2", "GX2GetCurrentScanBuffer", gx2Export_GX2GetCurrentScanBuffer);
+		std::string_view GetName() override
+		{
+			return "gx2";
+		}
 
-	// shader stuff
-	osLib_addFunction("gx2", "GX2SetPixelShader", gx2Export_GX2SetPixelShader);
-	osLib_addFunction("gx2", "GX2SetGeometryShader", gx2Export_GX2SetGeometryShader);
-	osLib_addFunction("gx2", "GX2SetComputeShader", gx2Export_GX2SetComputeShader);
-	osLib_addFunction("gx2", "GX2SetVertexUniformBlock", gx2Export_GX2SetVertexUniformBlock);
-	osLib_addFunction("gx2", "GX2RSetVertexUniformBlock", gx2Export_GX2RSetVertexUniformBlock);
+		void RPLMapped() override
+		{
+			osLib_addFunction("gx2", "GX2GetContextStateDisplayList", gx2Export_GX2GetContextStateDisplayList);
 
-	osLib_addFunction("gx2", "GX2SetPixelUniformBlock", gx2Export_GX2SetPixelUniformBlock);
-	osLib_addFunction("gx2", "GX2SetGeometryUniformBlock", gx2Export_GX2SetGeometryUniformBlock);
-	osLib_addFunction("gx2", "GX2SetShaderModeEx", gx2Export_GX2SetShaderModeEx);
+			// swap, vsync & timing
+			osLib_addFunction("gx2", "GX2SwapScanBuffers", gx2Export_GX2SwapScanBuffers);
+			osLib_addFunction("gx2", "GX2GetSwapStatus", gx2Export_GX2GetSwapStatus);
+			osLib_addFunction("gx2", "GX2CopyColorBufferToScanBuffer", gx2Export_GX2CopyColorBufferToScanBuffer);
+			osLib_addFunction("gx2", "GX2WaitForFreeScanBuffer", gx2Export_GX2WaitForFreeScanBuffer);
+			osLib_addFunction("gx2", "GX2GetCurrentScanBuffer", gx2Export_GX2GetCurrentScanBuffer);
 
-	osLib_addFunction("gx2", "GX2CalcGeometryShaderInputRingBufferSize", gx2Export_GX2CalcGeometryShaderInputRingBufferSize);
-	osLib_addFunction("gx2", "GX2CalcGeometryShaderOutputRingBufferSize", gx2Export_GX2CalcGeometryShaderOutputRingBufferSize);
+			// shader stuff
+			osLib_addFunction("gx2", "GX2SetPixelShader", gx2Export_GX2SetPixelShader);
+			osLib_addFunction("gx2", "GX2SetGeometryShader", gx2Export_GX2SetGeometryShader);
+			osLib_addFunction("gx2", "GX2SetComputeShader", gx2Export_GX2SetComputeShader);
+			osLib_addFunction("gx2", "GX2SetVertexUniformBlock", gx2Export_GX2SetVertexUniformBlock);
+			osLib_addFunction("gx2", "GX2RSetVertexUniformBlock", gx2Export_GX2RSetVertexUniformBlock);
 
-	// color/depth buffers
-	osLib_addFunction("gx2", "GX2InitColorBufferRegs", gx2Export_GX2InitColorBufferRegs);
-	osLib_addFunction("gx2", "GX2InitDepthBufferRegs", gx2Export_GX2InitDepthBufferRegs);
-	osLib_addFunction("gx2", "GX2SetColorBuffer", gx2Export_GX2SetColorBuffer);
-	osLib_addFunction("gx2", "GX2SetDepthBuffer", gx2Export_GX2SetDepthBuffer);
+			osLib_addFunction("gx2", "GX2SetPixelUniformBlock", gx2Export_GX2SetPixelUniformBlock);
+			osLib_addFunction("gx2", "GX2SetGeometryUniformBlock", gx2Export_GX2SetGeometryUniformBlock);
+			osLib_addFunction("gx2", "GX2SetShaderModeEx", gx2Export_GX2SetShaderModeEx);
 
-	osLib_addFunction("gx2", "GX2SetDRCBuffer", gx2Export_GX2SetDRCBuffer);
-	osLib_addFunction("gx2", "GX2MarkScanBufferCopied", gx2Export_GX2MarkScanBufferCopied);
+			osLib_addFunction("gx2", "GX2CalcGeometryShaderInputRingBufferSize", gx2Export_GX2CalcGeometryShaderInputRingBufferSize);
+			osLib_addFunction("gx2", "GX2CalcGeometryShaderOutputRingBufferSize", gx2Export_GX2CalcGeometryShaderOutputRingBufferSize);
 
-	// misc
-	osLib_addFunction("gx2", "GX2TempGetGPUVersion", gx2Export_GX2TempGetGPUVersion);
-	osLib_addFunction("gx2", "GX2CalcTVSize", gx2Export_GX2CalcTVSize);
-	osLib_addFunction("gx2", "GX2CalcDRCSize", gx2Export_GX2CalcDRCSize);
-	osLib_addFunction("gx2", "GX2SetDRCScale", gx2Export_GX2SetDRCScale);
-	osLib_addFunction("gx2", "GX2SetDRCConnectCallback", gx2Export_GX2SetDRCConnectCallback);
+			// color/depth buffers
+			osLib_addFunction("gx2", "GX2InitColorBufferRegs", gx2Export_GX2InitColorBufferRegs);
+			osLib_addFunction("gx2", "GX2InitDepthBufferRegs", gx2Export_GX2InitDepthBufferRegs);
+			osLib_addFunction("gx2", "GX2SetColorBuffer", gx2Export_GX2SetColorBuffer);
+			osLib_addFunction("gx2", "GX2SetDepthBuffer", gx2Export_GX2SetDepthBuffer);
 
-	osLib_addFunction("gx2", "GX2GetSystemTVScanMode", coreinitExport_GX2GetSystemTVScanMode);
-	osLib_addFunction("gx2", "GX2GetSystemTVAspectRatio", coreinitExport_GX2GetSystemTVAspectRatio);
-	
-	osLib_addFunction("gx2", "GX2SetSwapInterval", gx2Export_GX2SetSwapInterval);
-	osLib_addFunction("gx2", "GX2GetSwapInterval", gx2Export_GX2GetSwapInterval);
-	osLib_addFunction("gx2", "GX2GetGPUTimeout", gx2Export_GX2GetGPUTimeout);
-	osLib_addFunction("gx2", "GX2SampleTopGPUCycle", gx2Export_GX2SampleTopGPUCycle);
-	osLib_addFunction("gx2", "GX2SampleBottomGPUCycle", gx2Export_GX2SampleBottomGPUCycle);
+			osLib_addFunction("gx2", "GX2SetDRCBuffer", gx2Export_GX2SetDRCBuffer);
+			osLib_addFunction("gx2", "GX2MarkScanBufferCopied", gx2Export_GX2MarkScanBufferCopied);
 
-	osLib_addFunction("gx2", "GX2AllocateTilingApertureEx", gx2Export_GX2AllocateTilingApertureEx);
-	osLib_addFunction("gx2", "GX2FreeTilingAperture", gx2Export_GX2FreeTilingAperture);
+			// misc
+			osLib_addFunction("gx2", "GX2TempGetGPUVersion", gx2Export_GX2TempGetGPUVersion);
+			osLib_addFunction("gx2", "GX2CalcTVSize", gx2Export_GX2CalcTVSize);
+			osLib_addFunction("gx2", "GX2CalcDRCSize", gx2Export_GX2CalcDRCSize);
+			osLib_addFunction("gx2", "GX2SetDRCScale", gx2Export_GX2SetDRCScale);
+			osLib_addFunction("gx2", "GX2SetDRCConnectCallback", gx2Export_GX2SetDRCConnectCallback);
 
-	// context state
-	osLib_addFunction("gx2", "GX2SetDefaultState", gx2Export_GX2SetDefaultState);
-	osLib_addFunction("gx2", "GX2SetupContextStateEx", gx2Export_GX2SetupContextStateEx);
-	osLib_addFunction("gx2", "GX2SetContextState", gx2Export_GX2SetContextState);
+			osLib_addFunction("gx2", "GX2GetSystemTVScanMode", coreinitExport_GX2GetSystemTVScanMode);
+			osLib_addFunction("gx2", "GX2GetSystemTVAspectRatio", coreinitExport_GX2GetSystemTVAspectRatio);
 
-	// semaphore
-	osLib_addFunction("gx2", "GX2SetSemaphore", gx2Export_GX2SetSemaphore);
+			osLib_addFunction("gx2", "GX2SetSwapInterval", gx2Export_GX2SetSwapInterval);
+			osLib_addFunction("gx2", "GX2GetSwapInterval", gx2Export_GX2GetSwapInterval);
+			osLib_addFunction("gx2", "GX2GetGPUTimeout", gx2Export_GX2GetGPUTimeout);
+			osLib_addFunction("gx2", "GX2SampleTopGPUCycle", gx2Export_GX2SampleTopGPUCycle);
+			osLib_addFunction("gx2", "GX2SampleBottomGPUCycle", gx2Export_GX2SampleBottomGPUCycle);
 
-	GX2::GX2MemInit();
-	GX2::GX2ResourceInit();
-	GX2::GX2CommandInit();
-	GX2::GX2SurfaceInit();
-	GX2::GX2SurfaceCopyInit();
-	GX2::GX2TextureInit();
-	GX2::GX2StateInit();
-	GX2::GX2ShaderInit();
-	GX2::GX2EventInit();
-	GX2::GX2BlitInit();
-	GX2::GX2DrawInit();
-	GX2::GX2StreamoutInit();
-	GX2::GX2QueryInit();
-	GX2::GX2MiscInit();
+			osLib_addFunction("gx2", "GX2AllocateTilingApertureEx", gx2Export_GX2AllocateTilingApertureEx);
+			osLib_addFunction("gx2", "GX2FreeTilingAperture", gx2Export_GX2FreeTilingAperture);
+
+			// context state
+			osLib_addFunction("gx2", "GX2SetDefaultState", gx2Export_GX2SetDefaultState);
+			osLib_addFunction("gx2", "GX2SetupContextStateEx", gx2Export_GX2SetupContextStateEx);
+			osLib_addFunction("gx2", "GX2SetContextState", gx2Export_GX2SetContextState);
+
+			// semaphore
+			osLib_addFunction("gx2", "GX2SetSemaphore", gx2Export_GX2SetSemaphore);
+
+			GX2::GX2MemInit();
+			GX2::GX2ResourceInit();
+			GX2::GX2CommandInit();
+			GX2::GX2SurfaceInit();
+			GX2::GX2SurfaceCopyInit();
+			GX2::GX2TextureInit();
+			GX2::GX2StateInit();
+			GX2::GX2ShaderInit();
+			GX2::GX2EventInit();
+			GX2::GX2BlitInit();
+			GX2::GX2DrawInit();
+			GX2::GX2StreamoutInit();
+			GX2::GX2QueryInit();
+			GX2::GX2MiscInit();
+		};
+	}s_COSGX2Module;
+
+	COSModule* GetModule()
+	{
+		return &s_COSGX2Module;
+	}
 }

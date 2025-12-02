@@ -14,10 +14,10 @@ namespace nn
 		ParamPackStorage g_ParamPack;
 		DiscoveryResultStorage g_DiscoveryResults;
 
-		sint32 GetOlvAccessKey(uint32_t* pOutKey)
+		sint32 GetOlvAccessKey(uint32* pOutKey)
 		{
 			*pOutKey = 0;
-			uint32_t accessKey = CafeSystem::GetForegroundTitleOlvAccesskey();
+			uint32 accessKey = CafeSystem::GetForegroundTitleOlvAccesskey();
 			if (accessKey == -1)
 				return OLV_RESULT_STATUS(1102);
 

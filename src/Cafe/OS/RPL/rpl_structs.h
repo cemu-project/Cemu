@@ -228,10 +228,12 @@ struct RPLModule
 struct RPLDependency
 {
 	char modulename[RPL_MODULE_NAME_LENGTH];
-	char filepath[RPL_MODULE_PATH_LENGTH];
+	std::string filepath;
 	bool loadAttempted;
-	bool isCafeOSModule; // name is a known Cafe OS RPL
-	RPLModule* rplLoaderContext; // context of loaded module, can be nullptr for HLE COS modules
+	bool hleEntrypointCalled{false};
+	bool isCafeOSModule; // name is a known Cafe OS system RPL
+	RPLModule* rplLoaderContext{}; // context of loaded module, can be nullptr for HLE COS modules
+	class COSModule* rplHLEModule{}; // set if this is a HLE module
 	sint32 referenceCount;
 	uint32 coreinitHandle; // fake handle for coreinit
 	sint16 tlsModuleIndex; // tls module index assigned to this dependency

@@ -273,30 +273,45 @@ namespace nn
 			osLib_returnFromFunction(hCPU, 0);
 		}
 
-		void load()
+		class : public COSModule
 		{
-			osLib_addFunction("nn_nim", "NeedsNetworkUpdate__Q2_2nn3nimFPb", export_NeedsNetworkUpdate);
-			osLib_addFunction("nn_nim", "GetUpdatePackageProgress__Q2_2nn3nimFPQ3_2nn3nim21UpdatePackageProgress", export_GetUpdatePackageProgress);
-			osLib_addFunction("nn_nim", "NeedsNotifyToUsers__Q3_2nn3nim4utilFPCQ3_2nn3nim21UpdatePackageProgress", export_NeedsNotifyToUsers);
-			osLib_addFunction("nn_nim", "GetNumTitlePackages__Q2_2nn3nimFv", export_GetNumTitlePackages);
+			public:
+			std::string_view GetName() override
+			{
+				return "nn_nim";
+			}
 
-			osLib_addFunction("nn_nim", "GetTitlePackageInfos__Q2_2nn3nimFPQ3_2nn3nim16TitlePackageInfoPCULUi", export_GetTitlePackageInfos);
-			osLib_addFunction("nn_nim", "NeedsNotifyToUsers__Q3_2nn3nim4utilFPCQ3_2nn3nim16TitlePackageInfoPCQ3_2nn3nim11ResultError", export_NeedsNotifyToUsersTitlePackage);
+			void RPLMapped() override
+			{
+				osLib_addFunction("nn_nim", "NeedsNetworkUpdate__Q2_2nn3nimFPb", export_NeedsNetworkUpdate);
+				osLib_addFunction("nn_nim", "GetUpdatePackageProgress__Q2_2nn3nimFPQ3_2nn3nim21UpdatePackageProgress", export_GetUpdatePackageProgress);
+				osLib_addFunction("nn_nim", "NeedsNotifyToUsers__Q3_2nn3nim4utilFPCQ3_2nn3nim21UpdatePackageProgress", export_NeedsNotifyToUsers);
+				osLib_addFunction("nn_nim", "GetNumTitlePackages__Q2_2nn3nimFv", export_GetNumTitlePackages);
 
-			osLib_addFunction("nn_nim", "ListTitlePackagesStatically__Q2_2nn3nimFPULUi", export_ListTitlePackagesStatically);
+				osLib_addFunction("nn_nim", "GetTitlePackageInfos__Q2_2nn3nimFPQ3_2nn3nim16TitlePackageInfoPCULUi", export_GetTitlePackageInfos);
+				osLib_addFunction("nn_nim", "NeedsNotifyToUsers__Q3_2nn3nim4utilFPCQ3_2nn3nim16TitlePackageInfoPCQ3_2nn3nim11ResultError", export_NeedsNotifyToUsersTitlePackage);
 
-			osLib_addFunction("nn_nim", "GetECommerceInfrastructureCountry__Q2_2nn3nimFPQ3_2nn3nim7Country", export_GetECommerceInfrastructureCountry);
+				osLib_addFunction("nn_nim", "ListTitlePackagesStatically__Q2_2nn3nimFPULUi", export_ListTitlePackagesStatically);
+
+				osLib_addFunction("nn_nim", "GetECommerceInfrastructureCountry__Q2_2nn3nimFPQ3_2nn3nim7Country", export_GetECommerceInfrastructureCountry);
 
 
-			osLib_addFunction("nn_nim", "QuerySchedulerStatus__Q2_2nn3nimFPQ3_2nn3nim15SchedulerStatus", export_QuerySchedulerStatus);
+				osLib_addFunction("nn_nim", "QuerySchedulerStatus__Q2_2nn3nimFPQ3_2nn3nim15SchedulerStatus", export_QuerySchedulerStatus);
 
-			osLib_addFunction("nn_nim", "GetIconDatabaseEntries__Q2_2nn3nimFPQ3_2nn3nim17IconDatabaseEntryPCULUi", export_GetIconDatabaseEntries);
+				osLib_addFunction("nn_nim", "GetIconDatabaseEntries__Q2_2nn3nimFPQ3_2nn3nim17IconDatabaseEntryPCULUi", export_GetIconDatabaseEntries);
 
-			cafeExportRegisterFunc(ConstructResultError, "nn_nim", "Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti", LogType::Placeholder);
+				cafeExportRegisterFunc(ConstructResultError, "nn_nim", "Construct__Q3_2nn3nim11ResultErrorFQ2_2nn6Resulti", LogType::Placeholder);
 
-			osLib_addFunction("nn_nim", "MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy__Q3_2nn3nim4utilFULiQ3_2nn4Cafe9TitleType", export_MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy);
-			osLib_addFunction("nn_nim", "CalculateTitleInstallSize__Q2_2nn3nimFPLRCQ3_2nn3nim22TitlePackageTaskConfigPCUsUi", export_CalculateTitleInstallSize);
+				osLib_addFunction("nn_nim", "MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy__Q3_2nn3nim4utilFULiQ3_2nn4Cafe9TitleType", export_MakeTitlePackageTaskConfigAutoUsingBgInstallPolicy);
+				osLib_addFunction("nn_nim", "CalculateTitleInstallSize__Q2_2nn3nimFPLRCQ3_2nn3nim22TitlePackageTaskConfigPCUsUi", export_CalculateTitleInstallSize);
+			};
 
+		}s_COSnnNimModule;
+
+		COSModule* GetModule()
+		{
+			return &s_COSnnNimModule;
 		}
+
 	}
 }

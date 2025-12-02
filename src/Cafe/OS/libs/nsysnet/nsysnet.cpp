@@ -2217,69 +2217,78 @@ namespace nsysnet
 
 namespace nsysnet
 {
-    void Initialize()
-    {
-        cafeExportRegister("nsysnet", inet_ntop, LogType::Socket);
-    }
-}
 
-// register nsysnet functions
-void nsysnet_load()
-{
-    nsysnet::Initialize();
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "nsysnet";
+		}
 
-    // the below code is the old way of registering API which is deprecated
+		void RPLMapped() override
+		{
+			cafeExportRegister("nsysnet", inet_ntop, LogType::Socket);
 
-    osLib_addFunction("nsysnet", "socket_lib_init", nsysnetExport_socket_lib_init);
-	osLib_addFunction("nsysnet", "socket_lib_finish", nsysnetExport_socket_lib_finish);
-	
-	// socket API
-	osLib_addFunction("nsysnet", "socket", nsysnetExport_socket);
-	osLib_addFunction("nsysnet", "mw_socket", nsysnetExport_mw_socket);
-	osLib_addFunction("nsysnet", "shutdown", nsysnetExport_shutdown);
-	osLib_addFunction("nsysnet", "socketclose", nsysnetExport_socketclose);
-	osLib_addFunction("nsysnet", "setsockopt", nsysnetExport_setsockopt);
-	osLib_addFunction("nsysnet", "getsockopt", nsysnetExport_getsockopt);
-	osLib_addFunction("nsysnet", "bind", nsysnetExport_bind);
-	osLib_addFunction("nsysnet", "listen", nsysnetExport_listen);
-	osLib_addFunction("nsysnet", "accept", nsysnetExport_accept);
-	osLib_addFunction("nsysnet", "connect", nsysnetExport_connect);
-	osLib_addFunction("nsysnet", "send", nsysnetExport_send);
-	osLib_addFunction("nsysnet", "recv", nsysnetExport_recv);
-	osLib_addFunction("nsysnet", "select", nsysnetExport_select);
-	osLib_addFunction("nsysnet", "getsockname", nsysnetExport_getsockname);
-	osLib_addFunction("nsysnet", "getpeername", nsysnetExport_getpeername);
+		    // the below code is the old way of registering API which is deprecated
 
-	osLib_addFunction("nsysnet", "inet_aton", nsysnetExport_inet_aton);
-	osLib_addFunction("nsysnet", "inet_pton", nsysnetExport_inet_pton);
-	osLib_addFunction("nsysnet", "inet_ntoa", nsysnetExport_inet_ntoa);
-	osLib_addFunction("nsysnet", "htons", nsysnetExport_htons);
-	osLib_addFunction("nsysnet", "htonl", nsysnetExport_htonl);
-	osLib_addFunction("nsysnet", "ntohs", nsysnetExport_ntohs);
-	osLib_addFunction("nsysnet", "ntohl", nsysnetExport_ntohl);
-	osLib_addFunction("nsysnet", "gethostbyname", nsysnetExport_gethostbyname);
-	osLib_addFunction("nsysnet", "gethostbyaddr", nsysnetExport_gethostbyaddr);
-	osLib_addFunction("nsysnet", "getaddrinfo", nsysnetExport_getaddrinfo);
+		    osLib_addFunction("nsysnet", "socket_lib_init", nsysnetExport_socket_lib_init);
+			osLib_addFunction("nsysnet", "socket_lib_finish", nsysnetExport_socket_lib_finish);
 
-	osLib_addFunction("nsysnet", "socketlasterr", nsysnetExport_socketlasterr);
+			// socket API
+			osLib_addFunction("nsysnet", "socket", nsysnetExport_socket);
+			osLib_addFunction("nsysnet", "mw_socket", nsysnetExport_mw_socket);
+			osLib_addFunction("nsysnet", "shutdown", nsysnetExport_shutdown);
+			osLib_addFunction("nsysnet", "socketclose", nsysnetExport_socketclose);
+			osLib_addFunction("nsysnet", "setsockopt", nsysnetExport_setsockopt);
+			osLib_addFunction("nsysnet", "getsockopt", nsysnetExport_getsockopt);
+			osLib_addFunction("nsysnet", "bind", nsysnetExport_bind);
+			osLib_addFunction("nsysnet", "listen", nsysnetExport_listen);
+			osLib_addFunction("nsysnet", "accept", nsysnetExport_accept);
+			osLib_addFunction("nsysnet", "connect", nsysnetExport_connect);
+			osLib_addFunction("nsysnet", "send", nsysnetExport_send);
+			osLib_addFunction("nsysnet", "recv", nsysnetExport_recv);
+			osLib_addFunction("nsysnet", "select", nsysnetExport_select);
+			osLib_addFunction("nsysnet", "getsockname", nsysnetExport_getsockname);
+			osLib_addFunction("nsysnet", "getpeername", nsysnetExport_getpeername);
 
-	// unfinished implementations
-	osLib_addFunction("nsysnet", "recvfrom", nsysnetExport_recvfrom);
-	osLib_addFunction("nsysnet", "recvfrom_ex", nsysnetExport_recvfrom_ex);
-	osLib_addFunction("nsysnet", "sendto", nsysnetExport_sendto);
+			osLib_addFunction("nsysnet", "inet_aton", nsysnetExport_inet_aton);
+			osLib_addFunction("nsysnet", "inet_pton", nsysnetExport_inet_pton);
+			osLib_addFunction("nsysnet", "inet_ntoa", nsysnetExport_inet_ntoa);
+			osLib_addFunction("nsysnet", "htons", nsysnetExport_htons);
+			osLib_addFunction("nsysnet", "htonl", nsysnetExport_htonl);
+			osLib_addFunction("nsysnet", "ntohs", nsysnetExport_ntohs);
+			osLib_addFunction("nsysnet", "ntohl", nsysnetExport_ntohl);
+			osLib_addFunction("nsysnet", "gethostbyname", nsysnetExport_gethostbyname);
+			osLib_addFunction("nsysnet", "gethostbyaddr", nsysnetExport_gethostbyaddr);
+			osLib_addFunction("nsysnet", "getaddrinfo", nsysnetExport_getaddrinfo);
 
-	osLib_addFunction("nsysnet", "sendto_multi", nsysnetExport_sendto_multi);
-	osLib_addFunction("nsysnet", "sendto_multi_ex", nsysnetExport_sendto_multi_ex);
+			osLib_addFunction("nsysnet", "socketlasterr", nsysnetExport_socketlasterr);
+
+			// unfinished implementations
+			osLib_addFunction("nsysnet", "recvfrom", nsysnetExport_recvfrom);
+			osLib_addFunction("nsysnet", "recvfrom_ex", nsysnetExport_recvfrom_ex);
+			osLib_addFunction("nsysnet", "sendto", nsysnetExport_sendto);
+
+			osLib_addFunction("nsysnet", "sendto_multi", nsysnetExport_sendto_multi);
+			osLib_addFunction("nsysnet", "sendto_multi_ex", nsysnetExport_sendto_multi_ex);
 
 
-	// NSSL API
-	osLib_addFunction("nsysnet", "NSSLCreateContext", nsysnet::export_NSSLCreateContext);
-	osLib_addFunction("nsysnet", "NSSLSetClientPKI", nsysnet::export_NSSLSetClientPKI);
-	osLib_addFunction("nsysnet", "NSSLAddServerPKI", nsysnet::export_NSSLAddServerPKI);
-	osLib_addFunction("nsysnet", "NSSLAddServerPKIExternal", nsysnet::export_NSSLAddServerPKIExternal);
-	osLib_addFunction("nsysnet", "NSSLAddServerPKIGroups", nsysnet::export_NSSLAddServerPKIGroups);
-	osLib_addFunction("nsysnet", "NSSLDestroyContext", nsysnet::export_NSSLDestroyContext);
+			// NSSL API
+			osLib_addFunction("nsysnet", "NSSLCreateContext", nsysnet::export_NSSLCreateContext);
+			osLib_addFunction("nsysnet", "NSSLSetClientPKI", nsysnet::export_NSSLSetClientPKI);
+			osLib_addFunction("nsysnet", "NSSLAddServerPKI", nsysnet::export_NSSLAddServerPKI);
+			osLib_addFunction("nsysnet", "NSSLAddServerPKIExternal", nsysnet::export_NSSLAddServerPKIExternal);
+			osLib_addFunction("nsysnet", "NSSLAddServerPKIGroups", nsysnet::export_NSSLAddServerPKIGroups);
+			osLib_addFunction("nsysnet", "NSSLDestroyContext", nsysnet::export_NSSLDestroyContext);
 
-	osLib_addFunction("nsysnet", "NSSLExportInternalServerCertificate", nsysnet::export_NSSLExportInternalServerCertificate);
-	osLib_addFunction("nsysnet", "NSSLExportInternalClientCertificate", nsysnet::export_NSSLExportInternalClientCertificate);
+			osLib_addFunction("nsysnet", "NSSLExportInternalServerCertificate", nsysnet::export_NSSLExportInternalServerCertificate);
+			osLib_addFunction("nsysnet", "NSSLExportInternalClientCertificate", nsysnet::export_NSSLExportInternalClientCertificate);
+		};
+	}s_COSnsysnetModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnsysnetModule;
+	}
 }

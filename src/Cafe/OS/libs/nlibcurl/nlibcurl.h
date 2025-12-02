@@ -1,6 +1,7 @@
 #pragma once
+#include "Cafe/OS/RPL/COSModule.h"
 
 namespace nlibcurl
 {
-	void load();
+	COSModule* GetModule();
 }

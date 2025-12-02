@@ -50,9 +50,28 @@ namespace nsyskbd
 		return 0;
 	}
 
-	void nsyskbd_load()
+	class : public COSModule
 	{
-		cafeExportRegister("nsyskbd", KBDGetChannelStatus, LogType::Placeholder);
-		cafeExportRegister("nsyskbd", KBDGetKey, LogType::Placeholder);
+		public:
+		std::string_view GetName() override
+		{
+			return "nsyskbd";
+		}
+
+		void RPLMapped() override
+		{
+			cafeExportRegister("nsyskbd", KBDGetChannelStatus, LogType::Placeholder);
+			cafeExportRegister("nsyskbd", KBDGetKey, LogType::Placeholder);
+		};
+
+		void RPLUnmapped() override
+		{
+
+		}
+	}s_COSnsyskbdModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnsyskbdModule;
 	}
 }

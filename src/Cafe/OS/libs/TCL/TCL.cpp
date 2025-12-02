@@ -156,14 +156,39 @@ namespace TCL
 		return 0;
 	}
 
-	void Initialize()
+	class : public COSModule
 	{
-		cafeExportRegister("TCL", TCLSubmitToRing, LogType::Placeholder);
-		cafeExportRegister("TCL", TCLTimestamp, LogType::Placeholder);
-		cafeExportRegister("TCL", TCLWaitTimestamp, LogType::Placeholder);
+		public:
+		std::string_view GetName() override
+		{
+			return "tcl";
+		}
 
-		s_currentRetireMarker = 0;
-		s_tclStatePPC->gpuRetireMarker = 0;
-		coreinit::OSInitEvent(s_updateRetirementEvent.GetPtr(), coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+		void RPLMapped() override
+		{
+			cafeExportRegister("TCL", TCLSubmitToRing, LogType::Placeholder);
+			cafeExportRegister("TCL", TCLTimestamp, LogType::Placeholder);
+			cafeExportRegister("TCL", TCLWaitTimestamp, LogType::Placeholder);
+		};
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				s_currentRetireMarker = 0;
+				s_tclStatePPC->gpuRetireMarker = 0;
+				coreinit::OSInitEvent(s_updateRetirementEvent.GetPtr(), coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				s_currentRetireMarker = 0;
+				s_tclStatePPC->gpuRetireMarker = 0;
+			}
+		}
+	}s_COStclModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COStclModule;
 	}
 }

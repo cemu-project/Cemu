@@ -683,76 +683,92 @@ void nnActExport_AcquirePrincipalIdByAccountId(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, result);
 }
 
-// register account functions
-void nnAct_load()
+namespace nn::act
 {
-	
-	osLib_addFunction("nn_act", "Initialize__Q2_2nn3actFv", nnActExport_Initialize);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "nn_act";
+		}
 
-	osLib_addFunction("nn_act", "CreateConsoleAccount__Q2_2nn3actFv", nnActExport_CreateConsoleAccount);
+		void RPLMapped() override
+		{
+			osLib_addFunction("nn_act", "Initialize__Q2_2nn3actFv", nnActExport_Initialize);
 
-	osLib_addFunction("nn_act", "GetNumOfAccounts__Q2_2nn3actFv", nnActExport_GetNumOfAccounts);
-	osLib_addFunction("nn_act", "IsSlotOccupied__Q2_2nn3actFUc", nnActExport_IsSlotOccupied);
-	osLib_addFunction("nn_act", "GetSlotNo__Q2_2nn3actFv", nnActExport_GetSlotNo);
-	osLib_addFunction("nn_act", "GetSlotNoEx__Q2_2nn3actFRC7ACTUuid", nnActExport_GetSlotNoEx);
-	osLib_addFunction("nn_act", "IsNetworkAccount__Q2_2nn3actFv", nnActExport_IsNetworkAccount);
-	osLib_addFunction("nn_act", "IsNetworkAccountEx__Q2_2nn3actFUc", nnActExport_IsNetworkAccountEx);
-	// account id
-	osLib_addFunction("nn_act", "GetAccountId__Q2_2nn3actFPc", nnActExport_GetAccountId);
-	osLib_addFunction("nn_act", "GetAccountIdEx__Q2_2nn3actFPcUc", nnActExport_GetAccountIdEx);
-	// simple address
-	osLib_addFunction("nn_act", "GetSimpleAddressId__Q2_2nn3actFv", nnActExport_GetSimpleAddressId);
-	osLib_addFunction("nn_act", "GetSimpleAddressIdEx__Q2_2nn3actFPUiUc", nnActExport_GetSimpleAddressIdEx);
-	// principal id
-	osLib_addFunction("nn_act", "GetPrincipalId__Q2_2nn3actFv", nnActExport_GetPrincipalId);
-	osLib_addFunction("nn_act", "GetPrincipalIdEx__Q2_2nn3actFPUiUc", nnActExport_GetPrincipalIdEx);
-	// transferable id
-	osLib_addFunction("nn_act", "GetTransferableId__Q2_2nn3actFUi", nnActExport_GetTransferableId);
-	osLib_addFunction("nn_act", "GetTransferableIdEx__Q2_2nn3actFPULUiUc", nnActExport_GetTransferableIdEx);
-	// persistent id
-	osLib_addFunction("nn_act", "GetPersistentId__Q2_2nn3actFv", nnActExport_GetPersistentId);
-	osLib_addFunction("nn_act", "GetPersistentIdEx__Q2_2nn3actFUc", nnActExport_GetPersistentIdEx);
-	// country
-	osLib_addFunction("nn_act", "GetCountry__Q2_2nn3actFPc", nnActExport_GetCountry);
-	// timezone
-	cafeExportRegisterFunc(nn::act::GetTimeZoneId, "nn_act", "GetTimeZoneId__Q2_2nn3actFPc", LogType::Placeholder);
+			osLib_addFunction("nn_act", "CreateConsoleAccount__Q2_2nn3actFv", nnActExport_CreateConsoleAccount);
 
-	// parental
-	osLib_addFunction("nn_act", "EnableParentalControlCheck__Q2_2nn3actFb", nnActExport_EnableParentalControlCheck);
-	osLib_addFunction("nn_act", "IsParentalControlCheckEnabled__Q2_2nn3actFv", nnActExport_IsParentalControlCheckEnabled);
+			osLib_addFunction("nn_act", "GetNumOfAccounts__Q2_2nn3actFv", nnActExport_GetNumOfAccounts);
+			osLib_addFunction("nn_act", "IsSlotOccupied__Q2_2nn3actFUc", nnActExport_IsSlotOccupied);
+			osLib_addFunction("nn_act", "GetSlotNo__Q2_2nn3actFv", nnActExport_GetSlotNo);
+			osLib_addFunction("nn_act", "GetSlotNoEx__Q2_2nn3actFRC7ACTUuid", nnActExport_GetSlotNoEx);
+			osLib_addFunction("nn_act", "IsNetworkAccount__Q2_2nn3actFv", nnActExport_IsNetworkAccount);
+			osLib_addFunction("nn_act", "IsNetworkAccountEx__Q2_2nn3actFUc", nnActExport_IsNetworkAccountEx);
+			// account id
+			osLib_addFunction("nn_act", "GetAccountId__Q2_2nn3actFPc", nnActExport_GetAccountId);
+			osLib_addFunction("nn_act", "GetAccountIdEx__Q2_2nn3actFPcUc", nnActExport_GetAccountIdEx);
+			// simple address
+			osLib_addFunction("nn_act", "GetSimpleAddressId__Q2_2nn3actFv", nnActExport_GetSimpleAddressId);
+			osLib_addFunction("nn_act", "GetSimpleAddressIdEx__Q2_2nn3actFPUiUc", nnActExport_GetSimpleAddressIdEx);
+			// principal id
+			osLib_addFunction("nn_act", "GetPrincipalId__Q2_2nn3actFv", nnActExport_GetPrincipalId);
+			osLib_addFunction("nn_act", "GetPrincipalIdEx__Q2_2nn3actFPUiUc", nnActExport_GetPrincipalIdEx);
+			// transferable id
+			osLib_addFunction("nn_act", "GetTransferableId__Q2_2nn3actFUi", nnActExport_GetTransferableId);
+			osLib_addFunction("nn_act", "GetTransferableIdEx__Q2_2nn3actFPULUiUc", nnActExport_GetTransferableIdEx);
+			// persistent id
+			osLib_addFunction("nn_act", "GetPersistentId__Q2_2nn3actFv", nnActExport_GetPersistentId);
+			osLib_addFunction("nn_act", "GetPersistentIdEx__Q2_2nn3actFUc", nnActExport_GetPersistentIdEx);
+			// country
+			osLib_addFunction("nn_act", "GetCountry__Q2_2nn3actFPc", nnActExport_GetCountry);
+			// timezone
+			cafeExportRegisterFunc(nn::act::GetTimeZoneId, "nn_act", "GetTimeZoneId__Q2_2nn3actFPc", LogType::Placeholder);
 
-	osLib_addFunction("nn_act", "GetMii__Q2_2nn3actFP12FFLStoreData", nnActExport_GetMii);
-	osLib_addFunction("nn_act", "GetMiiEx__Q2_2nn3actFP12FFLStoreDataUc", nnActExport_GetMiiEx);
-	osLib_addFunction("nn_act", "GetMiiImageEx__Q2_2nn3actFPUiPvUi15ACTMiiImageTypeUc", nnActExport_GetMiiImageEx);
-	osLib_addFunction("nn_act", "GetMiiName__Q2_2nn3actFPw", nnActExport_GetMiiName);
-	osLib_addFunction("nn_act", "GetMiiNameEx__Q2_2nn3actFPwUc", nnActExport_GetMiiNameEx);
+			// parental
+			osLib_addFunction("nn_act", "EnableParentalControlCheck__Q2_2nn3actFb", nnActExport_EnableParentalControlCheck);
+			osLib_addFunction("nn_act", "IsParentalControlCheckEnabled__Q2_2nn3actFv", nnActExport_IsParentalControlCheckEnabled);
 
-	osLib_addFunction("nn_act", "UpdateMii__Q2_2nn3actFUcRC12FFLStoreDataPCwPCvUiT4T5T4T5T4T5T4T5T4T5T4T5T4T5T4T5", nnActExport_UpdateMii);
+			osLib_addFunction("nn_act", "GetMii__Q2_2nn3actFP12FFLStoreData", nnActExport_GetMii);
+			osLib_addFunction("nn_act", "GetMiiEx__Q2_2nn3actFP12FFLStoreDataUc", nnActExport_GetMiiEx);
+			osLib_addFunction("nn_act", "GetMiiImageEx__Q2_2nn3actFPUiPvUi15ACTMiiImageTypeUc", nnActExport_GetMiiImageEx);
+			osLib_addFunction("nn_act", "GetMiiName__Q2_2nn3actFPw", nnActExport_GetMiiName);
+			osLib_addFunction("nn_act", "GetMiiNameEx__Q2_2nn3actFPwUc", nnActExport_GetMiiNameEx);
 
-	osLib_addFunction("nn_act", "GetUuid__Q2_2nn3actFP7ACTUuid", nnActExport_GetUuid);
-	osLib_addFunction("nn_act", "GetUuidEx__Q2_2nn3actFP7ACTUuidUc", nnActExport_GetUuidEx);
-	osLib_addFunction("nn_act", "GetUuidEx__Q2_2nn3actFP7ACTUuidUcUi", nnActExport_GetUuidEx2);
+			osLib_addFunction("nn_act", "UpdateMii__Q2_2nn3actFUcRC12FFLStoreDataPCwPCvUiT4T5T4T5T4T5T4T5T4T5T4T5T4T5T4T5", nnActExport_UpdateMii);
 
-	osLib_addFunction("nn_act", "GetParentalControlSlotNoEx__Q2_2nn3actFPUcUc", nnActExport_GetParentalControlSlotNoEx);
+			osLib_addFunction("nn_act", "GetUuid__Q2_2nn3actFP7ACTUuid", nnActExport_GetUuid);
+			osLib_addFunction("nn_act", "GetUuidEx__Q2_2nn3actFP7ACTUuidUc", nnActExport_GetUuidEx);
+			osLib_addFunction("nn_act", "GetUuidEx__Q2_2nn3actFP7ACTUuidUcUi", nnActExport_GetUuidEx2);
 
-	osLib_addFunction("nn_act", "GetDefaultAccount__Q2_2nn3actFv", nnActExport_GetDefaultAccount);
+			osLib_addFunction("nn_act", "GetParentalControlSlotNoEx__Q2_2nn3actFPUcUc", nnActExport_GetParentalControlSlotNoEx);
 
-	osLib_addFunction("nn_act", "AcquireEcServiceToken__Q2_2nn3actFPc", nnActExport_AcquireEcServiceToken);
-	osLib_addFunction("nn_act", "AcquireNexServiceToken__Q2_2nn3actFP26ACTNexAuthenticationResultUi", nnActExport_AcquireNexServiceToken);
-	osLib_addFunction("nn_act", "AcquireIndependentServiceToken__Q2_2nn3actFPcPCc", nnActExport_AcquireIndependentServiceToken);
-	osLib_addFunction("nn_act", "AcquireIndependentServiceToken__Q2_2nn3actFPcPCcUibT4", nnActExport_AcquireIndependentServiceToken2);
-	osLib_addFunction("nn_act", "AcquireIndependentServiceToken__Q2_2nn3actFPcPCcUi", nnActExport_AcquireIndependentServiceToken2);
-	
-	osLib_addFunction("nn_act", "AcquirePrincipalIdByAccountId__Q2_2nn3actFPUiPA17_CcUi", nnActExport_AcquirePrincipalIdByAccountId);
+			osLib_addFunction("nn_act", "GetDefaultAccount__Q2_2nn3actFv", nnActExport_GetDefaultAccount);
 
-	cafeExportRegisterFunc(nn::act::GetErrorCode, "nn_act", "GetErrorCode__Q2_2nn3actFRCQ2_2nn6Result", LogType::Placeholder);
+			osLib_addFunction("nn_act", "AcquireEcServiceToken__Q2_2nn3actFPc", nnActExport_AcquireEcServiceToken);
+			osLib_addFunction("nn_act", "AcquireNexServiceToken__Q2_2nn3actFP26ACTNexAuthenticationResultUi", nnActExport_AcquireNexServiceToken);
+			osLib_addFunction("nn_act", "AcquireIndependentServiceToken__Q2_2nn3actFPcPCc", nnActExport_AcquireIndependentServiceToken);
+			osLib_addFunction("nn_act", "AcquireIndependentServiceToken__Q2_2nn3actFPcPCcUibT4", nnActExport_AcquireIndependentServiceToken2);
+			osLib_addFunction("nn_act", "AcquireIndependentServiceToken__Q2_2nn3actFPcPCcUi", nnActExport_AcquireIndependentServiceToken2);
 
-	// placeholders / incomplete implementations
-	osLib_addFunction("nn_act", "HasNfsAccount__Q2_2nn3actFv", nnActExport_HasNfsAccount);
-	osLib_addFunction("nn_act", "GetHostServerSettings__Q2_2nn3actFPcT1Uc", nnActExport_GetHostServerSettings);
-	cafeExportRegisterFunc(nn::act::GetUtcOffset, "nn_act", "GetUtcOffset__Q2_2nn3actFv", LogType::Placeholder);
-	cafeExportRegisterFunc(nn::act::GetUtcOffsetEx, "nn_act", "GetUtcOffsetEx__Q2_2nn3actFPLUc", LogType::Placeholder);
+			osLib_addFunction("nn_act", "AcquirePrincipalIdByAccountId__Q2_2nn3actFPUiPA17_CcUi", nnActExport_AcquirePrincipalIdByAccountId);
 
+			cafeExportRegisterFunc(nn::act::GetErrorCode, "nn_act", "GetErrorCode__Q2_2nn3actFRCQ2_2nn6Result", LogType::Placeholder);
+
+			// placeholders / incomplete implementations
+			osLib_addFunction("nn_act", "HasNfsAccount__Q2_2nn3actFv", nnActExport_HasNfsAccount);
+			osLib_addFunction("nn_act", "GetHostServerSettings__Q2_2nn3actFPcT1Uc", nnActExport_GetHostServerSettings);
+			cafeExportRegisterFunc(nn::act::GetUtcOffset, "nn_act", "GetUtcOffset__Q2_2nn3actFv", LogType::Placeholder);
+			cafeExportRegisterFunc(nn::act::GetUtcOffsetEx, "nn_act", "GetUtcOffsetEx__Q2_2nn3actFPLUc", LogType::Placeholder);
+
+		};
+
+	}s_COSnnActModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnnActModule;
+	}
 }
 
 

@@ -630,18 +630,32 @@ namespace ntag
 		return NTAG_RESULT_INVALID;
 	}
 
-	void Initialize()
+	class : public COSModule
 	{
-		cafeExportRegister("ntag", NTAGInit, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGInitEx, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGShutdown, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGIsInit, LogType::Placeholder); // disabled logging, since this gets spammed
-		cafeExportRegister("ntag", NTAGProc, LogType::Placeholder); // disabled logging, since this gets spammed
-		cafeExportRegister("ntag", NTAGSetFormatSettings, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGSetTagDetectCallback, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGAbort, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGRead, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGWrite, LogType::NTAG);
-		cafeExportRegister("ntag", NTAGFormat, LogType::NTAG);
+		public:
+		std::string_view GetName() override
+		{
+			return "ntag";
+		}
+
+		void RPLMapped() override
+		{
+			cafeExportRegister("ntag", NTAGInit, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGInitEx, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGShutdown, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGIsInit, LogType::Placeholder); // disabled logging, since this gets spammed
+			cafeExportRegister("ntag", NTAGProc, LogType::Placeholder); // disabled logging, since this gets spammed
+			cafeExportRegister("ntag", NTAGSetFormatSettings, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGSetTagDetectCallback, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGAbort, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGRead, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGWrite, LogType::NTAG);
+			cafeExportRegister("ntag", NTAGFormat, LogType::NTAG);
+		};
+	}s_COSntagModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSntagModule;
 	}
 }

@@ -1,5 +1,6 @@
+#include "Cafe/OS/RPL/COSModule.h"
 
 namespace avm
 {
-	void Initialize();
+	COSModule* GetModule();
 }

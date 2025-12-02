@@ -18,9 +18,25 @@ namespace nn::cmpt
 		return 0;
 	}
 
-	void Initialize()
+	class : public COSModule
 	{
-		cafeExportRegister("nn_cmpt", CMPTAcctGetPcConf, LogType::Placeholder);
-		cafeExportRegister("nn_cmpt", CMPTGetDataSize, LogType::Placeholder);
+		public:
+		std::string_view GetName() override
+		{
+			return "nn_cmpt";
+		}
+
+		void RPLMapped() override
+		{
+			cafeExportRegister("nn_cmpt", CMPTAcctGetPcConf, LogType::Placeholder);
+			cafeExportRegister("nn_cmpt", CMPTGetDataSize, LogType::Placeholder);
+		};
+
+	}s_COSnnCmptModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnnCmptModule;
 	}
+
 }

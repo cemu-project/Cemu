@@ -515,6 +515,8 @@ add_library(CemuCafe
   OS/libs/zlib125
   OS/libs/zlib125/zlib125.cpp
   OS/libs/zlib125/zlib125.h
+  OS/RPL/COSModule.cpp
+  OS/RPL/COSModule.h
   OS/RPL/elf.cpp
   OS/RPL/rpl.cpp
   OS/RPL/rpl_debug_symbols.cpp

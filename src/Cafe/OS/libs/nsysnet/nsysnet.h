@@ -1,6 +1,7 @@
 #pragma once
 #include <set>
 #include <vector>
+#include "Cafe/OS/RPL/COSModule.h"
 
 #if BOOST_OS_WINDOWS
 #include <WinSock2.h>
@@ -12,7 +13,6 @@
 
 typedef signed int WUSOCKET;
 
-void nsysnet_load();
 WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket);
 void nsysnet_notifyCloseSharedSocket(SOCKET existingSocket);
 
@@ -45,4 +45,6 @@ namespace nsysnet
 
 	void wuResetFD(struct wu_fd_set* fdset);
 	void wuSetFD(struct wu_fd_set* fdset, sint32 fd);
+
+	COSModule* GetModule();
 }

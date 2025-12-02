@@ -29,9 +29,24 @@ namespace nlibnss
 		return 0x1C; // signature length
 	}
 
-	void load()
+	class : public COSModule
 	{
-		cafeExportRegister("nlibnss", NSSSignatureGetSignatureLength, LogType::Placeholder);
-		cafeExportRegister("nlibnss", NSSExportDeviceCertChain, LogType::Placeholder);
+		public:
+		std::string_view GetName() override
+		{
+			return "nlibnss";
+		}
+
+		void RPLMapped() override
+		{
+			cafeExportRegister("nlibnss", NSSSignatureGetSignatureLength, LogType::Placeholder);
+			cafeExportRegister("nlibnss", NSSExportDeviceCertChain, LogType::Placeholder);
+		};
+
+	}s_COSnlibnssModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSnlibnssModule;
 	}
 }

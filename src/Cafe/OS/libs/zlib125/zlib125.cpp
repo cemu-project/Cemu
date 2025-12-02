@@ -363,24 +363,43 @@ namespace zlib
 {
 	void load()
 	{
-		// zlib125
-		osLib_addFunction("zlib125", "inflateInit2_", zlib125Export_inflateInit2_);
-		osLib_addFunction("zlib125", "inflateInit_", zlib125Export_inflateInit_);
-		osLib_addFunction("zlib125", "inflateEnd", zlib125Export_inflateEnd);
-		osLib_addFunction("zlib125", "inflate", zlib125Export_inflate);
-		osLib_addFunction("zlib125", "inflateReset", zlib125Export_inflateReset);
-		osLib_addFunction("zlib125", "inflateReset2", zlib125Export_inflateReset2);
 
-		osLib_addFunction("zlib125", "deflateInit_", zlib125Export_deflateInit_);
-		osLib_addFunction("zlib125", "deflateInit2_", zlib125Export_deflateInit2_);
-		osLib_addFunction("zlib125", "deflateBound", zlib125Export_deflateBound);
-		osLib_addFunction("zlib125", "deflate", zlib125Export_deflate);
-		osLib_addFunction("zlib125", "deflateEnd", zlib125Export_deflateEnd);
+	}
 
-		osLib_addFunction("zlib125", "uncompress", zlib125Export_uncompress);
-		osLib_addFunction("zlib125", "compress", zlib125Export_compress);
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "zlib125";
+		}
 
-		osLib_addFunction("zlib125", "crc32", zlib125Export_crc32);
-		osLib_addFunction("zlib125", "compressBound", zlib125Export_compressBound);
+		void RPLMapped() override
+		{
+			osLib_addFunction("zlib125", "inflateInit2_", zlib125Export_inflateInit2_);
+			osLib_addFunction("zlib125", "inflateInit_", zlib125Export_inflateInit_);
+			osLib_addFunction("zlib125", "inflateEnd", zlib125Export_inflateEnd);
+			osLib_addFunction("zlib125", "inflate", zlib125Export_inflate);
+			osLib_addFunction("zlib125", "inflateReset", zlib125Export_inflateReset);
+			osLib_addFunction("zlib125", "inflateReset2", zlib125Export_inflateReset2);
+
+			osLib_addFunction("zlib125", "deflateInit_", zlib125Export_deflateInit_);
+			osLib_addFunction("zlib125", "deflateInit2_", zlib125Export_deflateInit2_);
+			osLib_addFunction("zlib125", "deflateBound", zlib125Export_deflateBound);
+			osLib_addFunction("zlib125", "deflate", zlib125Export_deflate);
+			osLib_addFunction("zlib125", "deflateEnd", zlib125Export_deflateEnd);
+
+			osLib_addFunction("zlib125", "uncompress", zlib125Export_uncompress);
+			osLib_addFunction("zlib125", "compress", zlib125Export_compress);
+
+			osLib_addFunction("zlib125", "crc32", zlib125Export_crc32);
+			osLib_addFunction("zlib125", "compressBound", zlib125Export_compressBound);
+		};
+
+	}s_COSZlib125Module;
+
+	COSModule* GetModule()
+	{
+		return &s_COSZlib125Module;
 	}
 }

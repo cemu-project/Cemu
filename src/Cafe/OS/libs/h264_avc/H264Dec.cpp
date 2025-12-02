@@ -617,28 +617,42 @@ namespace H264
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
-	void Initialize()
+	class : public COSModule
 	{
-		cafeExportRegister("h264", H264DECCheckMemSegmentation, LogType::H264);
-		cafeExportRegister("h264", H264DECMemoryRequirement, LogType::H264);
-		cafeExportRegister("h264", H264DECFindDecstartpoint, LogType::H264);
-		cafeExportRegister("h264", H264DECFindIdrpoint, LogType::H264);
-		cafeExportRegister("h264", H264DECGetImageSize, LogType::H264);
+		public:
+		std::string_view GetName() override
+		{
+			return "h264";
+		}
 
-		cafeExportRegister("h264", H264DECInitParam, LogType::H264);
-		cafeExportRegister("h264", H264DECOpen, LogType::H264);
-		cafeExportRegister("h264", H264DECClose, LogType::H264);
-		cafeExportRegister("h264", H264DECBegin, LogType::H264);
-		cafeExportRegister("h264", H264DECEnd, LogType::H264);
+		void RPLMapped() override
+		{
+			cafeExportRegister("h264", H264DECCheckMemSegmentation, LogType::H264);
+			cafeExportRegister("h264", H264DECMemoryRequirement, LogType::H264);
+			cafeExportRegister("h264", H264DECFindDecstartpoint, LogType::H264);
+			cafeExportRegister("h264", H264DECFindIdrpoint, LogType::H264);
+			cafeExportRegister("h264", H264DECGetImageSize, LogType::H264);
 
-		cafeExportRegister("h264", H264DECSetParam_FPTR_OUTPUT, LogType::H264);
-		cafeExportRegister("h264", H264DECSetParam_OUTPUT_PER_FRAME, LogType::H264);
-		cafeExportRegister("h264", H264DECSetParam_USER_MEMORY, LogType::H264);
-		cafeExportRegister("h264", H264DECSetParam, LogType::H264);
+			cafeExportRegister("h264", H264DECInitParam, LogType::H264);
+			cafeExportRegister("h264", H264DECOpen, LogType::H264);
+			cafeExportRegister("h264", H264DECClose, LogType::H264);
+			cafeExportRegister("h264", H264DECBegin, LogType::H264);
+			cafeExportRegister("h264", H264DECEnd, LogType::H264);
 
-		cafeExportRegister("h264", H264DECSetBitstream, LogType::H264);
-		cafeExportRegister("h264", H264DECExecute, LogType::H264);
+			cafeExportRegister("h264", H264DECSetParam_FPTR_OUTPUT, LogType::H264);
+			cafeExportRegister("h264", H264DECSetParam_OUTPUT_PER_FRAME, LogType::H264);
+			cafeExportRegister("h264", H264DECSetParam_USER_MEMORY, LogType::H264);
+			cafeExportRegister("h264", H264DECSetParam, LogType::H264);
 
-		cafeExportRegister("h264", H264DECCheckDecunitLength, LogType::H264);
+			cafeExportRegister("h264", H264DECSetBitstream, LogType::H264);
+			cafeExportRegister("h264", H264DECExecute, LogType::H264);
+
+			cafeExportRegister("h264", H264DECCheckDecunitLength, LogType::H264);
+		};
+	}s_COSh264Module;
+
+	COSModule* GetModule()
+	{
+		return &s_COSh264Module;
 	}
 }

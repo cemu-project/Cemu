@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Cafe/OS/RPL/COSModule.h"
 
 namespace nn 
 {
@@ -6,7 +7,6 @@ namespace nn
 	{
 		void render(bool mainWindow);
 
-		void load();
-
+		COSModule* GetModule();
 	}
 }

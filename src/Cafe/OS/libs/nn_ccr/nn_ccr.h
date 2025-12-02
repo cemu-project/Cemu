@@ -1,5 +1,6 @@
+#include "Cafe/OS/RPL/COSModule.h"
 
 namespace nn::ccr
 {
-	void Initialize();
+	COSModule* GetModule();
 }

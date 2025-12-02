@@ -1,3 +1,5 @@
+#include "Cafe/OS/RPL/COSModule.h"
+
 namespace TCL
 {
 	enum class TCLTimestampId
@@ -20,6 +22,6 @@ namespace TCL
 	bool TCLGPUReadRBWord(uint32& cmdWord);
 	void TCLGPUNotifyNewRetirementTimestamp();
 
-	void Initialize();
+	COSModule* GetModule();
 }
 ENABLE_BITMASK_OPERATORS(TCL::TCLSubmissionFlag);

@@ -242,16 +242,41 @@ namespace camera
 		g_cameraCounter = 0;
 	}
 
-	void load()
+	class : public COSModule
 	{
-		reset();
-		cafeExportRegister("camera", CAMGetMemReq, LogType::Placeholder);
-		cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::Placeholder);
-		cafeExportRegister("camera", CAMInit, LogType::Placeholder);
-		cafeExportRegister("camera", CAMExit, LogType::Placeholder);
-		cafeExportRegister("camera", CAMOpen, LogType::Placeholder);
-		cafeExportRegister("camera", CAMClose, LogType::Placeholder);
-		cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::Placeholder);
+		public:
+		std::string_view GetName() override
+		{
+			return "camera";
+		}
+
+		void RPLMapped() override
+		{
+			cafeExportRegister("camera", CAMGetMemReq, LogType::Placeholder);
+			cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::Placeholder);
+			cafeExportRegister("camera", CAMInit, LogType::Placeholder);
+			cafeExportRegister("camera", CAMExit, LogType::Placeholder);
+			cafeExportRegister("camera", CAMOpen, LogType::Placeholder);
+			cafeExportRegister("camera", CAMClose, LogType::Placeholder);
+			cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::Placeholder);
+		};
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				reset();
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				// todo
+			}
+		}
+	}s_COScameraModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COScameraModule;
 	}
 }
 

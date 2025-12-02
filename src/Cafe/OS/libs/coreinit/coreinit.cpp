@@ -301,72 +301,98 @@ namespace coreinit
 
 		cafeExportRegister("coreinit", OSPanic, LogType::Placeholder);
 	}
-};
 
-void coreinit_load()
-{
-	coreinit::InitializeCore();
-	coreinit::InitializeSchedulerLock();
-	coreinit::InitializeSysHeap();
+	class : public COSModule
+	{
+		public:
+		std::string_view GetName() override
+		{
+			return "coreinit";
+		}
 
-	// allocate coreinit global data
-	gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
-	memset(gCoreinitData, 0x00, sizeof(CoreinitSharedData));
+		void RPLMapped() override
+		{
+			coreinit::InitializeCore();
+			coreinit::InitializeSchedulerLock();
+			coreinit::InitializeSysHeap();
 
-	// coreinit weak links
-	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));
-	osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeapEx", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeapEx));
-	osLib_addVirtualPointer("coreinit", "MEMFreeToDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMFreeToDefaultHeap));
-	osLib_addVirtualPointer("coreinit", "__atexit_cleanup", memory_getVirtualOffsetFromPointer(&gCoreinitData->__atexit_cleanup));
-	osLib_addVirtualPointer("coreinit", "__stdio_cleanup", memory_getVirtualOffsetFromPointer(&gCoreinitData->__stdio_cleanup));
-	osLib_addVirtualPointer("coreinit", "__cpp_exception_cleanup_ptr", memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_cleanup_ptr));
-	osLib_addVirtualPointer("coreinit", "__cpp_exception_init_ptr", memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_init_ptr));
+			// allocate coreinit global data
+			gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
+			memset(gCoreinitData, 0x00, sizeof(CoreinitSharedData));
 
-	// init GHS and threads
-	coreinit::PrepareGHSRuntime();
-	coreinit::InitializeThread();
+			// coreinit weak links
+			osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeap));
+			osLib_addVirtualPointer("coreinit", "MEMAllocFromDefaultHeapEx", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMAllocFromDefaultHeapEx));
+			osLib_addVirtualPointer("coreinit", "MEMFreeToDefaultHeap", memory_getVirtualOffsetFromPointer(&gCoreinitData->MEMFreeToDefaultHeap));
+			osLib_addVirtualPointer("coreinit", "__atexit_cleanup", memory_getVirtualOffsetFromPointer(&gCoreinitData->__atexit_cleanup));
+			osLib_addVirtualPointer("coreinit", "__stdio_cleanup", memory_getVirtualOffsetFromPointer(&gCoreinitData->__stdio_cleanup));
+			osLib_addVirtualPointer("coreinit", "__cpp_exception_cleanup_ptr", memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_cleanup_ptr));
+			osLib_addVirtualPointer("coreinit", "__cpp_exception_init_ptr", memory_getVirtualOffsetFromPointer(&gCoreinitData->__cpp_exception_init_ptr));
 
-	// reset threads
-	activeThreadCount = 0;
-	// init submodules
-	coreinit::InitializeMEM();
-	coreinit::InitializeMEMFrmHeap();
-	coreinit::InitializeMEMUnitHeap();
-	coreinit::InitializeMEMBlockHeap();
-	coreinit::InitializeFG();
-	coreinit::InitializeBSP();
-	coreinit::InitializeMCP();
-	coreinit::InitializeOverlayArena();
-	coreinit::InitializeDynLoad();
-	coreinit::InitializeGHS();
-	coreinit::InitializeHWInterface();
-	coreinit::InitializeAtomic();
-	coreinit::InitializeMemory();
-	coreinit::InitializeIM();
-	coreinit::InitializeLC();
-	coreinit::InitializeMP();
-	coreinit::InitializeTimeAndCalendar();
-	coreinit::InitializeAlarm();
-	coreinit::InitializeFS();
-	coreinit::InitializeSystemInfo();
-	coreinit::InitializeConcurrency();
-	coreinit::InitializeSpinlock();
-	coreinit::InitializeMessageQueue();
-	coreinit::InitializeIPC();
-	coreinit::InitializeIPCBuf();
-	coreinit::InitializeMemoryMapping();
-	coreinit::InitializeCodeGen();
-	coreinit::InitializeCoroutine();
-	coreinit::InitializeOSScreen();
-	
-	// legacy mem stuff
-	coreinit::expheap_load();
+			// init GHS and threads
+			coreinit::PrepareGHSRuntime();
+			coreinit::InitializeThread();
 
-	// misc exports
-	coreinit::miscInit();
-	osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
-	osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
+			// reset threads
+			activeThreadCount = 0;
+			// init submodules
+			coreinit::InitializeMEM();
+			coreinit::InitializeMEMFrmHeap();
+			coreinit::InitializeMEMUnitHeap();
+			coreinit::InitializeMEMBlockHeap();
+			coreinit::InitializeFG();
+			coreinit::InitializeBSP();
+			coreinit::InitializeMCP();
+			coreinit::InitializeOverlayArena();
+			coreinit::InitializeDynLoad();
+			coreinit::InitializeGHS();
+			coreinit::InitializeHWInterface();
+			coreinit::InitializeAtomic();
+			coreinit::InitializeMemory();
+			coreinit::InitializeIM();
+			coreinit::InitializeLC();
+			coreinit::InitializeMP();
+			coreinit::InitializeTimeAndCalendar();
+			coreinit::InitializeAlarm();
+			coreinit::InitializeFS();
+			coreinit::InitializeSystemInfo();
+			coreinit::InitializeConcurrency();
+			coreinit::InitializeSpinlock();
+			coreinit::InitializeMessageQueue();
+			coreinit::InitializeIPC();
+			coreinit::InitializeIPCBuf();
+			coreinit::InitializeMemoryMapping();
+			coreinit::InitializeCodeGen();
+			coreinit::InitializeCoroutine();
+			coreinit::InitializeOSScreen();
 
-	// async callbacks
-	InitializeAsyncCallback();
+			// legacy mem stuff
+			coreinit::expheap_load();
+
+			// misc exports
+			coreinit::miscInit();
+			osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
+			osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
+
+			// async callbacks
+			InitializeAsyncCallback();
+		};
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				// todo
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				// todo
+			}
+		}
+	}s_COSCoreinitModule;
+
+	COSModule* GetModule()
+	{
+		return &s_COSCoreinitModule;
+	}
 }
