@@ -354,7 +354,7 @@ void InputSettings2::update_state()
 		has_controllers = !emulated_controller->get_controllers().empty();
 
 		const auto emulated_type = emulated_controller->type();
-		int index = page_data.m_emulated_controller->Append(to_wxString(emulated_controller->type_to_string(emulated_type)));
+		int index = page_data.m_emulated_controller->Append(wxString::FromUTF8(emulated_controller->type_to_string(emulated_type)));
 		page_data.m_emulated_controller->SetSelection(index);
 
 		const auto controller_selection = page_data.m_controllers->GetStringSelection();
@@ -764,7 +764,7 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	const auto selected_value = emulated_controllers->GetStringSelection();
 	if(selected != wxNOT_FOUND)
 	{
-		is_gamepad_selected = selected_value == to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
+		is_gamepad_selected = selected_value == wxString::FromUTF8(EmulatedController::type_to_string(EmulatedController::Type::VPAD));
 		is_wpad_selected = !is_gamepad_selected && selected != 0;
 	}
 
@@ -774,13 +774,13 @@ void InputSettings2::on_emulated_controller_dropdown(wxCommandEvent& event)
 	emulated_controllers->AppendString(_("Disabled"));
 
 	if (vpad_count < InputManager::kMaxVPADControllers || is_gamepad_selected)
-		emulated_controllers->Append(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::VPAD)));
+		emulated_controllers->Append(wxString::FromUTF8(EmulatedController::type_to_string(EmulatedController::Type::VPAD)));
 
 	if (wpad_count < InputManager::kMaxWPADControllers || is_wpad_selected)
 	{
-		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Pro)));
-		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Classic)));
-		emulated_controllers->AppendString(to_wxString(EmulatedController::type_to_string(EmulatedController::Type::Wiimote)));
+		emulated_controllers->AppendString(wxString::FromUTF8(EmulatedController::type_to_string(EmulatedController::Type::Pro)));
+		emulated_controllers->AppendString(wxString::FromUTF8(EmulatedController::type_to_string(EmulatedController::Type::Classic)));
+		emulated_controllers->AppendString(wxString::FromUTF8(EmulatedController::type_to_string(EmulatedController::Type::Wiimote)));
 	}
 
 	emulated_controllers->SetStringSelection(selected_value);

@@ -56,7 +56,6 @@ fs::path _utf8ToPath(std::string_view input);
 
 // wxString <-> std::string
 wxString wxString::FromUTF8(const std::string& s)
-wxString to_wxString(std::string_view str); // in gui/helpers.h
 std::string wxString::utf8_string();
 
 ```

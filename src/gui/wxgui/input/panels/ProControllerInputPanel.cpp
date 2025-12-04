@@ -101,7 +101,7 @@ ProControllerInputPanel::ProControllerInputPanel(wxWindow* parent)
 
 void ProControllerInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const ProController::ButtonId &button_id) {
 	sizer->Add(
-		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(ProController::get_button_name(button_id)))),
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(wxString::FromUTF8(ProController::get_button_name(button_id)))),
 		wxGBPosition(row, column),
 		wxDefaultSpan,
 		wxALL | wxALIGN_CENTER_VERTICAL, 5);
