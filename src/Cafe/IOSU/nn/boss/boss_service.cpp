@@ -902,6 +902,8 @@ namespace iosu::boss
 				// handling automatic scheduling and task state transitions is quite complex
 				// for now we only run the task once
 				std::shared_ptr<RegisteredTask> registeredTask = GetRegisteredTask2(persistentId, taskId);
+				if(!registeredTask)
+					return;
 				TaskState state = registeredTask->GetState();
 				if (state == TaskState::Stopped || state == TaskState::Initial)
 				{
