@@ -30,6 +30,7 @@ void Latte_LoadInitialRegisters()
 {
 	LatteGPUState.contextNew.CB_TARGET_MASK.set_MASK(0xFFFFFFFF);
 	LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.set_RESTART_INDEX(0xFFFFFFFF);
+	LatteGPUState.contextNew.VGT_DMA_NUM_INSTANCES.set_NUM_INSTANCES(1);
 	LatteGPUState.contextRegister[Latte::REGADDR::PA_CL_CLIP_CNTL] = 0;
 	*(float*)&LatteGPUState.contextRegister[mmDB_DEPTH_CLEAR] = 1.0f;
 }

@@ -446,8 +446,6 @@ VulkanRenderer::VulkanRenderer()
 	}
 
 	CheckDeviceExtensionSupport(m_physicalDevice, m_featureControl); // todo - merge this with GetDeviceFeatures and separate from IsDeviceSuitable?
-	if (m_featureControl.debugMarkersSupported)
-		cemuLog_log(LogType::Force, "Debug: Frame debugger attached, will use vkDebugMarkerSetObjectNameEXT");
 
 	DetermineVendor();
 	GetDeviceFeatures();
@@ -582,10 +580,14 @@ VulkanRenderer::VulkanRenderer()
 		debugCallback.pfnUserCallback = &DebugUtilsCallback;
 
 		vkCreateDebugUtilsMessengerEXT(m_instance, &debugCallback, nullptr, &m_debugCallback);
+
+		cemuLog_log(LogType::Force, "Debug: Vulkan validation layer enabled, vkCreateDebugUtilsMessengerEXT will be used to log validation errors");
 	}
 
-	if (m_featureControl.instanceExtensions.debug_utils)
-		cemuLog_log(LogType::Force, "Using available debug function: vkCreateDebugUtilsMessengerEXT()");
+	if (this->IsTracingToolEnabled())
+		cemuLog_log(LogType::Force, "Debug: Tracing tool detected, will recompile all shaders with debug info enabled. This disables the SPIR-V cache.");
+	if (this->IsDebugMarkersEnabled())
+		cemuLog_log(LogType::Force, "Debug: Detected tool capable of using debug markers, will use vkDebugMarkerSetObjectNameEXT to identify Vulkan objects");
 
 	// set initial viewport and scissor box size
 	m_state.currentViewport.width = 4;
@@ -612,6 +614,8 @@ VulkanRenderer::VulkanRenderer()
 		m_uniformVarBufferMemoryIsCoherent = true; // unified memory
 	else if (memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
 		m_uniformVarBufferMemoryIsCoherent = true;
+	else if (memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory))
+		m_uniformVarBufferMemoryIsCoherent = true;
 	else
 	{
 		memoryManager->CreateBuffer(UNIFORMVAR_RINGBUFFER_SIZE, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, m_uniformVarBuffer, m_uniformVarBufferMemory);
@@ -624,7 +628,10 @@ VulkanRenderer::VulkanRenderer()
 	m_uniformVarBufferPtr = (uint8*)bufferPtr;
 
 	// texture readback buffer
-	memoryManager->CreateBuffer(TEXTURE_READBACK_SIZE, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_textureReadbackBuffer, m_textureReadbackBufferMemory);
+	if (!memoryManager->CreateBuffer(TEXTURE_READBACK_SIZE, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_textureReadbackBuffer, m_textureReadbackBufferMemory))
+	{
+		memoryManager->CreateBuffer(TEXTURE_READBACK_SIZE, VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_textureReadbackBuffer, m_textureReadbackBufferMemory);
+	}
 	bufferPtr = nullptr;
 	vkMapMemory(m_logicalDevice, m_textureReadbackBufferMemory, 0, VK_WHOLE_SIZE, 0, &bufferPtr);
 	m_textureReadbackBufferPtr = (uint8*)bufferPtr;
@@ -633,7 +640,10 @@ VulkanRenderer::VulkanRenderer()
 	memoryManager->CreateBuffer(LatteStreamout_GetRingBufferSize(), VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | (m_featureControl.mode.useTFEmulationViaSSBO ? VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0), 0, m_xfbRingBuffer, m_xfbRingBufferMemory);
 
 	// occlusion query result buffer
-	memoryManager->CreateBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults);
+	if (!memoryManager->CreateBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults))
+	{
+		memoryManager->CreateBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults);
+	}
 	bufferPtr = nullptr;
 	vkMapMemory(m_logicalDevice, m_occlusionQueries.memoryQueryResults, 0, VK_WHOLE_SIZE, 0, &bufferPtr);
 	m_occlusionQueries.ptrQueryResults = (uint64*)bufferPtr;
@@ -1256,8 +1266,9 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	// dynamic rendering doesn't provide any benefits for us right now. Driver implementations are very unoptimized as of Feb 2022
 	info.deviceExtensions.present_wait = isExtensionAvailable(VK_KHR_PRESENT_WAIT_EXTENSION_NAME) && isExtensionAvailable(VK_KHR_PRESENT_ID_EXTENSION_NAME);
 
-	// check for framedebuggers
-	info.debugMarkersSupported = false;
+	// check for validation layers and frame debuggers
+	info.usingDebugMarkerTool = false;
+	info.usingTracingTool = false;
 	if (info.deviceExtensions.tooling_info && vkGetPhysicalDeviceToolPropertiesEXT)
 	{
 		uint32_t toolCount = 0;
@@ -1268,8 +1279,10 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 			{
 				for (auto& itr : toolProperties)
 				{
-					if ((itr.purposes & VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT) != 0)
-						info.debugMarkersSupported = true;
+					if ((itr.purposes & VK_TOOL_PURPOSE_DEBUG_MARKERS_BIT_EXT) != 0 && info.instanceExtensions.debug_utils && vkSetDebugUtilsObjectNameEXT)
+						info.usingDebugMarkerTool = true;
+					if ((itr.purposes & VK_TOOL_PURPOSE_TRACING_BIT) != 0)
+						info.usingTracingTool = true;
 				}
 			}
 		}
@@ -2590,7 +2603,6 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	uint64 hash = 0;
 	hash += (uint64)vertexRendererShader;
 	hash += (uint64)fragmentRendererShader;
-	hash += (uint64)(chainInfo.m_usesSRGB);
 	hash += ((uint64)padView) << 1;
 
 	const auto it = m_backbufferBlitPipelineCache.find(hash);
@@ -2660,6 +2672,8 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 		.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
 		.offset = 0,
 		.size = 3 * sizeof(float) * 2 // 3 vec2's
+				+ 4 // + 1 VkBool32
+				+ 4 * 2 // + 2 float
 	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
@@ -2771,10 +2785,6 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 	if(chainInfo.m_vsyncState != configValue)
 		stateChanged = true;
 
-	const bool latteBufferUsesSRGB = mainWindow ? LatteGPUState.tvBufferUsesSRGB : LatteGPUState.drcBufferUsesSRGB;
-	if (chainInfo.m_usesSRGB != latteBufferUsesSRGB)
-		stateChanged = true;
-
 	int width, height;
 	if (mainWindow)
 		WindowSystem::GetWindowPhysSize(width, height);
@@ -2799,7 +2809,6 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 
 	chainInfo.m_shouldRecreate = false;
 	chainInfo.m_vsyncState = configValue;
-	chainInfo.m_usesSRGB = latteBufferUsesSRGB;
 	return true;
 }
 
@@ -3046,24 +3055,35 @@ void VulkanRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 
 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, m_pipelineLayout, 0, 1, &descriptSet, 0, nullptr);
 
+
 	// update push constants
-	Vector2f pushData[3];
+	struct
+	{
+		Vector2f vecs[3];
+		VkBool32 applySRGBEncoding;
+		float targetGamma;
+		float displayGamma;
+	} pushData;
 
 	// textureSrcResolution
 	sint32 effectiveWidth, effectiveHeight;
 	texView->baseTexture->GetEffectiveSize(effectiveWidth, effectiveHeight, 0);
-	pushData[0] = {(float)effectiveWidth, (float)effectiveHeight};
+	pushData.vecs[0] = {(float)effectiveWidth, (float)effectiveHeight};
 
 	// nativeResolution
-	pushData[1] = {
+	pushData.vecs[1] = {
 		(float)texViewVk->baseTexture->width,
 		(float)texViewVk->baseTexture->height,
 	};
 
 	// outputResolution
-	pushData[2] = {(float)imageWidth,(float)imageHeight};
+	pushData.vecs[2] = {(float)imageWidth,(float)imageHeight};
 
-	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(float) * 2 * 3, &pushData);
+	pushData.applySRGBEncoding = padView ? LatteGPUState.drcBufferUsesSRGB : LatteGPUState.tvBufferUsesSRGB;
+	pushData.targetGamma = padView ? ActiveSettings::GetDRCGamma() : ActiveSettings::GetTVGamma();
+	pushData.displayGamma = GetConfig().userDisplayGamma;
+
+	vkCmdPushConstants(m_state.currentCommandBuffer, m_pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pushData), &pushData);
 
 	vkCmdDraw(m_state.currentCommandBuffer, 6, 1, 0, 0);
 

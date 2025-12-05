@@ -23,7 +23,7 @@ public:
 
 	std::vector<std::shared_ptr<ControllerBase>> get_controllers() override;
 
-	IDirectInput8* get_dinput() const { return m_dinput8.Get(); }
+	IDirectInput8W* get_dinput() const { return m_dinput8.Get(); }
 	LPCDIDATAFORMAT get_data_format() const;
 
 private:
@@ -32,7 +32,7 @@ private:
 	decltype(&DirectInput8Create) m_DirectInput8Create;
 	decltype(&GetdfDIJoystick) m_GetdfDIJoystick = nullptr;
 
-	Microsoft::WRL::ComPtr<IDirectInput8> m_dinput8;
+	Microsoft::WRL::ComPtr<IDirectInput8W> m_dinput8;
 };
 
 #endif

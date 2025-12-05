@@ -25,10 +25,9 @@ namespace wxHelper
 
 	inline wxColour CalculateAccentColour(const wxColour& bgColour)
 	{
-		wxColour bgColourSecondary;
 		const uint32 bgLightness = (bgColour.GetRed() + bgColour.GetGreen() + bgColour.GetBlue()) / 3;
 		const bool isDarkTheme = bgLightness < 128;
-		bgColourSecondary = bgColour.ChangeLightness(isDarkTheme ? 110 : 90); // color for even rows
+		wxColour bgColourSecondary = bgColour.ChangeLightness(isDarkTheme ? 110 : 90); // color for even rows
 		// for very light themes we'll use a blue tint to match the older Windows Cemu look
 		if (bgLightness > 250)
 			bgColourSecondary = wxColour(bgColour.Red() - 13, bgColour.Green() - 6, bgColour.Blue() - 2);

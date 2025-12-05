@@ -3,15 +3,15 @@
 #include "config/CemuConfig.h"
 #include "Cafe/TitleList/TitleId.h"
 
-#include <future>
 #include <mutex>
-#include <optional>
 
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
 #include <wx/settings.h>
 #include <Cafe/TitleList/GameInfo.h>
+
+#include "wxHelper.h"
 #include "util/helpers/Semaphore.h"
 
 class wxTitleIdEvent : public wxCommandEvent
@@ -51,7 +51,7 @@ public:
 	void SaveConfig(bool flush = false);
 	bool IsVisible(long item) const; // only available in wxwidgets 3.1.3
 
-	void ReloadGameEntries(bool cached = false);
+	void ReloadGameEntries();
 	void DeleteCachedStrings();
 
     void CreateShortcut(GameInfo2& gameInfo);
@@ -66,7 +66,8 @@ private:
 
 	const wxColour kUpdateColor{ wxSystemSettings::SelectLightDark(wxColour(195, 57, 57), wxColour(84, 29, 29)) };
 	const wxColour kFavoriteColor{ wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48)) };
-	const wxColour kSecondColor{ wxSystemSettings::SelectLightDark(wxColour(242, 249, 253), wxColour(34, 34, 34)) };
+	const wxColour kPrimaryColor = GetBackgroundColour();
+	const wxColour kAlternateColor = wxHelper::CalculateAccentColour(kPrimaryColor);
 	void UpdateItemColors(sint32 startIndex = 0);
 
 	enum ItemColumns : int
@@ -89,7 +90,7 @@ private:
 	{
 		wxGameList* thisptr;
 		ItemColumns column;
-		bool asc;
+		int dir;
 	};
 
 	int FindInsertPosition(TitleId titleId);
@@ -109,12 +110,12 @@ private:
 	std::vector<TitleId> m_icon_load_queue;
 
 	uint64 m_callbackIdTitleList;
-	
+
 	std::string GetNameByTitleId(uint64 titleId);
 
 	void HandleTitleListCallback(struct CafeTitleListCallbackEvent* evt);
 
-	void RemoveCache(const std::list<fs::path>& cachePath, const std::string& titleName);
+	void RemoveCache(const std::vector<fs::path>& cachePath, const std::string& titleName);
 
 	void AsyncWorkerThread();
 	void RequestLoadIconAsync(TitleId titleId);
@@ -122,7 +123,8 @@ private:
 
 	inline static constexpr int kListIconWidth = 64;
 	inline static constexpr int kIconWidth = 128;
-	wxWithImages::Images m_image_list_data, m_image_list_small_data;
+	wxImageList m_image_list_data = wxImageList(kIconWidth, kIconWidth, false, 1);
+	wxImageList m_image_list_small_data = wxImageList(kListIconWidth, kListIconWidth, false, 1);
 
 	std::mutex m_icon_cache_mtx;
 	std::set<TitleId> m_icon_loaded;

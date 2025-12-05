@@ -603,7 +603,7 @@ namespace iosu
 		public:
 			ActService() : iosu::nn::IPCService("/dev/act") {}
 
-			nnResult ServiceCall(uint32 serviceId, void* request, void* response) override
+			nnResult ServiceCall(IPCServiceCall& serviceCall) override
 			{
 				cemuLog_log(LogType::Force, "Unsupported service call to /dev/act");
 				cemu_assert_unimplemented();

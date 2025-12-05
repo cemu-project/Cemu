@@ -481,7 +481,8 @@ private:
 			uint32 nonCoherentAtomSize = 256;
 		}limits;
 
-		bool debugMarkersSupported{ false }; // frame debugger is attached
+		bool usingDebugMarkerTool{ false }; // validation layer or other tool capable of handling debug markers is used
+		bool usingTracingTool{ false }; // frame debugger or other API replaying tool is used
 		bool disableMultithreadedCompilation{ false }; // for old nvidia drivers
 
 	}m_featureControl{};
@@ -937,7 +938,8 @@ private:
 public:
 	bool GetDisableMultithreadedCompilation() const { return m_featureControl.disableMultithreadedCompilation; }
 	bool HasSPRIVRoundingModeRTE32() const { return m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32; }
-	bool IsDebugUtilsEnabled() const { return m_featureControl.debugMarkersSupported && m_featureControl.instanceExtensions.debug_utils; }
+	bool IsDebugMarkersEnabled() const { return m_featureControl.usingDebugMarkerTool; }
+	bool IsTracingToolEnabled() const { return m_featureControl.usingTracingTool; }
 
 private:
 

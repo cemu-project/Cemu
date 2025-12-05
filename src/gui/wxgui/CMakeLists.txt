@@ -1,4 +1,4 @@
-add_library(CemuWxGui
+add_library(CemuWxGui STATIC
   canvas/IRenderCanvas.h
   canvas/OpenGLCanvas.cpp
   canvas/OpenGLCanvas.h
@@ -76,8 +76,6 @@ add_library(CemuWxGui
   input/InputAPIAddWindow.h
   input/InputSettings2.cpp
   input/InputSettings2.h
-  input/PairingDialog.cpp
-  input/PairingDialog.h
   input/panels/ClassicControllerInputPanel.cpp
   input/panels/ClassicControllerInputPanel.h
   input/panels/InputPanel.cpp
@@ -118,11 +116,18 @@ add_library(CemuWxGui
   wxHelper.h
 )
 
-if(ENABLE_METAL)
-    target_sources(CemuWxGui PRIVATE
-        canvas/MetalCanvas.cpp
-        canvas/MetalCanvas.h
-    )
+if (ENABLE_METAL)
+  target_sources(CemuWxGui PRIVATE
+    canvas/MetalCanvas.cpp
+    canvas/MetalCanvas.h
+  )
+endif()
+
+if (ENABLE_BLUEZ)
+  target_sources(CemuWxGui PRIVATE
+    input/PairingDialog.cpp
+    input/PairingDialog.h
+  )
 endif()
 
 set_property(TARGET CemuWxGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -133,20 +138,16 @@ target_include_directories(CemuWxGui PUBLIC "../")
 target_include_directories(CemuWxGui PUBLIC ${RAPIDJSON_INCLUDE_DIRS})
 
 target_link_libraries(CemuWxGui PRIVATE
-	CemuAudio
-	CemuCafe
-	CemuCommon
-	CemuComponents
-	CemuConfig
-	CemuInput
-	CemuResource
-	CemuUtil
-	Boost::headers
-	CURL::libcurl
-	libzip::zip
-	OpenSSL::Crypto
-	pugixml::pugixml
-	ZArchive::zarchive
+  CemuCommon
+  CemuResource
+  libzip::zip
+  ZArchive::zarchive
+  CemuComponents
+  SDL2::SDL2
+  pugixml::pugixml
+  CemuCafe
+  PUBLIC
+  CURL::libcurl
 )
 
 if(ENABLE_WXWIDGETS AND UNIX AND NOT APPLE)
@@ -168,7 +169,7 @@ if(UNIX AND NOT APPLE)
 endif()
 if (ENABLE_WXWIDGETS)
 	# PUBLIC because wx/app.h is included in CemuApp.h
-	target_link_libraries(CemuWxGui PUBLIC wx::base wx::core wx::gl wx::propgrid wx::xrc)
+	target_link_libraries(CemuWxGui PUBLIC wxWidgets::wxWidgets)
 endif()
 
 if(WIN32)

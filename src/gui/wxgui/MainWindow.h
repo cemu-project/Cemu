@@ -94,6 +94,7 @@ public:
 	void OnClose(wxCloseEvent& event);
 	void OnFileMenu(wxCommandEvent& event);
 	void OnOpenFolder(wxCommandEvent& event);
+	void OnClearSpotPassCache(wxCommandEvent& event);
 	void OnLaunchFromFile(wxLaunchGameEvent& event);
 	void OnInstallUpdate(wxCommandEvent& event);
 	void OnFileExit(wxCommandEvent& event);

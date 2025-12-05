@@ -28,6 +28,7 @@ public:
 		IDBE, // idbe-wup.
 		TAGAYA, // tagaya.wup.shop.nintendo.net
 		OLIVE, // olv.
+		CUSTOM, // use cert parameters
 	};
 
 	CurlRequestHelper();
@@ -56,6 +57,41 @@ public:
 		m_isUsingMultipartFormData = isUsingMultipartFormData;
 	}
 
+	void ClearCaCertIds()
+	{
+		m_caCertIds.clear();
+	}
+
+	void ClearClientCertIds()
+	{
+		m_clientCertIds.clear();
+	}
+
+	void AddCaCertId(sint32 caCertId)
+	{
+		m_caCertIds.emplace_back(caCertId);
+	}
+
+	void AddClientCertId(sint32 clientCertId)
+	{
+		m_clientCertIds.emplace_back(clientCertId);
+	}
+
+	std::vector<sint32> GetCaCertIds() const
+	{
+		return m_caCertIds;
+	}
+
+	std::vector<sint32> GetClientCertIds() const
+	{
+		return m_clientCertIds;
+	}
+
+	sint32 GetHTTPStatusCode() const
+	{
+		return m_httpStatusCode;
+	}
+
 private:
 	static size_t __curlWriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata);
 
@@ -69,6 +105,11 @@ private:
 	void* m_writeCallbackUserData{};
 
 	bool m_isUsingMultipartFormData = false;
+	// cert data
+	std::vector<sint32> m_caCertIds;
+	std::vector<sint32> m_clientCertIds;
+	// result
+	sint32 m_httpStatusCode{ 0 };
 };
 
 class CurlSOAPHelper // todo - make this use CurlRequestHelper

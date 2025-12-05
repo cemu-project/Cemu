@@ -120,16 +120,6 @@ uint8* LatteTextureLoader_getInputLinearOptimized(LatteTextureLoaderCtx* texture
 
 #define LatteTextureLoader_getInputLinearOptimized_(__textureLoader,__x,__y,__stepX,__stepY,__bpp,__sliceIndex,__numSlices,__sample,__pitch,__height) (textureLoader->inputData+((__x/__stepX) + __pitch * (__y/__stepY) + (__sliceIndex + __numSlices * __sample) * __height * __pitch)*(__bpp/8))
 
-float SRGB_to_RGB(float cs)
-{
-	float cl;
-	if (cs <= 0.04045f)
-		cl = cs / 12.92f;
-	else
-		cl = powf(((cs + 0.055f) / 1.055f), 2.4f);
-	return cl;
-}
-
 void decodeBC1Block(uint8* inputData, float* output4x4RGBA)
 {
 	// read colors

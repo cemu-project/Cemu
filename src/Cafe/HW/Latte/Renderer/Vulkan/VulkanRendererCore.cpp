@@ -245,7 +245,7 @@ void compilePipelineThread_queue(PipelineCompiler* v)
 bool VulkanRenderer::IsAsyncPipelineAllowed(uint32 numIndices)
 {
 	// frame debuggers dont handle async well (as of 2020)
-	if (IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT)
+	if (IsTracingToolEnabled())
 		return false;
 
 	CachedFBOVk* currentFBO = m_state.activeFBO;

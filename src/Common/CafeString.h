@@ -7,12 +7,23 @@ template <size_t N>
 class CafeString // fixed buffer size, null-terminated, PPC char
 {
   public:
+	constexpr static size_t Size()
+	{
+		return N;
+	}
+
+	// checks whether the string and a null terminator can fit into the buffer
+	bool CanHoldString(std::string_view sv) const
+	{
+		return sv.size() < N;
+	}
+
 	bool assign(std::string_view sv)
 	{
-		if (sv.size()+1 >= N)
+		if (sv.size() >= N)
 		{
-			memcpy(data, sv.data(), sv.size()-1);
-			data[sv.size()-1] = '\0';
+			memcpy(data, sv.data(), N-1);
+			data[N-1] = '\0';
 			return false;
 		}
 		memcpy(data, sv.data(), sv.size());
@@ -20,9 +31,48 @@ class CafeString // fixed buffer size, null-terminated, PPC char
 		return true;
 	}
 
-	const char* c_str()
+	void Copy(CafeString<N>& other)
+	{
+		memcpy(data, other.data, N);
+	}
+
+	bool empty() const
+	{
+		return data[0] == '\0';
+	}
+
+	const char* c_str() const
 	{
 		return (const char*)data;
+	}
+
+	void ClearAllBytes()
+	{
+		memset(data, 0, N);
+	}
+
+	auto operator<=>(const CafeString<N>& other) const
+	{
+		for (size_t i = 0; i < N; i++)
+		{
+			if (data[i] != other.data[i])
+				return data[i] <=> other.data[i];
+			if (data[i] == '\0')
+				return std::strong_ordering::equal;
+		}
+		return std::strong_ordering::equal;
+	}
+
+	bool operator==(const CafeString<N>& other) const
+	{
+		for (size_t i = 0; i < N; i++)
+		{
+			if (data[i] != other.data[i])
+				return false;
+			if (data[i] == '\0')
+				return true;
+		}
+		return true;
 	}
 
 	uint8be data[N];

@@ -27,11 +27,6 @@ struct LatteGPUState_t
 	uint32 contextControl1;
 	// optional features
 	bool allowFramebufferSizeOptimization{false}; // allow using scissor box as size hint to determine non-padded rendertarget size
-	// draw context
-	struct  
-	{
-		uint32 numInstances;
-	}drawContext;
 	// stats
 	uint32 frameCounter;
 	uint32 flipCounter; // increased by one everytime a vsync + flip happens
@@ -54,6 +49,8 @@ struct LatteGPUState_t
 	// temporary (replace with proper solution later)
 	bool tvBufferUsesSRGB;
 	bool drcBufferUsesSRGB;
+	float tvGamma = 0.0f;
+	float drcGamma = 0.0f;
 	// draw state
 	bool activeShaderHasError; // if try, at least one currently bound shader stage has an error and cannot be used for drawing
 	bool repeatTextureInitialization; // if set during rendertarget or texture initialization, repeat the process (textures likely have been invalidated)

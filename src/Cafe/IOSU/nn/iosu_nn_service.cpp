@@ -188,18 +188,43 @@ namespace iosu
 				else if (cmd->cmdId == IPCCommandId::IOS_IOCTLV)
 				{
 					uint32 requestId = cmd->args[0];
-					uint32 numIn = cmd->args[1];
-					uint32 numOut = cmd->args[2];
+					uint32 numOut = cmd->args[1];
+					uint32 numIn = cmd->args[2];
 					IPCIoctlVector* vec = MEMPTR<IPCIoctlVector>{ cmd->args[3] }.GetPtr();
-					IPCIoctlVector* vecIn = vec + numIn;
-					IPCIoctlVector* vecOut = vec + 0;
+					IPCIoctlVector* vecOut = vec + 0; // out buffers come first
+					IPCIoctlVector* vecIn = vec + numOut;
 
+					cemu_assert(numIn > 0 && numOut > 0);
 					cemu_assert(vecIn->size >= 80 && !vecIn->basePhys.IsNull());
 
-					IPCServiceRequest* serviceRequest = MEMPTR<IPCServiceRequest>(vecIn->basePhys).GetPtr();
-					IPCServiceResponse* serviceResponse = MEMPTR<IPCServiceResponse>(vecOut->basePhys).GetPtr();
+					IPCServiceRequestHeader* serviceRequest = MEMPTR<IPCServiceRequestHeader>(vecIn->basePhys).GetPtr();
+					IPCServiceResponseHeader* serviceResponse = MEMPTR<IPCServiceResponseHeader>(vecOut->basePhys).GetPtr();
 
-					serviceResponse->nnResultCode = (uint32)ServiceCall(serviceRequest->serviceId, nullptr, nullptr);
+					IOSDevHandle clientHandle = 0; // todo
+					IPCServiceCall serviceCall(clientHandle, serviceRequest->serviceId, serviceRequest->commandId);
+
+#if 0
+					// log all buffers
+					cemuLog_log(LogType::Force, "IPC ServiceCall. In: {}, Out: {}, ServiceId: {}, CommandId: {} (0x{:x})", numIn, numOut, serviceRequest->serviceId, serviceRequest->commandId, serviceRequest->commandId);
+					for (size_t i = 0; i <numOut+numIn; i++)
+					{
+						cemuLog_log(LogType::Force, "");
+						cemuLog_log(LogType::Force, "Buffer {} - BasePhys: {}, Size: {}", i, vec[i].basePhys, vec[i].size);
+						cemuLog_logHexDump(LogType::Force, MEMPTR<uint8>(vec[i].basePhys).GetPtr(), vec[i].size, 16);
+					}
+#endif
+
+					// parameter and response data is appended directly after the headers, so we add the streams without the headers
+					serviceCall.AddInputStream(MEMPTR<uint8>(vecIn[0].basePhys).GetPtr() + sizeof(IPCServiceRequestHeader), vecIn[0].size - sizeof(IPCServiceRequestHeader));
+					serviceCall.AddOutputStream(MEMPTR<uint8>(vecOut[0].basePhys).GetPtr() + sizeof(IPCServiceResponseHeader), vecOut[0].size - sizeof(IPCServiceResponseHeader));
+					// add remaining input/output buffers
+					for (size_t i = 1; i < numIn; i++)
+						serviceCall.AddInputStream(MEMPTR<uint8>(vecIn[i].basePhys).GetPtr(), vecIn[i].size);
+					for (size_t i = 1; i < numOut; i++)
+						serviceCall.AddOutputStream(MEMPTR<uint8>(vecOut[i].basePhys).GetPtr(), vecOut[i].size);
+
+					serviceResponse->nnResultCode = (uint32)ServiceCall(serviceCall);
+
 					IOS_ResourceReply(cmd, IOS_ERROR_OK);
 					continue;
 				}

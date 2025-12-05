@@ -124,7 +124,7 @@ AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 
 	sizer->Add(voiceListbox, 1, wxEXPAND | wxBOTTOM, 0);
 
-	voiceListbox->Connect(wxEVT_RIGHT_DOWN, wxMouseEventHandler(AudioDebuggerWindow::OnVoiceListRightClick), NULL, this);
+	voiceListbox->Bind(wxEVT_RIGHT_DOWN, &AudioDebuggerWindow::OnVoiceListRightClick, this);
 
 	mainPane->SetSizer(sizer);
 

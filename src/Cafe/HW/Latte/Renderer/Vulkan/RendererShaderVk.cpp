@@ -232,6 +232,16 @@ sint32 RendererShaderVk::GetUniformLocation(const char* name)
 	return 0;
 }
 
+void RendererShaderVk::SetUniform1i(sint32 location, sint32 value)
+{
+	cemu_assert_suspicious();
+}
+
+void RendererShaderVk::SetUniform1f(sint32 location, float value)
+{
+	cemu_assert_suspicious();
+}
+
 void RendererShaderVk::SetUniform2fv(sint32 location, void* data, sint32 count)
 {
 	cemu_assert_suspicious();
@@ -261,7 +271,7 @@ void RendererShaderVk::CreateVkShaderModule(std::span<uint32> spirvBuffer)
 	}
 
 	// set debug name
-	if (vkr->IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT)
+	if (vkr->IsDebugMarkersEnabled())
 	{
 		VkDebugUtilsObjectNameInfoEXT objName{};
 		objName.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT;
@@ -282,8 +292,10 @@ void RendererShaderVk::FinishCompilation()
 
 void RendererShaderVk::CompileInternal(bool isRenderThread)
 {
+	const bool compileWithDebugInfo = ((VulkanRenderer*)g_renderer.get())->IsTracingToolEnabled();
+
 	// try to retrieve SPIR-V module from cache
-	if (s_isLoadingShadersVk && (m_isGameShader && !m_isGfxPackShader) && s_spirvCache)
+	if (s_isLoadingShadersVk && (m_isGameShader && !m_isGfxPackShader) && s_spirvCache && !compileWithDebugInfo)
 	{
 		cemu_assert_debug(m_baseHash != 0);
 		uint64 h1, h2;
@@ -319,21 +331,12 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 	Shader.setStrings(&cstr, 1);
 	Shader.setEnvInput(glslang::EShSourceGlsl, state, glslang::EShClientVulkan, 100);
 	Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetClientVersion::EShTargetVulkan_1_1);
-
 	Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetLanguageVersion::EShTargetSpv_1_3);
 
-	TBuiltInResource Resources = GetDefaultBuiltInResource();
 	std::string PreprocessedGLSL;
-
-	VulkanRenderer* vkr = (VulkanRenderer*)g_renderer.get();
-
-	EShMessages messagesPreprocess;
-	if (vkr->IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT)
-		messagesPreprocess = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgDebugInfo);
-	else
-		messagesPreprocess = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
-
 	glslang::TShader::ForbidIncluder Includer;
+	TBuiltInResource Resources = GetDefaultBuiltInResource();
+	EShMessages messagesPreprocess = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
 	if (!Shader.preprocess(&Resources, 450, ENoProfile, false, false, messagesPreprocess, &PreprocessedGLSL, Includer))
 	{
 		cemuLog_log(LogType::Force, fmt::format("GLSL Preprocessing Failed For {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Shader.getInfoLog()));
@@ -341,14 +344,9 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 		return;
 	}
 
-	EShMessages messagesParseLink;
-	if (vkr->IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT)
-		messagesParseLink = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules | EShMsgDebugInfo);
-	else
-		messagesParseLink = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
-
 	const char* PreprocessedCStr = PreprocessedGLSL.c_str();
 	Shader.setStrings(&PreprocessedCStr, 1);
+	EShMessages messagesParseLink = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
 	if (!Shader.parse(&Resources, 100, false, messagesParseLink))
 	{
 		cemuLog_log(LogType::Force, fmt::format("GLSL parsing failed for {:016x}_{:016x}: \"{}\"", m_baseHash, m_auxHash, Shader.getInfoLog()));
@@ -382,9 +380,17 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 
 	glslang::SpvOptions spvOptions;
 	spvOptions.disableOptimizer = false;
-	spvOptions.generateDebugInfo = (vkr->IsDebugUtilsEnabled() && vkSetDebugUtilsObjectNameEXT);
 	spvOptions.validate = false;
 	spvOptions.optimizeSize = true;
+	if (compileWithDebugInfo)
+	{
+		spvOptions.generateDebugInfo = true;
+		spvOptions.emitNonSemanticShaderDebugInfo = true;
+		spvOptions.emitNonSemanticShaderDebugSource = true;
+
+		Shader.addSourceText(m_glslCode.c_str(), (uint32)m_glslCode.size());
+		Shader.setSourceFile(fmt::format("shader_{:016x}_{:016x}.glsl", m_baseHash, m_auxHash).c_str());
+	}
 
 	//auto beginTime = benchmarkTimer_start();
 
@@ -392,8 +398,9 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 
 	//double timeDur = benchmarkTimer_stop(beginTime);
 	//forceLogRemoveMe_printf("Shader GLSL-to-SPIRV compilation took %lfms Size %08x", timeDur, spirvBuffer.size()*4);
-	
-	if (s_spirvCache && m_isGameShader && m_isGfxPackShader == false)
+
+	// store in cache, unless it got compiled with debug info or is a modified shader from a gfx pack
+	if (s_spirvCache && m_isGameShader && m_isGfxPackShader == false && !compileWithDebugInfo)
 	{
 		uint64 h1, h2;
 		GenerateShaderPrecompiledCacheFilename(m_type, m_baseHash, m_auxHash, h1, h2);

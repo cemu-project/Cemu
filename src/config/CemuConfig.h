@@ -440,6 +440,11 @@ struct CemuConfig
 	ConfigValue<bool> async_compile{ true };
 	ConfigValue<bool> force_mesh_shaders{ false };
 
+	// Gamma
+	ConfigValue<bool> overrideAppGammaPreference{ false };
+	ConfigValue<float> overrideGammaValue{ 2.2f };
+	ConfigValue<float> userDisplayGamma { 2.2f }; // 0 = sRGB, >0 gamma
+
 	ConfigValue<bool> vk_accurate_barriers{ true };
 
 	struct

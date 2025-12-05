@@ -34,13 +34,7 @@
       "default-features": false
     },
     "zstd",
-    {
-      "name": "wxwidgets",
-      "features": [
-        "debug-support"
-      ],
-      "default-features": false
-    },
+    "wxwidgets",
     "openssl",
     {
       "name": "curl",
