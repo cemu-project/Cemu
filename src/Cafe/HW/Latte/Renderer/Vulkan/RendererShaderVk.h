@@ -54,12 +54,12 @@ public:
 		s_dependencyLock.unlock();
 	}
 
-	void PreponeCompilation(bool isRenderThread) override;
+	void PreponeCompilation() override;
 	bool IsCompiled() override;
 	bool WaitForCompiled() override;
 
 private:
-	void CompileInternal(bool isRenderThread);
+  void CompileInternal();
 
 	void FinishCompilation();
 
