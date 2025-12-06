@@ -1,7 +1,7 @@
 
 # Coding style guidelines for Cemu
 
-This document describes the latest version of our coding-style guidelines. Since we did not use this style from the beginning, older code may not adhere to these guidelines. Nevertheless, use these rules even if the surrounding code does not match. 
+This document describes the latest version of our coding-style guidelines. Since we did not use this style from the beginning, older code may not adhere to these guidelines. Nevertheless, use these rules even if the surrounding code does not match.
 
 Cemu comes with a `.clang-format` file which is supported by most IDEs for formatting. Avoid auto-reformatting whole files, PRs with a lot of formatting changes are difficult to review.
 
@@ -22,7 +22,7 @@ Cemu provides its own set of basic fixed-width types. They are:
 
 Always put curly-brackets (`{ }`) on their own line. Example:
 
-```
+```cpp
 void FooBar()
 {
    if (m_hasFoo)
@@ -31,12 +31,16 @@ void FooBar()
    }
 }
 ```
+
 As an exception, you can put short lambdas onto the same line:
-```
+
+```cpp
 SomeFunc([]() { .... });
 ```
+
 You can skip brackets for single-statement `if`. Example:
-```
+
+```cpp
 if (cond)
     action();
 ```
@@ -49,6 +53,7 @@ In UI related code you can use `formatWxString`, but be aware that number format
 ## Strings and encoding
 
 We use UTF-8 encoded `std::string` where possible. Some conversions need special handling and we have helper functions for those:
+
 ```cpp
 // std::filesystem::path <-> std::string (in precompiled.h)
 std::string _pathToUtf8(const fs::path& path);
@@ -70,7 +75,7 @@ If you want to write to log.txt use `cemuLog_log()`. The log type parameter shou
 
 A pretty large part of Cemu's code base are re-implementations of various Cafe OS modules (e.g. `coreinit.rpl`, `gx2.rpl`...). These generally run in the context of the emulated process, thus special care has to be taken to use types with the correct size and endianness when interacting with memory.
 
-Keep in mind that the emulated Espresso CPU is 32bit big-endian, while the host architectures targeted by Cemu are 64bit little-endian! 
+Keep in mind that the emulated Espresso CPU is 32bit big-endian, while the host architectures targeted by Cemu are 64bit little-endian!
 
 To keep code simple and remove the need for manual endian-swapping, Cemu has templates and aliases of the basic types with explicit endian-ness.
 For big-endian types add the suffix `be`. Example: `uint32be`
@@ -82,18 +87,20 @@ When you need to store a pointer in the guest's memory. Use `MEMPTR<T>`. It will
 The implementation for each HLE module is inside a namespace with a matching name. E.g. `coreinit.rpl` functions go into `coreinit` namespace.
 
 To expose a new function as callable from within the emulated machine, use `cafeExportRegister` or `cafeExportRegisterFunc`. Here is a short example:
+
 ```cpp
 namespace coreinit
 {
-	uint32 OSGetCoreCount()
-	{
-		return Espresso::CORE_COUNT;
-	}
-	
-	void Init()
-	{
-		cafeExportRegister("coreinit", OSGetCoreCount, LogType::CoreinitThread);
-	}
+ uint32 OSGetCoreCount()
+ {
+  return Espresso::CORE_COUNT;
+ }
+ 
+ void Init()
+ {
+  cafeExportRegister("coreinit", OSGetCoreCount, LogType::CoreinitThread);
+ }
 }
 ```
+
 You may also see some code which uses `osLib_addFunction` directly. This is a deprecated way of registering functions.
