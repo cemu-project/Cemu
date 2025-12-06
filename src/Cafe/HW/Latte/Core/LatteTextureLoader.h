@@ -594,7 +594,7 @@ public:
 	}
 };
 
-class TextureDecoder_R4_G4_UNORM_To_RGBA4_vk : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_RGBA4_vk>
+class TextureDecoder_R4_G4_UNORM_To_ABGR4 : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_UNORM_To_ABGR4>
 {
 public:
 	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
@@ -679,6 +679,51 @@ public:
 	}
 };
 
+class TextureDecoder_R4G4_UNORM_To_RG8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4_UNORM_To_RG8>
+{
+public:
+	sint32 getBytesPerTexel(LatteTextureLoaderCtx* textureLoader) override
+	{
+		return 2;
+	}
+
+	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
+	{
+		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
+		{
+			sint32 yc = y;
+			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
+			{
+				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
+				sint32 pixelOffset = (x + yc * textureLoader->width) * 2;
+				uint8 v0 = (*(uint8*)(blockData + 0));
+
+				uint8 red4 = (v0 >> 4) & 0xF;
+				uint8 green4 = (v0 & 0xF);
+
+				red4 = (red4 << 4) | red4;
+				green4 = (green4 << 4) | green4;
+
+				*(uint8*)(outputData + pixelOffset + 0) = red4;
+				*(uint8*)(outputData + pixelOffset + 1) = green4;
+			}
+		}
+	}
+
+	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
+	{
+		uint8 v0 = *(blockData + 0);
+		uint8 red4 = (v0 >> 4) & 0xF;
+		uint8 green4 = (v0 & 0xF);
+		red4 = (red4 << 4) | red4;
+		green4 = (green4 << 4) | green4;
+		*(outputPixel + 0) = red4;
+		*(outputPixel + 1) = green4;
+		*(outputPixel + 2) = 0;
+		*(outputPixel + 3) = 255;
+	}
+};
+
 class TextureDecoder_R4_G4_B4_A4_UNORM : public TextureDecoder, public SingletonClass<TextureDecoder_R4_G4_B4_A4_UNORM>
 {
 public:
@@ -722,7 +767,6 @@ public:
 		*(outputPixel + 3) = c3;
 	}
 };
-
 
 class TextureDecoder_R4G4B4A4_UNORM_To_RGBA8 : public TextureDecoder, public SingletonClass<TextureDecoder_R4G4B4A4_UNORM_To_RGBA8>
 {

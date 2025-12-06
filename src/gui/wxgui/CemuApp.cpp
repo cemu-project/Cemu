@@ -595,5 +595,3 @@ void CemuApp::ActivateApp(wxActivateEvent& event)
 	g_window_info.app_active = event.GetActive();
 	event.Skip();
 }
-
-

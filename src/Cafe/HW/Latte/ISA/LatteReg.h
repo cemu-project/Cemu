@@ -52,20 +52,20 @@ namespace Latte
 	{
 		// same as E_TILEMODE but contains additional options with special meaning
 		TM_LINEAR_GENERAL = 0,
-		TM_LINEAR_ALIGNED = 1, 
+		TM_LINEAR_ALIGNED = 1,
 
 		// micro-tiled
-		TM_1D_TILED_THIN1 = 2, 
-		TM_1D_TILED_THICK = 3, 
+		TM_1D_TILED_THIN1 = 2,
+		TM_1D_TILED_THICK = 3,
 
 		// macro-tiled
-		TM_2D_TILED_THIN1 = 4, 
-		TM_2D_TILED_THIN2 = 5, 
-		TM_2D_TILED_THIN4 = 6, 
-		TM_2D_TILED_THICK = 7, 
+		TM_2D_TILED_THIN1 = 4,
+		TM_2D_TILED_THIN2 = 5,
+		TM_2D_TILED_THIN4 = 6,
+		TM_2D_TILED_THICK = 7,
 
-		TM_2B_TILED_THIN1 = 8, 
-		TM_2B_TILED_THIN2 = 9, 
+		TM_2B_TILED_THIN1 = 8,
+		TM_2B_TILED_THIN2 = 9,
 		TM_2B_TILED_THIN4 = 10,
 		TM_2B_TILED_THICK = 11,
 
@@ -179,7 +179,7 @@ namespace Latte
 		HWFMT_4_4_4_4 = 0xB,
 		HWFMT_5_5_5_1 = 0xC,
 		HWFMT_32 = 0xD,
-		HWFMT_32_FLOAT = 0xE,		
+		HWFMT_32_FLOAT = 0xE,
 		HWFMT_16_16 = 0xF,
 		HWFMT_16_16_FLOAT = 0x10,
 		HWFMT_8_24 = 0x11,
@@ -284,7 +284,7 @@ namespace Latte
 		R32_G32_B32_A32_UINT = (HWFMT_32_32_32_32 | FMT_BIT_INT),
 		R32_G32_B32_A32_SINT = (HWFMT_32_32_32_32 | FMT_BIT_INT | FMT_BIT_SIGNED),
 		R32_G32_B32_A32_FLOAT = (HWFMT_32_32_32_32_FLOAT | FMT_BIT_FLOAT),
-	
+
 		// depth
 		D24_S8_UNORM = (HWFMT_8_24),
 		D24_S8_FLOAT = (HWFMT_8_24 | FMT_BIT_FLOAT),
@@ -353,7 +353,7 @@ namespace Latte
 	enum GPU_LIMITS
 	{
 		NUM_VERTEX_BUFFERS = 16,
-		NUM_TEXTURES_PER_STAGE = 18, 
+		NUM_TEXTURES_PER_STAGE = 18,
 		NUM_SAMPLERS_PER_STAGE = 18, // is this 16 or 18?
 		NUM_COLOR_ATTACHMENTS = 8,
 	};
@@ -1585,7 +1585,7 @@ struct LatteContextRegister
 	/* +0x3A4C0 */ _LatteRegisterSetTextureUnit SQ_TEX_START_GS[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE];
 
 	uint8 padding_3A6B8[0x3C000 - 0x3A6B8];
-	
+
 	/* +0x3C000 */ _LatteRegisterSetSampler SQ_TEX_SAMPLER[18 * 3];
 
 	/* +0x3C288 */
@@ -1604,6 +1604,24 @@ struct LatteContextRegister
 	{
 		return (uint32*)hleSpecialState;
 	}
+
+	bool IsRasterizationEnabled() const
+    {
+        bool rasterizationEnabled = !PA_CL_CLIP_CNTL.get_DX_RASTERIZATION_KILL();
+
+       	// GX2SetSpecialState(0, true) enables DX_RASTERIZATION_KILL, but still expects depth writes to happen? -> Research which stages are disabled by DX_RASTERIZATION_KILL exactly
+        // for now we use a workaround:
+    	if (!PA_CL_VTE_CNTL.get_VPORT_X_OFFSET_ENA())
+    		rasterizationEnabled = true;
+
+        // Culling both front and back faces effectively disables rasterization
+    	uint32 cullFront = PA_SU_SC_MODE_CNTL.get_CULL_FRONT();
+    	uint32 cullBack = PA_SU_SC_MODE_CNTL.get_CULL_BACK();
+    	if (cullFront && cullBack)
+    	    rasterizationEnabled = false;
+
+        return rasterizationEnabled;
+    }
 };
 
 static_assert(sizeof(LatteContextRegister) == 0x10000 * 4 + 9 * 4);

@@ -116,6 +116,11 @@ void FileStream::extract(std::vector<uint8>& data)
 	readData(data.data(), fileSize);
 }
 
+void FileStream::Flush()
+{
+    m_fileStream.flush();
+}
+
 uint32 FileStream::readData(void* data, uint32 length)
 {
 	SyncReadWriteSeek(false);

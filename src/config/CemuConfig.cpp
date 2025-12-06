@@ -29,7 +29,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	mlc_path = mlc;
 
 	permanent_storage = parser.get("permanent_storage", permanent_storage);
-	
+
 	proxy_server = parser.get("proxy_server", "");
 	disable_screensaver = parser.get("disable_screensaver", disable_screensaver);
 	play_boot_sound = parser.get("play_boot_sound", play_boot_sound);
@@ -113,7 +113,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 			{
 				graphic_pack_entries[path].try_emplace("_disabled", "true");
 			}
-			
+
 			for (auto preset = element.get("Preset"); preset.valid(); preset = element.get("Preset", preset))
 			{
 				const std::string category = preset.get("category", "");
@@ -121,13 +121,14 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 				graphic_pack_entries[path].try_emplace(category, active_preset);
 			}
 		}
-		
+
 	}
 
 	// graphics
 	auto graphic = parser.get("Graphic");
 	graphic_api = graphic.get("api", kOpenGL);
-	graphic.get("device", graphic_device_uuid);
+	graphic.get("vkDevice", vk_graphic_device_uuid);
+	mtl_graphic_device_uuid = graphic.get("mtlDevice", 0);
 	vsync = graphic.get("VSync", 0);
 	overrideAppGammaPreference = graphic.get("OverrideAppGammaPreference", false);
 	overrideGammaValue = graphic.get("OverrideGammaValue", 2.2f);
@@ -142,6 +143,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	fullscreen_scaling = graphic.get("FullscreenScaling", kKeepAspectRatio);
 	async_compile = graphic.get("AsyncCompile", async_compile);
 	vk_accurate_barriers = graphic.get("vkAccurateBarriers", true); // this used to be "VulkanAccurateBarriers" but because we changed the default to true in 1.27.1 the option name had to be changed
+	force_mesh_shaders = graphic.get("ForceMeshShaders", false);
 
 	auto overlay_node = graphic.get("Overlay");
 	if(overlay_node.valid())
@@ -268,6 +270,8 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	crash_dump = debug.get("CrashDumpUnix", crash_dump);
 #endif
 	gdb_port = debug.get("GDBPort", 1337);
+	gpu_capture_dir = debug.get("GPUCaptureDir", "");
+	framebuffer_fetch = debug.get("FramebufferFetch", true);
 
 	// input
 	auto input = parser.get("Input");
@@ -298,7 +302,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	// config.set("cpu_mode", cpu_mode.GetValue());
 	//config.set("console_region", console_region.GetValue());
 	config.set("console_language", console_language.GetValue());
-		
+
 	// game paths
 	auto game_path_parser = config.set("GamePaths");
 	for (const auto& entry : game_paths)
@@ -339,11 +343,11 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 				entry.set_attribute("disabled", true);
 				continue;
 			}
-			
+
 			auto preset = entry.set("Preset");
 			if(!kv.first.empty())
 				preset.set("category", kv.first.c_str());
-			
+
 			preset.set("preset", kv.second.c_str());
 		}
 	}
@@ -351,12 +355,14 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	// graphics
 	auto graphic = config.set("Graphic");
 	graphic.set("api", graphic_api);
-	graphic.set("device", graphic_device_uuid);
+	graphic.set("vkDevice", vk_graphic_device_uuid);
+	graphic.set("mtlDevice", mtl_graphic_device_uuid);
 	graphic.set("VSync", vsync);
 	graphic.set("OverrideAppGammaPreference", overrideAppGammaPreference);
 	graphic.set("OverrideGammaValue", overrideGammaValue);
 	graphic.set("UserDisplayGamma", userDisplayGamma);
 	graphic.set("GX2DrawdoneSync", gx2drawdone_sync);
+	graphic.set("ForceMeshShaders", force_mesh_shaders);
 	//graphic.set("PrecompiledShaders", precompiled_shaders.GetValue());
 	graphic.set("UpscaleFilter", upscale_filter);
 	graphic.set("DownscaleFilter", downscale_filter);
@@ -423,6 +429,8 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	debug.set("CrashDumpUnix", crash_dump.GetValue());
 #endif
 	debug.set("GDBPort", gdb_port);
+	debug.set("GPUCaptureDir", gpu_capture_dir);
+	debug.set("FramebufferFetch", framebuffer_fetch);
 
 	// input
 	auto input = config.set("Input");

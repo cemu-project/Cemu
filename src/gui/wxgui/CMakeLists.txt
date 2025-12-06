@@ -116,6 +116,13 @@ add_library(CemuWxGui STATIC
   wxHelper.h
 )
 
+if (ENABLE_METAL)
+  target_sources(CemuWxGui PRIVATE
+    canvas/MetalCanvas.cpp
+    canvas/MetalCanvas.h
+  )
+endif()
+
 if (ENABLE_BLUEZ)
   target_sources(CemuWxGui PRIVATE
     input/PairingDialog.cpp

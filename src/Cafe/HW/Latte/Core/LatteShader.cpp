@@ -9,10 +9,15 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "HW/Latte/Core/Latte.h"
+#include "HW/Latte/Renderer/Renderer.h"
 #include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
+#if ENABLE_METAL
+#include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
+#endif
 #include <cinttypes>
 
 // experimental new decompiler (WIP)
@@ -77,7 +82,7 @@ inline ska::flat_hash_map<uint64, LatteDecompilerShader*>& LatteSHRC_GetCacheByT
 	if (shaderType == LatteConst::ShaderType::Vertex)
 		return sVertexShaders;
 	else if (shaderType == LatteConst::ShaderType::Geometry)
-		return sGeometryShaders;	
+		return sGeometryShaders;
 	cemu_assert_debug(shaderType == LatteConst::ShaderType::Pixel);
 	return sPixelShaders;
 }
@@ -205,11 +210,9 @@ void LatteShader_free(LatteDecompilerShader* shader)
 	delete shader;
 }
 
-// both vertex and geometry/pixel shader depend on PS inputs
-// we prepare the PS import info in advance
-void LatteShader_UpdatePSInputs(uint32* contextRegisters)
+void LatteShader_CreatePSInputTable(LatteShaderPSInputTable* psInputTable, uint32* contextRegisters)
 {
-	// PS control
+    // PS control
 	uint32 psControl0 = contextRegisters[mmSPI_PS_IN_CONTROL_0];
 	uint32 spi0_positionEnable = (psControl0 >> 8) & 1;
 	uint32 spi0_positionCentroid = (psControl0 >> 9) & 1;
@@ -238,12 +241,12 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 	{
 		key += std::rotr<uint64>(spi0_paramGen, 7);
 		key += std::rotr<uint64>(spi0_paramGenAddr, 3);
-		_activePSImportTable.paramGen = spi0_paramGen;
-		_activePSImportTable.paramGenGPR = spi0_paramGenAddr;
+		psInputTable->paramGen = spi0_paramGen;
+		psInputTable->paramGenGPR = spi0_paramGenAddr;
 	}
 	else
 	{
-		_activePSImportTable.paramGen = 0;
+		psInputTable->paramGen = 0;
 	}
 
 	// semantic imports from vertex shader
@@ -277,9 +280,9 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 		key = std::rotl<uint64>(key, 7);
 		if (spi0_positionEnable && f == spi0_positionAddr)
 		{
-			_activePSImportTable.import[f].semanticId = LATTE_ANALYZER_IMPORT_INDEX_SPIPOSITION;
-			_activePSImportTable.import[f].isFlat = false;
-			_activePSImportTable.import[f].isNoPerspective = false;
+			psInputTable->import[f].semanticId = LATTE_ANALYZER_IMPORT_INDEX_SPIPOSITION;
+			psInputTable->import[f].isFlat = false;
+			psInputTable->import[f].isNoPerspective = false;
 			key += (uint64)0x33;
 		}
 		else
@@ -292,13 +295,20 @@ void LatteShader_UpdatePSInputs(uint32* contextRegisters)
 			semanticMask[psSemanticId >> 3] |= (1 << (psSemanticId & 7));
 #endif
 
-			_activePSImportTable.import[f].semanticId = psSemanticId;
-			_activePSImportTable.import[f].isFlat = (psInputControl&(1 << 10)) != 0;
-			_activePSImportTable.import[f].isNoPerspective = (psInputControl&(1 << 12)) != 0;
+			psInputTable->import[f].semanticId = psSemanticId;
+			psInputTable->import[f].isFlat = (psInputControl&(1 << 10)) != 0;
+			psInputTable->import[f].isNoPerspective = (psInputControl&(1 << 12)) != 0;
 		}
 	}
-	_activePSImportTable.key = key;
-	_activePSImportTable.count = numPSInputs;
+	psInputTable->key = key;
+	psInputTable->count = numPSInputs;
+}
+
+// both vertex and geometry/pixel shader depend on PS inputs
+// we prepare the PS import info in advance
+void LatteShader_UpdatePSInputs(uint32* contextRegisters)
+{
+	LatteShader_CreatePSInputTable(&_activePSImportTable, contextRegisters);
 }
 
 void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compileAsync)
@@ -320,7 +330,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	{
 		shaderType = RendererShader::ShaderType::kGeometry;
 		gpShaderType = GraphicPack2::GP_SHADER_TYPE::GEOMETRY;
-	}	
+	}
 	else if (shader->shaderType == LatteConst::ShaderType::Pixel)
 	{
 		shaderType = RendererShader::ShaderType::kFragment;
@@ -330,7 +340,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	// check if a custom shader is present
 	std::string shaderSrc;
 
-	const std::string* customShaderSrc = GraphicPack2::FindCustomShaderSource(shader->baseHash, shader->auxHash, gpShaderType, g_renderer->GetType() == RendererAPI::Vulkan);
+	const std::string* customShaderSrc = GraphicPack2::FindCustomShaderSource(shader->baseHash, shader->auxHash, gpShaderType, g_renderer->GetType() == RendererAPI::Vulkan, g_renderer->GetType() == RendererAPI::Metal);
 	if (customShaderSrc)
 	{
 		shaderSrc.assign(*customShaderSrc);
@@ -443,7 +453,7 @@ void LatteShader_DumpShader(uint64 baseHash, uint64 auxHash, LatteDecompilerShad
 {
 	if (!ActiveSettings::DumpShadersEnabled())
 		return;
-	
+
 	const char* suffix = "";
 	if (shader->shaderType == LatteConst::ShaderType::Vertex)
 		suffix = "vs";
@@ -500,6 +510,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	vsHash += tmp;
 
 	auto primitiveType = LatteGPUState.contextNew.VGT_PRIMITIVE_TYPE.get_PRIMITIVE_MODE();
+	// TODO: include always in the hash in case of geometry shader or rect shader on Metal
 	if (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS)
 	{
 		vsHash += 13ULL;
@@ -513,6 +524,37 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	// halfZ
 	if (LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF())
 		vsHash += 0x1537;
+
+#if ENABLE_METAL
+	if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+	    bool isRectVertexShader = (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
+
+	    if ((usesGeometryShader || isRectVertexShader) || _activeFetchShader->mtlFetchVertexManually)
+		{
+      		for (sint32 g = 0; g < _activeFetchShader->bufferGroups.size(); g++)
+            {
+           	    LatteParsedFetchShaderBufferGroup_t& group = _activeFetchShader->bufferGroups[g];
+          		uint32 bufferIndex = group.attributeBufferIndex;
+          		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
+          		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+
+                vsHash += (uint64)bufferStride;
+          		vsHash = std::rotl<uint64>(vsHash, 7);
+            }
+		}
+
+	    if (!(usesGeometryShader || isRectVertexShader))
+		{
+      		if (LatteGPUState.contextNew.IsRasterizationEnabled())
+      		    vsHash += 51ULL;
+
+            // Vertex fetch
+            if (_activeFetchShader->mtlFetchVertexManually)
+                vsHash += 349ULL;
+		}
+	}
+#endif
 
 	_shaderBaseHash_vs = vsHash;
 }
@@ -539,6 +581,7 @@ void LatteSHRC_UpdatePSBaseHash(uint8* pixelShaderPtr, uint32 pixelShaderSize, b
 	_calculateShaderProgramHash(psProgramCode, pixelShaderSize, &hashCachePS, &psHash1, &psHash2);
 	// get vertex shader
 	uint64 psHash = psHash1 + psHash2 + _activePSImportTable.key + (usesGeometryShader ? hashCacheGS.prevHash1 : 0ULL);
+
 	_shaderBaseHash_ps = psHash;
 }
 
@@ -572,6 +615,7 @@ uint64 LatteSHRC_CalcVSAuxHash(LatteDecompilerShader* vertexShader, uint32* cont
 			auxHashTex += 0x333;
 		}
 	}
+
 	return auxHash + auxHashTex;
 }
 
@@ -605,6 +649,37 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 		auxHash = (auxHash << 3) | (auxHash >> 61);
 		auxHash += (uint64)dim;
 	}
+
+#if ENABLE_METAL
+	if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+		// Textures as render targets
+		for (uint32 i = 0; i < pixelShader->textureUnitListCount; i++)
+		{
+		    uint8 t = pixelShader->textureUnitList[i];
+		    auxHash = std::rotl<uint64>(auxHash, 11);
+			auxHash += (uint64)pixelShader->textureRenderTargetIndex[t];
+		}
+
+		// Color buffers
+        for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+        {
+            auto format = LatteMRT::GetColorBufferFormat(i, LatteGPUState.contextNew);
+            uint8 dataType = (uint8)GetMtlPixelFormatInfo(format, false).dataType;
+            auxHash = std::rotl<uint64>(auxHash, 7);
+            auxHash += (uint64)dataType;
+        }
+
+        // Depth buffer
+        bool hasDepthBuffer = LatteMRT::GetActiveDepthBufferMask(LatteGPUState.contextNew);
+        if (hasDepthBuffer)
+        {
+            auxHash = std::rotl<uint64>(auxHash, 5);
+            auxHash += 13u;
+        }
+	}
+#endif
+
 	return auxHash;
 }
 
@@ -613,10 +688,13 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	LatteDecompilerShader* shader = decompilerOutput.shader;
 	shader->baseHash = baseHash;
 	// copy resource mapping
-	if(g_renderer->GetType() == RendererAPI::Vulkan)
+	// HACK
+	if (g_renderer->GetType() == RendererAPI::Vulkan)
 		shader->resourceMapping = decompilerOutput.resourceMappingVK;
-	else
+	else if (g_renderer->GetType() == RendererAPI::OpenGL)
 		shader->resourceMapping = decompilerOutput.resourceMappingGL;
+	else
+		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
 	// copy texture info
 	shader->textureUnitMask2 = decompilerOutput.textureUnitMask;
 	// copy streamout info
@@ -624,7 +702,8 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	shader->hasStreamoutBufferWrite = decompilerOutput.streamoutBufferWriteMask.any();
 	// copy uniform offsets
 	// for OpenGL these are retrieved in _prepareSeparableUniforms()
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
+	// HACK
+	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
 	{
 		shader->uniform.loc_remapped = decompilerOutput.uniformOffsetsVK.offset_remapped;
 		shader->uniform.loc_uniformRegister = decompilerOutput.uniformOffsetsVK.offset_uniformRegister;
@@ -684,9 +763,9 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 {
 	options.usesGeometryShader = geometryShaderEnabled;
 	options.spirvInstrinsics.hasRoundingModeRTEFloat32 = false;
+	options.useTFViaSSBO = g_renderer->UseTFViaSSBO();
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
-		options.useTFViaSSBO = VulkanRenderer::GetInstance()->UseTFViaSSBO();
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
 	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;

@@ -13,7 +13,7 @@ struct TexScaleXY
 	float xy[2];
 };
 
-struct  
+struct
 {
 	TexScaleXY perUnit[Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE]; // stores actualResolution/effectiveResolution ratio for each texture
 }LatteTextureScale[static_cast<size_t>(LatteConst::ShaderType::TotalCount)] = { };
@@ -73,46 +73,16 @@ void LatteTexture_ReloadData(LatteTexture* tex)
 LatteTextureView* LatteTexture_CreateTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle, Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
 	const auto tex = g_renderer->texture_createTextureEx(dim, physAddress, physMipAddress, format, width, height, depth, pitch, mipLevels, swizzle, tileMode, isDepth);
+
 	// init slice/mip info array
 	LatteTexture_InitSliceAndMipInfo(tex);
 	LatteTexture_RegisterTextureMemoryOccupancy(tex);
 	cemu_assert_debug(mipLevels != 0);
-	// calculate number of potential mip levels (from effective size)
-	sint32 effectiveWidth = width;
-	sint32 effectiveHeight = height;
-	sint32 effectiveDepth = depth;
-	if (tex->overwriteInfo.hasResolutionOverwrite)
-	{
-		effectiveWidth = tex->overwriteInfo.width;
-		effectiveHeight = tex->overwriteInfo.height;
-		effectiveDepth = tex->overwriteInfo.depth;
-	}
-	tex->maxPossibleMipLevels = 1;
-	if (dim != Latte::E_DIM::DIM_3D)
-	{
-		for (sint32 i = 0; i < 20; i++)
-		{
-			if ((effectiveWidth >> i) <= 1 && (effectiveHeight >> i) <= 1)
-			{
-				tex->maxPossibleMipLevels = i + 1;
-				break;
-			}
-		}
-	}
-	else
-	{
-		for (sint32 i = 0; i < 20; i++)
-		{
-			if ((effectiveWidth >> i) <= 1 && (effectiveHeight >> i) <= 1 && (effectiveDepth >> i) <= 1)
-			{
-				tex->maxPossibleMipLevels = i + 1;
-				break;
-			}
-		}
-	}
+
 	LatteTexture_ReloadData(tex);
 	LatteTC_MarkTextureStillInUse(tex);
 	LatteTC_RegisterTexture(tex);
+
 	// create initial view that maps to the whole texture
 	tex->baseView = tex->GetOrCreateView(0, tex->mipLevels, 0, tex->depth);
 	return tex->baseView;

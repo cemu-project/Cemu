@@ -111,7 +111,7 @@ FileCache* FileCache::Create(const fs::path& path, uint32 extraVersion)
 	fileCache->fileTableEntries[0].fileOffset = fileCache->fileTableOffset;
 	fileCache->fileTableEntries[0].fileSize = fileCache->fileTableSize;
 	// write header
-	
+
 	fs->writeU32(FILECACHE_MAGIC_V3);
 	fs->writeU32(fileCache->extraVersion);
 	fs->writeU64(fileCache->dataOffset);
@@ -316,7 +316,7 @@ bool _uncompressFileData(const uint8* rawData, size_t rawSize, std::vector<uint8
 	Bytef* compressedInput = (Bytef*)rawData + 4;
 	uLongf compressedLen = (uLongf)(rawSize - 4);
 	uLongf uncompressedLen = fileSize;
-	dataOut.resize(fileSize);	
+	dataOut.resize(fileSize);
 	int zret = uncompress2(dataOut.data(), &uncompressedLen, compressedInput, &compressedLen);
 	if (zret != Z_OK)
 	{
@@ -462,9 +462,15 @@ void FileCache::_addFileInternal(uint64 name1, uint64 name2, const uint8* fileDa
 	// write file data
 	fileStream->SetPosition(this->dataOffset + currentStartOffset);
 	fileStream->writeData(rawData, rawSize);
+#ifdef __APPLE__
+    fileStream->Flush();
+#endif
 	// write file table entry
 	fileStream->SetPosition(this->dataOffset + this->fileTableOffset + (uint64)(sizeof(FileTableEntry)*entryIndex));
 	fileStream->writeData(this->fileTableEntries + entryIndex, sizeof(FileTableEntry));
+#ifdef __APPLE__
+    fileStream->Flush();
+#endif
 	if (isCompressed)
 		free(rawData);
 }

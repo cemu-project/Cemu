@@ -18,7 +18,7 @@ LoggingWindow::LoggingWindow(wxFrame* parent)
 
 		filter_row->Add(new wxStaticText( this, wxID_ANY, _("Filter")), 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
-		wxString choices[] = {"Unsupported APIs calls", "Coreinit Logging", "Coreinit File-Access", "Coreinit Thread-Synchronization", "Coreinit Memory", "Coreinit MP", "Coreinit Thread", "nn::nfp", "GX2", "Audio", "Input", "Socket", "Save", "H264", "Graphic pack patches", "Texture cache", "Texture readback", "OpenGL debug output", "Vulkan validation layer"};
+		wxString choices[] = {"Unsupported APIs calls", "Coreinit Logging", "Coreinit File-Access", "Coreinit Thread-Synchronization", "Coreinit Memory", "Coreinit MP", "Coreinit Thread", "nn::nfp", "GX2", "Audio", "Input", "Socket", "Save", "H264", "Graphic pack patches", "Texture cache", "Texture readback", "OpenGL debug output", "Vulkan validation layer", "Metal debug output"};
 		m_filter = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 0 );
 		m_filter->Bind(wxEVT_COMBOBOX, &LoggingWindow::OnFilterChange, this);
 		m_filter->Bind(wxEVT_TEXT, &LoggingWindow::OnFilterChange, this);
@@ -69,7 +69,7 @@ void LoggingWindow::Log(std::string_view filter, std::wstring_view message)
 
 void LoggingWindow::OnLogMessage(wxLogEvent& event)
 {
-	m_log_list->PushEntry(event.GetFilter(), event.GetMessage());		
+	m_log_list->PushEntry(event.GetFilter(), event.GetMessage());
 }
 
 void LoggingWindow::OnFilterChange(wxCommandEvent& event)
@@ -83,4 +83,3 @@ void LoggingWindow::OnFilterMessageChange(wxCommandEvent& event)
 	m_log_list->SetFilterMessage(m_filter_message->GetValue());
 	event.Skip();
 }
-

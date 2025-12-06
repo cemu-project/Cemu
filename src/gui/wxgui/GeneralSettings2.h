@@ -28,7 +28,7 @@ private:
 
 	bool m_has_account_change = false; // keep track of dirty state of accounts
 
-	
+
 	wxPanel* AddGeneralPage(wxNotebook* notebook);
 	wxPanel* AddGraphicsPage(wxNotebook* notebook);
 	wxPanel* AddAudioPage(wxNotebook* notebook);
@@ -61,7 +61,7 @@ private:
 	wxSpinCtrlDouble* m_userDisplayGamma;
 	wxCheckBox* m_userDisplayisSRGB;
 
-	wxCheckBox *m_async_compile, *m_gx2drawdone_sync;
+	wxCheckBox *m_async_compile, *m_gx2drawdone_sync, *m_force_mesh_shaders;
 	wxRadioBox* m_upscale_filter, *m_downscale_filter, *m_fullscreen_scaling;
 	wxChoice* m_overlay_position, *m_notification_position, *m_overlay_scale, *m_notification_scale;
 	wxCheckBox* m_controller_profile_name, *m_controller_low_battery, *m_shader_compiling, *m_friends_data;
@@ -87,6 +87,8 @@ private:
 	// Debug
 	wxChoice* m_crash_dump;
 	wxSpinCtrl* m_gdb_port;
+	wxTextCtrl* m_gpu_capture_dir;
+	wxCheckBox* m_framebuffer_fetch;
 
 	void OnAccountCreate(wxCommandEvent& event);
 	void OnAccountDelete(wxCommandEvent& event);
@@ -116,11 +118,10 @@ private:
 	void UpdateAudioDevice();
 	// refreshes audio device list for dropdown
 	void UpdateAudioDeviceList();
-	
+
 	void ResetAccountInformation();
 	void UpdateAccountInformation();
 	void UpdateOnlineAccounts();
 	void HandleGraphicsApiSelection();
 	void ApplyConfig();
 };
-

@@ -374,7 +374,7 @@ void RendererShaderVk::CompileInternal(bool isRenderThread)
 		return;
 	}
 
-	// temp storage for SPIR-V after translation 
+	// temp storage for SPIR-V after translation
 	std::vector<uint32> spirvBuffer;
 	spv::SpvBuildLogger logger;
 
