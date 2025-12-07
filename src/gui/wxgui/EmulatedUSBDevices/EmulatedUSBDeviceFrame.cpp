@@ -172,7 +172,7 @@ wxBoxSizer* EmulatedUSBDeviceFrame::AddSkylanderRow(uint8 rowNumber, wxStaticBox
 
 	row->Add(new wxStaticText(box, wxID_ANY,
 							  fmt::format("{} {}", _("Skylander").ToStdString(),
-										  (rowNumber + 1))),
+										  rowNumber + 1)),
 			 1, wxEXPAND | wxALL, 2);
 	m_skylanderSlots[rowNumber] =
 		new wxTextCtrl(box, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize,
