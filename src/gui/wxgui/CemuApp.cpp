@@ -69,10 +69,9 @@ fs::path GetAppDataRoamingPath()
 {
 	PWSTR path = nullptr;
 	HRESULT result = SHGetKnownFolderPath(FOLDERID_RoamingAppData, 0, nullptr, &path);
-	if (result != S_OK || !path)
+	if (FAILED(result))
 	{
-		if (path)
-			CoTaskMemFree(path);
+		CoTaskMemFree(path);
 		return {};
 	}
 	std::string appDataPath = boost::nowide::narrow(path);
