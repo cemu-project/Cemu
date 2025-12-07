@@ -32,7 +32,7 @@ wxPanel* GettingStartedDialog::CreatePage1()
 	{
 		auto* sizer = new wxBoxSizer(wxHORIZONTAL);
 		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, wxICON(M_WND_ICON128)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_page1.staticText11 = new wxStaticText(mainPanel, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"), wxDefaultPosition, wxDefaultSize, 0);
+		m_page1.staticText11 = new wxStaticText(mainPanel, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"));
 		m_page1.staticText11->Wrap(-1);
 		sizer->Add(m_page1.staticText11, 0, wxALL, 5);
 		page1_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
@@ -129,7 +129,7 @@ wxPanel* GettingStartedDialog::CreatePage1()
 		sizer->SetFlexibleDirection(wxBOTH);
 		sizer->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_ALL);
 
-		auto* next = new wxButton(mainPanel, wxID_ANY, _("Next"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* next = new wxButton(mainPanel, wxID_ANY, _("Next"));
 		next->Bind(wxEVT_BUTTON, [this](const auto&){m_notebook->SetSelection(1); });
 		sizer->Add(next, 0, wxALIGN_BOTTOM | wxALIGN_RIGHT | wxALL, 5);
 
@@ -249,13 +249,13 @@ GettingStartedDialog::GettingStartedDialog(wxWindow* parent)
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_notebook = new wxSimplebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
+	m_notebook = new wxSimplebook(this, wxID_ANY);
 
 	auto* m_page1 = CreatePage1();
-	m_notebook->AddPage(m_page1, wxEmptyString, false);
+	m_notebook->AddPage(m_page1, wxEmptyString);
 
 	auto* m_page2 = CreatePage2();
-	m_notebook->AddPage(m_page2, wxEmptyString, false);
+	m_notebook->AddPage(m_page2, wxEmptyString);
 
 	sizer->Add(m_notebook, 1, wxEXPAND | wxALL, 5);
 

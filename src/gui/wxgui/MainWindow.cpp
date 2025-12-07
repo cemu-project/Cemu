@@ -1596,7 +1596,7 @@ void MainWindow::CreateCanvas()
     m_game_panel->Bind(wxEVT_CHAR, &MainWindow::OnChar, this);
 
     m_game_panel->SetSizer(sizer);
-    this->GetSizer()->Add(m_game_panel, 1, wxEXPAND, 0, nullptr);
+    this->GetSizer()->Add(m_game_panel, 1, wxEXPAND);
 
     // create canvas
     if (ActiveSettings::GetGraphicsAPI() == kVulkan)
@@ -1932,104 +1932,104 @@ public:
 		// zLib
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "zLib ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.zlib.net", "https://www.zlib.net", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "zLib ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.zlib.net", "https://www.zlib.net", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// wxWidgets
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "wxWidgets ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.wxwidgets.org/", "https://www.wxwidgets.org/", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "wxWidgets ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.wxwidgets.org/", "https://www.wxwidgets.org/", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// OpenSSL
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "OpenSSL ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.openssl.org/", "https://www.openssl.org/", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "OpenSSL ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.openssl.org/", "https://www.openssl.org/", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// libcurl
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libcurl ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://curl.haxx.se/libcurl/", "https://curl.haxx.se/libcurl/", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libcurl ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://curl.haxx.se/libcurl/", "https://curl.haxx.se/libcurl/", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// imgui
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "imgui ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/ocornut/imgui", "https://github.com/ocornut/imgui", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "imgui ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/ocornut/imgui", "https://github.com/ocornut/imgui", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// fontawesome
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "fontawesome ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/FortAwesome/Font-Awesome", "https://github.com/FortAwesome/Font-Awesome", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "fontawesome ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/FortAwesome/Font-Awesome", "https://github.com/FortAwesome/Font-Awesome", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// boost
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "boost ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.boost.org", "https://www.boost.org", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "boost ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://www.boost.org", "https://www.boost.org", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// libusb
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libusb ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://libusb.info", "https://libusb.info", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "libusb ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://libusb.info", "https://libusb.info", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 #if BOOST_OS_MACOS
 		// MoltenVK
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, -1, "MoltenVK ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/KhronosGroup/MoltenVK", "https://github.com/KhronosGroup/MoltenVK", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, -1, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, -1, "MoltenVK ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, -1, "https://github.com/KhronosGroup/MoltenVK", "https://github.com/KhronosGroup/MoltenVK", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, -1, ")"));
 			sizer->Add(lineSizer);
 		}
 #endif
 		// icons
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "icons from "), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://icons8.com", "https://icons8.com", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "icons from "));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://icons8.com", "https://icons8.com", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
 			sizer->Add(lineSizer);
 		}
 		// Lato font (are we still using it?)
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "\"Lato\" font by tyPoland Lukasz Dziedzic (OFL, V1.1)", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "\"Lato\" font by tyPoland Lukasz Dziedzic (OFL, V1.1)", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
 			sizer->Add(lineSizer);
 		}
 		// SDL
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "SDL ("), 0, wxALIGN_NOT, 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/libsdl-org/SDL", "https://github.com/libsdl-org/SDL", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "SDL ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "https://github.com/libsdl-org/SDL", "https://github.com/libsdl-org/SDL", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 		// IH264
 		{
 			wxSizer* lineSizer = new wxBoxSizer(wxHORIZONTAL);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "Modified ih264 from Android project ("), 0);
-			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "Source", "https://cemu.info/oss/ih264d.zip", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)), 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, " "), 0);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, "Modified ih264 from Android project ("));
+			lineSizer->Add(new wxHyperlinkCtrl(parent, wxID_ANY, "Source", "https://cemu.info/oss/ih264d.zip", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT)));
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, " "));
 			wxHyperlinkCtrl* noticeLink = new wxHyperlinkCtrl(parent, wxID_ANY, "NOTICE", "", wxDefaultPosition, wxDefaultSize, (wxHL_CONTEXTMENU|wxNO_BORDER|wxHL_ALIGN_LEFT));
 			noticeLink->Bind(wxEVT_LEFT_DOWN, [](wxMouseEvent& event)
 				{
@@ -2063,8 +2063,8 @@ public:
 					delete fs;
 					wxLaunchDefaultBrowser(formatWxString("file:{}", _pathToUtf8(tempPath)));
 				});
-			lineSizer->Add(noticeLink, 0);
-			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
+			lineSizer->Add(noticeLink);
+			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"));
 			sizer->Add(lineSizer);
 		}
 	}
@@ -2187,7 +2187,7 @@ void MainWindow::RecreateMenu()
 	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_MLC_FOLDER, _("Open MLC folder"));
 	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_OPEN_SHADERCACHE_FOLDER, _("Open &shader cache folder"));
 	m_fileMenu->AppendSeparator();
-	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, _("Clear Spot&Pass cache"), wxEmptyString);
+	m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, _("Clear Spot&Pass cache"));
 	if (m_game_launched)
 		m_fileMenu->Enable(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, false);
 	m_fileMenu->AppendSeparator();
@@ -2211,18 +2211,18 @@ void MainWindow::RecreateMenu()
 	auto& wxConfig = GetWxGUIConfig();
 	// options->console language submenu
 	wxMenu* optionsConsoleLanguageMenu = new wxMenu();
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH, _("&English"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::EN);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_JAPANESE, _("&Japanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::JA);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_FRENCH, _("&French"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::FR);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_GERMAN, _("&German"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::DE);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ITALIAN, _("&Italian"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::IT);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_SPANISH, _("&Spanish"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::ES);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_CHINESE, _("&Chinese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::ZH);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_KOREAN, _("&Korean"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::KO);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_DUTCH, _("&Dutch"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::NL);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_PORTUGUESE, _("&Portuguese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::PT);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_RUSSIAN, _("&Russian"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::RU);
-	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"), wxEmptyString)->Check(config.console_language == CafeConsoleLanguage::TW);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ENGLISH, _("&English"))->Check(config.console_language == CafeConsoleLanguage::EN);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_JAPANESE, _("&Japanese"))->Check(config.console_language == CafeConsoleLanguage::JA);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_FRENCH, _("&French"))->Check(config.console_language == CafeConsoleLanguage::FR);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_GERMAN, _("&German"))->Check(config.console_language == CafeConsoleLanguage::DE);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_ITALIAN, _("&Italian"))->Check(config.console_language == CafeConsoleLanguage::IT);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_SPANISH, _("&Spanish"))->Check(config.console_language == CafeConsoleLanguage::ES);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_CHINESE, _("&Chinese"))->Check(config.console_language == CafeConsoleLanguage::ZH);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_KOREAN, _("&Korean"))->Check(config.console_language == CafeConsoleLanguage::KO);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_DUTCH, _("&Dutch"))->Check(config.console_language == CafeConsoleLanguage::NL);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_PORTUGUESE, _("&Portuguese"))->Check(config.console_language == CafeConsoleLanguage::PT);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_RUSSIAN, _("&Russian"))->Check(config.console_language == CafeConsoleLanguage::RU);
+	optionsConsoleLanguageMenu->AppendRadioItem(MAINFRAME_MENU_ID_OPTIONS_LANGUAGE_TAIWANESE, _("&Taiwanese"))->Check(config.console_language == CafeConsoleLanguage::TW);
 	if(IsGameLaunched())
 	{
 		auto items = optionsConsoleLanguageMenu->GetMenuItems();
@@ -2234,11 +2234,11 @@ void MainWindow::RecreateMenu()
 
 	// options submenu
 	wxMenu* optionsMenu = new wxMenu();
-	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"), wxEmptyString);
+	m_fullscreenMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_FULLSCREEN, _("&Fullscreen"));
 	m_fullscreenMenuItem->Check(FullscreenEnabled());
 
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GRAPHIC_PACKS2, _("&Graphic packs"));
-	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"), wxEmptyString);
+	m_padViewMenuItem = optionsMenu->AppendCheckItem(MAINFRAME_MENU_ID_OPTIONS_SECOND_WINDOW_PADVIEW, _("&Separate GamePad view"));
 	m_padViewMenuItem->Check(wxConfig.pad_open);
 	optionsMenu->AppendSeparator();
 	#if BOOST_OS_MACOS
@@ -2265,13 +2265,13 @@ void MainWindow::RecreateMenu()
 
 	// cpu timer speed menu
 	wxMenu* timerSpeedMenu = new wxMenu();
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_1X, _("&1x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 3);
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_2X, _("&2x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 2);
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_4X, _("&4x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 1);
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_8X, _("&8x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 0);
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_05X, _("&0.5x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 4);
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_025X, _("&0.25x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 5);
-	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, _("&0.125x speed"), wxEmptyString)->Check(ActiveSettings::GetTimerShiftFactor() == 6);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_1X, _("&1x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 3);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_2X, _("&2x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 2);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_4X, _("&4x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 1);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_8X, _("&8x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 0);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_05X, _("&0.5x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 4);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_025X, _("&0.25x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 5);
+	timerSpeedMenu->AppendRadioItem(MAINFRAME_MENU_ID_TIMER_SPEED_0125X, _("&0.125x speed"))->Check(ActiveSettings::GetTimerShiftFactor() == 6);
 
 	// cpu submenu
 	wxMenu* cpuMenu = new wxMenu();
@@ -2287,48 +2287,48 @@ void MainWindow::RecreateMenu()
 	// debug->logging submenu
 	wxMenu* debugLoggingMenu = new wxMenu();
 
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::APIErrors), _("&Invalid API usage"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::APIErrors));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::UnsupportedAPI), _("&Unsupported API calls"))->Check(cemuLog_isLoggingEnabled(LogType::UnsupportedAPI));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::APIErrors), _("&Invalid API usage"))->Check(cemuLog_isLoggingEnabled(LogType::APIErrors));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitLogging), _("&Coreinit Logging (OSReport/OSConsole)"))->Check(cemuLog_isLoggingEnabled(LogType::CoreinitLogging));
 	debugLoggingMenu->AppendSeparator();
 
 	wxMenu* logCosModulesMenu = new wxMenu();
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE, _("&Options below are for experts. Leave off if unsure"), wxEmptyString)->Enable(false);
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING_MESSAGE, _("&Options below are for experts. Leave off if unsure"))->Enable(false);
 	logCosModulesMenu->AppendSeparator();
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("coreinit File-Access API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("coreinit Thread-Synchronization API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("coreinit Memory API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("coreinit MP API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("coreinit Thread API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("nn_save API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Save));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("nn_nfp API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_FP), _("nn_fp API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_FP));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::PRUDP), _("nn_fp PRUDP"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::PRUDP));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_BOSS), _("nn_boss API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NN_BOSS));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NFC), _("nfc API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NFC));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NTAG), _("ntag API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::NTAG));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("nsysnet API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Socket));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("h264 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::H264));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("gx2 API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::GX2));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("Audio API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
-	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("Input API"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitFile), _("coreinit File-Access API"))->Check(cemuLog_isLoggingEnabled(LogType::CoreinitFile));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThreadSync), _("coreinit Thread-Synchronization API"))->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThreadSync));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMem), _("coreinit Memory API"))->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMem));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitMP), _("coreinit MP API"))->Check(cemuLog_isLoggingEnabled(LogType::CoreinitMP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::CoreinitThread), _("coreinit Thread API"))->Check(cemuLog_isLoggingEnabled(LogType::CoreinitThread));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Save), _("nn_save API"))->Check(cemuLog_isLoggingEnabled(LogType::Save));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_NFP), _("nn_nfp API"))->Check(cemuLog_isLoggingEnabled(LogType::NN_NFP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_FP), _("nn_fp API"))->Check(cemuLog_isLoggingEnabled(LogType::NN_FP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::PRUDP), _("nn_fp PRUDP"))->Check(cemuLog_isLoggingEnabled(LogType::PRUDP));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NN_BOSS), _("nn_boss API"))->Check(cemuLog_isLoggingEnabled(LogType::NN_BOSS));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NFC), _("nfc API"))->Check(cemuLog_isLoggingEnabled(LogType::NFC));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::NTAG), _("ntag API"))->Check(cemuLog_isLoggingEnabled(LogType::NTAG));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Socket), _("nsysnet API"))->Check(cemuLog_isLoggingEnabled(LogType::Socket));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::H264), _("h264 API"))->Check(cemuLog_isLoggingEnabled(LogType::H264));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::GX2), _("gx2 API"))->Check(cemuLog_isLoggingEnabled(LogType::GX2));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::SoundAPI), _("Audio API"))->Check(cemuLog_isLoggingEnabled(LogType::SoundAPI));
+	logCosModulesMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::InputAPI), _("Input API"))->Check(cemuLog_isLoggingEnabled(LogType::InputAPI));
 
 	debugLoggingMenu->AppendSubMenu(logCosModulesMenu, _("&CafeOS modules logging"));
 	debugLoggingMenu->AppendSeparator();
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::Patches));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureReadback), _("&Texture readback"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::TextureReadback));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::Patches), _("&Graphic pack patches"))->Check(cemuLog_isLoggingEnabled(LogType::Patches));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureCache), _("&Texture cache warnings"))->Check(cemuLog_isLoggingEnabled(LogType::TextureCache));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::TextureReadback), _("&Texture readback"))->Check(cemuLog_isLoggingEnabled(LogType::TextureReadback));
 	debugLoggingMenu->AppendSeparator();
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), _("&OpenGL debug output"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::OpenGLLogging));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), _("&Vulkan validation layer (slow)"), wxEmptyString)->Check(cemuLog_isLoggingEnabled(LogType::VulkanValidation));
-	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, _("&Log PPC context for API"), wxEmptyString)->Check(cemuLog_advancedPPCLoggingEnabled());
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::OpenGLLogging), _("&OpenGL debug output"))->Check(cemuLog_isLoggingEnabled(LogType::OpenGLLogging));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_LOGGING0 + stdx::to_underlying(LogType::VulkanValidation), _("&Vulkan validation layer (slow)"))->Check(cemuLog_isLoggingEnabled(LogType::VulkanValidation));
+	debugLoggingMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_ADVANCED_PPC_INFO, _("&Log PPC context for API"))->Check(cemuLog_advancedPPCLoggingEnabled());
 	m_loggingSubmenu = debugLoggingMenu;
 	// debug->dump submenu
 	wxMenu* debugDumpMenu = new wxMenu;
-	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, _("&Textures"), wxEmptyString)->Check(ActiveSettings::DumpTexturesEnabled());
-	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"), wxEmptyString)->Check(ActiveSettings::DumpShadersEnabled());
-	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, _("&Recompiled functions"), wxEmptyString)->Check(ActiveSettings::DumpRecompilerFunctionsEnabled());
-	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"), wxEmptyString);
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_TEXTURES, _("&Textures"))->Check(ActiveSettings::DumpTexturesEnabled());
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS, _("&Shaders"))->Check(ActiveSettings::DumpShadersEnabled());
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS, _("&Recompiled functions"))->Check(ActiveSettings::DumpRecompilerFunctionsEnabled());
+	debugDumpMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS, _("&nlibcurl HTTP/HTTPS requests"));
 	// debug submenu
 	wxMenu* debugMenu = new wxMenu();
 	m_debugMenu = debugMenu;
@@ -2336,12 +2336,12 @@ void MainWindow::RecreateMenu()
 	debugMenu->AppendSubMenu(debugDumpMenu, _("&Dump"));
 	debugMenu->AppendSeparator();
 
-	auto upsidedownItem = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, _("&Render upside-down"), wxEmptyString);
+	auto upsidedownItem = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_RENDER_UPSIDE_DOWN, _("&Render upside-down"));
 	upsidedownItem->Check(ActiveSettings::RenderUpsideDownEnabled());
 	if(LaunchSettings::RenderUpsideDownEnabled().has_value())
 		upsidedownItem->Enable(false);
 
-	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"), wxEmptyString);
+	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"));
 	accurateBarriers->Check(GetConfig().vk_accurate_barriers);
 
 #if ENABLE_METAL
@@ -2352,12 +2352,12 @@ void MainWindow::RecreateMenu()
 	debugMenu->AppendSeparator();
 
 #ifdef CEMU_DEBUG_ASSERT
-	auto audioAuxOnly = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, _("&Audio AUX only"), wxEmptyString);
+	auto audioAuxOnly = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, _("&Audio AUX only"));
 	audioAuxOnly->Check(ActiveSettings::AudioOutputOnlyAux());
 #endif
 
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, _("&Open logging window"));
-	m_gdbstub_toggle = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_TOGGLE_GDB_STUB, _("&Launch with GDB stub"), wxEmptyString);
+	m_gdbstub_toggle = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_TOGGLE_GDB_STUB, _("&Launch with GDB stub"));
 	m_gdbstub_toggle->Check(g_gdbstub != nullptr);
 	m_gdbstub_toggle->Enable(!m_game_launched);
 

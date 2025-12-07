@@ -19,7 +19,7 @@ LoggingWindow::LoggingWindow(wxFrame* parent)
 		filter_row->Add(new wxStaticText( this, wxID_ANY, _("Filter")), 0, wxALIGN_CENTER_VERTICAL|wxALL, 5 );
 
 		wxString choices[] = {"Unsupported APIs calls", "Coreinit Logging", "Coreinit File-Access", "Coreinit Thread-Synchronization", "Coreinit Memory", "Coreinit MP", "Coreinit Thread", "nn::nfp", "GX2", "Audio", "Input", "Socket", "Save", "H264", "Graphic pack patches", "Texture cache", "Texture readback", "OpenGL debug output", "Vulkan validation layer", "Metal debug output"};
-		m_filter = new wxComboBox( this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 0 );
+		m_filter = new wxComboBox(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, std::size(choices), choices);
 		m_filter->Bind(wxEVT_COMBOBOX, &LoggingWindow::OnFilterChange, this);
 		m_filter->Bind(wxEVT_TEXT, &LoggingWindow::OnFilterChange, this);
 		filter_row->Add(m_filter, 1, wxALL, 5 );
@@ -31,7 +31,7 @@ LoggingWindow::LoggingWindow(wxFrame* parent)
 		sizer->Add( filter_row, 0, wxEXPAND, 5 );
 	}
 
-	m_log_list = new wxLogCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxScrolledWindowStyle|wxVSCROLL, true);//( this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, NULL, wxLB_HSCROLL );
+	m_log_list = new wxLogCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxScrolledWindowStyle, true);
 	sizer->Add( m_log_list, 1, wxALL | wxEXPAND, 5 );
 
 	this->SetSizer( sizer );

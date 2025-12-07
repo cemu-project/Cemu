@@ -173,7 +173,7 @@ GameUpdateWindow::GameUpdateWindow(wxWindow& parent, const fs::path& filePath)
 	m_processBar->SetRange((sint32)(m_required_size / 1000));
 	sizer->Add(m_processBar, 0, wxALL | wxEXPAND, 5);
 
-	wxButton* m_cancelButton = new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
+	wxButton* m_cancelButton = new wxButton(this, wxID_ANY, _("Cancel"));
 	m_cancelButton->Bind(wxEVT_BUTTON, &GameUpdateWindow::OnCancelButton, this);
 	sizer->Add(m_cancelButton, 0, wxALIGN_RIGHT | wxALL, 5);
 
