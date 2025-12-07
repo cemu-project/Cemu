@@ -141,9 +141,9 @@ void SymbolListCtrl::OnRightClick(wxListEvent& event)
 #endif
 }
 
-void SymbolListCtrl::ChangeListFilter(std::string filter)
+void SymbolListCtrl::ChangeListFilter(wxString filter)
 {
-	m_list_filter = wxString(filter).MakeLower();
+	m_list_filter = filter.MakeLower();
 
 	size_t visible_entries = m_data.size();
 	for (auto& [address, symbol] : m_data)
