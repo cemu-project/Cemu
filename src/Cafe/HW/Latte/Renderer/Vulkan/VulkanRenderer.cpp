@@ -478,9 +478,10 @@ VulkanRenderer::VulkanRenderer()
 	deviceFeatures.independentBlend = VK_TRUE;
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.imageCubeArray = VK_TRUE;
+	//moltenVK supports logicOp via private api
+	deviceFeatures.logicOp = VK_TRUE;
 #if !BOOST_OS_MACOS
 	deviceFeatures.geometryShader = VK_TRUE;
-	deviceFeatures.logicOp = VK_TRUE;
 #endif
 	deviceFeatures.occlusionQueryPrecise = VK_TRUE;
 	deviceFeatures.depthClamp = VK_TRUE;
