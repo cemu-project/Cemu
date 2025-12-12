@@ -497,7 +497,8 @@ static IV_API_CALL_STATUS_T api_check_struct_sanity(iv_obj_t *ps_handle,
             }
 
             if(ps_op->s_ivd_video_decode_op_t.u4_size
-                            != sizeof(ih264d_video_decode_op_t)&&
+                             != sizeof(ih264d_video_decode_op_t) &&
+                            ps_op->s_ivd_video_decode_op_t.u4_size != sizeof(ivd_video_decode_op_t) &&
                             ps_op->s_ivd_video_decode_op_t.u4_size != offsetof(ivd_video_decode_op_t, u4_output_present))
             {
                 ps_op->s_ivd_video_decode_op_t.u4_error_code |= 1
@@ -1994,7 +1995,7 @@ WORD32 ih264d_video_decode(iv_obj_t *dec_hdl, void *pv_api_ip, void *pv_api_op)
     {
         UWORD32 u4_size;
         u4_size = ps_dec_op->u4_size;
-        memset(ps_h264d_dec_op, 0, sizeof(ih264d_video_decode_op_t));
+        memset(ps_h264d_dec_op, 0, ps_dec_op->u4_size);
         ps_dec_op->u4_size = u4_size;
     }
 
