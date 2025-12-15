@@ -601,12 +601,7 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	#endif
 
 	if (GetConfig().disable_screensaver)
-	{
 		ScreenSaver::SetInhibit(true);
-		// TODO: disable when only the game, not Cemu, is closed (a feature not yet implemented)
-		// currently unnecessary because this will happen automatically when Cemu closes
-		// ScreenSaver::SetInhibit(false);
-	}
 
 	if (FullscreenEnabled())
 		SetFullScreen(true);
@@ -686,13 +681,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	}
 	else if (menuId == MAINFRAME_MENU_ID_FILE_END_EMULATION)
 	{
-        CafeSystem::ShutdownTitle();
-		DestroyCanvas();
-		m_game_launched = false;
-		RecreateMenu();
-        CreateGameListAndStatusBar();
-        DoLayout();
-		UpdateChildWindowTitleRunningState();
+		EndEmulation();
 	}
 }
 
@@ -1770,6 +1759,34 @@ void MainWindow::SetFullScreen(bool state)
 		SetMenuVisible(true);
 }
 
+void MainWindow::EndEmulation() // unfinished - memory leaks and crashes after repeated use (after 3x usually)
+{
+	CafeSystem::ShutdownTitle();
+	DestroyCanvas();
+	m_game_launched = false;
+	m_launched_game_name.clear();
+	#ifdef ENABLE_DISCORD_RPC
+	if (m_discord)
+		m_discord->UpdatePresence(DiscordPresence::Idling, "");
+	#endif
+
+	if (GetConfig().disable_screensaver)
+		ScreenSaver::SetInhibit(false);
+
+	// close memory searcher if created
+	if (m_toolWindow)
+	{
+		m_toolWindow->Close();
+		m_toolWindow = nullptr;
+		m_memorySearcherMenuItem->Enable(false);
+	}
+
+	RecreateMenu();
+	CreateGameListAndStatusBar();
+	DoLayout();
+	UpdateChildWindowTitleRunningState();
+}
+
 void MainWindow::SetMenuVisible(bool state)
 {
 	if (m_menu_visible == state)
@@ -2166,6 +2183,7 @@ void MainWindow::RecreateMenu()
 		// add 'Stop emulation' menu entry to file menu
 #ifdef CEMU_DEBUG_ASSERT
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("Stop emulation"));
+		m_fileMenuSeparator1 = m_fileMenu->AppendSeparator()
 #endif
 	}
 

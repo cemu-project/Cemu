@@ -127,6 +127,9 @@ struct wxCemuConfig
 		sHotkeyCfg exitFullscreen;
 		sHotkeyCfg takeScreenshot;
 		sHotkeyCfg toggleFastForward;
+#ifdef CEMU_DEBUG_ASSERT
+		sHotkeyCfg endEmulation;
+#endif
 	} hotkeys{};
 
 	void AddRecentlyLaunchedFile(std::string_view file);
