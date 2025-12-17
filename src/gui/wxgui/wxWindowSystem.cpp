@@ -84,7 +84,7 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 	}
 	if (isLoading)
 	{
-		windowText.append(" - loading...");
+		windowText.append(" - Loading...");
 		if (g_mainFrame)
 			g_mainFrame->AsyncSetTitle(windowText);
 		return;
@@ -101,6 +101,11 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 		case RendererAPI::Vulkan:
 			renderer = "[Vulkan]";
 			break;
+#if ENABLE_METAL
+		case RendererAPI::Metal:
+			renderer = "[Metal]";
+			break;
+#endif
 		default:;
 		}
 	}
@@ -116,8 +121,7 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 	else if (LatteGPUState.glVendor == GLVENDOR_APPLE)
 		graphicMode = "[Apple GPU]";
 
-	const uint64 titleId = CafeSystem::GetForegroundTitleId();
-	windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
+	windowText.append(fmt::format(" - FPS: {:.2f} {} {}", (double)fps, renderer, graphicMode));
 
 	if (ActiveSettings::IsOnlineEnabled())
 	{

@@ -219,14 +219,14 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 #ifndef ENABLE_DISCORD_RPC
 			m_discord_presence->Disable();
 #endif
-			//third_row->AddSpacer(10);
+			// third_row->AddSpacer(10);
 			m_fullscreen_menubar = new wxCheckBox(box, wxID_ANY, _("Fullscreen menu bar"));
 			m_fullscreen_menubar->SetToolTip(_("Displays the menu bar when Cemu is running in fullscreen mode and the mouse cursor is moved to the top"));
 			third_row->Add(m_fullscreen_menubar, 0, botflag, 5);
 			CountRowElement();
 
 			m_save_screenshot = new wxCheckBox(box, wxID_ANY, _("Save screenshot"));
-			m_save_screenshot->SetToolTip(_("Pressing the screenshot key (F12) will save a screenshot directly to the screenshots folder"));
+			m_save_screenshot->SetToolTip(_("Pressing the screenshot key will save a screenshot directly to the screenshots folder instead of to the clipboard"));
 			third_row->Add(m_save_screenshot, 0, botflag, 5);
 			CountRowElement();
 
@@ -235,7 +235,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			third_row->Add(m_disable_screensaver, 0, botflag, 5);
 			CountRowElement();
 
-			// Enable/disable feral interactive gamemode
+			// enable/disable feral interactive gamemode
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
 			m_feral_gamemode = new wxCheckBox(box, wxID_ANY, _("Enable Feral GameMode"));
 			m_feral_gamemode->SetToolTip(_("Use FeralInteractive GameMode if installed."));
@@ -1095,7 +1095,7 @@ void GeneralSettings2::StoreConfig()
 #endif
 	config.play_boot_sound = m_play_boot_sound->IsChecked();
 	config.disable_screensaver = m_disable_screensaver->IsChecked();
-	// Toggle while a game is running
+	// toggle while a game is running
 	if (CafeSystem::IsTitleRunning())
 	{
 		ScreenSaver::SetInhibit(config.disable_screensaver);
