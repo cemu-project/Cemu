@@ -24,6 +24,7 @@
 #include <wx/image.h>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <wx/clipbrd.h>
 #include "wxHelper.h"
 
 #include "Cafe/TitleList/TitleList.h"
@@ -389,6 +390,7 @@ bool CemuApp::OnInit()
 int CemuApp::OnExit()
 {
 	wxApp::OnExit();
+	wxTheClipboard->Flush();
 #if BOOST_OS_WINDOWS
 	ExitProcess(0);
 #else

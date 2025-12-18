@@ -5,7 +5,6 @@
 #include "wxgui/MainWindow.h"
 
 #include <wx/mstream.h>
-#include <wx/clipbrd.h>
 
 #include "wxgui/GameUpdateWindow.h"
 #include "wxgui/PadViewFrame.h"
@@ -442,7 +441,6 @@ wxString MainWindow::GetInitialWindowTitle()
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
-	wxTheClipboard->Flush();
 
 	if(m_game_list)
 		m_game_list->OnClose(event);
