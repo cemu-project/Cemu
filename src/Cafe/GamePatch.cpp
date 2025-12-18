@@ -2,6 +2,7 @@
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "CafeSystem.h"
+#include "config/ActiveSettings.h" // Selectively add some patches based on network settings.
 
 void hleExport_breathOfTheWild_busyLoop(PPCInterpreter_t* hCPU)
 {
@@ -277,6 +278,7 @@ uint8 miiverse_eshop_url_match_whitelist_func[] = {
 	0x40,0x82,0x00,0x08, // bne LAB_020ff3a8
 	0x4b,0xff,0xff,0x5c // b FUN_020ff300
 };
+uint8 wave_libopenssl_ssl_verify_cert_chain[] = { 0x94,0x21,0xff,0x58,0x93,0xc1,0x00,0xa0,0x93,0xe1,0x00,0xa4,0x7c,0x9f,0x23,0x79,0x7c,0x7e,0x1b,0x78,0x90,0x01,0x00,0xac,0x41,0x82,0x00,0x14,0x7f,0xe3,0xfb,0x78 }; // rpl function for the above applets
 
 sint32 hleIndex_h000000001 = -1;
 sint32 hleIndex_h000000002 = -1;
@@ -470,10 +472,12 @@ void GamePatch_scan()
 		memory_writeU32(hleAddr + 0x64, 0x60000000);
 	}
 
-	// Patch out function in Miiverse/eShop wave.rpx that matches
+	// Patch function in Miiverse/eShop wave.rpx that matches
 	// a domain against another to validate its whitelist.
-	// This allows those applets to load any domain.
-	if (CafeSystem::GetForegroundTitleArgStr().ends_with("wave.rpx")
+	// This allows those browsers to load any domain.
+	const NetworkService service = ActiveSettings::GetNetworkService();
+	if (service != NetworkService::Nintendo // Only patch for custom services.
+		&& CafeSystem::GetForegroundTitleArgStr().ends_with("wave.rpx")
 		&& (hleAddr = hle_locate(miiverse_eshop_url_match_whitelist_func,
 			nullptr, sizeof(miiverse_eshop_url_match_whitelist_func))))
 	{
@@ -482,8 +486,20 @@ void GamePatch_scan()
 		memory_writeU32(hleAddr, 0x38600001);
 		memory_writeU32(hleAddr + 0x4, 0x4e800020);
 		// Note that the same applies to Account Settings, but
-		// its version of this function is radically different.
+		// its version of this function differs a lot.
 		// Search: 88 0c ff ff 2c 00 00 2e (lbz r0,-0x1(r12); cmpwi r0,0x2e)
+	}
+
+	// Additionally patch out SSL checks for libopenssl.rpl, used by the browser.
+	if (IsNetworkServiceSSLDisabled(service)
+		&& RPLLoader_GetHandleByModuleName("libopenssl.rpl") != RPL_INVALID_HANDLE
+		&& (hleAddr = hle_locate(wave_libopenssl_ssl_verify_cert_chain,
+			nullptr, sizeof(wave_libopenssl_ssl_verify_cert_chain))))
+	{
+		cemuLog_log(LogType::Force, "Patching OpenSSL ssl_verify_cert_chain at: 0x{:08x}", hleAddr);
+		// Reference: https://github.com/PretendoNetwork/Meowth/blob/meowth/src/patcher/patches/webkit_applets.cpp
+		memory_writeU32(hleAddr + 0x28, 0x60000000);
+		memory_writeU32(hleAddr + 0x40, 0x38600001);
 	}
 
 	uint32 hleInstallEnd = GetTickCount();
