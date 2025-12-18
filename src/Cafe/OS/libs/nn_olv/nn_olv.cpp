@@ -15,53 +15,6 @@ namespace nn
 {
 	namespace olv
 	{
-		static const char* startUrlTemplate = "%s/titles/show?src=menu";
-		struct PortalAppParam_t
-		{
-			/* +0x1A5C3C */ char paramPack[0x200];
-			/* +0x1A663B */ char serviceToken[0x201];
-			/* +0x1A5E3C */ char startUrl[0x7ff]; // https://portal-us.olv.nintendo.net/titles/show?src=menu
-		};
-
-		uint32 StubPortalApp([[maybe_unused]] void* pPortalAppParam)
-		{
-			// Response to either a size or pointer.
-			// In any case, it usually ignores 0 or null.
-			return 0;
-		}
-
-		void exportPortalAppParam_GetParamPack(PPCInterpreter_t* hCPU)
-		{
-			// r3 = PortalAppParam
-			ppcDefineParamTypePtr(portalAppParam, PortalAppParam_t, 0);
-
-			strcpy(portalAppParam->paramPack, g_ParamPack.encodedParamPack);
-
-			osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(&portalAppParam->serviceToken));
-		}
-
-		void exportPortalAppParam_GetServiceToken(PPCInterpreter_t* hCPU)
-		{
-			// r3 = PortalAppParam
-			ppcDefineParamTypePtr(portalAppParam, PortalAppParam_t, 0);
-
-			strcpy(portalAppParam->serviceToken, g_DiscoveryResults.serviceToken);
-
-			osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(&portalAppParam->serviceToken));
-		}
-
-		void exportPortalAppParam_GetStartUrl(PPCInterpreter_t* hCPU)
-		{
-			// r3 = PortalAppParam
-			ppcDefineParamTypePtr(portalAppParam, PortalAppParam_t, 0);
-
-			cemu_assert_debug(g_DiscoveryResults.portalEndpoint[0]);
-			snprintf(portalAppParam->startUrl, sizeof(portalAppParam->startUrl),
-				startUrlTemplate, g_DiscoveryResults.portalEndpoint);
-
-			osLib_returnFromFunction(hCPU, memory_getVirtualOffsetFromPointer(&portalAppParam->startUrl));
-		}
-
 		static SysAllocator<OSThread_t> s_OlvReleaseBgThread;
 		SysAllocator<uint8, 1024> s_OlvReleaseBgThreadStack;
 		SysAllocator<char, 32> s_OlvReleaseBgThreadName;
@@ -155,11 +108,6 @@ namespace nn
 			loadOliveUploadFavoriteTypes();
 			loadOlivePostAndTopicTypes();
 
-			// TODO: loadOlivePortalAppTypes
-			osLib_addFunction("nn_olv", "GetParamPack__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetParamPack);
-			osLib_addFunction("nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetServiceToken);
-			osLib_addFunction("nn_olv", "GetStartUrl__Q4_2nn3olv6hidden14PortalAppParamCFv", exportPortalAppParam_GetStartUrl);
-
 			cafeExportRegisterFunc(GetErrorCode, "nn_olv", "GetErrorCode__Q2_2nn3olvFRCQ2_2nn6Result", LogType::NN_OLV);
 
 			cafeExportRegisterFunc(StubPostApp, "nn_olv", "UploadPostDataByPostApp__Q2_2nn3olvFPCQ3_2nn3olv28UploadPostDataByPostAppParam", LogType::NN_OLV);
@@ -170,14 +118,6 @@ namespace nn
 			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedPostDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv16UploadedPostData", LogType::NN_OLV);
 			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedDirectMessageDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv25UploadedDirectMessageData", LogType::NN_OLV);
 			cafeExportRegisterFunc(StubPostAppResult, "nn_olv", "GetResultWithUploadedCommentDataByPostApp__Q2_2nn3olvFPQ3_2nn3olv19UploadedCommentData", LogType::NN_OLV);
-
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetAppDataSize__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetAppData__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetDefaultBodyMemo__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetExternalBinaryDataSize__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetExternalBinaryData__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetExternalImageDataSize__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(StubPortalApp, "nn_olv", "GetExternalImageData__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
 
 			cafeExportRegisterFunc(UploadedPostData_GetPostId, "nn_olv", "GetPostId__Q3_2nn3olv16UploadedPostDataCFv", LogType::NN_OLV);
 		}

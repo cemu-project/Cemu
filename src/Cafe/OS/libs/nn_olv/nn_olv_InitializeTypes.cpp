@@ -279,8 +279,15 @@ namespace nn
 
 		sint32 InitializePortalApp(nn::olv::PortalAppParam* pPortalAppParam, nn::olv::InitializeParam* pInitializeParam)
 		{
-			// todo - stub
-			Initialize(pInitializeParam);
+			sint32 result = Initialize(pInitializeParam);
+			if (result != OLV_RESULT_SUCCESS)
+				return result;
+
+			memcpy(pPortalAppParam->m_ParamPack, g_ParamPack.encodedParamPack, sizeof(g_ParamPack.encodedParamPack));
+			memcpy(pPortalAppParam->m_ServiceToken, g_DiscoveryResults.serviceToken, sizeof(g_DiscoveryResults.serviceToken));
+
+			snprintf(reinterpret_cast<char*>(pPortalAppParam->m_StartUrl), sizeof(pPortalAppParam->m_StartUrl),
+				"%s/titles/show?src=menu", g_DiscoveryResults.portalEndpoint);
 
 			return OLV_RESULT_SUCCESS;
 		}
@@ -303,4 +310,4 @@ namespace nn
 			return g_IsInitialized;
 		}
 	}
-}
+}
