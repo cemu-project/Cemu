@@ -807,9 +807,7 @@ void MainWindow::OnNFCMenu(wxCommandEvent& event)
 
 void MainWindow::OnFileExit(wxCommandEvent& event)
 {
-	// todo: Safely clean up everything
-	SaveSettings();
-	exit(0);
+	Close();
 }
 
 void MainWindow::TogglePadView()
