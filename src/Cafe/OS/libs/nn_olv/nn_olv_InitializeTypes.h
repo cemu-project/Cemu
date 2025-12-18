@@ -106,8 +106,6 @@ namespace nn
 		public:
 			PortalAppParam()
 			{
-				this->m_serviceToken = ""; // todo
-				this->m_startUrl = "https://discovery.olv.pretendo.cc/v1/endpoint";
 			}
 			static PortalAppParam* __ctor(PortalAppParam* _this)
 			{
@@ -119,28 +117,37 @@ namespace nn
 				else
 					return new (_this) PortalAppParam();
 			}
-
-			std::string GetStartUrl()
-			{
-				return this->m_startUrl;
-			}
-			static std::string __GetStartUrl(PortalAppParam* _this)
-			{
-				return _this->GetStartUrl();
-			}
-
-			std::string GetDefaultBodyMemo()
-			{
-				// todo - i dont think this is right
-				return "Default Body Baby";
-			}
-			static std::string __GetDefaultBodyMemo(PortalAppParam* _this)
-			{
-				return _this->GetDefaultBodyMemo();
-			}
-
-			std::string m_serviceToken;
-			std::string m_startUrl;
+			/*
+			struct PortalAppParam {
+				uint appDataSize; // for all sizes, if it is 0 then it returns null pointer
+				char appData[1024];
+				uint defaultBodyMemoSize;
+				char defaultBodyMemo[153644];
+				uint externalImageDataSize;
+				char externalImageData[524288];
+				uint externalBinaryDataSize;
+				char externalBinaryData[1048576];
+				char paramPack[512];
+				char startUrl[2047];
+				char serviceToken[513];
+				uint startType;
+				char bodyText[512]; // may actually be u16, as in, utf-16
+				char topicTag[304];
+				char searchKey[1520];
+				char externalUrl[256];
+				uint bodyTextMaxLength; // why is it back here
+				char feeling; // it is just a char
+				char padding_0[3];
+				uint communityId;
+				uint userPid;
+				uint flags;
+				char postId[32];
+				int useWebHost; // unknown, only referenced when initializing?, when 0 portalHost is used otherwise webHost
+				char webHost[2047]; // actually the api url
+				char portalHost[2047]; // portal-us.olv.nintendo.net
+				undefined padding_1[3434]; // unreferenced, alignment?
+			};
+			*/
 		};
 
 
@@ -157,6 +164,7 @@ namespace nn
 		static void loadOliveInitializeTypes()
 		{
 			cafeExportRegisterFunc(Initialize, "nn_olv", "Initialize__Q2_2nn3olvFPCQ3_2nn3olv15InitializeParam", LogType::NN_OLV);
+			cafeExportRegisterFunc(InitializePortalApp, "nn_olv", "InitializePortalApp__Q3_2nn3olv6hiddenFPQ4_2nn3olv6hidden14PortalAppParamPCQ3_2nn3olv15InitializeParam", LogType::NN_OLV);
 			cafeExportRegisterFunc(IsInitialized, "nn_olv", "IsInitialized__Q2_2nn3olvFv", LogType::NN_OLV);
 			cafeExportRegisterFunc(Report::GetReportTypes, "nn_olv", "GetReportTypes__Q3_2nn3olv6ReportFv", LogType::NN_OLV);
 			cafeExportRegisterFunc(Report::SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv6ReportFUi", LogType::NN_OLV);
@@ -168,8 +176,6 @@ namespace nn
 			cafeExportRegisterFunc(InitializeParam::__SetSysArgs, "nn_olv", "SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi", LogType::NN_OLV);
 
 			cafeExportRegisterFunc(PortalAppParam::__ctor, "nn_olv", "__ct__Q4_2nn3olv6hidden14PortalAppParamFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(PortalAppParam::__GetStartUrl, "nn_olv", "GetStartUrl__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
-			cafeExportRegisterFunc(PortalAppParam::__GetDefaultBodyMemo, "nn_olv", "GetDefaultBodyMemo__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
 		}
 	}
 }
