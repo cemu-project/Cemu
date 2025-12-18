@@ -268,7 +268,10 @@ static_assert(sizeof(bayo2_audioQueueFixSignature) == sizeof(bayo2_audioQueueFix
 
 uint8 cars3_avro_schema_incref[] = { 0x2C,0x03,0x00,0x00,0x94,0x21,0xFF,0xE8,0x41,0x82,0x00,0x40,0x39,0x03,0x00,0x08,0x39,0x41,0x00,0x08,0x91,0x01,0x00,0x08,0x7D,0x80,0x50,0x28,0x2C,0x0C,0xFF,0xFF,0x41,0x82,0x00,0x28,0x39,0x21,0x00,0x0C,0x38,0x0C,0x00,0x01,0x38,0xE0,0x00,0x01,0x91,0x01,0x00,0x0C,0x7C,0x00,0x49,0x2D };
 
+// For USA titles: 000500301001610a / 000500301001410a
 uint8 miiverse_eshop_url_match_whitelist_func[] = {
+	// For both titles, the code fully matches with the relative
+	// branch targets, even if the absolute targets are different.
 	0x89,0x45,0x00,0x00, // lbz r10, 0x0(r5)
 	0x2c,0x0a,0x00,0x2e, // cmpwi r10, 0x2e
 	0x40,0x82,0x00,0x08, // bne LAB_020ff3a8
@@ -470,8 +473,9 @@ void GamePatch_scan()
 	// Patch out function in Miiverse/eShop wave.rpx that matches
 	// a domain against another to validate its whitelist.
 	// This allows those applets to load any domain.
-	hleAddr = hle_locate(miiverse_eshop_url_match_whitelist_func, nullptr, sizeof(miiverse_eshop_url_match_whitelist_func));
-	if (hleAddr)
+	if (CafeSystem::GetForegroundTitleArgStr().ends_with("wave.rpx")
+		&& (hleAddr = hle_locate(miiverse_eshop_url_match_whitelist_func,
+			nullptr, sizeof(miiverse_eshop_url_match_whitelist_func))))
 	{
 		cemuLog_log(LogType::Force, "Patching Miiverse/eShop whitelist check at: 0x{:08x}", hleAddr);
 		// Always return 1. (Note that the matched pattern is not at the beginning but still works)
