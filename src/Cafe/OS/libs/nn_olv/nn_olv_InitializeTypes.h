@@ -101,6 +101,58 @@ namespace nn
 		};
 		static_assert(sizeof(nn::olv::InitializeParam) == 0x40, "sizeof(nn::olv::InitializeParam) != 0x40");
 
+		class PortalAppParam
+		{
+		public:
+			PortalAppParam()
+			{
+				m_ParamPack[0] = 0;
+				m_ServiceToken[0] = 0;
+				m_StartUrl[0] = 0;
+			}
+			static PortalAppParam* __ctor(PortalAppParam* _this)
+			{
+				if (!_this)
+				{
+					assert_dbg(); // DO NOT CONTINUE, SHOULD NEVER HAPPEN
+					return nullptr;
+				}
+				else
+					return new (_this) PortalAppParam();
+			}
+
+			uint8be* GetParamPack()
+			{
+				return m_ParamPack;
+			}
+			static uint8be* __GetParamPack(PortalAppParam* _this)
+			{
+				return _this->GetParamPack();
+			}
+
+			uint8be* GetServiceToken()
+			{
+				return m_ServiceToken;
+			}
+			static uint8be* __GetServiceToken(PortalAppParam* _this)
+			{
+				return _this->GetServiceToken();
+			}
+
+			uint8be* GetStartUrl()
+			{
+				return m_StartUrl;
+			}
+			static uint8be* __GetStartUrl(PortalAppParam* _this)
+			{
+				return _this->GetStartUrl();
+			}
+
+		public:
+			/* +0x1A5C3C */ uint8be m_ParamPack[0x200];
+			/* +0x1A663B */ uint8be m_ServiceToken[0x201]; // IndependentServiceToken for Miiverse title
+			/* +0x1A5E3C */ uint8be m_StartUrl[0x7ff]; // https://portal-us.olv.nintendo.net/titles/show?src=menu
+		};
 
 		namespace Report
 		{
@@ -110,6 +162,7 @@ namespace nn
 
 		bool IsInitialized();
 		sint32 Initialize(nn::olv::InitializeParam* pParam);
+		sint32 InitializePortalApp(nn::olv::PortalAppParam* pPortalAppParam, nn::olv::InitializeParam* pInitializeParam);
 
 		static void loadOliveInitializeTypes()
 		{
@@ -123,6 +176,12 @@ namespace nn
 			cafeExportRegisterFunc(InitializeParam::__SetWork, "nn_olv", "SetWork__Q3_2nn3olv15InitializeParamFPUcUi", LogType::NN_OLV);
 			cafeExportRegisterFunc(InitializeParam::__SetReportTypes, "nn_olv", "SetReportTypes__Q3_2nn3olv15InitializeParamFUi", LogType::NN_OLV);
 			cafeExportRegisterFunc(InitializeParam::__SetSysArgs, "nn_olv", "SetSysArgs__Q3_2nn3olv15InitializeParamFPCvUi", LogType::NN_OLV);
+
+			cafeExportRegisterFunc(InitializePortalApp, "nn_olv", "InitializePortalApp__Q3_2nn3olv6hiddenFPQ4_2nn3olv6hidden14PortalAppParamPCQ3_2nn3olv15InitializeParam", LogType::NN_OLV);
+			cafeExportRegisterFunc(PortalAppParam::__ctor, "nn_olv", "__ct__Q4_2nn3olv6hidden14PortalAppParamFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(PortalAppParam::__GetParamPack, "nn_olv", "GetParamPack__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(PortalAppParam::__GetServiceToken, "nn_olv", "GetServiceToken__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
+			cafeExportRegisterFunc(PortalAppParam::__GetStartUrl, "nn_olv", "GetStartUrl__Q4_2nn3olv6hidden14PortalAppParamCFv", LogType::NN_OLV);
 		}
 	}
 }

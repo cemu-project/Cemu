@@ -49,6 +49,8 @@ struct actAccountData_t
 	// country & language
 	uint32 countryIndex;
 	char country[8];
+	char timeZoneId[16];
+	sint64 utcOffset;
 	// Mii
 	FFLData_t miiData;
 	uint16le miiNickname[ACT_NICKNAME_LENGTH];
@@ -84,6 +86,8 @@ void FillAccountData(const Account& account, const bool online_enabled, int inde
 	// country & language
 	data.countryIndex = account.GetCountry();
 	strcpy(data.country, NCrypto::GetCountryAsString(data.countryIndex));
+	std::copy(account.GetTimeZoneId().cbegin(), account.GetTimeZoneId().cend(), data.timeZoneId);
+	data.utcOffset = account.GetUtcOffset() / 1'000'000;
 	// Mii
 	std::copy(account.GetMiiData().begin(), account.GetMiiData().end(), (uint8*)&data.miiData);
 	std::copy(account.GetMiiName().begin(), account.GetMiiName().end(), data.miiNickname);
@@ -806,6 +810,13 @@ int iosuAct_thread()
 				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
 				_cancelIfAccountDoesNotExist();
 				strcpy(actCemuRequest->resultString.strBuffer, _actAccountData[accountIndex].country);
+				actCemuRequest->setACTReturnCode(0);
+			}
+			else if (actCemuRequest->requestCode == IOSU_ARC_TIMEZONEID)
+			{
+				accountIndex = iosuAct_getAccountIndexBySlot(actCemuRequest->accountSlot);
+				_cancelIfAccountDoesNotExist();
+				strcpy(actCemuRequest->resultString.strBuffer, _actAccountData[accountIndex].timeZoneId);
 				actCemuRequest->setACTReturnCode(0);
 			}
 			else if (actCemuRequest->requestCode == IOSU_ARC_ISNETWORKACCOUNT)

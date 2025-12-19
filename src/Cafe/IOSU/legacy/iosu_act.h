@@ -117,6 +117,7 @@ struct iosuActCemuRequest_t
 #define IOSU_ARC_MIIDATA				0x0A
 #define IOSU_ARC_ACQUIREINDEPENDENTTOKEN 0x0B
 #define IOSU_ARC_ACQUIREPIDBYNNID		0x0C
+#define IOSU_ARC_TIMEZONEID				0x0D
 
 uint32 iosuAct_getAccountIdOfCurrentAccount();
 
