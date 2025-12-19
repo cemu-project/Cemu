@@ -409,7 +409,6 @@ namespace snd_core
 			catch (std::runtime_error& ex)
 			{
 				cemuLog_log(LogType::Force, "can't initialize tv audio: {}", ex.what());
-				exit(0);
 			}
 		}
 
@@ -423,7 +422,6 @@ namespace snd_core
 			catch (std::runtime_error& ex)
 			{
 				cemuLog_log(LogType::Force, "can't initialize pad audio: {}", ex.what());
-				exit(0);
 			}
 		}
 	}
