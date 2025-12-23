@@ -2005,7 +2005,7 @@ void GeneralSettings2::ApplyConfig()
 	m_crash_dump->SetSelection((int)config.crash_dump.GetValue());
 	m_gdb_port->SetValue(config.gdb_port.GetValue());
 #if ENABLE_METAL
-	m_gpu_capture_dir->SetValue(wxHelper::FromUtf8(config.gpu_capture_dir.GetValue()));
+	m_gpu_capture_dir->SetValue(wxString::FromUTF8(config.gpu_capture_dir.GetValue()));
 	m_framebuffer_fetch->SetValue(config.framebuffer_fetch);
 #endif
 }
