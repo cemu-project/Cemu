@@ -359,7 +359,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 			choices[api_size++] = "Vulkan";
 		}
 #if ENABLE_METAL
-        choices[api_size++] = "Metal";
+		choices[api_size++] = "Metal";
 #endif
 
 		m_graphic_api = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, api_size, choices);
@@ -392,9 +392,11 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_gx2drawdone_sync->SetToolTip(_("If synchronization is requested by the game, the emulated CPU will wait for the GPU to finish all operations.\nThis is more accurate behavior, but may cause lower performance"));
 		graphic_misc_row->Add(m_gx2drawdone_sync, 0, wxALL, 5);
 
+#if ENABLE_METAL
 		m_force_mesh_shaders = new wxCheckBox(box, wxID_ANY, _("Force mesh shaders"));
-		m_force_mesh_shaders->SetToolTip(_("Force mesh shaders on all GPUs that support them. Mesh shaders are disabled by default on Intel GPUs due to potential stability issues"));
+		m_force_mesh_shaders->SetToolTip(_("Force mesh shaders on all GPUs that support them. Mesh shaders are disabled by default on Intel GPUs due to potential stability issues.\nMetal only"));
 		graphic_misc_row->Add(m_force_mesh_shaders, 0, wxALL, 5);
+#endif
 
 		box_sizer->Add(graphic_misc_row, 1, wxEXPAND, 5);
 		graphics_panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -1000,6 +1002,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
 	}
 
+#if ENABLE_METAL
 	{
 		auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
 		debug_row->SetFlexibleDirection(wxBOTH);
@@ -1009,7 +1012,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 
 		m_gpu_capture_dir = new wxTextCtrl(panel, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxTE_DONTWRAP);
 		m_gpu_capture_dir->SetMinSize(wxSize(150, -1));
-		m_gpu_capture_dir->SetToolTip(_("Cemu will save the GPU captures done by selecting Debug -> GPU capture in the menu bar in this directory. If a debugger with support for GPU captures (like Xcode) is attached, the capture will be opened in that debugger instead. If such debugger is not attached, METAL_CAPTURE_ENABLED must be set to 1 as an environment variable."));
+		m_gpu_capture_dir->SetToolTip(_("Cemu will save the GPU captures done by selecting Debug -> GPU capture (Metal) in the menu bar in this directory. If a debugger with support for GPU captures (like Xcode) is attached, the capture will be opened in that debugger instead. If such debugger is not attached, METAL_CAPTURE_ENABLED must be set to 1 as an environment variable."));
 
 		debug_row->Add(m_gpu_capture_dir, 0, wxALL | wxEXPAND, 5);
 		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
@@ -1021,11 +1024,12 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
 		m_framebuffer_fetch = new wxCheckBox(panel, wxID_ANY, _("Framebuffer fetch"));
-		m_framebuffer_fetch->SetToolTip(_("Enable framebuffer fetch for eligible textures on supported devices."));
+		m_framebuffer_fetch->SetToolTip(_("Enable framebuffer fetch for eligible textures on supported devices.\nMetal only"));
 
 		debug_row->Add(m_framebuffer_fetch, 0, wxALL | wxEXPAND, 5);
 		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
 	}
+#endif
 
 	panel->SetSizerAndFit(debug_panel_sizer);
 
@@ -1224,7 +1228,9 @@ void GeneralSettings2::StoreConfig()
 	config.overrideGammaValue = m_overrideGammaValue->GetValue();
 	config.userDisplayGamma = m_userDisplayGamma->GetValue() * !m_userDisplayisSRGB->GetValue();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
+#if ENABLE_METAL
 	config.force_mesh_shaders = m_force_mesh_shaders->IsChecked();
+#endif
 	config.async_compile = m_async_compile->IsChecked();
 
 	config.upscale_filter = m_upscale_filter->GetSelection();
@@ -1257,8 +1263,10 @@ void GeneralSettings2::StoreConfig()
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
 	config.gdb_port = m_gdb_port->GetValue();
+#if ENABLE_METAL
 	config.gpu_capture_dir = m_gpu_capture_dir->GetValue().utf8_string();
 	config.framebuffer_fetch = m_framebuffer_fetch->IsChecked();
+#endif
 
 	GetConfigHandle().Save();
 }
@@ -1710,14 +1718,18 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_gx2drawdone_sync->Enable();
 		m_async_compile->Disable();
+#if ENABLE_METAL
 		m_force_mesh_shaders->Disable();
+#endif
 	}
 	else if (m_graphic_api->GetSelection() == 1)
 	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
+#if ENABLE_METAL
 		m_force_mesh_shaders->Disable();
+#endif
 
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("Double buffering"));
@@ -1750,6 +1762,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 			}
 		}
 	}
+#if ENABLE_METAL
 	else
 	{
 		// Metal
@@ -1764,8 +1777,8 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_graphic_device->Enable();
 		m_graphic_device->Clear();
-#if ENABLE_METAL
-        auto devices = MetalRenderer::GetDevices();
+
+		auto devices = MetalRenderer::GetDevices();
 		if(!devices.empty())
 		{
 			for (const auto& device : devices)
@@ -1784,8 +1797,8 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 				}
 			}
 		}
-#endif
 	}
+#endif
 }
 
 void GeneralSettings2::ApplyConfig()
@@ -1852,7 +1865,9 @@ void GeneralSettings2::ApplyConfig()
 	}
 	m_async_compile->SetValue(config.async_compile);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
+#if ENABLE_METAL
 	m_force_mesh_shaders->SetValue(config.force_mesh_shaders);
+#endif
 	m_upscale_filter->SetSelection(config.upscale_filter);
 	m_downscale_filter->SetSelection(config.downscale_filter);
 	m_fullscreen_scaling->SetSelection(config.fullscreen_scaling);
@@ -1989,8 +2004,10 @@ void GeneralSettings2::ApplyConfig()
 	// debug
 	m_crash_dump->SetSelection((int)config.crash_dump.GetValue());
 	m_gdb_port->SetValue(config.gdb_port.GetValue());
+#if ENABLE_METAL
 	m_gpu_capture_dir->SetValue(wxHelper::FromUtf8(config.gpu_capture_dir.GetValue()));
 	m_framebuffer_fetch->SetValue(config.framebuffer_fetch);
+#endif
 }
 
 void GeneralSettings2::OnAudioAPISelected(wxCommandEvent& event)

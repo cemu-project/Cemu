@@ -40,9 +40,11 @@ private:
 	wxChoice* m_graphic_api;
 
 	wxChoice* m_shader_mul_accuracy;
+#if ENABLE_METAL
 	wxChoice* m_shader_fast_math;
 	wxChoice* m_metal_buffer_cache_mode;
 	wxChoice* m_position_invariance;
+#endif
 	//wxChoice* m_cache_accuracy;
 
 	// audio

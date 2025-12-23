@@ -127,6 +127,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		m_shader_mul_accuracy->SetToolTip(_("EXPERT OPTION\nControls the accuracy of floating point multiplication in shaders.\n\nRecommended: true"));
 		first_row->Add(m_shader_mul_accuracy, 0, wxALL, 5);
 
+#if ENABLE_METAL
 		first_row->Add(new wxStaticText(panel, wxID_ANY, _("Shader fast math")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		wxString math_values[] = { _("false"), _("true") };
@@ -147,6 +148,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 		m_position_invariance = new wxChoice(panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, (int)std::size(pos_values), pos_values);
 		m_position_invariance->SetToolTip(_("EXPERT OPTION\nDisables most optimizations for vertex positions. May fix polygon cutouts or flickering in some games.\n\nMetal only\n\nRecommended: auto"));
 		first_row->Add(m_position_invariance, 0, wxALL, 5);
+#endif
 
 		/*first_row->Add(new wxStaticText(panel, wxID_ANY, _("GPU buffer cache accuracy")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		wxString accuarcy_values[] = { _("high"), _("medium"), _("low") };
@@ -294,9 +296,11 @@ void GameProfileWindow::ApplyProfile()
 	else
 		m_graphic_api->SetSelection(1 + m_game_profile.m_graphics_api.value()); // "", OpenGL, Vulkan, Metal
 	m_shader_mul_accuracy->SetSelection((int)m_game_profile.m_accurateShaderMul);
+#if ENABLE_METAL
 	m_shader_fast_math->SetSelection((int)m_game_profile.m_shaderFastMath);
 	m_metal_buffer_cache_mode->SetSelection((int)m_game_profile.m_metalBufferCacheMode);
 	m_position_invariance->SetSelection((int)m_game_profile.m_positionInvariance);
+#endif
 
 	//// audio
 	//m_disable_audio->Set3StateValue(GetCheckboxState(m_game_profile.disableAudio));
@@ -358,9 +362,11 @@ void GameProfileWindow::SaveProfile()
 	m_game_profile.m_accurateShaderMul = (AccurateShaderMulOption)m_shader_mul_accuracy->GetSelection();
 	if (m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::False && m_game_profile.m_accurateShaderMul != AccurateShaderMulOption::True)
 		m_game_profile.m_accurateShaderMul = AccurateShaderMulOption::True; // force a legal value
+#if ENABLE_METAL
 	m_game_profile.m_shaderFastMath = (bool)m_shader_fast_math->GetSelection();
 	m_game_profile.m_metalBufferCacheMode = (MetalBufferCacheMode)m_metal_buffer_cache_mode->GetSelection();
 	m_game_profile.m_positionInvariance = (PositionInvariance)m_position_invariance->GetSelection();
+#endif
 
 	if (m_graphic_api->GetSelection() == 0)
 		m_game_profile.m_graphics_api = {};
