@@ -497,7 +497,7 @@ void ChecksumTool::VerifyJsonEntry(const rapidjson::Document& doc)
 				if (dialog.ShowModal() != wxID_OK || dialog.GetPath().IsEmpty())
 					return;
 
-				const std::string path = dialog.GetPath().ToUTF8().data();
+				const std::string path = dialog.GetPath().utf8_string();
 				std::ofstream file(path);
 				if (file.is_open())
 				{
@@ -519,7 +519,7 @@ void ChecksumTool::VerifyJsonEntry(const rapidjson::Document& doc)
 					file.flush();
 					file.close();
 
-					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", path)));
+					wxLaunchDefaultBrowser(formatWxString("file:{}", path));
 				}
 				else
 					wxMessageBox(_("Can't open file to write!"), _("Error"), wxOK | wxCENTRE | wxICON_ERROR, this);

@@ -62,8 +62,8 @@ void WindowSystem::ShowErrorDialog(std::string_view message, std::string_view ti
 	if (title.empty())
 		caption = wxASCII_STR(wxMessageBoxCaptionStr);
 	else
-		caption = to_wxString(title);
-	wxMessageBox(to_wxString(message), caption, wxOK | wxCENTRE | wxICON_ERROR);
+		caption = wxString::FromUTF8(title);
+	wxMessageBox(wxString::FromUTF8(message), caption, wxOK | wxCENTRE | wxICON_ERROR);
 }
 
 WindowSystem::WindowInfo& WindowSystem::GetWindowInfo()

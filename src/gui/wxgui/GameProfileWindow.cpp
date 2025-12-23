@@ -248,7 +248,7 @@ void GameProfileWindow::OnControllerProfileDropdown(wxCommandEvent& event)
 	auto profiles = InputManager::get_profiles();
 	for (const auto& profile : profiles)
 	{
-		cb->Append(to_wxString(profile));
+		cb->Append(wxString::FromUTF8(profile));
 	}
 
 	cb->SetStringSelection(selected_value);
@@ -309,7 +309,7 @@ void GameProfileWindow::ApplyProfile()
 		cb->Clear();
 		for (const auto& profile : profiles)
 		{
-			cb->Append(to_wxString(profile));
+			cb->Append(wxString::FromUTF8(profile));
 		}
 	}
 
