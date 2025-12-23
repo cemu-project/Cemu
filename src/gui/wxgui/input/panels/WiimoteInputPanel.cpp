@@ -122,7 +122,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 			continue;
 
 		m_item_sizer->Add(
-			new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(id)))),
+			new wxStaticText(this, wxID_ANY, wxGetTranslation(wxString::FromUTF8(WiimoteController::get_button_name(id)))),
 			wxGBPosition(row, column),
 			wxDefaultSpan,
 			wxALL | wxALIGN_CENTER_VERTICAL, 5);
@@ -158,7 +158,7 @@ WiimoteInputPanel::WiimoteInputPanel(wxWindow* parent)
 
 void WiimoteInputPanel::add_button_row(sint32 row, sint32 column, const WiimoteController::ButtonId &button_id) {
 	m_item_sizer->Add(
-		new wxStaticText(this, wxID_ANY, wxGetTranslation(to_wxString(WiimoteController::get_button_name(button_id)))),
+		new wxStaticText(this, wxID_ANY, wxGetTranslation(wxString::FromUTF8(WiimoteController::get_button_name(button_id)))),
 		wxGBPosition(row, column),
 		wxDefaultSpan,
 		wxALL | wxALIGN_CENTER_VERTICAL, 5);

@@ -719,7 +719,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				std::string customName = "";
 				if (!GetConfig().GetGameListCustomName(title_id, customName))
 					customName.clear();
-				wxTextEntryDialog dialog(this, wxEmptyString, _("Enter a custom game title"), wxHelper::FromUtf8(customName));
+				wxTextEntryDialog dialog(this, wxEmptyString, _("Enter a custom game title"), wxString::FromUTF8(customName));
 				if(dialog.ShowModal() == wxID_OK)
 				{
 					const auto custom_name = dialog.GetValue();
@@ -733,7 +733,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 						if (id == title_id)
 						{
 							if (m_style == Style::kList)
-								SetItem(i, ColumnName, wxHelper::FromUtf8(GetNameByTitleId(title_id)));
+								SetItem(i, ColumnName, wxString::FromUTF8(GetNameByTitleId(title_id)));
 							break;
 						}
 					}
@@ -760,7 +760,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 					wxASSERT(!tokens.empty());
 					const std::string company_code = gameInfo.GetBase().GetMetaInfo()->GetCompanyCode();
 					wxASSERT(company_code.size() >= 2);
-					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2).c_str())));
+					wxLaunchDefaultBrowser(formatWxString("https://wiki.cemu.info/wiki/{}{}", *tokens.rbegin(), company_code.substr(company_code.size() - 2)));
 				}
 				break;
 				}
@@ -1116,7 +1116,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 	if(index == wxNOT_FOUND)
 	{
 		// entry doesn't exist
-		index = InsertItem(FindInsertPosition(baseTitleId), wxHelper::FromUtf8(GetNameByTitleId(baseTitleId)));
+		index = InsertItem(FindInsertPosition(baseTitleId), wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
 		SetItemPtrData(index, baseTitleId);
 		isNewEntry = true;
 	}
@@ -1125,7 +1125,7 @@ void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 	{
 		SetItemColumnImage(index, ColumnIcon, icon_small);
 
-		SetItem(index, ColumnName, wxHelper::FromUtf8(GetNameByTitleId(baseTitleId)));
+		SetItem(index, ColumnName, wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
 
 		SetItem(index, ColumnVersion, fmt::format("{}", gameInfo.GetVersion()));
 

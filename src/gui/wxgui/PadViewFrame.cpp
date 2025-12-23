@@ -226,6 +226,6 @@ void PadViewFrame::OnSetWindowTitle(wxCommandEvent& event)
 void PadViewFrame::AsyncSetTitle(std::string_view windowTitle)
 {
 	wxCommandEvent set_title_event(wxEVT_SET_WINDOW_TITLE);
-	set_title_event.SetString(wxHelper::FromUtf8(windowTitle));
+	set_title_event.SetString(wxString::FromUTF8(windowTitle));
 	QueueEvent(set_title_event.Clone());
 }

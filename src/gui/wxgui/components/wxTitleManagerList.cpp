@@ -384,8 +384,8 @@ void wxTitleManagerList::OnConvertToCompressedFormat(uint64 titleId, uint64 righ
 	defaultFileName.append(".wua");
 
 	// ask the user to provide a path for the output file
-	wxFileDialog saveFileDialog(this, _("Save Wii U game archive file"), defaultDir, wxHelper::FromUtf8(defaultFileName),
-			"WUA files (*.wua)|*.wua", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
+	wxFileDialog saveFileDialog(this, _("Save Wii U game archive file"), defaultDir, wxString::FromUTF8(defaultFileName),
+								"WUA files (*.wua)|*.wua", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 	if (saveFileDialog.ShowModal() == wxID_CANCEL || saveFileDialog.GetPath().IsEmpty())
 		return;
 	fs::path outputPath(wxHelper::MakeFSPath(saveFileDialog.GetPath()));

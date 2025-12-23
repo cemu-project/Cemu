@@ -1593,7 +1593,7 @@ void MainWindow::OnGameLoaded()
 void MainWindow::AsyncSetTitle(std::string_view windowTitle)
 {
 	wxCommandEvent set_title_event(wxEVT_SET_WINDOW_TITLE);
-	set_title_event.SetString(wxHelper::FromUtf8(windowTitle));
+	set_title_event.SetString(wxString::FromUTF8(windowTitle));
 	g_mainFrame->QueueEvent(set_title_event.Clone());
 }
 
@@ -1805,7 +1805,7 @@ void MainWindow::UpdateNFCMenu()
 		if (recentFileIndex == 0)
 			m_nfcMenuSeparator0 = m_nfcMenu->AppendSeparator();
 
-		m_nfcMenu->Append(MAINFRAME_MENU_ID_NFC_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, entry)));
+		m_nfcMenu->Append(MAINFRAME_MENU_ID_NFC_RECENT_0 + i, formatWxString("{}. {}", recentFileIndex, entry));
 
 		recentFileIndex++;
 		if (recentFileIndex >= 12)
@@ -2045,7 +2045,7 @@ public:
 						"/*****************************************************************************/\r\n"
 					);
 					delete fs;
-					wxLaunchDefaultBrowser(wxHelper::FromUtf8(fmt::format("file:{}", _pathToUtf8(tempPath))));
+					wxLaunchDefaultBrowser(formatWxString("file:{}", _pathToUtf8(tempPath)));
 				});
 			lineSizer->Add(noticeLink, 0);
 			lineSizer->Add(new wxStaticText(parent, wxID_ANY, ")"), 0);
@@ -2142,7 +2142,7 @@ void MainWindow::RecreateMenu()
 			const std::string& pathStr = guiConfig.recent_launch_files[i];
 			if (pathStr.empty())
 				continue;
-			recentMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, to_wxString(fmt::format("{}. {}", recentFileIndex, pathStr)));
+			recentMenu->Append(MAINFRAME_MENU_ID_FILE_RECENT_0 + i, formatWxString("{}. {}", recentFileIndex, pathStr));
 			recentFileIndex++;
 
 			if (recentFileIndex >= 10)

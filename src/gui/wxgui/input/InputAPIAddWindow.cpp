@@ -43,7 +43,7 @@ InputAPIAddWindow::InputAPIAddWindow(wxWindow* parent, const wxPoint& position,
 				continue;
 
 			const auto provider = *p.begin();
-			m_input_api->Append(to_wxString(provider->api_name()), new wxTypeData(provider->api()));
+			m_input_api->Append(wxString::FromUTF8(provider->api_name()), new wxTypeData(provider->api()));
 		}
 
 		m_input_api->Bind(wxEVT_CHOICE, &InputAPIAddWindow::on_api_selected, this);
@@ -150,7 +150,7 @@ void InputAPIAddWindow::on_close_button(wxCommandEvent& event)
 bool InputAPIAddWindow::has_custom_settings() const
 {
 	const auto selection = m_input_api->GetStringSelection();
-	return selection == to_wxString(to_string(InputAPI::DSUClient));
+	return selection == wxString::FromUTF8(to_string(InputAPI::DSUClient));
 }
 
 std::unique_ptr<ControllerProviderSettings> InputAPIAddWindow::get_settings() const
@@ -174,7 +174,7 @@ void InputAPIAddWindow::on_api_selected(wxCommandEvent& event)
 
     const auto selection = m_input_api->GetStringSelection();
 	// keyboard is a special case, as theres only one device supported atm
-	if (selection == to_wxString(to_string(InputAPI::Keyboard)))
+	if (selection == wxString::FromUTF8(to_string(InputAPI::Keyboard)))
 	{
 		const auto controllers = InputManager::instance().get_api_provider(InputAPI::Keyboard)->get_controllers();
 		if (!controllers.empty())

@@ -1810,7 +1810,7 @@ void GeneralSettings2::ApplyConfig()
 	if (LaunchSettings::GetMLCPath().has_value())
 		m_mlc_path->SetValue(wxHelper::FromPath(LaunchSettings::GetMLCPath().value()));
 	else
-		m_mlc_path->SetValue(wxHelper::FromUtf8(config.mlc_path.GetValue()));
+		m_mlc_path->SetValue(wxString::FromUTF8(config.mlc_path.GetValue()));
 
 	m_save_window_position_size->SetValue(wxGUIconfig.window_position != Vector2i{-1,-1});
 	m_save_padwindow_position_size->SetValue(wxGUIconfig.pad_position != Vector2i{-1,-1});
@@ -1838,7 +1838,7 @@ void GeneralSettings2::ApplyConfig()
 	m_game_paths->Clear();
 	for (auto& path : config.game_paths)
 	{
-		m_game_paths->Append(to_wxString(path));
+		m_game_paths->Append(wxString::FromUTF8(path));
 	}
 
 	const auto app = (CemuApp*)wxTheApp;

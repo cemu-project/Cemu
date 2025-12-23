@@ -157,7 +157,7 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 }
 
 void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column, const VPADController::ButtonId &button_id) {
-	add_button_row(sizer, row, column, button_id, wxGetTranslation(to_wxString(VPADController::get_button_name(button_id))));
+	add_button_row(sizer, row, column, button_id, wxGetTranslation(wxString::FromUTF8(VPADController::get_button_name(button_id))));
 }
 
 void VPADInputPanel::add_button_row(wxGridBagSizer *sizer, sint32 row, sint32 column,

@@ -253,7 +253,7 @@ void CemuApp::InitializeExistingMLCOrFail(fs::path mlc)
 
 std::string TranslationCallback(std::string_view msgId)
 {
-	return wxGetTranslation(to_wxString(msgId)).utf8_string();
+	return wxGetTranslation(wxString::FromUTF8(msgId)).utf8_string();
 }
 
 bool CemuApp::OnInit()
@@ -304,7 +304,7 @@ bool CemuApp::OnInit()
 
 	for (auto&& path : failedWriteAccess)
 	{
-		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), wxString::FromUTF8(_pathToUtf8(path))),
+		wxMessageBox(formatWxString(_("Cemu can't write to {}!"), wxHelper::FromPath(path)),
 					 _("Warning"), wxOK | wxCENTRE | wxICON_EXCLAMATION, nullptr);
 	}
 
