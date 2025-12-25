@@ -127,6 +127,7 @@ struct wxCemuConfig
 		sHotkeyCfg exitFullscreen;
 		sHotkeyCfg takeScreenshot;
 		sHotkeyCfg toggleFastForward;
+		sHotkeyCfg exitApplication;
 	} hotkeys{};
 
 	void AddRecentlyLaunchedFile(std::string_view file);

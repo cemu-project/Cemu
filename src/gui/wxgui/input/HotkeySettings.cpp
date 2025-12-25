@@ -157,6 +157,7 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 	CreateHotkeyRow(_tr("Toggle fullscreen"), s_cfgHotkeys.toggleFullscreen);
 	CreateHotkeyRow(_tr("Take screenshot"), s_cfgHotkeys.takeScreenshot);
 	CreateHotkeyRow(_tr("Toggle fast-forward"), s_cfgHotkeys.toggleFastForward);
+	CreateHotkeyRow(_tr("Exit application"), s_cfgHotkeys.exitApplication);
 
 	m_controllerTimer = new wxTimer(this);
 	Bind(wxEVT_TIMER, &HotkeySettings::OnControllerTimer, this);
@@ -191,6 +192,9 @@ void HotkeySettings::Init(MainWindow* mainWindowFrame)
 		 }},
 		{&s_cfgHotkeys.toggleFastForward, [](void) {
 			 ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);
+		 }},
+		{&s_cfgHotkeys.exitApplication, [](void) {
+			 s_mainWindow->Close(true);
 		 }},
 	});
 
