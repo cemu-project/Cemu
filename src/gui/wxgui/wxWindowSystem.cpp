@@ -121,7 +121,8 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 	else if (LatteGPUState.glVendor == GLVENDOR_APPLE)
 		graphicMode = "[Apple GPU]";
 
-	windowText.append(fmt::format(" - FPS: {:.2f} {} {}", (double)fps, renderer, graphicMode));
+	const uint64 titleId = CafeSystem::GetForegroundTitleId();
+	windowText.append(fmt::format(" - FPS: {:.2f} {} {} [TitleId: {:08x}-{:08x}]", (double)fps, renderer, graphicMode, (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF)));
 
 	if (ActiveSettings::IsOnlineEnabled())
 	{
