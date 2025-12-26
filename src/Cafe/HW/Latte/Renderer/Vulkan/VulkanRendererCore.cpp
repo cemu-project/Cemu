@@ -1035,68 +1035,21 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 	return dsInfo;
 }
 
-void VulkanRenderer::sync_inputTexturesChanged()
+bool VulkanRenderer::sync_isInputTexturesSyncRequired()
 {
-	bool writeFlushRequired = false;
-
-	if (m_state.activeVertexDS)
-	{
-		for (auto& tex : m_state.activeVertexDS->list_fboCandidates)
+	auto checkSync = [&](const VkDescriptorSetInfo* info) {
+		if (info)
 		{
-			tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
-			if (tex->m_vkFlushIndex_write == m_state.currentFlushIndex)
-				writeFlushRequired = true;
+			for (auto& tex : m_state.activeVertexDS->list_fboCandidates)
+			{
+				tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
+				if (tex->m_vkFlushIndex_write == m_state.currentFlushIndex)
+					return true;
+			}
 		}
-	}
-	if (m_state.activeGeometryDS)
-	{
-		for (auto& tex : m_state.activeGeometryDS->list_fboCandidates)
-		{
-			tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
-			if (tex->m_vkFlushIndex_write == m_state.currentFlushIndex)
-				writeFlushRequired = true;
-		}
-	}
-	if (m_state.activePixelDS)
-	{
-		for (auto& tex : m_state.activePixelDS->list_fboCandidates)
-		{
-			tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
-			if (tex->m_vkFlushIndex_write == m_state.currentFlushIndex)
-				writeFlushRequired = true;
-		}
-	}
-	// barrier here
-	if (writeFlushRequired)
-	{
-		VkMemoryBarrier memoryBarrier{};
-		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memoryBarrier.srcAccessMask = 0;
-		memoryBarrier.dstAccessMask = 0;
-
-		VkPipelineStageFlags srcStage = 0;
-		VkPipelineStageFlags dstStage = 0;
-
-		// src
-		srcStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-		memoryBarrier.srcAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-		srcStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
-		memoryBarrier.srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
-
-		// dst
-		dstStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		memoryBarrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-
-		dstStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		memoryBarrier.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
-
-		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
-
-		m_state.currentFlushIndex++;
-	}
+		return false;
+	};
+	return checkSync(m_state.activeVertexDS) || checkSync(m_state.activeGeometryDS) || checkSync(m_state.activePixelDS);
 }
 
 void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
@@ -1111,7 +1064,7 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 			readFlushRequired = true;
 
 
-		texVk->m_vkFlushIndex_write = m_state.currentFlushIndex;
+		texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
 		// todo - also check for write-before-write ?
 		if (texVk->m_vkFlushIndex_read == m_state.currentFlushIndex)
 			readFlushRequired = true;
@@ -1151,11 +1104,10 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 
 void VulkanRenderer::sync_RenderPassStoreTextures(CachedFBOVk* fboVk)
 {
-	uint32 flushIndex = m_state.currentFlushIndex;
 	for (auto& tex : fboVk->GetTextures())
 	{
 		LatteTextureVk* texVk = (LatteTextureVk*)tex;
-		texVk->m_vkFlushIndex_write = flushIndex;
+		texVk->m_vkFlushIndex_write = m_state.currentFlushIndex;
 	}
 }
 
@@ -1224,20 +1176,22 @@ void VulkanRenderer::draw_setRenderPass()
 	auto vkObjRenderPass = fboVk->GetRenderPassObj();
 	auto vkObjFramebuffer = fboVk->GetFramebufferObj();
 
-	bool overridePassReuse = m_state.hasRenderSelfDependency && (GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
+	const bool syncSkipAllowed = !(GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
-	if (!overridePassReuse && m_state.activeRenderpassFBO == fboVk)
+	const bool FBOChanged = m_state.activeRenderpassFBO != fboVk;
+
+	bool inputSyncNecessary = false;
+	if (m_state.descriptorSetsChanged)
+		inputSyncNecessary = sync_isInputTexturesSyncRequired();
+
+	const bool passReusable = !FBOChanged && !inputSyncNecessary;
+
+	if (passReusable)
 	{
-		if (m_state.descriptorSetsChanged)
-			sync_inputTexturesChanged();
+		// reuse previous render pass
 		return;
 	}
 	draw_endRenderPass();
-	if (m_state.descriptorSetsChanged)
-		sync_inputTexturesChanged();
-
-	// assume that FBO changed, update self-dependency state
-	m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 
 	sync_RenderPassLoadTextures(fboVk);
 

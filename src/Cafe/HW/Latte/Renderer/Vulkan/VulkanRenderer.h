@@ -8,6 +8,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h"
+#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "util/math/vector2.h"
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -546,7 +547,7 @@ private:
 	void draw_handleSpecialState5();
 
 	// draw synchronization helper
-	void sync_inputTexturesChanged();
+	bool sync_isInputTexturesSyncRequired();
 	void sync_RenderPassLoadTextures(CachedFBOVk* fboVk);
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
@@ -824,6 +825,7 @@ private:
 		bufMemBarrier.offset = offset;
 		bufMemBarrier.size = size;
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	template<uint32 TSrcSyncOpA, uint32 TDstSyncOpA, uint32 TSrcSyncOpB, uint32 TDstSyncOpB>
@@ -862,6 +864,7 @@ private:
 		bufMemBarrier[1].size = sizeB;
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStagesA|srcStagesB, dstStagesA|dstStagesB, 0, 0, nullptr, 2, bufMemBarrier, 0, nullptr);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	void barrier_sequentializeTransfer()
@@ -880,6 +883,7 @@ private:
 		memBarrier.dstAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 1, &memBarrier, 0, nullptr, 0, nullptr);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	void barrier_sequentializeCommand()
@@ -888,6 +892,7 @@ private:
 		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 0, nullptr, 0, nullptr);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
@@ -915,6 +920,7 @@ private:
 							 0, NULL,
 							 0, NULL,
 							 1, &imageMemBarrier);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
