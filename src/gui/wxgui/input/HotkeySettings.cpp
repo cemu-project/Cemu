@@ -6,6 +6,7 @@
 #include "HotkeySettings.h"
 #include "MainWindow.h"
 
+#include <wx/app.h>
 #include <wx/clipbrd.h>
 
 #if BOOST_OS_WINDOWS
@@ -157,6 +158,9 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 	CreateHotkeyRow(_tr("Toggle fullscreen"), s_cfgHotkeys.toggleFullscreen);
 	CreateHotkeyRow(_tr("Take screenshot"), s_cfgHotkeys.takeScreenshot);
 	CreateHotkeyRow(_tr("Toggle fast-forward"), s_cfgHotkeys.toggleFastForward);
+#ifdef CEMU_DEBUG_ASSERT
+	CreateHotkeyRow(_tr("End emulation"), s_cfgHotkeys.endEmulation);
+#endif
 	CreateHotkeyRow(_tr("Exit application"), s_cfgHotkeys.exitApplication);
 
 	m_controllerTimer = new wxTimer(this);
@@ -196,6 +200,13 @@ void HotkeySettings::Init(MainWindow* mainWindowFrame)
 		{&s_cfgHotkeys.exitApplication, [](void) {
 			 s_mainWindow->Close(true);
 		 }},
+#ifdef CEMU_DEBUG_ASSERT
+		{&s_cfgHotkeys.endEmulation, [](void) {
+			 wxTheApp->CallAfter([]() {
+				s_mainWindow->EndEmulation();
+			 });
+		 }},
+#endif
 	});
 
 	s_keyboardHotkeyToFuncMap.reserve(s_cfgHotkeyToFuncMap.size());

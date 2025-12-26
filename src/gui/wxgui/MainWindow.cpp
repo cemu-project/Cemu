@@ -331,59 +331,59 @@ MainWindow::MainWindow()
     auto load_title_id = LaunchSettings::GetLoadTitleID();
     bool quick_launch = false;
 
-    if (load_file)
-    {
-        MainWindow::RequestLaunchGame(load_file.value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
-        quick_launch = true;
-    }
-    else if (load_title_id)
-    {
-        TitleInfo info;
-        TitleId baseId;
-        if (CafeTitleList::FindBaseTitleId(load_title_id.value(), baseId) && CafeTitleList::GetFirstByTitleId(baseId, info))
-        {
-            MainWindow::RequestLaunchGame(info.GetPath(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
-            quick_launch = true;
-        }
-        else
-        {
-            wxString errorMsg = fmt::format("Title ID {:016x} not found", load_title_id.value());
-            wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
+	if (load_file)
+	{
+		MainWindow::RequestLaunchGame(load_file.value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+		quick_launch = true;
+	}
+	else if (load_title_id)
+	{
+		TitleInfo info;
+		TitleId baseId;
+		if (CafeTitleList::FindBaseTitleId(load_title_id.value(), baseId) && CafeTitleList::GetFirstByTitleId(baseId, info))
+		{
+			MainWindow::RequestLaunchGame(info.GetPath(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
+			quick_launch = true;
+		}
+		else
+		{
+			wxString errorMsg = fmt::format("Title ID {:016x} not found", load_title_id.value());
+			wxMessageBox(errorMsg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 
-        }
-    }
-    SetSizer(main_sizer);
-    if (!quick_launch)
-    {
-        CreateGameListAndStatusBar();
-    }
-    else
-    {
-      // launching game via -g or -t option. Don't set up or load game list
-      m_game_list = nullptr;
-      m_info_bar = nullptr;
-    }
-    SetSizer(main_sizer);
+		}
+	}
+	SetSizer(main_sizer);
+	if (!quick_launch)
+	{
+		CreateGameListAndStatusBar();
+	}
+	else
+	{
+		// launching game via -g or -t option. Don't set up or load game list
+		m_game_list = nullptr;
+		m_info_bar = nullptr;
+	}
+	SetSizer(main_sizer);
 
-    m_last_mouse_move_time = std::chrono::steady_clock::now();
+	m_last_mouse_move_time = std::chrono::steady_clock::now();
 
-    m_timer = new wxTimer(this, MAINFRAME_ID_TIMER1);
-    m_timer->Start(500);
+	m_timer = new wxTimer(this, MAINFRAME_ID_TIMER1);
+	m_timer->Start(500);
 
-    LoadSettings();
+	LoadSettings();
 
-    #ifdef ENABLE_DISCORD_RPC
-    if (GetWxGUIConfig().use_discord_presence)
-            m_discord = std::make_unique<DiscordPresence>();
-    #endif
+	#ifdef ENABLE_DISCORD_RPC
+	if (GetWxGUIConfig().use_discord_presence)
+			m_discord = std::make_unique<DiscordPresence>();
+	#endif
 
-    Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
-    Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
+	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
+	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
 
-    if (LaunchSettings::GDBStubEnabled())
-    {
-            g_gdbstub = std::make_unique<GDBServer>(GetConfig().gdb_port);
-    }
+	if (LaunchSettings::GDBStubEnabled())
+	{
+			g_gdbstub = std::make_unique<GDBServer>(GetConfig().gdb_port);
+	}
 }
 
 MainWindow::~MainWindow()
@@ -599,12 +599,7 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 	#endif
 
 	if (GetConfig().disable_screensaver)
-	{
 		ScreenSaver::SetInhibit(true);
-		// TODO: disable when only the game, not Cemu, is closed (a feature not yet implemented)
-		// currently unnecessary because this will happen automatically when Cemu closes
-		// ScreenSaver::SetInhibit(false);
-	}
 
 	if (FullscreenEnabled())
 		SetFullScreen(true);
@@ -684,13 +679,7 @@ void MainWindow::OnFileMenu(wxCommandEvent& event)
 	}
 	else if (menuId == MAINFRAME_MENU_ID_FILE_END_EMULATION)
 	{
-        CafeSystem::ShutdownTitle();
-		DestroyCanvas();
-		m_game_launched = false;
-		RecreateMenu();
-        CreateGameListAndStatusBar();
-        DoLayout();
-		UpdateChildWindowTitleRunningState();
+		EndEmulation();
 	}
 }
 
@@ -1046,14 +1035,13 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		if(!GetConfig().vk_accurate_barriers)
 			wxMessageBox(_("Warning: Disabling the accurate barriers option will lead to flickering graphics but may improve performance. It is highly recommended to leave it turned on."), _("Accurate barriers are off"), wxOK);
 	}
-	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE)
-    {
-        cemu_assert_debug(g_renderer->GetType() == RendererAPI::Metal);
-
 #if ENABLE_METAL
-        static_cast<MetalRenderer*>(g_renderer.get())->CaptureFrame();
+	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE)
+	{
+		cemu_assert_debug(g_renderer->GetType() == RendererAPI::Metal);
+		static_cast<MetalRenderer*>(g_renderer.get())->CaptureFrame();
+	}
 #endif
-    }
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY)
 		ActiveSettings::EnableAudioOnlyAux(event.IsChecked());
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_RAM)
@@ -1767,6 +1755,34 @@ void MainWindow::SetFullScreen(bool state)
 		SetMenuVisible(true);
 }
 
+void MainWindow::EndEmulation() // unfinished - memory leaks and crashes after repeated use (after 3x usually)
+{
+	CafeSystem::ShutdownTitle();
+	DestroyCanvas();
+	m_game_launched = false;
+	m_launched_game_name.clear();
+	#ifdef ENABLE_DISCORD_RPC
+	if (m_discord)
+		m_discord->UpdatePresence(DiscordPresence::Idling, "");
+	#endif
+
+	if (GetConfig().disable_screensaver)
+		ScreenSaver::SetInhibit(false);
+
+	// close memory searcher if created
+	if (m_toolWindow)
+	{
+		m_toolWindow->Close();
+		m_toolWindow = nullptr;
+		m_memorySearcherMenuItem->Enable(false);
+	}
+
+	RecreateMenu();
+	CreateGameListAndStatusBar();
+	DoLayout();
+	UpdateChildWindowTitleRunningState();
+}
+
 void MainWindow::SetMenuVisible(bool state)
 {
 	if (m_menu_visible == state)
@@ -2163,6 +2179,7 @@ void MainWindow::RecreateMenu()
 		// add 'Stop emulation' menu entry to file menu
 #ifdef CEMU_DEBUG_ASSERT
 		m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_END_EMULATION, _("Stop emulation"));
+		m_fileMenuSeparator1 = m_fileMenu->AppendSeparator()
 #endif
 	}
 
@@ -2264,7 +2281,7 @@ void MainWindow::RecreateMenu()
 	// nfc submenu
 	wxMenu* nfcMenu = new wxMenu();
 	m_nfcMenu = nfcMenu;
-	nfcMenu->Append(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, _("&Scan NFC tag from file"))->Enable(false);
+	nfcMenu->Append(MAINFRAME_MENU_ID_NFC_TOUCH_NFC_FILE, _("&Scan NFC tag/amiibo from file"))->Enable(false);
 	m_menuBar->Append(nfcMenu, _("&NFC"));
 	m_nfcMenuSeparator0 = nullptr;
 	// debug->logging submenu

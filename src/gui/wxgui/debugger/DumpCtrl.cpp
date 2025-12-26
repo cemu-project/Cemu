@@ -42,11 +42,11 @@ void DumpCtrl::OnDraw(wxDC& dc, sint32 start, sint32 count, const wxPoint& start
 {
 	wxPoint position = start_position;
 	uint32 endAddr = m_memoryRegion.baseAddress + m_memoryRegion.size;
-	RPLModule* currentCodeRPL = RPLLoader_FindModuleByCodeAddr(m_memoryRegion.baseAddress + start);
-	RPLModule* currentDataRPL = RPLLoader_FindModuleByDataAddr(m_memoryRegion.baseAddress + start);
+	RPLModule* currentCodeRPL = RPLLoader_FindModuleByCodeAddr(LineToOffset(start));
+	RPLModule* currentDataRPL = RPLLoader_FindModuleByDataAddr(LineToOffset(start));
 	for (sint32 i = 0; i <= count; i++)
 	{
-		const uint32 virtual_address = m_memoryRegion.baseAddress + (start + i) * 0x10;
+		const uint32 virtual_address = LineToOffset(start + i);
 
 		dc.SetTextForeground(wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		dc.DrawText(wxString::Format("%08x", virtual_address), position);
@@ -174,6 +174,8 @@ void DumpCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 	{
 		const uint32 byte_index = (pos.x / m_char_width) / 3;
 		const uint32 offset = LineToOffset(line) + byte_index;
+		if (!memory_isAddressRangeAccessible(offset, 1))
+			return;
 		const uint8 value = memory_readU8(offset);
 
 		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set byte at address %08x"), offset), wxString::Format("%02x", value));

@@ -116,6 +116,9 @@ void wxCemuConfig::Load(XMLConfigParser& parser)
 	hotkeys.takeScreenshot = xml_hotkeys.get("TakeScreenshot", sHotkeyCfg{uKeyboardHotkey{WXK_F12}});
 	hotkeys.toggleFastForward = xml_hotkeys.get("ToggleFastForward", sHotkeyCfg{});
 	hotkeys.exitApplication = xml_hotkeys.get("ExitApplication", sHotkeyCfg{});
+#ifdef CEMU_DEBUG_ASSERT
+	hotkeys.endEmulation = xml_hotkeys.get("EndEmulation", sHotkeyCfg{uKeyboardHotkey{WXK_F5}});
+#endif
 }
 
 void wxCemuConfig::Save(XMLConfigParser& config)

@@ -71,6 +71,7 @@ public:
 	[[nodiscard]] bool IsGameLaunched() const { return m_game_launched; }
 
 	void SetFullScreen(bool state);
+	void EndEmulation();
 	void SetMenuVisible(bool state);
 	void UpdateNFCMenu();
 	bool IsMenuHidden() const;
