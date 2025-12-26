@@ -84,7 +84,7 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 	}
 	if (isLoading)
 	{
-		windowText.append(" - loading...");
+		windowText.append(" - Loading...");
 		if (g_mainFrame)
 			g_mainFrame->AsyncSetTitle(windowText);
 		return;
@@ -101,6 +101,11 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 		case RendererAPI::Vulkan:
 			renderer = "[Vulkan]";
 			break;
+#if ENABLE_METAL
+		case RendererAPI::Metal:
+			renderer = "[Metal]";
+			break;
+#endif
 		default:;
 		}
 	}
