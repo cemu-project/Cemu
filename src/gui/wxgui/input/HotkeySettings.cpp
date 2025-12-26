@@ -161,6 +161,7 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 #ifdef CEMU_DEBUG_ASSERT
 	CreateHotkeyRow(_tr("End emulation"), s_cfgHotkeys.endEmulation);
 #endif
+	CreateHotkeyRow(_tr("Exit application"), s_cfgHotkeys.exitApplication);
 
 	m_controllerTimer = new wxTimer(this);
 	Bind(wxEVT_TIMER, &HotkeySettings::OnControllerTimer, this);
@@ -195,6 +196,9 @@ void HotkeySettings::Init(MainWindow* mainWindowFrame)
 		 }},
 		{&s_cfgHotkeys.toggleFastForward, [](void) {
 			 ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);
+		 }},
+		{&s_cfgHotkeys.exitApplication, [](void) {
+			 s_mainWindow->Close(true);
 		 }},
 #ifdef CEMU_DEBUG_ASSERT
 		{&s_cfgHotkeys.endEmulation, [](void) {
