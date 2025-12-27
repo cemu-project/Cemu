@@ -8,6 +8,7 @@
 #include "config/ActiveSettings.h"
 #include "util/helpers/Serializer.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
+#include <memory>
 
 std::mutex s_nvidiaWorkaround;
 
@@ -1001,22 +1002,21 @@ bool PipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool show
 
 	void* prevStruct = nullptr;
 
+	auto creationStageFeedback = std::make_unique<VkPipelineCreationFeedbackEXT[]>(pipelineInfo.stageCount);
 	VkPipelineCreationFeedbackCreateInfoEXT creationFeedbackInfo;
 	VkPipelineCreationFeedbackEXT creationFeedback;
-	std::vector<VkPipelineCreationFeedbackEXT> creationStageFeedback(0);
 	if (vkRenderer->m_featureControl.deviceExtensions.pipeline_feedback)
 	{
 		creationFeedback = {};
 		creationFeedback.flags = VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT;
 
-		creationStageFeedback.reserve(pipelineInfo.stageCount);
 		for (uint32_t i = 0; i < pipelineInfo.stageCount; ++i)
-			creationStageFeedback.data()[i] = { VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT, 0 };
+			creationStageFeedback[i] = {VK_PIPELINE_CREATION_FEEDBACK_VALID_BIT_EXT, 0};
 
 		creationFeedbackInfo = {};
 		creationFeedbackInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATION_FEEDBACK_CREATE_INFO_EXT;
 		creationFeedbackInfo.pPipelineCreationFeedback = &creationFeedback;
-		creationFeedbackInfo.pPipelineStageCreationFeedbacks = creationStageFeedback.data();
+		creationFeedbackInfo.pPipelineStageCreationFeedbacks = creationStageFeedback.get();
 		creationFeedbackInfo.pipelineStageCreationFeedbackCount = pipelineInfo.stageCount;
 		creationFeedbackInfo.pNext = prevStruct;
 		prevStruct = &creationFeedbackInfo;
