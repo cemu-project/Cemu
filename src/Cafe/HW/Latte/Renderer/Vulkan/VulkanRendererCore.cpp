@@ -1189,14 +1189,14 @@ void VulkanRenderer::draw_setRenderPass()
 
 	const bool syncSkipAllowed = !m_state.hasRenderSelfDependency || !(GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
+	const bool inputSyncNecessary = sync_isInputTexturesSyncRequired();
+
 	const bool FBOChanged = m_state.activeRenderpassFBO != fboVk;
 
-	const bool passReusable = !FBOChanged && syncSkipAllowed;
+	const bool passReusable = !FBOChanged && !inputSyncNecessary && syncSkipAllowed;
 
 	if (passReusable)
 	{
-		if (sync_isInputTexturesSyncRequired())
-			sync_performFlushBarrier();
 		// reuse previous render pass
 		return;
 	}
