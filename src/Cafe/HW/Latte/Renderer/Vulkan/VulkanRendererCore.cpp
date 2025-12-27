@@ -1097,8 +1097,7 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 		if (texVk->m_vkFlushIndex_write == m_state.currentFlushIndex)
 			flushRequired = true;
 
-		if ((texVk->GetImageAspect() | VK_IMAGE_ASPECT_DEPTH_BIT) != 0)
-			texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
+		texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
 	}
 	if (flushRequired)
 		sync_performFlushBarrier();
