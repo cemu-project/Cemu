@@ -547,6 +547,7 @@ private:
 	void draw_handleSpecialState5();
 
 	// draw synchronization helper
+	void sync_performFlushBarrier();
 	bool sync_isInputTexturesSyncRequired();
 	void sync_RenderPassLoadTextures(CachedFBOVk* fboVk);
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
