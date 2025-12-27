@@ -1033,7 +1033,7 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 	{
 		LatteTextureVk* texVk = (LatteTextureVk*)tex;
 
-		//RAW
+		//RAW / WAW
 		if (texVk->m_vkFlushIndex_write == m_state.currentFlushIndex)
 			flushRequired = true;
 
@@ -1051,9 +1051,6 @@ void VulkanRenderer::sync_RenderPassStoreTextures(CachedFBOVk* fboVk)
 		LatteTextureVk* texVk = (LatteTextureVk*)tex;
 		//WAR
 		if (texVk->m_vkFlushIndex_read == m_state.currentFlushIndex)
-			flushRequired = true;
-		//WAW
-		if (texVk->m_vkFlushIndex_write == m_state.currentFlushIndex)
 			flushRequired = true;
 		texVk->m_vkFlushIndex_write = m_state.currentFlushIndex;
 	}
