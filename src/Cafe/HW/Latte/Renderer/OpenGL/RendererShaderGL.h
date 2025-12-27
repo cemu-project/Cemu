@@ -10,7 +10,7 @@ public:
 
 	virtual ~RendererShaderGL();
 
-	void PreponeCompilation(bool isRenderThread) override;
+	void PreponeCompilation() override;
 	bool IsCompiled() override;
 	bool WaitForCompiled() override;
 
@@ -40,6 +40,6 @@ private:
 	bool m_shader_attached{ false };
 	bool m_isCompiled{ false };
 
-	static class FileCache* s_programBinaryCache;
+	static std::unique_ptr<class FileCache> s_programBinaryCache;
 };
 
