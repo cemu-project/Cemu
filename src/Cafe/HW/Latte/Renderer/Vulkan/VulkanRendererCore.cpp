@@ -1187,7 +1187,7 @@ void VulkanRenderer::draw_setRenderPass()
 
 	const bool syncSkipAllowed = !m_state.hasRenderSelfDependency || !(GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
-	const bool inputSyncNecessary = sync_isInputTexturesSyncRequired();
+	const bool inputSyncNecessary = m_state.descriptorSetsChanged && sync_isInputTexturesSyncRequired();
 
 	const bool FBOChanged = m_state.activeRenderpassFBO != fboVk;
 
