@@ -1070,14 +1070,13 @@ bool VulkanRenderer::sync_isInputTexturesSyncRequired()
 {
 	bool required = false;
 	auto checkSync = [&](const VkDescriptorSetInfo* info) {
-		if (info)
+		if (!info)
+			return;
+		for (auto& tex : info->list_fboCandidates)
 		{
-			for (auto& tex : m_state.activeVertexDS->list_fboCandidates)
-			{
-				tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
-				if (tex->m_vkFlushIndex_write == m_state.currentFlushIndex)
-					required = true;
-			}
+			tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
+			if (tex->m_vkFlushIndex_write == m_state.currentFlushIndex)
+				required = true;
 		}
 	};
 	checkSync(m_state.activeVertexDS);
@@ -1089,6 +1088,7 @@ bool VulkanRenderer::sync_isInputTexturesSyncRequired()
 void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 {
 	bool flushRequired = false;
+
 	for (auto& tex : fboVk->GetTextures())
 	{
 		LatteTextureVk* texVk = (LatteTextureVk*)tex;
@@ -1096,26 +1096,28 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 		//RAW / WAW
 		if (texVk->m_vkFlushIndex_write == m_state.currentFlushIndex)
 			flushRequired = true;
+		//WAR
+		if (texVk->m_vkFlushIndex_read == m_state.currentFlushIndex)
+			flushRequired = true;
 
-		texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
 	}
 	if (flushRequired)
 		sync_performFlushBarrier();
+
+	for (auto& tex : fboVk->GetTextures())
+	{
+		LatteTextureVk* texVk = (LatteTextureVk*)tex;
+		texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
+	}
 }
 
 void VulkanRenderer::sync_RenderPassStoreTextures(CachedFBOVk* fboVk)
 {
-	bool flushRequired = false;
 	for (auto& tex : fboVk->GetTextures())
 	{
 		LatteTextureVk* texVk = (LatteTextureVk*)tex;
-		//WAR
-		if (texVk->m_vkFlushIndex_read == m_state.currentFlushIndex)
-			flushRequired = true;
 		texVk->m_vkFlushIndex_write = m_state.currentFlushIndex;
 	}
-	if (flushRequired)
-		sync_performFlushBarrier();
 }
 
 void VulkanRenderer::draw_prepareDescriptorSets(PipelineInfo* pipeline_info, VkDescriptorSetInfo*& vertexDS, VkDescriptorSetInfo*& pixelDS, VkDescriptorSetInfo*& geometryDS)
@@ -1198,9 +1200,9 @@ void VulkanRenderer::draw_setRenderPass()
 	}
 	draw_endRenderPass();
 
+	sync_RenderPassLoadTextures(fboVk);
 	if (sync_isInputTexturesSyncRequired())
 		sync_performFlushBarrier();
-	sync_RenderPassLoadTextures(fboVk);
 
 	if (m_featureControl.deviceExtensions.dynamic_rendering)
 	{
