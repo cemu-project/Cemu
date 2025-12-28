@@ -43,6 +43,8 @@ PipelineInfo::PipelineInfo(uint64 minimalStateHash, uint64 pipelineHash, LatteFe
 			neverSkipAccurateBarrier = true;
 		if (pixelShader->baseHash == 0x4c0bd596e3aef4a6 && pixelShader->auxHash == 0x003c3c3fc9269249) // BotW foam layer for water on the bottom of waterfalls
 			neverSkipAccurateBarrier = true;
+		if (pixelShader->baseHash == 0x3a7e6b48dae31305 && pixelShader->auxHash == 0x003c3c3fc9269249) // BotW Gerudo Town water
+			neverSkipAccurateBarrier = true;
 	}
 }
 
