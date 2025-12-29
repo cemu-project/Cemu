@@ -2655,9 +2655,13 @@ VkPipeline VulkanRenderer::backbufferBlit_createGraphicsPipeline(VkDescriptorSet
 	pipelineLayoutInfo.pushConstantRangeCount = 1;
 	pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
 
-	VkResult result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
-	if (result != VK_SUCCESS)
-		throw std::runtime_error(fmt::format("Failed to create pipeline layout: {}", result));
+	VkResult result;
+	if (m_pipelineLayout == VK_NULL_HANDLE)
+	{
+		result = vkCreatePipelineLayout(m_logicalDevice, &pipelineLayoutInfo, nullptr, &m_pipelineLayout);
+		if (result != VK_SUCCESS)
+			throw std::runtime_error(fmt::format("Failed to create pipeline layout: {}", result));
+	}
 
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
