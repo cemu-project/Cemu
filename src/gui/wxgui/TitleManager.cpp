@@ -382,7 +382,7 @@ void TitleManager::OnInstallTitle(wxCommandEvent& event)
 	if (openFileDialog.ShowModal() == wxID_CANCEL || openFileDialog.GetPath().IsEmpty())
 		return;
 
-	fs::path filePath(openFileDialog.GetPath().wc_str());
+	fs::path filePath(openFileDialog.GetPath().wc_string());
 	try
 	{
 		filePath = filePath.parent_path();

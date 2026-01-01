@@ -330,19 +330,19 @@ void MemorySearcherTool::Save()
 		{
 			fs->writeLine("[Entry]");
 
-			std::string tmp = "description=" + std::string(m_listEntryTable->GetTextValue(i, 0).mbc_str());
+			std::string tmp = "description=" + m_listEntryTable->GetTextValue(i, 0).ToStdString();
 			fs->writeLine(tmp.c_str());
 
-			tmp = "address=" + std::string(m_listEntryTable->GetTextValue(i, 1).mbc_str());
+			tmp = "address=" + m_listEntryTable->GetTextValue(i, 1).ToStdString();
 			fs->writeLine(tmp.c_str());
 
-			tmp = "type=" + std::string(m_listEntryTable->GetTextValue(i, 2).mbc_str());
+			tmp = "type=" + m_listEntryTable->GetTextValue(i, 2).ToStdString();
 			fs->writeLine(tmp.c_str());
 
 			// only save value when FREEZE is active
 			if (m_listEntryTable->GetToggleValue(i, 4))
 			{
-				tmp = "value=" + std::string(m_listEntryTable->GetTextValue(i, 3).mbc_str());
+				tmp = "value=" + m_listEntryTable->GetTextValue(i, 3).ToStdString();
 			}
 			else
 			{
@@ -420,9 +420,7 @@ void MemorySearcherTool::Reset()
 
 bool MemorySearcherTool::VerifySearchValue() const
 {
-	const auto s1 = m_textValue->GetValue();
-	const auto s2 = s1.c_str();
-	const auto inputString = s2.AsChar();
+	const auto inputString = m_textValue->GetValue().ToStdString();
 
 	switch (m_searchDataType)
 	{
@@ -543,10 +541,10 @@ void MemorySearcherTool::RefreshStashList()
 	{
 		auto freeze = m_listEntryTable->GetToggleValue(i, 4);
 
-		auto addressText = std::string(m_listEntryTable->GetTextValue(i, 1).mbc_str());
-		auto type = std::string(m_listEntryTable->GetTextValue(i, 2).mbc_str());
+		auto addressText = m_listEntryTable->GetTextValue(i, 1).ToStdString();
+		auto type = m_listEntryTable->GetTextValue(i, 2);
 
-		auto address = stol(addressText, nullptr, 16);
+		auto address = std::stol(addressText, nullptr, 16);
 
 		// if freeze is activated, set the value instead of refreshing it
 		if (freeze)
@@ -580,13 +578,13 @@ void MemorySearcherTool::RefreshStashList()
 			}
 			else if (type == kDatatypeInt64)
 			{
-				auto valueText = std::string(var.GetString().mbc_str());
-				auto value = stoull(valueText);
+				auto valueText = var.GetString().ToStdString();
+				auto value = std::stoull(valueText);
 				memory_writeU64(address, value);
 			}
 			else if (type == kDatatypeString)
 			{
-				auto valueText = std::string(var.GetString().mbc_str());
+				auto valueText = var.GetString().ToStdString();
 				for (int i = 0; i < valueText.size(); ++i)
 				{
 					memory_writeU8(address + i, valueText[i]);
@@ -655,8 +653,8 @@ void MemorySearcherTool::SetSearchDataType()
 		m_searchDataType = SearchDataType_None;
 }
 
-template <>
-bool MemorySearcherTool::ConvertStringToType<signed char>(const char* inValue, sint8& outValue) const
+template<>
+bool MemorySearcherTool::ConvertStringToType<signed char>(const std::string& inValue, sint8& outValue) const
 {
 	sint16 tmp;
 	std::istringstream iss(inValue);
@@ -696,8 +694,8 @@ void MemorySearcherTool::OnItemEdited(wxDataViewEvent& event)
 		if (row == wxNOT_FOUND)
 			return;
 
-		auto addressText = std::string(m_listEntryTable->GetTextValue(row, 1).mbc_str());
-		uint32 address = stoul(addressText, nullptr, 16);
+		auto addressText = m_listEntryTable->GetTextValue(row, 1).ToStdString();
+		uint32 address = std::stoul(addressText, nullptr, 16);
 
 		auto type = m_listEntryTable->GetTextValue(row, 2);
 		if (type == kDatatypeFloat)
@@ -727,13 +725,13 @@ void MemorySearcherTool::OnItemEdited(wxDataViewEvent& event)
 		}
 		else if (type == kDatatypeInt64)
 		{
-			auto valueText = std::string(event.GetValue().GetString().mbc_str());
-			auto value = stoull(valueText);
+			auto valueText = event.GetValue().GetString().ToStdString();
+			auto value = std::stoull(valueText);
 			memory_writeU64(address, value);
 		}
 		else if (type == kDatatypeString)
 		{
-			auto valueText = std::string(event.GetValue().GetString().mbc_str());
+			auto valueText = event.GetValue().GetString().ToStdString();
 			for (int i = 0; i < valueText.size(); ++i)
 			{
 				memory_writeU8(address + i, valueText[i]);
