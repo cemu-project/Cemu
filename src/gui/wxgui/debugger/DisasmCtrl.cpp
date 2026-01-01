@@ -251,7 +251,7 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	dc.SetTextForeground(hasPatch ? theme_patchedOpCode : theme_opCode);
 	std::string opName = ppcAssembler_getInstructionName(disasmInstr.ppcAsmCode);
 	std::transform(opName.begin(), opName.end(), opName.begin(), tolower);
-	dc.DrawText(wxString::Format("%-12s", opName), position);
+	dc.DrawText(wxString::Format("%-12s", opName.c_str()), position);
 	position.x += OFFSET_DISASSEMBLY_OPERAND;
 
 	bool isRLWINM = disasmInstr.ppcAsmCode == PPCASM_OP_RLWINM || disasmInstr.ppcAsmCode == PPCASM_OP_RLWINM_ ||
