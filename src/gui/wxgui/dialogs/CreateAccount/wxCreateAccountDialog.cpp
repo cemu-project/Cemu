@@ -52,7 +52,7 @@ wxCreateAccountDialog::wxCreateAccountDialog(wxWindow* parent)
 
 uint32 wxCreateAccountDialog::GetPersistentId() const
 {
-	const std::string id_string = m_persistent_id->GetValue().c_str().AsChar();
+	const std::string id_string = m_persistent_id->GetValue().ToStdString();
 	return ConvertString<uint32>(id_string, 16);
 }
 

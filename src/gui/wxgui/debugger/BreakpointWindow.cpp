@@ -153,7 +153,7 @@ void BreakpointWindow::OnBreakpointToggled(wxListEvent& event)
 		const bool state = m_breakpoints->IsItemChecked(index);
 		wxString line = m_breakpoints->GetItemText(index, ColumnAddress);
 		DebuggerBreakpoint* bp = (DebuggerBreakpoint*)m_breakpoints->GetItemData(index);
-		const uint32 address = std::stoul(line.c_str().AsChar(), nullptr, 16);
+		const uint32 address = std::stoul(line.ToStdString(), nullptr, 16);
 		debugger_toggleBreakpoint(address, state, bp);
 		m_breakpoints->CheckItem(index, state);
 	}

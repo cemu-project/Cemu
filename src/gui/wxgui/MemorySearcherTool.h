@@ -65,8 +65,8 @@ private:
 
 	static bool IsAddressValid(uint32 addr);
 
-	template <typename T>
-	bool ConvertStringToType(const char* inValue, T& outValue) const
+	template<typename T>
+	bool ConvertStringToType(const std::string& inValue, T& outValue) const
 	{
 		std::istringstream iss(inValue);
 		iss >> std::noskipws >> outValue;
@@ -117,9 +117,7 @@ private:
 	template <typename T>
 	ListType_t SearchValues(T* ptr, uint32 size)
 	{
-		const auto value = m_textValue->GetValue();
-		const auto* string_value = value.c_str().AsChar();
-		const auto search_value = ConvertString<T>(string_value);
+		const auto search_value = ConvertString<T>(m_textValue->GetValue().ToStdString());
 
 		const auto* end = (T*)((uint8*)ptr + size - sizeof(T));
 
@@ -148,9 +146,7 @@ private:
 	template <typename T>
 	ListType_t FilterValues()
 	{
-		const auto value = m_textValue->GetValue();
-		const auto* string_value = value.c_str().AsChar();
-		const auto search_value = ConvertString<T>(string_value);
+		const auto search_value = ConvertString<T>(m_textValue->GetValue().ToStdString());
 
 		ListType_t newSearchBuffer;
 		newSearchBuffer.reserve(m_searchBuffer.size());
@@ -195,10 +191,8 @@ wxDECLARE_EVENT_TABLE();
 	bool m_clear_state = false;
 };
 
-template <>
-bool MemorySearcherTool::ConvertStringToType(const char* inValue, sint8& outValue) const;
-
-
+template<>
+bool MemorySearcherTool::ConvertStringToType(const std::string& inValue, sint8& outValue) const;
 
 //
 //template <typename T>

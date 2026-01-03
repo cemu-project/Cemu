@@ -48,5 +48,5 @@ void SymbolWindow::OnGameLoaded()
 
 void SymbolWindow::OnFilterChanged(wxCommandEvent& event)
 {
-	m_symbol_ctrl->ChangeListFilter(m_filter->GetValue().ToStdString());
+	m_symbol_ctrl->ChangeListFilter(m_filter->GetValue());
 }

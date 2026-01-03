@@ -114,7 +114,7 @@ void DebuggerModuleStorage::Load(XMLConfigParser& parser)
 		if (*address_string == '\0')
 			continue;
 
-		uint32 relative_address = std::stoul(address_string, nullptr, 16);
+		uint32 relative_address = std::strtoul(address_string, nullptr, 16);
 		if (relative_address == 0)
 			continue;
 
@@ -157,7 +157,7 @@ void DebuggerModuleStorage::Load(XMLConfigParser& parser)
 		if (*address_string == '\0')
 			continue;
 
-		uint32 address = std::stoul(address_string, nullptr, 16);
+		uint32 address = std::strtoul(address_string, nullptr, 16);
 		if (address == 0)
 			continue;
 

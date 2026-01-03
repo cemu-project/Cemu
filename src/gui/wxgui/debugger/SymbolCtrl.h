@@ -8,8 +8,9 @@ public:
 	SymbolListCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size);
 	void OnGameLoaded();
 
-	void ChangeListFilter(std::string filter);
-private:
+	void ChangeListFilter(wxString filter);
+
+  private:
 	struct SymbolItem {
         SymbolItem() = default;
         SymbolItem(wxString name, wxString libName, wxString searchName, bool visible) : name(name), libName(libName), searchName(searchName), visible(visible) {}

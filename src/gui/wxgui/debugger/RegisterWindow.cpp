@@ -117,7 +117,7 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 
 	sizer->Add(cr_sizer, 0, wxEXPAND);
 	scrolled_win->SetSizerAndFit(sizer);
-	scrolled_win->SetScrollRate(0, GetCharWidth());
+	scrolled_win->SetScrollRate(-1, 10);
 
 	main_sizer->Add(scrolled_win, 1, wxEXPAND);
 	SetSizer(main_sizer);

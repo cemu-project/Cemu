@@ -89,7 +89,7 @@ void ModuleWindow::OnGameLoaded()
 		{
 			wxListItem item;
 			item.SetId(i);
-			item.SetText(module->moduleName2.c_str());
+			item.SetText(module->moduleName2);
 
 			const auto index = m_modules->InsertItem(item);
 			m_modules->SetItem(index, ColumnAddress, wxString::Format("%08x", module->regionMappingBase_text.GetMPTR()));
