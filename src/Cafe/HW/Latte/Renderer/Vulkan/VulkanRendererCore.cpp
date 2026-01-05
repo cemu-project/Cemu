@@ -1094,18 +1094,29 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 {
 	bool flushRequired = false;
 
-	for (auto& tex : fboVk->GetTextures())
-	{
-		LatteTextureVk* texVk = (LatteTextureVk*)tex;
-
+	auto checkImageSyncHazard = [&](LatteTextureVk* texVk, bool isWrite = false) {
 		//RAW / WAW
 		if (texVk->m_vkFlushIndex_write == m_state.currentFlushIndex)
 			flushRequired = true;
 		//WAR
-		if (texVk->m_vkFlushIndex_read == m_state.currentFlushIndex)
+		if (isWrite && texVk->m_vkFlushIndex_read == m_state.currentFlushIndex)
 			flushRequired = true;
+	};
 
-	}
+	for (auto& tex : fboVk->GetTextures())
+		checkImageSyncHazard((LatteTextureVk*)tex, true);
+
+	auto checkViewSync = [&](LatteTextureViewVk* view) {
+		checkImageSyncHazard(view->GetBaseImage());
+	};
+
+	if (m_state.activeVertexDS)
+		m_state.activeVertexDS->ForEachView(checkViewSync);
+	if (m_state.activeGeometryDS)
+		m_state.activeGeometryDS->ForEachView(checkViewSync);
+	if (m_state.activePixelDS)
+		m_state.activePixelDS->ForEachView(checkViewSync);
+
 	if (flushRequired)
 		sync_performFlushBarrier();
 
@@ -1114,6 +1125,19 @@ void VulkanRenderer::sync_RenderPassLoadTextures(CachedFBOVk* fboVk)
 		LatteTextureVk* texVk = (LatteTextureVk*)tex;
 		texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
 	}
+
+	auto updateViewSync = [&](LatteTextureViewVk* view) {
+		view->GetBaseImage()->m_vkFlushIndex_read = m_state.currentFlushIndex;
+	};
+
+	if (m_state.activeVertexDS)
+		m_state.activeVertexDS->ForEachView(updateViewSync);
+	if (m_state.activeGeometryDS)
+		m_state.activeGeometryDS->ForEachView(updateViewSync);
+	if (m_state.activePixelDS)
+		m_state.activePixelDS->ForEachView(updateViewSync);
+
+
 }
 
 void VulkanRenderer::sync_RenderPassStoreTextures(CachedFBOVk* fboVk)

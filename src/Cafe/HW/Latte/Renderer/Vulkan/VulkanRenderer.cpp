@@ -3233,6 +3233,14 @@ void VulkanRenderer::ProcessDestructionQueue()
 	m_spinlockDestructionQueue.unlock();
 }
 
+void VkDescriptorSetInfo::ForEachView(const std::function<void(LatteTextureViewVk*)>& fun)
+{
+	for (auto& view : list_referencedViews)
+	{
+		fun(view);
+	}
+}
+
 VkDescriptorSetInfo::~VkDescriptorSetInfo()
 {
 	for (auto& it : list_referencedViews)
