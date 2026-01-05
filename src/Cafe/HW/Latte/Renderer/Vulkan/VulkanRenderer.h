@@ -27,6 +27,8 @@ struct VkDescriptorSetInfo
 {
 	VKRObjectDescriptorSet* m_vkObjDescriptorSet{};
 
+	void ForEachView(const std::function<void(LatteTextureViewVk*)>& fun);
+
 	~VkDescriptorSetInfo();
 
 	std::vector<LatteTextureViewVk*> list_referencedViews;
