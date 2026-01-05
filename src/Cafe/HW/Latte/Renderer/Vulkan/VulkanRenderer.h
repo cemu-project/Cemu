@@ -412,7 +412,7 @@ private:
 		}
 
 		// invalidation / flushing
-		uint64 currentFlushIndex{0};
+		uint64 currentFlushIndex{1};
 		bool requestFlush{ false }; // flush after every draw operation. The renderpass dependencies dont handle dependencies across multiple drawcalls inside a single renderpass
 
 		// draw sequence
@@ -549,7 +549,7 @@ private:
 	void draw_handleSpecialState5();
 
 	// draw synchronization helper
-	void sync_performFlushBarrier();
+	void sync_performFlushBarrier(CachedFBOVk* fboVk);
 	bool sync_isInputTexturesSyncRequired();
 	void sync_RenderPassLoadTextures(CachedFBOVk* fboVk);
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
