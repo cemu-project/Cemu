@@ -3720,9 +3720,9 @@ void VulkanRenderer::bufferCache_upload(uint8* buffer, sint32 size, uint32 buffe
 
 	vkMemAllocator.FlushReservation(uploadResv);
 
-	barrier_bufferRange<ANY_TRANSFER | HOST_WRITE, ANY_TRANSFER,
-		BUFFER_SHADER_READ, TRANSFER_WRITE>(
-			uploadResv.vkBuffer, uploadResv.bufferOffset, uploadResv.size, // make sure any in-flight transfers are completed
+	barrier_bufferRange<TRANSFER_WRITE | HOST_WRITE, TRANSFER_READ,
+						TRANSFER_READ | BUFFER_SHADER_READ, TRANSFER_WRITE>(
+			uploadResv.vkBuffer, uploadResv.bufferOffset, uploadResv.size, // make sure source data is visible
 			m_bufferCache, bufferOffset, size); // make sure all reads are completed before we overwrite the data
 
 	VkBufferCopy region;
@@ -3731,7 +3731,7 @@ void VulkanRenderer::bufferCache_upload(uint8* buffer, sint32 size, uint32 buffe
 	region.size = size;
 	vkCmdCopyBuffer(m_state.currentCommandBuffer, uploadResv.vkBuffer, m_bufferCache, 1, &region);
 
-	barrier_sequentializeTransfer();
+	barrier_bufferRange<TRANSFER_WRITE, BUFFER_SHADER_READ>(m_bufferCache, bufferOffset, size);
 }
 
 void VulkanRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size)
@@ -3739,7 +3739,10 @@ void VulkanRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32
 	cemu_assert_debug(!m_useHostMemoryForCache);
 	draw_endRenderPass();
 
-	barrier_sequentializeTransfer();
+	barrier_bufferRange<BUFFER_SHADER_WRITE | TRANSFER_WRITE, TRANSFER_READ,
+		TRANSFER_READ | BUFFER_SHADER_READ, TRANSFER_WRITE>(
+			m_bufferCache, srcOffset, size, // make sure source data is visible
+			m_bufferCache, dstOffset, size); // make sure all reads are completed before we overwrite the data
 
 	bool isOverlapping = (srcOffset + size) > dstOffset && (srcOffset) < (dstOffset + size);
 	cemu_assert_debug(!isOverlapping);
@@ -3750,7 +3753,7 @@ void VulkanRenderer::bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32
 	bufferCopy.size = size;
 	vkCmdCopyBuffer(m_state.currentCommandBuffer, m_bufferCache, m_bufferCache, 1, &bufferCopy);
 
-	barrier_sequentializeTransfer();
+	barrier_bufferRange<TRANSFER_WRITE, BUFFER_SHADER_READ>(m_bufferCache, dstOffset, size);
 }
 
 void VulkanRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size)
@@ -3767,12 +3770,10 @@ void VulkanRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uin
 	else
 		dstBuffer = m_bufferCache;
 
-	barrier_bufferRange<BUFFER_SHADER_WRITE, TRANSFER_READ,
-		ANY_TRANSFER | BUFFER_SHADER_READ, TRANSFER_WRITE>(
-			m_xfbRingBuffer, srcOffset, size, // wait for all writes to finish
-			dstBuffer, dstOffset, size); // wait for all reads to finish
-
-	barrier_sequentializeTransfer();
+	barrier_bufferRange<BUFFER_SHADER_WRITE | TRANSFER_WRITE, TRANSFER_READ,
+							TRANSFER_READ | BUFFER_SHADER_READ, TRANSFER_WRITE>(
+			m_xfbRingBuffer, srcOffset, size, // make sure source data is visible
+			dstBuffer, dstOffset, size); // make sure all reads are completed before we overwrite the data
 
 	VkBufferCopy bufferCopy{};
 	bufferCopy.srcOffset = srcOffset;
@@ -3780,7 +3781,7 @@ void VulkanRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uin
 	bufferCopy.size = size;
 	vkCmdCopyBuffer(m_state.currentCommandBuffer, m_xfbRingBuffer, dstBuffer, 1, &bufferCopy);
 
-	barrier_sequentializeTransfer();
+	barrier_bufferRange<TRANSFER_WRITE, BUFFER_SHADER_READ>(dstBuffer, dstOffset, size); // make sure writes are visible to host
 }
 
 void VulkanRenderer::AppendOverlayDebugInfo()

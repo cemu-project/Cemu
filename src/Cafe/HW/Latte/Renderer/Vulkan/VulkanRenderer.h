@@ -870,34 +870,6 @@ private:
 		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
-	void barrier_sequentializeTransfer()
-	{
-		VkMemoryBarrier memBarrier{};
-		memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memBarrier.pNext = nullptr;
-
-		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
-		memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-		memBarrier.dstAccessMask = 0;
-
-		memBarrier.srcAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
-		memBarrier.dstAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
-
-		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 1, &memBarrier, 0, nullptr, 0, nullptr);
-		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
-	}
-
-	void barrier_sequentializeCommand()
-	{
-		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 0, nullptr, 0, nullptr);
-		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
-	}
-
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
 	void barrier_image(VkImage imageVk, VkImageSubresourceRange& subresourceRange, VkImageLayout oldLayout, VkImageLayout newLayout)
 	{
