@@ -1100,19 +1100,18 @@ void VulkanRenderer::sync_performFlushBarrier(CachedFBOVk* fboVk)
 bool VulkanRenderer::sync_isInputTexturesSyncRequired()
 {
 	bool required = false;
-	auto checkSync = [&](const VkDescriptorSetInfo* info) {
-		if (!info)
-			return;
-		for (auto& tex : info->list_fboCandidates)
-		{
-			tex->m_vkFlushIndex_read = m_state.currentFlushIndex;
-			if (tex->m_vkFlushIndex < tex->m_vkFlushIndex_write)
-				required = true;
-		}
+	auto checkSync = [&](LatteTextureViewVk* texViewVk) {
+		LatteTextureVk* texVk = texViewVk->GetBaseImage();
+		texVk->m_vkFlushIndex_read = m_state.currentFlushIndex;
+		if (texVk->m_vkFlushIndex < texVk->m_vkFlushIndex_write)
+			required = true;
 	};
-	checkSync(m_state.activeVertexDS);
-	checkSync(m_state.activeGeometryDS);
-	checkSync(m_state.activePixelDS);
+	if (m_state.activeVertexDS)
+		m_state.activeVertexDS->ForEachView(checkSync);
+	if (m_state.activeGeometryDS)
+		m_state.activeGeometryDS->ForEachView(checkSync);
+	if (m_state.activePixelDS)
+		m_state.activePixelDS->ForEachView(checkSync);
 	return required;
 }
 
