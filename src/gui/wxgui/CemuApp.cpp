@@ -12,6 +12,7 @@
 #include "wxgui/helpers/wxHelpers.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "wxgui/input/HotkeySettings.h"
+#include "wxgui/debugger/DebuggerWindow2.h"
 #include <wx/language.h>
 
 #if ( BOOST_OS_LINUX || BOOST_OS_BSD ) && HAS_WAYLAND
@@ -432,6 +433,30 @@ int CemuApp::FilterEvent(wxEvent& event)
 		const auto& activate_event = (wxActivateEvent&)event;
 		if(!activate_event.GetActive())
 			g_window_info.set_keystatesup();
+	}
+
+	// track if debugger window or its child windows are focused
+	if (g_debugger_window && (event.GetEventType() == wxEVT_SET_FOCUS || event.GetEventType() == wxEVT_ACTIVATE))
+	{
+		wxWindow* target_window = wxDynamicCast(event.GetEventObject(), wxWindow);
+
+		if (target_window && event.GetEventType() == wxEVT_ACTIVATE && !((wxActivateEvent&)event).GetActive())
+			target_window = nullptr;
+
+		if (target_window)
+		{
+			g_window_info.debugger_focused = false;
+			wxWindow* window_it = target_window;
+			while (window_it)
+			{
+				if (window_it == g_debugger_window) g_window_info.debugger_focused = true;
+				window_it = window_it->GetParent();
+			}
+		}
+	}
+	else if (!g_debugger_window)
+	{
+		g_window_info.debugger_focused = false;
 	}
 
 	return wxApp::FilterEvent(event);

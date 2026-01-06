@@ -26,6 +26,8 @@ wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_LOADED, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_UNLOADED, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_NOTIFY_GRAPHIC_PACKS_MODIFIED, wxCommandEvent);
 
+extern class DebuggerWindow2* g_debugger_window;
+
 struct DebuggerConfig
 {
 	DebuggerConfig()
@@ -82,6 +84,7 @@ public:
 
 	bool Show(bool show = true) override;
 	std::wstring GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const;
+
 private:
 	void OnBreakpointHit(wxCommandEvent& event);
 	void OnRunProgram(wxCommandEvent& event);

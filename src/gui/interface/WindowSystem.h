@@ -44,6 +44,7 @@ namespace WindowSystem
 		std::atomic_int32_t restored_pad_width = -1, restored_pad_height = -1;
 
 		std::atomic_bool is_fullscreen;
+		std::atomic_bool debugger_focused;
 
 		void set_keystate(uint32 keycode, bool state)
 		{
