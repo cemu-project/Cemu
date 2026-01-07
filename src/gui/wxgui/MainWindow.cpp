@@ -1147,13 +1147,13 @@ void MainWindow::OnDebugDumpGeneric(wxCommandEvent& event)
 	{
 		try
 		{
-			fs::create_directories(ActiveSettings::GetUserDataPath("dump/shaders"));
+			fs::create_directories(ActiveSettings::GetUserDataPath(dumpSubpath));
 		}
 		catch (const std::exception & ex)
 		{
 			SystemException sys(ex);
-			cemuLog_log(LogType::Force, "can't create shaders dump folder: {}", ex.what());
-			ActiveSettings::EnableDumpShaders(false);
+			cemuLog_log(LogType::Force, "can't create {} folder: {}", dumpSubpath, ex.what());
+			setDumpState(false);
 		}
 	}
 }
