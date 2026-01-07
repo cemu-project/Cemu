@@ -684,17 +684,14 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIn
 	// write texture dump
 	if (textureLoader.dump)
 	{
+		std::filesystem::path outputDir = ActiveSettings::GetUserDataPath("dump/textures");
 
-		std::filesystem::path outputDir = "dump/textures";
-        if (!std::filesystem::exists(outputDir))
-        {
-            std::error_code ec;
-            std::filesystem::create_directories(outputDir, ec);
-        }
+		wchar_t filename[1024];
+		swprintf(filename, 1024, L"%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
+		
+		std::filesystem::path fullPath = outputDir / filename;
 
-		wchar_t path[1024];
-		swprintf(path, 1024, L"dump/textures/%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
-		tga_write_rgba(path, textureLoader.width, textureLoader.height, textureLoader.dumpRGBA);
+		tga_write_rgba(fullPath.c_str(), textureLoader.width, textureLoader.height, textureLoader.dumpRGBA);
 		free(textureLoader.dumpRGBA);
 	}
 	// clean up

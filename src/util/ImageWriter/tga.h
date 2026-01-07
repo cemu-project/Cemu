@@ -1,7 +1,7 @@
 #include "Common/FileStream.h"
 #include <vector>
 
-static bool tga_write_rgba(wchar_t* path, sint32 width, sint32 height, uint8* pixelData) 
+static bool tga_write_rgba(const wchar_t* path, sint32 width, sint32 height, uint8* pixelData) 
 {
 	FileStream* fs = FileStream::createFile(path);
 	if (fs == nullptr)
