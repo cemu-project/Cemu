@@ -684,8 +684,8 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIn
 	// write texture dump
 	if (textureLoader.dump)
 	{
-		wchar_t path[1024];
-		swprintf(path, 1024, L"dump/textures/%08x_fmt%04x_slice%d_mip%02d_%dx%d_tm%02d.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
+		fs::path path = ActiveSettings::GetUserDataPath("dump/textures");
+		path /= fmt::format("{:08x}_fmt{:04x}_slice{:d}_mip{:02d}_{:d}x{:d}_tm{:02d}.tga", physImagePtr, (uint32)tex->format, sliceIndex, mipIndex, tex->width, tex->height, tileMode);
 		tga_write_rgba(path, textureLoader.width, textureLoader.height, textureLoader.dumpRGBA);
 		free(textureLoader.dumpRGBA);
 	}
