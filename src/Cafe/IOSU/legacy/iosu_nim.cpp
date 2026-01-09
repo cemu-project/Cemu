@@ -40,7 +40,7 @@ namespace iosu
 			std::vector<NIMTitleLatestVersion> titlesLatestVersion;
 			// nim packages
 			// note: Seems like scope.rpx expects the number of packages to never change after the initial GetNum call?
-			std::vector<NIMPackage*> packages;
+			std::vector<NIMPackage> packages;
 			bool packageListReady;
 			bool backgroundThreadStarted;
 		} g_nim = {};
@@ -139,11 +139,10 @@ namespace iosu
 				if(latestVersionInfo->version <= (uint32)titleList[i].titleVersion )
 					continue; // already on latest version
 				// add to packages
-				NIMPackage* nimPackage = (NIMPackage*)malloc(sizeof(NIMPackage));
-				memset(nimPackage, 0, sizeof(NIMPackage));
-				nimPackage->titleId = titleId;
-				nimPackage->type = PACKAGE_TYPE_UPDATE;
-				g_nim.packages.push_back(nimPackage);
+				NIMPackage nimPackage{};
+				nimPackage.titleId = titleId;
+				nimPackage.type = PACKAGE_TYPE_UPDATE;
+				g_nim.packages.emplace_back(std::move(nimPackage));
 			}
 			// check for AOC/titles to download
 			// todo
@@ -302,7 +301,7 @@ namespace iosu
 						memset(titleIdList, 0, sizeof(uint64) * maxCount);
 						for (auto& package : g_nim.packages)
 						{
-							titleIdList[count] = _swapEndianU64(package->titleId);
+							titleIdList[count] = _swapEndianU64(package.titleId);
 							count++;
 							if (count >= maxCount)
 								break;
@@ -334,7 +333,7 @@ namespace iosu
 				return;
 			std::vector<idbeIconCacheEntry_t> idbeIconCache = std::vector<idbeIconCacheEntry_t>();
 			g_nim.titlesLatestVersion = std::vector<NIMTitleLatestVersion>();
-			g_nim.packages = std::vector<NIMPackage*>();
+			g_nim.packages.clear();
 			g_nim.packageListReady = false;
 			g_nim.backgroundThreadStarted = false;
 			std::thread t2(iosuNim_thread);
