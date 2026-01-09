@@ -201,7 +201,6 @@ fs::path getTitleSavePath()
 
 void InfoLog_TitleLoaded()
 {
-	cemuLog_createLogFile(false);
 	uint64 titleId = CafeSystem::GetForegroundTitleId();
 	cemuLog_log(LogType::Force, "------- Loaded title -------");
 	cemuLog_log(LogType::Force, "TitleId: {:08x}-{:08x}", (uint32)(titleId >> 32), (uint32)(titleId & 0xFFFFFFFF));
@@ -367,10 +366,9 @@ uint32 LoadSharedData()
 void cemu_initForGame()
 {
 	WindowSystem::UpdateWindowTitles(false, true, 0.0);
+	cemuLog_createLogFile(false);
 	// input manager apply game profile
 	InputManager::instance().apply_game_profile();
-	// log info for launched title
-	InfoLog_TitleLoaded();
 	// determine cycle offset since 1.1.2000
 	uint64 secondsSince2000_UTC = (uint64)(time(NULL) - 946684800);
 	ppcCyclesSince2000_UTC = secondsSince2000_UTC * (uint64)ESPRESSO_CORE_CLOCK;
@@ -389,6 +387,8 @@ void cemu_initForGame()
 	// coreinit is bootstrapped first and then the main game executable is loaded
 	RPLLoader_LoadCoreinit();
 	LoadMainExecutable();
+	// log info for launched title
+	InfoLog_TitleLoaded();
 	// link all modules
 	uint32 linkTimeStart = GetTickCount();
 	RPLLoader_UpdateDependencies();

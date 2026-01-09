@@ -677,7 +677,7 @@ namespace sysapp
 		public:
 		std::string_view GetName() override
 		{
-			return "nsysapp";
+			return "sysapp";
 		}
 
 		void RPLMapped() override
