@@ -543,6 +543,12 @@ void debugger_createPPCStateSnapshot(PPCInterpreter_t* hCPU)
 
 void debugger_enterTW(PPCInterpreter_t* hCPU)
 {
+	// Currently, we don't support multiple threads inside the debugger. Spin loop a thread if we already paused for another breakpoint hit.
+	while (debuggerState.debugSession.isTrapped)
+	{
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+
 	// handle logging points
 	DebuggerBreakpoint* bp = debugger_getFirstBP(hCPU->instructionPointer);
 	bool shouldBreak = debuggerBPChain_hasType(bp, DEBUGGER_BP_T_NORMAL) || debuggerBPChain_hasType(bp, DEBUGGER_BP_T_ONE_SHOT);
