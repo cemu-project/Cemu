@@ -208,7 +208,24 @@ void debugger_handleSingleStepException(uint64 dr6)
 	if (catchBP)
 	{
 		PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
-		debugger_createCodeBreakpoint(hCPU->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
+		if (debuggerState.logOnlyMemoryBreakpoints)
+		{
+			float memValueF = memory_readFloat(debuggerState.activeMemoryBreakpoint->address);
+			uint32 memValue = memory_readU32(debuggerState.activeMemoryBreakpoint->address);
+			cemuLog_log(LogType::Force, "[Debugger] 0x{:08X} was read/written! New Value: 0x{:08X} (float {}) IP: {:08X} LR: {:08X}",
+				debuggerState.activeMemoryBreakpoint->address,
+				memValue,
+				memValueF,
+				hCPU->instructionPointer,
+				hCPU->spr.LR
+			);
+			if (cemuLog_advancedPPCLoggingEnabled())
+				DebugLogStackTrace(coreinit::OSGetCurrentThread(), hCPU->gpr[1]);
+		}
+		else
+		{
+			debugger_createCodeBreakpoint(hCPU->instructionPointer + 4, DEBUGGER_BP_T_ONE_SHOT);
+		}
 	}
 }
 

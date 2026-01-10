@@ -31,10 +31,11 @@ extern class DebuggerWindow2* g_debugger_window;
 struct DebuggerConfig
 {
 	DebuggerConfig()
-	: pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
-	
+	: pin_to_main(true), break_on_start(true), log_memory_breakpoints(false), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
+
 	bool pin_to_main;
 	bool break_on_start;
+	bool log_memory_breakpoints;
 
 	bool show_register;
 	bool show_dump;

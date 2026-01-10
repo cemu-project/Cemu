@@ -142,6 +142,7 @@ struct PPCSnapshot
 typedef struct  
 {
 	bool breakOnEntry;
+	bool logOnlyMemoryBreakpoints;
 	// breakpoints
 	std::vector<DebuggerBreakpoint*> breakpoints;
 	std::vector<DebuggerPatch*> patches;
