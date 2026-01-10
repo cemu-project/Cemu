@@ -2,6 +2,8 @@
 
 #include <wx/wx.h>
 
+class wxListCtrl;
+
 class AudioDebuggerWindow : public wxFrame
 {
 public:

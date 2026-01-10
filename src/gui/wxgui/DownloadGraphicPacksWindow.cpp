@@ -301,7 +301,7 @@ DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
 	m_processBar->SetRange(100);
 	sizer->Add(m_processBar, 0, wxALL | wxEXPAND, 5);
 
-	auto* m_cancelButton = new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
+	auto* m_cancelButton = new wxButton(this, wxID_ANY, _("Cancel"));
 	m_cancelButton->Bind(wxEVT_BUTTON, &DownloadGraphicPacksWindow::OnCancelButton, this);
 	sizer->Add(m_cancelButton, 0, wxALIGN_RIGHT | wxALL, 5);
 

@@ -1,6 +1,10 @@
 #pragma once
 
+#include <wx/frame.h>
+
 class DebuggerWindow2;
+class wxListEvent;
+class wxListView;
 
 class BreakpointWindow : public wxFrame
 {

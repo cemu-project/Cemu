@@ -32,7 +32,7 @@ BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_
 	
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_breakpoints = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+	m_breakpoints = new wxListView(this, wxID_ANY);
 	m_breakpoints->EnableCheckBoxes(true);
 	
 	wxListItem col0;
