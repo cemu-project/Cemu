@@ -26,13 +26,16 @@ wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_LOADED, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_NOTIFY_MODULE_UNLOADED, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_NOTIFY_GRAPHIC_PACKS_MODIFIED, wxCommandEvent);
 
+extern class DebuggerWindow2* g_debugger_window;
+
 struct DebuggerConfig
 {
 	DebuggerConfig()
-	: pin_to_main(true), break_on_start(true), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
-	
+	: pin_to_main(true), break_on_start(true), log_memory_breakpoints(false), show_register(true), show_dump(true), show_stack(true), show_breakpoints(true), show_modules(true), show_symbols(true) {}
+
 	bool pin_to_main;
 	bool break_on_start;
+	bool log_memory_breakpoints;
 
 	bool show_register;
 	bool show_dump;
@@ -82,6 +85,7 @@ public:
 
 	bool Show(bool show = true) override;
 	std::wstring GetModuleStoragePath(std::string module_name, uint32_t crc_hash) const;
+
 private:
 	void OnBreakpointHit(wxCommandEvent& event);
 	void OnRunProgram(wxCommandEvent& event);
