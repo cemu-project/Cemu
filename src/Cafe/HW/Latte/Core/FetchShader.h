@@ -46,8 +46,10 @@ struct LatteFetchShader
 	// Vulkan
 	uint64 vkPipelineHashFragment{}; // hash of all fetch shader state that influences the Vulkan graphics pipeline
 
+#if ENABLE_METAL
 	// Metal
 	bool mtlFetchVertexManually{};
+#endif
 
 	// cache info
 	CacheHash m_cacheHash{};
@@ -55,7 +57,9 @@ struct LatteFetchShader
 
 	void CalculateFetchShaderVkHash();
 
+#if ENABLE_METAL
 	void CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister);
+#endif
 
 	uint64 getVkPipelineHashFragment() const { return vkPipelineHashFragment; };
 

@@ -63,10 +63,12 @@ struct LatteDecompilerShaderResourceMapping
 	sint8 tfStorageBindingPoint{-1};
 	// attributes (vertex shader only)
 	sint8 attributeMapping[LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS];
+#if ENABLE_METAL
 	// Metal exclusive
 	sint8 verticesPerInstanceBinding{-1};
 	sint8 indexBufferBinding{-1};
 	sint8 indexTypeBinding{-1};
+#endif
 
 	sint32 getTextureCount()
 	{
@@ -293,7 +295,9 @@ struct LatteDecompilerOutput_t
 	// mapping and binding information
 	LatteDecompilerShaderResourceMapping resourceMappingGL;
 	LatteDecompilerShaderResourceMapping resourceMappingVK;
+#if ENABLE_METAL
 	LatteDecompilerShaderResourceMapping resourceMappingMTL;
+#endif
 };
 
 struct LatteDecompilerSubroutineInfo;

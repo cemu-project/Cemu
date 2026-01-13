@@ -13,7 +13,9 @@
 #include "AudioDebuggerWindow.h"
 #include "wxgui/canvas/OpenGLCanvas.h"
 #include "wxgui/canvas/VulkanCanvas.h"
+#if ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
+#endif
 #include "Cafe/OS/libs/nfc/nfc.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
 #include "wxgui/debugger/DebuggerWindow2.h"

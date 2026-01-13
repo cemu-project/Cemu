@@ -403,9 +403,11 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 		}
 		else if (cfInstruction->exportType == 0 && cfInstruction->exportArrayBase == 61)
 		{
-		    // Only check for depth buffer mask on Metal, as its not in the PS hash on other backends
-		    if (g_renderer->GetType() != RendererAPI::Metal || LatteMRT::GetActiveDepthBufferMask(*shaderContext->contextRegistersNew))
+#if ENABLE_METAL
+			// Only check for depth buffer mask on Metal, as its not in the PS hash on other backends
+			if (g_renderer->GetType() != RendererAPI::Metal || LatteMRT::GetActiveDepthBufferMask(*shaderContext->contextRegistersNew))
 				shader->depthMask = true;
+#endif
 		}
 		else
 			debugBreakpoint();
@@ -510,6 +512,7 @@ namespace LatteDecompiler
 		}
 	}
 
+#if ENABLE_METAL
 	void _initTextureBindingPointsMTL(LatteDecompilerShaderContext* decompilerContext)
 	{
 		// for Vulkan we use consecutive indices
@@ -521,6 +524,7 @@ namespace LatteDecompiler
 			decompilerContext->currentTextureBindingPointMTL++;
 		}
 	}
+#endif
 
 	void _initHasUniformVarBlock(LatteDecompilerShaderContext* decompilerContext)
 	{
@@ -589,8 +593,10 @@ namespace LatteDecompiler
 		{
 			decompilerContext->output->resourceMappingVK.uniformVarsBufferBindingPoint = decompilerContext->currentBindingPointVK;
 			decompilerContext->currentBindingPointVK++;
+#if ENABLE_METAL
 			decompilerContext->output->resourceMappingMTL.uniformVarsBufferBindingPoint = decompilerContext->currentBufferBindingPointMTL;
 			decompilerContext->currentBufferBindingPointMTL++;
+#endif
 		}
 		// assign binding points to uniform buffers
 		if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CBANK)
@@ -610,8 +616,10 @@ namespace LatteDecompiler
 
 				decompilerContext->output->resourceMappingVK.uniformBuffersBindingPoint[i] = decompilerContext->currentBindingPointVK;
 				decompilerContext->currentBindingPointVK++;
+#if ENABLE_METAL
 				decompilerContext->output->resourceMappingMTL.uniformBuffersBindingPoint[i] = decompilerContext->currentBufferBindingPointMTL;
 				decompilerContext->currentBufferBindingPointMTL++;
+#endif
 			}
 			// for OpenGL we use the relative buffer index
 			for (uint32 i = 0; i < LATTE_NUM_MAX_UNIFORM_BUFFERS; i++)
@@ -633,8 +641,10 @@ namespace LatteDecompiler
 		{
 			decompilerContext->output->resourceMappingVK.tfStorageBindingPoint = decompilerContext->currentBindingPointVK;
 			decompilerContext->currentBindingPointVK++;
+#if ENABLE_METAL
 			decompilerContext->output->resourceMappingMTL.tfStorageBindingPoint = decompilerContext->currentBufferBindingPointMTL;
 			decompilerContext->currentBufferBindingPointMTL++;
+#endif
 		}
 	}
 
@@ -651,7 +661,9 @@ namespace LatteDecompiler
 			{
 				decompilerContext->output->resourceMappingGL.attributeMapping[i] = bindingIndex;
 				decompilerContext->output->resourceMappingVK.attributeMapping[i] = bindingIndex;
+#if ENABLE_METAL
 				decompilerContext->output->resourceMappingMTL.attributeMapping[i] = bindingIndex;
+#endif
 				bindingIndex++;
 			}
 		}
@@ -1109,10 +1121,14 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		shaderContext->output->resourceMappingVK.setIndex = 2;
 	LatteDecompiler::_initTextureBindingPointsGL(shaderContext);
 	LatteDecompiler::_initTextureBindingPointsVK(shaderContext);
+#if ENABLE_METAL
 	LatteDecompiler::_initTextureBindingPointsMTL(shaderContext);
+#endif
 	LatteDecompiler::_initUniformBindingPoints(shaderContext);
 	LatteDecompiler::_initAttributeBindingPoints(shaderContext);
+#if ENABLE_METAL
 	shaderContext->output->resourceMappingMTL.verticesPerInstanceBinding = shaderContext->currentBufferBindingPointMTL++;
 	shaderContext->output->resourceMappingMTL.indexBufferBinding = shaderContext->currentBufferBindingPointMTL++;
 	shaderContext->output->resourceMappingMTL.indexTypeBinding = shaderContext->currentBufferBindingPointMTL++;
+#endif
 }

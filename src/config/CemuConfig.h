@@ -121,6 +121,7 @@ enum class AccurateShaderMulOption
 };
 ENABLE_ENUM_ITERATORS(AccurateShaderMulOption, AccurateShaderMulOption::False, AccurateShaderMulOption::True);
 
+#if ENABLE_METAL
 enum class MetalBufferCacheMode
 {
     Auto,
@@ -129,6 +130,7 @@ enum class MetalBufferCacheMode
     Host,
 };
 ENABLE_ENUM_ITERATORS(MetalBufferCacheMode, MetalBufferCacheMode::Auto, MetalBufferCacheMode::Host);
+#endif
 
 enum class PositionInvariance
 {
@@ -235,6 +237,7 @@ struct fmt::formatter<AccurateShaderMulOption> : formatter<string_view> {
 		return formatter<string_view>::format(name, ctx);
 	}
 };
+#if ENABLE_METAL
 template <>
 struct fmt::formatter<MetalBufferCacheMode> : formatter<string_view> {
 	template <typename FormatContext>
@@ -251,6 +254,7 @@ struct fmt::formatter<MetalBufferCacheMode> : formatter<string_view> {
 		return formatter<string_view>::format(name, ctx);
 	}
 };
+#endif
 template <>
 struct fmt::formatter<PositionInvariance> : formatter<string_view> {
 	template <typename FormatContext>
@@ -433,7 +437,9 @@ struct CemuConfig
 	// graphics
 	ConfigValue<GraphicAPI> graphic_api{ kVulkan };
 	std::array<uint8, 16> vk_graphic_device_uuid;
+#if ENABLE_METAL
 	uint64 mtl_graphic_device_uuid{ 0 };
+#endif
 	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = depending on render backend
 	ConfigValue<bool> gx2drawdone_sync { true };
 	ConfigValue<bool> render_upside_down{ false };

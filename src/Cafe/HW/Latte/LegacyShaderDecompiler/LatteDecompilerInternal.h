@@ -117,11 +117,10 @@ struct LatteDecompilerCFInstruction
 
 #if BOOST_OS_WINDOWS
 	LatteDecompilerCFInstruction(LatteDecompilerCFInstruction& mE) = default;
-	LatteDecompilerCFInstruction(LatteDecompilerCFInstruction&& mE) = default;
 #else
 	LatteDecompilerCFInstruction(const LatteDecompilerCFInstruction& mE) = default;
-	LatteDecompilerCFInstruction(LatteDecompilerCFInstruction&& mE) = default;
 #endif
+	LatteDecompilerCFInstruction(LatteDecompilerCFInstruction&& mE) = default;
 
 	LatteDecompilerCFInstruction& operator=(LatteDecompilerCFInstruction&& mE) = default;
 };
@@ -260,8 +259,10 @@ struct LatteDecompilerShaderContext
 	// emitter
 	bool hasUniformVarBlock;
 	sint32 currentBindingPointVK{};
+#if ENABLE_METAL
 	sint32 currentBufferBindingPointMTL{};
 	sint32 currentTextureBindingPointMTL{};
+#endif
 	struct ALUClauseTemporariesState* aluPVPSState{nullptr};
 	// misc
 	std::vector<LatteDecompilerSubroutineInfo> list_subroutines;
@@ -270,7 +271,9 @@ struct LatteDecompilerShaderContext
 void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
 void LatteDecompiler_analyzeDataTypes(LatteDecompilerShaderContext* shaderContext);
 void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
+#if ENABLE_METAL
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
+#endif
 
 void LatteDecompiler_cleanup(LatteDecompilerShaderContext* shaderContext);
 

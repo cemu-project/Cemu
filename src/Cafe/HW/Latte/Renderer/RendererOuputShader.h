@@ -43,7 +43,9 @@ public:
 
 	static std::string GetOpenGlVertexSource(bool render_upside_down);
 	static std::string GetVulkanVertexSource(bool render_upside_down);
+#if ENABLE_METAL
 	static std::string GetMetalVertexSource(bool render_upside_down);
+#endif
 
 	static std::string PrependFragmentPreamble(const std::string& shaderSrc);
 
@@ -69,7 +71,9 @@ private:
 	static const std::string s_bicubic_shader_source_vk;
 	static const std::string s_hermite_shader_source_vk;
 
+#if ENABLE_METAL
 	static const std::string s_copy_shader_source_mtl;
 	static const std::string s_bicubic_shader_source_mtl;
 	static const std::string s_hermite_shader_source_mtl;
+#endif
 };
