@@ -128,9 +128,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	auto graphic = parser.get("Graphic");
 	graphic_api = graphic.get("api", kOpenGL);
 	graphic.get("vkDevice", vk_graphic_device_uuid);
-#if ENABLE_METAL
 	mtl_graphic_device_uuid = graphic.get("mtlDevice", 0);
-#endif
 	vsync = graphic.get("VSync", 0);
 	overrideAppGammaPreference = graphic.get("OverrideAppGammaPreference", false);
 	overrideGammaValue = graphic.get("OverrideGammaValue", 2.2f);
@@ -362,9 +360,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	auto graphic = config.set("Graphic");
 	graphic.set("api", graphic_api);
 	graphic.set("vkDevice", vk_graphic_device_uuid);
-#if ENABLE_METAL
 	graphic.set("mtlDevice", mtl_graphic_device_uuid);
-#endif
 	graphic.set("VSync", vsync);
 	graphic.set("OverrideAppGammaPreference", overrideAppGammaPreference);
 	graphic.set("OverrideGammaValue", overrideGammaValue);

@@ -10,7 +10,6 @@ void outputShader()
 }
 )";
 
-#if ENABLE_METAL
 const std::string RendererOutputShader::s_copy_shader_source_mtl =
 R"(#include <metal_stdlib>
 using namespace metal;
@@ -23,7 +22,6 @@ fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[t
 	return float4(textureSrc.sample(samplr, in.uv).rgb, 1.0);
 }
 )";
-#endif
 
 const std::string RendererOutputShader::s_bicubic_shader_source =
 R"(
@@ -71,7 +69,6 @@ void outputShader(){
 }
 )";
 
-#if ENABLE_METAL
 const std::string RendererOutputShader::s_bicubic_shader_source_mtl =
 R"(#include <metal_stdlib>
 using namespace metal;
@@ -122,7 +119,6 @@ fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[t
 	return float4(bcFilter(textureSrc, samplr, in.uv * textureSrcResolution, float2(1.0, 1.0) / textureSrcResolution).rgb, 1.0);
 }
 )";
-#endif
 
 const std::string RendererOutputShader::s_hermite_shader_source =
 R"(
@@ -183,7 +179,6 @@ void outputShader(){
 }
 )";
 
-#if ENABLE_METAL
 const std::string RendererOutputShader::s_hermite_shader_source_mtl =
 R"(#include <metal_stdlib>
 using namespace metal;
@@ -247,7 +242,6 @@ fragment float4 main0(VertexOut in [[stage_in]], texture2d<float> textureSrc [[t
 	return float4(BicubicHermiteTexture(textureSrc, samplr, in.uv, texelSize), 1.0);
 }
 )";
-#endif
 
 RendererOutputShader::RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source)
 {
@@ -443,7 +437,6 @@ void main(){
 		return vertex_source.str();
 }
 
-#if ENABLE_METAL
 std::string RendererOutputShader::GetMetalVertexSource(bool render_upside_down)
 {
 	// vertex shader
@@ -481,7 +474,6 @@ vertex VertexOut main0(ushort vid [[vertex_id]]) {
 )";
 		return vertex_source.str();
 }
-#endif
 
 std::string RendererOutputShader::PrependFragmentPreamble(const std::string& shaderSrc)
 {
@@ -543,7 +535,6 @@ void RendererOutputShader::InitializeStatic()
 {
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
-#if ENABLE_METAL
 		std::string vertex_source = GetMetalVertexSource(false);
 		std::string vertex_source_ud = GetMetalVertexSource(true);
 
@@ -555,7 +546,6 @@ void RendererOutputShader::InitializeStatic()
 
 		s_hermit_shader = new RendererOutputShader(vertex_source, s_hermite_shader_source_mtl);
 		s_hermit_shader_ud = new RendererOutputShader(vertex_source_ud, s_hermite_shader_source_mtl);
-#endif
 	}
 	else
 	{
