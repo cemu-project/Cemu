@@ -14,7 +14,7 @@ namespace LatteDecompiler
 
 		src->add("struct SupportBuffer {" _CRLF);
 
-		sint32 uniformCurrentOffset = 0;
+		uint32 uniformCurrentOffset = 0;
 		auto shader = decompilerContext->shader;
 		auto shaderType = decompilerContext->shader->shaderType;
 		if (decompilerContext->shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_REMAPPED)

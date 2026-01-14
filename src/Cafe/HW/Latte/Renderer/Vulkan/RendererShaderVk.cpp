@@ -226,32 +226,6 @@ void RendererShaderVk::Shutdown()
 	ShaderVkThreadPool.StopThreads();
 }
 
-sint32 RendererShaderVk::GetUniformLocation(const char* name)
-{
-	cemu_assert_suspicious();
-	return 0;
-}
-
-void RendererShaderVk::SetUniform1i(sint32 location, sint32 value)
-{
-	cemu_assert_suspicious();
-}
-
-void RendererShaderVk::SetUniform1f(sint32 location, float value)
-{
-	cemu_assert_suspicious();
-}
-
-void RendererShaderVk::SetUniform2fv(sint32 location, void* data, sint32 count)
-{
-	cemu_assert_suspicious();
-}
-
-void RendererShaderVk::SetUniform4iv(sint32 location, void* data, sint32 count)
-{
-	cemu_assert_suspicious();
-}
-
 void RendererShaderVk::CreateVkShaderModule(std::span<uint32> spirvBuffer)
 {
 	VkShaderModuleCreateInfo createInfo{};
