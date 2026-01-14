@@ -283,6 +283,7 @@ jobs:
         mv bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
         sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu_app/Cemu.app/Contents/Info.plist
         chmod a+x bin/Cemu_app/Cemu.app/Contents/MacOS/{Cemu,update.sh}
+        codesign --force --deep --preserve-metadata=entitlements,requirements,flags,runtime --sign - bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
         ln -s /Applications bin/Cemu_app/Applications
         hdiutil create ./bin/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./bin/Cemu_app"
         hdiutil convert ./bin/tmp.dmg -format UDZO -o bin/Cemu.dmg
