@@ -1690,7 +1690,9 @@ MTL::CommandBuffer* MetalRenderer::GetCommandBuffer()
         // Debug
         //m_commandQueue->insertDebugCaptureBoundary();
 
-	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer();
+        auto pool = NS::AutoreleasePool::alloc()->init();
+	    MTL::CommandBuffer* mtlCommandBuffer = m_commandQueue->commandBuffer()->retain();
+		pool->release();
 		m_currentCommandBuffer = {mtlCommandBuffer};
 
 		// Wait for the previous command buffer
@@ -1717,7 +1719,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetTemporaryRenderCommandEncoder(MTL::
 
     auto commandBuffer = GetCommandBuffer();
 
-    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor);
+    auto pool = NS::AutoreleasePool::alloc()->init();
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor)->retain();
+    pool->release();
 #ifdef CEMU_DEBUG_ASSERT
     renderCommandEncoder->setLabel(GetLabel("Temporary render command encoder", renderCommandEncoder));
 #endif
@@ -1780,7 +1784,9 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
     auto commandBuffer = GetCommandBuffer();
 
-    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO.m_fbo->GetRenderPassDescriptor());
+    auto pool = NS::AutoreleasePool::alloc()->init();
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO.m_fbo->GetRenderPassDescriptor())->retain();
+    pool->release();
 #ifdef CEMU_DEBUG_ASSERT
     renderCommandEncoder->setLabel(GetLabel("Render command encoder", renderCommandEncoder));
 #endif
@@ -1813,7 +1819,9 @@ MTL::ComputeCommandEncoder* MetalRenderer::GetComputeCommandEncoder()
 
     auto commandBuffer = GetCommandBuffer();
 
-    auto computeCommandEncoder = commandBuffer->computeCommandEncoder();
+    auto pool = NS::AutoreleasePool::alloc()->init();
+    auto computeCommandEncoder = commandBuffer->computeCommandEncoder()->retain();
+    pool->release();
     m_commandEncoder = computeCommandEncoder;
     m_encoderType = MetalEncoderType::Compute;
 
@@ -1836,7 +1844,9 @@ MTL::BlitCommandEncoder* MetalRenderer::GetBlitCommandEncoder()
 
     auto commandBuffer = GetCommandBuffer();
 
-    auto blitCommandEncoder = commandBuffer->blitCommandEncoder();
+    auto pool = NS::AutoreleasePool::alloc()->init();
+    auto blitCommandEncoder = commandBuffer->blitCommandEncoder()->retain();
+    pool->release();
     m_commandEncoder = blitCommandEncoder;
     m_encoderType = MetalEncoderType::Blit;
 
