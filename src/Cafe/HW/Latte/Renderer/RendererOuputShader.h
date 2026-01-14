@@ -13,7 +13,7 @@ public:
 		Vector2f textureSrcResolution;
 		Vector2f nativeResolution;
 		Vector2f outputResolution;
-		bool applySRGBEncoding;
+		uint32 applySRGBEncoding;
 		float targetGamma;
 		float displayGamma;
 	};
