@@ -198,7 +198,9 @@ void HotkeySettings::Init(MainWindow* mainWindowFrame)
 			 ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);
 		 }},
 		{&s_cfgHotkeys.exitApplication, [](void) {
-			 s_mainWindow->Close(true);
+			auto closeEvent = new wxCloseEvent{wxEVT_CLOSE_WINDOW, s_mainWindow->GetId()};
+			closeEvent->SetCanVeto(false);
+			wxQueueEvent(s_mainWindow, closeEvent);
 		 }},
 #ifdef CEMU_DEBUG_ASSERT
 		{&s_cfgHotkeys.endEmulation, [](void) {
