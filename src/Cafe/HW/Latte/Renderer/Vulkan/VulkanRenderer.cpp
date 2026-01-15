@@ -784,9 +784,6 @@ void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
 	{
 		m_mainSwapchainInfo = std::make_unique<SwapchainInfoVk>(mainWindow, size);
 		m_mainSwapchainInfo->Create();
-
-		// aquire first command buffer
-		InitFirstCommandBuffer();
 	}
 	else
 	{
@@ -1659,6 +1656,7 @@ void VulkanRenderer::ImguiInit()
 void VulkanRenderer::Initialize()
 {
 	Renderer::Initialize();
+	InitFirstCommandBuffer();
 	CreatePipelineCache();
 	ImguiInit();
 	CreateNullObjects();
