@@ -534,9 +534,6 @@ private:
         MTL::CommandBuffer* m_lastCommandBuffer = nullptr;
 	} m_occlusionQuery;
 
-	// Autorelease pool
-	NS::AutoreleasePool* m_autoreleasePool;
-
 	// Active objects
 	MetalCommandBuffer m_currentCommandBuffer{};
 	std::vector<MTL::CommandBuffer*> m_executingCommandBuffers;
