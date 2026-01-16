@@ -1,5 +1,7 @@
 #pragma once
 
+#include <wx/frame.h>
+
 #define WM_CREATE_PAD	(WM_USER+1)
 #define WM_DESTROY_PAD	(WM_USER+2)
 

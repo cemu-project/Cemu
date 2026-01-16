@@ -3,7 +3,16 @@
 #include <wx/propgrid/propgrid.h>
 #include <Cafe/Account/Account.h>
 
+class wxCheckBox;
+class wxChoice;
 class wxColourPickerCtrl;
+class wxListBox;
+class wxNotebook;
+class wxRadioBox;
+class wxSlider;
+class wxSpinCtrl;
+class wxSpinCtrlDouble;
+class wxStaticText;
 
 wxDECLARE_EVENT(wxEVT_ACCOUNTLIST_REFRESH, wxCommandEvent);
 

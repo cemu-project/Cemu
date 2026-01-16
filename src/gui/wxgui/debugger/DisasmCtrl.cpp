@@ -72,7 +72,7 @@ static wxColour theme_patchedData;
 static void InitSyntaxColors()
 {
 	theme_textForeground = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
-	theme_textForegroundMuted = wxSystemSettings::GetAppearance().IsDark() ? wxColour(140,142,145) : wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+	theme_textForegroundMuted = wxSystemSettings::SelectLightDark(wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT), wxColour(140, 142, 145));
 	theme_background = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
 
 	// line background highlights
