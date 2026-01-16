@@ -219,7 +219,7 @@ struct LatteDecompilerShader
 		float ufCurrentValueFragCoordScale[2];
 		sint32 loc_verticesPerInstance;
 		sint32 loc_streamoutBufferBase[LATTE_NUM_STREAMOUT_BUFFER];
-		sint32 uniformRangeSize; // entire size of uniform variable block
+		uint32 uniformRangeSize; // entire size of uniform variable block
 	}uniform{ 0 };
 	// fast access
 	struct _RemappedUniformBufferGroup

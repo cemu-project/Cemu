@@ -376,6 +376,68 @@ void VulkanRenderer::indexData_uploadIndexMemory(IndexAllocation& allocation)
 
 float s_vkUniformData[512 * 4];
 
+uint32 VulkanRenderer::uniformData_uploadUniformDataBufferGetOffset(std::span<uint8> data)
+{
+	const uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
+	const uint32 uniformSize = (data.size() + bufferAlignmentM1) & ~bufferAlignmentM1;
+
+	auto waitWhileCondition = [&](std::function<bool()> condition) {
+		while (condition())
+		{
+			if (m_commandBufferSyncIndex == m_commandBufferIndex)
+			{
+				if (m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
+				{
+					draw_endRenderPass();
+					SubmitCommandBuffer();
+				}
+				else
+				{
+					// submitting work would not change readIndex, so there's no way for conditions based on it to change
+					cemuLog_log(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
+					cemu_assert_suspicious();
+					break;
+				}
+			}
+			WaitForNextFinishedCommandBuffer();
+		}
+	};
+
+	// wrap around if it doesnt fit consecutively
+	if (m_uniformVarBufferWriteIndex + uniformSize > UNIFORMVAR_RINGBUFFER_SIZE)
+	{
+		waitWhileCondition([&]() {
+			return m_uniformVarBufferReadIndex > m_uniformVarBufferWriteIndex || m_uniformVarBufferReadIndex == 0;
+		});
+		m_uniformVarBufferWriteIndex = 0;
+	}
+
+	auto ringBufRemaining = [&]() {
+		ssize_t ringBufferUsedBytes = (ssize_t)m_uniformVarBufferWriteIndex - m_uniformVarBufferReadIndex;
+		if (ringBufferUsedBytes < 0)
+			ringBufferUsedBytes += UNIFORMVAR_RINGBUFFER_SIZE;
+		return UNIFORMVAR_RINGBUFFER_SIZE - 1 - ringBufferUsedBytes;
+	};
+	waitWhileCondition([&]() {
+		return ringBufRemaining() < uniformSize;
+	});
+
+	const uint32 uniformOffset = m_uniformVarBufferWriteIndex;
+	memcpy(m_uniformVarBufferPtr + uniformOffset, data.data(), data.size());
+	m_uniformVarBufferWriteIndex += uniformSize;
+	// flush if not coherent
+	if (!m_uniformVarBufferMemoryIsCoherent)
+	{
+		VkMappedMemoryRange flushedRange{};
+		flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
+		flushedRange.memory = m_uniformVarBufferMemory;
+		flushedRange.offset = uniformOffset;
+		flushedRange.size = uniformSize;
+		vkFlushMappedMemoryRanges(m_logicalDevice, 1, &flushedRange);
+	}
+	return uniformOffset;
+}
+
 void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader)
 {
 	auto GET_UNIFORM_DATA_PTR = [](size_t index) { return s_vkUniformData + (index / 4); };
@@ -453,66 +515,7 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 				}
 			}
 		}
-		// upload
-		const uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
-		const uint32 uniformSize = (shader->uniform.uniformRangeSize + bufferAlignmentM1) & ~bufferAlignmentM1;
-
-		auto waitWhileCondition = [&](std::function<bool()> condition) {
-			while (condition())
-			{
-				if (m_commandBufferSyncIndex == m_commandBufferIndex)
-				{
-					if (m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
-					{
-						draw_endRenderPass();
-						SubmitCommandBuffer();
-					}
-					else
-					{
-						// submitting work would not change readIndex, so there's no way for conditions based on it to change
-						cemuLog_log(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
-						cemu_assert_suspicious();
-						break;
-					}
-				}
-				WaitForNextFinishedCommandBuffer();
-			}
-		};
-
-		// wrap around if it doesnt fit consecutively
-		if (m_uniformVarBufferWriteIndex + uniformSize > UNIFORMVAR_RINGBUFFER_SIZE)
-		{
-			waitWhileCondition([&]() {
-				return m_uniformVarBufferReadIndex > m_uniformVarBufferWriteIndex || m_uniformVarBufferReadIndex == 0;
-			});
-			m_uniformVarBufferWriteIndex = 0;
-		}
-
-		auto ringBufRemaining = [&]() {
-			ssize_t ringBufferUsedBytes = (ssize_t)m_uniformVarBufferWriteIndex - m_uniformVarBufferReadIndex;
-			if (ringBufferUsedBytes < 0)
-				ringBufferUsedBytes += UNIFORMVAR_RINGBUFFER_SIZE;
-			return UNIFORMVAR_RINGBUFFER_SIZE - 1 - ringBufferUsedBytes;
-		};
-		waitWhileCondition([&]() {
-			return ringBufRemaining() < uniformSize;
-		});
-
-		const uint32 uniformOffset = m_uniformVarBufferWriteIndex;
-		memcpy(m_uniformVarBufferPtr + uniformOffset, s_vkUniformData, shader->uniform.uniformRangeSize);
-		m_uniformVarBufferWriteIndex += uniformSize;
-		// update dynamic offset
-		dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformOffset;
-		// flush if not coherent
-		if (!m_uniformVarBufferMemoryIsCoherent)
-		{
-			VkMappedMemoryRange flushedRange{};
-			flushedRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-			flushedRange.memory = m_uniformVarBufferMemory;
-			flushedRange.offset = uniformOffset;
-			flushedRange.size = uniformSize;
-			vkFlushMappedMemoryRanges(m_logicalDevice, 1, &flushedRange);
-		}
+		dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformData_uploadUniformDataBufferGetOffset({(uint8*)s_vkUniformData, shader->uniform.uniformRangeSize});
 	}
 }
 
