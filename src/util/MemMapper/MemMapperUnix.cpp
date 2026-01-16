@@ -40,31 +40,57 @@ namespace MemMapper
 		munmap(baseAddr, size);
 	}
 
-	void* AllocateMemory(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags, bool fromReservation)
-	{
-		void* r;
-		if(fromReservation)
-		{
-		    uint64 page_size = sysconf(_SC_PAGESIZE);
-		    void* page = baseAddr;
-		    if ( (uint64) baseAddr % page_size != 0 )
-		        page = (void*) ((uint64)baseAddr & ~(page_size - 1));
-			if( mprotect(page, size, GetProt(permissionFlags)) == 0 )
-                r = baseAddr;
-			else
-                r = nullptr;
-		}
-		else
-			r = mmap(baseAddr, size, GetProt(permissionFlags), MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		return r;
-	}
+	void* AllocateMemory(void* baseAddr, size_t size,
+                     PAGE_PERMISSION permissionFlags,
+                     bool fromReservation)
+{
+    size_t pageSize = sPageSize;
 
-	void FreeMemory(void* baseAddr, size_t size, bool fromReservation)
-	{
-		if (fromReservation)
-			mprotect(baseAddr, size, PROT_NONE);
-		else
-			munmap(baseAddr, size);
-	}
+    uintptr_t addr = reinterpret_cast<uintptr_t>(baseAddr);
+    uintptr_t pageStart = addr & ~(pageSize - 1);
+
+    size_t offset = addr - pageStart;
+    size_t totalSize = offset + size;
+    totalSize = (totalSize + pageSize - 1) & ~(pageSize - 1);
+
+    if (fromReservation)
+    {
+        if (mprotect(reinterpret_cast<void*>(pageStart),
+                     totalSize,
+                     GetProt(permissionFlags)) != 0)
+            return nullptr;
+
+        return baseAddr;
+    }
+
+    return mmap(baseAddr,
+                size,
+                GetProt(permissionFlags),
+                MAP_PRIVATE | MAP_ANONYMOUS,
+                -1,
+                0);
+}
+
+
+void FreeMemory(void* baseAddr, size_t size, bool fromReservation)
+{
+    if (!fromReservation)
+    {
+        munmap(baseAddr, size);
+        return;
+    }
+
+    uintptr_t addr = reinterpret_cast<uintptr_t>(baseAddr);
+    uintptr_t pageStart = addr & ~(sPageSize - 1);
+
+    size_t offset = addr - pageStart;
+    size_t totalSize = offset + size;
+    totalSize = (totalSize + sPageSize - 1) & ~(sPageSize - 1);
+
+    mprotect(reinterpret_cast<void*>(pageStart),
+             totalSize,
+             PROT_NONE);
+}
+
 
 };
