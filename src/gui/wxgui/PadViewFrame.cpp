@@ -8,7 +8,9 @@
 #include "Cafe/OS/libs/swkbd/swkbd.h"
 #include "wxgui/canvas/OpenGLCanvas.h"
 #include "wxgui/canvas/VulkanCanvas.h"
+#if ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
+#endif
 #include "config/CemuConfig.h"
 #include "wxgui/MainWindow.h"
 #include "wxgui/helpers/wxHelpers.h"

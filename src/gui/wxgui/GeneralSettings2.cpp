@@ -1232,21 +1232,21 @@ void GeneralSettings2::StoreConfig()
     	else
     		config.vk_graphic_device_uuid = {};
 	}
+#if ENABLE_METAL
 	else if (config.graphic_api == GraphicAPI::kMetal)
 	{
         if (selection != wxNOT_FOUND)
     	{
-#if ENABLE_METAL
     		const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
     		if (info)
     			config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
     		else
     			config.mtl_graphic_device_uuid = {};
-#endif
     	}
     	else
     		config.mtl_graphic_device_uuid = {};
 	}
+#endif
 
 
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();

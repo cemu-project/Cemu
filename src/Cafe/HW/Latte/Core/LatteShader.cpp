@@ -689,12 +689,14 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	shader->baseHash = baseHash;
 	// copy resource mapping
 	// HACK
-	if (g_renderer->GetType() == RendererAPI::Vulkan)
-		shader->resourceMapping = decompilerOutput.resourceMappingVK;
-	else if (g_renderer->GetType() == RendererAPI::OpenGL)
+	if (g_renderer->GetType() == RendererAPI::OpenGL)
 		shader->resourceMapping = decompilerOutput.resourceMappingGL;
+	else if (g_renderer->GetType() == RendererAPI::Vulkan)
+		shader->resourceMapping = decompilerOutput.resourceMappingVK;
+#if ENABLE_METAL
 	else
 		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
+#endif
 	// copy texture info
 	shader->textureUnitMask2 = decompilerOutput.textureUnitMask;
 	// copy streamout info
