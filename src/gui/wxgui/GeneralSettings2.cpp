@@ -366,6 +366,11 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_graphic_api->SetSelection(0);
 		if (api_size > 1)
 			m_graphic_api->SetToolTip(_("Select one of the available graphic back ends"));
+		if (CafeSystem::IsTitleRunning())
+		{
+			m_graphic_api->Disable();
+			m_graphic_api->SetToolTip(_("Graphics API cannot be changed while a title is running"));
+		}
 		row->Add(m_graphic_api, 0, wxALL, 5);
 		m_graphic_api->Bind(wxEVT_CHOICE, &GeneralSettings2::OnGraphicAPISelected, this);
 
@@ -378,6 +383,9 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		row->Add(new wxStaticText(box, wxID_ANY, _("VSync")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_vsync = new wxChoice(box, wxID_ANY, wxDefaultPosition, { 230, -1 });
 		m_vsync->SetToolTip(_("Controls the vsync state"));
+		m_vsync->Bind(wxEVT_CHOICE, [](wxCommandEvent& event) {
+			GetConfig().vsync = event.GetSelection();
+		});
 		row->Add(m_vsync, 0, wxALL, 5);
 
 		box_sizer->Add(row, 0, wxEXPAND, 5);
@@ -416,6 +424,9 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		auto targetGammaTooltip = _("The display gamma to reproduce\nIf you are unsure, set this to 2.2");
 		targetGammaLabel->SetToolTip(targetGammaTooltip);
 		m_overrideGammaValue->SetToolTip(targetGammaTooltip);
+		m_overrideGammaValue->Bind(wxEVT_SPINCTRLDOUBLE, [](wxSpinDoubleEvent& event) {
+			 GetConfig().overrideGammaValue = event.GetValue();
+		});
 
 
 		auto displayGammaLabel = new wxStaticText(box, wxID_ANY, _("Display Gamma"));
@@ -428,6 +439,9 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		auto displayGammaTooltip = _("The gamma of your monitor\nIf you are unsure, set this to 2.2");
 		m_userDisplayGamma->SetToolTip(displayGammaTooltip);
 		displayGammaLabel->SetToolTip(displayGammaTooltip);
+		m_userDisplayGamma->Bind(wxEVT_SPINCTRLDOUBLE, [](wxSpinDoubleEvent& event) {
+			 GetConfig().userDisplayGamma = event.GetValue();
+		});
 
 		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
 		m_userDisplayisSRGB->SetToolTip(_("Select this if Cemu is being displayed using a piecewise sRGB gamma curve.\n"
@@ -445,6 +459,9 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		row->Add(new wxStaticText(box, wxID_ANY, _("Override Gamma")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_overrideGamma = new wxCheckBox(box, wxID_ANY, "", wxDefaultPosition, {230, -1});
 		m_overrideGamma->SetToolTip(_("Ignore title's gamma preference"));
+		m_overrideGamma->Bind(wxEVT_CHECKBOX, [](wxCommandEvent& event) {
+			GetConfig().overrideAppGammaPreference = event.IsChecked();
+		});
 		row->Add(m_overrideGamma, 0, wxALL, 5);
 
 		box_sizer->Add(row, 0, wxEXPAND, 5);
@@ -455,10 +472,16 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		wxString choices[] = { _("Bilinear"), _("Bicubic"), _("Hermite"), _("Nearest Neighbor") };
 		m_upscale_filter = new wxRadioBox(graphics_panel, wxID_ANY, _("Upscale filter"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 5, wxRA_SPECIFY_COLS);
 		m_upscale_filter->SetToolTip(_("Upscaling filters are used when the game resolution is smaller than the window size"));
+		m_upscale_filter->Bind(wxEVT_RADIOBOX, [](wxCommandEvent& event) {
+			GetConfig().upscale_filter = event.GetSelection();
+		});
 		graphics_panel_sizer->Add(m_upscale_filter, 0, wxALL | wxEXPAND, 5);
 
 		m_downscale_filter = new wxRadioBox(graphics_panel, wxID_ANY, _("Downscale filter"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 5, wxRA_SPECIFY_COLS);
 		m_downscale_filter->SetToolTip(_("Downscaling filters are used when the game resolution is bigger than the window size"));
+		m_downscale_filter->Bind(wxEVT_RADIOBOX, [](wxCommandEvent& event) {
+			GetConfig().downscale_filter = event.GetSelection();
+		});
 		graphics_panel_sizer->Add(m_downscale_filter, 0, wxALL | wxEXPAND, 5);
 	}
 
@@ -466,6 +489,9 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		wxString choices[] = { _("Keep aspect ratio"), _("Stretch") };
 		m_fullscreen_scaling = new wxRadioBox(graphics_panel, wxID_ANY, _("Fullscreen scaling"), wxDefaultPosition, wxDefaultSize, std::size(choices), choices, 5, wxRA_SPECIFY_COLS);
 		m_fullscreen_scaling->SetToolTip(_("Controls the output aspect ratio when it doesn't match the ratio of the game"));
+		m_fullscreen_scaling->Bind(wxEVT_RADIOBOX, [](wxCommandEvent& event) {
+			GetConfig().fullscreen_scaling = event.GetSelection();
+		});
 		graphics_panel_sizer->Add(m_fullscreen_scaling, 0, wxALL | wxEXPAND, 5);
 	}
 
@@ -1223,19 +1249,11 @@ void GeneralSettings2::StoreConfig()
 	}
 
 
-	config.vsync = m_vsync->GetSelection();
-	config.overrideAppGammaPreference = m_overrideGamma->IsChecked();
-	config.overrideGammaValue = m_overrideGammaValue->GetValue();
-	config.userDisplayGamma = m_userDisplayGamma->GetValue() * !m_userDisplayisSRGB->GetValue();
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
 #if ENABLE_METAL
 	config.force_mesh_shaders = m_force_mesh_shaders->IsChecked();
 #endif
 	config.async_compile = m_async_compile->IsChecked();
-
-	config.upscale_filter = m_upscale_filter->GetSelection();
-	config.downscale_filter = m_downscale_filter->GetSelection();
-	config.fullscreen_scaling = m_fullscreen_scaling->GetSelection();
 
 	config.overlay.position = (ScreenPosition)m_overlay_position->GetSelection(); wxASSERT((int)config.overlay.position <= (int)ScreenPosition::kBottomRight);
 	config.overlay.text_color = m_overlay_font_color->GetColour().GetRGBA();
@@ -2229,10 +2247,12 @@ void GeneralSettings2::OnGraphicAPISelected(wxCommandEvent& event)
 void GeneralSettings2::OnUserDisplaySRGBSelected(wxCommandEvent& event)
 {
 	m_userDisplayGamma->SetValue(2.2f);
-	if(event.GetInt())
+	if(event.IsChecked())
 		m_userDisplayGamma->Disable();
 	else
 		m_userDisplayGamma->Enable();
+	auto& config = GetConfig();
+	config.userDisplayGamma = m_userDisplayGamma->GetValue() * !event.IsChecked();
 }
 
 void GeneralSettings2::OnAddPathClicked(wxCommandEvent& event)
