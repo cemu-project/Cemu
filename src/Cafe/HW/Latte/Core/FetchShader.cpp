@@ -115,22 +115,24 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 			}
 			else
 			{
-                key += (uint64)(attrib->offset & 3);
-                key = std::rotl<uint64>(key, 2);
+				key += (uint64)(attrib->offset & 3);
+				key = std::rotl<uint64>(key, 2);
 			}
 		}
 	}
 	// todo - also hash invalid buffer groups?
 
-    if (g_renderer->GetType() == RendererAPI::Metal)
-    {
-        for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
-        {
-    	    LatteParsedFetchShaderBufferGroup_t& group = fetchShader->bufferGroups[g];
-    	    key += (uint64)group.attributeBufferIndex;
-    		key = std::rotl<uint64>(key, 5);
-	    }
-    }
+#if ENABLE_METAL
+	if (g_renderer->GetType() == RendererAPI::Metal)
+	{
+		for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
+	{
+			LatteParsedFetchShaderBufferGroup_t& group = fetchShader->bufferGroups[g];
+			key += (uint64)group.attributeBufferIndex;
+			key = std::rotl<uint64>(key, 5);
+		}
+	}
+#endif
 
 	fetchShader->key = key;
 }
@@ -169,9 +171,9 @@ void LatteFetchShader::CalculateFetchShaderVkHash()
 	this->vkPipelineHashFragment = h;
 }
 
+#if ENABLE_METAL
 void LatteFetchShader::CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister)
 {
-#if ENABLE_METAL
 	for (sint32 g = 0; g < bufferGroups.size(); g++)
 	{
 	    LatteParsedFetchShaderBufferGroup_t& group = bufferGroups[g];
@@ -189,8 +191,8 @@ void LatteFetchShader::CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister
  			    mtlFetchVertexManually = true;
   		}
 	}
-#endif
 }
+#endif
 
 void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* parsedFetchShader, uint32* contextRegister, const LatteClauseInstruction_VTX* instr)
 {
@@ -374,7 +376,9 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 		// these only make sense when vertex shader does not call FS?
 		LatteShader_calculateFSKey(newFetchShader);
 		newFetchShader->CalculateFetchShaderVkHash();
+#if ENABLE_METAL
 		newFetchShader->CheckIfVerticesNeedManualFetchMtl(contextRegister);
+#endif
 		return newFetchShader;
 	}
 
@@ -434,7 +438,9 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	}
 	LatteShader_calculateFSKey(newFetchShader);
 	newFetchShader->CalculateFetchShaderVkHash();
+#if ENABLE_METAL
 	newFetchShader->CheckIfVerticesNeedManualFetchMtl(contextRegister);
+#endif
 
 	// register in cache
 	// its possible that during multi-threaded shader cache loading, two identical (same hash) fetch shaders get created simultaneously
