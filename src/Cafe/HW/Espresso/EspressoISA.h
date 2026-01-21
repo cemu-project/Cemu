@@ -10,7 +10,7 @@ namespace Espresso
 		CR_BIT_INDEX_SO = 3,
 	};
 
-	enum class PSQ_LOAD_TYPE
+	enum class PSQ_LOAD_TYPE // also store type
 	{
 		TYPE_F32 = 0,
 		TYPE_UNUSED1 = 1,

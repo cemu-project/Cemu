@@ -1210,7 +1210,7 @@ void PPCRecompilerX64Gen_imlInstruction_r_name(PPCRecFunction_t* PPCRecFunction,
 			sint32 pairIndex = (name - PPCREC_NAME_FPR_HALF) % 2;
 			x64Gen_movsd_xmmReg_memReg64(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, fpr) + sizeof(FPR_t) * regIndex + pairIndex * sizeof(double));
 		}
-		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 || name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
+		else if (name >= PPCREC_NAME_TEMPORARY_FPR0 && name < (PPCREC_NAME_TEMPORARY_FPR0 + 8))
 		{
 			x64Gen_movupd_xmmReg_memReg128(x64GenContext, regR, REG_RESV_HCPU, offsetof(PPCInterpreter_t, temporaryFPR) + sizeof(FPR_t) * (name - PPCREC_NAME_TEMPORARY_FPR0));
 		}

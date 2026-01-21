@@ -748,8 +748,9 @@ void PPCRecompilerIMLGen_GetPSQScale(ppcImlGenContext_t* ppcImlGenContext, IMLRe
 {
 	IMLReg gprTmp2 = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 2);
 	// extract scale factor and sign extend it
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, gprTmp2, gqrRegister, 32 - ((isLoad ? 24 : 8)+7));
-	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_S, gprTmp2, gprTmp2, (32-23)-7);
+	constexpr sint32 scaleBitWidth = 6;
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_LEFT_SHIFT, gprTmp2, gqrRegister, 32 - ((isLoad ? 24 : 8) + scaleBitWidth));
+	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_RIGHT_SHIFT_S, gprTmp2, gprTmp2, (32 - 23) - scaleBitWidth);
 	ppcImlGenContext->emitInst().make_r_r_s32(PPCREC_IML_OP_AND, gprTmp2, gprTmp2, 0x1FF<<23);
 	if (isLoad)
 		ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NEG, gprTmp2, gprTmp2);
@@ -857,8 +858,8 @@ bool PPCRecompilerImlGen_PSQ_L(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		return true;
 	}
 
-	Espresso::PSQ_LOAD_TYPE type = static_cast<Espresso::PSQ_LOAD_TYPE>((knownGQRValue >> 0) & 0x7);
-	sint32 scale = (knownGQRValue >> 8) & 0x3F;
+	Espresso::PSQ_LOAD_TYPE type = static_cast<Espresso::PSQ_LOAD_TYPE>((knownGQRValue >> 16) & 0x7);
+	sint32 scale = (knownGQRValue >> 24) & 0x3F;
 	cemu_assert_debug(scale == 0); // known GQR values always use a scale of 0 (1.0f)
 	if (scale != 0)
 		return false;
@@ -988,7 +989,7 @@ bool PPCRecompilerImlGen_PSQ_ST(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 		return true;
 	}
 
-	Espresso::PSQ_LOAD_TYPE type = static_cast<Espresso::PSQ_LOAD_TYPE>((gqrValue >> 16) & 0x7);
+	Espresso::PSQ_LOAD_TYPE type = static_cast<Espresso::PSQ_LOAD_TYPE>((gqrValue >> 0) & 0x7);
 	sint32 scale = (gqrValue >> 24) & 0x3F;
 	cemu_assert_debug(scale == 0); // known GQR values always use a scale of 0 (1.0f)
 
