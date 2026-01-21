@@ -1,6 +1,9 @@
 #pragma once
 
+#include <wx/frame.h>
+
 class DebuggerWindow2;
+class wxListView;
 
 class ModuleWindow : public wxFrame
 {

@@ -138,7 +138,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			first_row->SetFlexibleDirection(wxBOTH);
 			first_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-			first_row->Add(new wxStaticText(box, wxID_ANY, _("Language"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			first_row->Add(new wxStaticText(box, wxID_ANY, _("Language")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 			wxString language_choices[] = { _("Default") };
 			m_language = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(language_choices), language_choices);
@@ -160,9 +160,9 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 			second_row->SetFlexibleDirection(wxBOTH);
 			second_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-			second_row->Add(new wxStaticText(box, wxID_ANY, _("Theme"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+			second_row->Add(new wxStaticText(box, wxID_ANY, _("Theme")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-			m_msw_theme = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize);
+			m_msw_theme = new wxChoice(box, wxID_ANY);
 			m_msw_theme->SetToolTip(_("Changes the Windows theme used by Cemu\nThis only works on Windows 10 and later\nA restart will be required for any changes to take effect"));
 
 			m_msw_theme->AppendString(_("Follow Windows theme"));
@@ -278,7 +278,7 @@ wxPanel* GeneralSettings2::AddGeneralPage(wxNotebook* notebook)
 		auto* outerMlcBox = new wxStaticBox(panel, wxID_ANY, _("Custom MLC path"));
 
 		auto* box_sizer_mlc = new wxStaticBoxSizer(outerMlcBox, wxVERTICAL);
-		box_sizer_mlc->Add(new wxStaticText(box_sizer_mlc->GetStaticBox(), wxID_ANY, _("You can configure a custom path for the emulated internal Wii U storage (MLC).\nThis is where Cemu stores saves, accounts and other Wii U system files."), wxDefaultPosition, wxDefaultSize, 0), 0, wxALL, 5);
+		box_sizer_mlc->Add(new wxStaticText(box_sizer_mlc->GetStaticBox(), wxID_ANY, _("You can configure a custom path for the emulated internal Wii U storage (MLC).\nThis is where Cemu stores saves, accounts and other Wii U system files.")), 0, wxALL, 5);
 
 		auto* mlcPathLineSizer = new wxBoxSizer(wxHORIZONTAL);
 
@@ -443,7 +443,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 			 GetConfig().userDisplayGamma = event.GetValue();
 		});
 
-		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB", wxDefaultPosition, wxDefaultSize);
+		m_userDisplayisSRGB = new wxCheckBox(box, wxID_ANY, "sRGB");
 		m_userDisplayisSRGB->SetToolTip(_("Select this if Cemu is being displayed using a piecewise sRGB gamma curve.\n"
 										  "This is typically not the case so you can probably leave this unchecked.\n"
 										  "Exceptions include HDR displays (with HDR enabled), calibrated SDR displays with Windows 11's Auto Color Management enabled, "
@@ -514,7 +514,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 
 		audio_general_row->Add(new wxStaticText(box, wxID_ANY, _("API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		m_audio_api = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0, nullptr);
+		m_audio_api = new wxChoice(box, wxID_ANY);
 		if (IAudioAPI::IsAudioAPIAvailable(IAudioAPI::DirectSound))
 			m_audio_api->Append(kDirectSound);
 		if (IAudioAPI::IsAudioAPIAvailable(IAudioAPI::XAudio27))
@@ -594,7 +594,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		audio_pad_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
 		audio_pad_row->Add(new wxStaticText(box, wxID_ANY, _("Device")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_pad_device = new wxChoice(box, wxID_ANY, wxDefaultPosition);
+		m_pad_device = new wxChoice(box, wxID_ANY);
 		m_pad_device->SetMinSize(wxSize(300, -1));
 		m_pad_device->SetToolTip(_("Select the active audio output device for Wii U GamePad"));
 		audio_pad_row->Add(m_pad_device, 0, wxEXPAND | wxALL, 5);
@@ -635,7 +635,7 @@ wxPanel* GeneralSettings2::AddAudioPage(wxNotebook* notebook)
 		audio_input_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
 		audio_input_row->Add(new wxStaticText(box, wxID_ANY, _("Device")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
-		m_input_device = new wxChoice(box, wxID_ANY, wxDefaultPosition);
+		m_input_device = new wxChoice(box, wxID_ANY);
 		m_input_device->SetMinSize(wxSize(300, -1));
 		m_input_device->SetToolTip(_("Select the active audio input device for Wii U GamePad"));
 		audio_input_row->Add(m_input_device, 0, wxEXPAND | wxALL, 5);
@@ -996,7 +996,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 		debug_row->SetFlexibleDirection(wxBOTH);
 		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("Crash dump"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("Crash dump")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 #if BOOST_OS_WINDOWS
 		wxString dump_choices[] = {_("Disabled"), _("Lite"), _("Full")};
@@ -1019,7 +1019,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 		debug_row->SetFlexibleDirection(wxBOTH);
 		debug_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("GDB Stub port"), wxDefaultPosition, wxDefaultSize, 0), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		debug_row->Add(new wxStaticText(panel, wxID_ANY, _("GDB Stub port")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		m_gdb_port = new wxSpinCtrl(panel, wxID_ANY, "1337", wxDefaultPosition, wxDefaultSize, 0, 1000, 65535);
 		m_gdb_port->SetToolTip(_("Changes the port that the GDB stub will use, which you can use by either starting Cemu with the --enable-gdbstub option or by enabling it the Debug tab."));

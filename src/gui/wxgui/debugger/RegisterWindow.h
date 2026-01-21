@@ -1,7 +1,9 @@
 #pragma once
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
+#include <wx/frame.h>
 
 class DebuggerWindow2;
+class wxTextCtrl;
 
 class RegisterWindow : public wxFrame
 {

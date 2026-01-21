@@ -79,7 +79,7 @@ InputSettings2::InputSettings2(wxWindow* parent)
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
+	m_notebook = new wxNotebook(this, wxID_ANY);
 	for(size_t i = 0; i < InputManager::kMaxController; ++i)
 	{
 		auto* page = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -148,7 +148,7 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 
 	{
 		// profile
-		sizer->Add(new wxStaticText(page, wxID_ANY, _("Profile"), wxDefaultPosition, wxDefaultSize, 0), wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+		sizer->Add(new wxStaticText(page, wxID_ANY, _("Profile")), wxGBPosition(0, 0), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		auto* profiles = new wxComboBox(page, wxID_ANY, kDefaultProfileName);
 		sizer->Add(profiles, wxGBPosition(0, 1), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL | wxEXPAND, 5);
 
@@ -178,7 +178,7 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 		delete_bttn->Disable();
 		sizer->Add(delete_bttn, wxGBPosition(0, 4), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		auto* profile_status = new wxStaticText(page, wxID_ANY, _("controller set by gameprofile. changes won't be saved permanently!"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* profile_status = new wxStaticText(page, wxID_ANY, _("controller set by gameprofile. changes won't be saved permanently!"));
 		profile_status->SetMinSize(wxSize(200, -1));
 		profile_status->Wrap(200);
 		sizer->Add(profile_status, wxGBPosition(0, 5), wxDefaultSpan, wxALIGN_CENTER_VERTICAL | wxALL | wxRESERVE_SPACE_EVEN_IF_HIDDEN, 5);
@@ -268,17 +268,17 @@ wxWindow* InputSettings2::initialize_page(size_t index)
 
 		// controller
 		auto* controller_bttns = new wxBoxSizer(wxHORIZONTAL);
-		auto* settings = new wxButton(page, wxID_ANY, _("Settings"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* settings = new wxButton(page, wxID_ANY, _("Settings"));
 		settings->Bind(wxEVT_BUTTON, &InputSettings2::on_controller_settings, this);
 		settings->Disable();
 		controller_bttns->Add(settings, 0, wxALL, 5);
 
-		auto* calibrate = new wxButton(page, wxID_ANY, _("Calibrate"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* calibrate = new wxButton(page, wxID_ANY, _("Calibrate"));
 		calibrate->Bind(wxEVT_BUTTON, &InputSettings2::on_controller_calibrate, this);
 		calibrate->Disable();
 		controller_bttns->Add(calibrate, 0, wxALL, 5);
 
-		auto* clear = new wxButton(page, wxID_ANY, _("Clear"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* clear = new wxButton(page, wxID_ANY, _("Clear"));
 		clear->Bind(wxEVT_BUTTON, &InputSettings2::on_controller_clear, this);
 		controller_bttns->Add(clear, 0, wxALL, 5);
 

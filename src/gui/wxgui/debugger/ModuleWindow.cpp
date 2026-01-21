@@ -25,7 +25,7 @@ ModuleWindow::ModuleWindow(DebuggerWindow2& parent, const wxPoint& main_position
 
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-	m_modules = new wxListView(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
+	m_modules = new wxListView(this, wxID_ANY);
 
 	wxListItem col0;
 	col0.SetId(ColumnName);

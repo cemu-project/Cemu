@@ -217,15 +217,15 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		filter_row->SetFlexibleDirection(wxBOTH);
 		filter_row->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		const auto text = new wxStaticText(left_panel, wxID_ANY, _("Filter"), wxDefaultPosition, wxDefaultSize, 0);
+		const auto text = new wxStaticText(left_panel, wxID_ANY, _("Filter"));
 		text->Wrap(-1);
 		filter_row->Add(text, 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		m_filter_text = new wxTextCtrl(left_panel, wxID_ANY, wxString::FromUTF8(m_filter), wxDefaultPosition, wxDefaultSize, 0);
+		m_filter_text = new wxTextCtrl(left_panel, wxID_ANY, wxString::FromUTF8(m_filter));
 		filter_row->Add(m_filter_text, 0, wxALL | wxEXPAND, 5);
 		m_filter_text->Bind(wxEVT_COMMAND_TEXT_UPDATED, &GraphicPacksWindow2::OnFilterUpdate, this);
 
-		m_installed_games_only = new wxCheckBox(left_panel, wxID_ANY, _("Installed games"), wxDefaultPosition, wxDefaultSize, 0);
+		m_installed_games_only = new wxCheckBox(left_panel, wxID_ANY, _("Installed games"));
 		m_installed_games_only->SetValue(m_filter_installed_games);
 		filter_row->Add(m_installed_games_only, 0, wxALL | wxEXPAND, 5);
 		m_installed_games_only->Bind(wxEVT_CHECKBOX, &GraphicPacksWindow2::OnInstalledGamesChanged, this);

@@ -56,11 +56,11 @@ SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 		row2->SetFlexibleDirection(wxBOTH);
 		row2->SetNonFlexibleGrowMode(wxFLEX_GROWMODE_SPECIFIED);
 
-		auto* ok_button = new wxButton(this, wxID_ANY, _("OK"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* ok_button = new wxButton(this, wxID_ANY, _("OK"));
 		ok_button->Bind(wxEVT_BUTTON, &SaveImportWindow::OnImport, this);
 		row2->Add(ok_button, 0, wxALL, 5);
 
-		auto* cancel_button = new wxButton(this, wxID_ANY, _("Cancel"), wxDefaultPosition, wxDefaultSize, 0);
+		auto* cancel_button = new wxButton(this, wxID_ANY, _("Cancel"));
 		cancel_button->Bind(wxEVT_BUTTON, [this](auto&)
 			{
 				m_return_code = wxCANCEL;

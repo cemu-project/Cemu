@@ -27,7 +27,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 	auto* main_sizer = new wxBoxSizer(wxVERTICAL);
 
-	auto* m_notebook = new wxNotebook(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, 0);
+	auto* m_notebook = new wxNotebook(this, wxID_ANY);
 	// general
 	{
 		auto* panel = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);

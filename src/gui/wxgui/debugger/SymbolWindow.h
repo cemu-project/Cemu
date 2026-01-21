@@ -1,6 +1,7 @@
 #pragma once
 
 #include "wxgui/debugger/SymbolCtrl.h"
+#include <wx/frame.h>
 
 class DebuggerWindow2;
 

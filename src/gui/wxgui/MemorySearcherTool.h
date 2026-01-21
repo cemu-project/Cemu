@@ -6,10 +6,18 @@
 #include <future>
 
 #include <wx/listctrl.h>
+#include <wx/frame.h>
 
 #include "Cafe/HW/MMU/MMU.h"
 #include "util/helpers/helpers.h"
 #include "wxgui/helpers/wxCustomEvents.h"
+
+class wxComboBox;
+class wxDataViewEvent;
+class wxDataViewListCtrl;
+class wxStaticText;
+class wxTimer;
+class wxTimerEvent;
 
 enum SearchDataType
 {
