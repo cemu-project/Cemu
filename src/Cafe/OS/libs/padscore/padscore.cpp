@@ -38,6 +38,23 @@ enum class WPADLed : uint8
 	CHAN3 = (1 << 3),
 };
 
+struct WENCParams
+{
+	sint32be predSample;
+	sint32be step;
+	sint32be ukn0x8;
+	sint32be tempDiff;
+	sint32be step1;
+	sint32be step2;
+};
+static_assert(offsetof(WENCParams, predSample) == 0x0);
+static_assert(offsetof(WENCParams, step) == 0x04);
+static_assert(offsetof(WENCParams, ukn0x8) == 0x08);
+static_assert(offsetof(WENCParams, tempDiff) == 0xc);
+static_assert(offsetof(WENCParams, step1) == 0x10);
+static_assert(offsetof(WENCParams, step2) == 0x14);
+static_assert(sizeof(WENCParams) == 24);
+
 namespace padscore 
 {
 	enum WPADState_t
@@ -686,8 +703,54 @@ namespace padscore
 		acc->z = 99;
 	}
 
+	uint32 WENCGetEncodeData(WENCParams* params, uint32 continuing, sint16be* lpcmSamples, uint32 lpcmSampleCount, uint8* adpcmSamples)
+	{
+		constexpr static std::array<double, 0x8> ADPCM_TABLE = {0.8984375, 0.8984375, 0.8984375, 0.8984375, 1.19921875, 1.59765625, 2.0, 2.3984375};
+		const auto adpcmSampleCount = (lpcmSampleCount + 1) / 2;
 
-#pragma endregion
+		WENCParams locParams = continuing ? *params : WENCParams{ .step = 0x7f};
+
+		std::memset(adpcmSamples, 0, adpcmSampleCount);
+
+		for (auto lpcmSampleIndex = 0u; lpcmSampleIndex < lpcmSampleCount; ++lpcmSampleIndex)
+		{
+			const sint16 currentSample = lpcmSamples[lpcmSampleIndex];
+			const sint32 sampleDiff = currentSample - locParams.predSample;
+			locParams.tempDiff = std::abs(sampleDiff);
+			const unsigned diffSign = currentSample < locParams.predSample;
+			const bool flag1 = locParams.step <= locParams.tempDiff;
+			if (flag1)
+				locParams.tempDiff -= locParams.step;
+			locParams.step1 = locParams.step / 2;
+			const bool flag2 =  locParams.step1 <= locParams.tempDiff;
+			if (flag2)
+			{
+				locParams.tempDiff -= locParams.step1;
+			}
+			locParams.step2 = locParams.step1 / 2;
+			const bool flag3 = locParams.step2 <= locParams.tempDiff;
+			if (flag3)
+			{
+				locParams.tempDiff -= locParams.step2;
+			}
+			locParams.ukn0x8 = (diffSign * -2 + 1) * (locParams.step * flag1 + locParams.step1 * flag2 + locParams.step2 * flag3 + (locParams.step2 / 2));
+			locParams.ukn0x8 = std::clamp<sint32>(locParams.ukn0x8, -0x10000, 0x0ffff);
+
+			locParams.predSample += locParams.ukn0x8;
+			locParams.predSample = std::clamp<sint32>(locParams.predSample, -0x8000, 0x7fff);
+
+			const auto shiftAmount = lpcmSampleIndex & 1 ? 0 : 4;
+
+			const auto tableIndex = flag1 << 2 | flag2 << 1 | flag3;
+
+			const auto adpcmSampleIndex = lpcmSampleIndex / 2;
+			locParams.step *= (locParams.step) * ADPCM_TABLE[tableIndex];
+			adpcmSamples[adpcmSampleIndex] = adpcmSamples[adpcmSampleIndex] | uint8be((diffSign * 8 + tableIndex) << shiftAmount);
+			locParams.step = std::clamp<sint32>(locParams.step, 0x7f, 0x6000);
+		}
+		*params = locParams;
+		return lpcmSampleCount;
+	}
 
 	void TickFunction(PPCInterpreter_t* hCPU)
 	{
@@ -770,6 +833,7 @@ namespace padscore
 	{
 		cafeExportRegister("padscore", WPADIsMplsAttached, LogType::InputAPI);
 		cafeExportRegister("padscore", WPADGetAccGravityUnit, LogType::InputAPI);
+		cafeExportRegister("padscore", WENCGetEncodeData, LogType::SoundAPI);
 
 		// wpad
 		//osLib_addFunction("padscore", "WPADInit", padscore::export_WPADInit);
