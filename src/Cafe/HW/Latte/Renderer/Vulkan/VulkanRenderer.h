@@ -554,6 +554,7 @@ private:
 	VkCommandBuffer getCurrentCommandBuffer() const { return m_state.currentCommandBuffer; }
 
 	// uniform
+	uint32 uniformData_uploadUniformDataBufferGetOffset(std::span<uint8, std::dynamic_extent> data);
 	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader);
 
 	// misc

@@ -145,6 +145,8 @@ OpenGLRenderer::~OpenGLRenderer()
 {
 	if(m_pipeline != 0)
 		glDeleteProgramPipelines(1, &m_pipeline);
+
+	glDeleteBuffers(1, &m_backbufferBlit_uniformBuffer);
 }
 
 OpenGLRenderer* OpenGLRenderer::GetInstance()
@@ -370,6 +372,10 @@ void OpenGLRenderer::Initialize()
 		glBindFramebuffer(GL_FRAMEBUFFER_EXT, glRendererState.clearFBO);
 		glBindFramebuffer(GL_FRAMEBUFFER_EXT, 0);
 	}
+
+	// create uniform buffers for backbufferblit
+	glCreateBuffers(1, &m_backbufferBlit_uniformBuffer);
+	glNamedBufferStorage(m_backbufferBlit_uniformBuffer, sizeof(RendererOutputShader::OutputUniformVariables), nullptr, GL_DYNAMIC_STORAGE_BIT);
 
 	draw_init();
 
@@ -603,7 +609,12 @@ void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutpu
 	shader_unbind(RendererShader::ShaderType::kGeometry);
 	shader_bind(shader->GetVertexShader());
 	shader_bind(shader->GetFragmentShader());
-	shader->SetUniformParameters(*texView, {imageWidth, imageHeight}, padView);
+
+	// update and bind uniform buffer
+	auto uniformBuffer = shader->FillUniformBlockBuffer(*texView, {imageWidth, imageHeight}, padView);
+	glNamedBufferSubData(m_backbufferBlit_uniformBuffer, 0, sizeof(uniformBuffer), &uniformBuffer);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_backbufferBlit_uniformBuffer);
 
 	// set viewport
 	glViewportIndexedf(0, imageX, imageY, imageWidth, imageHeight);

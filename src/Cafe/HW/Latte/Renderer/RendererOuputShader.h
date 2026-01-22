@@ -8,6 +8,15 @@
 class RendererOutputShader
 {
 public:
+	struct OutputUniformVariables
+	{
+		Vector2f textureSrcResolution;
+		Vector2f nativeResolution;
+		Vector2f outputResolution;
+		uint32 applySRGBEncoding;
+		float targetGamma;
+		float displayGamma;
+	};
 	enum Shader
 	{
 		kCopy,
@@ -17,7 +26,7 @@ public:
 	RendererOutputShader(const std::string& vertex_source, const std::string& fragment_source);
 	virtual ~RendererOutputShader() = default;
 
-	void SetUniformParameters(const LatteTextureView& texture_view, const Vector2i& output_res, const bool padView) const;
+	OutputUniformVariables FillUniformBlockBuffer(const LatteTextureView& texture_view, const Vector2i& output_res, const bool padView) const;
 
 	RendererShader* GetVertexShader() const
 	{
@@ -51,15 +60,6 @@ protected:
 	std::unique_ptr<RendererShader> m_vertex_shader;
 	std::unique_ptr<RendererShader> m_fragment_shader;
 
-	struct UniformLocations
-	{
-		sint32 m_loc_textureSrcResolution = -1;
-		sint32 m_loc_nativeResolution = -1;
-		sint32 m_loc_outputResolution = -1;
-		sint32 m_loc_applySRGBEncoding = -1;
-		sint32 m_loc_targetGamma = -1;
-		sint32 m_loc_displayGamma = -1;
-	} m_uniformLocations[2]{};
 
 private:
 	static const std::string s_copy_shader_source;
