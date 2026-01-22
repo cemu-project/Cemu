@@ -1793,6 +1793,7 @@ void RPLLoader_UnloadModule(RPLDependency* rplDependency, bool skipPPCCalls)
 
 	if (rplDependency->rplHLEModule)
 	{
+		cemu_assert_debug(!rplDependency->rplLoaderContext);
 		// HLE module unload logic is handled by parent functions for now
 		return;
 	}
@@ -1955,7 +1956,6 @@ void RPLLoader_AddDependency(std::string_view name)
 	newDependency->coreinitHandle = rplLoader_currentHandleCounter;
 	newDependency->tlsModuleIndex = rplLoader_currentTlsModuleIndex;
 	newDependency->isCafeOSModule = RPLLoader_IsKnownCafeOSModule(moduleName);
-	newDependency->rplHLEModule = RPLLoader_GetHLECafeOSModule(moduleName);
 	rplLoader_currentTlsModuleIndex++; // todo - delay handle and tls allocation until the module is actually loaded. It may not exist
 	rplLoader_currentHandleCounter++;
 	if (rplLoader_currentTlsModuleIndex == 0x7FFF)
@@ -1972,6 +1972,12 @@ void RPLLoader_AddDependency(std::string_view name)
 	}
 	if (newDependency->filepath.size() >= RPL_MODULE_PATH_LENGTH)
 		cemuLog_log(LogType::Force, "RPLLoader_AddDependency(): RPL path too long \"{}\"", newDependency->filepath);
+	// if no CafeLibs RPL is present then try to load as a HLE module
+	// we dont check for isCafeOSModule == true here because the user might want to replace application RPLs in some cases
+	const auto cafeLibsFilePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", newDependency->filepath);
+	std::error_code ec;
+	if (!fs::exists(cafeLibsFilePath, ec))
+		newDependency->rplHLEModule = RPLLoader_GetHLECafeOSModule(moduleName);
 	rplDependencyList.push_back(newDependency);
 }
 
@@ -2140,8 +2146,8 @@ void RPLLoader_LoadDependency(RPLDependency* dependency)
 	// attempt to load rpl from Cemu's /cafeLibs/ directory
 	if (ActiveSettings::LoadSharedLibrariesEnabled())
 	{
-		const auto filePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", dependency->filepath);
-		auto fileData = FileStream::LoadIntoMemory(filePath);
+		const auto cafeLibsFilePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", dependency->filepath);
+		auto fileData = FileStream::LoadIntoMemory(cafeLibsFilePath);
 		if (fileData)
 		{
 			cemuLog_log(LogType::Force, "Loading RPL: /cafeLibs/{}", dependency->filepath);
