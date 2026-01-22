@@ -28,7 +28,7 @@ public:
     static void Initialize();
 	static void Shutdown();
 
-	RendererShaderMtl(class MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode);
+	RendererShaderMtl(class MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, std::string&& mslCode);
 	virtual ~RendererShaderMtl();
 
 	MTL::Function* GetFunction() const
@@ -42,7 +42,7 @@ public:
 	void SetUniform2fv(sint32 location, void* data, sint32 count) override;
 	void SetUniform4iv(sint32 location, void* data, sint32 count) override;
 
-	void PreponeCompilation(bool isRenderThread) override;
+	void PreponeCompilation() override;
 	bool IsCompiled() override;
 	bool WaitForCompiled() override;
 

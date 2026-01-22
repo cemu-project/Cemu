@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 
 #include "Cemu/FileCache/FileCache.h"
+#include "HW/Latte/Core/LatteShader.h"
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -42,7 +43,7 @@ bool RendererShaderGL::loadBinary()
 		m_program = 0;
 		return false;
 	}
-	m_isCompiled = true;
+	m_binaryLoaded = true;
 	return true;
 }
 
@@ -73,8 +74,8 @@ void RendererShaderGL::storeBinary()
 	}
 }
 
-RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslSource)
-	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_glslSource(glslSource)
+RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, std::string&& glslSource)
+	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_glslSource(std::move(glslSource))
 {
 	GLenum glShaderType;
 	switch (type)
@@ -109,19 +110,8 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 	glShaderSource(m_shader_object, 1, &c_str, &size);
 	glCompileShader(m_shader_object);
 
-	GLint log_length;
-	glGetShaderiv(m_shader_object, GL_INFO_LOG_LENGTH, &log_length);
-	if (log_length > 0)
-	{
-		char log[2048]{};
-		GLsizei log_size;
-		glGetShaderInfoLog(m_shader_object, std::min<uint32>(log_length, sizeof(log) - 1), &log_size, log);
-		cemuLog_log(LogType::Force, "Error/Warning in shader:");
-		cemuLog_log(LogType::Force, log);
-	}
-
 	// set debug name
-	if (LaunchSettings::NSightModeEnabled()) 
+	if (LaunchSettings::NSightModeEnabled())
 	{
 		auto objNameStr = fmt::format("shader_{:016x}_{:016x}", m_baseHash, m_auxHash);
 		glObjectLabel(GL_SHADER, m_shader_object, objNameStr.size(), objNameStr.c_str());
@@ -133,12 +123,6 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 	glAttachShader(m_program, m_shader_object);
 	m_shader_attached = true;
 	glLinkProgram(m_program);
-
-	storeBinary();
-
-	// count shader compilation
-	if (!s_isLoadingShaders)
-		++g_compiled_shaders_total;
 
 	// we can throw away the GLSL code to conserve RAM
 	m_glslSource.clear();
@@ -157,7 +141,7 @@ RendererShaderGL::~RendererShaderGL()
 		glDeleteProgram(m_program);
 }
 
-void RendererShaderGL::PreponeCompilation(bool isRenderThread)
+void RendererShaderGL::PreponeCompilation()
 {
 	// the logic for initiating compilation is currently in the constructor
 	// here we only guarantee that it is finished before we return
@@ -168,47 +152,74 @@ void RendererShaderGL::PreponeCompilation(bool isRenderThread)
 
 bool RendererShaderGL::IsCompiled()
 {
-	cemu_assert_debug(false);
-	return true;
+	if(m_isCompiled)
+		return true;
+
+	if(!glMaxShaderCompilerThreadsARB || m_binaryLoaded)
+	{
+		WaitForCompiled();
+		return true;
+	}
+
+	GLint isShaderComplete = 0, isProgramComplete = 0;
+	glGetShaderiv(m_shader_object, GL_COMPLETION_STATUS_ARB, &isShaderComplete);
+	if(!isShaderComplete)
+		return false;
+	glGetProgramiv(m_program, GL_COMPLETION_STATUS_ARB, &isProgramComplete);
+	if (isProgramComplete)
+		WaitForCompiled(); // since COMPLETION_STATUS == true, this should be very fast
+	return m_isCompiled;
 }
 
 bool RendererShaderGL::WaitForCompiled()
 {
-	char infoLog[8 * 1024];
 	if (m_isCompiled)
 		return true;
+	if (m_binaryLoaded)
+	{
+		LatteShader_prepareSeparableUniforms(m_decompilerShader);
+		m_isCompiled = true;
+		return true;
+	}
+
+	char infoLog[8 * 1024];
+	GLint log_length;
+
+	// count shader compilation
+	if (!s_isLoadingShaders)
+		++g_compiled_shaders_total;
+
 	// check if compilation was successful
 	GLint compileStatus = GL_FALSE;
 	glGetShaderiv(m_shader_object, GL_COMPILE_STATUS, &compileStatus);
-	if (compileStatus == 0)
+	if (compileStatus == GL_FALSE)
 	{
-		uint32 infoLogLength, tempLength;
-		glGetShaderiv(m_shader_object, GL_INFO_LOG_LENGTH, (GLint *)&infoLogLength);
-		if (infoLogLength != 0)
+		glGetShaderiv(m_shader_object, GL_INFO_LOG_LENGTH, &log_length);
+		if (log_length > 0)
 		{
-			tempLength = sizeof(infoLog) - 1;
-			glGetShaderInfoLog(m_shader_object, std::min(infoLogLength, tempLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
-			infoLog[tempLength] = '\0';
-			cemuLog_log(LogType::Force, "Compile error in shader. Log:");
+			glGetShaderInfoLog(m_shader_object, sizeof(infoLog), &log_length, infoLog);
+			cemuLog_log(LogType::Force, "Error/Warning in shader:");
 			cemuLog_log(LogType::Force, infoLog);
 		}
+
 		if (m_shader_object != 0)
 			glDeleteShader(m_shader_object);
+		if (m_program != 0)
+			glDeleteProgram(m_program);
+		m_program = m_shader_object = 0;
 		m_isCompiled = true;
 		return false;
 	}
+
 	// get shader binary
 	GLint linkStatus = GL_FALSE;
 	glGetProgramiv(m_program, GL_LINK_STATUS, &linkStatus);
-	if (linkStatus == 0)
+	if (linkStatus == GL_FALSE)
 	{
-		uint32 infoLogLength, tempLength;
-		glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, (GLint *)&infoLogLength);
-		if (infoLogLength != 0)
+		glGetProgramiv(m_program, GL_INFO_LOG_LENGTH, (GLint *)&log_length);
+		if (log_length != 0)
 		{
-			tempLength = sizeof(infoLog) - 1;
-			glGetProgramInfoLog(m_program, std::min(infoLogLength, tempLength), (GLsizei*)&tempLength, (GLcharARB*)infoLog);
-			infoLog[tempLength] = '\0';
+			glGetProgramInfoLog(m_program, sizeof(infoLog), &log_length, (GLcharARB*)infoLog);
 			cemuLog_log(LogType::Force, "Link error in shader. Log:");
 			cemuLog_log(LogType::Force, infoLog);
 		}
@@ -216,9 +227,19 @@ bool RendererShaderGL::WaitForCompiled()
 		return false;
 	}
 
-	/*glDetachShader(m_program, m_shader_object);
-	m_shader_attached = false;*/
+	glDetachShader(m_program, m_shader_object);
+	m_shader_attached = false;
+	glDeleteShader(m_shader_object);
+	m_shader_object = 0;
+
+	storeBinary();
+
 	m_isCompiled = true;
+	if (m_decompilerShader)
+	{
+		LatteShader_prepareSeparableUniforms(m_decompilerShader);
+	}
+
 	return true;
 }
 
@@ -245,6 +266,10 @@ void RendererShaderGL::SetUniform2fv(sint32 location, void* data, sint32 count)
 void RendererShaderGL::SetUniform4iv(sint32 location, void* data, sint32 count)
 {
 	glProgramUniform4iv(m_program, location, count, (const GLint*)data);
+}
+void RendererShaderGL::SetDecompilerShader(LatteDecompilerShader* decompilerShader)
+{
+	m_decompilerShader = decompilerShader;
 }
 
 void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
@@ -276,8 +301,8 @@ void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)
 	{
 		const uint32 cacheMagic = GeneratePrecompiledCacheId();
 		const std::string cacheFilename = fmt::format("{:016x}_gl.bin", cacheTitleId);
-        s_programBinaryCache = FileCache::Open(ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename), true, cacheMagic);
-		if (s_programBinaryCache == nullptr)
+        s_programBinaryCache.reset(FileCache::Open(ActiveSettings::GetCachePath("shaderCache/precompiled/{}", cacheFilename), true, cacheMagic));
+		if (!s_programBinaryCache)
 			cemuLog_log(LogType::Force, "Unable to open OpenGL precompiled cache {}", cacheFilename);
 	}
 	s_isLoadingShaders = true;
@@ -290,13 +315,10 @@ void RendererShaderGL::ShaderCacheLoading_end()
 
 void RendererShaderGL::ShaderCacheLoading_Close()
 {
-    if(s_programBinaryCache)
-    {
-        delete s_programBinaryCache;
-        s_programBinaryCache = nullptr;
-    }
+	s_programBinaryCache.reset();
     g_compiled_shaders_total = 0;
     g_compiled_shaders_async = 0;
 }
 
-FileCache* RendererShaderGL::s_programBinaryCache{};
+
+std::unique_ptr<class FileCache> RendererShaderGL::s_programBinaryCache{};

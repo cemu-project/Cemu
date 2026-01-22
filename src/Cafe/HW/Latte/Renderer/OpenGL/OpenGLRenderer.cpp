@@ -1295,9 +1295,9 @@ void OpenGLRenderer::attributeStream_unbindVertexBuffer()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
-RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
+RendererShader* OpenGLRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, std::string&& source, bool isGameShader, bool isGfxPackShader)
 {
-	return new RendererShaderGL(type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
+	return new RendererShaderGL(type, baseHash, auxHash, isGameShader, isGfxPackShader, std::move(source));
 }
 
 void OpenGLRenderer::shader_bind(RendererShader* shader)

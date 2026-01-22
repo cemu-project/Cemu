@@ -25,7 +25,7 @@ public:
     static void ShaderCacheLoading_end();
     static void ShaderCacheLoading_Close();
 
-	RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslCode);
+	RendererShaderVk(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, std::string&& glslCode);
 	virtual ~RendererShaderVk();
 
 	static void Init();
@@ -54,12 +54,12 @@ public:
 		s_dependencyLock.unlock();
 	}
 
-	void PreponeCompilation(bool isRenderThread) override;
+	void PreponeCompilation() override;
 	bool IsCompiled() override;
 	bool WaitForCompiled() override;
 
 private:
-	void CompileInternal(bool isRenderThread);
+  void CompileInternal();
 
 	void FinishCompilation();
 

@@ -14,6 +14,7 @@
 #include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
+#include "HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 #include "util/containers/flat_hash_map.hpp"
 #if ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
@@ -360,23 +361,15 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	}
 
 	// create shader
-	shader->shader = g_renderer->shader_create(shaderType, shader->baseHash, shader->auxHash, shaderSrc, true, shader->isCustomShader);
+	shader->shader = g_renderer->shader_create(shaderType, shader->baseHash, shader->auxHash, std::move(shaderSrc), true, shader->isCustomShader);
 	if (shader->shader == nullptr)
 		shader->hasError = true;
-	// after renderer shader creation we can throw away any intermediate info
-	LatteShader_CleanupAfterCompile(shader);
-}
-
-void LatteShader_FinishCompilation(LatteDecompilerShader* shader)
-{
-	if (shader->hasError)
+	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
-		cemuLog_logDebug(LogType::Force, "LatteShader_finishCompilation(): Skipped because of error in shader {:x}", shader->baseHash);
-		return;
+		RendererShaderGL* shaderGL = static_cast<RendererShaderGL*>(shader->shader);
+		shaderGL->SetDecompilerShader(shader);
 	}
-	shader->shader->WaitForCompiled();
-
-	LatteShader_prepareSeparableUniforms(shader);
+	// after renderer shader creation we can throw away any intermediate info
 	LatteShader_CleanupAfterCompile(shader);
 }
 
@@ -845,13 +838,6 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	LatteShader_CreateRendererShader(vertexShader, false);
 	performanceMonitor.numCompiledVS++;
 
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (vertexShader->shader)
-			vertexShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(vertexShader);
-	}
-
 	LatteSHRC_RegisterShader(vertexShader, vertexShader->baseHash, vertexShader->auxHash);
 	return vertexShader;
 }
@@ -874,13 +860,6 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	LatteShader_CreateRendererShader(geometryShader, false);
 	performanceMonitor.numCompiledGS++;
 
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (geometryShader->shader)
-			geometryShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(geometryShader);
-	}
-
 	LatteSHRC_RegisterShader(geometryShader, geometryShader->baseHash, geometryShader->auxHash);
 	return geometryShader;
 }
@@ -901,13 +880,6 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 	if (pixelShader->hasError == false)
 	{
 		LatteShaderCache_writeSeparablePixelShader(_shaderBaseHash_ps, psAuxHash, pixelShaderPtr, pixelShaderSize, LatteGPUState.contextRegister, usesGeometryShader);
-	}
-
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (pixelShader->shader)
-			pixelShader->shader->PreponeCompilation(true);
-		LatteShader_FinishCompilation(pixelShader);
 	}
 
 	LatteSHRC_RegisterShader(pixelShader, _shaderBaseHash_ps, psAuxHash);
