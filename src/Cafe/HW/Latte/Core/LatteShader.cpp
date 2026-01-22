@@ -360,7 +360,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	}
 
 	// create shader
-	shader->shader = g_renderer->shader_create(shaderType, shader->baseHash, shader->auxHash, shaderSrc, true, shader->isCustomShader);
+	shader->shader = g_renderer->shader_create(shaderType, shader->baseHash, shader->auxHash, std::move(shaderSrc), true, shader->isCustomShader);
 	if (shader->shader == nullptr)
 		shader->hasError = true;
 	// after renderer shader creation we can throw away any intermediate info

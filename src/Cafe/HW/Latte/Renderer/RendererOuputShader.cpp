@@ -251,8 +251,8 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
     else
         finalFragmentSrc = PrependFragmentPreamble(fragment_source);
 
-	m_vertex_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kVertex, 0, 0, vertex_source, false, false));
-	m_fragment_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, finalFragmentSrc, false, false));
+	m_vertex_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kVertex, 0, 0, std::string(vertex_source), false, false));
+	m_fragment_shader.reset(g_renderer->shader_create(RendererShader::ShaderType::kFragment, 0, 0, std::string(finalFragmentSrc), false, false));
 
 	m_vertex_shader->PreponeCompilation();
 	m_fragment_shader->PreponeCompilation();
