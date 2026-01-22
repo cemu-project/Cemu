@@ -257,7 +257,7 @@ void RendererShaderMtl::SetUniform4iv(sint32 location, void* data, sint32 count)
     cemu_assert_suspicious();
 }
 
-void RendererShaderMtl::PreponeCompilation(bool isRenderThread)
+void RendererShaderMtl::PreponeCompilation()
 {
 	shaderMtlThreadPool.s_compilationQueueMutex.lock();
 	bool isStillQueued = m_compilationState.hasState(COMPILATION_STATE::QUEUED);

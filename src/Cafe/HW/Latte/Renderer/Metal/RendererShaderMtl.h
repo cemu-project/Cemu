@@ -42,7 +42,7 @@ public:
 	void SetUniform2fv(sint32 location, void* data, sint32 count) override;
 	void SetUniform4iv(sint32 location, void* data, sint32 count) override;
 
-	void PreponeCompilation(bool isRenderThread) override;
+	void PreponeCompilation() override;
 	bool IsCompiled() override;
 	bool WaitForCompiled() override;
 
