@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"

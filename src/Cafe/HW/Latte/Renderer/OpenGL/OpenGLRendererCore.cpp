@@ -1,6 +1,7 @@
 #include "Common/GLInclude/GLInclude.h"
 
 #include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteSoftware.h"

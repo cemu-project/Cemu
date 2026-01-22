@@ -3,6 +3,7 @@
 #include "GX2.h"
 #include "GX2_Resource.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 
 // default GX2 allocator (not the same as the GX2R allocator, but GX2R uses this allocator by default)
 MPTR gx2Mem_defaultAlloc = MPTR_NULL;

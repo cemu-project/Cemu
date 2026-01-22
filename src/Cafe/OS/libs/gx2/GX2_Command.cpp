@@ -1,4 +1,5 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/OS/libs/coreinit/coreinit.h"

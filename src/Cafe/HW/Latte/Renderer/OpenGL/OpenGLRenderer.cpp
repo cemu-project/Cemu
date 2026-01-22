@@ -2,6 +2,7 @@
 #include "WindowSystem.h"
 
 #include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureGL.h"

@@ -1,5 +1,6 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 
 #include "Cafe/HW/Latte/Core/LatteQueryObject.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"

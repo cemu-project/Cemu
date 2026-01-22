@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
