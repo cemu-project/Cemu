@@ -73,8 +73,8 @@ void RendererShaderGL::storeBinary()
 	}
 }
 
-RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslSource)
-	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_glslSource(glslSource)
+RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, std::string&& glslSource)
+	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_glslSource(std::move(glslSource))
 {
 	GLenum glShaderType;
 	switch (type)

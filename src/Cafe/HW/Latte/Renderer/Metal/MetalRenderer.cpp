@@ -996,9 +996,9 @@ void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, 
     m_state.m_uniformBufferOffsets[GetMtlGeneralShaderType(shaderType)][bufferIndex] = offset;
 }
 
-RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
+RendererShader* MetalRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, std::string&& source, bool isGameShader, bool isGfxPackShader)
 {
-    return new RendererShaderMtl(this, type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
+    return new RendererShaderMtl(this, type, baseHash, auxHash, isGameShader, isGfxPackShader, std::move(source));
 }
 
 void MetalRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize)

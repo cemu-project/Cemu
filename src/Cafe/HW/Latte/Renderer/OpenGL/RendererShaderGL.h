@@ -6,7 +6,7 @@
 class RendererShaderGL : public RendererShader
 {
 public:
-	RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& glslSource);
+	RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, std::string&& glslSource);
 
 	virtual ~RendererShaderGL();
 

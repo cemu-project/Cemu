@@ -1154,9 +1154,9 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 	return createInfo;
 }
 
-RendererShader* VulkanRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader)
+RendererShader* VulkanRenderer::shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, std::string&& source, bool isGameShader, bool isGfxPackShader)
 {
-	return new RendererShaderVk(type, baseHash, auxHash, isGameShader, isGfxPackShader, source);
+	return new RendererShaderVk(type, baseHash, auxHash, isGameShader, isGfxPackShader, std::move(source));
 }
 
 VulkanRenderer::QueueFamilyIndices VulkanRenderer::FindQueueFamilies(VkSurfaceKHR surface, VkPhysicalDevice device)

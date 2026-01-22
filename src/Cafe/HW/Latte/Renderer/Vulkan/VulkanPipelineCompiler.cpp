@@ -158,7 +158,7 @@ RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader,
 
 	gsSrc.append("}\r\n");
 
-	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
+	auto vkShader = new RendererShaderVk(RendererShader::ShaderType::kGeometry, 0, 0, false, false, std::move(gsSrc));
 	vkShader->PreponeCompilation();
 	return vkShader;
 }

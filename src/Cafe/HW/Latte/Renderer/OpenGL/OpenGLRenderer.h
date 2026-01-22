@@ -145,7 +145,7 @@ public:
 	void uniformData_update();
 
 	// shader
-	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
+	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, std::string&& source, bool isGameShader, bool isGfxPackShader) override;
 	void shader_bind(RendererShader* shader);
 	void shader_unbind(RendererShader::ShaderType shaderType);
 

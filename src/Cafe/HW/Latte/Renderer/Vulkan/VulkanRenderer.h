@@ -330,7 +330,7 @@ public:
 	std::pair<VkBuffer, uint32> buffer_genStrideWorkaroundVertexBuffer(MPTR buffer, uint32 size, uint32 oldStride);
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
 
-	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, const std::string& source, bool isGameShader, bool isGfxPackShader) override;
+	RendererShader* shader_create(RendererShader::ShaderType type, uint64 baseHash, uint64 auxHash, std::string&& source, bool isGameShader, bool isGfxPackShader) override;
 
 	IndexAllocation indexData_reserveIndexMemory(uint32 size) override;
 	void indexData_releaseIndexMemory(IndexAllocation& allocation) override;
