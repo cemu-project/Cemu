@@ -717,7 +717,7 @@ namespace padscore
 			const sint16 currentSample = lpcmSamples[lpcmSampleIndex];
 			const sint32 sampleDiff = currentSample - locParams.predSample;
 			locParams.tempDiff = std::abs(sampleDiff);
-			const unsigned diffSign = currentSample < locParams.predSample;
+			const int diffSign = currentSample < locParams.predSample;
 			const bool flag1 = locParams.step <= locParams.tempDiff;
 			if (flag1)
 				locParams.tempDiff -= locParams.step;
@@ -744,7 +744,7 @@ namespace padscore
 			const auto tableIndex = flag1 << 2 | flag2 << 1 | flag3;
 
 			const auto adpcmSampleIndex = lpcmSampleIndex / 2;
-			locParams.step *= (locParams.step) * ADPCM_TABLE[tableIndex];
+			locParams.step = static_cast<double>(locParams.step) * ADPCM_TABLE[tableIndex];
 			adpcmSamples[adpcmSampleIndex] = adpcmSamples[adpcmSampleIndex] | uint8be((diffSign * 8 + tableIndex) << shiftAmount);
 			locParams.step = std::clamp<sint32>(locParams.step, 0x7f, 0x6000);
 		}
