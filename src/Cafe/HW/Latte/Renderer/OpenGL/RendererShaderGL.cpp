@@ -2,6 +2,7 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 
 #include "Cemu/FileCache/FileCache.h"
+#include "HW/Latte/Core/LatteShader.h"
 
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -42,7 +43,7 @@ bool RendererShaderGL::loadBinary()
 		m_program = 0;
 		return false;
 	}
-	m_isCompiled = true;
+	m_binaryLoaded = true;
 	return true;
 }
 
@@ -154,7 +155,7 @@ bool RendererShaderGL::IsCompiled()
 	if(m_isCompiled)
 		return true;
 
-	if(!glMaxShaderCompilerThreadsARB)
+	if(!glMaxShaderCompilerThreadsARB || m_binaryLoaded)
 	{
 		WaitForCompiled();
 		return true;
@@ -172,10 +173,17 @@ bool RendererShaderGL::IsCompiled()
 
 bool RendererShaderGL::WaitForCompiled()
 {
-	char infoLog[8 * 1024];
-	GLint log_length;
 	if (m_isCompiled)
 		return true;
+	if (m_binaryLoaded)
+	{
+		LatteShader_prepareSeparableUniforms(m_decompilerShader);
+		m_isCompiled = true;
+		return true;
+	}
+
+	char infoLog[8 * 1024];
+	GLint log_length;
 
 	// count shader compilation
 	if (!s_isLoadingShaders)
@@ -219,14 +227,19 @@ bool RendererShaderGL::WaitForCompiled()
 		return false;
 	}
 
-	storeBinary();
-
 	glDetachShader(m_program, m_shader_object);
 	m_shader_attached = false;
 	glDeleteShader(m_shader_object);
 	m_shader_object = 0;
 
+	storeBinary();
+
 	m_isCompiled = true;
+	if (m_decompilerShader)
+	{
+		LatteShader_prepareSeparableUniforms(m_decompilerShader);
+	}
+
 	return true;
 }
 
@@ -253,6 +266,10 @@ void RendererShaderGL::SetUniform2fv(sint32 location, void* data, sint32 count)
 void RendererShaderGL::SetUniform4iv(sint32 location, void* data, sint32 count)
 {
 	glProgramUniform4iv(m_program, location, count, (const GLint*)data);
+}
+void RendererShaderGL::SetDecompilerShader(LatteDecompilerShader* decompilerShader)
+{
+	m_decompilerShader = decompilerShader;
 }
 
 void RendererShaderGL::ShaderCacheLoading_begin(uint64 cacheTitleId)

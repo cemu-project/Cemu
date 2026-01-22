@@ -26,8 +26,6 @@ bool gxShader_checkIfSuccessfullyLinked(GLuint glProgram)
 
 void LatteShader_prepareSeparableUniforms(LatteDecompilerShader* shader)
 {
-	if (g_renderer->GetType() != RendererAPI::OpenGL)
-		return;
 	if(shader->hasError)
 		return;
 
