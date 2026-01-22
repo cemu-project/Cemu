@@ -1,5 +1,4 @@
 
-#include "Common/GLInclude/GLInclude.h"
 typedef struct
 {
 	GLuint glProgamId;

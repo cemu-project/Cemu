@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
@@ -680,7 +681,6 @@ void LatteRenderTarget_trackUpdates()
 	}
 }
 
-void LatteDraw_cleanupAfterFrame();
 void LatteRenderTarget_itHLESwapScanBuffer()
 {
 	performanceMonitor.cycle[performanceMonitor.cycleIndex].frameCounter++;

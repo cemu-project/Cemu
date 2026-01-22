@@ -4,6 +4,7 @@
 #include "GX2_Texture.h"
 
 #include "Cafe/HW/Latte/Core/Latte.h"
+#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 
