@@ -231,7 +231,7 @@ RendererShaderMtl::~RendererShaderMtl()
         m_function->release();
 }
 
-void RendererShaderMtl::PreponeCompilation(bool isRenderThread)
+void RendererShaderMtl::PreponeCompilation()
 {
 	shaderMtlThreadPool.s_compilationQueueMutex.lock();
 	bool isStillQueued = m_compilationState.hasState(COMPILATION_STATE::QUEUED);
