@@ -912,9 +912,20 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	{
 		beginPerfMonProfiling(performanceMonitor.gpuTime_dcStageShaderAndUniformMgr);
 		LatteSHRC_UpdateActiveShaders();
-		LatteDecompilerShader* vs = (LatteDecompilerShader*)LatteSHRC_GetActiveVertexShader();
-		LatteDecompilerShader* gs = (LatteDecompilerShader*)LatteSHRC_GetActiveGeometryShader();
-		LatteDecompilerShader* ps = (LatteDecompilerShader*)LatteSHRC_GetActivePixelShader();
+		LatteDecompilerShader* vs = LatteSHRC_GetActiveVertexShader();
+		LatteDecompilerShader* gs = LatteSHRC_GetActiveGeometryShader();
+		LatteDecompilerShader* ps = LatteSHRC_GetActivePixelShader();
+
+		for (auto& i : {vs, gs, ps})
+		{
+			if (!i)
+				continue;
+			if (!i->shader->IsCompiled())
+			{
+				i->shader->WaitForCompiled();
+			}
+		}
+
 		if (vs)
 			shader_bind(vs->shader);
 		else

@@ -114,7 +114,6 @@ void LatteShaderCache_updateCompileQueue(sint32 maxRemainingEntries)
 			continue;
 		if (shaderEntry->shader->IsCompiled())
 		{
-			LatteShader_prepareSeparableUniforms(shaderEntry);
 			LatteShaderCache_removeFromCompileQueue(i);
 		}
 	}
@@ -124,10 +123,7 @@ void LatteShaderCache_updateCompileQueue(sint32 maxRemainingEntries)
 			break;
 		auto shader = shaderCompileQueue.entry[0].shader;
 		if (shader)
-		{
 			shader->shader->PreponeCompilation();
-			LatteShader_prepareSeparableUniforms(shader);
-		}
 		LatteShaderCache_removeFromCompileQueue(0);
 	}
 }

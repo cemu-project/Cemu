@@ -14,6 +14,7 @@
 #include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
+#include "HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 #include "util/containers/flat_hash_map.hpp"
 #if ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
@@ -363,6 +364,11 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 	shader->shader = g_renderer->shader_create(shaderType, shader->baseHash, shader->auxHash, std::move(shaderSrc), true, shader->isCustomShader);
 	if (shader->shader == nullptr)
 		shader->hasError = true;
+	if (g_renderer->GetType() == RendererAPI::OpenGL)
+	{
+		RendererShaderGL* shaderGL = static_cast<RendererShaderGL*>(shader->shader);
+		shaderGL->SetDecompilerShader(shader);
+	}
 	// after renderer shader creation we can throw away any intermediate info
 	LatteShader_CleanupAfterCompile(shader);
 }
@@ -832,13 +838,6 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	LatteShader_CreateRendererShader(vertexShader, false);
 	performanceMonitor.numCompiledVS++;
 
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (vertexShader->shader)
-			vertexShader->shader->PreponeCompilation();
-		LatteShader_prepareSeparableUniforms(vertexShader);
-	}
-
 	LatteSHRC_RegisterShader(vertexShader, vertexShader->baseHash, vertexShader->auxHash);
 	return vertexShader;
 }
@@ -861,13 +860,6 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	LatteShader_CreateRendererShader(geometryShader, false);
 	performanceMonitor.numCompiledGS++;
 
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (geometryShader->shader)
-			geometryShader->shader->PreponeCompilation();
-		LatteShader_prepareSeparableUniforms(geometryShader);
-	}
-
 	LatteSHRC_RegisterShader(geometryShader, geometryShader->baseHash, geometryShader->auxHash);
 	return geometryShader;
 }
@@ -888,13 +880,6 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 	if (pixelShader->hasError == false)
 	{
 		LatteShaderCache_writeSeparablePixelShader(_shaderBaseHash_ps, psAuxHash, pixelShaderPtr, pixelShaderSize, LatteGPUState.contextRegister, usesGeometryShader);
-	}
-
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
-	{
-		if (pixelShader->shader)
-			pixelShader->shader->PreponeCompilation();
-		LatteShader_prepareSeparableUniforms(pixelShader);
 	}
 
 	LatteSHRC_RegisterShader(pixelShader, _shaderBaseHash_ps, psAuxHash);
