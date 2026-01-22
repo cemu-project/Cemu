@@ -3,7 +3,6 @@
 #include "GX2_Surface.h"
 #include "GX2_Resource.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 

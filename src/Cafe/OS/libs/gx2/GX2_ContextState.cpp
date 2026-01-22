@@ -2,7 +2,6 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 

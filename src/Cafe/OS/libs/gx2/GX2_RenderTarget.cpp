@@ -1,7 +1,6 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 

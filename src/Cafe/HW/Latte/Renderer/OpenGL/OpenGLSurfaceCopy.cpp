@@ -6,7 +6,6 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 
 #include "Cafe/HW/Latte/Core/LatteDefaultShaders.h"
 
