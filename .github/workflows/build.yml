@@ -79,9 +79,6 @@ jobs:
       run: |
         cmake --build build
 
-    - name: Prepare artifact
-      run: mv bin/Cemu_release bin/Cemu
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -182,9 +179,6 @@ jobs:
       run: |
         cd build
         cmake --build . --config ${{ env.BUILD_MODE }}
-
-    - name: Prepare artifact
-      run: Rename-Item bin/Cemu_release.exe Cemu.exe
 
     - name: Build NSIS Installer
       shell: cmd
