@@ -78,6 +78,7 @@ endif()
 
 if (MACOS_BUNDLE)
 	set_property(TARGET CemuBin PROPERTY MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resource/MacOSXBundleInfo.plist.in")
+	set(ENTITLEMENTS_FILE "${CMAKE_SOURCE_DIR}/src/resource/cemu.macos.entitlements")
 
 	set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/src/resource/cemu.icns")
 	target_sources(CemuBin PRIVATE "${RESOURCE_FILES}")
