@@ -224,7 +224,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install ninja nasm automake libtool
+        brew install nasm automake libtool
 
     - name: "Install molten-vk"
       run: |
