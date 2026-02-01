@@ -20,6 +20,8 @@
 #include "wxgui/debugger/BreakpointWindow.h"
 #include "wxgui/debugger/ModuleWindow.h"
 #include "util/helpers/helpers.h"
+#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
+#include "Cemu/Logging/CemuLogging.h"
 
 #include "resource/embedded/resources.h"
 
@@ -30,6 +32,8 @@ enum
 	// settings
 	MENU_ID_OPTIONS_PIN_TO_MAINWINDOW,
 	MENU_ID_OPTIONS_BREAK_ON_START,
+	MENU_ID_OPTIONS_LOG_MEMORY_BREAKPOINTS,
+	MENU_ID_OPTIONS_SWITCH_CPU_MODE,
 	// window
 	MENU_ID_WINDOW_REGISTERS,
 	MENU_ID_WINDOW_DUMP,
@@ -75,12 +79,14 @@ wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	EVT_MENU_RANGE(MENU_ID_WINDOW_REGISTERS, MENU_ID_WINDOW_MODULE, DebuggerWindow2::OnWindowMenu)
 wxEND_EVENT_TABLE()
 
+
 DebuggerWindow2* g_debugger_window;
 
 void DebuggerConfig::Load(XMLConfigParser& parser)
 {
 	pin_to_main = parser.get("PinToMainWindow", true);
 	break_on_start = parser.get("break_on_start", true);
+	log_memory_breakpoints = parser.get("log_memory_breakpoints", false);
 
 	auto window_parser = parser.get("Windows");
 	show_register = window_parser.get("Registers", true);
@@ -95,7 +101,8 @@ void DebuggerConfig::Save(XMLConfigParser& parser)
 {
 	parser.set("PinToMainWindow", pin_to_main);
 	parser.set("break_on_start", break_on_start);
-	
+	parser.set("log_memory_breakpoints", log_memory_breakpoints);
+
 	auto window_parser = parser.set("Windows");
 	window_parser.set("Registers", show_register);
 	window_parser.set("MemoryDump", show_dump);
@@ -285,6 +292,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	m_config.Load();
 
 	debuggerState.breakOnEntry = m_config.data().break_on_start;
+	debuggerState.logOnlyMemoryBreakpoints = m_config.data().log_memory_breakpoints;
 
 	m_main_position = parent.GetPosition();
 	m_main_size = parent.GetSize();
@@ -571,6 +579,26 @@ void DebuggerWindow2::OnOptionsInput(wxCommandEvent& event)
 		debuggerState.breakOnEntry = value;
 		break;
 	}
+	case MENU_ID_OPTIONS_LOG_MEMORY_BREAKPOINTS:
+	{
+		const bool value = !m_config.data().log_memory_breakpoints;
+		m_config.data().log_memory_breakpoints = value;
+		debuggerState.logOnlyMemoryBreakpoints = value;
+		break;
+	}
+	case MENU_ID_OPTIONS_SWITCH_CPU_MODE:
+	{
+		if (ppcRecompilerEnabled)
+		{
+			ppcRecompilerEnabled = false;
+			cemuLog_log(LogType::Force, "Debugger: Switched CPU mode to interpreter");
+		}
+		else {
+			ppcRecompilerEnabled = true;
+			cemuLog_log(LogType::Force, "Debugger: Switched CPU mode to recompiler");
+		}
+		break;
+	}
 	default:
 		return;
 	}
@@ -662,6 +690,8 @@ void DebuggerWindow2::CreateMenuBar()
 	wxMenu* options_menu = new wxMenu;
 	options_menu->Append(MENU_ID_OPTIONS_PIN_TO_MAINWINDOW, _("&Pin to main window"), wxEmptyString, wxITEM_CHECK)->Check(m_config.data().pin_to_main);
 	options_menu->Append(MENU_ID_OPTIONS_BREAK_ON_START, _("Break on &entry point"), wxEmptyString, wxITEM_CHECK)->Check(m_config.data().break_on_start);
+	options_menu->Append(MENU_ID_OPTIONS_LOG_MEMORY_BREAKPOINTS, _("Log only memory breakpoints"), wxEmptyString, wxITEM_CHECK)->Check(m_config.data().log_memory_breakpoints);
+	options_menu->Append(MENU_ID_OPTIONS_SWITCH_CPU_MODE, _("Switch to &interpreter CPU mode"), wxEmptyString, wxITEM_CHECK);
 	menu_bar->Append(options_menu, _("&Options"));
 
 	// window
