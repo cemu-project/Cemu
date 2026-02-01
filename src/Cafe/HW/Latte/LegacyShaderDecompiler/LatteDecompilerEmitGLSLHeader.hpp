@@ -16,7 +16,7 @@ namespace LatteDecompiler
 			}
 		}
 
-		sint32 uniformCurrentOffset = 0;
+		uint32 uniformCurrentOffset = 0;
 		auto shader = decompilerContext->shader;
 		auto shaderType = decompilerContext->shader->shaderType;
 		auto shaderSrc = decompilerContext->shaderSource;
