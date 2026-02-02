@@ -596,7 +596,7 @@ namespace snd_core
 		uint32 srcFilterMode = _swapEndianU16(internalShadowCopy->srcFilterMode);
 		uint16 format = _swapEndianU16(internalShadowCopy->internalOffsets.format);
 
-		if (srcFilterMode == AX_FILTER_MODE_LINEAR || srcFilterMode == AX_FILTER_MODE_TAP)
+		if (srcFilterMode == AX_FILTER_MODE_TAP)
 		{
 			if (format == AX_FORMAT_ADPCM)
 				AX_DecodeSamplesADPCM_Tap(internalShadowCopy, output, sampleCount);
