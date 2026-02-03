@@ -864,7 +864,7 @@ namespace snd_user
 		MixMode& mixMode = mixChannel.GetMode(device, deviceIndex);
 		sint16* deviceChannels = mixChannel.GetChannels(device, deviceIndex);
 
-		if (mixControl.fader == newPan)
+		if (mixControl.pan == newPan)
 		{
 			AXVoiceEnd(vpb);
 			return;
