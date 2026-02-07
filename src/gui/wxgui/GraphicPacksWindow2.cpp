@@ -43,47 +43,44 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 
 	for(auto& p : graphic_packs)
 	{
-		if (!p->IsUniversal())
+		// filter graphic packs by given title id
+		if (m_filter_installed_games && !m_installed_games.empty())
 		{
-			// filter graphic packs by given title id
-			if (m_filter_installed_games && !m_installed_games.empty())
+			bool found = false;
+			for (uint64 titleId : p->GetTitleIds())
 			{
-				bool found = false;
+				if (std::find(m_installed_games.cbegin(), m_installed_games.cend(), titleId) != m_installed_games.cend())
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+				continue;
+		}
+
+		// filter graphic packs by given title id
+		if(has_filter)
+		{
+			bool found = false;
+
+			if (boost::icontains(p->GetVirtualPath(), m_filter))
+				found = true;
+			else
+			{
 				for (uint64 titleId : p->GetTitleIds())
 				{
-					if (std::find(m_installed_games.cbegin(), m_installed_games.cend(), titleId) != m_installed_games.cend())
+					if (boost::icontains(fmt::format("{:x}", titleId), m_filter))
 					{
 						found = true;
 						break;
 					}
 				}
-	
-				if (!found)
-					continue;
 			}
-	
-			// filter graphic packs by given title id
-			if(has_filter)
-			{
-				bool found = false;
-	
-				if (boost::icontains(p->GetVirtualPath(), m_filter))
-					found = true;
-				else
-				{
-					for (uint64 titleId : p->GetTitleIds())
-					{
-						if (boost::icontains(fmt::format("{:x}", titleId), m_filter))
-						{
-							found = true;
-							break;
-						}
-					}
-				}
-	
-				if (!found)
-					continue;
-			}
+
+			if (!found)
+				continue;
 		}
 
 		const auto& path = p->GetVirtualPath();

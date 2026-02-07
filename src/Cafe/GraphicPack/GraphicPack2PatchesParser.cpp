@@ -41,7 +41,7 @@ void GraphicPack2::CancelParsingPatches()
 
 void GraphicPack2::AddPatchGroup(PatchGroup* group)
 {
-	if (group->list_moduleMatches.empty() && !m_universal)
+	if (group->list_moduleMatches.empty() && !group->m_isRpxOnlyTarget)
 	{
 		LogPatchesSyntaxError(-1, fmt::format("Group \"{}\" has no moduleMatches definition", group->name));
 		CancelParsingPatches();
@@ -347,6 +347,12 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			// read the checksums
 			while (true)
 			{
+                if (parser.matchWordI("rpx"))
+                {
+                   	currentGroup->m_isRpxOnlyTarget = true;
+                   	break;
+                }
+			
 				uint32 checksum = 0;
 				if (parser.parseU32(checksum) == false)
 				{

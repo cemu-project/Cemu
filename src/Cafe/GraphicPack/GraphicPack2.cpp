@@ -328,7 +328,7 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 	}
 
 	m_title_ids = ParseTitleIds(rules, "titleIds");
-	if(m_title_ids.empty() && !m_universal)
+	if(m_title_ids.empty())
 		throw std::exception();
 
 	auto option_fsPriority = rules.FindOption("fsPriority");
@@ -532,9 +532,6 @@ std::string GraphicPack2::GetNormalizedPathString() const
 
 bool GraphicPack2::ContainsTitleId(uint64_t title_id) const
 {
-	if (m_universal)
-		return true;
-
 	const auto it = std::find_if(m_title_ids.begin(), m_title_ids.end(), [title_id](uint64 id) { return id == title_id; });
 	return it != m_title_ids.end();
 }
@@ -1191,7 +1188,7 @@ std::vector<GraphicPack2::PresetPtr> GraphicPack2::GetActivePresets() const
 	return result;
 }
 
-std::vector<uint64> GraphicPack2::ParseTitleIds(IniParser& rules, const char* option_name)
+std::vector<uint64> GraphicPack2::ParseTitleIds(IniParser& rules, const char* option_name) const
 {
 	std::vector<uint64> result;
 
@@ -1201,13 +1198,6 @@ std::vector<uint64> GraphicPack2::ParseTitleIds(IniParser& rules, const char* op
 
 	for (auto& token : TokenizeView(*option_text, ','))
 	{
-		if (token == "*")
-		{
-			m_universal = true;
-			result.clear();
-			break;
-		}
-
 		try
 		{
 			result.emplace_back(ConvertString<uint64>(token, 16));

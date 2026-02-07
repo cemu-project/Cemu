@@ -135,13 +135,7 @@ void GraphicPack2::LoadPatchFiles()
 
 void GraphicPack2::EnablePatches()
 {
-	std::lock_guard<std::recursive_mutex> lock(mtx_patches);
-	if (m_universal) // universal gp only applies to the rpx
-	{
-	    ApplyPatchesForModule(list_modules[0]);
-	    return;
-	}
-	
+	std::lock_guard<std::recursive_mutex> lock(mtx_patches);	
 	for (auto& itr : list_modules)
 		ApplyPatchesForModule(itr);
 }
@@ -178,7 +172,7 @@ void GraphicPack2::ApplyPatchesForModule(const RPLModule* rpl)
 	std::vector<PatchGroup*> list_groups;
 	for (auto itr : list_patchGroups)
 	{
-		if (m_universal || itr->matchesCRC(rpl->patchCRC))
+		if (itr->matchesCRC(rpl->patchCRC) || (itr->m_isRpxOnlyTarget && rpl->fileInfo.flags & 2))
 			list_groups.emplace_back(itr);
 	}
 	// apply all groups at once
@@ -194,7 +188,7 @@ void GraphicPack2::RevertPatchesForModule(const RPLModule* rpl)
 	std::vector<PatchGroup*> list_groups;
 	for (auto itr : list_patchGroups)
 	{
-		if (m_universal || itr->matchesCRC(rpl->patchCRC))
+		if (itr->matchesCRC(rpl->patchCRC) || (itr->m_isRpxOnlyTarget && rpl->fileInfo.flags & 2))
 			list_groups.emplace_back(itr);
 	}
 	// undo all groups at once

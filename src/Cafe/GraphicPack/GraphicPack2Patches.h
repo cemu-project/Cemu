@@ -260,4 +260,5 @@ private:
 	uint32 codeCaveSize;
 	MEMPTR<void> codeCaveMem;
 	bool m_isApplied{};
+	bool m_isRpxOnlyTarget{};
 };

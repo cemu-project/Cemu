@@ -113,7 +113,7 @@ typedef struct
 	/* +0x28 */ uint32be sdataBase2;
 	/* +0x2C */ uint32be ukn2C;
 	/* +0x30 */ uint32be ukn30;
-	/* +0x34 */ uint32be ukn34;
+	/* +0x34 */ uint32be flags;
 	/* +0x38 */ uint32be ukn38;
 	/* +0x3C */ uint32be ukn3C;
 	/* +0x40 */ uint32be minimumToolkitVersion;
@@ -198,6 +198,8 @@ struct RPLModule
 
 		uint32 sdataBase1;
 		uint32 sdataBase2;
+		
+		uint32 flags;
 	}fileInfo;
 	// parsed CRC
 	std::vector<uint32> crcTable;

@@ -109,7 +109,6 @@ public:
 	bool Reload();
 
 	bool HasName() const { return !m_name.empty();  }
-	bool IsUniversal() const { return m_universal; }
 
 	const std::string& GetName() const { return m_name.empty() ? m_virtualPath : m_name; }
 	const std::string& GetVirtualPath() const { return m_virtualPath; } // returns the path in the gfx tree hierarchy
@@ -232,7 +231,6 @@ private:
 	bool m_activated = false; // set if the graphic pack is currently used by the running game
 	std::vector<uint64_t> m_title_ids;
 	bool m_patchedFilesLoaded = false; // set to true once patched files are loaded
-	bool m_universal = false; // set if this pack applies to every title id
 
 	sint32 m_vsync_frequency = -1;
 	sint32 m_fs_priority = 100;
@@ -260,7 +258,7 @@ private:
 
 	std::unordered_map<std::string, PresetVar> ParsePresetVars(IniParser& rules) const;
 
-	std::vector<uint64> ParseTitleIds(IniParser& rules, const char* option_name);
+	std::vector<uint64> ParseTitleIds(IniParser& rules, const char* option_name) const;
 
 	CustomShader LoadShader(const fs::path& path, uint64 shader_base_hash, uint64 shader_aux_hash, GP_SHADER_TYPE shader_type, bool isMetalShader) const;
 	void ApplyShaderPresets(std::string& shader_source) const;
