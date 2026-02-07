@@ -136,6 +136,12 @@ void GraphicPack2::LoadPatchFiles()
 void GraphicPack2::EnablePatches()
 {
 	std::lock_guard<std::recursive_mutex> lock(mtx_patches);
+	if (m_universal) // universal gp only applies to the rpx
+	{
+	    ApplyPatchesForModule(list_modules[0]);
+	    return;
+	}
+	
 	for (auto& itr : list_modules)
 		ApplyPatchesForModule(itr);
 }
