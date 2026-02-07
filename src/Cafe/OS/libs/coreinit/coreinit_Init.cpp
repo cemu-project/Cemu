@@ -11,6 +11,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_MEM.h"
 #include "Cafe/OS/libs/coreinit/coreinit_FG.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/GraphicPack/GraphicPack2.h"
 
 extern MPTR _entryPoint;
 extern RPLModule* applicationRPX;
@@ -210,6 +211,14 @@ void coreinit_start(PPCInterpreter_t* hCPU)
 	// init vpadbase (todo - simulate entrypoints for HLE modules)
 	padscore::start();
 	vpad::start();
+
+	for (const auto gp : GraphicPack2::GetActiveGraphicPacks())
+	{
+	    for (MPTR callback : gp->GetCallbacks())
+		{
+		    PPCCoreCallback(callback);
+		}
+	}
 
 	// continue at main executable entrypoint
 	hCPU->gpr[4] = memory_getVirtualOffsetFromPointer(_coreinitInfo->argv);

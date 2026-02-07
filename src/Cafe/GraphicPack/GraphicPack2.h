@@ -123,6 +123,8 @@ public:
 	const std::vector<uint64_t>& GetTitleIds() const { return m_title_ids; }
 	bool HasCustomVSyncFrequency() const { return m_vsync_frequency >= 1; }
 	sint32 GetCustomVSyncFrequency() const { return m_vsync_frequency; }
+	
+	const std::vector<MPTR>& GetCallbacks() const { return m_callbacks; }
 
 	// texture rules
 	const std::vector<TextureRule>& GetTextureRules() const { return m_texture_rules; }
@@ -230,7 +232,7 @@ private:
 	bool m_activated = false; // set if the graphic pack is currently used by the running game
 	std::vector<uint64_t> m_title_ids;
 	bool m_patchedFilesLoaded = false; // set to true once patched files are loaded
-	bool m_universal = false; // set if this pack applies to every titl eid
+	bool m_universal = false; // set if this pack applies to every title id
 
 	sint32 m_vsync_frequency = -1;
 	sint32 m_fs_priority = 100;
@@ -284,6 +286,8 @@ private:
 	void LogPatchesSyntaxError(sint32 lineNumber, std::string_view errorMsg);
 
 	std::vector<PatchGroup*> list_patchGroups;
+	
+	std::vector<MPTR> m_callbacks;
 
 	static std::recursive_mutex mtx_patches;
 	static std::vector<const RPLModule*> list_modules;

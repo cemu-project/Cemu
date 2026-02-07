@@ -425,7 +425,23 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 			}
 			continue;
 		}
-		
+		else if (parser.matchWordI(".callback"))
+		{
+		    const char* symbolStr;
+			sint32 symbolLen;
+		    if (parser.parseSymbolName(symbolStr, symbolLen))
+		    {
+				currentGroup->list_callbacks.push_back({symbolStr, static_cast<size_t>(symbolLen)});
+				continue;
+		    }
+		    else
+		    {
+                LogPatchesSyntaxError(lineNumber, "'.callback' must be followed by a symbol");
+                CancelParsingPatches();
+                return false;
+		    }
+		}
+
 		// next we attempt to parse symbol assignment
 		// symbols can be labels or variables. The type is determined by what comes after the symbol name
 		// <symbolName> = <expression> defines a variable
