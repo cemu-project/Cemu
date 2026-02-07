@@ -41,7 +41,7 @@ void GraphicPack2::CancelParsingPatches()
 
 void GraphicPack2::AddPatchGroup(PatchGroup* group)
 {
-	if (group->list_moduleMatches.empty())
+	if (group->list_moduleMatches.empty() && !m_universal)
 	{
 		LogPatchesSyntaxError(-1, fmt::format("Group \"{}\" has no moduleMatches definition", group->name));
 		CancelParsingPatches();

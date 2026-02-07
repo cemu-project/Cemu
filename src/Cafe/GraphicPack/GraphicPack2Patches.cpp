@@ -172,7 +172,7 @@ void GraphicPack2::ApplyPatchesForModule(const RPLModule* rpl)
 	std::vector<PatchGroup*> list_groups;
 	for (auto itr : list_patchGroups)
 	{
-		if (itr->matchesCRC(rpl->patchCRC))
+		if (m_universal || itr->matchesCRC(rpl->patchCRC))
 			list_groups.emplace_back(itr);
 	}
 	// apply all groups at once
@@ -188,7 +188,7 @@ void GraphicPack2::RevertPatchesForModule(const RPLModule* rpl)
 	std::vector<PatchGroup*> list_groups;
 	for (auto itr : list_patchGroups)
 	{
-		if (itr->matchesCRC(rpl->patchCRC))
+		if (m_universal || itr->matchesCRC(rpl->patchCRC))
 			list_groups.emplace_back(itr);
 	}
 	// undo all groups at once
