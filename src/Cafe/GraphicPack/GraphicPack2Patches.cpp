@@ -135,7 +135,7 @@ void GraphicPack2::LoadPatchFiles()
 
 void GraphicPack2::EnablePatches()
 {
-	std::lock_guard<std::recursive_mutex> lock(mtx_patches);	
+	std::lock_guard<std::recursive_mutex> lock(mtx_patches);
 	for (auto& itr : list_modules)
 		ApplyPatchesForModule(itr);
 }
