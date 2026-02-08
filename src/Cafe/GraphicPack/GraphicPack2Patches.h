@@ -212,6 +212,10 @@ private:
 	bool m_addrRelocated{};
 };
 
+enum class GPCallbackType {
+    Entry
+};
+
 class PatchGroup
 {
 	friend class GraphicPack2;
@@ -256,7 +260,7 @@ private:
 	std::string name;
 	std::vector<uint32> list_moduleMatches;
 	std::vector<PatchEntry*> list_patches;
-	std::vector<std::string> list_callbacks;
+	std::vector<std::pair<std::string, GPCallbackType>> list_callbacks;
 	uint32 codeCaveSize;
 	MEMPTR<void> codeCaveMem;
 	bool m_isApplied{};

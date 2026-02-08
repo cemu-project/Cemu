@@ -1199,15 +1199,14 @@ std::vector<uint64> GraphicPack2::ParseTitleIds(IniParser& rules, const char* op
 	if (!option_text)
 		return result;
 
+	if (*option_text == "*")
+	{
+		m_universal = true;
+		return result;
+	}
+
 	for (auto& token : TokenizeView(*option_text, ','))
 	{
-		if (token == "*")
-		{
-			m_universal = true;
-			result.clear();
-			break;
-		}
-
 		try
 		{
 			result.emplace_back(ConvertString<uint64>(token, 16));

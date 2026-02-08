@@ -172,7 +172,7 @@ void GraphicPack2::ApplyPatchesForModule(const RPLModule* rpl)
 	std::vector<PatchGroup*> list_groups;
 	for (auto itr : list_patchGroups)
 	{
-		if (itr->matchesCRC(rpl->patchCRC) || (itr->m_isRpxOnlyTarget && rpl->fileInfo.flags & 2))
+		if (itr->matchesCRC(rpl->patchCRC) || (itr->m_isRpxOnlyTarget && rpl->IsRPX()))
 			list_groups.emplace_back(itr);
 	}
 	// apply all groups at once
@@ -188,7 +188,7 @@ void GraphicPack2::RevertPatchesForModule(const RPLModule* rpl)
 	std::vector<PatchGroup*> list_groups;
 	for (auto itr : list_patchGroups)
 	{
-		if (itr->matchesCRC(rpl->patchCRC) || (itr->m_isRpxOnlyTarget && rpl->fileInfo.flags & 2))
+		if (itr->matchesCRC(rpl->patchCRC) || (itr->m_isRpxOnlyTarget && rpl->IsRPX()))
 			list_groups.emplace_back(itr);
 	}
 	// undo all groups at once

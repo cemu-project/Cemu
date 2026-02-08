@@ -124,7 +124,7 @@ public:
 	bool HasCustomVSyncFrequency() const { return m_vsync_frequency >= 1; }
 	sint32 GetCustomVSyncFrequency() const { return m_vsync_frequency; }
 	
-	const std::vector<MPTR>& GetCallbacks() const { return m_callbacks; }
+	const std::vector<std::pair<MPTR, GPCallbackType>>& GetCallbacks() const { return m_callbacks; }
 
 	// texture rules
 	const std::vector<TextureRule>& GetTextureRules() const { return m_texture_rules; }
@@ -287,7 +287,7 @@ private:
 
 	std::vector<PatchGroup*> list_patchGroups;
 	
-	std::vector<MPTR> m_callbacks;
+	std::vector<std::pair<MPTR, GPCallbackType>> m_callbacks;
 
 	static std::recursive_mutex mtx_patches;
 	static std::vector<const RPLModule*> list_modules;

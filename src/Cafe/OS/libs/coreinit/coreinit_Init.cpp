@@ -212,11 +212,15 @@ void coreinit_start(PPCInterpreter_t* hCPU)
 	padscore::start();
 	vpad::start();
 
+	// call entry-type callbacks in graphic packs
 	for (const auto gp : GraphicPack2::GetActiveGraphicPacks())
 	{
-	    for (MPTR callback : gp->GetCallbacks())
+	    for (const auto [callback, type] : gp->GetCallbacks())
 		{
-		    PPCCoreCallback(callback);
+		    if (type == GPCallbackType::Entry)
+			{
+		        PPCCoreCallback(callback);
+			}
 		}
 	}
 

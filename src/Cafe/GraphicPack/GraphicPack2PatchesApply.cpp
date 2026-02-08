@@ -711,12 +711,12 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 			patchInstruction->applyPatch();
 		}
 		
-		for (const auto& name : patchGroup->list_callbacks)
+		for (const auto& [name, type] : patchGroup->list_callbacks)
 		{
             auto it = patchContext.map_values.find(name);
             if (it != patchContext.map_values.end())
             {
-                m_callbacks.push_back(it->second);
+                m_callbacks.push_back(std::make_pair(it->second, type));
             }
             else
             {

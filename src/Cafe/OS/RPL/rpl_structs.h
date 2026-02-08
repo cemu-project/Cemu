@@ -210,6 +210,11 @@ struct RPLModule
 			return 0;
 		return crcTable[sectionIndex];
 	}
+	
+	bool IsRPX() const
+	{
+	    return fileInfo.flags & 2;
+	}
 
 	// state
 	bool isLinked; // set to true if _linkModule was called on this module
