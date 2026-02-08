@@ -710,6 +710,21 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 				continue;
 			patchInstruction->applyPatch();
 		}
+		
+		for (const auto& [name, type] : patchGroup->list_callbacks)
+		{
+            auto it = patchContext.map_values.find(name);
+            if (it != patchContext.map_values.end())
+            {
+                m_callbacks.push_back(std::make_pair(it->second, type));
+            }
+            else
+            {
+                patchContext.errorHandler.printError(patchGroup, -1, fmt::format("Failed to resolve .callback symbol: {}", name));
+                patchContext.errorHandler.showStageErrorMessageBox();
+                return;
+            }
+		}
 	}
 	// mark groups as applied
 	for (auto patchGroup : groups)
