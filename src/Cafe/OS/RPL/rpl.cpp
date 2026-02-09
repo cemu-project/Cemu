@@ -267,6 +267,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	rplLoaderContext->fileInfo.tlsModuleIndex = fileInfoPtr->tlsModuleIndex;
 	rplLoaderContext->fileInfo.sdataBase1 = fileInfoPtr->sdataBase1;
 	rplLoaderContext->fileInfo.sdataBase2 = fileInfoPtr->sdataBase2;
+	rplLoaderContext->fileInfo.flags = fileInfoPtr->flags;
 
 	// init section address table
 	rplLoaderContext->sectionAddressTable2.resize(sectionCount);
