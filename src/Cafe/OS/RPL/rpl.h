@@ -25,6 +25,7 @@ void RPLLoader_SetMainModule(RPLModule* rplLoaderContext);
 uint32 RPLLoader_GetMainModuleHandle();
 
 void RPLLoader_CallEntrypoints();
+void RPLLoader_CallCoreinitEntrypoint();
 void RPLLoader_NotifyControlPassedToApplication();
 
 void RPLLoader_AddDependency(std::string_view name);
