@@ -1,4 +1,6 @@
 #pragma once
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "VKRBase.h"
 
 class PipelineCompiler : public VKRMoveableRefCounter
 {
@@ -42,6 +44,11 @@ public:
 	void TrackAsCached(uint64 baseHash, uint64 pipelineStateHash); // stores pipeline to permanent cache if not yet cached. Must be called synchronously from render thread due to dependency on GPU state
 
 	static bool CalcRobustBufferAccessRequirement(LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader, LatteDecompilerShader* geometryShader);
+
+	// API for thread pool
+	static void CompileThreadPool_Start();
+	static void CompileThreadPool_Stop();
+	static void CompileThreadPool_QueueCompilation(PipelineCompiler* v);
 
 	VkPipelineLayout m_pipelineLayout;
 	VKRObjectRenderPass* m_renderPassObj{};
