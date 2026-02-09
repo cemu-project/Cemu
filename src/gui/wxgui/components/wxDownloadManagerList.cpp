@@ -142,6 +142,10 @@ wxString wxDownloadManagerList::OnGetItemText(long item, long column) const
 wxItemAttr* wxDownloadManagerList::OnGetItemAttr(long item) const
 {
 	const auto entry = GetTitleEntry(item);
+
+	const wxColour bgColour = GetBackgroundColour();
+	const bool isDarkTheme = wxSystemSettings::GetAppearance().IsDark();
+
 	if (entry.has_value())
 	{
 		auto& entryData = entry.value();
@@ -149,26 +153,38 @@ wxItemAttr* wxDownloadManagerList::OnGetItemAttr(long item) const
 			entryData.status == TitleDownloadStatus::Verifying ||
 			entryData.status == TitleDownloadStatus::Installing)
 		{
-			const wxColour kActiveColor{ 0xFFE0E0 };
-			static wxListItemAttr s_error_attr(GetTextColour(), kActiveColor, GetFont());
-			return &s_error_attr;
+			const wxColour kActiveColor = isDarkTheme ? wxColour(80, 40, 40) : wxColour(0xFFE0E0);
+			static wxListItemAttr s_active_attr;
+			s_active_attr.SetBackgroundColour(kActiveColor);
+			s_active_attr.SetTextColour(GetTextColour());
+			s_active_attr.SetFont(GetFont());
+			return &s_active_attr;
 		}
 		else if (entryData.status == TitleDownloadStatus::Installed && entryData.isPackage)
 		{
-			const wxColour kActiveColor{ 0xE0FFE0 };
-			static wxListItemAttr s_error_attr(GetTextColour(), kActiveColor, GetFont());
-			return &s_error_attr;
+			const wxColour kActiveColor = isDarkTheme ? wxColour(40, 80, 40) : wxColour(0xE0FFE0);
+			static wxListItemAttr s_installed_attr;
+			s_installed_attr.SetBackgroundColour(kActiveColor);
+			s_installed_attr.SetTextColour(GetTextColour());
+			s_installed_attr.SetFont(GetFont());
+			return &s_installed_attr;
 		}
 		else if (entryData.status == TitleDownloadStatus::Error)
 		{
-			const wxColour kActiveColor{ 0xCCCCF2 };
-			static wxListItemAttr s_error_attr(GetTextColour(), kActiveColor, GetFont());
+			const wxColour kActiveColor = isDarkTheme ? wxColour(40, 40, 80) : wxColour(0xCCCCF2);
+			static wxListItemAttr s_error_attr;
+			s_error_attr.SetBackgroundColour(kActiveColor);
+			s_error_attr.SetTextColour(GetTextColour());
+			s_error_attr.SetFont(GetFont());
 			return &s_error_attr;
 		}
 	}
 
-	wxColour bgColourSecondary = wxHelper::CalculateAccentColour(GetBackgroundColour());
-	static wxListItemAttr s_coloured_attr(GetTextColour(), bgColourSecondary, GetFont());
+	wxColour bgColourSecondary = wxHelper::CalculateAccentColour(bgColour);
+	static wxListItemAttr s_coloured_attr;
+	s_coloured_attr.SetBackgroundColour(bgColourSecondary);
+	s_coloured_attr.SetTextColour(GetTextColour());
+	s_coloured_attr.SetFont(GetFont());
 	return item % 2 == 0 ? nullptr : &s_coloured_attr;
 }
 
