@@ -231,32 +231,6 @@ RendererShaderMtl::~RendererShaderMtl()
         m_function->release();
 }
 
-sint32 RendererShaderMtl::GetUniformLocation(const char* name)
-{
-    cemu_assert_suspicious();
-    return 0;
-}
-
-void RendererShaderMtl::SetUniform1i(sint32 location, sint32 value)
-{
-	cemu_assert_suspicious();
-}
-
-void RendererShaderMtl::SetUniform1f(sint32 location, float value)
-{
-	cemu_assert_suspicious();
-}
-
-void RendererShaderMtl::SetUniform2fv(sint32 location, void* data, sint32 count)
-{
-    cemu_assert_suspicious();
-}
-
-void RendererShaderMtl::SetUniform4iv(sint32 location, void* data, sint32 count)
-{
-    cemu_assert_suspicious();
-}
-
 void RendererShaderMtl::PreponeCompilation(bool isRenderThread)
 {
 	shaderMtlThreadPool.s_compilationQueueMutex.lock();

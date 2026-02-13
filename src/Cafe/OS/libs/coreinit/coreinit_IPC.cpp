@@ -445,6 +445,16 @@ namespace coreinit
 		return r;
 	}
 
+	void MapIPCExports()
+	{
+		cafeExportRegister("coreinit", IOS_Open, LogType::PPC_IPC);
+		cafeExportRegister("coreinit", IOS_Close, LogType::PPC_IPC);
+		cafeExportRegister("coreinit", IOS_Ioctl, LogType::PPC_IPC);
+		cafeExportRegister("coreinit", IOS_IoctlAsync, LogType::PPC_IPC);
+		cafeExportRegister("coreinit", IOS_Ioctlv, LogType::PPC_IPC);
+		cafeExportRegister("coreinit", IOS_IoctlvAsync, LogType::PPC_IPC);
+	}
+
 	void InitializeIPC()
 	{
 		for (uint32 i = 0; i < Espresso::CORE_COUNT; i++)
@@ -452,14 +462,6 @@ namespace coreinit
 			IPCDriver_InitForCore(i);
 			IPCDriver_InitIPCThread(i);
 		}
-
-		// register API
-		cafeExportRegister("coreinit", IOS_Open, LogType::PPC_IPC);
-		cafeExportRegister("coreinit", IOS_Close, LogType::PPC_IPC);
-		cafeExportRegister("coreinit", IOS_Ioctl, LogType::PPC_IPC);
-		cafeExportRegister("coreinit", IOS_IoctlAsync, LogType::PPC_IPC);
-		cafeExportRegister("coreinit", IOS_Ioctlv, LogType::PPC_IPC);
-		cafeExportRegister("coreinit", IOS_IoctlvAsync, LogType::PPC_IPC);
 	}
 
 };

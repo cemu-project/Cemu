@@ -331,7 +331,7 @@ namespace coreinit
 
 			// init GHS and threads
 			coreinit::PrepareGHSRuntime();
-			coreinit::InitializeThread();
+			coreinit::MapThreadExports();
 
 			// reset threads
 			activeThreadCount = 0;
@@ -353,13 +353,13 @@ namespace coreinit
 			coreinit::InitializeLC();
 			coreinit::InitializeMP();
 			coreinit::InitializeTimeAndCalendar();
-			coreinit::InitializeAlarm();
+			coreinit::MapAlarmExports();
 			coreinit::InitializeFS();
 			coreinit::InitializeSystemInfo();
 			coreinit::InitializeConcurrency();
 			coreinit::InitializeSpinlock();
 			coreinit::InitializeMessageQueue();
-			coreinit::InitializeIPC();
+			coreinit::MapIPCExports();
 			coreinit::InitializeIPCBuf();
 			coreinit::InitializeMemoryMapping();
 			coreinit::InitializeCodeGen();
@@ -373,16 +373,20 @@ namespace coreinit
 			coreinit::miscInit();
 			osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
 			osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
-
-			// async callbacks
-			InitializeAsyncCallback();
 		};
 
 		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
 		{
 			if (reason == coreinit::RplEntryReason::Loaded)
 			{
-				// todo
+				coreinit::InitializeThread();
+				coreinit::InitializeAlarm();
+				coreinit::InitializeIPC();
+				InitializeAsyncCallback();
+				// remaining coreinit initialization happens in coreinit_start and requires a valid PPC context
+				OSThread_t* initialThread = coreinit::OSGetDefaultThread(1);
+				coreinit::OSSetThreadPriority(initialThread, 16);
+				coreinit::OSRunThread(initialThread, PPCInterpreter_makeCallableExportDepr(coreinit_start), 0, nullptr);
 			}
 			else if (reason == coreinit::RplEntryReason::Unloaded)
 			{

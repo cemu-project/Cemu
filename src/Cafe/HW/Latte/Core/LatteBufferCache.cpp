@@ -290,7 +290,6 @@ public:
 	{
 		if (m_hasCacheAlloc)
 		{
-			cemu_assert_debug(isInUse() == false);
 			g_gpuBufferHeap->freeOffset(m_cacheOffset);
 			m_hasCacheAlloc = false;
 		}
@@ -836,6 +835,8 @@ public:
 				continue;
 			}
 			// delete range
+			if (node->m_hasCacheAlloc)
+				cemu_assert_debug(!node->isInUse());
 			node->ReleaseCacheMemoryImmediately();
 			LatteBufferCache_removeSingleNodeFromTree(node);
 			delete node;
