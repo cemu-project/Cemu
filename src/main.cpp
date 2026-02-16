@@ -174,14 +174,18 @@ void requireConsole()
     HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     DWORD dwFileType = GetFileType(hOut);
 
-    if (dwFileType == FILE_TYPE_UNKNOWN || dwFileType == FILE_TYPE_CHAR) {
-        if (AttachConsole(ATTACH_PARENT_PROCESS) != FALSE) {
+    if (dwFileType == FILE_TYPE_UNKNOWN || dwFileType == FILE_TYPE_CHAR)
+    {
+        if (AttachConsole(ATTACH_PARENT_PROCESS) != FALSE)
+        {
             freopen("CONOUT$", "w", stdout);
             freopen("CONOUT$", "w", stderr);
             freopen("CONIN$", "r", stdin);
             isConsoleConnected = true;
         }
-    } else {
+    }
+    else
+    {
         isConsoleConnected = true; 
     }
     #endif
