@@ -165,7 +165,8 @@ void UnitTests()
 }
 
 bool isConsoleConnected = false;
-void requireConsole() {
+void requireConsole()
+{
     #if BOOST_OS_WINDOWS
     if (isConsoleConnected)
         return;
