@@ -16,9 +16,10 @@
 #endif
 
 GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
-	: wxFrame(parent, wxID_ANY, _("Edit game profile"), wxDefaultPosition, wxSize{ 390, 350 }, wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER | wxTAB_TRAVERSAL | wxSYSTEM_MENU), m_title_id(title_id)
+	: wxFrame(parent, wxID_ANY, _("Edit game profile"), wxDefaultPosition, wxDefaultSize, wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER | wxTAB_TRAVERSAL | wxSYSTEM_MENU), m_title_id(title_id)
 {
 	SetIcon(wxICON(X_GAME_PROFILE));
+	SetSize(FromDIP(wxSize(390, 350)));
 
 	m_game_profile.Reset();
 	m_game_profile.Load(title_id);
@@ -71,7 +72,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 
 			wxString quantum_values[] = { "20000", "45000", "60000", "80000" ,"100000" };
 			m_thread_quantum = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, std::size(quantum_values), quantum_values);
-			m_thread_quantum->SetMinSize(wxSize(85, -1));
+			m_thread_quantum->SetMinSize(FromDIP(wxSize(85, -1)));
 			m_thread_quantum->SetToolTip(_("EXPERT OPTION\nSet the maximum thread slice runtime (in virtual cycles)"));
 			quantum_sizer->Add(m_thread_quantum, 0, wxALL, 5);
 
@@ -196,7 +197,7 @@ GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 			profile_sizer->Add(new wxStaticText(panel, wxID_ANY, formatWxString(_("Controller {}"), i + 1)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 			m_controller_profile[i] = new wxComboBox(panel, wxID_ANY,"", wxDefaultPosition, wxDefaultSize, 0, nullptr, wxCB_DROPDOWN| wxCB_READONLY);
-			m_controller_profile[i]->SetMinSize(wxSize(250, -1));
+			m_controller_profile[i]->SetMinSize(FromDIP(wxSize(250, -1)));
 			m_controller_profile[i]->Bind(wxEVT_COMBOBOX_DROPDOWN, &GameProfileWindow::OnControllerProfileDropdown, this);
 			m_controller_profile[i]->SetToolTip(_("Forces a given controller profile"));
 			profile_sizer->Add(m_controller_profile[i], 0, wxALL, 5);

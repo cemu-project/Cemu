@@ -10,8 +10,10 @@
 wxDEFINE_EVENT(EVT_LOG, wxLogEvent);
 
 LoggingWindow::LoggingWindow(wxFrame* parent)
-	: wxFrame(parent, wxID_ANY, _("Logging window"), wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
+	: wxFrame(parent, wxID_ANY, _("Logging window"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
+	SetSize(FromDIP(wxSize(800, 600)));
+
 	auto* sizer = new wxBoxSizer( wxVERTICAL );
 	{
 		auto filter_row = new wxBoxSizer( wxHORIZONTAL );

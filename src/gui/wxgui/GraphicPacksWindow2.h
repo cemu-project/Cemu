@@ -59,12 +59,14 @@ private:
 
 	wxTreeItemId FindTreeItem(const wxTreeItemId& root, const wxString& text) const;
 	void LoadPresetSelections(const GraphicPackPtr& gp);
+	void UpdateContentLayout();
 
 	void OnTreeSelectionChanged(wxTreeEvent& event);
 	void OnTreeChoiceChanged(wxTreeEvent& event);
 	void OnActivePresetChanged(wxCommandEvent& event);
 	void OnReloadShaders(wxCommandEvent& event);
 	void OnCheckForUpdates(wxCommandEvent& event);
+	void OnRightPanelResized(wxSizeEvent& event);
 	void OnSizeChanged(wxSizeEvent& event);
 	void SashPositionChanged(wxEvent& event);
 	void OnFilterUpdate(wxEvent& event);
