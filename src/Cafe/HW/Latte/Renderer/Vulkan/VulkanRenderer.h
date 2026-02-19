@@ -8,6 +8,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/CachedFBOVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VKRMemoryManager.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h"
+#include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "util/math/vector2.h"
 #include "util/helpers/Semaphore.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -25,6 +26,8 @@ struct VkSupportedFormatInfo_t
 struct VkDescriptorSetInfo
 {
 	VKRObjectDescriptorSet* m_vkObjDescriptorSet{};
+
+	void ForEachView(const std::function<void(LatteTextureViewVk*)>& fun);
 
 	~VkDescriptorSetInfo();
 
@@ -409,7 +412,7 @@ private:
 		}
 
 		// invalidation / flushing
-		uint64 currentFlushIndex{0};
+		uint64 currentFlushIndex{1};
 		bool requestFlush{ false }; // flush after every draw operation. The renderpass dependencies dont handle dependencies across multiple drawcalls inside a single renderpass
 
 		// draw sequence
@@ -546,7 +549,8 @@ private:
 	void draw_handleSpecialState5();
 
 	// draw synchronization helper
-	void sync_inputTexturesChanged();
+	void sync_performFlushBarrier(CachedFBOVk* fboVk);
+	bool sync_isInputTexturesSyncRequired();
 	void sync_RenderPassLoadTextures(CachedFBOVk* fboVk);
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
@@ -825,6 +829,7 @@ private:
 		bufMemBarrier.offset = offset;
 		bufMemBarrier.size = size;
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 1, &bufMemBarrier, 0, nullptr);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	template<uint32 TSrcSyncOpA, uint32 TDstSyncOpA, uint32 TSrcSyncOpB, uint32 TDstSyncOpB>
@@ -863,32 +868,7 @@ private:
 		bufMemBarrier[1].size = sizeB;
 
 		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStagesA|srcStagesB, dstStagesA|dstStagesB, 0, 0, nullptr, 2, bufMemBarrier, 0, nullptr);
-	}
-
-	void barrier_sequentializeTransfer()
-	{
-		VkMemoryBarrier memBarrier{};
-		memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-		memBarrier.pNext = nullptr;
-
-		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_TRANSFER_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-
-		memBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-		memBarrier.dstAccessMask = 0;
-
-		memBarrier.srcAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
-		memBarrier.dstAccessMask |= (VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT);
-
-		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 1, &memBarrier, 0, nullptr, 0, nullptr);
-	}
-
-	void barrier_sequentializeCommand()
-	{
-		VkPipelineStageFlags srcStages = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-		VkPipelineStageFlags dstStages = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
-
-		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStages, dstStages, 0, 0, nullptr, 0, nullptr, 0, nullptr);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
@@ -916,6 +896,7 @@ private:
 							 0, NULL,
 							 0, NULL,
 							 1, &imageMemBarrier);
+		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 	}
 
 	template<uint32 TSrcSyncOp, uint32 TDstSyncOp>
