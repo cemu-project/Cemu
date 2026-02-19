@@ -79,9 +79,6 @@ jobs:
       run: |
         cmake --build build
 
-    - name: Prepare artifact
-      run: mv bin/Cemu_release bin/Cemu
-
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
@@ -183,9 +180,6 @@ jobs:
         cd build
         cmake --build . --config ${{ env.BUILD_MODE }}
 
-    - name: Prepare artifact
-      run: Rename-Item bin/Cemu_release.exe Cemu.exe
-
     - name: Build NSIS Installer
       shell: cmd
       run: |
@@ -230,7 +224,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install ninja nasm automake libtool
+        brew install nasm automake libtool
 
     - name: "Install molten-vk"
       run: |
@@ -279,10 +273,7 @@ jobs:
     - name: Prepare artifact
       run: |
         mkdir bin/Cemu_app
-        mv bin/Cemu_release.app bin/Cemu_app/Cemu.app
-        mv bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
-        sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu_app/Cemu.app/Contents/Info.plist
-        chmod a+x bin/Cemu_app/Cemu.app/Contents/MacOS/{Cemu,update.sh}
+        mv bin/Cemu.app bin/Cemu_app/Cemu.app
         ln -s /Applications bin/Cemu_app/Applications
         hdiutil create ./bin/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./bin/Cemu_app"
         hdiutil convert ./bin/tmp.dmg -format UDZO -o bin/Cemu.dmg

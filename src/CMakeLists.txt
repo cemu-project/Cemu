@@ -68,22 +68,29 @@ if(WIN32)
 	)
 endif()
 
+string(TIMESTAMP CURRENT_YEAR "%Y" UTC)
+
 set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
-set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
+if(CMAKE_BUILD_TYPE STREQUAL "release")
+	set(OUTPUT_NAME "Cemu")
+else()
+	set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
+endif()
 
 if (MACOS_BUNDLE)
 	set_property(TARGET CemuBin PROPERTY MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resource/MacOSXBundleInfo.plist.in")
+	set(ENTITLEMENTS_FILE "${CMAKE_SOURCE_DIR}/src/resource/cemu.macos.entitlements")
 
 	set(RESOURCE_FILES "${CMAKE_SOURCE_DIR}/src/resource/cemu.icns")
 	target_sources(CemuBin PRIVATE "${RESOURCE_FILES}")
 
 	set(MACOSX_BUNDLE_ICON_FILE "cemu.icns")
 	set(MACOSX_BUNDLE_GUI_IDENTIFIER "info.cemu.Cemu")
-	set(MACOSX_BUNDLE_BUNDLE_NAME "Cemu")
+	set(MACOSX_BUNDLE_BUNDLE_NAME "${OUTPUT_NAME}")
 	set(MACOSX_BUNDLE_SHORT_VERSION_STRING "${EMULATOR_VERSION_MAJOR}.${EMULATOR_VERSION_MINOR}.${EMULATOR_VERSION_PATCH}")
 	set(MACOSX_BUNDLE_BUNDLE_VERSION "${EMULATOR_VERSION_MAJOR}.${EMULATOR_VERSION_MINOR}.${EMULATOR_VERSION_PATCH}")
-	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © 2024 Cemu Project")
+	set(MACOSX_BUNDLE_COPYRIGHT "Copyright © ${CURRENT_YEAR} Cemu Project")
 
 	set(MACOSX_BUNDLE_CATEGORY "public.app-category.games")
  	set(MACOSX_MINIMUM_SYSTEM_VERSION "13.4")
@@ -119,7 +126,9 @@ if (MACOS_BUNDLE)
 		COMMAND ${CMAKE_COMMAND} ARGS -E copy "${LIBUSB_PATH}" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/Frameworks/libusb-1.0.0.dylib"
 		COMMAND ${CMAKE_COMMAND} ARGS -E copy "${CMAKE_SOURCE_DIR}/src/resource/update.sh" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/update.sh"
 		COMMAND bash -c "install_name_tool -add_rpath @executable_path/../Frameworks ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}"
-		COMMAND bash -c "install_name_tool -change ${LIBUSB_PATH} @executable_path/../Frameworks/libusb-1.0.0.dylib ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}")
+		COMMAND install_name_tool -change @rpath/libusb-1.0.0.dylib @executable_path/../Frameworks/libusb-1.0.0.dylib ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME}
+		COMMAND chmod a+x ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/update.sh
+		COMMAND codesign --entitlements ${ENTITLEMENTS_FILE} --force --deep --preserve-metadata=entitlements,requirements,flags,runtime --sign - --timestamp --options runtime ${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/MacOS/${OUTPUT_NAME})
 else()
     if(APPLE)
         find_library(MOLTENVK_LIBRARY 
