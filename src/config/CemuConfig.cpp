@@ -283,11 +283,16 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	dsu_client.host = dsuc.get_attribute("host", dsu_client.host);
 	dsu_client.port = dsuc.get_attribute("port", dsu_client.port);
 
+
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");
 	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
 	emulated_usb_devices.emulate_infinity_base = usbdevices.get("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base);
 	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
+
+
+	auto camera = parser.get("camera");
+	camera_id = camera.get("DeviceId", "");
 
 	return parser;
 }
