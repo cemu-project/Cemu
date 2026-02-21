@@ -49,5 +49,6 @@ namespace coreinit
 
 	void alarm_update();
 
+	void MapAlarmExports();
 	void InitializeAlarm();
 }

@@ -183,63 +183,6 @@ void VulkanRenderer::unregisterGraphicsPipeline(PipelineInfo* pipelineInfo)
 	}
 }
 
-bool g_compilePipelineThreadInit{false};
-std::mutex g_compilePipelineMutex;
-std::condition_variable g_compilePipelineCondVar;
-std::queue<PipelineCompiler*> g_compilePipelineRequests;
-
-void compilePipeline_thread(sint32 threadIndex)
-{
-	SetThreadName("compilePl");
-#ifdef _WIN32
-	// one thread runs at normal priority while the others run at lower priority
-	if(threadIndex != 0)
-		SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-#endif
-	while (true)
-	{
-		std::unique_lock lock(g_compilePipelineMutex);
-		while (g_compilePipelineRequests.empty())
-			g_compilePipelineCondVar.wait(lock);
-
-		PipelineCompiler* request = g_compilePipelineRequests.front();
-
-		g_compilePipelineRequests.pop();
-
-		lock.unlock();
-
-		request->Compile(true, false, true);
-		delete request;
-	}
-}
-
-void compilePipelineThread_init()
-{
-	uint32 numCompileThreads;
-
-	uint32 cpuCoreCount = GetPhysicalCoreCount();
-	if (cpuCoreCount <= 2)
-		numCompileThreads = 1;
-	else
-		numCompileThreads = 2 + (cpuCoreCount - 3); // 2 plus one additionally for every extra core above 3
-
-	numCompileThreads = std::min(numCompileThreads, 8u); // cap at 8
-
-	for (uint32_t i = 0; i < numCompileThreads; i++)
-	{
-		std::thread compileThread(compilePipeline_thread, i);
-		compileThread.detach();
-	}
-}
-
-void compilePipelineThread_queue(PipelineCompiler* v)
-{
-	std::unique_lock lock(g_compilePipelineMutex);
-	g_compilePipelineRequests.push(std::move(v));
-	lock.unlock();
-	g_compilePipelineCondVar.notify_one();
-}
-
 // make a guess if a pipeline is not essential
 // non-essential means that skipping these drawcalls shouldn't lead to permanently corrupted graphics
 bool VulkanRenderer::IsAsyncPipelineAllowed(uint32 numIndices)
@@ -270,12 +213,6 @@ bool VulkanRenderer::IsAsyncPipelineAllowed(uint32 numIndices)
 // create graphics pipeline for current state
 PipelineInfo* VulkanRenderer::draw_createGraphicsPipeline(uint32 indexCount)
 {
-	if (!g_compilePipelineThreadInit)
-	{
-		compilePipelineThread_init();
-		g_compilePipelineThreadInit = true;
-	}
-
 	const auto fetchShader = LatteSHRC_GetActiveFetchShader();
 	const auto vertexShader = LatteSHRC_GetActiveVertexShader();
 	const auto geometryShader = LatteSHRC_GetActiveGeometryShader();
@@ -313,7 +250,7 @@ PipelineInfo* VulkanRenderer::draw_createGraphicsPipeline(uint32 indexCount)
 		if (pipelineCompiler->Compile(false, true, true) == false)
 		{
 			// shaders or pipeline not cached -> asynchronous compilation
-			compilePipelineThread_queue(pipelineCompiler);
+			PipelineCompiler::CompileThreadPool_QueueCompilation(pipelineCompiler);
 		}
 		else
 		{
@@ -379,7 +316,7 @@ float s_vkUniformData[512 * 4];
 uint32 VulkanRenderer::uniformData_uploadUniformDataBufferGetOffset(std::span<uint8> data)
 {
 	const uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
-	const uint32 uniformSize = (data.size() + bufferAlignmentM1) & ~bufferAlignmentM1;
+	const uint32 uniformSize = ((uint32)data.size() + bufferAlignmentM1) & ~bufferAlignmentM1;
 
 	auto waitWhileCondition = [&](std::function<bool()> condition) {
 		while (condition())

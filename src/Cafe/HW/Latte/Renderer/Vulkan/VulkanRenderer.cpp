@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
 
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
@@ -653,7 +654,8 @@ VulkanRenderer::VulkanRenderer()
 		m_occlusionQueries.list_availableQueryIndices.emplace_back(i);
 
 	// start compilation threads
-	RendererShaderVk::Init();
+	RendererShaderVk::Init(); // shaders
+	PipelineCompiler::CompileThreadPool_Start(); // pipelines
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -661,8 +663,6 @@ VulkanRenderer::~VulkanRenderer()
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	WaitCommandBufferFinished(GetCurrentCommandBufferId());
-	// make sure compilation threads have been shut down
-	RendererShaderVk::Shutdown();
 	// shut down pipeline save thread
 	m_destructionRequested = true;
 	m_pipeline_cache_semaphore.notify();
@@ -1666,6 +1666,10 @@ void VulkanRenderer::Shutdown()
 {
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
+	// stop compilation threads
+	RendererShaderVk::Shutdown();
+	PipelineCompiler::CompileThreadPool_Stop();
+
 	DeleteFontTextures();
 	Renderer::Shutdown();
 	if (m_imguiRenderPass != VK_NULL_HANDLE)

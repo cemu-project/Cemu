@@ -427,10 +427,8 @@ void cemu_initForGame()
 	cemuLog_log(LogType::Force, "------- Run title -------");
 	// wait till GPU thread is initialized
 	while (g_isGPUInitFinished == false) std::this_thread::sleep_for(std::chrono::milliseconds(50));
-	// init initial thread
-	OSThread_t* initialThread = coreinit::OSGetDefaultThread(1);
-	coreinit::OSSetThreadPriority(initialThread, 16);
-	coreinit::OSRunThread(initialThread, PPCInterpreter_makeCallableExportDepr(coreinit_start), 0, nullptr);
+	// run coreinit rpl_entry
+	RPLLoader_CallCoreinitEntrypoint();
 	// init AX and start AX I/O thread
 	snd_core::AXOut_init();
 }

@@ -267,6 +267,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	rplLoaderContext->fileInfo.tlsModuleIndex = fileInfoPtr->tlsModuleIndex;
 	rplLoaderContext->fileInfo.sdataBase1 = fileInfoPtr->sdataBase1;
 	rplLoaderContext->fileInfo.sdataBase2 = fileInfoPtr->sdataBase2;
+	rplLoaderContext->fileInfo.flags = fileInfoPtr->flags;
 
 	// init section address table
 	rplLoaderContext->sectionAddressTable2.resize(sectionCount);
@@ -2304,6 +2305,25 @@ void RPLLoader_CallEntrypoints()
 	}
 }
 
+// calls the entrypoint of coreinit and marks it as called so that RPLLoader_CallEntrypoints() wont call it again later
+void RPLLoader_CallCoreinitEntrypoint()
+{
+	// for HLE modules we need to check the dependency list
+	for (auto& dependency : rplDependencyList)
+	{
+		if (strcmp(dependency->modulename, "coreinit") != 0)
+			continue;
+		if (!dependency->rplHLEModule)
+			continue;
+		if (dependency->hleEntrypointCalled)
+			continue;
+		dependency->rplHLEModule->rpl_entry(dependency->coreinitHandle, coreinit::RplEntryReason::Loaded);
+		dependency->hleEntrypointCalled = true;
+		return;
+	}
+	cemu_assert_unimplemented(); // coreinit.rpl present in cafelibs? We currently do not support native coreinit and no thread context exists yet to do a PPC call
+}
+
 void RPLLoader_NotifyControlPassedToApplication()
 {
 	rplLoader_applicationHasMemoryControl = true;
@@ -2349,11 +2369,13 @@ uint32 RPLLoader_FindModuleOrHLEExport(uint32 moduleHandle, bool isData, const c
 
 uint32 RPLLoader_GetSDA1Base()
 {
+	cemu_assert_debug(rplModuleCount > 0); // this should not be called before the main executable was loaded
 	return rplLoader_sdataAddr;
 }
 
 uint32 RPLLoader_GetSDA2Base()
 {
+	cemu_assert_debug(rplModuleCount > 0);
 	return rplLoader_sdata2Addr;
 }
 
