@@ -250,4 +250,8 @@ if (NOT ZArchive_FOUND)
 	add_subdirectory("dependencies/ZArchive" EXCLUDE_FROM_ALL)
 endif()
 
+block ()
+	set(BUILD_SHARED_LIBS OFF)
+	add_subdirectory("dependencies/openpnp-capture" EXCLUDE_FROM_ALL SYSTEM)
+endblock()
 add_subdirectory(src)

@@ -28,6 +28,8 @@
 #include "wxgui/CemuApp.h"
 #include "wxgui/CemuUpdateWindow.h"
 #include "wxgui/LoggingWindow.h"
+#include "wxgui/CameraSettingsWindow.h"
+
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
 
@@ -102,6 +104,7 @@ enum
 	MAINFRAME_MENU_ID_OPTIONS_AUDIO,
 	MAINFRAME_MENU_ID_OPTIONS_INPUT,
 	MAINFRAME_MENU_ID_OPTIONS_HOTKEY,
+	MAINFRAME_MENU_ID_OPTIONS_CAMERA,
 	MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS,
 	// options -> account
 	MAINFRAME_MENU_ID_OPTIONS_ACCOUNT_1 = 20350,
@@ -203,6 +206,7 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_AUDIO, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_INPUT, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_HOTKEY, MainWindow::OnOptionsInput)
+EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_CAMERA, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, MainWindow::OnOptionsInput)
 // tools menu
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
@@ -946,6 +950,14 @@ void MainWindow::OnOptionsInput(wxCommandEvent& event)
 		frame->Show();
 		break;
 	}
+	case MAINFRAME_MENU_ID_OPTIONS_CAMERA:
+	{
+		auto* frame = new CameraSettingsWindow(this);
+		frame->ShowModal();
+		frame->Destroy();
+		break;
+	}
+
 	}
 }
 
@@ -2248,6 +2260,7 @@ void MainWindow::RecreateMenu()
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_GENERAL2, _("&General settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_INPUT, _("&Input settings"));
 	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_HOTKEY, _("&Hotkey settings"));
+	optionsMenu->Append(MAINFRAME_MENU_ID_OPTIONS_CAMERA, _("&Camera settings"));
 
 	optionsMenu->AppendSeparator();
 	optionsMenu->AppendSubMenu(m_optionsAccountMenu, _("&Active account"));

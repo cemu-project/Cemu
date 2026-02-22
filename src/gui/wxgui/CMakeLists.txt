@@ -114,6 +114,8 @@ add_library(CemuWxGui STATIC
   wxcomponents/checktree.h
   wxgui.h
   wxHelper.h
+		CameraSettingsWindow.cpp
+		CameraSettingsWindow.h
 )
 
 if (ENABLE_METAL)
