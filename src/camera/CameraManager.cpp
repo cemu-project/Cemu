@@ -216,9 +216,9 @@ namespace CameraManager
 	void SaveDevice()
 	{
 		std::scoped_lock lock(s_mutex);
-		auto& config = GetConfig();
-		const auto cameraId = s_device ? Cap_getDeviceUniqueID(s_ctx, *s_device) : "";
-		config.camera_id = cameraId;
+		const std::string cameraId = s_device ? Cap_getDeviceUniqueID(s_ctx, *s_device) : "";
+		GetConfig().camera_id.SetValue(cameraId);
+		GetConfigHandle().Save();
 	}
 
 	std::optional<uint32> GetCurrentDevice()
