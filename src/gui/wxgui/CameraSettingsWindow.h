@@ -17,5 +17,6 @@ class CameraSettingsWindow : public wxDialog
 	void OnSelectCameraChoice(wxCommandEvent&);
 	void OnRefreshPressed(wxCommandEvent&);
 	void UpdateImage(const wxTimerEvent&);
+	void DrawImage(const wxPaintEvent&);
 	void OnClose(wxCloseEvent& event);
 };
