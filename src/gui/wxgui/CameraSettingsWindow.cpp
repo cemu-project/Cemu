@@ -3,7 +3,6 @@
 #include "camera/CameraManager.h"
 
 #include <wx/sizer.h>
-#include <wx/dcclient.h>
 #include <wx/dcbuffer.h>
 #include <wx/rawbmp.h>
 
@@ -23,6 +22,7 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 		{
 			m_cameraChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, {300, -1});
 			m_cameraChoice->Bind(wxEVT_CHOICE, &CameraSettingsWindow::OnSelectCameraChoice, this);
+			m_cameraChoice->SetToolTip(_("Cameras are only listed if they support 640x480"));
 
 			m_refreshButton = new wxButton(this, wxID_ANY, wxString::FromUTF8("⟳"));
 			m_refreshButton->Fit();
