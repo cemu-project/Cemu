@@ -34,13 +34,17 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 		}
 
 		m_imageWindow = new wxWindow(this, wxID_ANY, wxDefaultPosition, {CAMERA_WIDTH, CAMERA_HEIGHT});
+		m_imageWindow->SetBackgroundStyle(wxBG_STYLE_PAINT);
+
 		rootSizer->Add(topSizer);
 		rootSizer->Add(m_imageWindow, wxEXPAND);
 	}
 	SetSizerAndFit(rootSizer);
 	m_imageUpdateTimer.Bind(wxEVT_TIMER, &CameraSettingsWindow::UpdateImage, this);
-	m_imageUpdateTimer.Start(33, wxTIMER_CONTINUOUS);
+	m_imageWindow->Bind(wxEVT_PAINT, &CameraSettingsWindow::DrawImage, this);
 	this->Bind(wxEVT_CLOSE_WINDOW, &CameraSettingsWindow::OnClose, this);
+
+	m_imageUpdateTimer.Start(33, wxTIMER_CONTINUOUS);
 }
 void CameraSettingsWindow::OnSelectCameraChoice(wxCommandEvent&)
 {
@@ -63,10 +67,10 @@ void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
 	if (auto currentDevice = CameraManager::GetCurrentDevice())
 		m_cameraChoice->SetSelection(*currentDevice + 1);
 }
+
 void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
 {
 	CameraManager::FillRGBBuffer(m_imageBuffer.data());
-
 	wxNativePixelData data{m_imageBitmap};
 	if (!data)
 		return;
@@ -85,8 +89,12 @@ void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
 		p = rowStart;
 		p.OffsetY(data, 1);
 	}
+	m_imageWindow->Refresh();
+}
 
-	wxClientDC dc{m_imageWindow};
+void CameraSettingsWindow::DrawImage(const wxPaintEvent&)
+{
+	wxAutoBufferedPaintDC dc{m_imageWindow};
 	dc.DrawBitmap(m_imageBitmap, 0, 0);
 }
 void CameraSettingsWindow::OnClose(wxCloseEvent& event)
