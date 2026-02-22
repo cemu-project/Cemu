@@ -291,7 +291,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
 
 
-	auto camera = parser.get("camera");
+	auto camera = parser.get("Camera");
 	camera_id = camera.get("DeviceId", "");
 
 	return parser;
@@ -456,6 +456,9 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
 	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 	usbdevices.set("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad.GetValue());
+
+	auto camera = config.set("Camera");
+	camera.set("DeviceId", camera_id.GetValue());
 
 	return config;
 }
