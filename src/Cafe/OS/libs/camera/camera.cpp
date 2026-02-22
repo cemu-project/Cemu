@@ -13,6 +13,7 @@ namespace camera
 {
 	constexpr unsigned CAMERA_WIDTH = 640;
 	constexpr unsigned CAMERA_HEIGHT = 480;
+	constexpr unsigned CAMERA_PITCH = 768;
 
 	enum CAMStatus : sint32
 	{
@@ -247,6 +248,7 @@ namespace camera
 			return CAM_STATUS_INVALID_HANDLE;
 		if (!targetSurface || targetSurface->data.IsNull() || targetSurface->size < 1)
 			return CAM_STATUS_INVALID_ARG;
+		cemu_assert_debug(targetSurface->size >= ((CAMERA_HEIGHT * CAMERA_PITCH * 3) >> 1));
 		auto lock = std::scoped_lock(s_instance.mutex);
 		if (!s_instance.initialized)
 			return CAM_STATUS_UNINITIALIZED;
