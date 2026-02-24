@@ -276,11 +276,6 @@ namespace camera
         s_instance.initialized = false;
     }
 
-    void reset()
-    {
-        CAMExit(0);
-    }
-
     class : public COSModule
     {
     public:
@@ -304,11 +299,11 @@ namespace camera
         {
             if (reason == coreinit::RplEntryReason::Loaded)
             {
-                reset();
+
             }
             else if (reason == coreinit::RplEntryReason::Unloaded)
             {
-                // todo
+                CAMExit(0);
             }
         }
     } s_COScameraModule;
