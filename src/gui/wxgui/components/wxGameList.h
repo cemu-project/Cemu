@@ -3,8 +3,6 @@
 #include "config/CemuConfig.h"
 #include "Cafe/TitleList/TitleId.h"
 
-#include <mutex>
-
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <wx/panel.h>
@@ -57,6 +55,7 @@ public:
     void CreateShortcut(GameInfo2& gameInfo);
 
 	long FindListItemByTitleId(uint64 title_id) const;
+
 	void OnClose(wxCloseEvent& event);
 
 private:
@@ -93,7 +92,7 @@ private:
 		int dir;
 	};
 
-	int FindInsertPosition(TitleId titleId);
+	int FindInsertPosition(TitleId titleId, bool& entryAlreadyExists);
 	std::weak_ordering SortComparator(uint64 titleId1, uint64 titleId2, SortData* sortData);
 	static int SortFunction(wxIntPtr item1, wxIntPtr item2, wxIntPtr sortData);
 
@@ -132,6 +131,10 @@ private:
 
 	std::map<TitleId, std::string> m_name_cache;
 
+	// bulk update handling
+	std::vector<TitleId> m_bulkTitlesToAdd;
+	wxTimer m_bulkUpdateTimer;
+
 	// list mode
 	void CreateListColumns();
 
@@ -155,6 +158,8 @@ private:
 	void OnGameListSize(wxSizeEvent& event);
 	void AdjustLastColumnWidth();
 	int GetColumnDefaultWidth(int column);
+
+	void OnTimerBulkAddEntriesToGameList(wxTimerEvent& event);
 
 	static inline std::once_flag s_launch_file_once;
 };

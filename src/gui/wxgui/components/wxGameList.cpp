@@ -190,6 +190,7 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 	Bind(wxEVT_LIST_COL_END_DRAG, &wxGameList::OnColumnResize, this);
 	Bind(wxEVT_LIST_COL_RIGHT_CLICK, &wxGameList::OnColumnRightClick, this);
 	Bind(wxEVT_SIZE, &wxGameList::OnGameListSize, this);
+	m_bulkUpdateTimer.Bind(wxEVT_TIMER, &wxGameList::OnTimerBulkAddEntriesToGameList, this);
 
 	m_callbackIdTitleList = CafeTitleList::RegisterCallback([](CafeTitleListCallbackEvent* evt, void* ctx) { ((wxGameList*)ctx)->HandleTitleListCallback(evt); }, this);
 
@@ -712,7 +713,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
 				GetConfig().SetGameListFavorite(title_id, !GetConfig().IsGameListFavorite(title_id));
 				SortEntries();
 				UpdateItemColors();
-				//SaveConfig();
+				SaveConfig(true);
 				break;
 			case kContextMenuEditName:
 			{
@@ -1079,112 +1080,142 @@ void wxGameList::OnClose(wxCloseEvent& event)
 	m_exit = true;
 }
 
-int wxGameList::FindInsertPosition(TitleId titleId)
+int wxGameList::FindInsertPosition(TitleId titleId, bool& entryAlreadyExists)
 {
+	entryAlreadyExists = false;
 	SortData data{this, ItemColumns(GetSortIndicator()), IsAscendingSortIndicator()};
 	const auto itemCount = GetItemCount();
+
 	if (itemCount == 0)
 		return 0;
-	// todo - optimize this with binary search
-
-	for (int i = 0; i < itemCount; i++)
+	sint32 low = 0;
+	sint32 high = itemCount;
+	while (low < high)
 	{
-		if (SortComparator(titleId, (uint64)GetItemData(i), &data) <= 0)
-			return i;
+		sint32 mid = low + (high - low) / 2;
+		auto cmp = SortComparator(titleId, (uint64)GetItemData(mid), &data);
+		if (cmp <= 0)
+		{
+			if (cmp == 0)
+			{
+				entryAlreadyExists = true;
+				return mid;
+			}
+			high = mid;
+		}
+		else
+		{
+			low = mid + 1;
+		}
 	}
-	return itemCount;
+	return low;
+}
+
+void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
+{
+	std::vector<TitleId> titleIdsToUpdate;
+	std::swap(titleIdsToUpdate, m_bulkTitlesToAdd);
+
+	wxWindowUpdateLocker lock(this);
+	bool hasAnyNewEntry = false;
+	for (auto& titleId : titleIdsToUpdate)
+	{
+		GameInfo2 gameInfo = CafeTitleList::GetGameInfo(titleId);
+		if (!gameInfo.IsValid() || gameInfo.IsSystemDataTitle())
+		{
+			// entry no longer exists or is not a valid game
+			// we dont need to remove list entries here because all delete operations should trigger a full list refresh
+			continue;
+		}
+		TitleId baseTitleId = gameInfo.GetBaseTitleId();
+		bool isNewEntry = false;
+
+		int icon = -1; /* 0 is the default empty icon */
+		int icon_small = -1; /* 0 is the default empty icon */
+		QueryIconForTitle(baseTitleId, icon, icon_small);
+
+		bool entryAlreadyExists = false;
+		auto index = FindInsertPosition(baseTitleId, entryAlreadyExists);
+		if(!entryAlreadyExists)
+		{
+			// entry doesn't exist
+			index = InsertItem(index, wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
+			SetItemPtrData(index, baseTitleId);
+			isNewEntry = true;
+			hasAnyNewEntry = true;
+		}
+
+		if (m_style == Style::kList)
+		{
+			SetItemColumnImage(index, ColumnIcon, icon_small);
+
+			SetItem(index, ColumnName, wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
+
+			SetItem(index, ColumnVersion, fmt::format("{}", gameInfo.GetVersion()));
+
+			if(gameInfo.HasAOC())
+				SetItem(index, ColumnDLC, fmt::format("{}", gameInfo.GetAOCVersion()));
+			else
+				SetItem(index, ColumnDLC, wxString());
+
+			if (isNewEntry)
+			{
+				iosu::pdm::GameListStat playTimeStat;
+				if (iosu::pdm::GetStatForGamelist(baseTitleId, playTimeStat))
+				{
+					// time played
+					uint32 minutesPlayed = playTimeStat.numMinutesPlayed;
+					if (minutesPlayed == 0)
+						SetItem(index, ColumnGameTime, wxEmptyString);
+					else if (minutesPlayed < 60)
+						SetItem(index, ColumnGameTime, formatWxString(wxPLURAL("{} minute", "{} minutes", minutesPlayed), minutesPlayed));
+					else
+					{
+						uint32 hours = minutesPlayed / 60;
+						uint32 minutes = minutesPlayed % 60;
+						wxString hoursText = formatWxString(wxPLURAL("{} hour", "{} hours", hours), hours);
+						wxString minutesText = formatWxString(wxPLURAL("{} minute", "{} minutes", minutes), minutes);
+						SetItem(index, ColumnGameTime, hoursText + " " + minutesText);
+					}
+
+					// last played
+					if (playTimeStat.last_played.year != 0)
+					{
+						const wxDateTime tmp((wxDateTime::wxDateTime_t)playTimeStat.last_played.day, (wxDateTime::Month)playTimeStat.last_played.month, (wxDateTime::wxDateTime_t)playTimeStat.last_played.year, 0, 0, 0, 0);
+						SetItem(index, ColumnGameStarted, tmp.FormatDate());
+					}
+					else
+						SetItem(index, ColumnGameStarted, _("never"));
+				}
+				else
+				{
+					SetItem(index, ColumnGameTime, wxEmptyString);
+					SetItem(index, ColumnGameStarted, _("never"));
+				}
+			}
+			const auto region_text = fmt::format("{}", gameInfo.GetRegion());
+			SetItem(index, ColumnRegion, wxGetTranslation(region_text));
+	        SetItem(index, ColumnTitleID, fmt::format("{:016x}", baseTitleId));
+		}
+		else if (m_style == Style::kIcons)
+		{
+			SetItemImage(index, icon);
+		}
+		else if (m_style == Style::kSmallIcons)
+		{
+			SetItemImage(index, icon_small);
+		}
+	}
+	if (hasAnyNewEntry)
+		UpdateItemColors();
 }
 
 void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
 {
+	if (m_bulkTitlesToAdd.size() < 100)
+		m_bulkUpdateTimer.StartOnce(100); // if timer is started already this will delay it
 	const auto titleId = event.GetTitleId();
-	GameInfo2 gameInfo = CafeTitleList::GetGameInfo(titleId);
-	if (!gameInfo.IsValid() || gameInfo.IsSystemDataTitle())
-	{
-		// entry no longer exists or is not a valid game
-		// we dont need to remove list entries here because all delete operations should trigger a full list refresh
-		return;
-	}
-	TitleId baseTitleId = gameInfo.GetBaseTitleId();
-	bool isNewEntry = false;
-
-	int icon = -1; /* 0 is the default empty icon */
-	int icon_small = -1; /* 0 is the default empty icon */
-	QueryIconForTitle(baseTitleId, icon, icon_small);
-
-	auto index = FindListItemByTitleId(baseTitleId);
-	if(index == wxNOT_FOUND)
-	{
-		// entry doesn't exist
-		index = InsertItem(FindInsertPosition(baseTitleId), wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
-		SetItemPtrData(index, baseTitleId);
-		isNewEntry = true;
-	}
-
-	if (m_style == Style::kList)
-	{
-		SetItemColumnImage(index, ColumnIcon, icon_small);
-
-		SetItem(index, ColumnName, wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
-
-		SetItem(index, ColumnVersion, fmt::format("{}", gameInfo.GetVersion()));
-
-		if(gameInfo.HasAOC())
-			SetItem(index, ColumnDLC, fmt::format("{}", gameInfo.GetAOCVersion()));
-		else
-			SetItem(index, ColumnDLC, wxString());
-
-		if (isNewEntry)
-		{
-			iosu::pdm::GameListStat playTimeStat;
-			if (iosu::pdm::GetStatForGamelist(baseTitleId, playTimeStat))
-			{
-				// time played
-				uint32 minutesPlayed = playTimeStat.numMinutesPlayed;
-				if (minutesPlayed == 0)
-					SetItem(index, ColumnGameTime, wxEmptyString);
-				else if (minutesPlayed < 60)
-					SetItem(index, ColumnGameTime, formatWxString(wxPLURAL("{} minute", "{} minutes", minutesPlayed), minutesPlayed));
-				else
-				{
-					uint32 hours = minutesPlayed / 60;
-					uint32 minutes = minutesPlayed % 60;
-					wxString hoursText = formatWxString(wxPLURAL("{} hour", "{} hours", hours), hours);
-					wxString minutesText = formatWxString(wxPLURAL("{} minute", "{} minutes", minutes), minutes);
-					SetItem(index, ColumnGameTime, hoursText + " " + minutesText);
-				}
-
-				// last played
-				if (playTimeStat.last_played.year != 0)
-				{
-					const wxDateTime tmp((wxDateTime::wxDateTime_t)playTimeStat.last_played.day, (wxDateTime::Month)playTimeStat.last_played.month, (wxDateTime::wxDateTime_t)playTimeStat.last_played.year, 0, 0, 0, 0);
-					SetItem(index, ColumnGameStarted, tmp.FormatDate());
-				}
-				else
-					SetItem(index, ColumnGameStarted, _("never"));
-			}
-			else
-			{
-				SetItem(index, ColumnGameTime, wxEmptyString);
-				SetItem(index, ColumnGameStarted, _("never"));
-			}
-		}
-
-
-		const auto region_text = fmt::format("{}", gameInfo.GetRegion());
-		SetItem(index, ColumnRegion, wxGetTranslation(region_text));
-        SetItem(index, ColumnTitleID, fmt::format("{:016x}", baseTitleId));
-	}
-	else if (m_style == Style::kIcons)
-	{
-		SetItemImage(index, icon);
-	}
-	else if (m_style == Style::kSmallIcons)
-	{
-		SetItemImage(index, icon_small);
-	}
-	if (isNewEntry)
-		UpdateItemColors(index);
+	m_bulkTitlesToAdd.emplace_back(titleId);
 }
 
 void wxGameList::OnItemActivated(wxListEvent& event)

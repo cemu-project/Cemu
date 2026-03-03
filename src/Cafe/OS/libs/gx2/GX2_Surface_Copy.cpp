@@ -435,13 +435,13 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	GX2ColorBuffer* srcColorBuffer = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	GX2Surface* srcSurface = &srcColorBuffer->surface;
 	GX2Surface* dstSurface = (GX2Surface*)memory_getPointerFromVirtualOffset(hCPU->gpr[4]);
-	uint32 srcMip = _swapEndianU32(srcColorBuffer->viewMip);
+	uint32 srcMip = srcColorBuffer->viewMip;
 	uint32 dstMip = hCPU->gpr[5];
-	uint32 srcSlice = _swapEndianU32(srcColorBuffer->viewFirstSlice);
+	uint32 srcSlice = srcColorBuffer->viewFirstSlice;
 	uint32 dstSlice = hCPU->gpr[6];
 
 #ifdef CEMU_DEBUG_ASSERT
-	if( _swapEndianU32(srcColorBuffer->viewMip) != 0 || _swapEndianU32(srcColorBuffer->viewFirstSlice) != 0 )
+	if( srcColorBuffer->viewMip != 0 || srcColorBuffer->viewFirstSlice != 0 )
 		assert_dbg();
 #endif
 
@@ -618,7 +618,7 @@ void gx2Export_GX2ConvertDepthBufferToTextureSurface(PPCInterpreter_t* hCPU)
 
 	sint32 srcMip = 0;
 
-	uint32 numSlices = std::max<uint32>(_swapEndianU32(depthBuffer->viewNumSlices), 1);
+	uint32 numSlices = std::max<uint32>(depthBuffer->viewNumSlices, 1);
 	GX2::GX2ReserveCmdSpace((1 + 13 * 2) * numSlices);
 	for (uint32 subSliceIndex = 0; subSliceIndex < numSlices; subSliceIndex++)
 	{
