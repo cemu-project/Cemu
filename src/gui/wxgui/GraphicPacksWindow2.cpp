@@ -131,7 +131,7 @@ void GraphicPacksWindow2::FillGraphicPackList() const
 				auto tmp_text = m_graphic_pack_tree->GetItemText(node);
 				m_graphic_pack_tree->SetItemText(node, tmp_text + " (may not be compatible with Vulkan)");
 			}
-			else if (p->GetVersion() != 3 && p->GetVersion() != 4 && p->GetVersion() != 5 && p->GetVersion() != 6 && p->GetVersion() != GraphicPack2::GFXPACK_VERSION_7)
+			else if (p->GetVersion() != 3 && p->GetVersion() != 4 && p->GetVersion() != 5 && p->GetVersion() != 6 && p->GetVersion() != GraphicPack2::GFXPACK_VERSION_7 && p->GetVersion() != GraphicPack2::GFXPACK_VERSION_8)
 			{
 				auto tmp_text = m_graphic_pack_tree->GetItemText(node);
 				m_graphic_pack_tree->SetItemText(node, tmp_text + " (Unsupported version)");

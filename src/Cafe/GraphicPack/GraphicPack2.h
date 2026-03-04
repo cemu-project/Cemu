@@ -26,6 +26,7 @@ public:
 		GFXPACK_VERSION_5 = 5,
 		GFXPACK_VERSION_6 = 6, // added memory extensions
 		GFXPACK_VERSION_7 = 7, // added fine-grained origin control in patch format (no more forced 4 byte alignment), .string directive (an alias to .byte) and support for more than one constant per data directive
+		GFXPACK_VERSION_8 = 8, // (Cemu 2.7) added: titleId and rpx hash wildcards (*), added .callback entry <symbol> to call a function when the main entrypoint is reached
 	};
 
 	struct TextureRule
