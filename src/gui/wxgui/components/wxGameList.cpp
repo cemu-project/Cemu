@@ -304,7 +304,7 @@ int wxGameList::GetColumnDefaultWidth(int column)
 	switch (column)
 	{
 	case ColumnIcon:
-		return kListIconWidth;
+		return kListIconWidth+2;
 	case ColumnName:
 		return DefaultColumnSize::name;
 	case ColumnVersion:
@@ -994,7 +994,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	const auto& config = GetWxGUIConfig();
 	wxWindowUpdateLocker lock(this);
 	if(config.show_icon_column)
-		SetColumnWidth(ColumnIcon, kListIconWidth);
+		SetColumnWidth(ColumnIcon, kListIconWidth+2);
 	else
 		SetColumnWidth(ColumnIcon, 0);
 	SetColumnWidth(ColumnName, config.column_width.name);
