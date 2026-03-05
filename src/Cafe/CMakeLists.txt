@@ -614,6 +614,8 @@ endif()
 
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+target_precompile_headers(CemuCafe REUSE_FROM CemuCommon)
+
 target_include_directories(CemuCafe PUBLIC "../")
 
 if (glslang_VERSION VERSION_LESS "15.0.0")

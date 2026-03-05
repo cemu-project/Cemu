@@ -53,14 +53,11 @@ if(LINUX)
 	)
 endif()
 
-# All the targets wanting to use the precompiled.h header
-# have to link to CemuCommon
-target_precompile_headers(CemuCommon PUBLIC precompiled.h)
+# the precompiled header is produced by CemuCommon and reused by all the other targets
+target_precompile_headers(CemuCommon PRIVATE precompiled.h)
 target_include_directories(CemuCommon PUBLIC "../")
 
 target_link_libraries(CemuCommon PRIVATE
-	Boost::nowide
-	Boost::filesystem
 	glm::glm
 )
 
@@ -69,6 +66,11 @@ if (UNIX AND NOT APPLE)
 endif()
 
 # PUBLIC because:
+# - boost/nowide/convert.hpp is included in precompiled.h
 # - boost/predef/os.h is included in platform.h
 # - fmt/core.h is included in precompiled.h
-target_link_libraries(CemuCommon PUBLIC Boost::headers fmt::fmt)
+target_link_libraries(CemuCommon PUBLIC
+	Boost::nowide
+	Boost::headers
+	fmt::fmt
+)

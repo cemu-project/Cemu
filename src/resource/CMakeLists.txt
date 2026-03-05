@@ -2,6 +2,8 @@ add_library(CemuResource)
 
 set_property(TARGET CemuResource PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+target_precompile_headers(CemuResource REUSE_FROM CemuCommon)
+
 enable_language(ASM)
 
 # icon resources

@@ -7,6 +7,8 @@ add_library(CemuAudio
 
 set_property(TARGET CemuAudio PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+target_precompile_headers(CemuAudio REUSE_FROM CemuCommon)
+
 if(WIN32)
 	target_sources(CemuAudio PRIVATE
 		DirectSoundAPI.cpp

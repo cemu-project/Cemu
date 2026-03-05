@@ -55,6 +55,8 @@ add_executable(CemuBin
 	mainLLE.cpp
 )
 
+target_precompile_headers(CemuBin REUSE_FROM CemuCommon)
+
 if(MSVC AND MSVC_VERSION EQUAL 1940)
 	# workaround for an msvc issue on VS 17.10 where generated ILK files are too large
 	# see https://developercommunity.visualstudio.com/t/After-updating-to-VS-1710-the-size-of-/10665511
