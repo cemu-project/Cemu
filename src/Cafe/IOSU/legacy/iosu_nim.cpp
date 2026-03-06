@@ -11,6 +11,8 @@
 #include "Cemu/napi/napi.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/Account/Account.h"
+#include "config/ActiveSettings.h"
 
 namespace iosu
 {

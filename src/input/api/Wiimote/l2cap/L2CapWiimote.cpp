@@ -1,5 +1,7 @@
 #include "L2CapWiimote.h"
 #include <bluetooth/l2cap.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 constexpr auto comparator = [](const bdaddr_t& a, const bdaddr_t& b) {
 	return bacmp(&a, &b);

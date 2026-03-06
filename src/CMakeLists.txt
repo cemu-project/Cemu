@@ -39,6 +39,15 @@ add_compile_definitions(VK_NO_PROTOTYPES)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
+# on msvc we can reuse the PCH from CemuCommon, on other platforms it's not straight forward to reuse the PCH so we opt out of it
+function(cemu_use_precompiled_header target_name)
+	if(MSVC)
+		target_precompile_headers(${target_name} REUSE_FROM CemuCommon)
+	else()
+		target_precompile_headers(${target_name} PRIVATE "${CMAKE_SOURCE_DIR}/src/Common/precompiled.h")
+	endif()
+endfunction()
+
 add_subdirectory(Common)
 add_subdirectory(gui)
 add_subdirectory(Cafe)
@@ -55,7 +64,7 @@ add_executable(CemuBin
 	mainLLE.cpp
 )
 
-target_precompile_headers(CemuBin REUSE_FROM CemuCommon)
+cemu_use_precompiled_header(CemuBin)
 
 if(MSVC AND MSVC_VERSION EQUAL 1940)
 	# workaround for an msvc issue on VS 17.10 where generated ILK files are too large

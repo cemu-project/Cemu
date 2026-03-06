@@ -18,7 +18,7 @@ endif ()
 
 set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_precompile_headers(imguiImpl REUSE_FROM CemuCommon)
+cemu_use_precompiled_header(imguiImpl)
 
 target_include_directories(imguiImpl PUBLIC "../")
 

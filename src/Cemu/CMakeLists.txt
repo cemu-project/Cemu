@@ -8,6 +8,7 @@ add_library(CemuComponents
   Logging/CemuLogging.h
   napi/napi_act.cpp
   napi/napi_ec.cpp
+  napi/napi.cpp
   napi/napi.h
   napi/napi_helper.cpp
   napi/napi_helper.h
@@ -40,7 +41,7 @@ endif()
 
 set_property(TARGET CemuComponents PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_precompile_headers(CemuComponents REUSE_FROM CemuCommon)
+cemu_use_precompiled_header(CemuComponents)
 
 target_include_directories(CemuComponents PUBLIC "../")
 

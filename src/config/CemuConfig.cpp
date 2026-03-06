@@ -1,10 +1,7 @@
 #include "config/CemuConfig.h"
-#include "WindowSystem.h"
-
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
-
-#include "ActiveSettings.h"
+#include "Cafe/Account/Account.h"
 
 void CemuConfig::SetMLCPath(fs::path path, bool save)
 {

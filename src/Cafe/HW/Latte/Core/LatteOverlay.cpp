@@ -1,11 +1,10 @@
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
-#include "WindowSystem.h"
-
-#include "config/CemuConfig.h"
-
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/Account/Account.h"
+#include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
+#include "WindowSystem.h"
 
 #include <imgui.h>
 #include "resource/IconsFontAwesome5.h"

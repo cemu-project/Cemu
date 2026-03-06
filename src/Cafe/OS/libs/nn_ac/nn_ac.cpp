@@ -1,6 +1,7 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/nn_common.h"
 #include "nn_ac.h"
+#include "Common/socket.h"
 
 #if BOOST_OS_WINDOWS
 #include <iphlpapi.h>

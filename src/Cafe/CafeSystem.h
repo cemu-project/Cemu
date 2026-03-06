@@ -1,11 +1,10 @@
 #pragma once
 #include "Cafe/OS/RPL/rpl.h"
-#include "util/helpers/Semaphore.h"
 #include "Cafe/TitleList/TitleId.h"
-#include "config/CemuConfig.h"
 
 enum class CosCapabilityBits : uint64;
 enum class CosCapabilityGroup : uint32;
+enum class CafeConsoleRegion;
 
 namespace CafeSystem
 {

@@ -1,6 +1,7 @@
 #include "Common/precompiled.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "util/helpers/helpers.h"
+#include "config/CemuConfig.h"
 
 #include "openssl/bn.h"
 #include "openssl/ec.h"

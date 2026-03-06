@@ -2,6 +2,8 @@
 #include "Common/FileStream.h"
 #include <sys/mman.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
 uint16 ELFSymbolTable::FindSection(int type, const std::string_view& name)
 {
@@ -33,7 +35,7 @@ ELFSymbolTable::ELFSymbolTable()
 {
 	// create file handle
 	int fd = open("/proc/self/exe", O_RDONLY);
-	if (!fd)
+	if (fd < 0)
 		return;
 
 	// retrieve file size.

@@ -43,7 +43,7 @@ add_library(CemuInput
 
 set_property(TARGET CemuInput PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
-target_precompile_headers(CemuInput REUSE_FROM CemuCommon)
+cemu_use_precompiled_header(CemuInput)
 
 if(WIN32)
 	# XInput

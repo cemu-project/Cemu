@@ -1,18 +1,18 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "Cafe/Filesystem/fsc.h"
 #include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
 #include "openssl/sha.h"
-#include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
-#include "Cafe/Filesystem/fsc.h"
 #include "boost/algorithm/string.hpp"
 #include "util/helpers/MapAdaptor.h"
 #include "util/helpers/StringParser.h"
-#include "Cafe/HW/Latte/Core/LatteTiming.h"
-#include "util/IniParser/IniParser.h"
 #include "util/helpers/StringHelpers.h"
+#include "util/IniParser/IniParser.h"
 #include "Cafe/CafeSystem.h"
 #include "HW/Espresso/Debugger/Debugger.h"
-
+#include "Cafe/HW/Latte/Core/LatteTiming.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 #include <cinttypes>
 
 std::vector<GraphicPackPtr> GraphicPack2::s_graphic_packs;
@@ -20,6 +20,37 @@ std::vector<GraphicPackPtr> GraphicPack2::s_active_graphic_packs;
 std::atomic_bool GraphicPack2::s_isReady;
 
 #define GP_LEGACY_VERSION		(2)
+
+template<typename T>
+bool ParseRule(const ExpressionParser& parser, IniParser& iniParser, const char* option_name, T* valueOut)
+{
+	auto optionValue = iniParser.FindOption(option_name);
+	if (optionValue)
+	{
+		*valueOut = parser.Evaluate<T>(*optionValue);
+		return true;
+	}
+	return false;
+}
+
+template<typename T>
+std::vector<T> ParseList(const ExpressionParser& parser, IniParser& iniParser, const char* optionName)
+{
+	std::vector<T> result;
+	auto optionText = iniParser.FindOption(optionName);
+	if (!optionText)
+		return result;
+	for (auto& token : Tokenize(*optionText, ','))
+	{
+		try
+		{
+			result.emplace_back(parser.Evaluate<T>(token));
+		} 
+		catch (const std::invalid_argument&)
+		{}
+	}
+	return result;
+}
 
 void GraphicPack2::LoadGraphicPack(fs::path graphicPackPath)
 {

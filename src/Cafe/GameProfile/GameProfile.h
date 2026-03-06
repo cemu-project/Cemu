@@ -1,6 +1,4 @@
 #pragma once
-
-#include <optional>
 #include "config/CemuConfig.h"
 
 struct gameProfileIntegerOption_t

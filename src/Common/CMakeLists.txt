@@ -53,7 +53,7 @@ if(LINUX)
 	)
 endif()
 
-# the precompiled header is produced by CemuCommon and reused by all the other targets
+# CemuCommon always builts the precompiled header
 target_precompile_headers(CemuCommon PRIVATE precompiled.h)
 target_include_directories(CemuCommon PUBLIC "../")
 
@@ -70,6 +70,7 @@ endif()
 # - boost/predef/os.h is included in platform.h
 # - fmt/core.h is included in precompiled.h
 target_link_libraries(CemuCommon PUBLIC
+	Threads::Threads # necessary because some targets may need -pthreads
 	Boost::nowide
 	Boost::headers
 	fmt::fmt

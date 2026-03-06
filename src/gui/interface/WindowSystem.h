@@ -1,6 +1,5 @@
 #pragma once
 
-#include "config/CemuConfig.h"
 #include "input/api/ControllerState.h"
 
 namespace WindowSystem

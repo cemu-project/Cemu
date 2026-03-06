@@ -75,11 +75,11 @@
 #include <optional>
 #include <span>
 #include <ranges>
+#include <variant>
 
 #include <boost/predef.h>
 #include <boost/nowide/convert.hpp>
 #include <boost/algorithm/string.hpp>
-#include <boost/asio.hpp>
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 

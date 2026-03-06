@@ -6,10 +6,10 @@
 #include "util/helpers/Serializer.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cemu/PPCAssembler/ppcAssembler.h"
-#include <variant>
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "GraphicPack2Patches.h"
-#include "util/IniParser/IniParser.h"
+
+enum class RendererAPI;
+enum class GfxVendor;
 
 class GraphicPack2
 {
@@ -99,7 +99,7 @@ public:
 	};
 	using PresetPtr = std::shared_ptr<Preset>;
 
-	GraphicPack2(fs::path rulesPath, IniParser& rules);
+	GraphicPack2(fs::path rulesPath, class IniParser& rules);
 
 	bool IsEnabled() const { return m_enabled; }
 	bool IsActivated() const { return m_activated; }
@@ -253,12 +253,6 @@ private:
 	std::string m_output_shader_source, m_upscaling_shader_source, m_downscaling_shader_source;
 	std::unique_ptr<RendererOutputShader> m_output_shader, m_upscaling_shader, m_downscaling_shader, m_output_shader_ud, m_upscaling_shader_ud, m_downscaling_shader_ud;
 
-	template<typename T>
-	bool ParseRule(const ExpressionParser& parser, IniParser& iniParser, const char* option_name, T* value_out) const;
-
-	template<typename T>
-	std::vector<T> ParseList(const ExpressionParser& parser, IniParser& iniParser, const char* option_name) const;
-
 	std::unordered_map<std::string, PresetVar> ParsePresetVars(IniParser& rules) const;
 
 	std::vector<uint64> ParseTitleIds(IniParser& rules, const char* option_name);
@@ -307,37 +301,3 @@ public:
 };
 
 using GraphicPackPtr = std::shared_ptr<GraphicPack2>;
-
-template <typename T>
-bool GraphicPack2::ParseRule(const ExpressionParser& parser, IniParser& iniParser, const char* option_name, T* value_out) const
-{
-	auto option_value = iniParser.FindOption(option_name);
-	if (option_value)
-	{
-		*value_out = parser.Evaluate<T>(*option_value);
-		return true;
-	}
-
-	return false;
-}
-
-template <typename T>
-std::vector<T> GraphicPack2::ParseList(const ExpressionParser& parser, IniParser& iniParser, const char* option_name) const
-{
-	std::vector<T> result;
-
-	auto option_text = iniParser.FindOption(option_name);
-	if (!option_text)
-		return result;
-
-	for(auto& token : Tokenize(*option_text, ','))
-	{
-		try
-		{
-			result.emplace_back(parser.Evaluate<T>(token));
-		}
-		catch (const std::invalid_argument&) {}
-	}
-
-	return result;
-}

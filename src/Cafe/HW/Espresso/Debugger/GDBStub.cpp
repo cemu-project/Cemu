@@ -12,6 +12,10 @@
 #include "Cafe/HW/Espresso/EspressoISA.h"
 #include "Common/socket.h"
 
+#if BOOST_OS_UNIX
+#include <netinet/tcp.h>
+#endif
+
 #define GET_THREAD_ID(threadPtr) memory_getVirtualOffsetFromPointer(threadPtr)
 #define GET_THREAD_BY_ID(threadId) (OSThread_t*)memory_getPointerFromPhysicalOffset(threadId)
 
