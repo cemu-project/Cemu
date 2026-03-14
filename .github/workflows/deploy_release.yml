@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [call-release-build, calculate-version]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 

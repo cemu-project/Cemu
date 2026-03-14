@@ -20,10 +20,10 @@ jobs:
     outputs:
       next_version: ${{ steps.calculate_next_version.outputs.next_version }}
       next_version_major: ${{ steps.calculate_next_version.outputs.next_version_major }}
-      next_version_minor: ${{ steps.calculate_next_version.outputs.next_version_minor }}      
+      next_version_minor: ${{ steps.calculate_next_version.outputs.next_version_minor }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Get all releases
         id: get_all_releases
@@ -35,7 +35,7 @@ jobs:
             cat response.json
             exit 1
           fi
-          
+
           # Extract and sort tags
           ALL_TAGS=$(jq -r '.[].tag_name' response.json | grep -E '^v[0-9]+\.[0-9]+(-[0-9]+)?$' | sed 's/-.*//' | sort -V | tail -n 1)
 
@@ -71,4 +71,4 @@ jobs:
           echo "Next version: $NEXT_VERSION"
           echo "::set-output name=next_version::$NEXT_VERSION"
           echo "::set-output name=next_version_major::$MAJOR"
-          echo "::set-output name=next_version_minor::$MINOR"          
+          echo "::set-output name=next_version_minor::$MINOR"
