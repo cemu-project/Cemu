@@ -28,7 +28,7 @@ jobs:
 
       - name: "Generate POT file using xgettext"
         run: >
-          find src -name *.cpp -o -name *.hpp -o -name *.h | 
+          find src -name *.cpp -o -name *.hpp -o -name *.h |
           xargs xgettext --from-code=utf-8 -w 100
           --keyword="_" --keyword="wxTRANSLATE" --keyword="wxPLURAL:1,2"
           --keyword="_tr" --keyword="TR_NOOP"
@@ -36,7 +36,7 @@ jobs:
           -o cemu.pot
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: POT file
           path: ./cemu.pot

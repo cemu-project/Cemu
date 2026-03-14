@@ -83,7 +83,7 @@ jobs:
         run: mv bin/Cemu_release bin/Cemu
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cemu-bin-linux-${{ matrix.arch }}
           path: ./bin/Cemu
@@ -122,7 +122,7 @@ jobs:
           dist/linux/appimage.sh ${{ runner.arch }}
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cemu-appimage-${{ matrix.arch }}
           path: artifacts
@@ -193,13 +193,13 @@ jobs:
           makensis /DPRODUCT_VERSION=${{ inputs.next_version_major }}.${{ inputs.next_version_minor }} installer.nsi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cemu-bin-windows-x64
           path: ./bin/Cemu.exe
 
       - name: Upload NSIS Installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cemu-installer-windows-x64
           path: ./src/resource/cemu-${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}-windows-x64-installer.exe
@@ -289,7 +289,7 @@ jobs:
           rm bin/tmp.dmg
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: cemu-bin-macos-${{ matrix.arch }}
           path: ./bin/Cemu.dmg
