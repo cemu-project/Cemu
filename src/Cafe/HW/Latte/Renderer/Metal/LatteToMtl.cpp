@@ -244,7 +244,7 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode)
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLES:
 		return MTL::PrimitiveTypeTriangle;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLE_FAN:
-		return MTL::PrimitiveTypeTriangleStrip;
+		return MTL::PrimitiveTypeTriangle; // triangle fans are emulated as a triangle list
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::TRIANGLE_STRIP:
 		return MTL::PrimitiveTypeTriangleStrip;
 	case Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::QUADS:

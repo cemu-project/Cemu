@@ -19,6 +19,8 @@ public:
 
 	void AllocateOnHost() override;
 
+	bool m_isInitialized = false;
+
 protected:
 	LatteTextureView* CreateView(Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount) override;
 

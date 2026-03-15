@@ -778,6 +778,8 @@ void MetalRenderer::texture_loadSlice(LatteTexture* hostTexture, sint32 width, s
     // Copy the data from the temporary buffer to the texture
     blitCommandEncoder->copyFromBuffer(allocation.mtlBuffer, allocation.bufferOffset, bytesPerRow, 0, MTL::Size(width, height, 1), textureMtl->GetTexture(), sliceIndex, mipIndex, MTL::Origin(0, 0, offsetZ));
     //}
+
+    textureMtl->m_isInitialized = true;
 }
 
 void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex, float r, float g, float b, float a)
@@ -787,6 +789,8 @@ void MetalRenderer::texture_clearColorSlice(LatteTexture* hostTexture, sint32 sl
         cemuLog_logOnce(LogType::Force, "cannot clear color texture with format {}, because it's not renderable", hostTexture->format);
         return;
     }
+
+    static_cast<LatteTextureMtl*>(hostTexture)->m_isInitialized = true;
 
     auto mtlTexture = static_cast<LatteTextureMtl*>(hostTexture)->GetTexture();
 
@@ -825,6 +829,8 @@ void MetalRenderer::texture_clearDepthSlice(LatteTexture* hostTexture, uint32 sl
         stencilAttachment->setSlice(sliceIndex);
         stencilAttachment->setLevel(mipIndex);
     }
+
+    static_cast<LatteTextureMtl*>(hostTexture)->m_isInitialized = true;
 
     GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     EndEncoding();
@@ -1784,9 +1790,54 @@ MTL::RenderCommandEncoder* MetalRenderer::GetRenderCommandEncoder(bool forceRecr
 
     auto commandBuffer = GetCommandBuffer();
 
+    // Use LoadActionClear for any uninitialized render target textures (Private storage textures have undefined initial content)
+    auto fbo = static_cast<CachedFBOMtl*>(m_state.m_activeFBO.m_fbo);
+    auto renderPassDescriptor = fbo->GetRenderPassDescriptor();
+    for (uint8 i = 0; i < 8; i++)
+    {
+        if (fbo->colorBuffer[i].texture)
+        {
+            auto texMtl = static_cast<LatteTextureMtl*>(fbo->colorBuffer[i].texture->baseTexture);
+            if (!texMtl->m_isInitialized)
+            {
+                renderPassDescriptor->colorAttachments()->object(i)->setLoadAction(MTL::LoadActionClear);
+                renderPassDescriptor->colorAttachments()->object(i)->setClearColor(MTL::ClearColor(0, 0, 0, 0));
+                texMtl->m_isInitialized = true;
+            }
+        }
+    }
+    if (fbo->depthBuffer.texture)
+    {
+        auto texMtl = static_cast<LatteTextureMtl*>(fbo->depthBuffer.texture->baseTexture);
+        if (!texMtl->m_isInitialized)
+        {
+            renderPassDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionClear);
+            renderPassDescriptor->depthAttachment()->setClearDepth(1.0);
+            if (fbo->depthBuffer.hasStencil && GetMtlPixelFormatInfo(fbo->depthBuffer.texture->format, true).hasStencil)
+            {
+                renderPassDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionClear);
+                renderPassDescriptor->stencilAttachment()->setClearStencil(0);
+            }
+            texMtl->m_isInitialized = true;
+        }
+    }
+
     auto pool = NS::AutoreleasePool::alloc()->init();
-    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(m_state.m_activeFBO.m_fbo->GetRenderPassDescriptor())->retain();
+    auto renderCommandEncoder = commandBuffer->renderCommandEncoder(renderPassDescriptor)->retain();
     pool->release();
+
+    // Reset any temporarily modified load actions back to LoadActionLoad
+    for (uint8 i = 0; i < 8; i++)
+    {
+        if (fbo->colorBuffer[i].texture)
+            renderPassDescriptor->colorAttachments()->object(i)->setLoadAction(MTL::LoadActionLoad);
+    }
+    if (fbo->depthBuffer.texture)
+    {
+        renderPassDescriptor->depthAttachment()->setLoadAction(MTL::LoadActionLoad);
+        if (fbo->depthBuffer.hasStencil && GetMtlPixelFormatInfo(fbo->depthBuffer.texture->format, true).hasStencil)
+            renderPassDescriptor->stencilAttachment()->setLoadAction(MTL::LoadActionLoad);
+    }
 #ifdef CEMU_DEBUG_ASSERT
     renderCommandEncoder->setLabel(GetLabel("Render command encoder", renderCommandEncoder));
 #endif

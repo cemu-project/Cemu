@@ -117,16 +117,19 @@ uint32 LatteIndices_calculateIndexOutputSize(LattePrimitiveMode primitiveMode, L
 	}
 	else if (primitiveMode == LattePrimitiveMode::TRIANGLE_FAN && g_renderer->GetType() == RendererAPI::Metal)
 	{
+		if (count < 3)
+			return 0;
+		uint32 numTriangles = count - 2;
 		if (indexType == LatteIndexType::AUTO)
 		{
 			if (count <= 0xFFFF)
-				return count * sizeof(uint16);
-			return count * sizeof(uint32);
+				return numTriangles * 3 * sizeof(uint16);
+			return numTriangles * 3 * sizeof(uint32);
 		}
 		if (indexType == LatteIndexType::U16_BE || indexType == LatteIndexType::U16_LE)
-			return count * sizeof(uint16);
+			return numTriangles * 3 * sizeof(uint16);
 		if (indexType == LatteIndexType::U32_BE || indexType == LatteIndexType::U32_LE)
-			return count * sizeof(uint32);
+			return numTriangles * 3 * sizeof(uint32);
 		cemu_assert_suspicious();
 		return 0;
 	}
@@ -328,34 +331,32 @@ void LatteIndices_unpackTriangleFanAndConvert(const void* indexDataInput, void* 
 {
 	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
-	// TODO: check this
-	for (sint32 i = 0; i < count; i++)
+	T firstIdx = src[0];
+	indexMin = std::min(indexMin, (uint32)firstIdx);
+	indexMax = std::max(indexMax, (uint32)firstIdx);
+	for (sint32 i = 0; i < (sint32)count - 2; i++)
 	{
-	    uint32 i0;
-		if (i % 2 == 0)
-		    i0 = i / 2;
-        else
-            i0 = count - 1 - i / 2;
-        T idx = src[i0];
-		indexMin = std::min(indexMin, (uint32)idx);
-		indexMax = std::max(indexMax, (uint32)idx);
-		dst[i] = idx;
+		T idx1 = src[i + 1];
+		T idx2 = src[i + 2];
+		indexMin = std::min(indexMin, (uint32)idx1);
+		indexMin = std::min(indexMin, (uint32)idx2);
+		indexMax = std::max(indexMax, (uint32)idx1);
+		indexMax = std::max(indexMax, (uint32)idx2);
+		dst[i * 3 + 0] = firstIdx;
+		dst[i * 3 + 1] = idx1;
+		dst[i * 3 + 2] = idx2;
 	}
 }
 
 template<typename T>
 void LatteIndices_generateAutoTriangleFanIndices(const void* indexDataInput, void* indexDataOutput, uint32 count, uint32& indexMin, uint32& indexMax)
 {
-	const betype<T>* src = (betype<T>*)indexDataInput;
 	T* dst = (T*)indexDataOutput;
-	for (sint32 i = 0; i < count; i++)
+	for (sint32 i = 0; i < (sint32)count - 2; i++)
 	{
-		T idx = i;
-		if (idx % 2 == 0)
-            idx = idx / 2;
-        else
-            idx = count - 1 - idx / 2;
-		dst[i] = idx;
+		dst[i * 3 + 0] = 0;
+		dst[i * 3 + 1] = (T)(i + 1);
+		dst[i * 3 + 2] = (T)(i + 2);
 	}
 	indexMin = 0;
 	indexMax = std::max(count, 1u) - 1;
@@ -868,7 +869,7 @@ void LatteIndices_decode(const void* indexData, LatteIndexType indexType, uint32
     		LatteIndices_unpackTriangleFanAndConvert<uint32>(indexData, indexOutputPtr, count, indexMin, indexMax);
     	else
     		cemu_assert_debug(false);
-    	outputCount = count;
+    	outputCount = (count - 2) * 3;
 	}
 	else
 	{
