@@ -123,7 +123,7 @@ static void PPCInterpreter_ADDI(PPCInterpreter_t* hCPU, uint32 opcode)
 	sint32 rD, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
-	hCPU->gpr[rD] = (rA ? (int)hCPU->gpr[rA] : 0) + (int)imm;
+	hCPU->gpr[rD] = (rA ? hCPU->gpr[rA] : 0u) + imm;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
