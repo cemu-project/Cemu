@@ -435,7 +435,7 @@ static void PPCInterpreter_MULHWU_(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_MULLW(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	sint64 result = (sint64)hCPU->gpr[rA] * (sint64)hCPU->gpr[rB];
+	sint64 result = (sint64)(sint32)hCPU->gpr[rA] * (sint64)(sint32)hCPU->gpr[rB];
 	hCPU->gpr[rD] = (uint32)result;
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
