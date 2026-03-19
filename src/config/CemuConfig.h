@@ -432,6 +432,7 @@ struct CemuConfig
 
 	// graphics
 	ConfigValue<GraphicAPI> graphic_api{ kVulkan };
+	std::array<uint8, 16> legacy_graphic_device_uuid{}; // placeholder option for backwards compatibility with settings from 2.6 and before (renamed to "vkDevice")
 	std::array<uint8, 16> vk_graphic_device_uuid;
 	uint64 mtl_graphic_device_uuid{ 0 };
 	ConfigValue<int> vsync{ 0 }; // 0 = off, 1+ = depending on render backend

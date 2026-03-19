@@ -33,17 +33,17 @@ static_assert(sizeof(GX2Surface) == 0x74);
 
 struct GX2ColorBuffer
 {
-	/* +0x00 */ GX2Surface surface;
-	/* +0x74 */ uint32		viewMip;
-	/* +0x78 */ uint32		viewFirstSlice;
-	/* +0x7C */ uint32		viewNumSlices;
-	/* +0x80 */ MPTR		auxData;
-	/* +0x84 */ uint32		auxSize;
-	/* +0x88 */ uint32be	reg_size; // CB_COLOR*_SIZE
-	/* +0x8C */ uint32be	reg_info; // CB_COLOR*_INFO
-	/* +0x90 */ uint32be	reg_view; // CB_COLOR*_VIEW
-	/* +0x94 */ uint32be	reg_mask; // CB_COLOR*_MASK
-	/* +0x98 */ uint32be	reg4; // ?
+	/* +0x00 */ GX2Surface		surface;
+	/* +0x74 */ uint32be		viewMip;
+	/* +0x78 */ uint32be		viewFirstSlice;
+	/* +0x7C */ uint32be		viewNumSlices;
+	/* +0x80 */ MEMPTR<void>	auxData;
+	/* +0x84 */ uint32be		auxSize2;
+	/* +0x88 */ uint32be		reg_size; // CB_COLOR*_SIZE
+	/* +0x8C */ uint32be		reg_info; // CB_COLOR*_INFO
+	/* +0x90 */ uint32be		reg_view; // CB_COLOR*_VIEW
+	/* +0x94 */ uint32be		reg_mask; // CB_COLOR*_MASK
+	/* +0x98 */ uint32be		reg4; // ?
 };
 
 static_assert(sizeof(GX2ColorBuffer) == 0x9C);
@@ -51,13 +51,13 @@ static_assert(sizeof(GX2ColorBuffer) == 0x9C);
 struct GX2DepthBuffer
 {
 	/* +0x00 */ GX2Surface		surface;
-	/* +0x74 */ uint32			viewMip;
-	/* +0x78 */ uint32			viewFirstSlice;
-	/* +0x7C */ uint32			viewNumSlices;
-	/* +0x80 */ MPTR			hiZPtr;
-	/* +0x84 */ uint32			hiZSize;
-	/* +0x88 */ float			clearDepth;
-	/* +0x8C */ uint32			clearStencil;
+	/* +0x74 */ uint32be		viewMip;
+	/* +0x78 */ uint32be		viewFirstSlice;
+	/* +0x7C */ uint32be		viewNumSlices;
+	/* +0x80 */ MEMPTR<void>	hiZPtr;
+	/* +0x84 */ uint32be		hiZSize;
+	/* +0x88 */ float32be		clearDepth;
+	/* +0x8C */ uint32be		clearStencil;
 	/* +0x90 */ uint32be		reg_size;
 	/* +0x94 */ uint32be		reg_view;
 	/* +0x98 */ uint32be		reg_base;

@@ -140,6 +140,8 @@ void LatteTexture_updateTexturesForStage(LatteDecompilerShader* shaderContext, u
 				depth = 1;
 		}
 		uint32 height = word1.get_HEIGHT() + 1;
+		if (dim == Latte::E_DIM::DIM_1D || dim == Latte::E_DIM::DIM_1D_ARRAY)
+			height = 1;
 		if (Latte::IsCompressedFormat(word1.get_DATA_FORMAT()))
 			pitch /= 4;
 		// view slice

@@ -17,12 +17,12 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(colorBuffer, GX2ColorBuffer, 0);
 
 	LatteAddrLib::AddrSurfaceInfo_OUT surfaceInfo;
-	LatteAddrLib::GX2CalculateSurfaceInfo(colorBuffer->surface.format, colorBuffer->surface.width, colorBuffer->surface.height, colorBuffer->surface.depth, colorBuffer->surface.dim, colorBuffer->surface.tileMode, colorBuffer->surface.aa, _swapEndianU32(colorBuffer->viewMip), &surfaceInfo);
+	LatteAddrLib::GX2CalculateSurfaceInfo(colorBuffer->surface.format, colorBuffer->surface.width, colorBuffer->surface.height, colorBuffer->surface.depth, colorBuffer->surface.dim, colorBuffer->surface.tileMode, colorBuffer->surface.aa, colorBuffer->viewMip, &surfaceInfo);
 
 	uint32 pitchHeight = (surfaceInfo.height * surfaceInfo.pitch) >> 6;
 #ifdef CEMU_DEBUG_ASSERT
-	if (colorBuffer->viewNumSlices != _swapEndianU32(1))
-		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): With unsupported slice count {}", _swapEndianU32(colorBuffer->viewNumSlices));
+	if (colorBuffer->viewNumSlices != 1)
+		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): With unsupported slice count {}", (uint32)colorBuffer->viewNumSlices);
 	if (surfaceInfo.pitch < 7)
 		cemuLog_logDebug(LogType::Force, "GX2InitColorBufferRegs(): Pitch too small (pitch = {})", surfaceInfo.pitch);
 	if ((surfaceInfo.pitch & 7) != 0)
@@ -101,8 +101,8 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 	uint32 regView = 0;
 	if (colorBuffer->surface.tileMode != Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL)
 	{
-		regView |= (_swapEndianU32(colorBuffer->viewFirstSlice) & 0x7FF);
-		regView |= (((_swapEndianU32(colorBuffer->viewNumSlices) + _swapEndianU32(colorBuffer->viewFirstSlice) - 1) & 0x7FF) << 13);
+		regView |= ((uint32)colorBuffer->viewFirstSlice & 0x7FF);
+		regView |= ((((uint32)colorBuffer->viewNumSlices + (uint32)colorBuffer->viewFirstSlice - 1) & 0x7FF) << 13);
 	}
 	colorBuffer->reg_view = regView;
 	colorBuffer->reg_mask = 0;
@@ -118,7 +118,7 @@ void gx2Export_GX2InitDepthBufferRegs(PPCInterpreter_t* hCPU)
 	ppcDefineParamStructPtr(depthBuffer, GX2DepthBuffer, 0);
 
 	LatteAddrLib::AddrSurfaceInfo_OUT surfaceInfo;
-	LatteAddrLib::GX2CalculateSurfaceInfo(depthBuffer->surface.format, depthBuffer->surface.width, depthBuffer->surface.height, depthBuffer->surface.depth, depthBuffer->surface.dim, depthBuffer->surface.tileMode, depthBuffer->surface.aa, _swapEndianU32(depthBuffer->viewMip), &surfaceInfo);
+	LatteAddrLib::GX2CalculateSurfaceInfo(depthBuffer->surface.format, depthBuffer->surface.width, depthBuffer->surface.height, depthBuffer->surface.depth, depthBuffer->surface.dim, depthBuffer->surface.tileMode, depthBuffer->surface.aa, depthBuffer->viewMip, &surfaceInfo);
 
 	cemu_assert_debug(depthBuffer->viewNumSlices != 0);
 
@@ -140,18 +140,12 @@ void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 	GX2ColorBuffer* colorBufferBE = (GX2ColorBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 
 #ifdef CEMU_DEBUG_ASSERT
-	cemuLog_log(LogType::GX2, "ColorBuffer tileMode {:01x} PhysAddr {:08x} fmt {:04x} res {}x{} Mip {} Slice {}", (uint32)colorBufferBE->surface.tileMode.value(), (uint32)colorBufferBE->surface.imagePtr, (uint32)colorBufferBE->surface.format.value(), (uint32)colorBufferBE->surface.width, (uint32)colorBufferBE->surface.height, _swapEndianU32(colorBufferBE->viewMip), _swapEndianU32(colorBufferBE->viewFirstSlice));
+	cemuLog_log(LogType::GX2, "ColorBuffer tileMode {:01x} PhysAddr {:08x} fmt {:04x} res {}x{} Mip {} Slice {}", (uint32)colorBufferBE->surface.tileMode.value(), (uint32)colorBufferBE->surface.imagePtr, (uint32)colorBufferBE->surface.format.value(), (uint32)colorBufferBE->surface.width, (uint32)colorBufferBE->surface.height, (uint32)colorBufferBE->viewMip, (uint32)colorBufferBE->viewFirstSlice);
 #endif
-
-	// regs[0] = mmCB_COLOR0_SIZE
-	// regs[1] = mmCB_COLOR0_INFO
-	// regs[2] = mmCB_COLOR0_VIEW
-	// regs[3] = mmCB_COLOR0_MASK
-	// regs[4] = mmCB_COLOR0_TILE
 
 	uint32 targetIndex = hCPU->gpr[4];
 
-	uint32 viewMip = _swapEndianU32(colorBufferBE->viewMip);
+	uint32 viewMip = colorBufferBE->viewMip;
 	uint32 colorBufferBase = memory_virtualToPhysical(colorBufferBE->surface.imagePtr);
 
 	if( viewMip != 0 )
@@ -165,7 +159,7 @@ void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 	}
 
 	Latte::E_GX2TILEMODE tileMode = colorBufferBE->surface.tileMode;
-	uint32 viewMipIndex = _swapEndianU32(colorBufferBE->viewMip);
+	uint32 viewMipIndex = colorBufferBE->viewMip;
 	uint32 swizzle = colorBufferBE->surface.swizzle;
 
 	if (Latte::TM_IsMacroTiled(tileMode) && viewMipIndex < ((swizzle >> 16) & 0xFF))
@@ -210,7 +204,7 @@ void gx2Export_GX2SetDepthBuffer(PPCInterpreter_t* hCPU)
 
 	cemuLog_log(LogType::GX2, "DepthBuffer tileMode {:01x} PhysAddr {:08x} fmt {:04x} res {}x{}", (uint32)depthBufferBE->surface.tileMode.value(), (uint32)depthBufferBE->surface.imagePtr, (uint32)depthBufferBE->surface.format.value(), (uint32)depthBufferBE->surface.width, (uint32)depthBufferBE->surface.height);
 
-	uint32 viewMip = _swapEndianU32(depthBufferBE->viewMip);
+	uint32 viewMip = depthBufferBE->viewMip;
 
 	// todo: current code for the PM4 packets is a hack, replace with proper implementation
 
@@ -256,8 +250,8 @@ void gx2Export_GX2SetDepthBuffer(PPCInterpreter_t* hCPU)
 
 	// set DB_DEPTH_VIEW
 	uint32 db_view = 0;
-	db_view |= (_swapEndianU32(depthBufferBE->viewFirstSlice)&0x7FF);
-	db_view |= (((_swapEndianU32(depthBufferBE->viewNumSlices)+_swapEndianU32(depthBufferBE->viewFirstSlice)-1)&0x7FF)<<13);
+	db_view |= ((uint32)depthBufferBE->viewFirstSlice&0x7FF);
+	db_view |= ((((uint32)depthBufferBE->viewNumSlices+(uint32)depthBufferBE->viewFirstSlice-1)&0x7FF)<<13);
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
 	gx2WriteGather_submitU32AsBE(mmDB_DEPTH_VIEW - 0xA000);
 	gx2WriteGather_submitU32AsBE(db_view);

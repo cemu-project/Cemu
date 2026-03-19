@@ -1177,8 +1177,6 @@ void PipelineCompiler::CompileThreadPool_Stop()
 	while (!s_pipelineCompileRequests.empty())
 	{
 		PipelineCompiler* pipelineCompiler = s_pipelineCompileRequests.pop();
-		if (!pipelineCompiler)
-			break;
 		if (pipelineCompiler)
 			delete pipelineCompiler;
 	}

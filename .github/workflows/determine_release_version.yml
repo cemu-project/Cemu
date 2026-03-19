@@ -23,7 +23,7 @@ jobs:
       next_version_minor: ${{ steps.calculate_next_version.outputs.next_version_minor }}      
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v6
 
       - name: Get all releases
         id: get_all_releases

@@ -45,7 +45,7 @@ public:
 	VKRMoveableRefCounter(VKRMoveableRefCounter&& rhs) noexcept
 	{
 		this->refs = std::move(rhs.refs);
-		this->m_refCount = rhs.m_refCount;
+		this->m_refCount.store(rhs.m_refCount);
 		rhs.m_refCount = 0;
 		this->selfRef = rhs.selfRef;
 		rhs.selfRef = nullptr;
@@ -88,21 +88,13 @@ protected:
 		// does nothing by default
 	}
 
-	int m_refCount{};
+	std::atomic_int_least32_t m_refCount{};
 private:
 	VKRMoveableRefCounterRef* selfRef;
 	std::vector<VKRMoveableRefCounterRef*> refs;
 #ifdef CEMU_DEBUG_ASSERT
 	std::vector<VKRMoveableRefCounterRef*> reverseRefs;
 #endif
-
-	void moveObj(VKRMoveableRefCounter&& rhs)
-	{
-		this->refs = std::move(rhs.refs);
-		this->m_refCount = rhs.m_refCount;
-		this->selfRef = rhs.selfRef;
-		this->selfRef->ref = this;
-	}
 };
 
 class VKRDestructibleObject : public VKRMoveableRefCounter

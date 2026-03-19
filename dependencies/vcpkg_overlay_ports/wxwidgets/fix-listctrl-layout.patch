@@ -1,0 +1,40 @@
+diff --git a/src/msw/listctrl.cpp b/src/msw/listctrl.cpp
+index 5e1cd98a8b..169ab7847d 100644
+--- a/src/msw/listctrl.cpp
++++ b/src/msw/listctrl.cpp
+@@ -1385,20 +1385,29 @@ bool wxListCtrl::GetSubItemRect(long item, long subItem, wxRect& rect, int code)
+ 
+     wxCopyRECTToRect(rectWin, rect);
+ 
+-    // We can't use wxGetListCtrlSubItemRect() for the 0th subitem as 0 means
+-    // the entire row for this function, so we need to calculate it ourselves.
+-    if ( subItem == 0 && code == wxLIST_RECT_BOUNDS )
++    // We can't trust the native LVM_GETSUBITEMRECT for LVIR_BOUNDS because:
++    //  - subitem 0 returns the entire row bounds, not just column 0
++    //  - when column 0 is narrower than the icon, the native control clamps
++    //    all subitems' left edge to at least the icon width, misaligning them
++    //
++    // So for all subitems we calculate x and width from GetColumnWidth() in
++    // visual (column order) order, which always reflects the real column sizes.
++    if ( subItem != wxLIST_GETSUBITEMRECT_WHOLEITEM && code == wxLIST_RECT_BOUNDS )
+     {
+-        // Because the columns can be reordered, we need to sum the widths of
+-        // all preceding columns to get the correct x position.
++        // Start from the row's left edge (which accounts for scrolling).
++        RECT rowRect;
++        wxGetListCtrlItemRect(GetHwnd(), item, LVIR_BOUNDS, rowRect);
++        int x = rowRect.left;
++
+         for ( auto col : GetColumnsOrder() )
+         {
+             if ( col == subItem )
+                 break;
+ 
+-            rect.x += GetColumnWidth(col);
++            x += GetColumnWidth(col);
+         }
+ 
++        rect.x = x;
+         rect.width = GetColumnWidth(subItem);
+     }
+ 
