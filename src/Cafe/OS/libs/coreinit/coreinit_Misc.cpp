@@ -1,6 +1,7 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MessageQueue.h"
+#include "Cafe/OS/libs/coreinit/coreinit_OSScreen.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/Filesystem/fsc.h"
 #include <pugixml.hpp>
@@ -618,6 +619,32 @@ namespace coreinit
 		WriteCafeConsole(CafeLogType::OSCONSOLE, strPtr, length);
 	}
 
+	void OSFatal(const char* msg)
+	{
+		// print to log
+		ppc_define_va_list(1, 0);
+		COSVReport(COSReportModule::coreinit, COSReportLevel::Error, msg, &vargs);
+
+		// print to screen
+		OSScreenInit();
+		uint32 tvBufferSize = OSScreenGetBufferSizeEx(OSSCREEN_TV);
+		OSScreenSetBufferEx(OSSCREEN_TV, MEMORY_MEM1_AREA_ADDR);
+		OSScreenSetBufferEx(OSSCREEN_DRC, MEMORY_MEM1_AREA_ADDR + tvBufferSize);
+		OSScreenEnableEx(OSSCREEN_TV, 1);
+		OSScreenEnableEx(OSSCREEN_DRC, 1);
+
+		while ( true )
+		{
+			OSScreenClearBufferEx(OSSCREEN_TV, 0);
+			OSScreenClearBufferEx(OSSCREEN_DRC, 0);
+			OSScreenPutFontEx(OSSCREEN_TV, 0, 0, msg);
+			OSScreenPutFontEx(OSSCREEN_DRC, 0, 0, msg);
+			OSScreenFlipBuffersEx(OSSCREEN_TV);
+			OSScreenFlipBuffersEx(OSSCREEN_DRC);
+			OSSleepTicks(ESPRESSO_TIMER_CLOCK / 30);
+		}
+	}
+
 	/* home button menu */
 
 	bool g_homeButtonMenuEnabled = false;
@@ -830,6 +857,7 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSVReport, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSLogPrintf, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSConsoleWrite, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSFatal, LogType::Placeholder);
 
 		cafeExportRegister("coreinit", OSGetPFID, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSGetUPID, LogType::Placeholder);
