@@ -7,8 +7,279 @@
 
 namespace coreinit
 {
+	sint32 ppc_vcprintf_pad(char* strOut, sint32 maxLength, sint32 padLength, char padChar)
+	{
+		padLength = std::min<sint32>(padLength, maxLength);
+		sint32 paddedLength = padLength;
+		while ( padLength > 0)
+		{
+			*strOut = padChar;
+			strOut++;
+			padLength--;
+		}
+		return paddedLength;
+	}
+
+	// handler for %s
+	sint32 ppc_vcprintf_str(char* strOut, sint32 maxLength, MEMPTR<char> strPointer, std::optional<sint32> width, std::optional<sint32> precision)
+	{
+		if (maxLength <= 0)
+			return 0;
+		const char* stringData = "(null)";
+		if (strPointer)
+			stringData = strPointer.GetPtr();
+		else
+		{
+			if (precision.has_value() && *precision > 6)
+				precision = 6;
+		}
+		// get string length
+		sint32 stringLength = 0;
+		if (precision.has_value())
+		{
+			stringLength = *precision;
+			for (sint32 i=0; i<stringLength; i++)
+			{
+				if (stringData[i] == '\0')
+				{
+					stringLength = i;
+					break;
+				}
+			}
+		}
+		else
+			stringLength = strlen(stringData);
+		if (stringLength < 0)
+		{
+			cemuLog_log(LogType::APIErrors, "ppc_vprintf: String length less than zero");
+			stringLength = 0;
+		}
+		sint32 outputLength = 0;
+		if (width.has_value() && width.value() > 0)
+		{
+			// left padding
+			sint32 paddedLength = *width;
+			paddedLength -= stringLength;
+			paddedLength = std::min<sint32>(paddedLength, maxLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut, maxLength, paddedLength, ' ');
+				strOut += paddedLength;
+				maxLength -= paddedLength;
+				outputLength += paddedLength;
+			}
+		}
+		stringLength = std::min<sint32>(stringLength, maxLength);
+		cemu_assert(stringLength >= 0);
+		memcpy(strOut, stringData, stringLength);
+		outputLength += stringLength;
+		if (width.has_value() && width.value() < 0)
+		{
+			sint32 paddedLength = -*width;
+			paddedLength -= stringLength;
+			paddedLength = std::min<sint32>(paddedLength, maxLength - stringLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut + stringLength, maxLength - stringLength, paddedLength, ' ');
+				outputLength += paddedLength;
+			}
+		}
+		return outputLength;
+	}
+
+	// handler for %c
+	sint32 ppc_vcprintf_char(char* strOut, sint32 maxLength, char character, std::optional<sint32> width, std::optional<sint32> precision)
+	{
+		if (maxLength <= 0)
+			return 0;
+		sint32 outputLength = 0;
+		if (width.has_value() && width.value() > 0)
+		{
+			// left padding
+			sint32 paddedLength = *width;
+			paddedLength -= 1;
+			paddedLength = std::min<sint32>(paddedLength, maxLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut, maxLength, paddedLength, ' ');
+				strOut += paddedLength;
+				maxLength -= paddedLength;
+				outputLength += paddedLength;
+			}
+		}
+		if (maxLength > 0)
+		{
+			*strOut = character;
+			outputLength++;
+		}
+		if (width.has_value() && width.value() < 0)
+		{
+			sint32 paddedLength = -*width;
+			paddedLength -= 1;
+			paddedLength = std::min<sint32>(paddedLength, maxLength - 1);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut + 1, maxLength - 1, paddedLength, ' ');
+				outputLength += paddedLength;
+			}
+		}
+		return outputLength;
+	}
+
+	char GetHexDigit(uint8 nibble, bool isUppercase)
+	{
+		if (nibble >= 10)
+		{
+			return isUppercase ? (nibble - 10 + 'A') : (nibble - 10 + 'a');
+		}
+		return nibble + '0';
+	}
+
+	// handler for integers
+	sint32 ppc_vcprintf_integer(char* strOut, sint32 maxLength, bool isNegative, uint64 absValue, bool isHex, bool uppercase, bool alternateForm, std::optional<sint32> width, std::optional<sint32> precision, char padChar)
+	{
+		if (maxLength <= 0)
+			return 0;
+
+		// convert to digits string
+		char digitBuf[64];
+		sint32 digitCount = 0;
+		uint64 tmpValue = absValue;
+		if (isHex)
+		{
+			do
+			{
+				digitBuf[digitCount++] = GetHexDigit(tmpValue&0xF, uppercase);
+				tmpValue >>= 4;
+			}
+			while (tmpValue != 0);
+		}
+		else
+		{
+			do
+			{
+				digitBuf[digitCount++] = (char)('0' + (tmpValue % 10));
+				tmpValue /= 10;
+			}
+			while (tmpValue != 0);
+		}
+
+		// handle "%.0d"
+		if (precision.has_value() && *precision == 0 && (!isNegative && absValue == 0))
+			digitCount = 0;
+
+		// precision adds leading zeroes for digits only
+		sint32 precisionZeroes = 0;
+		if (precision.has_value() && *precision > digitCount)
+			precisionZeroes = *precision - digitCount;
+
+		sint32 numberLength = digitCount + precisionZeroes;
+		if (isNegative)
+			numberLength++; // count the sign
+		if (isHex && alternateForm && maxLength >= 2 && absValue != 0)
+			numberLength += 2;
+
+		sint32 outputLength = 0;
+
+		// zero padding is a special case because its between the sign and the number
+		bool widthZeroPad = width.has_value() && *width > 0 && padChar == '0' && !precision.has_value();
+
+		// handle space padding left
+		if (width.has_value() && *width > 0 && !widthZeroPad)
+		{
+			sint32 paddedLength = *width - numberLength;
+			paddedLength = std::min<sint32>(paddedLength, maxLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut, maxLength, paddedLength, ' ');
+				strOut += paddedLength;
+				maxLength -= paddedLength;
+				outputLength += paddedLength;
+			}
+		}
+
+		// sign
+		if (isNegative && maxLength > 0)
+		{
+			*strOut = '-';
+			strOut++;
+			maxLength--;
+			outputLength++;
+		}
+		// hex alternate form prefix (0x / 0X)
+		bool hasHexPrefix = false;
+		if (isHex && alternateForm && maxLength >= 2 && absValue != 0)
+		{
+			strOut[0] = '0';
+			if (uppercase)
+				strOut[1] = 'X';
+			else
+				strOut[1] = 'x';
+			strOut += 2;
+			maxLength -= 2;
+			outputLength += 2;
+			hasHexPrefix = true;
+		}
+		// output zero padding after sign
+		if (widthZeroPad)
+		{
+			sint32 paddedLength = *width - (digitCount + (isNegative ? 1 : 0));
+			if (hasHexPrefix)
+				paddedLength -= 2;
+			paddedLength = std::min<sint32>(paddedLength, maxLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut, maxLength, paddedLength, '0');
+				strOut += paddedLength;
+				maxLength -= paddedLength;
+				outputLength += paddedLength;
+			}
+		}
+		else if (precisionZeroes > 0)
+		{
+			// precision zeroes
+			sint32 paddedLength = std::min<sint32>(precisionZeroes, maxLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut, maxLength, paddedLength, '0');
+				strOut += paddedLength;
+				maxLength -= paddedLength;
+				outputLength += paddedLength;
+			}
+		}
+
+		// digits (the buffer is in reverse order)
+		sint32 writableDigits = std::min<sint32>(digitCount, maxLength);
+		for (sint32 i = 0; i < writableDigits; i++)
+			strOut[i] = digitBuf[digitCount - 1 - i];
+		strOut += writableDigits;
+		maxLength -= writableDigits;
+		outputLength += writableDigits;
+
+		// space padding right
+		if (width.has_value() && *width < 0)
+		{
+			sint32 paddedLength = (-*width) - numberLength;
+			paddedLength = std::min<sint32>(paddedLength, maxLength);
+			if (paddedLength > 0)
+			{
+				ppc_vcprintf_pad(strOut, maxLength, paddedLength, ' ');
+				outputLength += paddedLength;
+			}
+		}
+		return outputLength;
+	}
+
+	// handler for signed decimal integers (64-bit core)
+	sint32 ppc_vcprintf_decimal64(char* strOut, sint32 maxLength, bool isNegative, uint64 absValue, std::optional<sint32> width, std::optional<sint32> precision, char padChar)
+	{
+		return ppc_vcprintf_integer(strOut, maxLength, isNegative, absValue, false, false, false, width, precision, padChar);
+	}
+
 	sint32 ppc_vprintf(const char* formatStr, char* strOut, sint32 maxLength, ppc_va_list* vargs)
 	{
+		if (maxLength <= 0)
+			return 0;
 		char tempStr[4096];
 		sint32 writeIndex = 0;
 		while (*formatStr)
@@ -29,8 +300,9 @@ namespace coreinit
 					continue;
 				}
 				// flags
+				char padChar = ' ';
+				bool alternateForm = false;
 				bool flag_leftJustify = false;
-				bool flag_zeroPadding = false;
 				if (*formatStr == '-')
 				{
 					flag_leftJustify = true;
@@ -38,114 +310,143 @@ namespace coreinit
 				}
 				if (*formatStr == '+')
 				{
-					// todo
 					formatStr++;
 				}
 				if (*formatStr == ' ')
 				{
-					// todo
 					formatStr++;
 				}
 				if (*formatStr == '#')
 				{
-					// todo
+					alternateForm = true;
 					formatStr++;
 				}
 				if (*formatStr == '0')
 				{
-					flag_zeroPadding = true;
+					padChar = '0';
 					formatStr++;
 				}
 				// width
+				std::optional<sint32> width;
 				if (*formatStr == '*')
 				{
-					cemu_assert_debug(false);
 					formatStr++;
+					width = *(sint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+					if (flag_leftJustify)
+						width = -abs(*width);
 				}
-				bool widthIsSpecified = false;
-				sint32 width = 0;
-				while (*formatStr >= '0' && *formatStr <= '9')
+				else
 				{
-					width *= 10;
-					width += (*formatStr - '0');
-					formatStr++;
-					widthIsSpecified = true;
+					width = 0;
+					while (*formatStr >= '0' && *formatStr <= '9')
+					{
+						*width *= 10;
+						*width += (*formatStr - '0');
+						formatStr++;
+					}
+					if (flag_leftJustify)
+						width = -*width;
 				}
 				// precision
+				std::optional<sint32> precision;
 				if (*formatStr == '.')
 				{
 					formatStr++;
 					if (*formatStr == '*')
 					{
-						cemu_assert_debug(false);
-					}
-					while (*formatStr >= '0' && *formatStr <= '9')
-					{
+						precision = *(sint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+						if (*precision < 0)
+							precision.reset();
 						formatStr++;
+					}
+					else
+					{
+						precision = 0;
+						while (*formatStr >= '0' && *formatStr <= '9')
+						{
+							*precision *= 10;
+							*precision += (*formatStr - '0');
+							formatStr++;
+						}
 					}
 				}
 				// length + specifier
 				char tempFormat[64];
-				if (*formatStr == 'X' || *formatStr == 'x' || *formatStr == 'u' || *formatStr == 'd' || *formatStr == 'p' || *formatStr == 'i' ||
-					(formatStr[0] == 'l' && formatStr[1] == 'd'))
+				if (strncmp(formatStr, "lld", 3) == 0 || strncmp(formatStr, "lli", 3) == 0)
 				{
-					// number
-					formatStr++;
-					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
-					if ((formatStr - formatStart) < sizeof(tempFormat))
-						tempFormat[(formatStr - formatStart)] = '\0';
+					// 64bit decimal (signed)
+					formatStr += 3;
+					sint64 v = *(sint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64);
+					if (v >= 0)
+						writeIndex += ppc_vcprintf_decimal64(strOut + writeIndex, maxLength - writeIndex, false, (uint64)v, width, precision, padChar);
 					else
-						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, (uint32)*(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32));
-					for (sint32 i = 0; i < tempLen; i++)
-					{
-						if (writeIndex >= maxLength)
-							break;
-						strOut[writeIndex] = tempStr[i];
-						writeIndex++;
-					}
+						writeIndex += ppc_vcprintf_decimal64(strOut + writeIndex, maxLength - writeIndex, true, ~(uint64)v + 1, width, precision, padChar);
+				}
+				else if (strncmp(formatStr, "llu", 3) == 0)
+				{
+					// 64bit decimal (unsigned)
+					formatStr += 3;
+					uint64 v = *(uint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64);
+					writeIndex += ppc_vcprintf_decimal64(strOut + writeIndex, maxLength - writeIndex, false, v, width, precision, padChar);
+				}
+				else if (*formatStr == 'd' || *formatStr == 'i' || strncmp(formatStr, "ld", 2) == 0 || strncmp(formatStr, "li", 2) == 0)
+				{
+					// 32bit decimal (signed)
+					if (formatStr[0] == 'l')
+						formatStr += 2;
+					else
+						formatStr++;
+					sint32 v = *(sint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+					writeIndex += ppc_vcprintf_decimal64(strOut + writeIndex, maxLength - writeIndex, v < 0, (uint64)abs((sint64)v), width, precision, padChar);
+				}
+				else if (*formatStr == 'u' || strncmp(formatStr, "lu", 2) == 0)
+				{
+					// 32bit decimal (unsigned)
+					if (formatStr[0] == 'l')
+						formatStr += 2;
+					else
+						formatStr++;
+					uint32 v = *(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+					writeIndex += ppc_vcprintf_decimal64(strOut + writeIndex, maxLength - writeIndex, false, (uint64)v, width, precision, padChar);
+				}
+				else if (strncmp(formatStr, "llx", 3) == 0 || strncmp(formatStr, "llX", 3) == 0)
+				{
+					// 64bit hexadecimal
+					bool isUppercase = formatStr[2] == 'X';
+					formatStr += 3;
+					uint64 v = *(uint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64);
+					writeIndex += ppc_vcprintf_integer(strOut + writeIndex, maxLength - writeIndex, false, (uint64)v, true, isUppercase, alternateForm, width, precision, padChar);
+				}
+				else if (*formatStr == 'x' || *formatStr == 'X')
+				{
+					// 32bit hexadecimal
+					bool isUppercase = *formatStr == 'X';
+					formatStr++;
+					uint32 v = *(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+					writeIndex += ppc_vcprintf_integer(strOut + writeIndex, maxLength - writeIndex, false, (uint64)v, true, isUppercase, alternateForm, width, precision, padChar);
+				}
+				else if (*formatStr == 'p')
+				{
+					// pointer
+					formatStr++;
+					uint32 v = *(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+					if (!precision.has_value())
+						precision = 8;
+					writeIndex += ppc_vcprintf_integer(strOut + writeIndex, maxLength - writeIndex, false, (uint64)v, true, false, true, width, precision, padChar);
 				}
 				else if (*formatStr == 's')
 				{
 					// string
 					formatStr++;
-					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
-					if ((formatStr - formatStart) < sizeof(tempFormat))
-						tempFormat[(formatStr - formatStart)] = '\0';
-					else
-						tempFormat[sizeof(tempFormat) - 1] = '\0';
 					MPTR strOffset = *(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
-					sint32 tempLen = 0;
-					if (strOffset == MPTR_NULL)
-						tempLen = sprintf(tempStr, "NULL");
-					else
-						tempLen = sprintf(tempStr, tempFormat, memory_getPointerFromVirtualOffset(strOffset));
-					for (sint32 i = 0; i < tempLen; i++)
-					{
-						if (writeIndex >= maxLength)
-							break;
-						strOut[writeIndex] = tempStr[i];
-						writeIndex++;
-					}
-					strOut[std::min(maxLength - 1, writeIndex)] = '\0';
+					writeIndex += ppc_vcprintf_str(strOut + writeIndex, maxLength - writeIndex, MEMPTR<char>(strOffset), width, precision);
 				}
 				else if (*formatStr == 'c')
 				{
 					// character
 					formatStr++;
-					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
-					if ((formatStr - formatStart) < sizeof(tempFormat))
-						tempFormat[(formatStr - formatStart)] = '\0';
-					else
-						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, (uint32)*(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32));
-					for (sint32 i = 0; i < tempLen; i++)
-					{
-						if (writeIndex >= maxLength)
-							break;
-						strOut[writeIndex] = tempStr[i];
-						writeIndex++;
-					}
+					char character = (char)(uint32)*(uint32be*)_ppc_va_arg(vargs, ppc_va_type::INT32);
+					writeIndex += ppc_vcprintf_char(strOut + writeIndex, maxLength - writeIndex, character, width, precision);
 				}
 				else if (*formatStr == 'f' || *formatStr == 'g' || *formatStr == 'G')
 				{
@@ -182,48 +483,13 @@ namespace coreinit
 						writeIndex++;
 					}
 				}
-				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && (formatStr[2] == 'x' || formatStr[2] == 'X')))
-				{
-					formatStr += 3;
-					// 64bit int
-					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
-					if ((formatStr - formatStart) < sizeof(tempFormat))
-						tempFormat[(formatStr - formatStart)] = '\0';
-					else
-						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, (uint64)*(uint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64));
-					for (sint32 i = 0; i < tempLen; i++)
-					{
-						if (writeIndex >= maxLength)
-							break;
-						strOut[writeIndex] = tempStr[i];
-						writeIndex++;
-					}
-				}
-				else if ((formatStr[0] == 'l' && formatStr[1] == 'l' && formatStr[2] == 'd'))
-				{
-					formatStr += 3;
-					// signed integer (64bit)
-					strncpy(tempFormat, formatStart, std::min((std::ptrdiff_t)sizeof(tempFormat) - 1, formatStr - formatStart));
-					if ((formatStr - formatStart) < sizeof(tempFormat))
-						tempFormat[(formatStr - formatStart)] = '\0';
-					else
-						tempFormat[sizeof(tempFormat) - 1] = '\0';
-					sint32 tempLen = sprintf(tempStr, tempFormat, (sint64)*(sint64be*)_ppc_va_arg(vargs, ppc_va_type::INT64));
-					for (sint32 i = 0; i < tempLen; i++)
-					{
-						if (writeIndex >= maxLength)
-							break;
-						strOut[writeIndex] = tempStr[i];
-						writeIndex++;
-					}
-				}
 				else
 				{
 					// unsupported / unknown specifier
 					cemu_assert_debug(false);
 					break;
 				}
+				cemu_assert(writeIndex <= maxLength); // sanity check
 			}
 			else
 			{
@@ -234,8 +500,9 @@ namespace coreinit
 				formatStr++;
 			}
 		}
-		strOut[std::min(writeIndex, maxLength - 1)] = '\0';
-		return std::min(writeIndex, maxLength - 1);
+		writeIndex = std::min<sint32>(writeIndex, maxLength-1);
+		strOut[writeIndex] = '\0';
+		return writeIndex;
 	}
 
 	/* coreinit logging and string format */
