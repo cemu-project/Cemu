@@ -76,6 +76,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
 
+option(ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
+if (ENABLE_SANITIZERS)
+	add_compile_options(-fsanitize=address,undefined -fno-sanitize=vptr -fno-omit-frame-pointer)
+	add_link_options(-fsanitize=address,undefined -fno-sanitize=vptr)
+	# metal-cpp headers are incompatible with ASan/UBSan (Protocol ambiguity in objc/runtime.h)
+	add_compile_options($<$<COMPILE_LANGUAGE:OBJCXX>:-fno-sanitize=address,undefined>)
+endif()
+
 if (MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
 	# floating point model: precise, fiber safe optimizations
