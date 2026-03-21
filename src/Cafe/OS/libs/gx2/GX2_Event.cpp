@@ -214,7 +214,7 @@ namespace GX2
 		__OSUnlockScheduler();
 	}
 
-	void GX2DrawDone()
+	bool GX2DrawDone()
 	{
 		// optional force full sync (texture readback and occlusion queries)
 		bool forceFullSync = false;
@@ -231,7 +231,7 @@ namespace GX2
 		GX2Command_Flush(0x100, true);
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();
-		GX2WaitTimeStamp(ts);
+		return GX2WaitTimeStamp(ts);
 	}
 
 	void GX2Init_event()
