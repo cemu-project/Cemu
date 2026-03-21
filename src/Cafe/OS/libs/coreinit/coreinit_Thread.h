@@ -88,8 +88,6 @@ typedef struct
 
 static_assert(sizeof(crt_t) == 0x1D8, "");
 
-#pragma pack(1)
-
 namespace coreinit
 {
 
@@ -274,6 +272,8 @@ namespace coreinit
 		/* +0x00 */ MEMPTR<struct OSMutex> next;
 		/* +0x04 */ MEMPTR<struct OSMutex> prev;
 	};
+
+	static_assert(sizeof(OSFastMutexLink) == 0x8);
 
 	struct OSFastMutex
 	{
@@ -619,8 +619,6 @@ namespace coreinit
     bool __OSIsThreadActive(OSThread_t* thread);
 	void __OSDeleteAllActivePPCThreads();
 }
-
-#pragma pack()
 
 // deprecated / clean up required
 extern MPTR activeThread[256];
