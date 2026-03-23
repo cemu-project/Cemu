@@ -69,6 +69,7 @@ void gx2Export_GX2SampleBottomGPUCycle(PPCInterpreter_t* hCPU)
 	// Whats a good solution here? Should we implement it correctly and instead rely on graphic pack patches to patch out the dynamic scaling?
 	// some known affected games: Wind Waker HD, Super Mario 3D World
 
+	GX2::GX2ReserveCmdSpace(2);
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SAMPLE_TIMER, 1));
 	gx2WriteGather_submitU32AsBE(hCPU->gpr[3]); 
 	osLib_returnFromFunction(hCPU, 0);
