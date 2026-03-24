@@ -1,5 +1,5 @@
 #include "Cemu/Logging/CemuLogging.h"
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 class ScreenSaver
 {
@@ -23,7 +23,7 @@ public:
     if (inhibit)
     {
       SDL_DisableScreenSaver();
-      if (SDL_IsScreenSaverEnabled() == SDL_TRUE)
+      if (SDL_ScreenSaverEnabled())
       {
         cemuLog_log(LogType::Force, "Could not verify if screen saver was disabled (`SDL_IsScreenSaverEnabled()` returned SDL_TRUE)");
       }
@@ -31,7 +31,7 @@ public:
     else
     {
       SDL_EnableScreenSaver();
-      if (SDL_IsScreenSaverEnabled() == SDL_FALSE)
+      if (!SDL_ScreenSaverEnabled())
       {
         cemuLog_log(LogType::Force, "Could not verify if screen saver was re-enabled (`SDL_IsScreenSaverEnabled()` returned SDL_FALSE)");
       }

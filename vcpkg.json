@@ -11,7 +11,7 @@
       "default-features": false
     },
     "rapidjson",
-    "sdl2",
+    "sdl3",
     "boost-tokenizer",
     "boost-container",
     "boost-program-options",
@@ -67,8 +67,8 @@
       "version": "15.1.0"
     },
     {
-      "name": "sdl2",
-      "version": "2.32.10"
+      "name": "sdl3",
+      "version": "3.4.2"
     },
     {
       "name": "wxwidgets",
