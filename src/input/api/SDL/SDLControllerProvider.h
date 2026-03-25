@@ -33,7 +33,8 @@ private:
 	
 	std::atomic_bool m_running = false;
 	std::thread m_thread;
-
+	mutable std::shared_mutex m_mutex;
+	
 	struct MotionInfoTracking
 	{
 		uint64 lastTimestampGyro{};
@@ -49,7 +50,6 @@ private:
 	{
 		WiiUMotionHandler handler;
 		MotionSample data;
-		mutable std::mutex mtx;
 		MotionInfoTracking tracking;
 
 		MotionState() = default;

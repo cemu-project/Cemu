@@ -133,15 +133,11 @@ int SDLControllerProvider::get_index(size_t guid_index, const SDL_GUID& guid) co
 
 MotionSample SDLControllerProvider::motion_sample(SDL_JoystickID diid)
 {
+	std::shared_lock lock(m_mutex);
+
 	auto it = m_motion_states.find(diid);
 
-	if (it == m_motion_states.end())
-	{
-		return MotionSample{};
-	}
-
-	std::scoped_lock lock(it->second.mtx);
-	return it->second.data;
+	return (it != m_motion_states.end()) ? it->second.data : MotionSample{};
 }
 
 void SDLControllerProvider::event_thread()
@@ -203,9 +199,12 @@ void SDLControllerProvider::event_thread()
 		{
 			SDL_JoystickID id = event.gsensor.which;
 			uint64_t ts = event.gsensor.timestamp;
-			auto& state = m_motion_states[id];
 
+			std::scoped_lock lock(m_mutex);
+
+			auto& state = m_motion_states[id];
 			auto& tracking = state.tracking;
+
 			if (event.gsensor.sensor == SDL_SENSOR_ACCEL)
 			{
 				const auto dif = ts - tracking.lastTimestampAccel;
@@ -266,7 +265,6 @@ void SDLControllerProvider::event_thread()
 					}
 
 					state.handler.processMotionSample(tsDifD, tracking.gyro.x, tracking.gyro.y, tracking.gyro.z, tracking.acc.x, -tracking.acc.y, -tracking.acc.z);
-					std::scoped_lock lock(state.mtx);
 					state.data = state.handler.getMotionSample();
 				}
 
