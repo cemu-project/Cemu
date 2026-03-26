@@ -11,7 +11,10 @@
       "default-features": false
     },
     "rapidjson",
-    "sdl3",
+    {
+      "name": "sdl3",
+      "default-features": false
+    },
     "boost-tokenizer",
     "boost-container",
     "boost-program-options",
