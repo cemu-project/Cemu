@@ -202,7 +202,6 @@ if (ENABLE_DISCORD_RPC)
 endif()
 
 if (ENABLE_HIDAPI)
-	find_package(hidapi REQUIRED)
 	set(SUPPORTS_WIIMOTE ON)
 	add_compile_definitions(HAS_HIDAPI)
 endif ()

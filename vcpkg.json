@@ -32,7 +32,6 @@
       "name": "fmt",
       "version>=": "12.1.0"
     },
-    "hidapi",
     "libpng",
     "glm",
     {
