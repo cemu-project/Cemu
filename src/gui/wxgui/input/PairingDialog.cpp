@@ -4,7 +4,7 @@
 #if BOOST_OS_WINDOWS
 #include <bluetoothapis.h>
 #endif
-#if BOOST_OS_LINUX
+#ifdef HAS_BLUEZ
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
