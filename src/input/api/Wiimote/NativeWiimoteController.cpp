@@ -232,7 +232,7 @@ ControllerState NativeWiimoteController::raw_state()
 		for (int i = 0; i < std::numeric_limits<uint64>::digits; i++)
 		{
 			// OR with base buttons
-			if((buttons & (1 << i)))
+			if((buttons & (1ULL << i)))
 				result.buttons.SetButtonState(i, true);
 		}
 		result.axis = classic.left_axis;
