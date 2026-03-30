@@ -623,6 +623,35 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
     }
 #endif
 
+	// Workaround for BOTW + Mesa. Runes like Magnesis and the camera cause GPU crashes.
+	// Using the LLVM shader compiler prevents crashes which points to an issue with the default ACO compiler.
+	// Either that or Cemu is violating a specification (GLSL?) causing the shaders to be broken after compilation.
+#if BOOST_OS_LINUX
+	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
+	if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x00050000101c9300)
+	{
+		// if the variable is empty set it to llvm, otherwise check if it contains llvm/aco and if not append it
+		if (const char* value; (value = getenv("RADV_DEBUG")) != NULL && strlen(value) != 0)
+		{
+			std::string valueStr{value};
+			// only append ,llvm when llvm or aco are not already passed as flags.
+			// "aco" is not a mesa flag (anymore, it used to be when llvm was default)
+			// but it will provide users with a way to override this workaround by setting RADV_DEBUG=aco
+			// should parse the flag list but there are currently no other flags containing llvm or aco as a substring
+			if (valueStr.find("llvm") == std::string::npos && valueStr.find("aco") == std::string::npos)
+			{
+				valueStr.append(",llvm");
+				setenv("RADV_DEBUG", valueStr.c_str(), 1);
+			}
+		}
+		else
+		{
+			setenv("RADV_DEBUG", "llvm", 1);
+		}
+	}
+
+#endif
+
 	CreateCanvas();
 	CafeSystem::LaunchForegroundTitle();
 	RecreateMenu();
