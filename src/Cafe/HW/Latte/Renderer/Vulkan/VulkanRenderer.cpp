@@ -344,12 +344,8 @@ void WorkaroundChildAbortHandler(int unused)
 	_exit(2);
 }
 
-void LinuxBreathOfTheWildWorkaround()
+void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 {
-
-	int subProcessPipes[2]{};
-	pipe(subProcessPipes);
-
 	int childID = fork();
 	if (childID == 0) // inside this if statement runs in child
 	{
@@ -438,6 +434,17 @@ void LinuxBreathOfTheWildWorkaround()
 		setenv("RADV_DEBUG", "llvm", 1);
 	}
 
+}
+
+void LinuxBreathOfTheWildWorkaround()
+{
+	int subProcessPipes[2]{};
+	pipe(subProcessPipes);
+
+	PerformBOTWLinuxWorkaround(subProcessPipes);
+
+	close(subProcessPipes[0]);
+	close(subProcessPipes[1]);
 }
 #endif
 
