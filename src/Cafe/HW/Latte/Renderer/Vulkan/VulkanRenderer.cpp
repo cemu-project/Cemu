@@ -339,12 +339,12 @@ void VulkanRenderer::GetDeviceFeatures()
 #if BOOST_OS_LINUX
 #include <sys/wait.h>
 
-void WorkaroundChildAbortHandler(int unused)
+static void WorkaroundChildAbortHandler(int unused)
 {
 	_exit(2);
 }
 
-void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
+static void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 {
 	int childID = fork();
 	if (childID == 0) // inside this if statement runs in child
@@ -439,7 +439,7 @@ void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 
 }
 
-void LinuxBreathOfTheWildWorkaround()
+static void LinuxBreathOfTheWildWorkaround()
 {
 	int subProcessPipes[2]{};
 	pipe(subProcessPipes);
