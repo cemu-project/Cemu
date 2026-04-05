@@ -381,11 +381,13 @@ void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 			if (deviceName.find("RADV") != std::string_view::npos)
 			{
 				write(subProcessPipes[1], &prop.driverVersion, sizeof(uint32_t));
+				vkDestroyInstance(instance, nullptr);
 				_exit(0);
 			}
 		}
 
 		// no appropriate device found to query version
+		vkDestroyInstance(instance, nullptr);
 		_exit(1);
 	}
 
