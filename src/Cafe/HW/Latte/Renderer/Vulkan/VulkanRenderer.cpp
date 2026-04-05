@@ -416,7 +416,7 @@ void LinuxBreathOfTheWildWorkaround()
 	// If the driver is unaffected skip the workaround.
 	// affected drivers:
 	// 25.3.0 - 26.0.3
-	if ((major <= 25 && minor < 3) || (major == 26 && (minor > 0 || patch >= 4)) || major > 26)
+	if ((major <= 25 && minor < 3) || (major == 26 && (minor > 0 || patch >= 5)) || major > 26)
 		return;
 
 	// if the variable is empty set it to llvm, otherwise check if it contains llvm/aco and if not append it
