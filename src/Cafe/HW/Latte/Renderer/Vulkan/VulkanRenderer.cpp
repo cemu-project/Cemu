@@ -445,6 +445,8 @@ VulkanRenderer::VulkanRenderer()
 {
 	glslang::InitializeProcess();
 
+	cemuLog_log(LogType::Force, "------- Init Vulkan graphics backend -------");
+
 	// Workaround for BOTW + RADV. Runes like Magnesis and the camera cause GPU crashes.
 #if BOOST_OS_LINUX
 	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
@@ -453,8 +455,6 @@ VulkanRenderer::VulkanRenderer()
 		LinuxBreathOfTheWildWorkaround();
 	}
 #endif
-
-	cemuLog_log(LogType::Force, "------- Init Vulkan graphics backend -------");
 
 	const bool useValidationLayer = cemuLog_isLoggingEnabled(LogType::VulkanValidation);
 	if (useValidationLayer)
