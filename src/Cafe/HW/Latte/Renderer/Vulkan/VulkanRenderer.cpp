@@ -396,7 +396,7 @@ void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 
 	if (WEXITSTATUS(childStatus) == 2)
 	{
-		cemuLog_log(LogType::Force, "Breath of the Wild RADV workaround not applied because mesa was built without LLVM");
+		cemuLog_log(LogType::Force, "BOTW/RADV workaround not applied because mesa was built without LLVM");
 	}
 
 	// only continue if the process exits with code zero, which means it determined the version and didn't crash.
@@ -417,6 +417,7 @@ void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 	if ((major <= 25 && minor < 3) || (major == 26 && (minor > 0 || patch >= 5)) || major > 26)
 		return;
 
+	cemuLog_log(LogType::Force, "BOTW/RADV workaround active. Adding llvm to RADV_DEBUG environment variable");
 	// if the variable is empty set it to llvm, otherwise check if it contains llvm/aco and if not append it
 	if (const char* value; (value = getenv("RADV_DEBUG")) != NULL && strlen(value) != 0)
 	{
