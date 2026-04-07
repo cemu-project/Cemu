@@ -339,6 +339,31 @@ void VulkanRenderer::GetDeviceFeatures()
 #if BOOST_OS_LINUX
 #include <sys/wait.h>
 
+int BreathOfTheWildChildProcessMain()
+{
+	InitializeGlobalVulkan();
+	struct sigaction sa{.sa_handler = [](int unused){_exit(1);}};
+	int ret = sigaction(SIGABRT, &sa, nullptr);
+
+	freopen("/dev/null", "w", stderr);
+
+	setenv("RADV_DEBUG", "llvm", 1);
+
+	VkInstanceCreateInfo create_info{};
+	create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+	VkInstance instance = VK_NULL_HANDLE;
+	if (vkCreateInstance(&create_info, nullptr, &instance) != VK_SUCCESS)
+		return 1;
+	InitializeInstanceVulkan(instance);
+
+	// this function will abort() when LLVM is absent
+	uint32_t count = 0;
+	vkEnumeratePhysicalDevices(instance, &count, nullptr);
+
+	vkDestroyInstance(instance, nullptr);
+	return 0;
+}
+
 static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanceCreateInfo* create_info)
 {
 
@@ -390,20 +415,8 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 	int childID = fork();
 	if (childID == 0) // inside this if statement runs in child
 	{
-		struct sigaction sa{.sa_handler = [](int unused){_exit(1);}};
-		sigaction(SIGABRT, &sa, nullptr);
-
-		freopen("/dev/null", "w", stderr);
-
-		setenv("RADV_DEBUG", "llvm", 1);
-
-		VkInstance instance = VK_NULL_HANDLE;
-		vkCreateInstance(create_info, nullptr, &instance);
-		// this function will abort() when LLVM is absent
-		uint32_t count = 0;
-		vkEnumeratePhysicalDevices(instance, &count, nullptr);
-		vkDestroyInstance(instance, nullptr);
-		_exit(0);
+		setenv("CEMU_DETECT_RADV","1", 1);
+		execl("/proc/self/exe", "/proc/self/exe", nullptr);
 	}
 
 	int childStatus = 0;
