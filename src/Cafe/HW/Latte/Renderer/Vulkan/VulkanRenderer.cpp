@@ -417,10 +417,18 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 	{
 		setenv("CEMU_DETECT_RADV","1", 1);
 		execl("/proc/self/exe", "/proc/self/exe", nullptr);
+		_exit(2); // exec failed so err on the safe side and signal failure
 	}
 
 	int childStatus = 0;
 	waitpid(childID,  &childStatus, 0);
+
+	// if the process didn't exit cleanly or failed to determine LLVM status
+	if (!WIFEXITED(childStatus) || WEXITSTATUS(childStatus) == 2)
+	{
+		cemuLog_log(LogType::Force, "BOTW/RADV workaround not applied because detecting LLVM presence failed unexpectedly");
+		return;
+	}
 
 	if (WEXITSTATUS(childStatus) == 1)
 		cemuLog_log(LogType::Force, "BOTW/RADV workaround not applied because mesa was built without LLVM");
