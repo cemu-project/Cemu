@@ -338,6 +338,7 @@ void VulkanRenderer::GetDeviceFeatures()
 
 #if BOOST_OS_LINUX
 #include <sys/wait.h>
+#include "resource/IconsFontAwesome5.h"
 
 int BreathOfTheWildChildProcessMain()
 {
@@ -456,6 +457,8 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 	if (err != VK_SUCCESS)
 		throw std::runtime_error(fmt::format("Unable to re-create a Vulkan instance after RADV/LLVM workaround: {}", err));
 	InitializeInstanceVulkan(instance);
+
+	LatteOverlay_pushNotification(std::string{(const char*)ICON_FA_EXCLAMATION_TRIANGLE} + "RADV_DEBUG=llvm set automatically to avoid crashing due to a driver bug. If possible update mesa to 26.0.5 or newer", 10'000);
 
 }
 
