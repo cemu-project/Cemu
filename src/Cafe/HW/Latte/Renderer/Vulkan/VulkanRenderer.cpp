@@ -339,11 +339,6 @@ void VulkanRenderer::GetDeviceFeatures()
 #if BOOST_OS_LINUX
 #include <sys/wait.h>
 
-static void WorkaroundChildAbortHandler(int unused)
-{
-	_exit(1);
-}
-
 static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanceCreateInfo* create_info)
 {
 
@@ -394,7 +389,7 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 	int childID = fork();
 	if (childID == 0) // inside this if statement runs in child
 	{
-		struct sigaction sa{.sa_handler = WorkaroundChildAbortHandler};
+		struct sigaction sa{.sa_handler = [](int unused){_exit(1);}};
 		sigaction(SIGABRT, &sa, nullptr);
 
 		freopen("/dev/null", "w", stderr);
