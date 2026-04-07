@@ -341,71 +341,44 @@ void VulkanRenderer::GetDeviceFeatures()
 
 static void WorkaroundChildAbortHandler(int unused)
 {
-	_exit(2);
+	_exit(1);
 }
 
-static void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
+static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanceCreateInfo* create_info)
 {
-	int childID = fork();
-	if (childID == 0) // inside this if statement runs in child
-	{
-		struct sigaction sa{.sa_handler = WorkaroundChildAbortHandler};
-		sigaction(SIGABRT, &sa, nullptr);
 
-		freopen("/dev/null", "w", stderr);
-
-		setenv("RADV_DEBUG", "llvm", 1);
-
-		VkInstanceCreateInfo instanceCreateInfo = {};
-		instanceCreateInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
-		VkInstance instance = VK_NULL_HANDLE;
-		if (vkCreateInstance(&instanceCreateInfo, nullptr, &instance) != VK_SUCCESS)
-			_exit(1);
-
-		InitializeInstanceVulkan(instance);
-
-		uint32_t count = 0;
-		vkEnumeratePhysicalDevices(instance, &count, nullptr);
-
-		std::vector<VkPhysicalDevice> physicalDevices{count};
-		vkEnumeratePhysicalDevices(instance, &count, physicalDevices.data());
-
-		for (auto& i : physicalDevices)
-		{
-			VkPhysicalDeviceProperties prop{};
-			vkGetPhysicalDeviceProperties(i, &prop);
-			if (prop.vendorID != 0x1002)
-				continue;
-
-			std::string_view deviceName = prop.deviceName;
-			if (deviceName.find("RADV") != std::string_view::npos)
-			{
-				write(subProcessPipes[1], &prop.driverVersion, sizeof(uint32_t));
-				vkDestroyInstance(instance, nullptr);
-				_exit(0);
-			}
-		}
-
-		// no appropriate device found to query version
-		vkDestroyInstance(instance, nullptr);
-		_exit(1);
-	}
-
-	int childStatus = 0;
-	waitpid(childID,  &childStatus, 0);
-
-	if (WEXITSTATUS(childStatus) == 2)
-	{
-		cemuLog_log(LogType::Force, "BOTW/RADV workaround not applied because mesa was built without LLVM");
-	}
-
-	// only continue if the process exits with code zero, which means it determined the version and didn't crash.
-	if (WEXITSTATUS(childStatus) != 0)
+	// if the user specified either shader backend, do nothing.
+	// should parse the flag list but there are currently no other flags containing llvm or aco as a substring
+	std::string_view debugEnv = getenv("RADV_DEBUG");
+	if (debugEnv.find("aco") != std::string_view::npos || debugEnv.find("llvm") != std::string_view::npos)
 		return;
 
-	uint32_t version = 0;
-	if (read(subProcessPipes[0], &version, sizeof(version)) == -1)
-		return; // if we fail to read bail. Should never happen if the subprocess exited with 0
+	uint32_t count = 0;
+	vkEnumeratePhysicalDevices(instance, &count, nullptr);
+
+	std::vector<VkPhysicalDevice> physicalDevices{count};
+	vkEnumeratePhysicalDevices(instance, &count, physicalDevices.data());
+
+	// Find the first AMD device using a RADV driver and store its version
+	int version = 0;
+	for (auto& i : physicalDevices)
+	{
+		VkPhysicalDeviceDriverProperties driverProps{};
+		driverProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DRIVER_PROPERTIES;
+		VkPhysicalDeviceProperties2 prop{};
+		prop.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
+		prop.pNext = &driverProps;
+		vkGetPhysicalDeviceProperties2(i, &prop);
+		if (prop.properties.vendorID != 0x1002 || driverProps.driverID != VK_DRIVER_ID_MESA_RADV)
+			continue;
+
+		version = prop.properties.driverVersion;
+		break;
+	}
+
+	if (version == 0)
+		return;
+
 
 	int major = VK_API_VERSION_MAJOR(version);
 	int minor = VK_API_VERSION_MINOR(version);
@@ -417,38 +390,55 @@ static void PerformBOTWLinuxWorkaround(int subProcessPipes[2])
 	if ((major <= 25 && minor < 3) || (major == 26 && (minor > 0 || patch >= 5)) || major > 26)
 		return;
 
-	cemuLog_log(LogType::Force, "BOTW/RADV workaround active. Adding llvm to RADV_DEBUG environment variable");
-	// if the variable is empty set it to llvm, otherwise check if it contains llvm/aco and if not append it
-	if (const char* value; (value = getenv("RADV_DEBUG")) != NULL && strlen(value) != 0)
+	// check if running with LLVM would crash because mesa is LLVM-less.
+	int childID = fork();
+	if (childID == 0) // inside this if statement runs in child
 	{
-		std::string valueStr{value};
-		// only append ,llvm when llvm or aco are not already passed as flags.
-		// "aco" is not a mesa flag (anymore, it used to be when llvm was default)
-		// but it will provide users with a way to override this workaround by setting RADV_DEBUG=aco
-		// should parse the flag list but there are currently no other flags containing llvm or aco as a substring
-		if (valueStr.find("llvm") == std::string::npos && valueStr.find("aco") == std::string::npos)
-		{
-			valueStr.append(",llvm");
-			setenv("RADV_DEBUG", valueStr.c_str(), 1);
-		}
+		struct sigaction sa{.sa_handler = WorkaroundChildAbortHandler};
+		sigaction(SIGABRT, &sa, nullptr);
+
+		freopen("/dev/null", "w", stderr);
+
+		setenv("RADV_DEBUG", "llvm", 1);
+
+		VkInstance instance = VK_NULL_HANDLE;
+		vkCreateInstance(create_info, nullptr, &instance);
+		// this function will abort() when LLVM is absent
+		uint32_t count = 0;
+		vkEnumeratePhysicalDevices(instance, &count, nullptr);
+		vkDestroyInstance(instance, nullptr);
+		_exit(0);
 	}
-	else
+
+	int childStatus = 0;
+	waitpid(childID,  &childStatus, 0);
+
+	if (WEXITSTATUS(childStatus) == 1)
+		cemuLog_log(LogType::Force, "BOTW/RADV workaround not applied because mesa was built without LLVM");
+
+	// only continue if the process exits with code zero, which means it didn't crash
+	if (WEXITSTATUS(childStatus) != 0)
+		return;
+
+	cemuLog_log(LogType::Force, "BOTW/RADV workaround active. Adding \"llvm\" to RADV_DEBUG environment variable");
+	if (debugEnv.empty())
 	{
 		setenv("RADV_DEBUG", "llvm", 1);
 	}
+	else
+	{
+		std::string appendedDebugEnv{debugEnv};
+		appendedDebugEnv.append(",llvm");
+		setenv("RADV_DEBUG", appendedDebugEnv.c_str(), 1);
+	}
+
+	// recreate the vulkan instance to update debug setting
+	vkDestroyInstance(instance, nullptr);
+	vkCreateInstance(create_info, nullptr, &instance);
+	InitializeInstanceVulkan(instance);
 
 }
 
-static void LinuxBreathOfTheWildWorkaround()
-{
-	int subProcessPipes[2]{};
-	pipe(subProcessPipes);
-
-	PerformBOTWLinuxWorkaround(subProcessPipes);
-
-	close(subProcessPipes[0]);
-	close(subProcessPipes[1]);
-}
 #endif
 
 VulkanRenderer::VulkanRenderer()
@@ -456,15 +446,6 @@ VulkanRenderer::VulkanRenderer()
 	glslang::InitializeProcess();
 
 	cemuLog_log(LogType::Force, "------- Init Vulkan graphics backend -------");
-
-	// Workaround for BOTW + RADV. Runes like Magnesis and the camera cause GPU crashes.
-#if BOOST_OS_LINUX
-	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
-	if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x00050000101c9300)
-	{
-		LinuxBreathOfTheWildWorkaround();
-	}
-#endif
 
 	const bool useValidationLayer = cemuLog_isLoggingEnabled(LogType::VulkanValidation);
 	if (useValidationLayer)
@@ -518,6 +499,15 @@ VulkanRenderer::VulkanRenderer()
 
 	if (!InitializeInstanceVulkan(m_instance))
 		throw std::runtime_error("Unable to load instanced Vulkan functions");
+
+	// Workaround for BOTW + RADV. Runes like Magnesis and the camera cause GPU crashes.
+#if BOOST_OS_LINUX
+	uint64 currentTitleId = CafeSystem::GetForegroundTitleId();
+	if (currentTitleId == 0x00050000101c9500 || currentTitleId == 0x00050000101c9400 || currentTitleId == 0x00050000101c9300)
+	{
+		LinuxBreathOfTheWildWorkaround(m_instance, &create_info);
+	}
+#endif
 
 	uint32_t device_count = 0;
 	vkEnumeratePhysicalDevices(m_instance, &device_count, nullptr);
