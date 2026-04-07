@@ -344,7 +344,8 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 
 	// if the user specified either shader backend, do nothing.
 	// should parse the flag list but there are currently no other flags containing llvm or aco as a substring
-	std::string_view debugEnv = getenv("RADV_DEBUG");
+	const char* debugEnvC = getenv("RADV_DEBUG");
+	std::string_view debugEnv = debugEnvC != nullptr ? debugEnvC : "";
 	if (debugEnv.find("aco") != std::string_view::npos || debugEnv.find("llvm") != std::string_view::npos)
 		return;
 
