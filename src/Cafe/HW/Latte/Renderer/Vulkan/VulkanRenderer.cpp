@@ -429,7 +429,10 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 
 	// recreate the vulkan instance to update debug setting
 	vkDestroyInstance(instance, nullptr);
-	vkCreateInstance(create_info, nullptr, &instance);
+	VkResult err = vkCreateInstance(create_info, nullptr, &instance);
+	// re-check for errors just in case.
+	if (err != VK_SUCCESS)
+		throw std::runtime_error(fmt::format("Unable to re-create a Vulkan instance after RADV/LLVM workaround: {}", err));
 	InitializeInstanceVulkan(instance);
 
 }
