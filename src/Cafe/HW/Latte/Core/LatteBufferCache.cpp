@@ -46,10 +46,18 @@ class IntervalTree2
 	std::map<InternalRange, TNodeObject*> m_map;
 	std::vector<TNodeObject*> m_tempObjectArray;
 
+	typename std::map<InternalRange, TNodeObject*>::iterator findFirstOverlapping(TRangeData rangeBegin, TRangeData rangeEnd)
+	{
+		auto itr = m_map.lower_bound(InternalRange(rangeBegin, rangeBegin + 1));
+		if (itr == m_map.end() || (*itr).first.rangeBegin >= rangeEnd)
+			return m_map.end();
+		return itr;
+	}
+
 public:
 	TNodeObject* getRange(TRangeData rangeBegin, TRangeData rangeEnd)
 	{
-		auto itr = m_map.find(InternalRange(rangeBegin, rangeEnd));
+		auto itr = findFirstOverlapping(rangeBegin, rangeEnd);
 		if (itr == m_map.cend())
 			return nullptr;
 		if (rangeBegin < (*itr).first.rangeBegin)
@@ -61,7 +69,7 @@ public:
 
 	TNodeObject* getRangeByPoint(TRangeData rangeOffset)
 	{
-		auto itr = m_map.find(InternalRange(rangeOffset, rangeOffset+1)); // todo - better to use custom comparator instead of +1?
+		auto itr = findFirstOverlapping(rangeOffset, rangeOffset + 1);
 		if (itr == m_map.cend())
 			return nullptr;
 		cemu_assert_debug(rangeOffset >= (*itr).first.rangeBegin);
@@ -74,7 +82,7 @@ public:
 		if (rangeEnd == rangeBegin)
 			return;
 		InternalRange range(rangeBegin, rangeEnd);
-		auto itr = m_map.find(range);
+		auto itr = findFirstOverlapping(rangeBegin, rangeEnd);
 		if (itr == m_map.cend())
 		{
 			// new entry
@@ -124,10 +132,9 @@ public:
 	void removeRange(TRangeData rangeBegin, TRangeData rangeEnd)
 	{
 		InternalRange range(rangeBegin, rangeEnd);
-		auto itr = m_map.find(range);
+		auto itr = findFirstOverlapping(rangeBegin, rangeEnd);
 		if (itr == m_map.cend())
 			return;
-		cemu_assert_debug(itr == m_map.lower_bound(range));
 		while (itr != m_map.cend() && (*itr).first.rangeBegin < rangeEnd)
 		{
 			if ((*itr).first.rangeBegin >= rangeBegin && (*itr).first.rangeEnd <= rangeEnd)
@@ -225,11 +232,9 @@ public:
 	template<typename TFunc>
 	void forEachOverlapping(TRangeData rangeBegin, TRangeData rangeEnd, TFunc f)
 	{
-		InternalRange range(rangeBegin, rangeEnd);
-		auto itr = m_map.find(range);
+		auto itr = findFirstOverlapping(rangeBegin, rangeEnd);
 		if (itr == m_map.cend())
 			return;
-		cemu_assert_debug(itr == m_map.lower_bound(range));
 		while (itr != m_map.cend() && (*itr).first.rangeBegin < rangeEnd)
 		{
 			f((*itr).second, rangeBegin, rangeEnd);
@@ -282,7 +287,9 @@ public:
 	{
 		cemu_assert_debug(m_hasCacheAlloc == false);
 		cemu_assert_debug(m_rangeEnd > m_rangeBegin);
-		m_hasCacheAlloc = g_gpuBufferHeap->allocOffset(m_rangeEnd - m_rangeBegin, CACHE_PAGE_SIZE, m_cacheOffset);
+		m_hasCacheAlloc = g_gpuBufferHeap->allocOffset(m_rangeEnd - m_rangeBegin, CACHE_PAGE_SIZE, m_cacheAllocOffset);
+		if (m_hasCacheAlloc)
+			m_cacheOffset = m_cacheAllocOffset;
 		return m_hasCacheAlloc;
 	}
 
@@ -290,8 +297,10 @@ public:
 	{
 		if (m_hasCacheAlloc)
 		{
-			g_gpuBufferHeap->freeOffset(m_cacheOffset);
+			g_gpuBufferHeap->freeOffset(m_cacheAllocOffset);
 			m_hasCacheAlloc = false;
+			m_cacheAllocOffset = 0;
+			m_cacheOffset = 0;
 		}
 	}
 
@@ -302,6 +311,15 @@ public:
 		cemu_assert_debug(physAddr < m_rangeEnd);
 		uint32 relOffset = physAddr - m_rangeBegin;
 		return m_cacheOffset + relOffset;
+	}
+
+	uint32 GetCacheAllocOffset() const
+	{
+		return m_cacheAllocOffset;
+	}
+	uint32 GetCacheOffset() const
+	{
+		return m_cacheOffset;
 	}
 
 	void writeStreamout(MPTR rangeBegin, MPTR rangeEnd)
@@ -521,6 +539,7 @@ private:
 	MPTR m_rangeBegin;
 	MPTR m_rangeEnd; // (exclusive)
 	bool m_hasCacheAlloc{ false };
+	uint32 m_cacheAllocOffset{0};
 	uint32 m_cacheOffset{ 0 };
 	// usage
 	uint32 m_lastDrawcall;
@@ -549,7 +568,7 @@ private:
 	~BufferCacheNode()
 	{
 		if (m_hasCacheAlloc)
-			g_deallocateQueue.emplace_back(m_cacheOffset); // release after current drawcall
+			g_deallocateQueue.emplace_back(m_cacheAllocOffset); // release after current drawcall
 		// remove from array
 		auto temp = s_allCacheNodes.back();
 		s_allCacheNodes.pop_back();
@@ -686,12 +705,44 @@ private:
 
 	void shrink(MPTR newRangeBegin, MPTR newRangeEnd)
 	{
-		cemu_assert_debug(newRangeBegin >= m_rangeBegin);
-		cemu_assert_debug(newRangeEnd >= m_rangeEnd);
-		cemu_assert_debug(newRangeEnd > m_rangeBegin);
-		assert_dbg(); // todo (resize page array)
+		const MPTR oldRangeBegin = m_rangeBegin;
+		const MPTR oldRangeEnd = m_rangeEnd;
+		const uint32 oldPageCount = (uint32)m_pageInfo.size();
+
+		cemu_assert_debug((newRangeBegin % CACHE_PAGE_SIZE) == 0);
+		cemu_assert_debug((newRangeEnd % CACHE_PAGE_SIZE) == 0);
+		cemu_assert_debug(newRangeBegin >= oldRangeBegin);
+		cemu_assert_debug(newRangeEnd <= oldRangeEnd);
+		cemu_assert_debug(newRangeEnd > newRangeBegin);
+
+		const uint32 trimFrontBytes = newRangeBegin - oldRangeBegin;
+		const uint32 trimFrontPages = trimFrontBytes / CACHE_PAGE_SIZE;
+		const uint32 newPageCount = (newRangeEnd - newRangeBegin) / CACHE_PAGE_SIZE;
+		cemu_assert_debug(trimFrontPages <= oldPageCount);
+		cemu_assert_debug(newPageCount <= oldPageCount - trimFrontPages);
+
+		if (trimFrontPages != 0)
+		{
+			m_pageInfo.erase(m_pageInfo.begin(), m_pageInfo.begin() + trimFrontPages);
+			if (m_hasCacheAlloc)
+				m_cacheOffset += trimFrontBytes;
+		}
+		m_pageInfo.resize(newPageCount);
+
 		m_rangeBegin = newRangeBegin;
 		m_rangeEnd = newRangeEnd;
+
+		if (m_hasInvalidation)
+		{
+			m_invalidationRangeBegin = std::max(m_invalidationRangeBegin, newRangeBegin);
+			m_invalidationRangeEnd = std::min(m_invalidationRangeEnd, newRangeEnd);
+			if (m_invalidationRangeBegin >= m_invalidationRangeEnd)
+				m_hasInvalidation = false;
+		}
+
+		m_hasStreamoutData = std::any_of(m_pageInfo.cbegin(), m_pageInfo.cend(), [](const auto& pageInfo) {
+			return pageInfo.hasStreamoutData;
+		});
 	}
 
 	static uint64 hashPage(uint8* mem)
@@ -864,7 +915,16 @@ public:
 			// retry allocation
 			if (!newRange->allocateCacheMemory())
 			{
-				cemuLog_log(LogType::Force, "Out-of-memory in GPU buffer (trying to allocate: {}KB) Cleaning up cache...", (rangeEnd - rangeBegin + 1023) / 1024);
+				uint32 heapSize;
+				uint32 allocationSize;
+				uint32 allocNum;
+				g_gpuBufferHeap->getStats(heapSize, allocationSize, allocNum);
+				cemuLog_log(LogType::Force,
+							"Out-of-memory in GPU buffer (trying to allocate: {}KB, used: {}/{}MB, allocations: {}) Cleaning up cache...",
+							(rangeEnd - rangeBegin + 1023) / 1024,
+							allocationSize / (1024 * 1024),
+							heapSize / (1024 * 1024),
+							allocNum);
 				CleanupCacheAggressive(rangeBegin, rangeEnd);
 				if (!newRange->allocateCacheMemory())
 				{
