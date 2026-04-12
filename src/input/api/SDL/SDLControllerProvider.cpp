@@ -16,30 +16,6 @@ struct SDL_JoystickGUIDHash
 
 SDLControllerProvider::SDLControllerProvider()
 {
-	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_ENHANCED_REPORTS, "1");
-
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_SWITCH, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_SWITCH2, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_JOY_CONS, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STADIA, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STEAM, "1");
-	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_LUNA, "1");
-
-	if (!SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_HAPTIC))
-	{
-		throw std::runtime_error(fmt::format("couldn't initialize SDL: {}", SDL_GetError()));
-	}
-
-	SDL_SetGamepadEventsEnabled(true);
-	if (!SDL_GamepadEventsEnabled())
-	{
-		cemuLog_log(LogType::Force, "Couldn't enable SDL gamecontroller event polling: {}", SDL_GetError());
-	}
-
 	m_motion_states.reserve(8);
 
 	m_running = true;
@@ -53,13 +29,15 @@ SDLControllerProvider::~SDLControllerProvider()
 		m_running = false;
 		// wake the thread with a quit event if it's currently waiting for events
 		SDL_Event evt;
+		SDL_zero(evt);
 		evt.type = SDL_EVENT_QUIT;
 		SDL_PushEvent(&evt);
-		// wait until thread exited
-		m_thread.join();
-	}
 
-	SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_HAPTIC);
+		if (m_thread.joinable())
+		{
+			m_thread.join();
+		}
+	}
 }
 
 std::vector<std::shared_ptr<ControllerBase>> SDLControllerProvider::get_controllers()
@@ -143,6 +121,30 @@ MotionSample SDLControllerProvider::motion_sample(SDL_JoystickID diid)
 void SDLControllerProvider::event_thread()
 {
 	SetThreadName("SDL_events");
+
+	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_ENHANCED_REPORTS, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS5, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_GAMECUBE, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_SWITCH, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_SWITCH2, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_JOY_CONS, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STADIA, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_STEAM, "1");
+	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_LUNA, "1");
+
+	if (!SDL_InitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_HAPTIC))
+	{
+		throw std::runtime_error(fmt::format("couldn't initialize SDL: {}", SDL_GetError()));
+	}
+
+	SDL_SetGamepadEventsEnabled(true);
+	if (!SDL_GamepadEventsEnabled())
+	{
+		cemuLog_log(LogType::Force, "Couldn't enable SDL gamecontroller event polling: {}", SDL_GetError());
+	}
+
 	while (m_running.load(std::memory_order_relaxed))
 	{
 		SDL_Event event{};
@@ -153,9 +155,8 @@ void SDLControllerProvider::event_thread()
 		case SDL_EVENT_QUIT:
 		{
 			m_running = false;
-			return;
+			break;
 		}
-
 		case SDL_EVENT_GAMEPAD_AXIS_MOTION: /**< Game controller axis motion */
 		{
 			break;
@@ -275,4 +276,5 @@ void SDLControllerProvider::event_thread()
 		}
 		}
 	}
+	SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_HAPTIC);
 }

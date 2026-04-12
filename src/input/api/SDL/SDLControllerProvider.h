@@ -30,11 +30,11 @@ public:
 
 private:
 	void event_thread();
-	
+
 	std::atomic_bool m_running = false;
 	std::thread m_thread;
 	mutable std::shared_mutex m_mutex;
-	
+
 	struct MotionInfoTracking
 	{
 		uint64 lastTimestampGyro{};

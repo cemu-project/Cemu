@@ -391,6 +391,7 @@ int CemuApp::OnExit()
 {
 	wxApp::OnExit();
 	wxTheClipboard->Flush();
+	InputManager::instance().Shutdown();
 #if BOOST_OS_WINDOWS
 	ExitProcess(0);
 #else

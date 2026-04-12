@@ -42,8 +42,25 @@ DSUControllerProvider::~DSUControllerProvider()
 	if (m_running)
 	{
 		m_running = false;
-		m_writer_thread.join();
-		m_reader_thread.join();
+
+		boost::system::error_code ec;
+		m_socket.shutdown(boost::asio::ip::udp::socket::shutdown_both, ec);
+		m_socket.close(ec); 
+
+		if (m_reader_thread.joinable())
+		{
+			m_reader_thread.join();
+		}
+
+		{
+			std::scoped_lock lock(m_writer_mutex);
+			m_writer_cond.notify_all();
+		}
+
+		if (m_writer_thread.joinable())
+		{
+			m_writer_thread.join();
+		}
 	}
 }
 
@@ -261,6 +278,11 @@ void DSUControllerProvider::reader_thread()
 		const size_t len = m_socket.receive_from(boost::asio::buffer(recv_buf), sender_endpoint, 0, ec);
 		if (ec)
 		{
+			if (!m_running.load(std::memory_order_relaxed))
+			{
+				break;
+			}
+
 #ifdef DEBUG_DSU_CLIENT
 				printf(" DSUControllerProvider::ReaderThread: exception %s\n", ec.what());
 #endif
