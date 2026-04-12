@@ -343,7 +343,9 @@ void VulkanRenderer::GetDeviceFeatures()
 int BreathOfTheWildChildProcessMain()
 {
 	InitializeGlobalVulkan();
-	struct sigaction sa{.sa_handler = [](int unused){_exit(1);}};
+	struct sigaction sa{};
+	sa.sa_handler = [](int unused) { _exit(1); };
+
 	int ret = sigaction(SIGABRT, &sa, nullptr);
 
 	freopen("/dev/null", "w", stderr);
