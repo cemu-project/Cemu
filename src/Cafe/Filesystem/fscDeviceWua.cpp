@@ -125,6 +125,23 @@ class fscDeviceWUAC : public fscDeviceC
 		cemu_assert_debug(!HAS_FLAG(accessFlags, FSC_ACCESS_FLAG::WRITE_PERMISSION)); // writing to WUA is not supported
 
 		ZArchiveNodeHandle fileHandle = archive->LookUp(path, true, true);
+		if (fileHandle == ZARCHIVE_INVALID_NODE && path.find('@') != std::string_view::npos)
+		{
+			// Some WUA packers percent-encode '@' in entry names (stored as "%40"),
+			// so a byte-literal LookUp for "@bg0010.arc" misses "%40bg0010.arc".
+			// Retry with '@' percent-encoded. Affects Twilight Princess HD, whose
+			// DVD thread uses '@'-prefixed archive names for Forest Temple rooms.
+			std::string retryPath;
+			retryPath.reserve(path.size() + 16);
+			for (char c : path)
+			{
+				if (c == '@')
+					retryPath += "%40";
+				else
+					retryPath += c;
+			}
+			fileHandle = archive->LookUp(retryPath, true, true);
+		}
 		if (fileHandle == ZARCHIVE_INVALID_NODE)
 		{
 			*fscStatus = FSC_STATUS_FILE_NOT_FOUND;
