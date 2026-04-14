@@ -18,10 +18,6 @@ namespace CameraManager
         std::string name;
     };
 
-    constexpr static uint32 DEVICE_NONE = std::numeric_limits<uint32>::max();
-
-    void Init();
-    void Deinit();
     void Open();
     void Close();
 
@@ -29,6 +25,7 @@ namespace CameraManager
     void FillRGBBuffer(std::span<uint8, CAMERA_RGB_BUFFER_SIZE> rgbBuffer);
 
     void SetDevice(uint32 deviceNo);
+    void ResetDevice();
     std::vector<DeviceInfo> EnumerateDevices();
     void SaveDevice();
     std::optional<uint32> GetCurrentDevice();

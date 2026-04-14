@@ -11,7 +11,6 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
       m_imageBitmap(CameraManager::CAMERA_WIDTH, CameraManager::CAMERA_HEIGHT, 24),
       m_imageBuffer(CameraManager::CAMERA_RGB_BUFFER_SIZE)
 {
-    CameraManager::Init();
     CameraManager::Open();
     auto* rootSizer = new wxBoxSizer(wxVERTICAL);
     {
@@ -51,7 +50,7 @@ void CameraSettingsWindow::OnSelectCameraChoice(wxCommandEvent&)
     if (selection < 0)
         return;
     if (selection == 0)
-        CameraManager::SetDevice(CameraManager::DEVICE_NONE);
+        CameraManager::ResetDevice();
     else
         CameraManager::SetDevice(selection - 1);
 }
@@ -100,7 +99,8 @@ void CameraSettingsWindow::DrawImage(const wxPaintEvent&)
 
 void CameraSettingsWindow::OnClose(wxCloseEvent& event)
 {
-    CameraManager::Close();
+    m_imageUpdateTimer.Stop();
     CameraManager::SaveDevice();
+    CameraManager::Close();
     event.Skip();
 }
