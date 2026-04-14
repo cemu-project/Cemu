@@ -190,7 +190,6 @@ namespace camera
             *error = CAM_STATUS_INVALID_ARG;
             return -1;
         }
-        CameraManager::Init();
 
         cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
         cemu_assert_debug(initInfo->workMemorySize != 0);

@@ -17,8 +17,8 @@ namespace CameraManager
     CapContext s_ctx;
     std::optional<CapDeviceID> s_device;
     std::optional<CapStream> s_stream;
-    std::array<uint8, CAMERA_RGB_BUFFER_SIZE> s_rgbBuffer;
-    std::array<uint8, CAMERA_NV12_BUFFER_SIZE> s_nv12Buffer;
+    uint8_t* s_rgbBuffer;
+    uint8_t* s_nv12Buffer;
     int s_refCount = 0;
     std::thread s_captureThread;
     std::atomic_bool s_capturing = false;
@@ -71,8 +71,8 @@ namespace CameraManager
             {
                 s_mutex.lock();
                 if (s_stream && Cap_hasNewFrame(s_ctx, *s_stream) &&
-                    Cap_captureFrame(s_ctx, *s_stream, s_rgbBuffer.data(), s_rgbBuffer.size()) == CAPRESULT_OK)
-                    Rgb2Nv12(s_rgbBuffer.data(), CAMERA_WIDTH, CAMERA_HEIGHT, s_nv12Buffer.data(), CAMERA_PITCH);
+                    Cap_captureFrame(s_ctx, *s_stream, s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE) == CAPRESULT_OK)
+                    Rgb2Nv12(s_rgbBuffer, CAMERA_WIDTH, CAMERA_HEIGHT, s_nv12Buffer, CAMERA_PITCH);
                 s_mutex.unlock();
                 std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
@@ -105,30 +105,49 @@ namespace CameraManager
 
     void ResetBuffers()
     {
-        std::ranges::fill(s_rgbBuffer, 0);
-        constexpr auto pixCount = CAMERA_HEIGHT * CAMERA_PITCH;
-        std::ranges::fill_n(s_nv12Buffer.begin(), pixCount, 16);
-        std::ranges::fill_n(s_nv12Buffer.begin() + pixCount, (pixCount / 2), 128);
+        std::fill_n(s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE, 0);
+        constexpr static auto PIXEL_COUNT = CAMERA_HEIGHT * CAMERA_PITCH;
+        std::ranges::fill_n(s_nv12Buffer, PIXEL_COUNT, 16);
+        std::ranges::fill_n(s_nv12Buffer + PIXEL_COUNT, (PIXEL_COUNT / 2), 128);
+    }
+
+    std::vector<DeviceInfo> InternalEnumerateDevices()
+    {
+        std::vector<DeviceInfo> infos;
+        const auto deviceCount = Cap_getDeviceCount(s_ctx);
+        cemuLog_log(LogType::InputAPI, "Available video capture devices:");
+        for (CapDeviceID deviceNo = 0; deviceNo < deviceCount; ++deviceNo)
+        {
+            const auto uniqueId = Cap_getDeviceUniqueID(s_ctx, deviceNo);
+            const auto name = Cap_getDeviceName(s_ctx, deviceNo);
+            DeviceInfo info;
+            info.uniqueId = uniqueId;
+
+            if (name)
+                info.name = fmt::format("{}: {}", deviceNo, name);
+            else
+                info.name = fmt::format("{}: Unknown", deviceNo);
+            infos.push_back(info);
+            cemuLog_log(LogType::InputAPI, "{}", info.name);
+        }
+        return infos;
     }
 
     void Init()
     {
-        {
-            std::scoped_lock lock(s_mutex);
-            if (s_running)
-                return;
-            s_running = true;
-            s_ctx = Cap_createContext();
-            Cap_setLogLevel(4);
-            Cap_installCustomLogFunction(CaptureLogFunction);
-        }
+        s_running = true;
+        s_ctx = Cap_createContext();
+        Cap_setLogLevel(4);
+        Cap_installCustomLogFunction(CaptureLogFunction);
+        s_rgbBuffer = new uint8[CAMERA_RGB_BUFFER_SIZE];
+        s_nv12Buffer = new uint8[CAMERA_NV12_BUFFER_SIZE];
 
         s_captureThread = std::thread(&CaptureWorker);
 
         const auto uniqueId = GetConfig().camera_id.GetValue();
         if (!uniqueId.empty())
         {
-            const auto devices = EnumerateDevices();
+            const auto devices = InternalEnumerateDevices();
             for (CapDeviceID deviceId = 0; deviceId < devices.size(); ++deviceId)
             {
                 if (devices[deviceId].uniqueId == uniqueId)
@@ -147,38 +166,46 @@ namespace CameraManager
         Cap_releaseContext(s_ctx);
         s_running = false;
         s_captureThread.join();
+        delete[] s_rgbBuffer;
+        delete[] s_nv12Buffer;
     }
 
     void FillNV12Buffer(std::span<uint8, CAMERA_NV12_BUFFER_SIZE> nv12Buffer)
     {
         std::scoped_lock lock(s_mutex);
-        std::ranges::copy(s_nv12Buffer, nv12Buffer.data());
+        std::ranges::copy_n(s_nv12Buffer, CAMERA_NV12_BUFFER_SIZE, nv12Buffer.data());
     }
 
     void FillRGBBuffer(std::span<uint8, CAMERA_RGB_BUFFER_SIZE> rgbBuffer)
     {
         std::scoped_lock lock(s_mutex);
-        std::ranges::copy(s_rgbBuffer, rgbBuffer.data());
+        std::ranges::copy_n(s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE, rgbBuffer.data());
     }
 
     void SetDevice(uint32 deviceNo)
     {
         std::scoped_lock lock(s_mutex);
         CloseStream();
-        if (deviceNo == DEVICE_NONE)
-        {
-            s_device = std::nullopt;
-            ResetBuffers();
-            return;
-        }
         s_device = deviceNo;
         if (s_refCount != 0)
             OpenStream();
     }
 
+    void ResetDevice()
+    {
+        std::scoped_lock lock(s_mutex);
+        CloseStream();
+        s_device = std::nullopt;
+        ResetBuffers();
+    }
+
     void Open()
     {
         std::scoped_lock lock(s_mutex);
+        if (!s_running)
+        {
+            Init();
+        }
         if (s_device && s_refCount == 0)
         {
             OpenStream();
@@ -195,31 +222,13 @@ namespace CameraManager
         if (s_refCount != 0)
             return;
         CloseStream();
+        Deinit();
     }
 
     std::vector<DeviceInfo> EnumerateDevices()
     {
         std::scoped_lock lock(s_mutex);
-        std::vector<DeviceInfo> infos;
-        const auto deviceCount = Cap_getDeviceCount(s_ctx);
-        cemuLog_log(LogType::InputAPI, "Available video capture devices:");
-        for (CapDeviceID deviceNo = 0; deviceNo < deviceCount; ++deviceNo)
-        {
-            const auto uniqueId = Cap_getDeviceUniqueID(s_ctx, deviceNo);
-            const auto name = Cap_getDeviceName(s_ctx, deviceNo);
-            DeviceInfo info;
-            info.uniqueId = uniqueId;
-
-            if (name)
-                info.name = fmt::format("{}: {}", deviceNo, name);
-            else
-                info.name = fmt::format("{}: Unknown", deviceNo);
-            infos.push_back(info);
-            cemuLog_log(LogType::InputAPI, "{}", info.name);
-        }
-        if (infos.empty())
-            cemuLog_log(LogType::InputAPI, "No available video capture devices");
-        return infos;
+        return InternalEnumerateDevices();
     }
 
     void SaveDevice()
