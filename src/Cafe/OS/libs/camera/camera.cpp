@@ -99,10 +99,8 @@ namespace camera
     {
         std::recursive_mutex mutex{};
         bool initialized = false;
-        bool shouldTriggerCallback = false;
         std::atomic_bool isOpen = false;
         std::atomic_bool isExiting = false;
-        bool isWorking = false;
         unsigned fps = 30;
         MEMPTR<void> eventCallback = nullptr;
         RingBuffer<MEMPTR<uint8>, 20> inTargetBuffers{};
