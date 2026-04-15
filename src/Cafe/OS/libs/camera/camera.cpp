@@ -113,7 +113,7 @@ namespace camera
     SysAllocator<CafeString<22>> s_cameraWorkerThreadNameBuffer;
     SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
 
-    void WorkerThread(PPCInterpreter_t*)
+    static void WorkerThreadFunc(PPCInterpreter_t*)
     {
         s_cameraEventData->type = CAMEventType::Decode;
         s_cameraEventData->channel = 0;
@@ -126,18 +126,12 @@ namespace camera
             coreinit::OSWaitEvent(s_cameraOpenEvent);
             while (true)
             {
-                if (!s_instance.isOpen || s_instance.isExiting)
-                {
-                    // Fill leftover buffers before stopping
-                    if (!s_instance.inTargetBuffers.HasData())
-                        break;
-                }
-                s_cameraEventData->type = CAMEventType::Decode;
-                s_cameraEventData->channel = 0;
-
                 const auto surfaceBuffer = s_instance.inTargetBuffers.Pop();
-                if (surfaceBuffer.IsNull())
+                if (!surfaceBuffer)
                 {
+                    // Only exit when no buffers are left
+                    if (!s_instance.isOpen || s_instance.isExiting)
+                        break;
                     s_cameraEventData->data = nullptr;
                     s_cameraEventData->errored = true;
                 }
@@ -149,6 +143,8 @@ namespace camera
                     s_cameraEventData->data = surfaceBuffer;
                     s_cameraEventData->errored = false;
                 }
+                s_cameraEventData->type = CAMEventType::Decode;
+                s_cameraEventData->channel = 0;
                 PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
                 coreinit::OSSleepTicks(Espresso::TIMER_CLOCK / (s_instance.fps - 1));
             }
@@ -202,7 +198,7 @@ namespace camera
                               coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 
         coreinit::__OSCreateThreadType(
-            s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThread), 0, nullptr,
+            s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThreadFunc), 0, nullptr,
             s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(),
             s_cameraWorkerThreadStack.GetByteSize(),
             0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
