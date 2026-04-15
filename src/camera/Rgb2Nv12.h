@@ -1,7 +1,8 @@
 #pragma once
+#include <cstdint>
 
-void Rgb2Nv12(const uint8* rgbImage,
+void Rgb2Nv12(const uint8_t* rgbImage,
 			  unsigned imageWidth,
 			  unsigned imageHeight,
-			  uint8* outNv12Image,
+			  uint8_t* outNv12Image,
 			  unsigned nv12Pitch);
