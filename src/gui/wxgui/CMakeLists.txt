@@ -1,4 +1,6 @@
 add_library(CemuWxGui STATIC
+  CameraSettingsWindow.cpp
+  CameraSettingsWindow.h
   canvas/IRenderCanvas.h
   canvas/OpenGLCanvas.cpp
   canvas/OpenGLCanvas.h
@@ -114,8 +116,6 @@ add_library(CemuWxGui STATIC
   wxcomponents/checktree.h
   wxgui.h
   wxHelper.h
-		CameraSettingsWindow.cpp
-		CameraSettingsWindow.h
 )
 
 if (ENABLE_METAL)
@@ -150,6 +150,7 @@ target_link_libraries(CemuWxGui PRIVATE
   SDL2::SDL2
   pugixml::pugixml
   CemuCafe
+  CemuCamera
   PUBLIC
   CURL::libcurl
 )
