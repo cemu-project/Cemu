@@ -1,8 +1,5 @@
 #pragma once
 
-#pragma once
-#include <string>
-
 namespace CameraManager
 {
     constexpr uint32 CAMERA_WIDTH = 640;
