@@ -213,9 +213,9 @@ namespace camera
         if (camHandle != CAM_HANDLE)
             return CAM_STATUS_INVALID_HANDLE;
         CafeLockGuard lock(s_cameraMutex);
-            if (!s_instance.initialized || !s_instance.isOpen)
-                return CAM_STATUS_UNINITIALIZED;
-            s_instance.isOpen = false;
+        if (!s_instance.initialized || !s_instance.isOpen)
+            return CAM_STATUS_UNINITIALIZED;
+        s_instance.isOpen = false;
         CameraManager::Close();
         return CAM_STATUS_SUCCESS;
     }
@@ -290,7 +290,6 @@ namespace camera
         {
             if (reason == coreinit::RplEntryReason::Loaded)
             {
-
             }
             else if (reason == coreinit::RplEntryReason::Unloaded)
             {
