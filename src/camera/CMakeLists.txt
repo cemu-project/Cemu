@@ -9,4 +9,8 @@ add_library(CemuCamera
 set_property(TARGET CemuCamera PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 target_include_directories(CemuCamera PUBLIC "../")
-target_link_libraries(CemuCamera PRIVATE CemuCommon CemuUtil openpnp-capture)
+target_link_libraries(CemuCamera PRIVATE
+        CemuCommon
+        CemuUtil
+        glm::glm
+        openpnp-capture)
