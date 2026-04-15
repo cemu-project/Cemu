@@ -294,6 +294,8 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 	}
 	uint32 semaphoreControl = (SEM_SEL << 29);
 	semaphoreControl |= 0x1000; // WAIT_ON_SIGNAL
+
+	GX2::GX2ReserveCmdSpace(3);
 	gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_MEM_SEMAPHORE, 2));
 	gx2WriteGather_submitU32AsBE(memory_virtualToPhysical(semaphoreMPTR)); // semaphore physical address
 	gx2WriteGather_submitU32AsBE(semaphoreControl); // control

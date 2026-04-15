@@ -1,6 +1,6 @@
 #pragma once
-#include "Common/betype.h"
-#include "config/CemuConfig.h" // for ConsoleRegion
+
+enum class CafeConsoleRegion;
 
 /* OpenSSL forward declarations */
 typedef struct ec_key_st EC_KEY;

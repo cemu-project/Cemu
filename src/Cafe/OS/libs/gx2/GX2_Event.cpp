@@ -38,7 +38,7 @@ namespace GX2
 
 	void GX2SubmitUserTimeStamp(uint64* timestampOut, uint64 value, GX2PipeEventType eventType, uint32 triggerInterrupt)
 	{
-		GX2ReserveCmdSpace(7);
+		GX2ReserveCmdSpace(11);
 
 		MPTR physTimestampAddr = memory_virtualToPhysical(memory_getVirtualOffsetFromPointer(timestampOut));
 		uint32 valHigh = (uint32)(value >> 32);
@@ -214,7 +214,7 @@ namespace GX2
 		__OSUnlockScheduler();
 	}
 
-	void GX2DrawDone()
+	bool GX2DrawDone()
 	{
 		// optional force full sync (texture readback and occlusion queries)
 		bool forceFullSync = false;
@@ -231,7 +231,7 @@ namespace GX2
 		GX2Command_Flush(0x100, true);
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();
-		GX2WaitTimeStamp(ts);
+		return GX2WaitTimeStamp(ts);
 	}
 
 	void GX2Init_event()

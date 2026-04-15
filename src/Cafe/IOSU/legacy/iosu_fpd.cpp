@@ -10,7 +10,7 @@
 #include "util/helpers/StringHelpers.h"
 #include "Cafe/IOSU/iosu_types_common.h"
 #include "Cafe/IOSU/nn/iosu_nn_service.h"
-
+#include "Common/socket.h"
 #include "Common/CafeString.h"
 
 std::mutex g_friend_notification_mutex;

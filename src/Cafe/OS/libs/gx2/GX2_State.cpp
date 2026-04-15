@@ -648,6 +648,7 @@ namespace GX2
 		else
 		{
 			// legacy style
+			GX2ReserveCmdSpace(3);
 			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SPECIAL_STATE, 2));
 			gx2WriteGather_submitU32AsBE((uint32)stateId); // state id
 			gx2WriteGather_submitU32AsBE(isEnabled); // enable/disable bool

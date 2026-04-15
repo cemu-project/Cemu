@@ -132,6 +132,8 @@ endif()
 
 set_property(TARGET CemuWxGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+cemu_use_precompiled_header(CemuWxGui)
+
 
 target_include_directories(CemuWxGui PUBLIC "../")
 # PUBLIC because rapidjson/document.h is included in ChecksumTool.h

@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-22.04
     needs: [call-release-build, calculate-version]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -78,27 +78,27 @@ jobs:
           if [ -n "${{ github.event.inputs.changelog9 }}" ]; then CHANGELOG="$CHANGELOG- ${{ github.event.inputs.changelog9 }}\n"; fi
           echo -e "$CHANGELOG"
           echo "RELEASE_BODY=$CHANGELOG" >> $GITHUB_ENV
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cemu-bin-linux-x64
           path: cemu-bin-linux-x64
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cemu-appimage-x64
           path: cemu-appimage-x64
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cemu-bin-windows-x64
           path: cemu-bin-windows-x64
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: cemu-installer-windows-x64
           path: cemu-installer-windows-x64
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           pattern: cemu-bin-macos*
           path: cemu-macos

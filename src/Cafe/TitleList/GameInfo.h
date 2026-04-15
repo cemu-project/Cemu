@@ -1,8 +1,5 @@
 #pragma once
-
-#include "config/CemuConfig.h"
 #include "TitleInfo.h"
-#include "config/ActiveSettings.h"
 
 class GameInfo2
 {
@@ -116,10 +113,7 @@ public:
 		return m_aoc.front().GetAppTitleVersion();
 	}
 
-	fs::path GetSaveFolder()
-	{
-		return ActiveSettings::GetMlcPath(fmt::format("usr/save/{:08x}/{:08x}", (GetBaseTitleId() >> 32), GetBaseTitleId() & 0xFFFFFFFF));
-	}
+	fs::path GetSaveFolder();
 
 private:
   	bool IsPrioritizedVersionOrFormat(const TitleInfo& currentTitle, const TitleInfo& newTitle)

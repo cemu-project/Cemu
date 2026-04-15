@@ -1,6 +1,5 @@
 #pragma once
 
-#include "config/CemuConfig.h"
 #include "config/XMLConfig.h"
 #include "util/math/vector2.h"
 

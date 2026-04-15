@@ -1,12 +1,13 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/CafeSystem.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
+#include "Cafe/Account/Account.h"
 #include "util/helpers/helpers.h"
-#include "Cafe/HW/Latte/Core/Latte.h"
 
 void ActiveSettings::SetPaths(bool isPortableMode,
 		const fs::path& executablePath,

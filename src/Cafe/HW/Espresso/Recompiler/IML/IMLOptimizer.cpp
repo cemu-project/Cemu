@@ -678,7 +678,8 @@ void IMLOptimizerX86_SubstituteCJumpForEflagsJump(IMLOptimizerRegIOAnalysis& reg
 	// we can turn the jump into an eflags jump
 	cjumpInstr.make_x86_eflags_jcc(cond, invertedCondition);
 
-	if (IMLUtil_CountRegisterReadsInRange(seg, cmpInstrIndex, cjmpInstIndex, regCondBool.GetRegID()) > 1 || regIoAnalysis.IsRegisterNeededAtEndOfSegment(seg, regCondBool.GetRegID()))
+	// note: x86_eflags_jcc doesn't count towards cond reg reads, so we have to check > 0 here instead of > 1
+	if (IMLUtil_CountRegisterReadsInRange(seg, cmpInstrIndex, cjmpInstIndex, regCondBool.GetRegID()) > 0 || regIoAnalysis.IsRegisterNeededAtEndOfSegment(seg, regCondBool.GetRegID()))
 		return; // bool register is used beyond the CMP, we can't drop it
 
 	auto& cmpInstr = seg.imlList[cmpInstrIndex];

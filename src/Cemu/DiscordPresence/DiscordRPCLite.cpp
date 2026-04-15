@@ -22,7 +22,10 @@ namespace shim
 #include <windows.h>
 #else
 #include <fcntl.h>
+#include <poll.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
+#include <sys/un.h>
 #include <unistd.h>
 #endif
 

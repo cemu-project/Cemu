@@ -5,6 +5,7 @@
 #include "util/crypto/aes128.h"
 #include "openssl/sha.h"
 #include "Cemu/napi/napi.h"
+#include "config/ActiveSettings.h"
 
 namespace nn
 {

@@ -18,6 +18,8 @@ endif ()
 
 set_property(TARGET imguiImpl PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+cemu_use_precompiled_header(imguiImpl)
+
 target_include_directories(imguiImpl PUBLIC "../")
 
 # imgui source files

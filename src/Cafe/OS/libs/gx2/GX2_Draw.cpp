@@ -56,7 +56,7 @@ namespace GX2
 
 	void GX2DrawIndexedEx2(GX2PrimitiveMode2 primitiveMode, uint32 count, GX2IndexType indexType, void* indexData, uint32 baseVertex, uint32 numInstances, uint32 baseInstance)
 	{
-		GX2ReserveCmdSpace(3 + 3 + 2 + 2 + 6);
+		GX2ReserveCmdSpace(3 + 3 + 3 + 2 + 2 + 6 + 3);
 		gx2WriteGather_submit(
 			// IT_SET_CTL_CONST
 			pm4HeaderType3(IT_SET_CTL_CONST, 2), 0,

@@ -8,23 +8,8 @@
 #include "Common/socket.h"
 
 #if BOOST_OS_UNIX
-
-#define WSAEWOULDBLOCK EWOULDBLOCK
-#define WSAEINPROGRESS EINPROGRESS
-#define WSAESHUTDOWN ESHUTDOWN
-#define WSAECONNABORTED ECONNABORTED
-#define WSAHOST_NOT_FOUND EAI_NONAME
-#define WSAENOTCONN ENOTCONN
-
-#define GETLASTERR errno
-
-#endif // BOOST_OS_UNIX
-
-#if BOOST_OS_WINDOWS
-
-#define GETLASTERR WSAGetLastError()
-
-#endif //BOOST_OS_WINDOWS
+#include <netinet/tcp.h>
+#endif
 
 #define WU_AF_INET			2
 

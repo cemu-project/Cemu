@@ -43,7 +43,7 @@ VulkanCanvas::VulkanCanvas(wxWindow* parent, const wxSize& size, bool is_main_wi
 		auto msg = formatWxString(_("Error when initializing Vulkan renderer:\n{}"), ex.what());
 		wxMessageDialog dialog(this, msg, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 		dialog.ShowModal();
-		exit(0);
+		_exit(0);
 	}
 
 	wxWindow::EnableTouchEvents(wxTOUCH_PAN_GESTURES);

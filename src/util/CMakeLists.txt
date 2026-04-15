@@ -89,6 +89,8 @@ endif()
 
 set_property(TARGET CemuUtil PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
+cemu_use_precompiled_header(CemuUtil)
+
 target_include_directories(CemuUtil PUBLIC "../")
 
 target_link_libraries(CemuUtil PRIVATE

@@ -300,8 +300,16 @@ namespace coreinit
 	void OSUnlockMutexInternal(OSMutex* mutex)
 	{
 		OSThread_t* currentThread = OSGetCurrentThread();
-		cemu_assert_debug(mutex->owner == currentThread);
-		cemu_assert_debug(mutex->lockCount > 0);
+		if (mutex->lockCount == 0)
+		{
+			cemuLog_log(LogType::APIErrors, "OSUnlockMutex called on a mutex which is not locked");
+			return;
+		}
+		if (mutex->owner != currentThread)
+		{
+			cemuLog_log(LogType::APIErrors, "OSUnlockMutex called by a different thread than the one owning it (owner=0x{:08x} currentThread=0x{:08x})", mutex->owner.GetMPTR(), MEMPTR<void>(currentThread).GetMPTR());
+			return;
+		}
 		mutex->lockCount = mutex->lockCount - 1;
 		if (mutex->lockCount == 0)
 		{

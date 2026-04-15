@@ -64,3 +64,4 @@ SpacesInSquareBrackets: false
 Standard: Latest
 TabWidth: 4
 UseTab: Always
+LineEnding: LF

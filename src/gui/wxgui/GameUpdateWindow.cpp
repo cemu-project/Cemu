@@ -1,14 +1,10 @@
 #include "wxgui/wxgui.h"
 #include "wxgui/GameUpdateWindow.h"
 #include "util/helpers/helpers.h"
-
-#include <filesystem>
-#include <sstream>
 #include "util/helpers/SystemException.h"
-#include "wxgui/CemuApp.h"
 #include "Cafe/TitleList/GameInfo.h"
+#include "config/ActiveSettings.h"
 #include "wxgui/helpers/wxHelpers.h"
-#include "wxHelper.h"
 
 wxString _GetTitleIdTypeStr(TitleId titleId)
 {

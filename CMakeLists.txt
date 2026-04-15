@@ -9,6 +9,8 @@ set(EMULATOR_VERSION_MAJOR "0" CACHE STRING "")
 set(EMULATOR_VERSION_MINOR "0" CACHE STRING "")
 set(EMULATOR_VERSION_PATCH "0" CACHE STRING "")
 
+set(THREADS_PREFER_PTHREAD_FLAG true) # needs to be set before vcpkg
+
 execute_process(
 		COMMAND git log --format=%h -1
 		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
@@ -136,7 +138,6 @@ option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
-set(THREADS_PREFER_PTHREAD_FLAG true)
 find_package(Threads REQUIRED)
 find_package(SDL2 REQUIRED)
 find_package(CURL REQUIRED)

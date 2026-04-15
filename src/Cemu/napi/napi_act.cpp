@@ -1,16 +1,12 @@
 #include "Common/precompiled.h"
+#include "Cafe/Account/Account.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "napi.h"
 #include "napi_helper.h"
-
 #include "curl/curl.h"
-#include "pugixml.hpp"
-#include "Cafe/IOSU/legacy/iosu_crypto.h"
-
 #include "config/ActiveSettings.h"
 #include "util/helpers/StringHelpers.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
-#include "config/LaunchSettings.h"
 
 namespace NAPI
 {

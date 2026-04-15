@@ -1,6 +1,4 @@
 #pragma once
-
-#include <utility>
 #include "config/CemuConfig.h"
 #include "config/NetworkSettings.h"
 
