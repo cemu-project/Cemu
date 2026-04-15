@@ -13,18 +13,18 @@
 
 namespace CameraManager
 {
-    std::mutex s_mutex;
-    CapContext s_ctx;
-    std::optional<CapDeviceID> s_device;
-    std::optional<CapStream> s_stream;
-    uint8_t* s_rgbBuffer;
-    uint8_t* s_nv12Buffer;
-    int s_refCount = 0;
-    std::thread s_captureThread;
-    std::atomic_bool s_capturing = false;
-    std::atomic_bool s_running = false;
+    static std::mutex s_mutex;
+    static CapContext s_ctx;
+    static std::optional<CapDeviceID> s_device;
+    static std::optional<CapStream> s_stream;
+    static uint8_t* s_rgbBuffer;
+    static uint8_t* s_nv12Buffer;
+    static int s_refCount = 0;
+    static std::thread s_captureThread;
+    static std::atomic_bool s_capturing = false;
+    static std::atomic_bool s_running = false;
 
-    std::string FourCC(uint32le value)
+    static std::string FourCC(uint32le value)
     {
         return {
             static_cast<char>((value >> 0) & 0xFF),
@@ -34,12 +34,12 @@ namespace CameraManager
         };
     }
 
-    void CaptureLogFunction(uint32_t level, const char* string)
+    static void CaptureLogFunction(uint32_t level, const char* string)
     {
-        cemuLog_log(LogType::InputAPI, "OpenPNPCapture: {}: {}", level, string);
+        cemuLog_log(LogType::InputAPI, "openpnp-capture: {}: {}", level, string);
     }
 
-    std::optional<CapFormatID> FindCorrectFormat()
+    static std::optional<CapFormatID> FindCorrectFormat()
     {
         const auto device = *s_device;
         cemuLog_log(LogType::InputAPI, "Video capture device '{}' available formats:",
@@ -62,7 +62,7 @@ namespace CameraManager
         return std::nullopt;
     }
 
-    void CaptureWorker()
+    static void CaptureWorkerFunc()
     {
         SetThreadName("CameraManager");
         while (s_running)
@@ -81,7 +81,7 @@ namespace CameraManager
         }
     }
 
-    void OpenStream()
+    static void OpenStream()
     {
         const auto formatId = FindCorrectFormat();
         if (!formatId)
@@ -93,7 +93,7 @@ namespace CameraManager
         s_stream = stream;
     }
 
-    void CloseStream()
+    static void CloseStream()
     {
         s_capturing = false;
         if (s_stream)
@@ -103,7 +103,7 @@ namespace CameraManager
         }
     }
 
-    void ResetBuffers()
+    static void ResetBuffers()
     {
         std::fill_n(s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE, 0);
         constexpr static auto PIXEL_COUNT = CAMERA_HEIGHT * CAMERA_PITCH;
@@ -111,7 +111,7 @@ namespace CameraManager
         std::ranges::fill_n(s_nv12Buffer + PIXEL_COUNT, (PIXEL_COUNT / 2), 128);
     }
 
-    std::vector<DeviceInfo> InternalEnumerateDevices()
+    static std::vector<DeviceInfo> InternalEnumerateDevices()
     {
         std::vector<DeviceInfo> infos;
         const auto deviceCount = Cap_getDeviceCount(s_ctx);
@@ -133,7 +133,7 @@ namespace CameraManager
         return infos;
     }
 
-    void Init()
+    static void Init()
     {
         s_running = true;
         s_ctx = Cap_createContext();
@@ -142,7 +142,7 @@ namespace CameraManager
         s_rgbBuffer = new uint8[CAMERA_RGB_BUFFER_SIZE];
         s_nv12Buffer = new uint8[CAMERA_NV12_BUFFER_SIZE];
 
-        s_captureThread = std::thread(&CaptureWorker);
+        s_captureThread = std::thread(&CaptureWorkerFunc);
 
         const auto uniqueId = GetConfig().camera_id.GetValue();
         if (!uniqueId.empty())
@@ -160,7 +160,7 @@ namespace CameraManager
         ResetBuffers();
     }
 
-    void Deinit()
+    static void Deinit()
     {
         CloseStream();
         Cap_releaseContext(s_ctx);
