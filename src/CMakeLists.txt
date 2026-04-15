@@ -220,6 +220,7 @@ endif()
 target_link_libraries(CemuBin PRIVATE
 	CemuAudio
 	CemuCafe
+	CemuCamera
 	CemuCommon
 	CemuComponents
 	CemuConfig
