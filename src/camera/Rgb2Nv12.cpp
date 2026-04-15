@@ -1,5 +1,7 @@
 // Based on https://github.com/cohenrotem/Rgb2NV12
 #include "Rgb2Nv12.h"
+#include <cstdint>
+#include <glm/glm.hpp>
 
 constexpr static glm::mat3x3 COEFFICIENT_MATRIX =
 {
@@ -13,12 +15,12 @@ constexpr static glm::mat4x3 OFFSET_MATRIX = {
     16.0f + 0.5f, 128.0f + 2.0f, 128.0f + 2.0f,
     16.0f + 0.5f, 128.0f + 2.0f, 128.0f + 2.0f};
 
-static void Rgb2Nv12TwoRows(const uint8* topLine,
-                            const uint8* bottomLine,
+static void Rgb2Nv12TwoRows(const uint8_t* topLine,
+                            const uint8_t* bottomLine,
                             unsigned imageWidth,
-                            uint8* topLineY,
-                            uint8* bottomLineY,
-                            uint8* uv)
+                            uint8_t* topLineY,
+                            uint8_t* bottomLineY,
+                            uint8_t* uv)
 {
     auto* topIn = reinterpret_cast<const glm::u8vec3*>(topLine);
     auto* botIn = reinterpret_cast<const glm::u8vec3*>(bottomLine);
@@ -44,13 +46,12 @@ static void Rgb2Nv12TwoRows(const uint8* topLine,
     }
 }
 
-void Rgb2Nv12(const uint8* rgbImage,
+void Rgb2Nv12(const uint8_t* rgbImage,
               unsigned imageWidth,
               unsigned imageHeight,
-              uint8* outNv12Image,
+              uint8_t* outNv12Image,
               unsigned nv12Pitch)
 {
-    cemu_assert_debug(!((imageWidth | imageHeight) & 1));
     unsigned char* UV = outNv12Image + nv12Pitch * imageHeight;
 
     for (auto row = 0u; row < imageHeight; row += 2)

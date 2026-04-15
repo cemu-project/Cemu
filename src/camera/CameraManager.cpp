@@ -5,8 +5,8 @@
 #include "Rgb2Nv12.h"
 
 #include <algorithm>
+#include <atomic>
 #include <mutex>
-#include <optional>
 #include <thread>
 
 #include <openpnp-capture.h>
