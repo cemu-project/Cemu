@@ -7,6 +7,7 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "camera/CameraManager.h"
 #include "Common/CafeString.h"
+#include "OS/common/OSUtil.h"
 #include "util/helpers/ringbuffer.h"
 
 namespace camera
@@ -97,7 +98,6 @@ namespace camera
 
     struct
     {
-        std::recursive_mutex mutex{};
         bool initialized = false;
         std::atomic_bool isOpen = false;
         std::atomic_bool isExiting = false;
@@ -106,7 +106,7 @@ namespace camera
         RingBuffer<MEMPTR<uint8>, 20> inTargetBuffers{};
         RingBuffer<MEMPTR<uint8>, 20> outTargetBuffers{};
     } s_instance;
-
+    SysAllocator<coreinit::OSMutex> s_cameraMutex;
     SysAllocator<CAMDecodeEventParam> s_cameraEventData;
     SysAllocator<OSThread_t> s_cameraWorkerThread;
     SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
@@ -169,7 +169,7 @@ namespace camera
     sint32 CAMInit(uint32 cameraId, const CAMInitInfo_t* initInfo, betype<CAMStatus>* error)
     {
         *error = CAM_STATUS_SUCCESS;
-        std::scoped_lock lock(s_instance.mutex);
+        CafeLockGuard lock(s_cameraMutex);
         if (s_instance.initialized)
         {
             *error = CAM_STATUS_DEVICE_IN_USE;
@@ -212,12 +212,10 @@ namespace camera
     {
         if (camHandle != CAM_HANDLE)
             return CAM_STATUS_INVALID_HANDLE;
-        {
-            std::scoped_lock lock(s_instance.mutex);
+        CafeLockGuard lock(s_cameraMutex);
             if (!s_instance.initialized || !s_instance.isOpen)
                 return CAM_STATUS_UNINITIALIZED;
             s_instance.isOpen = false;
-        }
         CameraManager::Close();
         return CAM_STATUS_SUCCESS;
     }
@@ -226,7 +224,7 @@ namespace camera
     {
         if (camHandle != CAM_HANDLE)
             return CAM_STATUS_INVALID_HANDLE;
-        auto lock = std::scoped_lock(s_instance.mutex);
+        CafeLockGuard lock(s_cameraMutex);
         if (!s_instance.initialized)
             return CAM_STATUS_UNINITIALIZED;
         if (s_instance.isOpen)
@@ -246,7 +244,7 @@ namespace camera
         if (!targetSurface || targetSurface->data.IsNull() || targetSurface->size < 1)
             return CAM_STATUS_INVALID_ARG;
         cemu_assert_debug(targetSurface->size >= CameraManager::CAMERA_NV12_BUFFER_SIZE);
-        auto lock = std::scoped_lock(s_instance.mutex);
+        CafeLockGuard lock(s_cameraMutex);
         if (!s_instance.initialized)
             return CAM_STATUS_UNINITIALIZED;
         if (!s_instance.inTargetBuffers.Push(targetSurface->data))
@@ -258,7 +256,7 @@ namespace camera
     {
         if (camHandle != CAM_HANDLE)
             return;
-        std::scoped_lock lock(s_instance.mutex);
+        CafeLockGuard lock(s_cameraMutex);
         if (!s_instance.initialized)
             return;
         s_instance.isExiting = true;
