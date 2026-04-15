@@ -242,3 +242,14 @@ MPTR makeCallableExport()
 }
 
 void osLib_addVirtualPointer(const char* libraryName, const char* functionName, uint32 vPtr);
+
+class CafeLockGuard
+{
+public:
+	explicit CafeLockGuard(coreinit::OSMutex* mutex) : m_mutex(mutex) { coreinit::OSLockMutex(m_mutex); }
+	~CafeLockGuard() { coreinit::OSUnlockMutex(m_mutex); }
+	CafeLockGuard(const CafeLockGuard&) = delete;
+	CafeLockGuard& operator=(const CafeLockGuard&) = delete;
+private:
+	coreinit::OSMutex* m_mutex;
+};
