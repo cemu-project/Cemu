@@ -255,8 +255,14 @@ int main(int argc, char* argv[])
 
 #else
 
+int BreathOfTheWildChildProcessMain();
 int main(int argc, char *argv[])
 {
+#if BOOST_OS_LINUX
+	if (getenv("CEMU_DETECT_RADV") != nullptr)
+		return BreathOfTheWildChildProcessMain();
+#endif
+
 #if BOOST_OS_LINUX || BOOST_OS_BSD
     XInitThreads();
 #endif
