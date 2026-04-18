@@ -153,6 +153,8 @@ you have a recent enough version of Xcode. Xcode 15 is known to work.
 
 ### Installing brew
 
+To install the dependencies required to build Cemu, you will need to install Homebrew package manager first. You can do this by running the following command in your terminal:
+
 1. `/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"`
 2. Set up the Homebrew shell environment:
    - **On an Apple Silicon Mac:** eval `"$(/opt/homebrew/bin/brew shellenv)"`
@@ -160,7 +162,23 @@ you have a recent enough version of Xcode. Xcode 15 is known to work.
 
 ### Dependencies
 
-`brew install git cmake ninja nasm automake libtool boost molten-vk`
+The following dependencies are required. You can install them using Homebrew with the following command:
+
+`brew install git cmake ninja nasm automake libtool boost`
+
+### MoltenVK
+
+Cemu uses the MoltenVK library to provide Vulkan support on macOS. While available on Brew, Cemu requires the "privateapi" version of MoltenVK, which is not available on Brew. To install the required version, follow the instructions below:
+
+1. `curl -L -O https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.1/MoltenVK-macos-privateapi.tar`
+1. `tar xf MoltenVK-macos-privateapi.tar`
+1. Create a directory for the MoltenVK dylib if it doesn't already exist:
+   - **On an Apple Silicon Mac:** `sudo mkdir -p /opt/homebrew/lib`
+   - **On an Intel Mac:** `sudo mkdir -p /usr/local/lib/`
+1. Copy the MoltenVK dylib to your system library directory:
+   - **On an Apple Silicon Mac:** `sudo cp MoltenVK/lib/libMoltenVK.dylib /opt/homebrew/lib/`
+   - **On an Intel Mac:** `sudo cp MoltenVK/lib/libMoltenVK.dylib /usr/local/lib/`
+
 
 ### Build Cemu using CMake
 
