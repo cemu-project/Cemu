@@ -32,7 +32,7 @@ elseif(UNIX)
 		add_compile_options(-Wno-ambiguous-reversed-operator)
 	endif()
 
-	add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
+    add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
 endif()
 
 add_compile_definitions(VK_NO_PROTOTYPES)

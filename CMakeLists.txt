@@ -194,7 +194,7 @@ endif()
 if (ENABLE_METAL)
     include_directories(${CMAKE_SOURCE_DIR}/dependencies/metal-cpp)
 
-	add_definitions(-DENABLE_METAL=1)
+    add_definitions(-DENABLE_METAL=1)
 endif()
 
 if (ENABLE_DISCORD_RPC)

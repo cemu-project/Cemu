@@ -262,6 +262,6 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 | ENABLE_WAYLAND        | Enable Wayland support                             | ON      |
 
 ### macOS
-| Flag                | Description                                          | Default |
-|---------------------|------------------------------------------------------|---------|
-| MACOS_BUNDLE        | macOS executable will be an application bundle       | OFF     |
+| Flag         | Description                                    | Default |
+|--------------|------------------------------------------------|---------|
+| MACOS_BUNDLE | MacOS executable will be an application bundle | OFF     |
