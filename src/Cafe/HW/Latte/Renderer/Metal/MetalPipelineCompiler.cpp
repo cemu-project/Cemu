@@ -176,8 +176,8 @@ static RendererShaderMtl* rectsEmulationGS_generate(MetalRenderer* metalRenderer
 
 	gsSrc.append("}\r\n");
 
-	auto mtlShader = new RendererShaderMtl(metalRenderer, RendererShader::ShaderType::kGeometry, 0, 0, false, false, gsSrc);
-	mtlShader->PreponeCompilation(true);
+	auto mtlShader = new RendererShaderMtl(metalRenderer, RendererShader::ShaderType::kGeometry, 0, 0, false, false, std::move(gsSrc));
+	mtlShader->PreponeCompilation();
 
 	return mtlShader;
 }
@@ -321,11 +321,11 @@ bool MetalPipelineCompiler::Compile(bool forceCompile, bool isRenderThread, bool
 	{
 		// if some shader stages are not compiled yet, compile them now
 		if (m_vertexShaderMtl && !m_vertexShaderMtl->IsCompiled())
-			m_vertexShaderMtl->PreponeCompilation(isRenderThread);
+			m_vertexShaderMtl->PreponeCompilation();
 		if (m_geometryShaderMtl && !m_geometryShaderMtl->IsCompiled())
-			m_geometryShaderMtl->PreponeCompilation(isRenderThread);
+			m_geometryShaderMtl->PreponeCompilation();
 		if (m_pixelShaderMtl && !m_pixelShaderMtl->IsCompiled())
-			m_pixelShaderMtl->PreponeCompilation(isRenderThread);
+			m_pixelShaderMtl->PreponeCompilation();
 	}
 	else
 	{

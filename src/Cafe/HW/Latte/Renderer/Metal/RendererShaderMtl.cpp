@@ -213,8 +213,8 @@ void RendererShaderMtl::Shutdown()
     shaderMtlThreadPool.StopThreads();
 }
 
-RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, const std::string& mslCode)
-	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_mtlr{mtlRenderer}, m_mslCode{mslCode}
+RendererShaderMtl::RendererShaderMtl(MetalRenderer* mtlRenderer, ShaderType type, uint64 baseHash, uint64 auxHash, bool isGameShader, bool isGfxPackShader, std::string&& mslCode)
+	: RendererShader(type, baseHash, auxHash, isGameShader, isGfxPackShader), m_mtlr{mtlRenderer}, m_mslCode{std::move(mslCode)}
 {
 	// start async compilation
 	shaderMtlThreadPool.s_compilationQueueMutex.lock();
@@ -231,7 +231,7 @@ RendererShaderMtl::~RendererShaderMtl()
         m_function->release();
 }
 
-void RendererShaderMtl::PreponeCompilation(bool isRenderThread)
+void RendererShaderMtl::PreponeCompilation()
 {
 	shaderMtlThreadPool.s_compilationQueueMutex.lock();
 	bool isStillQueued = m_compilationState.hasState(COMPILATION_STATE::QUEUED);
