@@ -1,5 +1,10 @@
 #include "cpu_features.h"
 
+#if BOOST_OS_MACOS
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 // wrappers with uniform prototype for implementation-specific x86 CPU id
 #if defined(ARCH_X86_64)
 #ifdef __GNUC__
@@ -30,7 +35,23 @@ inline void cpuidex(int cpuInfo[4], int functionId, int subFunctionId) {
 
 CPUFeaturesImpl::CPUFeaturesImpl()
 {
-#if defined(ARCH_X86_64)
+#if BOOST_OS_MACOS
+	std::string cpuName;
+	size_t size = 0;
+
+	if (sysctlbyname("machdep.cpu.brand_string", nullptr, &size, nullptr, 0) == 0 && size > 0)
+	{
+		std::vector<char> buffer(size);
+
+		if (sysctlbyname("machdep.cpu.brand_string", buffer.data(), &size, nullptr, 0) == 0 && size > 0)
+		{
+			cpuName.assign(buffer.data());
+		}
+	}
+
+	strncpy(m_cpuBrandName, cpuName.c_str(), sizeof(m_cpuBrandName) - 1);
+	m_cpuBrandName[sizeof(m_cpuBrandName) - 1] = '\0';
+#elif defined(ARCH_X86_64)
 	int cpuInfo[4];
 	cpuid(cpuInfo, 0x80000001);
 	x86.lzcnt = ((cpuInfo[2] >> 5) & 1) != 0;
