@@ -17,7 +17,7 @@ execute_process(
 		OUTPUT_VARIABLE GIT_HASH
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-add_definitions(-DEMULATOR_HASH=${GIT_HASH})
+add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:EMULATOR_HASH=${GIT_HASH}>)
 
 if (ENABLE_VCPKG)
 	# check if vcpkg is shallow and unshallow it if necessary
@@ -66,9 +66,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_compile_definitions($<$<CONFIG:Debug>:CEMU_DEBUG_ASSERT>) # if build type is debug, set CEMU_DEBUG_ASSERT
 
-add_definitions(-DEMULATOR_VERSION_MAJOR=${EMULATOR_VERSION_MAJOR})
-add_definitions(-DEMULATOR_VERSION_MINOR=${EMULATOR_VERSION_MINOR})
-add_definitions(-DEMULATOR_VERSION_PATCH=${EMULATOR_VERSION_PATCH})
+add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:EMULATOR_VERSION_MAJOR=${EMULATOR_VERSION_MAJOR}>)
+add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:EMULATOR_VERSION_MINOR=${EMULATOR_VERSION_MINOR}>)
+add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:EMULATOR_VERSION_PATCH=${EMULATOR_VERSION_PATCH}>)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
@@ -194,7 +194,7 @@ endif()
 if (ENABLE_METAL)
     include_directories(${CMAKE_SOURCE_DIR}/dependencies/metal-cpp)
 
-    add_definitions(-DENABLE_METAL=1)
+	add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:ENABLE_METAL=1>)
 endif()
 
 if (ENABLE_DISCORD_RPC)
@@ -232,7 +232,7 @@ if (ENABLE_CUBEB)
 		set_property(TARGET cubeb PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 		add_library(cubeb::cubeb ALIAS cubeb)
 	endif()
-	add_compile_definitions("HAS_CUBEB=1")
+	add_compile_definitions($<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:HAS_CUBEB=1>)
 endif()
 
 add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
