@@ -1,12 +1,7 @@
 add_library(CemuGui INTERFACE)
 target_include_directories(CemuGui INTERFACE "interface")
 
-if(APPLE AND ENABLE_SWIFTUI_MACOS)
-    add_subdirectory(swiftui)
-    target_link_libraries(CemuGui INTERFACE CemuSwiftUiGui)
-elseif(ENABLE_WXWIDGETS)
+if(ENABLE_WXWIDGETS)
     add_subdirectory(wxgui)
     target_link_libraries(CemuGui INTERFACE CemuWxGui)
-else()
-    message(FATAL_ERROR "No GUI backend selected. Enable ENABLE_WXWIDGETS or ENABLE_SWIFTUI_MACOS on macOS.")
 endif()

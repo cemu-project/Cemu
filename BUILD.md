@@ -244,7 +244,7 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 | ENABLE_SDL         |   | Enable SDLController controller API                                         | ON      | Currently required |
 | ENABLE_VCPKG       |   | Use VCPKG package manager to obtain dependencies                            | ON      |                    |
 | ENABLE_VULKAN      |   | Enable the Vulkan graphics backend                                          | ON      |                    |
-| ENABLE_WXWIDGETS   |   | Enable wxWidgets UI                                                         | ON      |                    |
+| ENABLE_WXWIDGETS   |   | Enable wxWidgets UI                                                         | ON      | Currently required |
 
 ### Windows
 | Flag               | Description                       | Default | Note               |
@@ -264,5 +264,4 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 ### macOS
 | Flag                | Description                                          | Default |
 |---------------------|------------------------------------------------------|---------|
-| ENABLE_SWIFTUI_MACOS | Enable experimental native macOS SwiftUI GUI backend | OFF     |
-| MACOS_BUNDLE        | MacOS executable will be an application bundle       | OFF     |
+| MACOS_BUNDLE        | macOS executable will be an application bundle       | OFF     |
