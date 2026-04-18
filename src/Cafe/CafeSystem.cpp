@@ -473,8 +473,10 @@ namespace CafeSystem
 		if (sysctlbyname("machdep.cpu.brand_string", NULL, &cpu_len, NULL, 0) == 0 && cpu_len > 1)
 		{
 			cpuName.resize(cpu_len);
-			if (sysctlbyname("machdep.cpu.brand_string", cpuName.data(), &cpu_len, NULL, 0) != 0)
+			if (sysctlbyname("machdep.cpu.brand_string", cpuName.data(), &cpu_len, NULL, 0) != 0 || cpu_len == 0)
 				cpuName.clear();
+			else if (!cpuName.empty() && cpuName.back() == '\0')
+				cpuName.pop_back();
 		}
 		#else
 		std::string cpuName = g_CPUFeatures.GetCPUName();
