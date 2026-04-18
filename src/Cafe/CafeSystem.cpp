@@ -467,7 +467,18 @@ namespace CafeSystem
 
 	void logCPUAndMemoryInfo()
 	{
+		#if BOOST_OS_MACOS
+		std::string cpuName;
+		size_t cpu_len = 0;
+		if (sysctlbyname("machdep.cpu.brand_string", NULL, &cpu_len, NULL, 0) == 0 && cpu_len > 1)
+		{
+			cpuName.resize(cpu_len);
+			if (sysctlbyname("machdep.cpu.brand_string", cpuName.data(), &cpu_len, NULL, 0) != 0)
+				cpuName.clear();
+		}
+		#else
 		std::string cpuName = g_CPUFeatures.GetCPUName();
+		#endif
 		if (!cpuName.empty())
 			cemuLog_log(LogType::Force, "CPU: {}", cpuName);
 		#if BOOST_OS_WINDOWS
