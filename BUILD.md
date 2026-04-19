@@ -164,7 +164,7 @@ To install the dependencies required to build Cemu, you will need to install Hom
 
 The following dependencies are required. You can install them using Homebrew with the following command:
 
-`brew install git cmake ninja nasm automake libtool boost`
+`brew install automake boost cmake git libtool nasm ninja pkgconf`
 
 ### MoltenVK
 
