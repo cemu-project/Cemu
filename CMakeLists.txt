@@ -78,7 +78,6 @@ set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
 
 if (MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
-	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY XCODE_STARTUP_PROJECT CemuBin)
 	# floating point model: precise, fiber safe optimizations
 	add_compile_options(/EHsc /fp:precise)
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -92,6 +91,10 @@ if (MSVC)
 	# enable additional optimization flags for release builds
 	add_compile_options($<$<CONFIG:Release,RelWithDebInfo>:/Oi>) # enable intrinsic functions
 	add_compile_options($<$<CONFIG:Release,RelWithDebInfo>:/Ot>) # favor speed
+endif()
+
+if(CMAKE_GENERATOR STREQUAL "Xcode")
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY XCODE_STARTUP_PROJECT CemuBin)
 endif()
 
 if (APPLE)
