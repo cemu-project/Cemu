@@ -194,16 +194,17 @@ void GraphicPacksWindow2::RefreshGraphicPacks()
 }
 
 GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_filter)
-	: wxDialog(parent, wxID_ANY, _("Graphic packs"), wxDefaultPosition, wxSize(1000,670), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER),
+	: wxDialog(parent, wxID_ANY, _("Graphic packs"), wxDefaultPosition, wxDefaultSize, wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER),
 		m_installed_games(CafeTitleList::GetAllTitleIds())
 {
+	SetIcon(wxICON(X_BOX));
+	SetSize(FromDIP(wxSize(1000, 670)));
+	SetMinSize(FromDIP(wxSize(500, 400)));
+
 	if (title_id_filter != 0)
 		m_filter = fmt::format("{:x}", title_id_filter);
 
 	m_filter_installed_games = !m_installed_games.empty();
-
-	SetIcon(wxICON(X_BOX));
-	SetMinSize(wxSize(500, 400));
 	auto main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	m_splitter_window = new wxSplitterWindow(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxSP_3D);
@@ -248,6 +249,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 	// right side
 	m_right_panel = new wxPanel(m_splitter_window, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxFULL_REPAINT_ON_RESIZE);
+	m_right_panel->Bind(wxEVT_SIZE, &GraphicPacksWindow2::OnRightPanelResized, this);
 	{
 		auto* sizer = new wxBoxSizer(wxVERTICAL);
 		{
@@ -259,7 +261,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 				auto* box = new wxStaticBox(m_gp_options, wxID_ANY, _("Graphic pack"));
 				auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
-				m_graphic_pack_name = new wxStaticText(box, wxID_ANY, wxEmptyString);
+				m_graphic_pack_name = new wxStaticText(box, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE);
 				box_sizer->Add(m_graphic_pack_name, 1, wxEXPAND | wxALL, 5);
 
 				inner_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -269,7 +271,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 				auto* box = new wxStaticBox(m_gp_options, wxID_ANY, _("Description"));
 				auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
-				m_graphic_pack_description = new wxStaticText(box, wxID_ANY, wxEmptyString);
+				m_graphic_pack_description = new wxStaticText(box, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxST_NO_AUTORESIZE);
 				box_sizer->Add(m_graphic_pack_description, 1, wxEXPAND | wxALL, 5);
 
 				inner_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -447,14 +449,11 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 			{
 				m_preset_sizer->Clear(true);
 				m_gp_name = gp->GetName();
-				m_graphic_pack_name->SetLabel(wxString::FromUTF8(m_gp_name));
 
 				if (gp->GetDescription().empty())
 					m_gp_description = _("This graphic pack has no description").utf8_string();
 				else
 					m_gp_description = gp->GetDescription();
-
-				m_graphic_pack_description->SetLabel(wxString::FromUTF8(m_gp_description));
 
 				LoadPresetSelections(gp);
 				
@@ -462,14 +461,7 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 
 				m_shown_graphic_pack = gp;
 
-				m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 20);
-				m_graphic_pack_name->GetGrandParent()->Layout();
-
-				m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 20);
-				m_graphic_pack_description->GetGrandParent()->Layout();
-
-				m_right_panel->FitInside();
-				m_right_panel->Layout();	
+				UpdateContentLayout();	
 			}
 			return;
 		}
@@ -599,6 +591,28 @@ void GraphicPacksWindow2::OnReloadShaders(wxCommandEvent& event)
 		ReloadPack(m_shown_graphic_pack);
 }
 
+void GraphicPacksWindow2::UpdateContentLayout()
+{
+	if (!m_shown_graphic_pack)
+		return;
+
+	const int available_width = m_right_panel->GetClientSize().GetWidth();
+	if (available_width <= 0)
+		return;
+
+	const int wrap_width = available_width - 30;
+	
+	m_graphic_pack_name->SetLabel(wxString::FromUTF8(m_gp_name));
+	m_graphic_pack_name->Wrap(wrap_width);
+	
+	m_graphic_pack_description->SetLabel(wxString::FromUTF8(m_gp_description));
+	m_graphic_pack_description->Wrap(wrap_width);
+	
+	m_gp_options->Layout();
+	m_gp_options->FitInside();
+	m_right_panel->Layout();
+}
+
 void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 {
 	DownloadGraphicPacksWindow frame(this);
@@ -637,6 +651,12 @@ void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 	}
 }
 
+void GraphicPacksWindow2::OnRightPanelResized(wxSizeEvent& event)
+{
+	UpdateContentLayout();
+	event.Skip();
+}
+
 void GraphicPacksWindow2::OnSizeChanged(wxSizeEvent& event)
 {
 	const auto obj = (wxSplitterWindow*)event.GetEventObject();
@@ -644,15 +664,6 @@ void GraphicPacksWindow2::OnSizeChanged(wxSizeEvent& event)
 
 	const auto width = std::max(obj->GetMinimumPaneSize(), obj->GetParent()->GetClientSize().GetWidth());
 	obj->SetSashPosition((sint32)(m_ratio * width));
-
-	if (!m_gp_name.empty())
-		m_graphic_pack_name->SetLabel(wxString::FromUTF8(m_gp_name));
-
-	if (!m_gp_description.empty())
-		m_graphic_pack_description->SetLabel(wxString::FromUTF8(m_gp_description));
-
-	m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 10);
-	m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
 
 	event.Skip();
 }
