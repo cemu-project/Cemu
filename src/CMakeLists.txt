@@ -116,7 +116,7 @@ if (MACOS_BUNDLE)
 	set(FOLDERS gameProfiles resources)
 	foreach(folder ${FOLDERS})
 		add_custom_command (TARGET CemuBin POST_BUILD
-			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app/Contents/SharedSupport/${folder}")
+			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "$<TARGET_BUNDLE_DIR:CemuBin>/Contents/SharedSupport/${folder}")
 	endforeach(folder)
 
 	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
@@ -132,31 +132,36 @@ if (MACOS_BUNDLE)
 	else()
 		message(FATAL_ERROR "failed to find libMoltenVK.dylib")
 	endif ()
+	set(UPDATE_SH_PATH "${CMAKE_SOURCE_DIR}/src/resource/update.sh")
 
-	set(APP_BUNDLE_DIR "${CMAKE_SOURCE_DIR}/bin/${OUTPUT_NAME}.app")
+	set(APP_BUNDLE_DIR "$<TARGET_BUNDLE_DIR:CemuBin>")
 	set(FRAMEWORKS_DIR "${APP_BUNDLE_DIR}/Contents/Frameworks")
 	set(RESOURCES_DIR  "${APP_BUNDLE_DIR}/Contents/Resources")
 
 	add_custom_command(TARGET CemuBin POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		COMMAND ${CMAKE_COMMAND} -E copy 
 			"${MOLTENVK_PATH}"
 			"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		COMMAND ${CMAKE_COMMAND} -E copy
 			"${LIBUSB_PATH}"
 			"${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
-		COMMAND ${CMAKE_COMMAND} -E copy_if_different
-			"${CMAKE_SOURCE_DIR}/src/resource/update.sh"
+		COMMAND ${CMAKE_COMMAND} -E copy
+			"${UPDATE_SH_PATH}"
 			"${RESOURCES_DIR}/update.sh"
-		COMMAND ${CMAKE_COMMAND} -E chmod +x "${RESOURCES_DIR}/update.sh"
-		COMMAND install_name_tool
-			-change @rpath/libusb-1.0.0.dylib
-					@executable_path/../Frameworks/libusb-1.0.0.dylib
-					"$<TARGET_FILE:CemuBin>"
+		COMMAND chmod 755
+			"${RESOURCES_DIR}/update.sh"
 	)
 
 	set_target_properties(CemuBin PROPERTIES
 		BUILD_WITH_INSTALL_RPATH TRUE
 		INSTALL_RPATH "@executable_path/../Frameworks"
+	)
+
+	add_custom_command(TARGET CemuBin POST_BUILD
+		COMMAND install_name_tool
+			-change @rpath/libusb-1.0.0.dylib
+					@executable_path/../Frameworks/libusb-1.0.0.dylib
+					"$<TARGET_FILE:CemuBin>"
 	)
 else()
     if(APPLE)
