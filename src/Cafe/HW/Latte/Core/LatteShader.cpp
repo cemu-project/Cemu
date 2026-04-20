@@ -6,7 +6,9 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#endif
 #include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "HW/Latte/Core/Latte.h"
@@ -683,20 +685,69 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 	return auxHash;
 }
 
+void InitUniformLayoutFromDecompiler(
+    LatteDecompilerShader* shader,
+    const LatteDecompilerOutput_t& decompilerOutput
+)
+{
+    const auto& offsets = decompilerOutput.uniformOffsetsVK;
+
+    shader->uniform.loc_remapped = offsets.offset_remapped;
+    shader->uniform.loc_uniformRegister = offsets.offset_uniformRegister;
+    shader->uniform.count_uniformRegister = offsets.count_uniformRegister;
+    shader->uniform.loc_windowSpaceToClipSpaceTransform = offsets.offset_windowSpaceToClipSpaceTransform;
+    shader->uniform.loc_alphaTestRef = offsets.offset_alphaTestRef;
+    shader->uniform.loc_pointSize = offsets.offset_pointSize;
+    shader->uniform.loc_fragCoordScale = offsets.offset_fragCoordScale;
+
+    // Texture scale uniforms
+    shader->uniform.list_ufTexRescale.clear();
+    for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
+    {
+        if (offsets.offset_texScale[t] >= 0)
+        {
+            LatteUniformTextureScaleEntry_t entry{};
+            entry.texUnit = t;
+            entry.uniformLocation = offsets.offset_texScale[t];
+            shader->uniform.list_ufTexRescale.push_back(entry);
+        }
+    }
+
+    shader->uniform.loc_verticesPerInstance = offsets.offset_verticesPerInstance;
+
+    // Streamout buffers
+    for (sint32 t = 0; t < LATTE_NUM_STREAMOUT_BUFFER; t++)
+    {
+        shader->uniform.loc_streamoutBufferBase[t] = offsets.offset_streamoutBufferBase[t];
+    }
+
+    shader->uniform.uniformRangeSize = offsets.offset_endOfBlock;
+}
+
 LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompilerOutput_t& decompilerOutput, uint64 baseHash, bool calculateAuxHash, uint64 optionalAuxHash, uint32* contextRegister)
 {
 	LatteDecompilerShader* shader = decompilerOutput.shader;
 	shader->baseHash = baseHash;
 	// copy resource mapping
 	// HACK
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
+	switch (g_renderer->GetType())
+	{
+#ifdef ENABLE_OPENGL
+	case RendererAPI::OpenGL:
 		shader->resourceMapping = decompilerOutput.resourceMappingGL;
-	else if (g_renderer->GetType() == RendererAPI::Vulkan)
-		shader->resourceMapping = decompilerOutput.resourceMappingVK;
-#if ENABLE_METAL
-	else
-		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
+		break;
 #endif
+#ifdef ENABLE_VULKAN
+	case RendererAPI::Vulkan:
+		shader->resourceMapping = decompilerOutput.resourceMappingVK;
+		break;
+#endif
+#if ENABLE_METAL
+	case RendererAPI::Metal:
+		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
+		break;
+#endif
+	}
 	// copy texture info
 	shader->textureUnitMask2 = decompilerOutput.textureUnitMask;
 	// copy streamout info
@@ -705,33 +756,23 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	// copy uniform offsets
 	// for OpenGL these are retrieved in _prepareSeparableUniforms()
 	// HACK
-	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
+	switch (g_renderer->GetType())
 	{
-		shader->uniform.loc_remapped = decompilerOutput.uniformOffsetsVK.offset_remapped;
-		shader->uniform.loc_uniformRegister = decompilerOutput.uniformOffsetsVK.offset_uniformRegister;
-		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsVK.count_uniformRegister;
-		shader->uniform.loc_windowSpaceToClipSpaceTransform = decompilerOutput.uniformOffsetsVK.offset_windowSpaceToClipSpaceTransform;
-		shader->uniform.loc_alphaTestRef = decompilerOutput.uniformOffsetsVK.offset_alphaTestRef;
-		shader->uniform.loc_pointSize = decompilerOutput.uniformOffsetsVK.offset_pointSize;
-		shader->uniform.loc_fragCoordScale = decompilerOutput.uniformOffsetsVK.offset_fragCoordScale;
-		for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
-		{
-			if (decompilerOutput.uniformOffsetsVK.offset_texScale[t] >= 0)
-			{
-				LatteUniformTextureScaleEntry_t entry = { 0 };
-				entry.texUnit = t;
-				entry.uniformLocation = decompilerOutput.uniformOffsetsVK.offset_texScale[t];
-				shader->uniform.list_ufTexRescale.push_back(entry);
-			}
-		}
-		shader->uniform.loc_verticesPerInstance = decompilerOutput.uniformOffsetsVK.offset_verticesPerInstance;
-		for (sint32 t = 0; t < LATTE_NUM_STREAMOUT_BUFFER; t++)
-			shader->uniform.loc_streamoutBufferBase[t] = decompilerOutput.uniformOffsetsVK.offset_streamoutBufferBase[t];
-		shader->uniform.uniformRangeSize = decompilerOutput.uniformOffsetsVK.offset_endOfBlock;
-	}
-	else
-	{
+#ifdef ENABLE_OPENGL
+	case RendererAPI::OpenGL:
 		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsGL.count_uniformRegister;
+		break;
+#endif
+#ifdef ENABLE_VULKAN
+	case RendererAPI::Vulkan:
+		InitUniformLayoutFromDecompiler(shader, decompilerOutput);
+		break;
+#endif
+#if ENABLE_METAL
+	case RendererAPI::Metal:
+		InitUniformLayoutFromDecompiler(shader, decompilerOutput);
+		break;
+#endif
 	}
 	// calculate aux hash
 	if (calculateAuxHash)
@@ -766,10 +807,12 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 	options.usesGeometryShader = geometryShaderEnabled;
 	options.spirvInstrinsics.hasRoundingModeRTEFloat32 = false;
 	options.useTFViaSSBO = g_renderer->UseTFViaSSBO();
+	#ifdef ENABLE_VULKAN
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
+	#endif
 	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;
 }
 

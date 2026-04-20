@@ -1,5 +1,9 @@
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
+#include "Cafe/HW/Latte/Renderer/Renderer.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
+#ifdef ENABLE_OPENGL
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
+#endif
 #include "config/ActiveSettings.h"
 
 const std::string RendererOutputShader::s_copy_shader_source =

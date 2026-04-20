@@ -11,8 +11,12 @@
 #include "wxgui/windows/TextureRelationViewer/TextureRelationWindow.h"
 #include "wxgui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.h"
 #include "AudioDebuggerWindow.h"
+#ifdef ENABLE_OPENGL
 #include "wxgui/canvas/OpenGLCanvas.h"
+#endif
+#ifdef ENABLE_VULKAN
 #include "wxgui/canvas/VulkanCanvas.h"
+#endif
 #if ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
 #endif
@@ -42,7 +46,9 @@
 #include "wxgui/DownloadGraphicPacksWindow.h"
 #include "wxgui/GettingStartedDialog.h"
 #include "wxgui/helpers/wxHelpers.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
+#endif
 #include "wxgui/input/InputSettings2.h"
 #include "wxgui/input/HotkeySettings.h"
 #include "input/InputManager.h"
@@ -1601,14 +1607,24 @@ void MainWindow::CreateCanvas()
     this->GetSizer()->Add(m_game_panel, 1, wxEXPAND);
 
     // create canvas
-    if (ActiveSettings::GetGraphicsAPI() == kVulkan)
+	if (ActiveSettings::GetGraphicsAPI() == kVulkan)
+	{
+		#ifdef ENABLE_VULKAN
 		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
+		#endif
+ 	}
 	else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
+	{
+		#ifdef ENABLE_OPENGL
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
+		#endif
+ 	}
 #if ENABLE_METAL
 	else
 	    m_render_canvas = new MetalCanvas(m_game_panel, wxSize(1280, 720), true);
 #endif
+
+	cemu_assert(m_render_canvas != nullptr);
 
 	// mouse events
 	m_render_canvas->Bind(wxEVT_MOTION, &MainWindow::OnMouseMove, this);
@@ -1670,7 +1686,9 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 
 	event.Skip();
 
+	#ifdef ENABLE_VULKAN
 	VsyncDriver_notifyWindowPosChanged();
+	#endif
 }
 
 void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
@@ -1691,7 +1709,9 @@ void MainWindow::OnMove(wxMoveEvent& event)
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), GetSize());
+	#ifdef ENABLE_VULKAN
 	VsyncDriver_notifyWindowPosChanged();
+	#endif
 }
 
 void MainWindow::OnDebuggerClose(wxCloseEvent& event)

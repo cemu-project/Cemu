@@ -1,6 +1,8 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/OS/libs/gx2/GX2_Event.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
+#endif
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "config/CemuConfig.h"
 #include "Cafe/CafeSystem.h"
@@ -55,8 +57,10 @@ void LatteTiming_EnableHostDrivenVSync()
 {
 	if (s_usingHostDrivenVSync)
 		return;
+	#ifdef ENABLE_VULKAN
 	VsyncDriver_startThread(LatteTiming_NotifyHostVSync);
 	s_usingHostDrivenVSync = true;
+	#endif
 }
 
 bool LatteTiming_IsUsingHostDrivenVSync()

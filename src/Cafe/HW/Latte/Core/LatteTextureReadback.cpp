@@ -6,7 +6,9 @@
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
+#ifdef ENABLE_OPENGL
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
+#endif
 
 #define LOG_READBACK_TIME
 

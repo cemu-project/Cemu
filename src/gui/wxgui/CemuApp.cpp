@@ -3,7 +3,9 @@
 #include "wxgui/MainWindow.h"
 #include "wxgui/wxgui.h"
 #include "config/CemuConfig.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#endif
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "config/ActiveSettings.h"
 #include "config/LaunchSettings.h"
@@ -349,7 +351,9 @@ bool CemuApp::OnInit()
 			__fastfail(0);
 	}
 #endif
+	#ifdef ENABLE_VULKAN
 	InitializeGlobalVulkan();
+	#endif
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);
 

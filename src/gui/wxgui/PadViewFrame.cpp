@@ -6,8 +6,12 @@
 
 #include "config/ActiveSettings.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
+#ifdef ENABLE_OPENGL
 #include "wxgui/canvas/OpenGLCanvas.h"
+#endif
+#ifdef ENABLE_VULKAN
 #include "wxgui/canvas/VulkanCanvas.h"
+#endif
 #if ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
 #endif
@@ -76,15 +80,24 @@ void PadViewFrame::InitializeRenderCanvas()
 	auto sizer = new wxBoxSizer(wxVERTICAL);
 	{
 		if (ActiveSettings::GetGraphicsAPI() == kVulkan)
+		{
+			#ifdef ENABLE_VULKAN
 			m_render_canvas = new VulkanCanvas(this, wxSize(854, 480), false);
+			#endif
+		}
 		else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
+		{
+			#ifdef ENABLE_OPENGL
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
+			#endif
+		}
 #if ENABLE_METAL
 		else
 		    m_render_canvas = new MetalCanvas(this, wxSize(854, 480), false);
 #endif
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);
 	}
+	cemu_assert(m_render_canvas != nullptr);
 	SetSizer(sizer);
 	Layout();
 

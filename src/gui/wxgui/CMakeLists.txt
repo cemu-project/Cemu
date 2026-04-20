@@ -1,9 +1,5 @@
 add_library(CemuWxGui STATIC
   canvas/IRenderCanvas.h
-  canvas/OpenGLCanvas.cpp
-  canvas/OpenGLCanvas.h
-  canvas/VulkanCanvas.cpp
-  canvas/VulkanCanvas.h
   CemuApp.cpp
   CemuApp.h
   CemuUpdateWindow.cpp
@@ -115,6 +111,20 @@ add_library(CemuWxGui STATIC
   wxgui.h
   wxHelper.h
 )
+
+if (ENABLE_OPENGL)
+  target_sources(CemuWxGui PRIVATE
+    canvas/OpenGLCanvas.cpp
+    canvas/OpenGLCanvas.h
+  )
+endif()
+
+if (ENABLE_VULKAN)
+  target_sources(CemuWxGui PRIVATE
+    canvas/VulkanCanvas.cpp
+    canvas/VulkanCanvas.h
+  )
+endif()
 
 if (ENABLE_METAL)
   target_sources(CemuWxGui PRIVATE
