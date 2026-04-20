@@ -1743,6 +1743,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 	{
 #ifdef ENABLE_OPENGL
 	case GraphicAPI::kOpenGL:
+	{
 		// OpenGL
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("On"));
@@ -1760,9 +1761,11 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		m_force_mesh_shaders->Disable();
 #endif
 		break;
+	}
 #endif
 #ifdef ENABLE_VULKAN
 	case GraphicAPI::kVulkan:
+	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
@@ -1801,9 +1804,11 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 			}
 		}
 		break;
+	}
 	#endif
 #if ENABLE_METAL
 	case GraphicAPI::kMetal:
+	{
 		// Metal
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
@@ -1837,6 +1842,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 			}
 		}
 		break;
+	}
 	}
 #endif
 }
