@@ -110,11 +110,11 @@ GraphicAPI ActiveSettings::GetGraphicsAPI()
 {
 	GraphicAPI api = g_current_game_profile->GetGraphicsAPI().value_or(GetConfig().graphic_api);
 
-	#ifdef ENABLE_VULKAN && HAS_OPENGL
+#if defined(ENABLE_VULKAN) && defined(ENABLE_OPENGL)
 	// check if vulkan even available
 	if (api == kVulkan && !g_vulkan_available)
 		api = kOpenGL;
-	#endif
+#endif
 	
 	return api;
 }
