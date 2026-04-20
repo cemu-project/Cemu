@@ -116,7 +116,7 @@ option(ENABLE_METAL "Enables the Metal backend" ${ENABLE_METAL_DEFAULT})
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
 if (ENABLE_OPENGL)
-	set_compile_definitions(ENABLE_OPENGL)
+	add_compile_definitions(ENABLE_OPENGL)
 endif()
 if (ENABLE_VULKAN)
 	add_compile_definitions(ENABLE_VULKAN)
