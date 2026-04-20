@@ -69,11 +69,13 @@ namespace CameraManager
         {
             while (s_capturing)
             {
-                s_mutex.lock();
-                if (s_stream && Cap_hasNewFrame(s_ctx, *s_stream) &&
+                if (s_mutex.try_lock() && s_stream && Cap_hasNewFrame(s_ctx, *s_stream) &&
                     Cap_captureFrame(s_ctx, *s_stream, s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE) == CAPRESULT_OK)
+                {
                     Rgb2Nv12(s_rgbBuffer, CAMERA_WIDTH, CAMERA_HEIGHT, s_nv12Buffer, CAMERA_PITCH);
-                s_mutex.unlock();
+                    s_mutex.unlock();
+                }
+
                 std::this_thread::sleep_for(std::chrono::milliseconds(30));
             }
             std::this_thread::sleep_for(std::chrono::seconds(1));
