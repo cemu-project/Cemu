@@ -117,10 +117,10 @@ option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
 if (ENABLE_OPENGL)
 	set_compile_definitions(ENABLE_OPENGL)
-else()
+endif()
 if (ENABLE_VULKAN)
 	add_compile_definitions(ENABLE_VULKAN)
-else()
+endif()
 
 if (ENABLE_METAL AND NOT APPLE)
     message(FATAL_ERROR "Metal backend is only supported on Apple platforms")
