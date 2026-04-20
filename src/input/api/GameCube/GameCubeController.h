@@ -3,7 +3,7 @@
 #include "input/api/Controller.h"
 #include "input/api/GameCube/GameCubeControllerProvider.h"
 
-#ifdef HAS_GAMECUBE
+#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && HAS_LIBUSB
 
 class GameCubeController : public Controller<GameCubeControllerProvider>
 {

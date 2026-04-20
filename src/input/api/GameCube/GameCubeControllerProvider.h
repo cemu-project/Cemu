@@ -1,9 +1,10 @@
 #pragma once
 
-#include "util/libusbWrapper/libusbWrapper.h"
 #include "input/api/ControllerProvider.h"
 
-#ifdef HAS_GAMECUBE
+#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && HAS_LIBUSB
+
+#include "util/libusbWrapper/libusbWrapper.h"
 
 class GameCubeControllerProvider : public ControllerProviderBase
 {

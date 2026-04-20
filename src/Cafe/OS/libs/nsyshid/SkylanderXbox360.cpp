@@ -2,6 +2,7 @@
 
 namespace nsyshid
 {
+	#if HAS_LIBUSB
 	SkylanderXbox360PortalLibusb::SkylanderXbox360PortalLibusb(std::shared_ptr<Device> usbPortal)
 		: Device(0x1430, 0x0150, 1, 2, 0)
 	{
@@ -157,4 +158,5 @@ namespace nsyshid
 	{
 		return true;
 	}
+	#endif
 } // namespace nsyshid

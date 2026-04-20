@@ -1,11 +1,14 @@
 #pragma once
 
 #include "nsyshid.h"
+#if HAS_LIBUSB
 #include "BackendLibusb.h"
 #include "g721/g721.h"
+#endif
 
 namespace nsyshid
 {
+	#if HAS_LIBUSB
 	class SkylanderXbox360PortalLibusb final : public Device {
 	  public:
 		SkylanderXbox360PortalLibusb(std::shared_ptr<Device> usbPortal);
@@ -40,6 +43,7 @@ namespace nsyshid
 		bool m_IsOpened;
 		struct g72x_state m_state;
 	};
+	#endif
 
 	constexpr uint8 XBOX_DATA_HEADER[] = { 0x0B, 0x14 };
 	constexpr uint8 XBOX_AUDIO_DATA_HEADER[] = { 0x0B, 0x17 };

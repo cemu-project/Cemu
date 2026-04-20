@@ -2,7 +2,7 @@
 #include "input/api/GameCube/GameCubeController.h"
 #include "util/libusbWrapper/libusbWrapper.h"
 
-#if HAS_GAMECUBE
+#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && HAS_LIBUSB
 
 constexpr uint16_t kVendorId = 0x57e, kProductId = 0x337;
 

@@ -40,7 +40,7 @@ InputManager::InputManager()
 #if HAS_DSU
 	create_provider<DSUControllerProvider>();
 #endif
-#if HAS_GAMECUBE
+#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && HAS_LIBUSB
 	create_provider<GameCubeControllerProvider>();
 #endif
 #if HAS_WIIMOTE

@@ -1,12 +1,15 @@
 #include "nsyshid.h"
 #include "Backend.h"
 #include "BackendEmulated.h"
+#if HAS_LIBUSB
 #include "BackendLibusb.h"
+#endif
 
 namespace nsyshid::backend
 {
 	void AttachDefaultBackends()
 	{
+	#if HAS_LIBUSB
 		// add libusb backend
 		{
 			auto backendLibusb = std::make_shared<backend::libusb::BackendLibusb>();
@@ -15,6 +18,7 @@ namespace nsyshid::backend
 				AttachBackend(backendLibusb);
 			}
 		}
+	#endif
 	   // add emulated backend
 		{
 			auto backendEmulated = std::make_shared<backend::emulated::BackendEmulated>();
