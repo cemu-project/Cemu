@@ -168,6 +168,8 @@ add_library(CemuCafe
   HW/Latte/Renderer/RendererOuputShader.h
   HW/Latte/Renderer/RendererShader.cpp
   HW/Latte/Renderer/RendererShader.h
+  HW/Latte/Renderer/Common/CommonRendererCore.cpp
+  HW/Latte/Renderer/Common/CommonRendererCore.h
   HW/Latte/ShaderInfo/ShaderDescription.cpp
   HW/Latte/ShaderInfo/ShaderInfo.h
   HW/Latte/ShaderInfo/ShaderInstanceInfo.cpp

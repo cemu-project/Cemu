@@ -13,71 +13,24 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/CachedFBOGL.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 
+#include "Cafe/HW/Latte/Renderer/Common/CommonRendererCore.h"
+
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h"
 
 #include "Cafe/GameProfile/GameProfile.h"
 #include "config/ActiveSettings.h"
 
-
-using _INDEX_TYPE = Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE;
-
 GLenum sGLActiveDrawMode = 0;
 
 extern bool hasValidFramebufferAttached;
-
-#define INDEX_CACHE_ENTRIES		(8)
-
-typedef struct
-{
-	MPTR prevIndexDataMPTR;
-	sint32 prevIndexType;
-	sint32 prevCount;
-	// index data
-	uint8* indexData;
-	uint8* indexData2;
-	uint32 indexBufferOffset;
-	sint32 indexDataSize; // current size
-	sint32 indexDataLimit; // maximum size
-	// info
-	uint32 maxIndex;
-	uint32 minIndex;
-}indexDataCacheEntry_t;
-
-struct
-{
-	indexDataCacheEntry_t indexCacheEntry[INDEX_CACHE_ENTRIES];
-	sint32 nextCacheEntryIndex;
-	// info about currently used index data
-	uint32 maxIndex;
-	uint32 minIndex;
-	uint8* indexData;
-	// buffer 
-	GLuint glIndexCacheBuffer;
-	VirtualBufferHeap_t* indexBufferVirtualHeap;
-	uint8* mappedIndexBuffer;
-	LatteRingBuffer_t* indexRingBuffer;
-	uint8* tempIndexStorage;
-	// misc
-	bool initialized;
-	GLuint glActiveElementArrayBuffer;
-}indexState = { 0 };
-
-struct
-{
-	uint8* vboOutput;
-	uint32 vboStride;
-	uint8 dataFormat;
-	uint8 nfa;
-	bool isSigned;
-}activeAttributePointer[LATTE_VS_ATTRIBUTE_LIMIT] = { 0 };
 
 void LatteDraw_resetAttributePointerCache()
 {
 	for (sint32 i = 0; i < LATTE_VS_ATTRIBUTE_LIMIT; i++)
 	{
-		activeAttributePointer[i].vboOutput = (uint8*)-1;
-		activeAttributePointer[i].vboStride = (uint32)-1;
+		CommonRenderer_setAttributePointerCacheVboOutput(i, (uint8*)-1);
+		CommonRenderer_setAttributePointerCacheVboStride(i, (uint32)-1);
 	}
 }
 
@@ -87,15 +40,21 @@ void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uin
 	bool isSigned = attrib->isSigned != 0;
 	uint8 nfa = attrib->nfa;
 	// don't call glVertexAttribIPointer if parameters have not changed
-	if (activeAttributePointer[attributeShaderLoc].vboOutput == vboOutput && activeAttributePointer[attributeShaderLoc].vboStride == vboStride && activeAttributePointer[attributeShaderLoc].dataFormat == dataFormat && activeAttributePointer[attributeShaderLoc].nfa == nfa && activeAttributePointer[attributeShaderLoc].isSigned == isSigned)
+	if (
+		CommonRenderer_getAttributePointerCacheVboOutput(attributeShaderLoc) == vboOutput &&
+		CommonRenderer_getAttributePointerCacheVboStride(attributeShaderLoc) == vboStride &&
+		CommonRenderer_getAttributePointerCacheDataFormat(attributeShaderLoc) == dataFormat &&
+		CommonRenderer_getAttributePointerCacheNfa(attributeShaderLoc) == nfa &&
+		CommonRenderer_getAttributePointerCacheIsSigned(attributeShaderLoc) == isSigned
+	)
 	{
 		return;
 	}
-	activeAttributePointer[attributeShaderLoc].vboOutput = vboOutput;
-	activeAttributePointer[attributeShaderLoc].vboStride = vboStride;
-	activeAttributePointer[attributeShaderLoc].dataFormat = dataFormat;
-	activeAttributePointer[attributeShaderLoc].nfa = nfa;
-	activeAttributePointer[attributeShaderLoc].isSigned = isSigned;
+	CommonRenderer_setAttributePointerCacheVboOutput(attributeShaderLoc, vboOutput);
+	CommonRenderer_setAttributePointerCacheVboStride(attributeShaderLoc, vboStride);
+	CommonRenderer_setAttributePointerCacheDataFormat(attributeShaderLoc, dataFormat);
+	CommonRenderer_setAttributePointerCacheNfa(attributeShaderLoc, nfa);
+	CommonRenderer_setAttributePointerCacheIsSigned(attributeShaderLoc, isSigned);
 	// setup attribute pointer
 	if (dataFormat == FMT_32_32_32_32_FLOAT || dataFormat == FMT_32_32_32_32)
 	{
@@ -194,111 +153,23 @@ void OpenGLRenderer::SetAttributeArrayState(uint32 index, bool isEnabled, sint32
 // Sets the currently active element array buffer and binds it
 void OpenGLRenderer::SetArrayElementBuffer(GLuint arrayElementBuffer)
 {
-	if (arrayElementBuffer == indexState.glActiveElementArrayBuffer)
+	indexState_t* indexState = CommonRenderer_getIndexState();
+	if (arrayElementBuffer == indexState->glActiveElementArrayBuffer)
 		return;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, arrayElementBuffer);
-	indexState.glActiveElementArrayBuffer = arrayElementBuffer;
-}
-
-typedef struct
-{
-	MPTR physAddr;
-	sint32 count;
-	uint32 primitiveRestartIndex;
-	uint32 primitiveMode;
-}indexDataCacheKey_t;
-
-typedef struct _indexDataCacheEntry_t
-{
-	indexDataCacheKey_t key;
-	_indexDataCacheEntry_t* nextInBucket; // points to next element in same bucket
-	uint32 physSize;
-	uint32 hash;
-	_INDEX_TYPE indexType;
-	//sint32 indexType;
-	uint32 minIndex;
-	uint32 maxIndex;
-	uint32 lastAccessFrameCount;
-	VirtualBufferHeapEntry_t* heapEntry;
-	_indexDataCacheEntry_t* nextInMostRecentUsage; // points to element which was used more recently
-	_indexDataCacheEntry_t* prevInMostRecentUsage; // points to element which was used less recently
-}indexDataCacheEntry2_t;
-
-#define INDEX_DATA_CACHE_BUCKETS		(1783)
-
-indexDataCacheEntry2_t* indexDataCacheBucket[INDEX_DATA_CACHE_BUCKETS] = { 0 };
-indexDataCacheEntry2_t* indexDataCacheFirst = nullptr; // points to least recently used item
-indexDataCacheEntry2_t* indexDataCacheLast = nullptr; // points to most recently used item
-sint32 indexDataCacheEntryCount = 0;
-
-void _appendToUsageLinkedList(indexDataCacheEntry2_t* entry)
-{
-	if (indexDataCacheLast == nullptr)
-	{
-		indexDataCacheLast = entry;
-		indexDataCacheFirst = entry;
-		entry->nextInMostRecentUsage = nullptr;
-		entry->prevInMostRecentUsage = nullptr;
-	}
-	else
-	{
-		indexDataCacheLast->nextInMostRecentUsage = entry;
-		entry->prevInMostRecentUsage = indexDataCacheLast;
-		entry->nextInMostRecentUsage = nullptr;
-		indexDataCacheLast = entry;
-	}
-}
-
-void _removeFromUsageLinkedList(indexDataCacheEntry2_t* entry)
-{
-	if (entry->prevInMostRecentUsage)
-	{
-		entry->prevInMostRecentUsage->nextInMostRecentUsage = entry->nextInMostRecentUsage;
-	}
-	else
-		indexDataCacheFirst = entry->nextInMostRecentUsage;
-	if (entry->nextInMostRecentUsage)
-	{
-		entry->nextInMostRecentUsage->prevInMostRecentUsage = entry->prevInMostRecentUsage;
-	}
-	else
-		indexDataCacheLast = entry->prevInMostRecentUsage;
-	entry->prevInMostRecentUsage = nullptr;
-	entry->nextInMostRecentUsage = nullptr;
-}
-
-void _removeFromBucket(indexDataCacheEntry2_t* entry)
-{
-	uint32 indexDataBucketIdx = (uint32)((entry->key.physAddr + entry->key.count) ^ (entry->key.physAddr >> 16)) % INDEX_DATA_CACHE_BUCKETS;
-	if (indexDataCacheBucket[indexDataBucketIdx] == entry)
-	{
-		indexDataCacheBucket[indexDataBucketIdx] = entry->nextInBucket;
-		entry->nextInBucket = nullptr;
-		return;
-	}
-	indexDataCacheEntry2_t* cacheEntryItr = indexDataCacheBucket[indexDataBucketIdx];
-	while (cacheEntryItr)
-	{
-		if (cacheEntryItr->nextInBucket == entry)
-		{
-			cacheEntryItr->nextInBucket = entry->nextInBucket;
-			entry->nextInBucket = nullptr;
-			return;
-		}
-		// next
-		cacheEntryItr = cacheEntryItr->nextInBucket;
-	}
+	indexState->glActiveElementArrayBuffer = arrayElementBuffer;
 }
 
 void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 {
 	uint32 count = cacheEntry->key.count;
 	uint32 primitiveRestartIndex = cacheEntry->key.primitiveRestartIndex;
+	indexState_t *indexState = CommonRenderer_getIndexState();
 	if (cacheEntry->indexType == _INDEX_TYPE::U16_BE)
 	{
 		// 16bit indices
 		uint16* indexInputU16 = (uint16*)memory_getPointerFromPhysicalOffset(cacheEntry->key.physAddr);
-		uint16* indexOutputU16 = (uint16*)indexState.tempIndexStorage;
+		uint16* indexOutputU16 = (uint16*)indexState->tempIndexStorage;
 		cemu_assert_debug(count != 0);
 		uint16 indexMinU16 = 0xFFFF;
 		uint16 indexMaxU16 = 0;
@@ -334,14 +205,14 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 		}
 		cacheEntry->minIndex = indexMinU16;
 		cacheEntry->maxIndex = indexMaxU16;
-		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, cacheEntry->heapEntry->startOffset, count * sizeof(uint16), indexState.tempIndexStorage);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, cacheEntry->heapEntry->startOffset, count * sizeof(uint16), indexState->tempIndexStorage);
 		performanceMonitor.cycle[performanceMonitor.cycleIndex].indexDataUploaded += (count * sizeof(uint16));
 	}
 	else if(cacheEntry->indexType == _INDEX_TYPE::U32_BE)
 	{
 		// 32bit indices
 		uint32* indexInputU32 = (uint32*)memory_getPointerFromPhysicalOffset(cacheEntry->key.physAddr);
-		uint32* indexOutputU32 = (uint32*)indexState.tempIndexStorage;
+		uint32* indexOutputU32 = (uint32*)indexState->tempIndexStorage;
 		cemu_assert_debug(count != 0);
 		uint32 indexMinU32 = _swapEndianU32(*indexInputU32);
 		uint32 indexMaxU32 = _swapEndianU32(*indexInputU32);
@@ -359,7 +230,7 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 		}
 		cacheEntry->minIndex = indexMinU32;
 		cacheEntry->maxIndex = indexMaxU32;
-		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, cacheEntry->heapEntry->startOffset, count * sizeof(uint32), indexState.tempIndexStorage);
+		glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, cacheEntry->heapEntry->startOffset, count * sizeof(uint32), indexState->tempIndexStorage);
 		performanceMonitor.cycle[performanceMonitor.cycleIndex].indexDataUploaded += (count * sizeof(uint32));
 	}
 	else
@@ -368,33 +239,18 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 	}
 }
 
-
-void LatteDraw_cleanupAfterFrame()
-{
-	// drop everything from cache that is older than 30 frames
-	uint32 frameCounter = LatteGPUState.frameCounter;
-	while (indexDataCacheFirst)
-	{
-		indexDataCacheEntry2_t* entry = indexDataCacheFirst;
-		if ((frameCounter - entry->lastAccessFrameCount) < 30)
-			break;
-		// remove entry
-		virtualBufferHeap_free(indexState.indexBufferVirtualHeap, entry->heapEntry);
-		_removeFromUsageLinkedList(entry);
-		_removeFromBucket(entry);
-		free(entry);
-	}
-}
-
 void LatteDrawGL_removeLeastRecentlyUsedIndexCacheEntries(sint32 count)
 {
-	while (indexDataCacheFirst && count > 0)
+	indexState_t *indexState = CommonRenderer_getIndexState();
+	indexDataCacheEntry2_t** indexDataCacheFirst = CommonRenderer_getIndexDataCacheFirst();
+
+	while (*indexDataCacheFirst && count > 0)
 	{
-		indexDataCacheEntry2_t* entry = indexDataCacheFirst;
+		indexDataCacheEntry2_t* entry = *indexDataCacheFirst;
 		// remove entry
-		virtualBufferHeap_free(indexState.indexBufferVirtualHeap, entry->heapEntry);
-		_removeFromUsageLinkedList(entry);
-		_removeFromBucket(entry);
+		virtualBufferHeap_free(indexState->indexBufferVirtualHeap, entry->heapEntry);
+		CommonRenderer_removeFromUsageLinkedList(entry);
+		CommonRenderer_removeFromBucket(entry);
 		free(entry);
 		count--;
 	}
@@ -432,19 +288,22 @@ uint32 LatteDrawGL_calculateIndexDataHash(uint8* data, uint32 size)
 // todo - Outdated cache implementation. Update OpenGL renderer to use the generic implementation that is also used by the Vulkan renderer
 void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE indexType, sint32 count, sint32 primitiveMode)
 {
+	indexState_t* indexState = CommonRenderer_getIndexState();
+	indexDataCacheEntry2_t** indexDataCacheFirst = CommonRenderer_getIndexDataCacheFirst();
+
 	if (indexType == _INDEX_TYPE::AUTO)
 	{
-		indexState.minIndex = 0;
-		indexState.maxIndex = count - 1;
+		indexState->minIndex = 0;
+		indexState->maxIndex = count - 1;
 		// since no indices are used we don't need to unbind the element array buffer
 		return; // automatic indices
 	}
 
-	OpenGLRenderer::SetArrayElementBuffer(indexState.glIndexCacheBuffer);
+	OpenGLRenderer::SetArrayElementBuffer(indexState->glIndexCacheBuffer);
 	uint32 indexDataBucketIdx = (uint32)((indexDataMPTR + count) ^ (indexDataMPTR >> 16)) % INDEX_DATA_CACHE_BUCKETS;
 	// find matching entry
 	uint32 primitiveRestartIndex = LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
-	indexDataCacheEntry2_t* cacheEntryItr = indexDataCacheBucket[indexDataBucketIdx];
+	indexDataCacheEntry2_t* cacheEntryItr = *CommonRenderer_getIndexDataCacheBucket(indexDataBucketIdx);
 	indexDataCacheKey_t compareKey;
 	compareKey.physAddr = indexDataMPTR;
 	compareKey.count = count;
@@ -459,9 +318,9 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 			continue;
 		}
 		// entry found
-		indexState.minIndex = cacheEntryItr->minIndex;
-		indexState.maxIndex = cacheEntryItr->maxIndex;
-		indexState.indexData = (uint8*)(size_t)cacheEntryItr->heapEntry->startOffset;
+		indexState->minIndex = cacheEntryItr->minIndex;
+		indexState->maxIndex = cacheEntryItr->maxIndex;
+		indexState->indexData = (uint8*)(size_t)cacheEntryItr->heapEntry->startOffset;
 		cacheEntryItr->lastAccessFrameCount = LatteGPUState.frameCounter;
 		// check if the data changed
 		uint32 h = LatteDrawGL_calculateIndexDataHash(memory_getPointerFromPhysicalOffset(indexDataMPTR), cacheEntryItr->physSize);
@@ -472,8 +331,8 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 			cacheEntryItr->hash = h;
 		}
 		// move entry to the front
-		_removeFromUsageLinkedList(cacheEntryItr);
-		_appendToUsageLinkedList(cacheEntryItr);
+		CommonRenderer_removeFromUsageLinkedList(cacheEntryItr);
+		CommonRenderer_appendToUsageLinkedList(cacheEntryItr);
 		return;
 	}
 	// calculate size of index data in cache
@@ -483,16 +342,16 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 	else
 		cacheIndexDataSize = count * sizeof(uint32);
 	// no matching entry, create new one
-	VirtualBufferHeapEntry_t* heapEntry = virtualBufferHeap_allocate(indexState.indexBufferVirtualHeap, cacheIndexDataSize);
+	VirtualBufferHeapEntry_t* heapEntry = virtualBufferHeap_allocate(indexState->indexBufferVirtualHeap, cacheIndexDataSize);
 	if (heapEntry == nullptr)
 	{
 		while (true)
 		{
 			LatteDrawGL_removeLeastRecentlyUsedIndexCacheEntries(10);
-			heapEntry = virtualBufferHeap_allocate(indexState.indexBufferVirtualHeap, cacheIndexDataSize);
+			heapEntry = virtualBufferHeap_allocate(indexState->indexBufferVirtualHeap, cacheIndexDataSize);
 			if (heapEntry != nullptr)
 				break;
-			if (indexDataCacheFirst == nullptr)
+			if (*indexDataCacheFirst == nullptr)
 			{
 				cemuLog_log(LogType::Force, "Unable to allocate entry in index cache");
 				assert_dbg();
@@ -511,17 +370,19 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 	cacheEntry->heapEntry = heapEntry;
 	cacheEntry->lastAccessFrameCount = LatteGPUState.frameCounter;
 	// append entry in bucket list
-	cacheEntry->nextInBucket = indexDataCacheBucket[indexDataBucketIdx];
-	indexDataCacheBucket[indexDataBucketIdx] = cacheEntry;
+	indexDataCacheEntry2_t** bucket = CommonRenderer_getIndexDataCacheBucket(indexDataBucketIdx);
+	cacheEntry->nextInBucket = *bucket;
+	*bucket = cacheEntry;
 	// append as most recently used entry
-	_appendToUsageLinkedList(cacheEntry);
+	CommonRenderer_appendToUsageLinkedList(cacheEntry);
 	// decode and upload the data
 	_decodeAndUploadIndexData(cacheEntry);
 
-	indexDataCacheEntryCount++;
-	indexState.minIndex = cacheEntry->minIndex;
-	indexState.maxIndex = cacheEntry->maxIndex;
-	indexState.indexData = (uint8*)(size_t)cacheEntry->heapEntry->startOffset;
+	sint32* indexDataCacheEntryCount = CommonRenderer_getIndexDataCacheEntryCount();
+	(*indexDataCacheEntryCount)++;
+	indexState->minIndex = cacheEntry->minIndex;
+	indexState->maxIndex = cacheEntry->maxIndex;
+	indexState->indexData = (uint8*)(size_t)cacheEntry->heapEntry->startOffset;
 }
 
 void LatteDraw_handleSpecialState8_clearAsDepth()
@@ -590,19 +451,20 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 
 void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count)
 {
+	indexState_t* indexState = CommonRenderer_getIndexState();
 	if (indexType == _INDEX_TYPE::U16_BE)
 	{
 		// 16bit index, big endian
 		if (instanceCount > 1 || baseInstance != 0)
 		{
-			glDrawElementsInstancedBaseVertexBaseInstance(sGLActiveDrawMode, count, GL_UNSIGNED_SHORT, indexState.indexData, instanceCount, baseVertex, baseInstance);
+			glDrawElementsInstancedBaseVertexBaseInstance(sGLActiveDrawMode, count, GL_UNSIGNED_SHORT, indexState->indexData, instanceCount, baseVertex, baseInstance);
 		}
 		else
 		{
 			if (baseVertex != 0)
-				glDrawRangeElementsBaseVertex(sGLActiveDrawMode, indexState.minIndex, indexState.maxIndex, count, GL_UNSIGNED_SHORT, indexState.indexData, baseVertex);
+				glDrawRangeElementsBaseVertex(sGLActiveDrawMode, indexState->minIndex, indexState->maxIndex, count, GL_UNSIGNED_SHORT, indexState->indexData, baseVertex);
 			else
-				glDrawRangeElements(sGLActiveDrawMode, indexState.minIndex, indexState.maxIndex, count, GL_UNSIGNED_SHORT, indexState.indexData);
+				glDrawRangeElements(sGLActiveDrawMode, indexState->minIndex, indexState->maxIndex, count, GL_UNSIGNED_SHORT, indexState->indexData);
 		}
 	}
 	else if (indexType == _INDEX_TYPE::U32_BE)
@@ -611,11 +473,11 @@ void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseIns
 		if (instanceCount > 1 || baseInstance != 0)
 		{
 			//debug_printf("Render instanced\n");
-			glDrawElementsInstancedBaseVertexBaseInstance(sGLActiveDrawMode, count, GL_UNSIGNED_INT, indexState.indexData, instanceCount, baseVertex, baseInstance);
+			glDrawElementsInstancedBaseVertexBaseInstance(sGLActiveDrawMode, count, GL_UNSIGNED_INT, indexState->indexData, instanceCount, baseVertex, baseInstance);
 		}
 		else
 		{
-			glDrawRangeElementsBaseVertex(sGLActiveDrawMode, indexState.minIndex, indexState.maxIndex, count, GL_UNSIGNED_INT, indexState.indexData, baseVertex);
+			glDrawRangeElementsBaseVertex(sGLActiveDrawMode, indexState->minIndex, indexState->maxIndex, count, GL_UNSIGNED_INT, indexState->indexData, baseVertex);
 		}
 	}
 	else if (indexType == _INDEX_TYPE::AUTO)
@@ -1040,7 +902,8 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	endPerfMonProfiling(performanceMonitor.gpuTime_dcStageIndexMgr);
 
 	// synchronize vertex and uniform buffers
-	LatteBufferCache_Sync(indexState.minIndex + baseVertex, indexState.maxIndex + baseVertex, baseInstance, instanceCount);
+	indexState_t *indexState = CommonRenderer_getIndexState();
+	LatteBufferCache_Sync(indexState->minIndex + baseVertex, indexState->maxIndex + baseVertex, baseInstance, instanceCount);
 
 	_setupVertexAttributes();
 
@@ -1231,23 +1094,24 @@ void OpenGLRenderer::draw_endSequence()
 
 void OpenGLRenderer::draw_init()
 {
-	if (indexState.initialized)
+	indexState_t* indexState = CommonRenderer_getIndexState();
+	if (indexState->initialized)
 		return;
-	indexState.initialized = true;
+	indexState->initialized = true;
 	// create index buffer
-	glGenBuffers(1, &indexState.glIndexCacheBuffer);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexState.glIndexCacheBuffer);
+	glGenBuffers(1, &indexState->glIndexCacheBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexState->glIndexCacheBuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR, NULL, GL_DYNAMIC_DRAW);
 #if BOOST_OS_WINDOWS
-	indexState.mappedIndexBuffer = (uint8*)_aligned_malloc(GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR, 256);
+	indexState->mappedIndexBuffer = (uint8*)_aligned_malloc(GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR, 256);
 #else
-	indexState.mappedIndexBuffer = (uint8*)aligned_alloc(256, GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR);
+	indexState->mappedIndexBuffer = (uint8*)aligned_alloc(256, GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR);
 #endif
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	indexState.indexRingBuffer = LatteRingBuffer_create(indexState.mappedIndexBuffer, GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR);
-	indexState.tempIndexStorage = (uint8*)malloc(1024 * 1024 * 8);
+	indexState->indexRingBuffer = LatteRingBuffer_create(indexState->mappedIndexBuffer, GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR);
+	indexState->tempIndexStorage = (uint8*)malloc(1024 * 1024 * 8);
 	// create virtual heap for index buffer
-	indexState.indexBufferVirtualHeap = virtualBufferHeap_create(GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR);
+	indexState->indexBufferVirtualHeap = virtualBufferHeap_create(GPU7_INDEX_BUFFER_CACHE_SIZE_DEPR);
 }
 
 void OpenGLRenderer::bufferCache_upload(uint8* buffer, sint32 size, uint32 bufferOffset)
