@@ -95,4 +95,4 @@ sint32* CommonRenderer_getIndexDataCacheEntryCount();
 void CommonRenderer_appendToUsageLinkedList(indexDataCacheEntry2_t* entry);
 void CommonRenderer_removeFromUsageLinkedList(indexDataCacheEntry2_t* entry);
 void CommonRenderer_removeFromBucket(indexDataCacheEntry2_t* entry);
-void CommonRenderer_cleanupAfterFrame();
+void LatteDraw_cleanupAfterFrame();

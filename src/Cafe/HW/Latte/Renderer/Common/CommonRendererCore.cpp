@@ -137,7 +137,7 @@ void CommonRenderer_removeFromBucket(indexDataCacheEntry2_t* entry)
 	}
 }
 
-void CommonRenderer_cleanupAfterFrame()
+void LatteDraw_cleanupAfterFrame()
 {
 	// drop everything from cache that is older than 30 frames
 	uint32 frameCounter = LatteGPUState.frameCounter;
