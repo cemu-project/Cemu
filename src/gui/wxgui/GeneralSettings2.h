@@ -1,4 +1,5 @@
 #pragma once
+#include "config/CemuConfig.h"
 #include <wx/collpane.h>
 #include <wx/propgrid/propgrid.h>
 #include <Cafe/Account/Account.h>
@@ -15,6 +16,8 @@ class wxSpinCtrlDouble;
 class wxStaticText;
 
 wxDECLARE_EVENT(wxEVT_ACCOUNTLIST_REFRESH, wxCommandEvent);
+
+#define NUM_GRAPHICS_APIS 3
 
 class GeneralSettings2 : public wxDialog
 {
@@ -36,6 +39,7 @@ private:
 	bool m_game_launched;
 
 	bool m_has_account_change = false; // keep track of dirty state of accounts
+	std::vector<GraphicAPI> m_api_map; // map from dropdown index to GraphicsAPISetting, used in HandleGraphicsApiSelection
 
 
 	wxPanel* AddGeneralPage(wxNotebook* notebook);

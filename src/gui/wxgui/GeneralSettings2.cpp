@@ -27,8 +27,10 @@
 
 #include "audio/IAudioInputAPI.h"
 
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#endif
 #if ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #endif
@@ -87,6 +89,7 @@ private:
 	IAudioInputAPI::DeviceDescriptionPtr m_description;
 };
 
+#ifdef ENABLE_VULKAN
 class wxVulkanUUID : public wxClientData
 {
 public:
@@ -97,6 +100,7 @@ public:
 private:
 	VulkanRenderer::DeviceInfo m_device_info;
 };
+#endif
 
 #if ENABLE_METAL
 class wxMetalUUID : public wxClientData
@@ -352,15 +356,25 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 
 		row->Add(new wxStaticText(box, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		sint32 api_size = 1;
-		wxString choices[3] = { "OpenGL" };
+		sint32 api_size = 0;
+		wxString choices[NUM_GRAPHICS_APIS];
+
+#ifdef ENABLE_OPENGL
+		choices[api_size++] = "OpenGL";
+		m_api_map.push_back(GraphicAPI::kOpenGL);
+#endif
+#ifdef ENABLE_VULKAN
 		if (g_vulkan_available)
 		{
 			choices[api_size++] = "Vulkan";
+			m_api_map.push_back(GraphicAPI::kVulkan);
 		}
+#endif
 #if ENABLE_METAL
 		choices[api_size++] = "Metal";
+		m_api_map.push_back(GraphicAPI::kMetal);
 #endif
+		wxASSERT(api_size > 0);
 
 		m_graphic_api = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, api_size, choices);
 		m_graphic_api->SetSelection(0);
@@ -1219,6 +1233,7 @@ void GeneralSettings2::StoreConfig()
 	config.graphic_api = (GraphicAPI)m_graphic_api->GetSelection();
 
 	selection = m_graphic_device->GetSelection();
+#ifdef ENABLE_VULKAN
 	if (config.graphic_api == GraphicAPI::kVulkan)
 	{
     	if (selection != wxNOT_FOUND)
@@ -1232,19 +1247,20 @@ void GeneralSettings2::StoreConfig()
     	else
     		config.vk_graphic_device_uuid = {};
 	}
+#endif
 #if ENABLE_METAL
-	else if (config.graphic_api == GraphicAPI::kMetal)
+	if (config.graphic_api == GraphicAPI::kMetal)
 	{
-        if (selection != wxNOT_FOUND)
-    	{
-    		const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
-    		if (info)
-    			config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
-    		else
-    			config.mtl_graphic_device_uuid = {};
-    	}
-    	else
-    		config.mtl_graphic_device_uuid = {};
+		if (selection != wxNOT_FOUND)
+		{
+			const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
+			if (info)
+				config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+			else
+				config.mtl_graphic_device_uuid = {};
+		}
+		else
+			config.mtl_graphic_device_uuid = {};
 	}
 #endif
 
@@ -1721,8 +1737,12 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		selection = GetConfig().vsync;
 
 	m_vsync->Clear();
-	if (m_graphic_api->GetSelection() == 0)
+
+	auto api = m_api_map[m_graphic_api->GetSelection()];
+	switch (api)
 	{
+#ifdef ENABLE_OPENGL
+	case GraphicAPI::kOpenGL:
 		// OpenGL
 		m_vsync->AppendString(_("Off"));
 		m_vsync->AppendString(_("On"));
@@ -1739,9 +1759,10 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 #if ENABLE_METAL
 		m_force_mesh_shaders->Disable();
 #endif
-	}
-	else if (m_graphic_api->GetSelection() == 1)
-	{
+		break;
+#endif
+#ifdef ENABLE_VULKAN
+	case GraphicAPI::kVulkan:
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
@@ -1779,10 +1800,10 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 				}
 			}
 		}
-	}
+		break;
+	#endif
 #if ENABLE_METAL
-	else
-	{
+	case GraphicAPI::kMetal:
 		// Metal
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
@@ -1815,6 +1836,7 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 				}
 			}
 		}
+		break;
 	}
 #endif
 }
@@ -1870,7 +1892,7 @@ void GeneralSettings2::ApplyConfig()
 	}
 
 	// graphics
-	m_graphic_api->SetSelection(config.graphic_api);
+	m_graphic_api->SetSelection((int)config.graphic_api);
 	m_vsync->SetSelection(config.vsync);
 	m_overrideGamma->SetValue(config.overrideAppGammaPreference);
 	m_overrideGammaValue->SetValue(config.overrideGammaValue);
