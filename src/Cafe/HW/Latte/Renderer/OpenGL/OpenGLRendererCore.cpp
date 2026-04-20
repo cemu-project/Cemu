@@ -27,11 +27,7 @@ extern bool hasValidFramebufferAttached;
 
 void LatteDraw_resetAttributePointerCache()
 {
-	for (sint32 i = 0; i < LATTE_VS_ATTRIBUTE_LIMIT; i++)
-	{
-		CommonRenderer_setAttributePointerCacheVboOutput(i, (uint8*)-1);
-		CommonRenderer_setAttributePointerCacheVboStride(i, (uint32)-1);
-	}
+	CommonRenderer_resetAttributePointerCache();
 }
 
 void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uint32 bufferSize, uint32 stride, LatteParsedFetchShaderAttribute_t* attrib, uint8* vboOutput, uint32 vboStride)
@@ -40,21 +36,11 @@ void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uin
 	bool isSigned = attrib->isSigned != 0;
 	uint8 nfa = attrib->nfa;
 	// don't call glVertexAttribIPointer if parameters have not changed
-	if (
-		CommonRenderer_getAttributePointerCacheVboOutput(attributeShaderLoc) == vboOutput &&
-		CommonRenderer_getAttributePointerCacheVboStride(attributeShaderLoc) == vboStride &&
-		CommonRenderer_getAttributePointerCacheDataFormat(attributeShaderLoc) == dataFormat &&
-		CommonRenderer_getAttributePointerCacheNfa(attributeShaderLoc) == nfa &&
-		CommonRenderer_getAttributePointerCacheIsSigned(attributeShaderLoc) == isSigned
-	)
-	{
+	bool attributePointerChanged = CommonRenderer_checkIfAttributePointerCacheChanged(attributeShaderLoc, vboOutput, vboStride, dataFormat, nfa, isSigned);
+	if (!attributePointerChanged) {
 		return;
 	}
-	CommonRenderer_setAttributePointerCacheVboOutput(attributeShaderLoc, vboOutput);
-	CommonRenderer_setAttributePointerCacheVboStride(attributeShaderLoc, vboStride);
-	CommonRenderer_setAttributePointerCacheDataFormat(attributeShaderLoc, dataFormat);
-	CommonRenderer_setAttributePointerCacheNfa(attributeShaderLoc, nfa);
-	CommonRenderer_setAttributePointerCacheIsSigned(attributeShaderLoc, isSigned);
+	
 	// setup attribute pointer
 	if (dataFormat == FMT_32_32_32_32_FLOAT || dataFormat == FMT_32_32_32_32)
 	{
@@ -383,70 +369,6 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 	indexState->minIndex = cacheEntry->minIndex;
 	indexState->maxIndex = cacheEntry->maxIndex;
 	indexState->indexData = (uint8*)(size_t)cacheEntry->heapEntry->startOffset;
-}
-
-void LatteDraw_handleSpecialState8_clearAsDepth()
-{
-	if (LatteGPUState.contextNew.GetSpecialStateValues()[0] == 0)
-		cemuLog_logDebug(LogType::Force, "Special state 8 requires special state 0 but it is not set?");
-	// get depth buffer information
-	uint32 regDepthBuffer = LatteGPUState.contextRegister[mmDB_HTILE_DATA_BASE];
-	uint32 regDepthSize = LatteGPUState.contextRegister[mmDB_DEPTH_SIZE];
-	uint32 regDepthBufferInfo = LatteGPUState.contextRegister[mmDB_DEPTH_INFO];
-	// get format and tileMode from info reg
-	uint32 depthBufferTileMode = (regDepthBufferInfo >> 15) & 0xF;
-
-	MPTR depthBufferPhysMem = regDepthBuffer << 8;
-	uint32 depthBufferPitch = (((regDepthSize >> 0) & 0x3FF) + 1);
-	uint32 depthBufferHeight = ((((regDepthSize >> 10) & 0xFFFFF) + 1) / depthBufferPitch);
-	depthBufferPitch <<= 3;
-	depthBufferHeight <<= 3;
-	uint32 depthBufferWidth = depthBufferPitch;
-
-	sint32 sliceIndex = 0; // todo
-	sint32 mipIndex = 0;
-
-	// clear all color buffers that match the format of the depth buffer
-	sint32 searchIndex = 0;
-	bool targetFound = false;
-	while (true)
-	{
-		LatteTextureView* view = LatteTC_LookupTextureByData(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, 1, sliceIndex, 1, &searchIndex);
-		if (!view)
-		{
-			// should we clear in RAM instead?
-			break;
-		}
-		sint32 effectiveClearWidth = view->baseTexture->width;
-		sint32 effectiveClearHeight = view->baseTexture->height;
-		LatteTexture_scaleToEffectiveSize(view->baseTexture, &effectiveClearWidth, &effectiveClearHeight, 0);
-
-		// hacky way to get clear color
-		float* regClearColor = (float*)(LatteGPUState.contextRegister + 0xC000 + 0); // REG_BASE_ALU_CONST
-
-		uint8 clearColor[4] = { 0 };
-		clearColor[0] = (uint8)(regClearColor[0] * 255.0f);
-		clearColor[1] = (uint8)(regClearColor[1] * 255.0f);
-		clearColor[2] = (uint8)(regClearColor[2] * 255.0f);
-		clearColor[3] = (uint8)(regClearColor[3] * 255.0f);
-
-		// todo - use fragment shader software emulation (evoke for one pixel) to determine clear color
-		// todo - dont clear entire slice, use effectiveClearWidth, effectiveClearHeight
-
-		if (g_renderer->GetType() == RendererAPI::OpenGL)
-		{
-			//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
-			if (glClearTexSubImage)
-				glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
-		}
-		else
-		{
-			if (view->baseTexture->isDepth)
-				g_renderer->texture_clearDepthSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, true, view->baseTexture->hasStencil, 0.0f, 0);
-			else
-				g_renderer->texture_clearColorSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		}
-	}
 }
 
 void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count)

@@ -33,7 +33,7 @@ extern bool hasValidFramebufferAttached;
 
 float supportBufferData[512 * 4];
 
-// Defined in the OpenGL renderer
+// Defined in the Common renderer
 void LatteDraw_handleSpecialState8_clearAsDepth();
 
 std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()

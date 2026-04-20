@@ -77,16 +77,9 @@ typedef struct _indexDataCacheEntry_t
 	_indexDataCacheEntry_t* prevInMostRecentUsage; // points to element which was used less recently
 }indexDataCacheEntry2_t;
 
-uint8* 	CommonRenderer_getAttributePointerCacheVboOutput(uint32 attributeShaderLoc);
-void 	CommonRenderer_setAttributePointerCacheVboOutput(uint32 attributeShaderLoc, uint8* vboOutput);
-uint32 	CommonRenderer_getAttributePointerCacheVboStride(uint32 attributeShaderLoc);
-void 	CommonRenderer_setAttributePointerCacheVboStride(uint32 attributeShaderLoc, uint32 vboStride);
-uint8 	CommonRenderer_getAttributePointerCacheDataFormat(uint32 attributeShaderLoc);
-void 	CommonRenderer_setAttributePointerCacheDataFormat(uint32 attributeShaderLoc, uint8 dataFormat);
-uint8 	CommonRenderer_getAttributePointerCacheNfa(uint32 attributeShaderLoc);
-void 	CommonRenderer_setAttributePointerCacheNfa(uint32 attributeShaderLoc, uint8 nfa);
-bool 	CommonRenderer_getAttributePointerCacheIsSigned(uint32 attributeShaderLoc);
-void 	CommonRenderer_setAttributePointerCacheIsSigned(uint32 attributeShaderLoc, bool isSigned);
+void CommonRenderer_resetAttributePointerCache();
+bool CommonRenderer_checkIfAttributePointerCacheChanged(uint32 attributeShaderLoc, uint8* vboOutput, uint32 vboStride, uint8 dataFormat, uint8 nfa, bool isSigned);
+
 indexState_t* CommonRenderer_getIndexState();
 indexDataCacheEntry2_t** CommonRenderer_getIndexDataCacheFirst();
 indexDataCacheEntry2_t** CommonRenderer_getIndexDataCacheBucket(uint32 bucketIdx);
@@ -96,3 +89,4 @@ void CommonRenderer_appendToUsageLinkedList(indexDataCacheEntry2_t* entry);
 void CommonRenderer_removeFromUsageLinkedList(indexDataCacheEntry2_t* entry);
 void CommonRenderer_removeFromBucket(indexDataCacheEntry2_t* entry);
 void LatteDraw_cleanupAfterFrame();
+void LatteDraw_handleSpecialState8_clearAsDepth();
