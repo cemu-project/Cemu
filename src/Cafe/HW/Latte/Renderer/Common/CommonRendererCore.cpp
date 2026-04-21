@@ -4,7 +4,7 @@
 #include "config/CemuConfig.h"
 
 #ifdef ENABLE_OPENGL
-#include "Common/GLInclude/glFunctions.h"
+#include "Common/GLInclude/GLInclude.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 #endif
 
