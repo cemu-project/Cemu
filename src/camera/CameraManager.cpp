@@ -14,11 +14,12 @@
 namespace CameraManager
 {
     static std::mutex s_mutex;
+    static std::mutex s_bufferMutex;
     static CapContext s_ctx;
     static std::optional<CapDeviceID> s_device;
     static std::optional<CapStream> s_stream;
-    static uint8_t* s_rgbBuffer;
-    static uint8_t* s_nv12Buffer;
+    static uint8_t* s_rgbBufferOut;
+    static uint8_t* s_nv12BufferOut;
     static int s_refCount = 0;
     static std::thread s_captureThread;
     static std::atomic_bool s_capturing = false;
@@ -65,14 +66,22 @@ namespace CameraManager
     static void CaptureWorkerFunc()
     {
         SetThreadName("CameraManager");
+        auto rgbBuffer = new uint8[CAMERA_RGB_BUFFER_SIZE];
+        auto nv12Buffer = new uint8[CAMERA_NV12_BUFFER_SIZE];
         while (s_running)
         {
             while (s_capturing)
             {
-                if (s_mutex.try_lock() && s_stream && Cap_hasNewFrame(s_ctx, *s_stream) &&
-                    Cap_captureFrame(s_ctx, *s_stream, s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE) == CAPRESULT_OK)
+                if (s_mutex.try_lock())
                 {
-                    Rgb2Nv12(s_rgbBuffer, CAMERA_WIDTH, CAMERA_HEIGHT, s_nv12Buffer, CAMERA_PITCH);
+                    if (s_stream && Cap_hasNewFrame(s_ctx, *s_stream) &&
+                        Cap_captureFrame(s_ctx, *s_stream, rgbBuffer, CAMERA_RGB_BUFFER_SIZE) == CAPRESULT_OK)
+                    {
+                        Rgb2Nv12(rgbBuffer, CAMERA_WIDTH, CAMERA_HEIGHT, nv12Buffer, CAMERA_PITCH);
+                        std::scoped_lock lock(s_bufferMutex);
+                        std::swap(s_rgbBufferOut, rgbBuffer);
+                        std::swap(s_nv12BufferOut, nv12Buffer);
+                    }
                     s_mutex.unlock();
                 }
 
@@ -81,6 +90,8 @@ namespace CameraManager
             std::this_thread::sleep_for(std::chrono::seconds(1));
             std::this_thread::yield();
         }
+        delete[] rgbBuffer;
+        delete[] nv12Buffer;
     }
 
     static void OpenStream()
@@ -107,10 +118,11 @@ namespace CameraManager
 
     static void ResetBuffers()
     {
-        std::fill_n(s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE, 0);
+        std::scoped_lock lock(s_bufferMutex);
+        std::fill_n(s_rgbBufferOut, CAMERA_RGB_BUFFER_SIZE, 0);
         constexpr static auto PIXEL_COUNT = CAMERA_HEIGHT * CAMERA_PITCH;
-        std::ranges::fill_n(s_nv12Buffer, PIXEL_COUNT, 16);
-        std::ranges::fill_n(s_nv12Buffer + PIXEL_COUNT, (PIXEL_COUNT / 2), 128);
+        std::ranges::fill_n(s_nv12BufferOut, PIXEL_COUNT, 16);
+        std::ranges::fill_n(s_nv12BufferOut + PIXEL_COUNT, (PIXEL_COUNT / 2), 128);
     }
 
     static std::vector<DeviceInfo> InternalEnumerateDevices()
@@ -141,8 +153,8 @@ namespace CameraManager
         s_ctx = Cap_createContext();
         Cap_setLogLevel(4);
         Cap_installCustomLogFunction(CaptureLogFunction);
-        s_rgbBuffer = new uint8[CAMERA_RGB_BUFFER_SIZE];
-        s_nv12Buffer = new uint8[CAMERA_NV12_BUFFER_SIZE];
+        s_rgbBufferOut = new uint8[CAMERA_RGB_BUFFER_SIZE];
+        s_nv12BufferOut = new uint8[CAMERA_NV12_BUFFER_SIZE];
 
         s_captureThread = std::thread(&CaptureWorkerFunc);
 
@@ -168,20 +180,20 @@ namespace CameraManager
         Cap_releaseContext(s_ctx);
         s_running = false;
         s_captureThread.join();
-        delete[] s_rgbBuffer;
-        delete[] s_nv12Buffer;
+        delete[] s_rgbBufferOut;
+        delete[] s_nv12BufferOut;
     }
 
     void FillNV12Buffer(std::span<uint8, CAMERA_NV12_BUFFER_SIZE> nv12Buffer)
     {
-        std::scoped_lock lock(s_mutex);
-        std::ranges::copy_n(s_nv12Buffer, CAMERA_NV12_BUFFER_SIZE, nv12Buffer.data());
+        std::scoped_lock lock(s_bufferMutex);
+        std::ranges::copy_n(s_nv12BufferOut, CAMERA_NV12_BUFFER_SIZE, nv12Buffer.data());
     }
 
     void FillRGBBuffer(std::span<uint8, CAMERA_RGB_BUFFER_SIZE> rgbBuffer)
     {
-        std::scoped_lock lock(s_mutex);
-        std::ranges::copy_n(s_rgbBuffer, CAMERA_RGB_BUFFER_SIZE, rgbBuffer.data());
+        std::scoped_lock lock(s_bufferMutex);
+        std::ranges::copy_n(s_rgbBufferOut, CAMERA_RGB_BUFFER_SIZE, rgbBuffer.data());
     }
 
     void SetDevice(uint32 deviceNo)
