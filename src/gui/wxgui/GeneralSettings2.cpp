@@ -1843,8 +1843,8 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		}
 		break;
 	}
-	}
 #endif
+	}
 }
 
 void GeneralSettings2::ApplyConfig()
