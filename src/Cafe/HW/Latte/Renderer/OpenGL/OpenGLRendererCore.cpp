@@ -27,7 +27,7 @@ extern bool hasValidFramebufferAttached;
 
 void LatteDraw_resetAttributePointerCache()
 {
-	CommonRenderer_resetAttributePointerCache();
+	RendererCore_resetAttributePointerCache();
 }
 
 void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uint32 bufferSize, uint32 stride, LatteParsedFetchShaderAttribute_t* attrib, uint8* vboOutput, uint32 vboStride)
@@ -36,7 +36,7 @@ void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uin
 	bool isSigned = attrib->isSigned != 0;
 	uint8 nfa = attrib->nfa;
 	// don't call glVertexAttribIPointer if parameters have not changed
-	bool attributePointerChanged = CommonRenderer_checkIfAttributePointerCacheChanged(attributeShaderLoc, vboOutput, vboStride, dataFormat, nfa, isSigned);
+	bool attributePointerChanged = RendererCore_checkIfAttributePointerCacheChanged(attributeShaderLoc, vboOutput, vboStride, dataFormat, nfa, isSigned);
 	if (!attributePointerChanged) {
 		return;
 	}
@@ -139,7 +139,7 @@ void OpenGLRenderer::SetAttributeArrayState(uint32 index, bool isEnabled, sint32
 // Sets the currently active element array buffer and binds it
 void OpenGLRenderer::SetArrayElementBuffer(GLuint arrayElementBuffer)
 {
-	indexState_t* indexState = CommonRenderer_getIndexState();
+	indexState_t* indexState = RendererCore_getIndexState();
 	if (arrayElementBuffer == indexState->glActiveElementArrayBuffer)
 		return;
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, arrayElementBuffer);
@@ -150,7 +150,7 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 {
 	uint32 count = cacheEntry->key.count;
 	uint32 primitiveRestartIndex = cacheEntry->key.primitiveRestartIndex;
-	indexState_t *indexState = CommonRenderer_getIndexState();
+	indexState_t *indexState = RendererCore_getIndexState();
 	if (cacheEntry->indexType == _INDEX_TYPE::U16_BE)
 	{
 		// 16bit indices
@@ -227,16 +227,16 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 
 void LatteDrawGL_removeLeastRecentlyUsedIndexCacheEntries(sint32 count)
 {
-	indexState_t *indexState = CommonRenderer_getIndexState();
-	indexDataCacheEntry2_t** indexDataCacheFirst = CommonRenderer_getIndexDataCacheFirst();
+	indexState_t *indexState = RendererCore_getIndexState();
+	indexDataCacheEntry2_t** indexDataCacheFirst = RendererCore_getIndexDataCacheFirst();
 
 	while (*indexDataCacheFirst && count > 0)
 	{
 		indexDataCacheEntry2_t* entry = *indexDataCacheFirst;
 		// remove entry
 		virtualBufferHeap_free(indexState->indexBufferVirtualHeap, entry->heapEntry);
-		CommonRenderer_removeFromUsageLinkedList(entry);
-		CommonRenderer_removeFromBucket(entry);
+		RendererCore_removeFromUsageLinkedList(entry);
+		RendererCore_removeFromBucket(entry);
 		free(entry);
 		count--;
 	}
@@ -274,8 +274,8 @@ uint32 LatteDrawGL_calculateIndexDataHash(uint8* data, uint32 size)
 // todo - Outdated cache implementation. Update OpenGL renderer to use the generic implementation that is also used by the Vulkan renderer
 void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE indexType, sint32 count, sint32 primitiveMode)
 {
-	indexState_t* indexState = CommonRenderer_getIndexState();
-	indexDataCacheEntry2_t** indexDataCacheFirst = CommonRenderer_getIndexDataCacheFirst();
+	indexState_t* indexState = RendererCore_getIndexState();
+	indexDataCacheEntry2_t** indexDataCacheFirst = RendererCore_getIndexDataCacheFirst();
 
 	if (indexType == _INDEX_TYPE::AUTO)
 	{
@@ -289,7 +289,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 	uint32 indexDataBucketIdx = (uint32)((indexDataMPTR + count) ^ (indexDataMPTR >> 16)) % INDEX_DATA_CACHE_BUCKETS;
 	// find matching entry
 	uint32 primitiveRestartIndex = LatteGPUState.contextNew.VGT_MULTI_PRIM_IB_RESET_INDX.get_RESTART_INDEX();
-	indexDataCacheEntry2_t* cacheEntryItr = *CommonRenderer_getIndexDataCacheBucket(indexDataBucketIdx);
+	indexDataCacheEntry2_t* cacheEntryItr = *RendererCore_getIndexDataCacheBucket(indexDataBucketIdx);
 	indexDataCacheKey_t compareKey;
 	compareKey.physAddr = indexDataMPTR;
 	compareKey.count = count;
@@ -317,8 +317,8 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 			cacheEntryItr->hash = h;
 		}
 		// move entry to the front
-		CommonRenderer_removeFromUsageLinkedList(cacheEntryItr);
-		CommonRenderer_appendToUsageLinkedList(cacheEntryItr);
+		RendererCore_removeFromUsageLinkedList(cacheEntryItr);
+		RendererCore_appendToUsageLinkedList(cacheEntryItr);
 		return;
 	}
 	// calculate size of index data in cache
@@ -356,15 +356,15 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 	cacheEntry->heapEntry = heapEntry;
 	cacheEntry->lastAccessFrameCount = LatteGPUState.frameCounter;
 	// append entry in bucket list
-	indexDataCacheEntry2_t** bucket = CommonRenderer_getIndexDataCacheBucket(indexDataBucketIdx);
+	indexDataCacheEntry2_t** bucket = RendererCore_getIndexDataCacheBucket(indexDataBucketIdx);
 	cacheEntry->nextInBucket = *bucket;
 	*bucket = cacheEntry;
 	// append as most recently used entry
-	CommonRenderer_appendToUsageLinkedList(cacheEntry);
+	RendererCore_appendToUsageLinkedList(cacheEntry);
 	// decode and upload the data
 	_decodeAndUploadIndexData(cacheEntry);
 
-	sint32* indexDataCacheEntryCount = CommonRenderer_getIndexDataCacheEntryCount();
+	sint32* indexDataCacheEntryCount = RendererCore_getIndexDataCacheEntryCount();
 	(*indexDataCacheEntryCount)++;
 	indexState->minIndex = cacheEntry->minIndex;
 	indexState->maxIndex = cacheEntry->maxIndex;
@@ -373,7 +373,7 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 
 void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count)
 {
-	indexState_t* indexState = CommonRenderer_getIndexState();
+	indexState_t* indexState = RendererCore_getIndexState();
 	if (indexType == _INDEX_TYPE::U16_BE)
 	{
 		// 16bit index, big endian
@@ -824,7 +824,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	endPerfMonProfiling(performanceMonitor.gpuTime_dcStageIndexMgr);
 
 	// synchronize vertex and uniform buffers
-	indexState_t *indexState = CommonRenderer_getIndexState();
+	indexState_t *indexState = RendererCore_getIndexState();
 	LatteBufferCache_Sync(indexState->minIndex + baseVertex, indexState->maxIndex + baseVertex, baseInstance, instanceCount);
 
 	_setupVertexAttributes();
@@ -1016,7 +1016,7 @@ void OpenGLRenderer::draw_endSequence()
 
 void OpenGLRenderer::draw_init()
 {
-	indexState_t* indexState = CommonRenderer_getIndexState();
+	indexState_t* indexState = RendererCore_getIndexState();
 	if (indexState->initialized)
 		return;
 	indexState->initialized = true;

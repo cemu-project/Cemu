@@ -1,4 +1,4 @@
-#include "CommonRendererCore.h"
+#include "RendererCore.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "config/CemuConfig.h"
@@ -16,7 +16,7 @@ indexDataCacheEntry2_t* indexDataCacheFirst = nullptr; // points to least recent
 indexDataCacheEntry2_t* indexDataCacheLast = nullptr; // points to most recently used item
 sint32 indexDataCacheEntryCount = 0;
 
-void CommonRenderer_resetAttributePointerCache()
+void RendererCore_resetAttributePointerCache()
 {
 	for (sint32 i = 0; i < LATTE_VS_ATTRIBUTE_LIMIT; i++)
 	{
@@ -25,7 +25,7 @@ void CommonRenderer_resetAttributePointerCache()
 	}
 }
 
-bool CommonRenderer_checkIfAttributePointerCacheChanged(uint32 attributeShaderLoc, uint8* vboOutput, uint32 vboStride, uint8 dataFormat, uint8 nfa, bool isSigned)
+bool RendererCore_checkIfAttributePointerCacheChanged(uint32 attributeShaderLoc, uint8* vboOutput, uint32 vboStride, uint8 dataFormat, uint8 nfa, bool isSigned)
 {
 	// don't call glVertexAttribPointer if parameters have not changed
 	if (
@@ -47,27 +47,27 @@ bool CommonRenderer_checkIfAttributePointerCacheChanged(uint32 attributeShaderLo
 	return true;
 }
 
-indexState_t* CommonRenderer_getIndexState()
+indexState_t* RendererCore_getIndexState()
 {
 	return &indexState;
 }
 
-indexDataCacheEntry2_t** CommonRenderer_getIndexDataCacheFirst()
+indexDataCacheEntry2_t** RendererCore_getIndexDataCacheFirst()
 {
 	return &indexDataCacheFirst;
 }
 
-indexDataCacheEntry2_t** CommonRenderer_getIndexDataCacheBucket(uint32 bucketIdx)
+indexDataCacheEntry2_t** RendererCore_getIndexDataCacheBucket(uint32 bucketIdx)
 {
 	return &indexDataCacheBucket[bucketIdx];
 }
 
-sint32* CommonRenderer_getIndexDataCacheEntryCount()
+sint32* RendererCore_getIndexDataCacheEntryCount()
 {
 	return &indexDataCacheEntryCount;
 }
 
-void CommonRenderer_appendToUsageLinkedList(indexDataCacheEntry2_t* entry)
+void RendererCore_appendToUsageLinkedList(indexDataCacheEntry2_t* entry)
 {
 	if (indexDataCacheLast == nullptr)
 	{
@@ -85,7 +85,7 @@ void CommonRenderer_appendToUsageLinkedList(indexDataCacheEntry2_t* entry)
 	}
 }
 
-void CommonRenderer_removeFromUsageLinkedList(indexDataCacheEntry2_t* entry)
+void RendererCore_removeFromUsageLinkedList(indexDataCacheEntry2_t* entry)
 {
 	if (entry->prevInMostRecentUsage)
 	{
@@ -103,7 +103,7 @@ void CommonRenderer_removeFromUsageLinkedList(indexDataCacheEntry2_t* entry)
 	entry->nextInMostRecentUsage = nullptr;
 }
 
-void CommonRenderer_removeFromBucket(indexDataCacheEntry2_t* entry)
+void RendererCore_removeFromBucket(indexDataCacheEntry2_t* entry)
 {
 	uint32 indexDataBucketIdx = (uint32)((entry->key.physAddr + entry->key.count) ^ (entry->key.physAddr >> 16)) % INDEX_DATA_CACHE_BUCKETS;
 	if (indexDataCacheBucket[indexDataBucketIdx] == entry)
@@ -137,8 +137,8 @@ void LatteDraw_cleanupAfterFrame()
 			break;
 		// remove entry
 		virtualBufferHeap_free(indexState.indexBufferVirtualHeap, entry->heapEntry);
-		CommonRenderer_removeFromUsageLinkedList(entry);
-		CommonRenderer_removeFromBucket(entry);
+		RendererCore_removeFromUsageLinkedList(entry);
+		RendererCore_removeFromBucket(entry);
 		free(entry);
 	}
 }
@@ -200,6 +200,7 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 			//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
 			if (glClearTexSubImage)
 				glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
+			break;
 		}
 #endif
 		default:
