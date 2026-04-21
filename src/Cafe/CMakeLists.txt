@@ -494,10 +494,8 @@ add_library(CemuCafe
 
 if (ENABLE_OPENGL)
   target_sources(CemuCafe PRIVATE
-    HW/Latte/Core/LatteDefaultShaders.cpp
-    HW/Latte/Core/LatteDefaultShaders.h
-    HW/Latte/Core/LatteShaderGL.cpp
     HW/Latte/Renderer/OpenGL/CachedFBOGL.h
+    HW/Latte/Renderer/OpenGL/LatteShaderGL.cpp
     HW/Latte/Renderer/OpenGL/LatteTextureGL.cpp
     HW/Latte/Renderer/OpenGL/LatteTextureGL.h
     HW/Latte/Renderer/OpenGL/LatteTextureViewGL.cpp
