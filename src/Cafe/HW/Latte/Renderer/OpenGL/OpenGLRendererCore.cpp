@@ -13,7 +13,7 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/CachedFBOGL.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/RendererShaderGL.h"
 
-#include "Cafe/HW/Latte/Renderer/Common/CommonRendererCore.h"
+#include "Cafe/HW/Latte/Renderer/RendererCore.h"
 
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h"

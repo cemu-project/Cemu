@@ -26,7 +26,6 @@ bool gxShader_checkIfSuccessfullyLinked(GLuint glProgram)
 
 void LatteShader_prepareSeparableUniforms(LatteDecompilerShader* shader)
 {
-#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() != RendererAPI::OpenGL)
 		return;
 
@@ -66,7 +65,6 @@ void LatteShader_prepareSeparableUniforms(LatteDecompilerShader* shader)
 			shader->uniform.list_ufTexRescale.push_back(entry);
 		}
 	}
-#endif
 }
 GLuint gpu7ShaderGLDepr_compileShader(const std::string& source, uint32_t type)
 {

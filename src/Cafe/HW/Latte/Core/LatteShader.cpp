@@ -378,7 +378,9 @@ void LatteShader_FinishCompilation(LatteDecompilerShader* shader)
 	}
 	shader->shader->WaitForCompiled();
 
+#ifdef ENABLE_OPENGL
 	LatteShader_prepareSeparableUniforms(shader);
+#endif
 	LatteShader_CleanupAfterCompile(shader);
 }
 
