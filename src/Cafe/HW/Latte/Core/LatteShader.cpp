@@ -552,7 +552,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
       		    vsHash += 51ULL;
 
             // Vertex fetch
-            if (_activeFetchShader->mtlFetchVertexManually)
+			if (_activeFetchShader->mtlFetchVertexManually)
                 vsHash += 349ULL;
 		}
 	}
@@ -807,12 +807,12 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 	options.usesGeometryShader = geometryShaderEnabled;
 	options.spirvInstrinsics.hasRoundingModeRTEFloat32 = false;
 	options.useTFViaSSBO = g_renderer->UseTFViaSSBO();
-	#ifdef ENABLE_VULKAN
+#ifdef ENABLE_VULKAN
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
-	#endif
+#endif
 	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;
 }
 
@@ -888,12 +888,14 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	LatteShader_CreateRendererShader(vertexShader, false);
 	performanceMonitor.numCompiledVS++;
 
+#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (vertexShader->shader)
 			vertexShader->shader->PreponeCompilation(true);
 		LatteShader_FinishCompilation(vertexShader);
 	}
+#endif
 
 	LatteSHRC_RegisterShader(vertexShader, vertexShader->baseHash, vertexShader->auxHash);
 	return vertexShader;
@@ -917,12 +919,14 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	LatteShader_CreateRendererShader(geometryShader, false);
 	performanceMonitor.numCompiledGS++;
 
+#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (geometryShader->shader)
 			geometryShader->shader->PreponeCompilation(true);
 		LatteShader_FinishCompilation(geometryShader);
 	}
+#endif
 
 	LatteSHRC_RegisterShader(geometryShader, geometryShader->baseHash, geometryShader->auxHash);
 	return geometryShader;
@@ -946,12 +950,14 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 		LatteShaderCache_writeSeparablePixelShader(_shaderBaseHash_ps, psAuxHash, pixelShaderPtr, pixelShaderSize, LatteGPUState.contextRegister, usesGeometryShader);
 	}
 
+#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (pixelShader->shader)
 			pixelShader->shader->PreponeCompilation(true);
 		LatteShader_FinishCompilation(pixelShader);
 	}
+#endif
 
 	LatteSHRC_RegisterShader(pixelShader, _shaderBaseHash_ps, psAuxHash);
 	return pixelShader;

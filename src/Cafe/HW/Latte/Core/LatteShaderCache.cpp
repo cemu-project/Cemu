@@ -394,10 +394,17 @@ void LatteShaderCache_Load()
 
 	// get cache file name
 	fs::path pathGeneric;
-	if (g_renderer->GetType() == RendererAPI::Metal)
+	switch(g_renderer->GetType())
+	{
+#if ENABLE_METAL
+	case RendererAPI::Metal:
 	    pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_mtlshaders.bin", cacheTitleId);
-	else
+		break;
+#endif
+	default:
 	    pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
+		break;
+	}
 
 	// calculate extraVersion for transferable and precompiled shader cache
 	uint32 transferableExtraVersion = SHADER_CACHE_GENERIC_EXTRA_VERSION;
@@ -495,8 +502,10 @@ void LatteShaderCache_Load()
 #endif
 	LatteShaderCache_finish();
 	// if Vulkan or Metal then also load pipeline cache
+#if defined(ENABLE_VULKAN) || ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
         LatteShaderCache_LoadPipelineCache(cacheTitleId);
+#endif
 
 
 	g_renderer->BeginFrame(true);

@@ -108,15 +108,22 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 			key = std::rotl<uint64>(key, 8);
 			key += (uint64)attrib->semanticId;
 			key = std::rotl<uint64>(key, 8);
-			if (g_renderer->GetType() == RendererAPI::Metal)
+			switch(g_renderer->GetType())
+			{
+#if	ENABLE_METAL
+			case RendererAPI::Metal:
 			{
 			    key += (uint64)attrib->offset;
 				key = std::rotl<uint64>(key, 7);
+				break;
 			}
-			else
+#endif
+			default:
 			{
 				key += (uint64)(attrib->offset & 3);
 				key = std::rotl<uint64>(key, 2);
+				break;
+			}
 			}
 		}
 	}
