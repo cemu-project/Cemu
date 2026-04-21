@@ -252,7 +252,7 @@ RendererOutputShader::RendererOutputShader(const std::string& vertex_source, con
     std::string finalFragmentSrc;
 	switch(g_renderer->GetType())
 	{
-#if defined(ENABLE_METAL)
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		finalFragmentSrc = fragment_source;
 		break;
@@ -497,7 +497,7 @@ void RendererOutputShader::InitializeStatic()
 {
 	switch(g_renderer->GetType())
 	{
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
     case RendererAPI::Metal:
     {
         std::string vertex_source = GetMetalVertexSource(false);

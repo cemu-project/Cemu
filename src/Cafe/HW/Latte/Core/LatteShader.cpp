@@ -17,7 +17,7 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #endif
 #include <cinttypes>
@@ -529,7 +529,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	if (LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF())
 		vsHash += 0x1537;
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
 	    bool isRectVertexShader = (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
@@ -654,7 +654,7 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 		auxHash += (uint64)dim;
 	}
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
 		// Textures as render targets
@@ -744,7 +744,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 		shader->resourceMapping = decompilerOutput.resourceMappingVK;
 		break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
 		break;
@@ -770,7 +770,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 		InitUniformLayoutFromDecompiler(shader, decompilerOutput);
 		break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		InitUniformLayoutFromDecompiler(shader, decompilerOutput);
 		break;

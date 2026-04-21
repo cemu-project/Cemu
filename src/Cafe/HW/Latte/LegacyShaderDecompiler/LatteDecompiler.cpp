@@ -1083,7 +1083,7 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 				LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
 				break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 			case RendererAPI::Metal:
 				LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
 				break;

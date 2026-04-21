@@ -16,7 +16,7 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h"
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/RendererShaderMtl.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalPipelineCache.h"
 #endif
@@ -289,7 +289,7 @@ void LatteShaderCache_finish()
 		RendererShaderGL::ShaderCacheLoading_end();
 		return;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		RendererShaderMtl::ShaderCacheLoading_end();
 		return;
@@ -385,7 +385,7 @@ void LatteShaderCache_Load()
 		RendererShaderGL::ShaderCacheLoading_begin(cacheTitleId);
 		break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		RendererShaderMtl::ShaderCacheLoading_begin(cacheTitleId);
 		break;
@@ -396,7 +396,7 @@ void LatteShaderCache_Load()
 	fs::path pathGeneric;
 	switch(g_renderer->GetType())
 	{
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 	    pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_mtlshaders.bin", cacheTitleId);
 		break;
@@ -502,7 +502,7 @@ void LatteShaderCache_Load()
 #endif
 	LatteShaderCache_finish();
 	// if Vulkan or Metal then also load pipeline cache
-#if defined(ENABLE_VULKAN) || ENABLE_METAL
+#if defined(ENABLE_VULKAN) || defined(ENABLE_METAL)
 	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
         LatteShaderCache_LoadPipelineCache(cacheTitleId);
 #endif
@@ -674,7 +674,7 @@ void LatteShaderCache_LoadPipelineCache(uint64 cacheTitleId)
 	    g_shaderCacheLoaderState.pipelineFileCount = VulkanPipelineStableCache::GetInstance().BeginLoading(cacheTitleId);
 	    break;
 	#endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		g_shaderCacheLoaderState.pipelineFileCount = MetalPipelineCache::GetInstance().BeginLoading(cacheTitleId);
 		break;
@@ -691,7 +691,7 @@ void LatteShaderCache_LoadPipelineCache(uint64 cacheTitleId)
 	    VulkanPipelineStableCache::GetInstance().EndLoading();
 	    break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		MetalPipelineCache::GetInstance().EndLoading();
 		break;
@@ -708,7 +708,7 @@ bool LatteShaderCache_updatePipelineLoadingProgress()
 	case RendererAPI::Vulkan:
 	    return VulkanPipelineStableCache::GetInstance().UpdateLoading(g_shaderCacheLoaderState.loadedPipelines, pipelinesMissingShaders);
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		return MetalPipelineCache::GetInstance().UpdateLoading(g_shaderCacheLoaderState.loadedPipelines, pipelinesMissingShaders);
 #endif
@@ -984,7 +984,7 @@ void LatteShaderCache_Close()
 		RendererShaderGL::ShaderCacheLoading_Close();
 		break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		RendererShaderMtl::ShaderCacheLoading_Close();
 		break;
@@ -999,7 +999,7 @@ void LatteShaderCache_Close()
 	    VulkanPipelineStableCache::GetInstance().Close();
 		break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 	    MetalPipelineCache::GetInstance().Close();
 		break;

@@ -105,7 +105,7 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 			renderer = "[Vulkan]";
 			break;
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		case RendererAPI::Metal:
 			renderer = "[Metal]";
 			break;

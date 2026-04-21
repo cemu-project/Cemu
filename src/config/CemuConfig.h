@@ -444,7 +444,7 @@ struct CemuConfig
 	ConfigValue<bool> gx2drawdone_sync { true };
 	ConfigValue<bool> render_upside_down{ false };
 	ConfigValue<bool> async_compile{ true };
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	ConfigValue<bool> force_mesh_shaders{ false };
 #endif
 
@@ -510,7 +510,7 @@ struct CemuConfig
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
 	ConfigValue<uint16> gdb_port{ 1337 };
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	ConfigValue<std::string> gpu_capture_dir{ "" };
 	ConfigValue<bool> framebuffer_fetch{ true };
 #endif

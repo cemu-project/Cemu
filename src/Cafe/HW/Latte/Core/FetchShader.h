@@ -55,7 +55,7 @@ struct LatteFetchShader
 
 	void CalculateFetchShaderVkHash();
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	void CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister);
 #endif
 

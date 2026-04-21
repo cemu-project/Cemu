@@ -12,7 +12,7 @@
 #ifdef ENABLE_VULKAN
 #include "wxgui/canvas/VulkanCanvas.h"
 #endif
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
 #endif
 #include "config/CemuConfig.h"
@@ -91,7 +91,7 @@ void PadViewFrame::InitializeRenderCanvas()
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
 			#endif
 		}
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		else
 		    m_render_canvas = new MetalCanvas(this, wxSize(854, 480), false);
 #endif
