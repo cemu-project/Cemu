@@ -17,8 +17,6 @@ class wxStaticText;
 
 wxDECLARE_EVENT(wxEVT_ACCOUNTLIST_REFRESH, wxCommandEvent);
 
-#define NUM_GRAPHICS_APIS 3
-
 class GeneralSettings2 : public wxDialog
 {
 public:

@@ -65,6 +65,7 @@ struct GraphicPackEntry
 	bool enabled = true;
 };
 
+#define GRAPHIC_API_COUNT 3
 enum GraphicAPI
 {
 	kOpenGL = 0,

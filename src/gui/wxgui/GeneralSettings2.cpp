@@ -357,7 +357,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		row->Add(new wxStaticText(box, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
 		sint32 api_size = 0;
-		wxString choices[NUM_GRAPHICS_APIS];
+		wxString choices[GRAPHIC_API_COUNT];
 
 #ifdef ENABLE_OPENGL
 		choices[api_size++] = "OpenGL";
