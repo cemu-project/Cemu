@@ -115,13 +115,6 @@ option(ENABLE_VULKAN "Enables the Vulkan backend" ON)
 option(ENABLE_METAL "Enables the Metal backend" ${ENABLE_METAL_DEFAULT})
 option(ENABLE_DISCORD_RPC "Enables the Discord Rich Presence feature" ON)
 
-if (ENABLE_OPENGL)
-	add_compile_definitions(ENABLE_OPENGL)
-endif()
-if (ENABLE_VULKAN)
-	add_compile_definitions(ENABLE_VULKAN)
-endif()
-
 if (ENABLE_METAL AND NOT APPLE)
     message(FATAL_ERROR "Metal backend is only supported on Apple platforms")
 endif()
@@ -192,10 +185,12 @@ endif()
 
 if (ENABLE_VULKAN)
 	include_directories("dependencies/Vulkan-Headers/include")
+	add_compile_definitions(ENABLE_VULKAN)
 endif()
 
 if (ENABLE_OPENGL)
 	find_package(OpenGL REQUIRED)
+	add_compile_definitions(ENABLE_OPENGL)
 endif()
 
 if (ENABLE_METAL)
