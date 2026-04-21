@@ -695,7 +695,9 @@ void LatteRenderTarget_itHLESwapScanBuffer()
 	performanceMonitor.gpuTime_frameTime.beginMeasuring();
 
 	LatteTC_CleanupUnusedTextures();
+#ifdef ENABLE_OPENGL
 	LatteDraw_cleanupAfterFrame();
+#endif
 	LatteQuery_CancelActiveGPU7Queries();
 	LatteBufferCache_notifySwapTVScanBuffer();
 	LattePerformanceMonitor_frameBegin();

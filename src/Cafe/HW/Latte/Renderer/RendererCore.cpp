@@ -1,148 +1,13 @@
 #include "RendererCore.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
+#include "HW/Latte/Core/LatteShader.h"
 #include "config/CemuConfig.h"
 
 #ifdef ENABLE_OPENGL
 #include "Common/GLInclude/GLInclude.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 #endif
-
-indexState_t indexState = { 0 };
-AttributePointerCacheEntry_t activeAttributePointer[LATTE_VS_ATTRIBUTE_LIMIT] = { 0 };
-
-indexDataCacheEntry2_t* indexDataCacheBucket[INDEX_DATA_CACHE_BUCKETS] = { 0 };
-indexDataCacheEntry2_t* indexDataCacheFirst = nullptr; // points to least recently used item
-indexDataCacheEntry2_t* indexDataCacheLast = nullptr; // points to most recently used item
-sint32 indexDataCacheEntryCount = 0;
-
-void RendererCore_resetAttributePointerCache()
-{
-	for (sint32 i = 0; i < LATTE_VS_ATTRIBUTE_LIMIT; i++)
-	{
-		activeAttributePointer[i].vboOutput = (uint8*)-1;
-		activeAttributePointer[i].vboStride = (uint32)-1;
-	}
-}
-
-bool RendererCore_checkIfAttributePointerCacheChanged(uint32 attributeShaderLoc, uint8* vboOutput, uint32 vboStride, uint8 dataFormat, uint8 nfa, bool isSigned)
-{
-	// don't call glVertexAttribPointer if parameters have not changed
-	if (
-		activeAttributePointer[attributeShaderLoc].vboOutput == vboOutput &&
-		activeAttributePointer[attributeShaderLoc].vboStride == vboStride &&
-		activeAttributePointer[attributeShaderLoc].dataFormat == dataFormat &&
-		activeAttributePointer[attributeShaderLoc].nfa == nfa &&
-		activeAttributePointer[attributeShaderLoc].isSigned == isSigned
-	)
-	{
-		return false;
-	}
-	activeAttributePointer[attributeShaderLoc].vboOutput = vboOutput;
-	activeAttributePointer[attributeShaderLoc].vboStride = vboStride;
-	activeAttributePointer[attributeShaderLoc].dataFormat = dataFormat;
-	activeAttributePointer[attributeShaderLoc].nfa = nfa;
-	activeAttributePointer[attributeShaderLoc].isSigned = isSigned;
-
-	return true;
-}
-
-indexState_t* RendererCore_getIndexState()
-{
-	return &indexState;
-}
-
-indexDataCacheEntry2_t** RendererCore_getIndexDataCacheFirst()
-{
-	return &indexDataCacheFirst;
-}
-
-indexDataCacheEntry2_t** RendererCore_getIndexDataCacheBucket(uint32 bucketIdx)
-{
-	return &indexDataCacheBucket[bucketIdx];
-}
-
-sint32* RendererCore_getIndexDataCacheEntryCount()
-{
-	return &indexDataCacheEntryCount;
-}
-
-void RendererCore_appendToUsageLinkedList(indexDataCacheEntry2_t* entry)
-{
-	if (indexDataCacheLast == nullptr)
-	{
-		indexDataCacheLast = entry;
-		indexDataCacheFirst = entry;
-		entry->nextInMostRecentUsage = nullptr;
-		entry->prevInMostRecentUsage = nullptr;
-	}
-	else
-	{
-		indexDataCacheLast->nextInMostRecentUsage = entry;
-		entry->prevInMostRecentUsage = indexDataCacheLast;
-		entry->nextInMostRecentUsage = nullptr;
-		indexDataCacheLast = entry;
-	}
-}
-
-void RendererCore_removeFromUsageLinkedList(indexDataCacheEntry2_t* entry)
-{
-	if (entry->prevInMostRecentUsage)
-	{
-		entry->prevInMostRecentUsage->nextInMostRecentUsage = entry->nextInMostRecentUsage;
-	}
-	else
-		indexDataCacheFirst = entry->nextInMostRecentUsage;
-	if (entry->nextInMostRecentUsage)
-	{
-		entry->nextInMostRecentUsage->prevInMostRecentUsage = entry->prevInMostRecentUsage;
-	}
-	else
-		indexDataCacheLast = entry->prevInMostRecentUsage;
-	entry->prevInMostRecentUsage = nullptr;
-	entry->nextInMostRecentUsage = nullptr;
-}
-
-void RendererCore_removeFromBucket(indexDataCacheEntry2_t* entry)
-{
-	uint32 indexDataBucketIdx = (uint32)((entry->key.physAddr + entry->key.count) ^ (entry->key.physAddr >> 16)) % INDEX_DATA_CACHE_BUCKETS;
-	if (indexDataCacheBucket[indexDataBucketIdx] == entry)
-	{
-		indexDataCacheBucket[indexDataBucketIdx] = entry->nextInBucket;
-		entry->nextInBucket = nullptr;
-		return;
-	}
-	indexDataCacheEntry2_t* cacheEntryItr = indexDataCacheBucket[indexDataBucketIdx];
-	while (cacheEntryItr)
-	{
-		if (cacheEntryItr->nextInBucket == entry)
-		{
-			cacheEntryItr->nextInBucket = entry->nextInBucket;
-			entry->nextInBucket = nullptr;
-			return;
-		}
-		// next
-		cacheEntryItr = cacheEntryItr->nextInBucket;
-	}
-}
-
-void LatteDraw_cleanupAfterFrame()
-{
-	// drop everything from cache that is older than 30 frames
-	uint32 frameCounter = LatteGPUState.frameCounter;
-	while (indexDataCacheFirst)
-	{
-		indexDataCacheEntry2_t* entry = indexDataCacheFirst;
-		if ((frameCounter - entry->lastAccessFrameCount) < 30)
-			break;
-		// remove entry
-		virtualBufferHeap_free(indexState.indexBufferVirtualHeap, entry->heapEntry);
-		RendererCore_removeFromUsageLinkedList(entry);
-		RendererCore_removeFromBucket(entry);
-		free(entry);
-	}
-}
-
 
 void LatteDraw_handleSpecialState8_clearAsDepth()
 {
@@ -211,5 +76,57 @@ void LatteDraw_handleSpecialState8_clearAsDepth()
 				g_renderer->texture_clearColorSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
 		}
 		}
+	}
+}
+
+/* rects emulation */
+
+void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
+{
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (uint32 i = 0; i < 32; i++)
+	{
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		// make sure PS has matching input
+		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+			continue;
+		gsSrc.append(fmt::format("passParameterSem{}Out = passParameterSem{}In[{}];\r\n", vsSemanticId, vsSemanticId, vIdx));
+	}
+	gsSrc.append(fmt::format("gl_Position = gl_in[{}].gl_Position;\r\n", vIdx));
+	gsSrc.append("EmitVertex();\r\n");
+}
+
+void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
+{
+	auto parameterMask = vertexShader->outputParameterMask;
+	for (uint32 i = 0; i < 32; i++)
+	{
+		if ((parameterMask & (1 << i)) == 0)
+			continue;
+		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
+		if (vsSemanticId < 0)
+			continue;
+		// make sure PS has matching input
+		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
+			continue;
+		gsSrc.append(fmt::format("passParameterSem{}Out = gen4thVertex{}(passParameterSem{}In[0], passParameterSem{}In[1], passParameterSem{}In[2]);\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
+	}
+	gsSrc.append(fmt::format("gl_Position = gen4thVertex{}(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);\r\n", variant));
+	gsSrc.append("EmitVertex();\r\n");
+}
+
+void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
+{
+	sint32 pList[4] = { p0, p1, p2, p3 };
+	for (sint32 i = 0; i < 4; i++)
+	{
+		if (pList[i] == 3)
+			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant, latteRegister);
+		else
+			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
 	}
 }
