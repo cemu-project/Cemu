@@ -694,10 +694,6 @@ void OpenGLRenderer::_setupVertexAttributes()
 	}
 }
 
-void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx);
-void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant);
-void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister);
-
 std::map<uint64, RendererShaderGL*> g_mapGLRectEmulationGS;
 
 RendererShaderGL* rectsEmulationGS_generateShaderGL(LatteDecompilerShader* vertexShader)

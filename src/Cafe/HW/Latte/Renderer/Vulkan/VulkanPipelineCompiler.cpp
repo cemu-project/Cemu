@@ -9,8 +9,7 @@
 #include "util/helpers/helpers.h"
 #include "util/helpers/Serializer.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
-
-
+#include "HW/Latte/Renderer/RendererCore.h"
 
 RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
 {
