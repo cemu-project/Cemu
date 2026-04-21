@@ -1606,46 +1606,17 @@ void MainWindow::CreateCanvas()
     m_game_panel->SetSizer(sizer);
     this->GetSizer()->Add(m_game_panel, 1, wxEXPAND);
 
-	GraphicAPI available_apis[GRAPHIC_API_COUNT];
-	int count = 0;
-#ifdef ENABLE_OPENGL
-	if (count < GRAPHIC_API_COUNT) available_apis[count++] = kOpenGL;
-#endif
-#ifdef ENABLE_VULKAN
-	if (count < GRAPHIC_API_COUNT) available_apis[count++] = kVulkan;
-#endif
-#ifdef ENABLE_METAL
-	if (count < GRAPHIC_API_COUNT) available_apis[count++] = kMetal;
-#endif
-	cemu_assert(count > 0);
-
-	GraphicAPI selected = ActiveSettings::GetGraphicsAPI();
-	bool found = false;
-
-	for (int i = 0; i < count; i++)
-	{
-		if (available_apis[i] == selected)
-		{
-			printf("Selected graphics API: %d\n", selected);
-			found = true;
-			break;
-		}
-	}
-
-	if (!found)
-		selected = available_apis[0];
-
     // create canvas
-	switch (selected)
+	switch (ActiveSettings::GetGraphicsAPI())
 	{
-	case kVulkan:
-#if defined(ENABLE_VULKAN)
-		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
-		break;
-#endif
 	case kOpenGL:
 #if defined(ENABLE_OPENGL)
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
+		break;
+#endif
+	case kVulkan:
+#if defined(ENABLE_VULKAN)
+		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
 		break;
 #endif
 	case kMetal:

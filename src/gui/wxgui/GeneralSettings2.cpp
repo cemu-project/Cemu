@@ -1230,7 +1230,7 @@ void GeneralSettings2::StoreConfig()
 	}
 
 	// graphics
-	config.graphic_api = (GraphicAPI)m_graphic_api->GetSelection();
+	config.graphic_api = m_api_map[m_graphic_api->GetSelection()];
 
 	selection = m_graphic_device->GetSelection();
 #ifdef ENABLE_VULKAN
@@ -1898,7 +1898,14 @@ void GeneralSettings2::ApplyConfig()
 	}
 
 	// graphics
-	m_graphic_api->SetSelection((int)config.graphic_api);
+	for (int i = 0; i < (int)m_api_map.size(); ++i)
+	{
+		if (m_api_map[i] == config.graphic_api)
+		{
+			m_graphic_api->SetSelection(i);
+			break;
+		}
+	}
 	m_vsync->SetSelection(config.vsync);
 	m_overrideGamma->SetValue(config.overrideAppGammaPreference);
 	m_overrideGammaValue->SetValue(config.overrideGammaValue);
