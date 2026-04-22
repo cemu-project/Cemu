@@ -616,7 +616,8 @@ void CemuUpdateWindow::OnClose(wxCloseEvent& event)
 	{
 	    const auto tmppath = fs::temp_directory_path() / L"cemu_update/Cemu.dmg";
 	    fs::path exePath = ActiveSettings::GetExecutablePath().parent_path();
-	    const auto apppath = exePath / L"update.sh";
+		const auto appResources = exePath.parent_path().parent_path() / L"Resources";
+		const auto apppath = appResources / L"update.sh";
 	    execlp("sh", "sh", apppath.c_str(), NULL);
         
         exit(0);
