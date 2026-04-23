@@ -93,6 +93,10 @@ if (MSVC)
 	add_compile_options($<$<CONFIG:Release,RelWithDebInfo>:/Ot>) # favor speed
 endif()
 
+if(CMAKE_GENERATOR STREQUAL "Xcode")
+	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY XCODE_STARTUP_PROJECT CemuBin)
+endif()
+
 if (APPLE)
     enable_language(OBJC OBJCXX)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "13.4")
@@ -250,7 +254,7 @@ if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
 	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
 endif()
 
-find_package(ZArchive)
+find_package(ZArchive QUIET)
 if (NOT ZArchive_FOUND)
 	add_subdirectory("dependencies/ZArchive" EXCLUDE_FROM_ALL)
 endif()

@@ -164,7 +164,7 @@ To install the dependencies required to build Cemu, you will need to install Hom
 
 The following dependencies are required. You can install them using Homebrew with the following command:
 
-`brew install git cmake ninja nasm automake libtool boost`
+`brew install automake boost cmake git libtool nasm ninja pkgconf`
 
 ### MoltenVK
 
@@ -188,6 +188,10 @@ Alternatively, you can use the non-privateapi version of MoltenVK, but you may e
 3. `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -G Ninja`
 4. `cmake --build build`
 5. You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
+
+#### Creating an app bundle
+- If you want to create an app bundle instead of a raw executable, append the following flag to the command in step 3:
+   - `-DMACOS_BUNDLE=ON`
 
 #### Troubleshooting steps
 - If step 3 gives you an error about not being able to find ninja, try appending the following to the command and try again:
