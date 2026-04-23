@@ -262,6 +262,7 @@ int main(int argc, char* argv[])
 	return 0;
 }
 
+#elif BOOST_PLAT_ANDROID
 #else
 
 int BreathOfTheWildChildProcessMain();
