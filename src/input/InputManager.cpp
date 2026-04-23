@@ -761,7 +761,7 @@ ControllerProviderPtr InputManager::get_api_provider(InputAPI::Type api, const C
 
 void InputManager::apply_game_profile()
 {
-	const auto& profiles = g_current_game_profile->GetControllerProfile();
+	const auto& profiles = g_current_game_profile->GetControllerProfiles();
 	for (int i = 0; i < kMaxController; ++i)
 	{
 		if (profiles[i] && !profiles[i]->empty())
