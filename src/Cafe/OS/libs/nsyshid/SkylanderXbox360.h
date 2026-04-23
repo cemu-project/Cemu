@@ -1,14 +1,14 @@
 #pragma once
 
 #include "nsyshid.h"
-#if HAS_LIBUSB
+#ifdef HAS_LIBUSB
 #include "BackendLibusb.h"
 #include "g721/g721.h"
 #endif
 
 namespace nsyshid
 {
-	#if HAS_LIBUSB
+	#ifdef HAS_LIBUSB
 	class SkylanderXbox360PortalLibusb final : public Device {
 	  public:
 		SkylanderXbox360PortalLibusb(std::shared_ptr<Device> usbPortal);

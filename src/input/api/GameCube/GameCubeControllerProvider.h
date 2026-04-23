@@ -2,7 +2,7 @@
 
 #include "input/api/ControllerProvider.h"
 
-#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && HAS_LIBUSB
+#if defined(HAS_GAMECUBE) && HAS_GAMECUBE && defined(HAS_LIBUSB)
 
 #include "util/libusbWrapper/libusbWrapper.h"
 

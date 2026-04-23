@@ -29,7 +29,7 @@ namespace nsyshid::backend::emulated
 			auto device = std::make_shared<SkylanderPortalDevice>();
 			AttachDevice(device);
 		}
-	#if HAS_LIBUSB
+	#ifdef HAS_LIBUSB
 		else if (auto usb_portal = FindDeviceById(0x1430, 0x1F17))
 		{
 			cemuLog_logDebug(LogType::Force, "Attaching Xbox 360 Portal");
