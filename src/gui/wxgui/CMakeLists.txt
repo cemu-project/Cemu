@@ -50,6 +50,8 @@ add_library(CemuWxGui STATIC
   AudioDebuggerWindow.h
   DownloadGraphicPacksWindow.cpp
   DownloadGraphicPacksWindow.h
+  DownloadCustomGraphicPackWindow.cpp
+  DownloadCustomGraphicPackWindow.h
   GameProfileWindow.cpp
   GameProfileWindow.h
   GameUpdateWindow.cpp
