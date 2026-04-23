@@ -1,0 +1,61 @@
+package info.cemu.cemu.emulation.inputoverlay.inputs.innerdrawing
+
+import android.graphics.Path
+
+class BlowButtonInnerDrawing : PathInnerDrawing() {
+    override val canvasSize: Float = 960f
+    override fun createOriginalPath(): Path = Path().apply {
+        moveTo(460f, -160f)
+        rQuadTo(-50f, 0f, -85f, -35f)
+        rQuadTo(-35f, -85f, 0f, 0f)
+        rLineTo(80f, 0f)
+        rQuadTo(0f, 17f, 11.5f, 28.5f)
+        rQuadTo(11.5f, 11.5f, 28.5f, 11.5f)
+        rQuadTo(17f, 0f, 28.5f, -11.5f)
+        rQuadTo(11.5f, -11.5f, 11.5f, -28.5f)
+        rQuadTo(0f, -17f, -11.5f, -28.5f)
+        rQuadTo(-11.5f, -11.5f, -28.5f, -11.5f)
+        lineTo(80f, -320f)
+        rLineTo(0f, -80f)
+        rLineTo(380f, 0f)
+        rQuadTo(50f, 0f, 85f, 35f)
+        rQuadTo(35f, 85f, 0f, 0f)
+        rQuadTo(0f, 50f, -35f, 85f)
+        rQuadTo(-85f, 35f, -85f, 35f)
+        close()
+
+        moveTo(80f, -560f)
+        rLineTo(0f, -80f)
+        rLineTo(540f, 0f)
+        rQuadTo(26f, 0f, 43f, -17f)
+        rQuadTo(17f, -43f, 0f, -43f)
+        rQuadTo(0f, -26f, -17f, -43f)
+        rQuadTo(-43f, -17f, -43f, -17f)
+        rQuadTo(-26f, 0f, -43f, 17f)
+        rQuadTo(-17f, 43f, 0f, 43f)
+        rLineTo(-80f, 0f)
+        rQuadTo(0f, -59f, 40.5f, -99.5f)
+        rQuadTo(40.5f, -40.5f, 99.5f, -40.5f)
+        rQuadTo(59f, 0f, 99.5f, 40.5f)
+        rQuadTo(40.5f, 40.5f, 40.5f, 99.5f)
+        rQuadTo(0f, 59f, -40.5f, 99.5f)
+        rQuadTo(-40.5f, 40.5f, -99.5f, 40.5f)
+        lineTo(80f, -560f)
+        close()
+
+        moveTo(740f, -240f)
+        rLineTo(0f, -80f)
+        rQuadTo(26f, 0f, 43f, -17f)
+        rQuadTo(17f, -43f, 0f, -43f)
+        rQuadTo(0f, -26f, -17f, -43f)
+        rQuadTo(-43f, -17f, -43f, -17f)
+        lineTo(80f, -440f)
+        rLineTo(0f, -80f)
+        rLineTo(660f, 0f)
+        rQuadTo(59f, 0f, 99.5f, 40.5f)
+        rQuadTo(40.5f, 40.5f, 40.5f, 99.5f)
+        rQuadTo(0f, 59f, -40.5f, 99.5f)
+        rQuadTo(-40.5f, 40.5f, -99.5f, 40.5f)
+        close()
+    }
+}

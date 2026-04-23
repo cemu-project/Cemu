@@ -74,6 +74,8 @@ if(ANDROID)
     )
 
 	cemu_use_precompiled_header(CemuBin)
+
+	add_subdirectory(android/app/src/main/cpp)
 else()
 	add_executable(CemuBin
 		main.cpp

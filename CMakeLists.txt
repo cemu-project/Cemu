@@ -290,6 +290,7 @@ if(ANDROID)
 	if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)")
 		add_subdirectory("dependencies/libadrenotools" EXCLUDE_FROM_ALL)
 	endif()
+	add_subdirectory("dependencies/stb" EXCLUDE_FROM_ALL)
 endif()
 
 add_subdirectory(src)

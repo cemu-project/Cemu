@@ -13,7 +13,8 @@
     "rapidjson",
     {
       "name": "sdl3",
-      "default-features": false
+      "default-features": false,
+      "platform": "!android"
     },
     "boost-tokenizer",
     "boost-container",
@@ -56,7 +57,8 @@
       "default-features": false,
       "features": [
         "debug-support"
-      ]
+      ],
+      "platform": "!android"
     },
     "openssl",
     {

@@ -5,3 +5,8 @@ if(ENABLE_WXWIDGETS)
     add_subdirectory(wxgui)
     target_link_libraries(CemuGui INTERFACE CemuWxGui)
 endif()
+
+if(ANDROID)
+    add_subdirectory(androidgui)
+    target_link_libraries(CemuGui INTERFACE CemuAndroidGui)
+endif()
