@@ -76,6 +76,7 @@ public:
 
 private:
 	std::atomic_bool m_running = false;
+	std::atomic_bool m_device_changed = false;
 	std::thread m_reader_thread, m_writer_thread;
 	std::shared_mutex m_device_mutex;
 
