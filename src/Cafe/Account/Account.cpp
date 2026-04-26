@@ -6,6 +6,8 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Common/FileStream.h"
 #include <boost/random/uniform_int.hpp>
+#include <boost/nowide/convert.hpp>
+#include <map>
 
 #include <random>
 
@@ -300,11 +302,12 @@ void Account::SetMiiName(std::wstring_view name)
 
 const std::vector<Account>& Account::RefreshAccounts()
 {
-	std::vector<Account> result;
-	const fs::path path = ActiveSettings::GetMlcPath("usr/save/system/act");
-	if (fs::exists(path))
+	// Step 1: Scan all account directories into a sorted map
+	std::map<uint32, Account> accountMap;
+	const fs::path act_path = ActiveSettings::GetMlcPath("usr/save/system/act");
+	if (fs::exists(act_path))
 	{
-		for (const auto& it : fs::directory_iterator(path))
+		for (const auto& it : fs::directory_iterator(act_path))
 		{
 			if (!fs::is_directory(it))
 				continue;
@@ -320,36 +323,200 @@ const std::vector<Account>& Account::RefreshAccounts()
 			Account account(persistent_id);
 			const auto error = account.Load();
 			if (!error)
-				result.emplace_back(account);
+				accountMap.emplace(persistent_id, std::move(account));
 		}
 	}
-	
-	// we always force at least one account
+
+	std::vector<Account> result;
+
+	// Step 2: Place accounts in common.dat order
+	for (const uint32 id : ReadCommonDat())
+	{
+		auto it = accountMap.find(id);
+		if (it == accountMap.end())
+		{
+			cemuLog_log(LogType::Force,
+				"User with persistentId {:08x} does not exist, please do not delete users from the MLC manually. Use 'File > General Settings > Accounts' to delete users!", id);
+			continue;
+		}
+		result.emplace_back(std::move(it->second));
+		accountMap.erase(it);
+	}
+
+	// Step 3: Append remaining accounts not in common.dat, sorted by persistent ID
+	for (auto& [id, account] : accountMap)
+		result.emplace_back(std::move(account));
+
+	// Step 4: Always force at least one account
 	if (result.empty())
 	{
 		result.emplace_back(kMinPersistendId, L"default");
 		result.begin()->Save();
 	}
 
-	s_account_list = result;
-	UpdatePersisidDat();
+
+	s_account_list = std::move(result);
+
+	// Write updated common.dat (also updates PersistentIdHead and DefaultAccountPersistentId)
+	std::vector<uint32> orderedIds;
+	orderedIds.reserve(s_account_list.size());
+	for (const auto& acc : s_account_list)
+		orderedIds.push_back(acc.GetPersistentId());
+	WriteCommonDat(orderedIds);
+
 	return s_account_list;
 }
 
-void Account::UpdatePersisidDat()
+std::vector<uint32> Account::ReadCommonDat()
 {
-	const auto max_id = std::max(kMinPersistendId, GetNextPersistentId() - 1);
-	const auto file = ActiveSettings::GetMlcPath("usr/save/system/act/persisid.dat");
-	std::ofstream f(file);
-	if(f.is_open())
+	std::vector<uint32> result;
+	const auto file_path = ActiveSettings::GetMlcPath("usr/save/system/act/common.dat");
+	if (!fs::exists(file_path))
+		return result;
+
+	std::ifstream f(file_path);
+	if (!f.is_open())
+		return result;
+
+	std::string line;
+	while (std::getline(f, line))
 	{
-		f << "PersistentIdManager_20120607" << std::endl << "PersistentIdHead=" << std::hex << max_id << std::endl << std::endl;
-		f.flush();
-		f.close();
+		if (!boost::starts_with(line, "PersistentIdList="))
+			continue;
+
+		std::string list = line.substr(sizeof("PersistentIdList=") - 1);
+		// Strip trailing \r if present
+		if (!list.empty() && list.back() == '\r')
+			list.pop_back();
+
+		// Entries are separated by literal "\0" (backslash + '0'). Stop at "0" (empty slot).
+		size_t pos = 0;
+		while (pos < list.size())
+		{
+			const size_t sep = list.find("\\0", pos);
+			const std::string entry = (sep == std::string::npos) ? list.substr(pos) : list.substr(pos, sep - pos);
+
+			if (entry.empty() || entry == "0")
+				break; // reached first empty slot — no real users after this
+
+			const auto id = ConvertString<uint32>(entry, 16);
+			if (id >= kMinPersistendId)
+				result.push_back(id);
+
+			if (sep == std::string::npos)
+				break;
+			pos = sep + 2; // skip past "\0"
+		}
+		break; // PersistentIdList line processed
 	}
-	else
-		cemuLog_log(LogType::Force, "Unable to save persisid.dat");
+	return result;
 }
+
+void Account::WriteCommonDat(const std::vector<uint32>& orderedIds)
+{
+	const auto file_path = ActiveSettings::GetMlcPath("usr/save/system/act/common.dat");
+
+	// Read existing file to preserve the header and all metadata lines
+	std::string header = "AccountManager_20120607";
+	std::vector<std::pair<std::string, std::string>> meta_lines;
+
+	if (fs::exists(file_path))
+	{
+		std::ifstream f(file_path);
+		if (f.is_open())
+		{
+			std::string line;
+			bool first_line = true;
+			while (std::getline(f, line))
+			{
+				if (!line.empty() && line.back() == '\r')
+					line.pop_back();
+				if (first_line)
+				{
+					header = line;
+					first_line = false;
+					continue;
+				}
+				if (line.empty() || boost::starts_with(line, "PersistentIdList="))
+					continue;
+				const auto eq = line.find('=');
+				if (eq != std::string::npos)
+					meta_lines.emplace_back(line.substr(0, eq), line.substr(eq + 1));
+			}
+		}
+	}
+
+	// Populate defaults if the file was absent or had no metadata
+	if (meta_lines.empty())
+	{
+		meta_lines.emplace_back("DefaultAccountPersistentId", "0");
+		meta_lines.emplace_back("CommonTransferableIdBase", "0");
+		meta_lines.emplace_back("CommonUuid", "0");
+		meta_lines.emplace_back("IsApplicationUpdateRequired", "0");
+		meta_lines.emplace_back("DefaultNnasType", "0");
+		meta_lines.emplace_back("DefaultNfsType", "0");
+		meta_lines.emplace_back("DefaultNfsNo", "1");
+		meta_lines.emplace_back("DefaultNnasDomain", "");
+		meta_lines.emplace_back("DefaultNnasNfsEnv", "L1");
+	}
+
+	// Helper to update an existing key or append a new one
+	auto set_meta = [&](const std::string& key, const std::string& val)
+	{
+		for (auto& [k, v] : meta_lines)
+		{
+			if (k == key)
+			{
+				v = val;
+				return;
+			}
+		}
+		meta_lines.emplace_back(key, val);
+	};
+
+	// Update DefaultAccountPersistentId to the currently active account
+	set_meta("DefaultAccountPersistentId", fmt::format("{:08x}", ActiveSettings::GetPersistentId()));
+
+	// Ensure the directory exists
+	const auto dir = file_path.parent_path();
+	if (!fs::exists(dir))
+	{
+		std::error_code ec;
+		fs::create_directories(dir, ec);
+		if (ec)
+		{
+			cemuLog_log(LogType::Force, "Unable to create directory for common.dat");
+			return;
+		}
+	}
+
+	std::ofstream f(file_path);
+	if (!f.is_open())
+	{
+		cemuLog_log(LogType::Force, "Unable to save common.dat");
+		return;
+	}
+
+	f << header << "\n";
+
+	// Write PersistentIdList: always exactly 12 slots, each followed by literal "\0"
+	f << "PersistentIdList=";
+	for (size_t i = 0; i < 12; i++)
+	{
+		if (i < orderedIds.size())
+			f << fmt::format("{:08x}", orderedIds[i]);
+		else
+			f << "0";
+		f << "\\0";
+	}
+	f << "\n";
+
+	for (const auto& [key, value] : meta_lines)
+		f << key << "=" << value << "\n";
+
+	f.flush();
+}
+
 
 bool Account::HasFreeAccountSlots()
 {
@@ -382,33 +549,11 @@ const Account& Account::GetCurrentAccount()
 
 uint32 Account::GetNextPersistentId()
 {
-	uint32 result = kMinPersistendId;
-	const auto file = ActiveSettings::GetMlcPath("usr/save/system/act/persisid.dat");
-	if(fs::exists(file))
-	{
-		std::ifstream f(file);
-		if(f.is_open())
-		{
-			std::string line;
-			while(std::getline(f, line))
-			{
-				if(boost::starts_with(line, "PersistentIdHead="))
-				{
-					result = ConvertString<uint32>(line.data() + sizeof("PersistentIdHead=") - 1, 16);
-					break;
-				}
-			}
-		}
-	}
-	
-	// next id
-	++result;
-	
-	const auto it = std::max_element(s_account_list.cbegin(), s_account_list.cend(), [](const Account& acc1, const Account& acc2) {return acc1.GetPersistentId() < acc2.GetPersistentId(); });
+	const auto it = std::max_element(s_account_list.cbegin(), s_account_list.cend(),
+		[](const Account& acc1, const Account& acc2) { return acc1.GetPersistentId() < acc2.GetPersistentId(); });
 	if (it != s_account_list.cend())
-		return std::max(result, it->GetPersistentId() + 1);
-	else
-		return result;
+		return it->GetPersistentId() + 1;
+	return kMinPersistendId;
 }
 
 fs::path Account::GetFileName(uint32 persistent_id)

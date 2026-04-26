@@ -6,8 +6,10 @@
 #include "Cafe/OS/libs/nn_common.h"
 #include "Cafe/CafeSystem.h"
 #include "Common/CafeString.h"
-
-sint32 numAccounts = 1;
+#include "Common/FileStream.h"
+#include "config/ActiveSettings.h"
+#include "util/helpers/helpers.h"
+#include "Cafe/Account/Account.h"
 
 #define actPrepareRequest() \
 StackAllocator<iosuActCemuRequest_t> _buf_actRequest; \
@@ -186,7 +188,7 @@ void nnActExport_CreateConsoleAccount(PPCInterpreter_t* hCPU)
 void nnActExport_GetNumOfAccounts(PPCInterpreter_t* hCPU)
 {
 	cemuLog_logDebug(LogType::Force, "nn_act.GetNumOfAccounts()");
-	osLib_returnFromFunction(hCPU, numAccounts); // account count
+	osLib_returnFromFunction(hCPU, iosuAct_getNumAccounts());
 }
 
 void nnActExport_IsSlotOccupied(PPCInterpreter_t* hCPU)
@@ -265,6 +267,22 @@ void nnActExport_IsNetworkAccountEx(PPCInterpreter_t* hCPU)
 	uint8 isNetAcc = 0;
 	IsNetworkAccount(&isNetAcc, slot);
 	osLib_returnFromFunction(hCPU, isNetAcc);
+}
+
+void nnActExport_IsPasswordCacheEnabledEx(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU8(slot, 0);
+	cemuLog_logDebug(LogType::Force, "nn_act.IsPasswordCacheEnabledEx({})", slot);
+
+	const uint32 persistentId = nn::act::GetPersistentIdEx(slot);
+	if (persistentId != 1)
+	{
+		osLib_returnFromFunction(hCPU, 0);
+		return;
+	}
+
+	const Account& account = Account::GetAccount(persistentId);
+	osLib_returnFromFunction(hCPU, account.IsPasswordCacheEnabled() ? 1 : 0);
 }
 
 void nnActExport_GetSimpleAddressId(PPCInterpreter_t* hCPU)
@@ -402,11 +420,72 @@ void nnActExport_GetMiiEx(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, r);
 }
 
+// Helper: write image bytes to the guest buffer and return the result code.
+static uint32 ReturnMiiImage(uint32be* outImageSize, MEMPTR<uint8> buffer, uint32 bufferSize,
+                              const uint8* data, uint32 dataSize)
+{
+	if (outImageSize)
+		*outImageSize = dataSize;
+	if (!buffer.GetPtr() || bufferSize < dataSize)
+		return BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_ACT, 0x12D80); // OutOfRange
+	memcpy(buffer.GetPtr(), data, dataSize);
+	return 0;
+}
+
 void nnActExport_GetMiiImageEx(PPCInterpreter_t* hCPU)
 {
-	cemuLog_logDebug(LogType::Force, "GetMiiImageEx unimplemented");
+	// GetMiiImageEx(uint32* outImageSize, void* buffer, uint32 bufferSize, ACTMiiImageType imageType, uint8 slot)
+	ppcDefineParamU32BEPtr(outImageSize, 0);
+	ppcDefineParamMEMPTR(buffer, uint8, 1);
+	ppcDefineParamU32(bufferSize, 2);
+	ppcDefineParamU32(imageType, 3);
+	ppcDefineParamU8(slot, 4);
 
-	osLib_returnFromFunction(hCPU, 0);
+	cemuLog_logDebug(LogType::Force, "nn_act.GetMiiImageEx(outImageSize=0x{:08x} buffer=0x{:08x} bufferSize={} imageType={} slot={})",
+		hCPU->gpr[3], hCPU->gpr[4], bufferSize, imageType, slot);
+
+	// imageType maps directly to miiimgXX.dat in the account folder:
+	//   FaceIcon    (0) : 128x128 BGRA, raw TGA
+	//   Expressions (1-6): 96x96  BGRA, zlib-compressed
+	//   FullBody    (7) : 270x360 BGRA, zlib-compressed (standing body render)
+	//   FaceIconAlt (8) : 128x128 BGRA, zlib-compressed
+	if (imageType <= ACT_MII_IMAGE_TYPE_MAX)
+	{
+		uint32 persistentId = 0;
+		if (iosu::act::GetPersistentId(slot, &persistentId) && persistentId != 0)
+		{
+			fs::path datPath = ActiveSettings::GetMlcPath(
+				fmt::format("usr/save/system/act/{:08x}/miiimg{:02d}.dat", persistentId, imageType));
+
+			auto fileData = FileStream::LoadIntoMemory(datPath);
+			if (fileData.has_value())
+			{
+				if (imageType == (uint32)ACTMiiImageType::FaceIcon)
+				{
+					// FaceIcon (type 0) is stored as a raw TGA — serve it directly
+					uint32 r = ReturnMiiImage(outImageSize, buffer, bufferSize,
+					                          fileData->data(), (uint32)fileData->size());
+					osLib_returnFromFunction(hCPU, r);
+					return;
+				}
+				else
+				{
+					// All other types are zlib-compressed; decompress before serving
+					auto decompressed = zlibDecompress(*fileData);
+					if (decompressed.has_value())
+					{
+						uint32 r = ReturnMiiImage(outImageSize, buffer, bufferSize,
+						                          decompressed->data(), (uint32)decompressed->size());
+						osLib_returnFromFunction(hCPU, r);
+						return;
+					}
+					cemuLog_log(LogType::Force, "nn_act.GetMiiImageEx: failed to decompress miiimg{:02d}.dat", imageType);
+				}
+			}
+		}
+	}
+
+	osLib_returnFromFunction(hCPU, BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_ACT, NN_ACT_RESULT_ACCOUNT_DOES_NOT_EXIST));
 }
 
 void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
@@ -418,7 +497,7 @@ void nnActExport_GetMiiName(PPCInterpreter_t* hCPU)
 
 	uint32 r = nn::act::GetMiiEx(&miiData, iosu::act::ACT_SLOT_CURRENT);
 	// extract name
-	sint32 miiNameLength = 0;
+	sint32 miiNameLength = 0;									
 	for (sint32 i = 0; i < MII_FFL_NAME_LENGTH; i++)
 	{
 		miiName[i] = miiData->miiName[i];
@@ -567,8 +646,8 @@ void nnActExport_GetDefaultAccount(PPCInterpreter_t* hCPU)
 
 void nnActExport_GetSlotNo(PPCInterpreter_t* hCPU)
 {
-	// id of active account
-	osLib_returnFromFunction(hCPU, 1); // 1 is the first slot (0 is invalid)
+	// returns the 1-based slot number of the currently active account
+	osLib_returnFromFunction(hCPU, iosu::act::getCurrentAccountSlot());
 }
 
 void nnActExport_GetSlotNoEx(PPCInterpreter_t* hCPU)
@@ -705,6 +784,7 @@ namespace nn::act
 			osLib_addFunction("nn_act", "GetSlotNoEx__Q2_2nn3actFRC7ACTUuid", nnActExport_GetSlotNoEx);
 			osLib_addFunction("nn_act", "IsNetworkAccount__Q2_2nn3actFv", nnActExport_IsNetworkAccount);
 			osLib_addFunction("nn_act", "IsNetworkAccountEx__Q2_2nn3actFUc", nnActExport_IsNetworkAccountEx);
+			osLib_addFunction("nn_act", "IsPasswordCacheEnabledEx__Q2_2nn3actFUc", nnActExport_IsPasswordCacheEnabledEx);
 			// account id
 			osLib_addFunction("nn_act", "GetAccountId__Q2_2nn3actFPc", nnActExport_GetAccountId);
 			osLib_addFunction("nn_act", "GetAccountIdEx__Q2_2nn3actFPcUc", nnActExport_GetAccountIdEx);

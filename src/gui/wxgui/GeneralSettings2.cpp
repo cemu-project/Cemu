@@ -1277,6 +1277,12 @@ void GeneralSettings2::StoreConfig()
 
 	// account
 	config.account.m_persistent_id = GetSelectedAccountPersistentId();
+	{
+		std::vector<uint32> orderedIds;
+		for (const auto& acc : Account::GetAccounts())
+			orderedIds.push_back(acc.GetPersistentId());
+		Account::WriteCommonDat(orderedIds);
+	}
 
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
