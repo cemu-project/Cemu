@@ -142,12 +142,15 @@ if (MACOS_BUNDLE)
 	set(FRAMEWORKS_DIR "${APP_BUNDLE_DIR}/Contents/Frameworks")
 	set(RESOURCES_DIR  "${APP_BUNDLE_DIR}/Contents/Resources")
 
+	if (ENABLE_VULKAN)
+		add_custom_command(TARGET CemuBin POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy 
+				"${MOLTENVK_PATH}"
+				"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
+		)
+	endif()
+
 	add_custom_command(TARGET CemuBin POST_BUILD
-    if (ENABLE_VULKAN)
-      COMMAND ${CMAKE_COMMAND} -E copy 
-        "${MOLTENVK_PATH}"
-        "${FRAMEWORKS_DIR}/libMoltenVK.dylib"
-    endif()
 		COMMAND ${CMAKE_COMMAND} -E copy
 			"${LIBUSB_PATH}"
 			"${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
