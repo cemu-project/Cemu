@@ -46,6 +46,8 @@ public:
 
 	bool is_gameprofile_set(size_t player_index) const;
 
+	void Shutdown(); 
+	
 	EmulatedControllerPtr set_controller(EmulatedControllerPtr controller);
 	EmulatedControllerPtr set_controller(size_t player_index, EmulatedController::Type type);
 	EmulatedControllerPtr set_controller(size_t player_index, EmulatedController::Type type, const std::shared_ptr<ControllerBase>& controller);

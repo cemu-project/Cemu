@@ -80,6 +80,8 @@ private:
 	std::shared_mutex m_device_mutex;
 
 	std::thread m_connectionThread;
+	std::mutex m_connectionMutex;
+    std::condition_variable m_connectionCond;
 	std::vector<WiimoteDevicePtr> m_connectedDevices;
 	std::mutex m_connectedDeviceMutex;
 	struct Wiimote

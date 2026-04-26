@@ -147,7 +147,7 @@ target_link_libraries(CemuWxGui PRIVATE
   libzip::zip
   ZArchive::zarchive
   CemuComponents
-  SDL2::SDL2
+  SDL3::SDL3
   pugixml::pugixml
   CemuCafe
   PUBLIC

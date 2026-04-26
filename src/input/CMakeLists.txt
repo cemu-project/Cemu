@@ -99,10 +99,6 @@ target_link_libraries(CemuInput PRIVATE
 	CemuGui
 )
 
-if (ENABLE_HIDAPI)
-	target_link_libraries(CemuInput PRIVATE hidapi::hidapi)
-endif()
-
 if (ENABLE_BLUEZ)
 	target_link_libraries(CemuInput PRIVATE bluez::bluez)
 endif ()

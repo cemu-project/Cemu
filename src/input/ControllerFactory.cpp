@@ -68,7 +68,7 @@ ControllerPtr ControllerFactory::CreateController(InputAPI::Type api, std::strin
 				throw std::invalid_argument(fmt::format("invalid sdl uuid format: {}", uuid));
 
 			const auto guid_index = ConvertString<size_t>(uuid.substr(0, index));
-			const auto guid = SDL_JoystickGetGUIDFromString(std::string{uuid.substr(index + 1)}.c_str());
+			const auto guid = SDL_StringToGUID(std::string{uuid.substr(index + 1)}.c_str());
 
 			if (display_name.empty())
 				return std::make_shared<SDLController>(guid, guid_index);

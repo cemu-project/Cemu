@@ -31,7 +31,8 @@
 #endif
 
 #define SDL_MAIN_HANDLED
-#include <SDL.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 
 #if BOOST_OS_LINUX
 #define _putenv(__s) putenv((char*)(__s))

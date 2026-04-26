@@ -1,11 +1,11 @@
 #pragma once
 
 #include <api/Wiimote/WiimoteDevice.h>
-#include <hidapi.h>
+#include <SDL3/SDL.h>
 
 class HidapiWiimote : public WiimoteDevice {
 public:
-    HidapiWiimote(hid_device* dev, std::string_view path);
+    HidapiWiimote(SDL_hid_device* dev, std::string_view path);
     ~HidapiWiimote() override;
 
     bool write_data(const std::vector<uint8> &data) override;
@@ -15,7 +15,7 @@ public:
     static std::vector<WiimoteDevicePtr> get_devices();
 
 private:
-    hid_device* m_handle;
+    SDL_hid_device* m_handle;
     const std::string m_path;
 
 };
