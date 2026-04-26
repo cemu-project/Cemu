@@ -172,7 +172,6 @@ if (MACOS_BUNDLE)
 				"$<TARGET_FILE:CemuBin>"
 		)
 	endif()
-  endif()
 else()
     if(APPLE)
         find_library(MOLTENVK_LIBRARY
