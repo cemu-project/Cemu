@@ -132,6 +132,11 @@ endif()
 
 option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 option(ENABLE_SDL "Enables the SDLController backend" ON)
+option(ENABLE_LIBUSB "Build with libusb support" ON)
+
+if (ENABLE_LIBUSB)
+	add_compile_definitions(HAS_LIBUSB)
+endif()
 
 # audio backends
 if (WIN32)

@@ -119,10 +119,12 @@ if (MACOS_BUNDLE)
 			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "$<TARGET_BUNDLE_DIR:CemuBin>/Contents/SharedSupport/${folder}")
 	endforeach(folder)
 
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/lib/libusb-1.0.0.dylib")
-	else()
-	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/libusb-1.0.0.dylib")
+	if (ENABLE_LIBUSB)
+		if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+		    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/lib/libusb-1.0.0.dylib")
+		else()
+		    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/libusb-1.0.0.dylib")
+		endif()
 	endif()
 
 	if (EXISTS "/usr/local/lib/libMoltenVK.dylib")
@@ -143,26 +145,33 @@ if (MACOS_BUNDLE)
 			"${MOLTENVK_PATH}"
 			"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
 		COMMAND ${CMAKE_COMMAND} -E copy
-			"${LIBUSB_PATH}"
-			"${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
-		COMMAND ${CMAKE_COMMAND} -E copy
 			"${UPDATE_SH_PATH}"
 			"${RESOURCES_DIR}/update.sh"
 		COMMAND chmod 755
 			"${RESOURCES_DIR}/update.sh"
 	)
 
+	if (ENABLE_LIBUSB)
+		add_custom_command(TARGET CemuBin POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy
+				"${LIBUSB_PATH}"
+				"${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
+		)
+	endif()
+
 	set_target_properties(CemuBin PROPERTIES
 		BUILD_WITH_INSTALL_RPATH TRUE
 		INSTALL_RPATH "@executable_path/../Frameworks"
 	)
 
-	add_custom_command(TARGET CemuBin POST_BUILD
+	if (ENABLE_LIBUSB)
+		add_custom_command(TARGET CemuBin POST_BUILD
 		COMMAND install_name_tool
 			-change @rpath/libusb-1.0.0.dylib
-					@executable_path/../Frameworks/libusb-1.0.0.dylib
-					"$<TARGET_FILE:CemuBin>"
-	)
+				@executable_path/../Frameworks/libusb-1.0.0.dylib
+				"$<TARGET_FILE:CemuBin>"
+		)
+	endif()
 else()
     if(APPLE)
         find_library(MOLTENVK_LIBRARY
