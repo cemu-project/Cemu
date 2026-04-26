@@ -136,8 +136,6 @@ option(ENABLE_LIBUSB "Build with libusb support" ON)
 
 if (ENABLE_LIBUSB)
 	add_compile_definitions(HAS_LIBUSB)
-else()
-	add_compile_definitions(HAS_LIBUSB)
 endif()
 
 # audio backends
