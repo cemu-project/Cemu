@@ -78,6 +78,8 @@ add_library(CemuWxGui STATIC
   input/InputAPIAddWindow.h
   input/InputSettings2.cpp
   input/InputSettings2.h
+  input/PairingDialog.cpp
+  input/PairingDialog.h
   input/panels/ClassicControllerInputPanel.cpp
   input/panels/ClassicControllerInputPanel.h
   input/panels/InputPanel.cpp
@@ -126,10 +128,11 @@ if (ENABLE_METAL)
 endif()
 
 if (ENABLE_BLUEZ)
-  target_sources(CemuWxGui PRIVATE
-    input/PairingDialog.cpp
-    input/PairingDialog.h
-  )
+  target_compile_definitions(CemuWxGui PRIVATE HAS_BLUEZ)
+endif()
+
+if (SUPPORTS_WIIMOTE)
+  target_compile_definitions(CemuWxGui PRIVATE SUPPORTS_WIIMOTE)
 endif()
 
 set_property(TARGET CemuWxGui PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

@@ -4,7 +4,7 @@
 #if BOOST_OS_WINDOWS
 #include <bluetoothapis.h>
 #endif
-#if BOOST_OS_LINUX
+#ifdef HAS_BLUEZ
 #include <bluetooth/bluetooth.h>
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
@@ -157,6 +157,7 @@ void PairingDialog::WorkerThread()
 	DWORD result = BluetoothGetRadioInfo(radio, &radioInfo);
 	if (result != ERROR_SUCCESS)
 	{
+		CloseHandle(radio);
 		UpdateCallback(PairingState::NoBluetoothAvailable);
 		return;
 	}
@@ -165,8 +166,8 @@ void PairingDialog::WorkerThread()
 		{
 			.dwSize = sizeof(BLUETOOTH_DEVICE_SEARCH_PARAMS),
 
-			.fReturnAuthenticated = FALSE,
-			.fReturnRemembered = FALSE,
+			.fReturnAuthenticated = TRUE,
+			.fReturnRemembered = TRUE,
 			.fReturnUnknown = TRUE,
 			.fReturnConnected = FALSE,
 
@@ -184,22 +185,51 @@ void PairingDialog::WorkerThread()
 		HBLUETOOTH_DEVICE_FIND deviceFind = BluetoothFindFirstDevice(&searchParams, &info);
 		if (deviceFind == nullptr)
 		{
+			CloseHandle(radio);
 			UpdateCallback(PairingState::SearchFailed);
 			return;
 		}
 
 		while (!m_threadShouldQuit)
 		{
-			if (info.szName == wiimoteName || info.szName == wiiUProControllerName)
+			if (wcscmp(info.szName, wiimoteName.c_str()) == 0 || wcscmp(info.szName, wiiUProControllerName.c_str()) == 0)
 			{
 				BluetoothFindDeviceClose(deviceFind);
+
+				if (info.fAuthenticated)
+				{
+					DWORD bthResult = BluetoothSetServiceState(radio, &info, &bthHidGuid, BLUETOOTH_SERVICE_ENABLE);
+					if (bthResult != ERROR_SUCCESS)
+					{
+						CloseHandle(radio);
+						UpdateCallback(PairingState::PairingFailed);
+						return;
+					}
+					CloseHandle(radio);
+					UpdateCallback(PairingState::Finished);
+					return;
+				}
+
+				if (info.fRemembered && !info.fAuthenticated)
+				{
+					BluetoothRemoveDevice(&info.Address);
+					Sleep(500);
+				}
 
 				UpdateCallback(PairingState::Pairing);
 
 				wchar_t passwd[6] = {radioInfo.address.rgBytes[0], radioInfo.address.rgBytes[1], radioInfo.address.rgBytes[2], radioInfo.address.rgBytes[3], radioInfo.address.rgBytes[4], radioInfo.address.rgBytes[5]};
 				DWORD bthResult = BluetoothAuthenticateDevice(nullptr, radio, &info, passwd, 6);
+
 				if (bthResult != ERROR_SUCCESS)
 				{
+					wchar_t passwd2[6] = {info.Address.rgBytes[0], info.Address.rgBytes[1], info.Address.rgBytes[2], info.Address.rgBytes[3], info.Address.rgBytes[4], info.Address.rgBytes[5]};
+					bthResult = BluetoothAuthenticateDevice(nullptr, radio, &info, passwd2, 6);
+				}
+
+				if (bthResult != ERROR_SUCCESS)
+				{
+					CloseHandle(radio);
 					UpdateCallback(PairingState::PairingFailed);
 					return;
 				}
@@ -207,10 +237,12 @@ void PairingDialog::WorkerThread()
 				bthResult = BluetoothSetServiceState(radio, &info, &bthHidGuid, BLUETOOTH_SERVICE_ENABLE);
 				if (bthResult != ERROR_SUCCESS)
 				{
+					CloseHandle(radio);
 					UpdateCallback(PairingState::PairingFailed);
 					return;
 				}
 
+				CloseHandle(radio);
 				UpdateCallback(PairingState::Finished);
 				return;
 			}
@@ -224,6 +256,8 @@ void PairingDialog::WorkerThread()
 
 		BluetoothFindDeviceClose(deviceFind);
 	}
+
+	CloseHandle(radio);
 }
 #elif defined(HAS_BLUEZ)
 void PairingDialog::WorkerThread()
