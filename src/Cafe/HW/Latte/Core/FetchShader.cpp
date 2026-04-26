@@ -11,7 +11,7 @@
 #include "HW/Latte/Renderer/Renderer.h"
 #include "util/containers/LookupTableL3.h"
 #include "util/helpers/fspinlock.h"
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #endif
 #include <openssl/sha.h> /* SHA1_DIGEST_LENGTH */
@@ -108,21 +108,28 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 			key = std::rotl<uint64>(key, 8);
 			key += (uint64)attrib->semanticId;
 			key = std::rotl<uint64>(key, 8);
-			if (g_renderer->GetType() == RendererAPI::Metal)
+			switch(g_renderer->GetType())
+			{
+#ifdef ENABLE_METAL
+			case RendererAPI::Metal:
 			{
 			    key += (uint64)attrib->offset;
 				key = std::rotl<uint64>(key, 7);
+				break;
 			}
-			else
+#endif
+			default:
 			{
 				key += (uint64)(attrib->offset & 3);
 				key = std::rotl<uint64>(key, 2);
+				break;
+			}
 			}
 		}
 	}
 	// todo - also hash invalid buffer groups?
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
 		for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
@@ -171,7 +178,7 @@ void LatteFetchShader::CalculateFetchShaderVkHash()
 	this->vkPipelineHashFragment = h;
 }
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 void LatteFetchShader::CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister)
 {
 	for (sint32 g = 0; g < bufferGroups.size(); g++)
@@ -376,7 +383,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 		// these only make sense when vertex shader does not call FS?
 		LatteShader_calculateFSKey(newFetchShader);
 		newFetchShader->CalculateFetchShaderVkHash();
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		newFetchShader->CheckIfVerticesNeedManualFetchMtl(contextRegister);
 #endif
 		return newFetchShader;
@@ -438,7 +445,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	}
 	LatteShader_calculateFSKey(newFetchShader);
 	newFetchShader->CalculateFetchShaderVkHash();
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	newFetchShader->CheckIfVerticesNeedManualFetchMtl(contextRegister);
 #endif
 

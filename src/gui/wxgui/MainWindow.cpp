@@ -11,9 +11,13 @@
 #include "wxgui/windows/TextureRelationViewer/TextureRelationWindow.h"
 #include "wxgui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.h"
 #include "AudioDebuggerWindow.h"
+#ifdef ENABLE_OPENGL
 #include "wxgui/canvas/OpenGLCanvas.h"
+#endif
+#ifdef ENABLE_VULKAN
 #include "wxgui/canvas/VulkanCanvas.h"
-#if ENABLE_METAL
+#endif
+#ifdef ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
 #endif
 #include "Cafe/OS/libs/nfc/nfc.h"
@@ -42,7 +46,9 @@
 #include "wxgui/DownloadGraphicPacksWindow.h"
 #include "wxgui/GettingStartedDialog.h"
 #include "wxgui/helpers/wxHelpers.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
+#endif
 #include "wxgui/input/InputSettings2.h"
 #include "wxgui/input/HotkeySettings.h"
 #include "input/InputManager.h"
@@ -66,7 +72,7 @@
 #include "gamemode_client.h"
 #endif
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #endif
 
@@ -1037,7 +1043,7 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		if(!GetConfig().vk_accurate_barriers)
 			wxMessageBox(_("Warning: Disabling the accurate barriers option will lead to flickering graphics but may improve performance. It is highly recommended to leave it turned on."), _("Accurate barriers are off"), wxOK);
 	}
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE)
 	{
 		cemu_assert_debug(g_renderer->GetType() == RendererAPI::Metal);
@@ -1601,14 +1607,29 @@ void MainWindow::CreateCanvas()
     this->GetSizer()->Add(m_game_panel, 1, wxEXPAND);
 
     // create canvas
-    if (ActiveSettings::GetGraphicsAPI() == kVulkan)
-		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
-	else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
+	switch (ActiveSettings::GetGraphicsAPI())
+	{
+	case kOpenGL:
+#ifdef ENABLE_OPENGL
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
-#if ENABLE_METAL
-	else
-	    m_render_canvas = new MetalCanvas(m_game_panel, wxSize(1280, 720), true);
+		break;
 #endif
+	case kVulkan:
+#ifdef ENABLE_VULKAN
+		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
+		break;
+#endif
+	case kMetal:
+#ifdef ENABLE_METAL
+		m_render_canvas = new MetalCanvas(m_game_panel, wxSize(1280, 720), true);
+		break;
+#endif
+	default:
+		cemu_assert(false && "Invalid graphics API selected");
+		break;
+	}
+
+	cemu_assert(m_render_canvas != nullptr);
 
 	// mouse events
 	m_render_canvas->Bind(wxEVT_MOTION, &MainWindow::OnMouseMove, this);
@@ -1670,7 +1691,9 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 
 	event.Skip();
 
+	#ifdef ENABLE_VULKAN
 	VsyncDriver_notifyWindowPosChanged();
+	#endif
 }
 
 void MainWindow::OnDPIChangedEvent(wxDPIChangedEvent& event)
@@ -1691,7 +1714,9 @@ void MainWindow::OnMove(wxMoveEvent& event)
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), GetSize());
+	#ifdef ENABLE_VULKAN
 	VsyncDriver_notifyWindowPosChanged();
+	#endif
 }
 
 void MainWindow::OnDebuggerClose(wxCloseEvent& event)
@@ -2345,7 +2370,7 @@ void MainWindow::RecreateMenu()
 	auto accurateBarriers = debugMenu->AppendCheckItem(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, _("&Accurate barriers (Vulkan)"));
 	accurateBarriers->Check(GetConfig().vk_accurate_barriers);
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	auto gpuCapture = debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, _("&GPU capture (Metal)"));
 	gpuCapture->Enable(m_game_launched && g_renderer->GetType() == RendererAPI::Metal);
 #endif

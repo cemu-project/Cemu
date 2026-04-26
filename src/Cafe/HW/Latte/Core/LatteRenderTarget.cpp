@@ -10,6 +10,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "HW/Latte/Renderer/RendererCore.h"
 #include "config/ActiveSettings.h"
 #include "WindowSystem.h"
 #include "Cafe/OS/libs/erreula/erreula.h"
@@ -694,7 +695,9 @@ void LatteRenderTarget_itHLESwapScanBuffer()
 	performanceMonitor.gpuTime_frameTime.beginMeasuring();
 
 	LatteTC_CleanupUnusedTextures();
+#ifdef ENABLE_OPENGL
 	LatteDraw_cleanupAfterFrame();
+#endif
 	LatteQuery_CancelActiveGPU7Queries();
 	LatteBufferCache_notifySwapTVScanBuffer();
 	LattePerformanceMonitor_frameBegin();

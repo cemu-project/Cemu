@@ -1,4 +1,5 @@
 #pragma once
+#include "config/CemuConfig.h"
 #include <wx/collpane.h>
 #include <wx/propgrid/propgrid.h>
 #include <Cafe/Account/Account.h>
@@ -36,6 +37,7 @@ private:
 	bool m_game_launched;
 
 	bool m_has_account_change = false; // keep track of dirty state of accounts
+	std::vector<GraphicAPI> m_api_map; // map from dropdown index to GraphicsAPISetting, used in HandleGraphicsApiSelection
 
 
 	wxPanel* AddGeneralPage(wxNotebook* notebook);
@@ -71,7 +73,7 @@ private:
 	wxCheckBox* m_userDisplayisSRGB;
 
 	wxCheckBox *m_async_compile, *m_gx2drawdone_sync;
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	wxCheckBox *m_force_mesh_shaders;
 #endif
 	wxRadioBox* m_upscale_filter, *m_downscale_filter, *m_fullscreen_scaling;
@@ -99,7 +101,7 @@ private:
 	// Debug
 	wxChoice* m_crash_dump;
 	wxSpinCtrl* m_gdb_port;
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	wxTextCtrl* m_gpu_capture_dir;
 	wxCheckBox* m_framebuffer_fetch;
 #endif

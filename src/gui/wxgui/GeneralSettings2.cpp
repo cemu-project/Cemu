@@ -27,9 +27,11 @@
 
 #include "audio/IAudioInputAPI.h"
 
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#if ENABLE_METAL
+#endif
+#ifdef ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #endif
 #include "Cafe/Account/Account.h"
@@ -87,6 +89,7 @@ private:
 	IAudioInputAPI::DeviceDescriptionPtr m_description;
 };
 
+#ifdef ENABLE_VULKAN
 class wxVulkanUUID : public wxClientData
 {
 public:
@@ -97,8 +100,9 @@ public:
 private:
 	VulkanRenderer::DeviceInfo m_device_info;
 };
+#endif
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 class wxMetalUUID : public wxClientData
 {
 public:
@@ -352,15 +356,25 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 
 		row->Add(new wxStaticText(box, wxID_ANY, _("Graphics API")), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 
-		sint32 api_size = 1;
-		wxString choices[3] = { "OpenGL" };
+		sint32 api_size = 0;
+		wxString choices[GRAPHIC_API_COUNT];
+
+#ifdef ENABLE_OPENGL
+		choices[api_size++] = "OpenGL";
+		m_api_map.push_back(GraphicAPI::kOpenGL);
+#endif
+#ifdef ENABLE_VULKAN
 		if (g_vulkan_available)
 		{
 			choices[api_size++] = "Vulkan";
+			m_api_map.push_back(GraphicAPI::kVulkan);
 		}
-#if ENABLE_METAL
-		choices[api_size++] = "Metal";
 #endif
+#ifdef ENABLE_METAL
+		choices[api_size++] = "Metal";
+		m_api_map.push_back(GraphicAPI::kMetal);
+#endif
+		wxASSERT(api_size > 0);
 
 		m_graphic_api = new wxChoice(box, wxID_ANY, wxDefaultPosition, wxDefaultSize, api_size, choices);
 		m_graphic_api->SetSelection(0);
@@ -400,7 +414,7 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_gx2drawdone_sync->SetToolTip(_("If synchronization is requested by the game, the emulated CPU will wait for the GPU to finish all operations.\nThis is more accurate behavior, but may cause lower performance"));
 		graphic_misc_row->Add(m_gx2drawdone_sync, 0, wxALL, 5);
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		m_force_mesh_shaders = new wxCheckBox(box, wxID_ANY, _("Force mesh shaders"));
 		m_force_mesh_shaders->SetToolTip(_("Force mesh shaders on all GPUs that support them. Mesh shaders are disabled by default on Intel GPUs due to potential stability issues.\nMetal only"));
 		graphic_misc_row->Add(m_force_mesh_shaders, 0, wxALL, 5);
@@ -1028,7 +1042,7 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 		debug_panel_sizer->Add(debug_row, 0, wxALL | wxEXPAND, 5);
 	}
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	{
 		auto* debug_row = new wxFlexGridSizer(0, 2, 0, 0);
 		debug_row->SetFlexibleDirection(wxBOTH);
@@ -1216,9 +1230,10 @@ void GeneralSettings2::StoreConfig()
 	}
 
 	// graphics
-	config.graphic_api = (GraphicAPI)m_graphic_api->GetSelection();
+	config.graphic_api = m_api_map[m_graphic_api->GetSelection()];
 
 	selection = m_graphic_device->GetSelection();
+#ifdef ENABLE_VULKAN
 	if (config.graphic_api == GraphicAPI::kVulkan)
 	{
     	if (selection != wxNOT_FOUND)
@@ -1232,25 +1247,26 @@ void GeneralSettings2::StoreConfig()
     	else
     		config.vk_graphic_device_uuid = {};
 	}
-#if ENABLE_METAL
-	else if (config.graphic_api == GraphicAPI::kMetal)
+#endif
+#ifdef ENABLE_METAL
+	if (config.graphic_api == GraphicAPI::kMetal)
 	{
-        if (selection != wxNOT_FOUND)
-    	{
-    		const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
-    		if (info)
-    			config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
-    		else
-    			config.mtl_graphic_device_uuid = {};
-    	}
-    	else
-    		config.mtl_graphic_device_uuid = {};
+		if (selection != wxNOT_FOUND)
+		{
+			const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
+			if (info)
+				config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+			else
+				config.mtl_graphic_device_uuid = {};
+		}
+		else
+			config.mtl_graphic_device_uuid = {};
 	}
 #endif
 
 
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	config.force_mesh_shaders = m_force_mesh_shaders->IsChecked();
 #endif
 	config.async_compile = m_async_compile->IsChecked();
@@ -1281,7 +1297,7 @@ void GeneralSettings2::StoreConfig()
 	// debug
 	config.crash_dump = (CrashDump)m_crash_dump->GetSelection();
 	config.gdb_port = m_gdb_port->GetValue();
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	config.gpu_capture_dir = m_gpu_capture_dir->GetValue().utf8_string();
 	config.framebuffer_fetch = m_framebuffer_fetch->IsChecked();
 #endif
@@ -1721,7 +1737,12 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		selection = GetConfig().vsync;
 
 	m_vsync->Clear();
-	if (m_graphic_api->GetSelection() == 0)
+
+	auto api = m_api_map[m_graphic_api->GetSelection()];
+	switch (api)
+	{
+#ifdef ENABLE_OPENGL
+	case GraphicAPI::kOpenGL:
 	{
 		// OpenGL
 		m_vsync->AppendString(_("Off"));
@@ -1736,16 +1757,19 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_gx2drawdone_sync->Enable();
 		m_async_compile->Disable();
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		m_force_mesh_shaders->Disable();
 #endif
+		break;
 	}
-	else if (m_graphic_api->GetSelection() == 1)
+#endif
+#ifdef ENABLE_VULKAN
+	case GraphicAPI::kVulkan:
 	{
 		// Vulkan
 		m_gx2drawdone_sync->Disable();
 		m_async_compile->Enable();
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		m_force_mesh_shaders->Disable();
 #endif
 
@@ -1779,9 +1803,11 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 				}
 			}
 		}
+		break;
 	}
-#if ENABLE_METAL
-	else
+	#endif
+#ifdef ENABLE_METAL
+	case GraphicAPI::kMetal:
 	{
 		// Metal
 		m_gx2drawdone_sync->Disable();
@@ -1815,8 +1841,10 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 				}
 			}
 		}
+		break;
 	}
 #endif
+	}
 }
 
 void GeneralSettings2::ApplyConfig()
@@ -1870,7 +1898,14 @@ void GeneralSettings2::ApplyConfig()
 	}
 
 	// graphics
-	m_graphic_api->SetSelection(config.graphic_api);
+	for (int i = 0; i < (int)m_api_map.size(); ++i)
+	{
+		if (m_api_map[i] == config.graphic_api)
+		{
+			m_graphic_api->SetSelection(i);
+			break;
+		}
+	}
 	m_vsync->SetSelection(config.vsync);
 	m_overrideGamma->SetValue(config.overrideAppGammaPreference);
 	m_overrideGammaValue->SetValue(config.overrideGammaValue);
@@ -1883,7 +1918,7 @@ void GeneralSettings2::ApplyConfig()
 	}
 	m_async_compile->SetValue(config.async_compile);
 	m_gx2drawdone_sync->SetValue(config.gx2drawdone_sync);
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	m_force_mesh_shaders->SetValue(config.force_mesh_shaders);
 #endif
 	m_upscale_filter->SetSelection(config.upscale_filter);
@@ -2022,7 +2057,7 @@ void GeneralSettings2::ApplyConfig()
 	// debug
 	m_crash_dump->SetSelection((int)config.crash_dump.GetValue());
 	m_gdb_port->SetValue(config.gdb_port.GetValue());
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	m_gpu_capture_dir->SetValue(wxString::FromUTF8(config.gpu_capture_dir.GetValue()));
 	m_framebuffer_fetch->SetValue(config.framebuffer_fetch);
 #endif

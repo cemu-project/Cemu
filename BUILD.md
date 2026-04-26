@@ -244,7 +244,7 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 | CEMU_CXX_FLAGS     |   | Flags passed straight to the compiler, e.g. `-march=native`, `-Wall`, `/W3` | ""      |                    |
 | ENABLE_CUBEB       |   | Enable cubeb audio backend                                                  | ON      |                    |
 | ENABLE_DISCORD_RPC |   | Enable Discord Rich presence support                                        | ON      |                    |
-| ENABLE_OPENGL      |   | Enable OpenGL graphics backend                                              | ON      | Currently required |
+| ENABLE_OPENGL      |   | Enable OpenGL graphics backend                                              | ON      |                    |
 | ENABLE_HIDAPI      |   | Enable HIDAPI (used for Wiimote controller API)                             | ON      |                    |
 | ENABLE_SDL         |   | Enable SDLController controller API                                         | ON      | Currently required |
 | ENABLE_VCPKG       |   | Use VCPKG package manager to obtain dependencies                            | ON      |                    |

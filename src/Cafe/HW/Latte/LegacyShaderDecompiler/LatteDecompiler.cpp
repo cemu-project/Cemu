@@ -10,7 +10,9 @@
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#endif
 #include "util/helpers/helpers.h"
 
 // parse instruction and if valid append it to instructionList
@@ -1069,12 +1071,24 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	// emit code
 	if (shaderContext->shader->hasError == false)
 	{
-	    if (g_renderer->GetType() == RendererAPI::OpenGL || g_renderer->GetType() == RendererAPI::Vulkan)
-	        LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
-#if ENABLE_METAL
-		else
-		    LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
+		switch(g_renderer->GetType())
+		{
+#ifdef ENABLE_OPENGL
+			case RendererAPI::OpenGL:
+				LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+				break;
 #endif
+#ifdef ENABLE_VULKAN
+			case RendererAPI::Vulkan:
+				LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
+				break;
+#endif
+#ifdef ENABLE_METAL
+			case RendererAPI::Metal:
+				LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
+				break;
+#endif
+		}
 	}
 	LatteDecompiler_cleanup(shaderContext);
 	// fast access

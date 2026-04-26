@@ -13,18 +13,24 @@ if(MSVC)
 	add_compile_definitions(WIN32_LEAN_AND_MEAN CURL_STATICLIB)
 elseif(UNIX)
 	if(APPLE)
-		add_compile_definitions(
-			_XOPEN_SOURCE
-			VK_USE_PLATFORM_MACOS_MVK
-			VK_USE_PLATFORM_METAL_EXT
-		)
+		if (ENABLE_VULKAN)
+			add_compile_definitions(
+				_XOPEN_SOURCE
+				VK_USE_PLATFORM_MACOS_MVK
+				VK_USE_PLATFORM_METAL_EXT
+			)
+		else()
+			add_compile_definitions(_XOPEN_SOURCE)
+		endif()
 	else()
-		add_compile_definitions(
-			VK_USE_PLATFORM_XLIB_KHR # legacy. Do we need to support XLIB surfaces?
-			VK_USE_PLATFORM_XCB_KHR
-		)
-		if (ENABLE_WAYLAND)
-			add_compile_definitions(VK_USE_PLATFORM_WAYLAND_KHR)
+		if (ENABLE_VULKAN)
+			add_compile_definitions(
+				VK_USE_PLATFORM_XLIB_KHR # legacy. Do we need to support XLIB surfaces?
+				VK_USE_PLATFORM_XCB_KHR
+			)
+			if (ENABLE_WAYLAND)
+				add_compile_definitions(VK_USE_PLATFORM_WAYLAND_KHR)
+			endif()
 		endif()
 	endif()
 	# warnings
@@ -35,7 +41,9 @@ elseif(UNIX)
     add_compile_options(-Wno-multichar -Wno-invalid-offsetof -Wno-switch -Wno-ignored-attributes -Wno-deprecated-enum-enum-conversion)
 endif()
 
-add_compile_definitions(VK_NO_PROTOTYPES)
+if (ENABLE_VULKAN)
+	add_compile_definitions(VK_NO_PROTOTYPES)
+endif()
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -119,29 +127,30 @@ if (MACOS_BUNDLE)
 			COMMAND ${CMAKE_COMMAND} ARGS -E copy_directory "${CMAKE_SOURCE_DIR}/bin/${folder}" "$<TARGET_BUNDLE_DIR:CemuBin>/Contents/SharedSupport/${folder}")
 	endforeach(folder)
 
-	if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/debug/lib/libusb-1.0.0.dylib")
-	else()
-	    set(LIBUSB_PATH "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib/libusb-1.0.0.dylib")
-	endif()
+	if (ENABLE_VULKAN)
+		if (EXISTS "/usr/local/lib/libMoltenVK.dylib")
+			set(MOLTENVK_PATH "/usr/local/lib/libMoltenVK.dylib")
+		elseif (EXISTS "/opt/homebrew/lib/libMoltenVK.dylib")
+			set(MOLTENVK_PATH "/opt/homebrew/lib/libMoltenVK.dylib")
+		else()
+			message(FATAL_ERROR "failed to find libMoltenVK.dylib")
+		endif ()
+  endif()
 
-	if (EXISTS "/usr/local/lib/libMoltenVK.dylib")
-		set(MOLTENVK_PATH "/usr/local/lib/libMoltenVK.dylib")
-	elseif (EXISTS "/opt/homebrew/lib/libMoltenVK.dylib")
-		set(MOLTENVK_PATH "/opt/homebrew/lib/libMoltenVK.dylib")
-	else()
-		message(FATAL_ERROR "failed to find libMoltenVK.dylib")
-	endif ()
 	set(UPDATE_SH_PATH "${CMAKE_SOURCE_DIR}/src/resource/update.sh")
-
 	set(APP_BUNDLE_DIR "$<TARGET_BUNDLE_DIR:CemuBin>")
 	set(FRAMEWORKS_DIR "${APP_BUNDLE_DIR}/Contents/Frameworks")
 	set(RESOURCES_DIR  "${APP_BUNDLE_DIR}/Contents/Resources")
 
+	if (ENABLE_VULKAN)
+		add_custom_command(TARGET CemuBin POST_BUILD
+			COMMAND ${CMAKE_COMMAND} -E copy 
+				"${MOLTENVK_PATH}"
+				"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
+		)
+	endif()
+
 	add_custom_command(TARGET CemuBin POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy 
-			"${MOLTENVK_PATH}"
-			"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
 		COMMAND ${CMAKE_COMMAND} -E copy
 			"${LIBUSB_PATH}"
 			"${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
@@ -165,20 +174,22 @@ if (MACOS_BUNDLE)
 	)
 else()
     if(APPLE)
-        find_library(MOLTENVK_LIBRARY
-            NAMES MoltenVK moltenvk libMoltenVK.dylib
-            PATHS /usr/local/lib /opt/homebrew/lib
-        )
-        if(MOLTENVK_LIBRARY)
-            message(STATUS "Found MoltenVK: ${MOLTENVK_LIBRARY}")
-            target_link_libraries(CemuBin PRIVATE ${MOLTENVK_LIBRARY})
-        else()
-            message(WARNING "libMoltenVK.dylib not found")
-        endif()
-        set_target_properties(CemuBin PROPERTIES
-            BUILD_WITH_INSTALL_RPATH TRUE
-            INSTALL_RPATH "/usr/local/lib;/opt/homebrew/lib"
-        )
+		if (ENABLE_VULKAN)
+			find_library(MOLTENVK_LIBRARY
+				NAMES MoltenVK moltenvk libMoltenVK.dylib
+				PATHS /usr/local/lib /opt/homebrew/lib
+			)
+			if(MOLTENVK_LIBRARY)
+				message(STATUS "Found MoltenVK: ${MOLTENVK_LIBRARY}")
+				target_link_libraries(CemuBin PRIVATE ${MOLTENVK_LIBRARY})
+			else()
+				message(WARNING "libMoltenVK.dylib not found")
+			endif()
+			set_target_properties(CemuBin PROPERTIES
+				BUILD_WITH_INSTALL_RPATH TRUE
+				INSTALL_RPATH "/usr/local/lib;/opt/homebrew/lib"
+			)
+		endif()
     endif()
 endif()
 

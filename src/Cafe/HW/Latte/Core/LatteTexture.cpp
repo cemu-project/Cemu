@@ -567,6 +567,8 @@ bool __LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture
 		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWSURFFMT::HWFMT_8_8_8_8)
 			return true;
 	}
+
+#ifdef ENABLE_VULKAN
 	// Vulkan has stricter rules
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
@@ -574,6 +576,7 @@ bool __LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture
 		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWSURFFMT::HWFMT_8_24)
 			return true;
 	}
+#endif
 
 	return false;
 }

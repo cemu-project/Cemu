@@ -19,7 +19,6 @@
 
 #include "util/helpers/helpers.h"
 #include "config/ActiveSettings.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
@@ -65,6 +64,7 @@ void _putenvSafe(const char* c)
     _putenv(s->c_str());
 }
 
+#ifdef ENABLE_OPENGL
 void reconfigureGLDrivers()
 {
 	// reconfigure GL drivers to store 
@@ -85,12 +85,15 @@ void reconfigureGLDrivers()
     _putenvSafe("__GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1");
 
 }
+#endif
 
+#ifdef ENABLE_VULKAN
 void reconfigureVkDrivers()
 {
     _putenvSafe("DISABLE_LAYER_AMD_SWITCHABLE_GRAPHICS_1=1");
     _putenvSafe("DISABLE_VK_LAYER_VALVE_steam_fossilize_1=1");
 }
+#endif
 
 void WindowsInitCwd()
 {
@@ -109,8 +112,12 @@ void WindowsInitCwd()
 
 void CemuCommonInit()
 {
+	#ifdef ENABLE_OPENGL
 	reconfigureGLDrivers();
+	#endif
+	#ifdef ENABLE_VULKAN
 	reconfigureVkDrivers();
+	#endif
 	// crypto init
 	AES128_init();
 	// init PPC timer
@@ -258,7 +265,7 @@ int main(int argc, char* argv[])
 int BreathOfTheWildChildProcessMain();
 int main(int argc, char *argv[])
 {
-#if BOOST_OS_LINUX
+#if BOOST_OS_LINUX && defined(ENABLE_VULKAN)
 	if (getenv("CEMU_DETECT_RADV") != nullptr)
 		return BreathOfTheWildChildProcessMain();
 #endif

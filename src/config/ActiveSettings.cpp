@@ -1,7 +1,9 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
+#endif
 #include "Cafe/CafeSystem.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "config/ActiveSettings.h"
@@ -107,9 +109,12 @@ bool ActiveSettings::WaitForGX2DrawDoneEnabled()
 GraphicAPI ActiveSettings::GetGraphicsAPI()
 {
 	GraphicAPI api = g_current_game_profile->GetGraphicsAPI().value_or(GetConfig().graphic_api);
+
+#if defined(ENABLE_VULKAN) && defined(ENABLE_OPENGL)
 	// check if vulkan even available
 	if (api == kVulkan && !g_vulkan_available)
 		api = kOpenGL;
+#endif
 	
 	return api;
 }
