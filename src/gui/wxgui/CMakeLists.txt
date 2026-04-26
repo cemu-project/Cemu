@@ -1,4 +1,6 @@
 add_library(CemuWxGui STATIC
+  CameraSettingsWindow.cpp
+  CameraSettingsWindow.h
   canvas/IRenderCanvas.h
   canvas/OpenGLCanvas.cpp
   canvas/OpenGLCanvas.h
@@ -150,6 +152,7 @@ target_link_libraries(CemuWxGui PRIVATE
   SDL2::SDL2
   pugixml::pugixml
   CemuCafe
+  CemuCamera
   PUBLIC
   CURL::libcurl
 )

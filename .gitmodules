@@ -25,3 +25,6 @@
 [submodule "dependencies/xbyak_aarch64"]
 	path = dependencies/xbyak_aarch64
 	url = https://github.com/fujitsu/xbyak_aarch64
+[submodule "dependencies/openpnp-capture"]
+	path = dependencies/openpnp-capture
+	url = https://github.com/capitalistspz/openpnp-capture-fork
