@@ -275,7 +275,7 @@ void nnActExport_IsPasswordCacheEnabledEx(PPCInterpreter_t* hCPU)
 	cemuLog_logDebug(LogType::Force, "nn_act.IsPasswordCacheEnabledEx({})", slot);
 
 	const uint32 persistentId = nn::act::GetPersistentIdEx(slot);
-	if (persistentId != 1)
+	if (persistentId == 0)
 	{
 		osLib_returnFromFunction(hCPU, 0);
 		return;
