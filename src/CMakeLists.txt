@@ -144,11 +144,11 @@ if (MACOS_BUNDLE)
 		COMMAND ${CMAKE_COMMAND} -E copy 
 			"${MOLTENVK_PATH}"
 			"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
-    if (ENABLE_LIBUSB)
-      COMMAND ${CMAKE_COMMAND} -E copy
-        "${LIBUSB_PATH}"
-        "${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
-    endif()
+		if (ENABLE_LIBUSB)
+		COMMAND ${CMAKE_COMMAND} -E copy
+			"${LIBUSB_PATH}"
+			"${FRAMEWORKS_DIR}/libusb-1.0.0.dylib"
+		endif()
 		COMMAND ${CMAKE_COMMAND} -E copy
 			"${UPDATE_SH_PATH}"
 			"${RESOURCES_DIR}/update.sh"
@@ -162,12 +162,13 @@ if (MACOS_BUNDLE)
 	)
 
 	if (ENABLE_LIBUSB)
-    add_custom_command(TARGET CemuBin POST_BUILD
-      COMMAND install_name_tool
-        -change @rpath/libusb-1.0.0.dylib
-            @executable_path/../Frameworks/libusb-1.0.0.dylib
-            "$<TARGET_FILE:CemuBin>"
-    )
+		add_custom_command(TARGET CemuBin POST_BUILD
+		COMMAND install_name_tool
+			-change @rpath/libusb-1.0.0.dylib
+				@executable_path/../Frameworks/libusb-1.0.0.dylib
+				"$<TARGET_FILE:CemuBin>"
+		)
+	endif()
   endif()
 else()
     if(APPLE)
