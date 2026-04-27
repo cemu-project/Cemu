@@ -93,8 +93,7 @@ public:
 
 	// this will always return at least one account (default one)
 	static const std::vector<Account>& RefreshAccounts();
-	static std::vector<uint32> ReadCommonDat();
-	static void WriteCommonDat(const std::vector<uint32>& orderedIds);
+	static void UpdatePersisidDat();
 	
 	[[nodiscard]] static bool HasFreeAccountSlots();
 	[[nodiscard]] static const std::vector<Account>& GetAccounts();
