@@ -122,3 +122,4 @@ struct iosuActCemuRequest_t
 uint32 iosuAct_getAccountIdOfCurrentAccount();
 
 bool iosuAct_isAccountDataLoaded();
+int iosuAct_getNumAccounts();
