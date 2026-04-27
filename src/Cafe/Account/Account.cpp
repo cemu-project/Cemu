@@ -331,6 +331,11 @@ const std::vector<Account>& Account::RefreshAccounts()
 		result.begin()->Save();
 	}
 
+	std::sort(result.begin(), result.end(), [](const Account& a, const Account& b)
+	{
+		return a.GetPersistentId() < b.GetPersistentId();
+	});
+
 	s_account_list = result;
 	UpdatePersisidDat();
 	return s_account_list;
