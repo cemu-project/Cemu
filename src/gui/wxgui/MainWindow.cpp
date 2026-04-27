@@ -957,10 +957,6 @@ void MainWindow::OnAccountSelect(wxCommandEvent& event)
 	auto& config = GetConfig();
 	config.account.m_persistent_id = accounts[index].GetPersistentId();
 	// config.account.online_enabled.value = false; // reset online for safety
-	std::vector<uint32> orderedIds;
-	for (const auto& acc : accounts)
-		orderedIds.push_back(acc.GetPersistentId());
-	Account::WriteCommonDat(orderedIds);
 	GetConfigHandle().Save();
 }
 
