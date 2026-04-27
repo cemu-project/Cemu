@@ -110,7 +110,7 @@ void iosuAct_loadAccounts()
 
 	const bool online_enabled = ActiveSettings::IsOnlineEnabled();
 
-	// Load all accounts in common.dat order; the active account keeps its natural position
+	// Load all accounts in order of persistantId; the active account keeps its natural position
 	int counter = 0;
 	for (const auto& account : Account::GetAccounts())
 	{
