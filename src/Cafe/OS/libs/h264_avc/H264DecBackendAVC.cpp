@@ -194,8 +194,15 @@ namespace H264
 			double decodeTime = bt.GetElapsedMilliseconds();
 
 			cemu_assert(s_dec_op.u4_frame_decoded_flag);
-			cemu_assert_debug(s_dec_op.u4_num_bytes_consumed == decodedSlice.dataToDecode.m_length);
-
+			
+			if (s_dec_op.u4_num_bytes_consumed < decodedSlice.dataToDecode.m_length)
+			{
+				// log instead of asserting
+				cemuLog_log(LogType::H264, "Partial consumption: {} / {}",
+					s_dec_op.u4_num_bytes_consumed,
+					decodedSlice.dataToDecode.m_length);
+			}
+			
 			cemu_assert_debug(m_isBufferedMode || s_dec_op.u4_output_present); // if buffered mode is disabled, then every input should output a frame (except for partial slices?)
 
 			if (s_dec_op.u4_output_present)

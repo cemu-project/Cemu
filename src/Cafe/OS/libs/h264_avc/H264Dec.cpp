@@ -32,16 +32,16 @@ namespace H264
 	{
 		struct
 		{
-			MEMPTR<void> ptr{ nullptr };
-			uint32be length{ 0 };
+			MEMPTR<void> ptr{nullptr};
+			uint32be length{0};
 			float64be timestamp;
-		}BitStream;
+		} BitStream;
 		struct
 		{
-			MEMPTR<void> outputFunc{ nullptr };
-			uint8be outputPerFrame{ 0 }; // whats the default?
-			MEMPTR<void> userMemoryParam{ nullptr };
-		}Param;
+			MEMPTR<void> outputFunc{nullptr};
+			uint8be outputPerFrame{0}; // whats the default?
+			MEMPTR<void> userMemoryParam{nullptr};
+		} Param;
 		// misc
 		uint32be sessionHandle;
 
@@ -49,7 +49,7 @@ namespace H264
 		struct
 		{
 			uint32 numFramesInFlight{0};
-		}decoderState;
+		} decoderState;
 	};
 
 	uint32 H264DECMemoryRequirement(uint32 codecProfile, uint32 codecLevel, uint32 width, uint32 height, uint32be* sizeRequirementOut)
@@ -189,46 +189,142 @@ namespace H264
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
-	H264DEC_STATUS H264DECGetImageSize(uint8* stream, uint32 length, uint32 offset, uint32be* outputWidth, uint32be* outputHeight)
+
+	size_t EBSPtoRBSP(uint8_t* dst, const uint8_t* src, size_t size)
 	{
-		if(!stream || length < 4 || !outputWidth || !outputHeight)
+		size_t j = 0;
+		int zeroCount = 0;
+
+		for (size_t i = 0; i < size; i++)
+		{
+			if (zeroCount == 2 && src[i] == 0x03)
+			{
+				zeroCount = 0;
+				continue; // skip emulation prevention byte
+			}
+
+			dst[j++] = src[i];
+
+			if (src[i] == 0)
+				zeroCount++;
+			else
+				zeroCount = 0;
+		}
+
+		return j;
+	}
+
+	H264DEC_STATUS H264DECGetImageSize(
+		uint8* stream,
+		uint32 length,
+		uint32 offset,
+		uint32be* outputWidth,
+		uint32be* outputHeight)
+	{
+		if (!stream || length < 4 || !outputWidth || !outputHeight)
 			return H264DEC_STATUS::INVALID_PARAM;
-		if( (offset+4) > length )
+
+		if ((offset + 4) > length)
 			return H264DEC_STATUS::INVALID_PARAM;
+
 		uint8* cur = stream + offset;
 		uint8* end = stream + length;
-		cur += 2; // we access cur[-2] and cur[-1] so we need to start at offset 2
-		while(cur < end-2)
+
+		while (cur < end - 4)
 		{
-			// check for start code
-			if(*cur != 1)
+			// Detect start code (3-byte or 4-byte)
+			uint32 startCodeSize = 0;
+
+			if (cur[0] == 0x00 && cur[1] == 0x00)
+			{
+				if (cur[2] == 0x01)
+				{
+					startCodeSize = 3;
+				}
+				else if (cur[2] == 0x00 && cur[3] == 0x01)
+				{
+					startCodeSize = 4;
+				}
+			}
+
+			if (startCodeSize == 0)
 			{
 				cur++;
 				continue;
 			}
-			// check if this is a valid NAL header
-			if(cur[-2] != 0 || cur[-1] != 0 || cur[0] != 1)
+
+			uint8* nalStart = cur + startCodeSize;
+			if (nalStart >= end)
+				break;
+
+			uint8 nalHeader = nalStart[0];
+
+			// Check if SPS (NAL type 7)
+			if ((nalHeader & 0x1F) == 7)
 			{
-				cur++;
-				continue;
+				// Find end of this NAL (next start code)
+				uint8* nalEnd = nalStart + 1;
+				while (nalEnd < end - 3)
+				{
+					if (nalEnd[0] == 0x00 && nalEnd[1] == 0x00 &&
+						(nalEnd[2] == 0x01 || (nalEnd[2] == 0x00 && nalEnd[3] == 0x01)))
+					{
+						break;
+					}
+					nalEnd++;
+				}
+
+				size_t nalSize = nalEnd - (nalStart + 1);
+
+				// --- EBSP -> RBSP ---
+				uint8_t rbsp[2048]; // consider dynamic if needed
+				size_t rbspSize = 0;
+
+				int zeroCount = 0;
+				for (size_t i = 0; i < nalSize; i++)
+				{
+					uint8_t b = nalStart[1 + i];
+
+					if (zeroCount == 2 && b == 0x03)
+					{
+						zeroCount = 0;
+						continue; // skip emulation prevention byte
+					}
+
+					rbsp[rbspSize++] = b;
+
+					if (b == 0x00)
+						zeroCount++;
+					else
+						zeroCount = 0;
+				}
+
+				// Parse SPS
+				h264State_seq_parameter_set_t psp;
+				bool r = h264Parser_ParseSPS(rbsp, (uint32)rbspSize, psp);
+
+				if (!r)
+				{
+					cemu_assert_suspicious();
+					return H264DEC_STATUS::BAD_STREAM;
+				}
+
+				// Width
+				*outputWidth = (psp.pic_width_in_mbs_minus1 + 1) * 16;
+
+				// Height (correct handling)
+				uint32 height = (psp.pic_height_in_map_units_minus1 + 1) * 16;
+				if (!psp.frame_mbs_only_flag)
+					height *= 2;
+
+				*outputHeight = height;
+
+				return H264DEC_STATUS::SUCCESS;
 			}
-			uint8 nalHeader = cur[1];
-			if((nalHeader & 0x1F) != 7)
-			{
-				cur++;
-				continue;
-			}
-			h264State_seq_parameter_set_t psp;
-			bool r = h264Parser_ParseSPS(cur+2, end-cur-2, psp);
-			if(!r)
-			{
-				cemu_assert_suspicious(); // should not happen
-				return H264DEC_STATUS::BAD_STREAM;
-			}
-			*outputWidth = (psp.pic_width_in_mbs_minus1 + 1) * 16;
-			*outputHeight = (psp.pic_height_in_map_units_minus1 + 1) * 16; // affected by frame_mbs_only_flag?
-			return H264DEC_STATUS::SUCCESS;
+
+			cur += startCodeSize;
 		}
+
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
@@ -241,7 +337,7 @@ namespace H264
 
 	std::unordered_map<uint32, H264DecoderBackend*> sDecoderSessions;
 	std::mutex sDecoderSessionsMutex;
-	std::atomic_uint32_t sCurrentSessionHandle{ 1 };
+	std::atomic_uint32_t sCurrentSessionHandle{1};
 
 	H264DecoderBackend* CreateAVCDecoder();
 
@@ -272,7 +368,6 @@ namespace H264
 	static void _ReleaseDecoderSession(H264DecoderBackend* session)
 	{
 		std::unique_lock _lock(sDecoderSessionsMutex);
-
 	}
 
 	static void _DestroyDecoderSession(uint32 handle)
@@ -336,10 +431,10 @@ namespace H264
 		coreinit::OSResetEvent(flushEvt);
 		session->QueueFlush();
 		coreinit::OSWaitEvent(flushEvt);
-		while(true)
+		while (true)
 		{
 			H264DecoderBackend::DecodeResult decodeResult;
-			if( !session->GetFrameOutputIfReady(decodeResult) )
+			if (!session->GetFrameOutputIfReady(decodeResult))
 				break;
 			// todo - output all frames in a single callback?
 			H264DoFrameOutputCallback(ctx, decodeResult);
@@ -431,7 +526,7 @@ namespace H264
 		/* +0x44 */ MEMPTR<uint8> imagePtr;
 
 		/* +0x48 */ uint32 vuiEnable;
-		/* +0x4C */ MPTR   vuiPtr;
+		/* +0x4C */ MPTR vuiPtr;
 		/* +0x50 */ sint32 unused[10];
 	};
 
@@ -500,15 +595,15 @@ namespace H264
 		// H264DECExecute is synchronous and will return a frame after either every call (non-buffered) or after 6 calls (buffered)
 		// normally frame decoding happens only during H264DECExecute, but in order to hide the latency of our CPU decoder we will decode asynchronously in buffered mode
 		uint32 numFramesToBuffer = (ctx->Param.outputPerFrame == 0) ? 5 : 0;
-		if(ctx->decoderState.numFramesInFlight > numFramesToBuffer)
+		if (ctx->decoderState.numFramesInFlight > numFramesToBuffer)
 		{
 			ctx->decoderState.numFramesInFlight--;
-			while(true)
+			while (true)
 			{
 				coreinit::OSEvent& evt = session->GetFrameOutputEvent();
 				coreinit::OSWaitEvent(&evt);
 				H264DecoderBackend::DecodeResult decodeResult;
-				if( !session->GetFrameOutputIfReady(decodeResult) )
+				if (!session->GetFrameOutputIfReady(decodeResult))
 					continue;
 				H264DoFrameOutputCallback(ctx, decodeResult);
 				break;
@@ -619,7 +714,7 @@ namespace H264
 
 	class : public COSModule
 	{
-		public:
+	  public:
 		std::string_view GetName() override
 		{
 			return "h264";
@@ -649,10 +744,10 @@ namespace H264
 
 			cafeExportRegister("h264", H264DECCheckDecunitLength, LogType::H264);
 		};
-	}s_COSh264Module;
+	} s_COSh264Module;
 
 	COSModule* GetModule()
 	{
 		return &s_COSh264Module;
 	}
-}
+} // namespace H264

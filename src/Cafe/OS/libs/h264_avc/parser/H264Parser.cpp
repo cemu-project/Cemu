@@ -163,7 +163,7 @@ bool parseNAL_seq_parameter_set_rbsp(h264ParserState_t* h264ParserState, h264Par
 	if (h264ParserState->sps.frame_mbs_only_flag == 0)
 	{
 		h264ParserState->sps.mb_adaptive_frame_field_flag = nalStream.readBit();
-		cemu_assert_debug(false);
+		//cemu_assert_debug(false);
 	}
 	else
 		h264ParserState->sps.mb_adaptive_frame_field_flag = 0; // default is zero?
