@@ -195,6 +195,10 @@ namespace H264
 
 			cemu_assert(s_dec_op.u4_frame_decoded_flag);
 			
+			/**
+			 * While testing Cod:Ghosts i found that ih264d may not consume the entire buffer.
+			 * So transformed into a Log not an assert.
+			 */
 			if (s_dec_op.u4_num_bytes_consumed < decodedSlice.dataToDecode.m_length)
 			{
 				// log instead of asserting

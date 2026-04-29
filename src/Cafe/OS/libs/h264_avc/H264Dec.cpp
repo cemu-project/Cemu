@@ -32,16 +32,16 @@ namespace H264
 	{
 		struct
 		{
-			MEMPTR<void> ptr{nullptr};
-			uint32be length{0};
+			MEMPTR<void> ptr{ nullptr };
+			uint32be length{ 0 };
 			float64be timestamp;
-		} BitStream;
+		}BitStream;
 		struct
 		{
-			MEMPTR<void> outputFunc{nullptr};
-			uint8be outputPerFrame{0}; // whats the default?
-			MEMPTR<void> userMemoryParam{nullptr};
-		} Param;
+			MEMPTR<void> outputFunc{ nullptr };
+			uint8be outputPerFrame{ 0 }; // whats the default?
+			MEMPTR<void> userMemoryParam{ nullptr };
+		}Param;
 		// misc
 		uint32be sessionHandle;
 
@@ -49,7 +49,7 @@ namespace H264
 		struct
 		{
 			uint32 numFramesInFlight{0};
-		} decoderState;
+		}decoderState;
 	};
 
 	uint32 H264DECMemoryRequirement(uint32 codecProfile, uint32 codecLevel, uint32 width, uint32 height, uint32be* sizeRequirementOut)
@@ -189,31 +189,11 @@ namespace H264
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
-
-	size_t EBSPtoRBSP(uint8_t* dst, const uint8_t* src, size_t size)
-	{
-		size_t j = 0;
-		int zeroCount = 0;
-
-		for (size_t i = 0; i < size; i++)
-		{
-			if (zeroCount == 2 && src[i] == 0x03)
-			{
-				zeroCount = 0;
-				continue; // skip emulation prevention byte
-			}
-
-			dst[j++] = src[i];
-
-			if (src[i] == 0)
-				zeroCount++;
-			else
-				zeroCount = 0;
-		}
-
-		return j;
-	}
-
+	/**
+	 * Changed to detect 3 or 4 emulation prevention bytes.
+	 *  The "escape character" is 0x03 - also known as emulation_prevention_three_byte
+	 * ([0x000001][first NAL unit]) | ([0x000001][second NAL unit]) | ([0x000001][third NAL unit]) 
+	 */
 	H264DEC_STATUS H264DECGetImageSize(
 		uint8* stream,
 		uint32 length,
@@ -337,7 +317,7 @@ namespace H264
 
 	std::unordered_map<uint32, H264DecoderBackend*> sDecoderSessions;
 	std::mutex sDecoderSessionsMutex;
-	std::atomic_uint32_t sCurrentSessionHandle{1};
+	std::atomic_uint32_t sCurrentSessionHandle{ 1 };
 
 	H264DecoderBackend* CreateAVCDecoder();
 
@@ -526,7 +506,7 @@ namespace H264
 		/* +0x44 */ MEMPTR<uint8> imagePtr;
 
 		/* +0x48 */ uint32 vuiEnable;
-		/* +0x4C */ MPTR vuiPtr;
+		/* +0x4C */ MPTR   vuiPtr;
 		/* +0x50 */ sint32 unused[10];
 	};
 
@@ -653,7 +633,7 @@ namespace H264
 		maxLength -= startCodeOffset;
 
 		// parse NAL data
-		while (true)
+		while(true)
 		{
 			if (nalStream.isEndOfStream())
 				break;
@@ -714,7 +694,7 @@ namespace H264
 
 	class : public COSModule
 	{
-	  public:
+	  	public:
 		std::string_view GetName() override
 		{
 			return "h264";
@@ -744,10 +724,10 @@ namespace H264
 
 			cafeExportRegister("h264", H264DECCheckDecunitLength, LogType::H264);
 		};
-	} s_COSh264Module;
+	}s_COSh264Module;
 
 	COSModule* GetModule()
 	{
 		return &s_COSh264Module;
 	}
-} // namespace H264
+}
