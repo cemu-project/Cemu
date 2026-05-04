@@ -133,6 +133,7 @@ add_library(CemuCafe
   HW/Latte/Core/LatteSoftware.h
   HW/Latte/Core/LatteStreamoutGPU.cpp
   HW/Latte/Core/LatteSurfaceCopy.cpp
+  HW/Latte/Core/LatteSurfaceCopy.h
   HW/Latte/Core/LatteTextureCache.cpp
   HW/Latte/Core/LatteTexture.cpp
   HW/Latte/Core/LatteTexture.h

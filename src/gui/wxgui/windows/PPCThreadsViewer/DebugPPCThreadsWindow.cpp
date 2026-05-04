@@ -272,7 +272,7 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 void DebugPPCThreadsWindow::DumpStackTrace(OSThread_t* thread)
 {
 	cemuLog_log(LogType::Force, "Dumping stack trace for thread {0:08x} LR: {1:08x}", memory_getVirtualOffsetFromPointer(thread), _swapEndianU32(thread->context.lr));
-	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]), true);
+	DebugLogStackTrace(thread, _swapEndianU32(thread->context.gpr[1]));
 }
 
 void DebugPPCThreadsWindow::PresentProfileResults(OSThread_t* thread, const std::unordered_map<VAddr, uint32>& samples)

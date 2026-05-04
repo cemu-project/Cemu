@@ -50,30 +50,6 @@ bool GraphicPack2::ResolvePresetConstant(const std::string& varname, double& val
 }
 
 template<typename T>
-T _expressionFuncHA(T input)
-{
-	uint32 u32 = (uint32)input;
-	u32 = (((u32 >> 16) + ((u32 & 0x8000) ? 1 : 0)) & 0xffff);
-	return (T)u32;
-}
-
-template<typename T>
-T _expressionFuncHI(T input)
-{
-	uint32 u32 = (uint32)input;
-	u32 = (u32 >> 16) & 0xffff;
-	return (T)u32;
-}
-
-template<typename T>
-T _expressionFuncLO(T input)
-{
-	uint32 u32 = (uint32)input;
-	u32 &= 0xffff;
-	return (T)u32;
-}
-
-template<typename T>
 T _expressionFuncReloc(T input)
 {
 	uint32 addr = (uint32)input;
@@ -89,18 +65,7 @@ T _expressionFuncReloc(T input)
 double _cbResolveConstant(std::string_view varname)
 {
 	std::string varnameOnly;
-	std::string tokenOnly;
-	// detect suffix
-	bool hasSuffix = false;
-	const auto idx = varname.find('@');
-	if (idx != std::string_view::npos)
-	{
-		hasSuffix = true;
-		varnameOnly = varname.substr(0, idx);
-		tokenOnly = varname.substr(idx + 1);
-	}
-	else
-		varnameOnly = varname;
+	varnameOnly = varname;
 
 	double value;
 	if (varnameOnly.length() >= 1 && varnameOnly[0] == '$')
@@ -172,37 +137,6 @@ double _cbResolveConstant(std::string_view varname)
 		}
 		value = v->second;
 	}
-	if (hasSuffix)
-	{
-		std::transform(tokenOnly.cbegin(), tokenOnly.cend(), tokenOnly.begin(), tolower);
-		if (tokenOnly == "ha")
-		{
-			value = _expressionFuncHA<double>(value);
-		}
-		else if (tokenOnly == "h" || tokenOnly == "hi")
-		{
-			value = _expressionFuncHI<double>(value);
-		}
-		else if (tokenOnly == "l" || tokenOnly == "lo")
-		{
-			value = _expressionFuncLO<double>(value);
-		}
-		else
-		{
-			// we treat unknown suffixes as unresolveable symbols
-			resolverState.hasUnknownVariable = true;
-			if (resolverState.captureUnresolvedSymbols)
-			{
-				std::string detailedSymbolName;
-				detailedSymbolName.assign(varnameOnly);
-				detailedSymbolName.append("@");
-				detailedSymbolName.append(tokenOnly);
-				detailedSymbolName.append(" (invalid suffix)");
-				resolverState.activePatchContext->unresolvedSymbols.emplace(resolverState.lineNumber, resolverState.currentGroup, detailedSymbolName);
-			}
-			return 0.0;
-		}
-	}
 	return value;
 }
 
@@ -212,11 +146,11 @@ double _cbResolveFunction(std::string_view funcname, double input)
 	std::transform(funcnameLC.cbegin(), funcnameLC.cend(), funcnameLC.begin(), tolower);
 	double value = input;
 	if (funcnameLC == "ha" || funcnameLC == "ha16")
-		value = _expressionFuncHA<double>(value);
+		value = TExpressionParser<double>::ExpressionFuncHA(value);
 	else if (funcnameLC == "hi" || funcnameLC == "hi16")
-		value = _expressionFuncHI<double>(value);
+		value = TExpressionParser<double>::ExpressionFuncHI(value);
 	else if (funcnameLC == "lo" || funcnameLC == "lo16")
-		value = _expressionFuncLO<double>(value);
+		value = TExpressionParser<double>::ExpressionFuncLO(value);
 	else if (funcnameLC == "reloc")
 		value = _expressionFuncReloc<double>(value);
 	else
@@ -606,7 +540,8 @@ bool _resolverPass(PatchContext_t& patchContext, std::vector<UnresolvedPatches_t
 			else
 			{
 				// unknown error
-				patchContext.errorHandler.printError(resolverState.currentGroup, -1, "Internal error");
+				sint32 lineNumber = (*it)->getLineNumber();
+				patchContext.errorHandler.printError(resolverState.currentGroup, lineNumber, "Unable to parse expression or other internal error");
 				it++;
 			}
 		}

@@ -59,6 +59,8 @@ public:
 	PatchEntry() {};
 	virtual ~PatchEntry() {};
 
+	virtual sint32 getLineNumber() { return -1; }
+
 	// apply relocation or evaluate any expressions for this entry
 	virtual PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) = 0;
 };
@@ -74,7 +76,7 @@ public:
 		m_expressionString.assign(expressionStr, expressionLen);
 	}
 
-	sint32 getLineNumber() { return m_lineNumber; }
+	sint32 getLineNumber() override { return m_lineNumber; }
 
 	PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) override;
 
@@ -109,7 +111,7 @@ public:
 		m_expressionString.assign(expressionStr, expressionLen);
 	}
 
-	sint32 getLineNumber() { return m_lineNumber; }
+	sint32 getLineNumber() override { return m_lineNumber; }
 
 	PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) override;
 
@@ -134,7 +136,7 @@ public:
 		m_symbolName.assign(symbolName, symbolNameLen);
 	}
 
-	sint32 getLineNumber() { return m_lineNumber; }
+	sint32 getLineNumber() override { return m_lineNumber; }
 
 	PATCH_RESOLVE_RESULT resolve(PatchContext_t& ctx) override;
 
@@ -178,6 +180,8 @@ public:
 		if (m_dataBackup)
 			delete[] m_dataBackup;
 	}
+
+	sint32 getLineNumber() override { return m_lineNumber; }
 
 	uint32 getAddr() const
 	{

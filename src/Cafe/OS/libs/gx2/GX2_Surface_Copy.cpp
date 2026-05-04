@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
+#include "Cafe/HW/Latte/Core/LatteSurfaceCopy.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "GX2.h"
@@ -127,6 +128,11 @@ void gx2SurfaceCopySoftware(
 	uint8* outputData, sint32 surfDstHeight, sint32 dstPitch, sint32 dstDepth, uint32 dstSlice, uint32 dstSwizzle, uint32 dstHwTileMode,
 	uint32 copyWidth, uint32 copyHeight, uint32 copyBpp)
 {
+	if (srcHwTileMode == 16)
+		srcHwTileMode = 0;
+	if (dstHwTileMode == 16)
+		dstHwTileMode = 0;
+
 	if (srcHwTileMode == 4 && dstHwTileMode == 4 && (copyWidth & 7) == 0 && (copyHeight & 7) == 0 && copyBpp <= 32) // todo - check sample == 1
 	{
 		gx2SurfaceCopySoftware_fastPath_tm4Copy(inputData, surfSrcHeight, srcPitch, srcDepth, srcSlice, srcSwizzle, outputData, surfDstHeight, dstPitch, dstDepth, dstSlice, dstSwizzle, copyWidth, copyHeight, copyBpp);
@@ -147,7 +153,19 @@ void gx2SurfaceCopySoftware(
 		cemu_assert_debug(false);
 }
 
-void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSlice, GX2Surface* dstSurface, uint32 dstMip, uint32 dstSlice)
+// Surface copy handling is complicated because of having to simulate unified memory
+// GX2CopySurface supports two modes:
+// - When source or destination surface have a tilemode of LINEAR_SPECIAL (16) -> Copy is done synchronously on the CPU
+// - In all other cases -> Copy is done on the GPU via draw commands
+
+// But in Cemu things are more complicated, we generally can't do pure CPU copies because a surface's texture data
+// may only exist in VRAM right now. So we always need to delegate copying to the renderer thread (which has access to the texture cache)
+
+// In Cemu we thus handle it like this:
+// For GX2 CPU copies -> Submit as async command to the renderer (will be processed asap) and stall until completed
+// For GX2 GPU copies -> Submit as HLE command to Latte's command queue to be executed in order
+
+void GX2CopySurfaceInternal(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSlice, GX2Surface* dstSurface, uint32 dstMip, uint32 dstSlice)
 {
 	sint32 dstWidth = dstSurface->width;
 	sint32 dstHeight = dstSurface->height;
@@ -167,8 +185,6 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 	// handle format
 	Latte::E_GX2SURFFMT srcFormat = srcSurface->format;
 	Latte::E_GX2SURFFMT dstFormat = dstSurface->format;
-	uint32 srcBPP = Latte::GetFormatBits(srcFormat);
-	uint32 dstBPP = Latte::GetFormatBits(dstFormat);
 	auto srcHwFormat = Latte::GetHWFormat(srcFormat);
 	auto dstHwFormat = Latte::GetHWFormat(dstFormat);
 	// get texture info
@@ -182,173 +198,130 @@ void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 src
 		debug_printf("GX2CopySurface(): mip count is 0\n");
 		return;
 	}
-	// get input pointer
-	uint8* inputData = NULL;
-	cemu_assert(srcMip < srcSurface->numLevels);
-	if( srcMip == 0 )
-		inputData = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->imagePtr);
-	else if( srcMip == 1 )
-		inputData = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->mipPtr);
-	else
-	{
-		inputData = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->mipPtr + srcSurface->mipOffset[srcMip - 1]);
-	}
-	// get output pointer
-	uint8* outputData = NULL;
-	cemu_assert(dstMip < dstSurface->numLevels);
-	if( dstMip == 0 )
-		outputData = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->imagePtr);
-	else if( dstMip == 1 )
-		outputData = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->mipPtr);
-	else
-	{
-		outputData = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->mipPtr + dstSurface->mipOffset[dstMip - 1]);
-	}
-	
+	// make sure formats are compatible
 	if( srcHwFormat != dstHwFormat )
 	{
 		// mismatching format
-		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format mismatch");
+		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format mismatch (src=0x{:04x} dst=0x{:04x})", (sint32)srcFormat, (sint32)dstFormat);
 		return;
 	}
-
-	// note: Do not trust values from the input GX2Surface* structs but rely on surfOutDst/surfOutSrc instead if possible.
-	// src
+	// get input pointer
+	cemu_assert(srcMip < srcSurface->numLevels);
+	uint8* srcDataPtr = nullptr;
+	if( srcMip == 0 )
+		srcDataPtr = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->imagePtr);
+	else if( srcMip == 1 )
+		srcDataPtr = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->mipPtr);
+	else
+		srcDataPtr = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->mipPtr + srcSurface->mipOffset[srcMip - 1]);
+	// get output pointer
+	cemu_assert(dstMip < dstSurface->numLevels);
+	uint8* dstDataPtr = nullptr;
+	if( dstMip == 0 )
+		dstDataPtr = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->imagePtr);
+	else if( dstMip == 1 )
+		dstDataPtr = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->mipPtr);
+	else
+		dstDataPtr = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->mipPtr + dstSurface->mipOffset[dstMip - 1]);
+	// note: pitch is taken from surfOutSrc/surfOutDst, which may different from the pitch stored in the input surface structs
 	uint32 srcPitch = surfOutSrc.pitch;
-	uint32 srcSwizzle = srcSurface->swizzle;
-	uint32 srcHwTileMode = (uint32)surfOutSrc.hwTileMode;
-	uint32 srcDepth = std::max<uint32>(surfOutSrc.depth, 1);
-	if (srcHwTileMode == 0) // linear
+	Latte::E_GX2TILEMODE srcTilemode = (srcSurface->tileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL) ? srcSurface->tileMode.value() : (Latte::E_GX2TILEMODE)surfOutSrc.hwTileMode;
+	Latte::E_GX2TILEMODE dstTilemode = (dstSurface->tileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL) ? dstSurface->tileMode.value() : (Latte::E_GX2TILEMODE)surfOutDst.hwTileMode;
+
+	if (srcTilemode == Latte::E_GX2TILEMODE::TM_LINEAR_GENERAL)
 	{
+		// todo - why is this necessary? GX2CalculateSurfaceInfo should already handle this
 		srcPitch = srcSurface->pitch >> srcMip;
 		srcPitch = std::max<uint32>(srcPitch, 1);
 	}
-	// dst
-	uint32 dstPitch = surfOutDst.pitch;
-	uint32 dstSwizzle = dstSurface->swizzle;
-	uint32 dstHwTileMode = (uint32)surfOutDst.hwTileMode;
-	uint32 dstDepth = std::max<uint32>(surfOutDst.depth, 1);
-	uint32 dstBpp = surfOutDst.bpp;
+	uint32 copyWidth = std::max<uint32>(dstWidth>>dstMip, 1);
+	uint32 copyHeight = std::max<uint32>(dstHeight>>dstMip, 1);
 
-	//debug_printf("Src Tex: %08X %dx%d Swizzle: %08x tm: %d fmt: %04x use: %02x\n", _swapEndianU32(srcSurface->imagePtr), _swapEndianU32(srcSurface->width), _swapEndianU32(srcSurface->height), _swapEndianU32(srcSurface->swizzle), _swapEndianU32(srcSurface->tileMode), _swapEndianU32(srcSurface->format), (uint32)srcSurface->resFlag);
-	//debug_printf("Dst Tex: %08X %dx%d Swizzle: %08x tm: %d fmt: %04x use: %02x\n", _swapEndianU32(dstSurface->imagePtr), _swapEndianU32(dstSurface->width), _swapEndianU32(dstSurface->height), _swapEndianU32(dstSurface->swizzle), _swapEndianU32(dstSurface->tileMode), _swapEndianU32(dstSurface->format), (uint32)dstSurface->resFlag);
+	cemu_assert(copyWidth <= std::max<uint32>(srcWidth>>srcMip, 1));
+	cemu_assert(copyHeight <= std::max<uint32>(srcHeight>>srcMip, 1));
 
-	bool requestGPURAMCopy = false;
-	bool debugTestForceCPUCopy = false;
+	cemuLog_log(LogType::GX2, "GX2CopySurface:");
+	cemuLog_log(LogType::GX2,"srcSurface: imagePtr=0x{:08x} mipPtr=0x{:08x} swizzle=0x{:06x} width={} height={} depth={} pitch=0x{:x} tilemode=0x{:x} format=0x{:x} mip={} slice={}",
+		(uint32)srcSurface->imagePtr, (uint32)srcSurface->mipPtr, (uint32)srcSurface->swizzle, (uint32)srcSurface->width, (uint32)srcSurface->height, (uint32)srcSurface->depth, (uint32)srcSurface->pitch,
+		(uint32)srcSurface->tileMode.value(), (uint32)srcSurface->format.value(), srcMip, srcSlice);
+	cemuLog_log(LogType::GX2, "dstSurface: imagePtr=0x{:08x} mipPtr=0x{:08x} swizzle=0x{:06x} width={} height={} depth={} pitch=0x{:x} tilemode=0x{:x} format=0x{:x} mip={} slice={}",
+		(uint32)dstSurface->imagePtr, (uint32)dstSurface->mipPtr, (uint32)dstSurface->swizzle, (uint32)dstSurface->width, (uint32)dstSurface->height, (uint32)dstSurface->depth, (uint32)dstSurface->pitch,
+		(uint32)dstSurface->tileMode.value(), (uint32)dstSurface->format.value(), dstMip, dstSlice);
 
-	if (srcSurface->tileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL && dstSurface->tileMode == Latte::E_GX2TILEMODE::TM_2D_TILED_THIN1)
-		debugTestForceCPUCopy = true;
-
-	if (srcSurface->tileMode == Latte::E_GX2TILEMODE::TM_2D_TILED_THIN1 && dstSurface->tileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL )
+	bool isGX2CPUCopy = srcSurface->tileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL || dstSurface->tileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL;
+	if (isGX2CPUCopy)
 	{
-		LatteAsyncCommands_queueForceTextureReadback(
-			srcSurface->imagePtr,
-			srcSurface->mipPtr,
-			srcSurface->swizzle,
-			(uint32)srcSurface->format.value(),
-			srcSurface->width,
-			srcSurface->height,
-			srcSurface->depth,
-			srcSurface->pitch,
-			srcSlice,
-			(uint32)srcSurface->dim.value(),
-			Latte::MakeHWTileMode(srcSurface->tileMode),
-			srcSurface->aa,
-			srcMip);
+		LatteSurfaceCopyParam srcCopy{};
+		srcCopy.physDataAddr = MEMPTR<void>(srcDataPtr).GetMPTR();
+		srcCopy.swizzle = srcSurface->swizzle;
+		srcCopy.surfaceFormat = srcSurface->format;
+		srcCopy.heightInTexels = surfOutSrc.height;
+		srcCopy.pitch = surfOutSrc.pitch;
+		srcCopy.dim = srcSurface->dim;
+		srcCopy.tilemode = srcTilemode;
+		srcCopy.aa = srcSurface->aa;
+		srcCopy.sliceIndex = (sint32)srcSlice;
 
+		LatteSurfaceCopyParam dstCopy{};
+		dstCopy.physDataAddr = MEMPTR<void>(dstDataPtr).GetMPTR();
+		dstCopy.swizzle = dstSurface->swizzle;
+		dstCopy.surfaceFormat = dstSurface->format;
+		dstCopy.heightInTexels = surfOutDst.height;
+		dstCopy.pitch = surfOutDst.pitch;
+		dstCopy.dim = dstSurface->dim;
+		dstCopy.tilemode = dstTilemode;
+		dstCopy.aa = dstSurface->aa;
+		dstCopy.sliceIndex = (sint32)dstSlice;
+
+		LatteSurfaceCopyRect copyRect{};
+		copyRect.x = 0;
+		copyRect.y = 0;
+		copyRect.width = copyWidth;
+		copyRect.height = copyHeight;
+
+		LatteAsyncCommand_queueTextureCopy(srcCopy, dstCopy, copyRect);
+		// cpu copies have to be finished by the time GX2CopySurface returns
+		// since we delegate the copy to the Latte thread, we have to wait for it to finish here
 		LatteAsyncCommands_waitUntilAllProcessed();
-
-		debugTestForceCPUCopy = true;
-	}
-
-	// send copy command to GPU
-	if( srcHwTileMode > 0 && srcHwTileMode < 16 && dstHwTileMode > 0 && dstHwTileMode < 16 || requestGPURAMCopy )
-	{
-		GX2::GX2ReserveCmdSpace(1+13*2);
-
-		gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13*2),
-		// src
-			(uint32)srcSurface->imagePtr,
-			(uint32)srcSurface->mipPtr,
-			(uint32)srcSurface->swizzle,
-			(uint32)srcSurface->format.value(),
-			(uint32)srcSurface->width,
-			(uint32)srcSurface->height,
-			(uint32)srcSurface->depth,
-			(uint32)srcSurface->pitch,
-			srcSlice,
-			(uint32)srcSurface->dim.value(),
-			(uint32)srcSurface->tileMode.value(),
-			(uint32)srcSurface->aa,
-			srcMip,
-		// dst
-			(uint32)dstSurface->imagePtr,
-			(uint32)dstSurface->mipPtr,
-			(uint32)dstSurface->swizzle,
-			(uint32)dstSurface->format.value(),
-			(uint32)dstSurface->width,
-			(uint32)dstSurface->height,
-			(uint32)dstSurface->depth,
-			(uint32)dstSurface->pitch,
-			dstSlice,
-			(uint32)dstSurface->dim.value(),
-			(uint32)dstSurface->tileMode.value(),
-			(uint32)dstSurface->aa,
-			dstMip);
-	}
-
-	if (requestGPURAMCopy)
-		return; // if RAM copy happens on the GPU side we skip it here
-
-	// manually exclude expensive CPU texture copies for some known game framebuffer textures
-	// todo - find a better way to solve this
-	bool isDynamicTexCopy = false;
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width >= 800 && srcFormat == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT); // SM3DW
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width >= 800 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM); // Trine 2
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 0xA0 && srcFormat == Latte::E_GX2SURFFMT::R32_FLOAT); // Little Inferno
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 1280 && srcFormat == Latte::E_GX2SURFFMT::R32_FLOAT); // Donkey Kong Tropical Freeze
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 640 && srcSurface->height == 320 && srcFormat == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT); // SM3DW Switch Scramble Circus
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1280 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && srcSurface->tileMode != Latte::E_GX2TILEMODE::TM_LINEAR_ALIGNED ); // Affordable Space Adventures
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 854 && srcSurface->height == 480 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM); // Affordable Space Adventures
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 1152 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT && (srcSurface->resFlag&GX2_RESFLAG_USAGE_COLOR_BUFFER) != 0 ); // Star Fox Zero
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 680 && srcSurface->height == 480 && srcFormat == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT && (srcSurface->resFlag&GX2_RESFLAG_USAGE_COLOR_BUFFER) != 0 ); // Star Fox Zero
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 1280 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT ); // Qube
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 322 && srcSurface->height == 182 && srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM ); // Qube
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 640 && srcSurface->height == 360 && srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT ); // Qube
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1920 && srcSurface->height == 1080 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && dstSurface->resFlag == 0x80000003); // Cosmophony
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 854 && srcSurface->height == 480 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && dstSurface->resFlag == 0x3); // Cosmophony
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1280 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB && dstSurface->resFlag == 0x3); // The Fall
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 854 && srcSurface->height == 480 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB && dstSurface->resFlag == 0x3); // The Fall
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1280 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB && dstSurface->resFlag == 0x80000003); // The Fall
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1280 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB && srcSurface->resFlag == 0x80000003); // Nano Assault Neo
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 1280 && srcSurface->height == 720 && srcFormat == Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM); // Mario Party 10
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->imagePtr >= 0xF4000000 && srcSurface->width == 854 && srcSurface->height == 480 && srcFormat == Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM); // Mario Party 10
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1920 && srcSurface->height == 1080 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && dstSurface->resFlag == 0x3); // Hello Kitty Kruisers
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1024 && srcSurface->height == 1024 && srcFormat == Latte::E_GX2SURFFMT::R32_FLOAT && dstSurface->resFlag == 0x5); // Art Academy
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 260 && srcSurface->height == 148 && srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT && dstSurface->resFlag == 0x3); // Transformers: Rise of the Dark Spark
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1040 && srcSurface->height == 592 && srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT && dstSurface->resFlag == 0x3); // Transformers: Rise of the Dark Spark
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 854 && srcSurface->height == 480 && srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB && srcSurface->resFlag == 0x3); // Nano Assault Neo
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1024 && srcSurface->height == 576 && srcFormat == Latte::E_GX2SURFFMT::D24_S8_UNORM && srcSurface->resFlag == 0x1); // Skylanders SuperChargers
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 1152 && srcSurface->height == 648 && (srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM || srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT) && srcSurface->resFlag == 0x1); // Watch Dogs
-	isDynamicTexCopy = isDynamicTexCopy || (srcSurface->width == 576 && srcSurface->height == 324 && (srcFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM || srcFormat == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT) && srcSurface->resFlag == 0x1); // Watch Dogs
-
-	if( isDynamicTexCopy && debugTestForceCPUCopy == false)
-	{
-		debug_printf("Software tex copy blocked\n");
 		return;
 	}
 
-	sint32 copyWidth = dstMipWidth;
-	sint32 copyHeight = dstMipHeight;
-	if (Latte::IsCompressedFormat(dstHwFormat))
-	{
-		copyWidth = (copyWidth + 3) / 4;
-		copyHeight = (copyHeight + 3) / 4;
-	}
+	// copy via GPU commands
+	// for simplicity and performance Cemu uses a HLE command to handle surface copies,
+	// a more accurate implementation would setup actual drawcalls to copy the texture data
+	GX2::GX2ReserveCmdSpace(23);
+	gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 4+9*2),
+	// copy rect
+	(uint32)0, // x
+	(uint32)0, // y
+	(uint32)copyWidth,
+	(uint32)copyHeight,
+	// src
+	(uint32)MEMPTR<void>(srcDataPtr).GetMPTR(),
+	(uint32)srcSurface->swizzle,
+	(uint32)srcSurface->format.value(),
+	(uint32)surfOutSrc.pitch,
+	(uint32)surfOutSrc.height,
+	srcSlice,
+	(uint32)srcSurface->dim.value(),
+	(uint32)srcTilemode,
+	(uint32)srcSurface->aa,
+	// dst
+	(uint32)MEMPTR<void>(dstDataPtr).GetMPTR(),
+	(uint32)dstSurface->swizzle,
+	(uint32)dstSurface->format.value(),
+	(uint32)surfOutDst.pitch,
+	(uint32)surfOutDst.height,
+	dstSlice,
+	(uint32)dstSurface->dim.value(),
+	(uint32)dstTilemode,
+	(uint32)dstSurface->aa
+	);
+}
 
-	gx2SurfaceCopySoftware(inputData, surfOutSrc.height, srcPitch, srcDepth, srcSlice, srcSwizzle, srcHwTileMode,
-		outputData, surfOutDst.height, dstPitch, dstDepth, dstSlice, dstSwizzle, dstHwTileMode,
-		copyWidth, copyHeight, dstBpp);
+void gx2Surface_GX2CopySurface(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSlice, GX2Surface* dstSurface, uint32 dstMip, uint32 dstSlice)
+{
+	GX2CopySurfaceInternal(srcSurface, srcMip, srcSlice, dstSurface, dstMip, dstSlice);
 }
 
 void gx2Export_GX2CopySurface(PPCInterpreter_t* hCPU)
@@ -363,7 +336,7 @@ void gx2Export_GX2CopySurface(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-typedef struct  
+typedef struct
 {
 	sint32 left;
 	sint32 top;
@@ -471,37 +444,12 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 	// handle format
 	Latte::E_GX2SURFFMT srcFormat = srcSurface->format;
 	Latte::E_GX2SURFFMT dstFormat = dstSurface->format;
-	uint32 srcBPP = Latte::GetFormatBits(srcFormat);
-	uint32 dstBPP = Latte::GetFormatBits(dstFormat);
 	sint32 srcStepX = 1;
 	sint32 srcStepY = 1;
 	sint32 dstStepX = 1;
 	sint32 dstStepY = 1;
 	auto srcHwFormat = Latte::GetHWFormat(srcFormat);
 	auto dstHwFormat = Latte::GetHWFormat(dstFormat);
-	// get texture info
-	LatteAddrLib::AddrSurfaceInfo_OUT surfOutSrc = {0};
-	GX2::GX2CalculateSurfaceInfo(srcSurface, srcMip, &surfOutSrc);
-	LatteAddrLib::AddrSurfaceInfo_OUT surfOutDst = {0};
-	GX2::GX2CalculateSurfaceInfo(dstSurface, dstMip, &surfOutDst);
-	// get input pointer
-	uint8* inputData = NULL;
-	cemu_assert(srcMip < srcSurface->numLevels);
-	if( srcMip == 0 )
-		inputData = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->imagePtr);
-	else if( srcMip == 1 )
-		inputData = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->mipPtr);
-	else
-		inputData = (uint8*)memory_getPointerFromVirtualOffset(srcSurface->mipPtr+srcSurface->mipOffset[srcMip-1]);
-	// get output pointer
-	uint8* outputData = NULL;
-	cemu_assert(dstMip < dstSurface->numLevels);
-	if( dstMip == 0 )
-		outputData = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->imagePtr);
-	else if( dstMip == 1 )
-		outputData = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->mipPtr);
-	else
-		outputData = (uint8*)memory_getPointerFromVirtualOffset(dstSurface->mipPtr+dstSurface->mipOffset[dstMip-1]);
 	// calculate step size for compressed textures
 	if( Latte::IsCompressedFormat(srcHwFormat) )
 	{
@@ -513,64 +461,17 @@ void gx2Export_GX2ResolveAAColorBuffer(PPCInterpreter_t* hCPU)
 		dstStepX = 4;
 		dstStepY = 4;
 	}
-	if( srcStepX != dstStepX || srcStepY != dstStepY )
-		assert_dbg();
+	cemu_assert_debug(srcStepX == dstStepX && srcStepY == dstStepY);
 
 	if( srcHwFormat != dstHwFormat )
 	{
 		// mismatching format
-		debug_printf("GX2CopySurface(): Format mismatch\n");
+		debug_printf("GX2ResolveAAColorBuffer(): Format mismatch\n");
+		cemu_assert_unimplemented();
 		osLib_returnFromFunction(hCPU, 0);
 		return;
 	}
-
-	// src
-	uint32 srcPitch = surfOutSrc.pitch;
-	uint32 srcSwizzle = srcSurface->swizzle;
-	uint32 srcPipeSwizzle = (srcSwizzle>>8)&1;
-	uint32 srcBankSwizzle = ((srcSwizzle>>9)&3);
-	uint32 srcTileMode = (uint32)surfOutSrc.hwTileMode;
-	uint32 srcDepth = std::max<uint32>(surfOutSrc.depth, 1);
-	// dst
-	uint32 dstPitch = surfOutDst.pitch;
-	uint32 dstSwizzle = dstSurface->swizzle;
-	uint32 dstPipeSwizzle = (dstSwizzle>>8)&1;
-	uint32 dstBankSwizzle = ((dstSwizzle>>9)&3);
-	uint32 dstTileMode = (uint32)surfOutDst.hwTileMode;
-	uint32 dstDepth = std::max<uint32>(surfOutDst.depth, 1);
-
-	// send copy command to GPU
-	GX2::GX2ReserveCmdSpace(1 + 13 * 2);
-	gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13 * 2),
-		// src
-		(uint32)srcSurface->imagePtr,
-		(uint32)srcSurface->mipPtr,
-		(uint32)srcSurface->swizzle,
-		(uint32)srcSurface->format.value(),
-		(uint32)srcSurface->width,
-		(uint32)srcSurface->height,
-		(uint32)srcSurface->depth,
-		(uint32)srcSurface->pitch,
-		srcSlice,
-		(uint32)srcSurface->dim.value(),
-		(uint32)srcSurface->tileMode.value(),
-		(uint32)srcSurface->aa,
-		srcMip,
-		// dst
-		(uint32)dstSurface->imagePtr,
-		(uint32)dstSurface->mipPtr,
-		(uint32)dstSurface->swizzle,
-		(uint32)dstSurface->format.value(),
-		(uint32)dstSurface->width,
-		(uint32)dstSurface->height,
-		(uint32)dstSurface->depth,
-		(uint32)dstSurface->pitch,
-		dstSlice,
-		(uint32)dstSurface->dim.value(),
-		(uint32)dstSurface->tileMode.value(),
-		(uint32)dstSurface->aa,
-		dstMip);
-
+	GX2CopySurfaceInternal(srcSurface, srcMip, srcSlice, dstSurface, dstMip, dstSlice);
 	osLib_returnFromFunction(hCPU, 0);
 }
 
@@ -600,58 +501,11 @@ void gx2Export_GX2ConvertDepthBufferToTextureSurface(PPCInterpreter_t* hCPU)
 		return;
 	}
 
-	// note: Do not trust values from the input GX2Surface* structs but rely on surfOutDst/surfOutSrc instead if possible.
-	// src
-	uint32 srcPitch = surfOutSrc.pitch;
-	uint32 srcSwizzle = depthBuffer->surface.swizzle;
-	uint32 srcPipeSwizzle = (srcSwizzle >> 8) & 1;
-	uint32 srcBankSwizzle = ((srcSwizzle >> 9) & 3);
-	uint32 srcTileMode = (uint32)surfOutSrc.hwTileMode;
-	uint32 srcDepth = std::max<uint32>(surfOutSrc.depth, 1);
-	// dst
-	uint32 dstPitch = surfOutDst.pitch;
-	uint32 dstSwizzle = dstSurface->swizzle;
-	uint32 dstPipeSwizzle = (dstSwizzle >> 8) & 1;
-	uint32 dstBankSwizzle = ((dstSwizzle >> 9) & 3);
-	uint32 dstTileMode = (uint32)surfOutDst.hwTileMode;
-	uint32 dstDepth = srcDepth;
-
-	sint32 srcMip = 0;
-
 	uint32 numSlices = std::max<uint32>(depthBuffer->viewNumSlices, 1);
-	GX2::GX2ReserveCmdSpace((1 + 13 * 2) * numSlices);
 	for (uint32 subSliceIndex = 0; subSliceIndex < numSlices; subSliceIndex++)
 	{
 		// send copy command to GPU
-		gx2WriteGather_submit(pm4HeaderType3(IT_HLE_COPY_SURFACE_NEW, 13 * 2),
-			// src
-			(uint32)(depthBuffer->surface.imagePtr),
-			(uint32)(depthBuffer->surface.mipPtr),
-			(uint32)(depthBuffer->surface.swizzle),
-			(uint32)(depthBuffer->surface.format.value()),
-			(uint32)(depthBuffer->surface.width),
-			(uint32)(depthBuffer->surface.height),
-			(uint32)(depthBuffer->surface.depth),
-			(uint32)(depthBuffer->surface.pitch),
-			(uint32)(depthBuffer->viewFirstSlice) + subSliceIndex,
-			(uint32)(depthBuffer->surface.dim.value()),
-			(uint32)(depthBuffer->surface.tileMode.value()),
-			(uint32)(depthBuffer->surface.aa),
-			srcMip,
-			// dst
-			(uint32)(dstSurface->imagePtr),
-			(uint32)(dstSurface->mipPtr),
-			(uint32)(dstSurface->swizzle),
-			(uint32)(dstSurface->format.value()),
-			(uint32)(dstSurface->width),
-			(uint32)(dstSurface->height),
-			(uint32)(dstSurface->depth),
-			(uint32)(dstSurface->pitch),
-			dstSlice + subSliceIndex,
-			(uint32)(dstSurface->dim.value()),
-			(uint32)(dstSurface->tileMode.value()),
-			(uint32)(dstSurface->aa),
-			dstMip);
+		GX2CopySurfaceInternal(&depthBuffer->surface, depthBuffer->viewMip.value(), depthBuffer->viewFirstSlice.value() + subSliceIndex, dstSurface, dstMip, dstSlice + subSliceIndex);
 	}
 
 	osLib_returnFromFunction(hCPU, 0);

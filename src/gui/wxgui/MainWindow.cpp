@@ -443,6 +443,12 @@ wxString MainWindow::GetInitialWindowTitle()
 
 void MainWindow::OnClose(wxCloseEvent& event)
 {
+	if (m_debugger_window)
+	{
+		m_debugger_window->CleanupForDestroy();
+		m_debugger_window->Destroy();
+		m_debugger_window = nullptr;
+	}
 
 	if(m_game_list)
 		m_game_list->OnClose(event);

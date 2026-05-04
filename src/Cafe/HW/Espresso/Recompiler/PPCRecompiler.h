@@ -1,4 +1,5 @@
 #pragma once
+#include <boost/container/small_vector.hpp>
 
 #define PPC_REC_CODE_AREA_START		(0x00000000) // lower bound of executable memory area. Recompiler expects this address to be 0
 #define PPC_REC_CODE_AREA_END		(0x10000000) // upper bound of executable memory area
@@ -17,11 +18,20 @@ struct ppcRecRange_t
 
 struct PPCRecFunction_t
 {
+	struct JumpTableEntry
+	{
+		MPTR ppcAddr;
+		void* hostEntrypoint;
+		
+		JumpTableEntry(MPTR ppcAddr, void* hostEntrypoint) : ppcAddr(ppcAddr), hostEntrypoint(hostEntrypoint) {};
+	};
+
 	uint32 ppcAddress;
 	uint32 ppcSize; // ppc code size of function
 	void*  x86Code; // pointer to x86 code
 	size_t x86Size;
 	std::vector<ppcRecRange_t> list_ranges;
+	boost::container::small_vector<JumpTableEntry, 2> jumpTableEntries;
 };
 
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLInstruction.h"
@@ -119,7 +129,6 @@ typedef void ATTR_MS_ABI (*PPCREC_JUMP_ENTRY)();
 
 typedef struct  
 {
-	PPCRecFunction_t* ppcRecompilerFuncTable[PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)]; // one virtual-function pointer for each potential ppc instruction
 	PPCREC_JUMP_ENTRY ppcRecompilerDirectJumpTable[PPC_REC_ALIGN_TO_4MB(PPC_REC_CODE_AREA_SIZE/4)]; // lookup table for ppc offset to native code function
 	// x64 data
 	alignas(16) uint64 _x64XMM_xorNegateMaskBottom[2];
@@ -142,10 +151,12 @@ typedef struct
 }PPCRecompilerInstanceData_t;
 
 extern PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
-extern bool ppcRecompilerEnabled;
 
 void PPCRecompiler_init();
 void PPCRecompiler_Shutdown();
+
+void PPCRecompiler_Enable();
+void PPCRecompiler_Disable();
 
 void PPCRecompiler_allocateRange(uint32 startAddress, uint32 size);
 
@@ -154,8 +165,6 @@ void PPCRecompiler_invalidateRange(uint32 startAddr, uint32 endAddr);
 extern void ATTR_MS_ABI (*PPCRecompiler_enterRecompilerCode)(uint64 codeMem, uint64 ppcInterpreterInstance);
 extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_visited)();
 extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
-
-#define PPC_REC_INVALID_FUNCTION	((PPCRecFunction_t*)-1)
 
 // recompiler interface
 

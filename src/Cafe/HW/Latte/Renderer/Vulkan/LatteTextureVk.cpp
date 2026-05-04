@@ -94,7 +94,7 @@ LatteTextureVk::LatteTextureVk(class VulkanRenderer* vkRenderer, Latte::E_DIM di
 		objName.objectType = VK_OBJECT_TYPE_IMAGE;
 		objName.pNext = nullptr;
 		objName.objectHandle = (uint64_t)vkObjTex->m_image;
-		auto objNameStr = fmt::format("tex_{:08x}_fmt{:04x}", physAddress, (uint32)format);
+		auto objNameStr = fmt::format("tex_{:08x}_fmt{:04x}_tm{:x}", physAddress, (uint32)format, (uint32)tileMode);
 		objName.pObjectName = objNameStr.c_str();
 		vkSetDebugUtilsObjectNameEXT(m_vkr->GetLogicalDevice(), &objName);
 	}

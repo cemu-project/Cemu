@@ -95,7 +95,7 @@ void ExceptionHandler_LogGeneralInfo()
         MPTR currentStackVAddr = hCPU->gpr[1];
         CrashLog_WriteLine("");
         CrashLog_WriteHeader("PPC stack trace");
-        DebugLogStackTrace(currentThread, currentStackVAddr, true);
+        DebugLogStackTrace(currentThread, currentStackVAddr);
 
         // stack dump
         CrashLog_WriteLine("");

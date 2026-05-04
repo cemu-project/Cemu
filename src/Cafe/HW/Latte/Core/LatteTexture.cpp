@@ -1138,6 +1138,7 @@ void LatteTC_LookupTexturesByPhysAddr(MPTR physAddr, std::vector<LatteTexture*>&
 	}
 }
 
+// return or create a view, requires existing base texture. Returns nullptr if it doesn't exist yet
 LatteTextureView* LatteTC_GetTextureSliceViewOrTryCreate(MPTR srcImagePtr, MPTR srcMipPtr, Latte::E_GX2SURFFMT srcFormat, Latte::E_HWTILEMODE srcTileMode, uint32 srcWidth, uint32 srcHeight, uint32 srcDepth, uint32 srcPitch, uint32 srcSwizzle, uint32 srcSlice, uint32 srcMip, const bool requireExactResolution)
 {
 	LatteTextureView* sourceView;

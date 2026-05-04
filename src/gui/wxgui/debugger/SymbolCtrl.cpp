@@ -112,8 +112,7 @@ void SymbolListCtrl::OnLeftDClick(wxListEvent& event)
 	const auto address = std::stoul(text.ToStdString(), nullptr, 16);
 	if (address == 0)
 		return;
-	debuggerState.debugSession.instructionPointer = address;
-	g_debuggerDispatcher.MoveIP();
+	debugger_jumpToAddressInDisasm(address);
 }
 
 void SymbolListCtrl::OnRightClick(wxListEvent& event)

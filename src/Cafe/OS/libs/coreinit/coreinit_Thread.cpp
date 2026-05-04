@@ -1483,6 +1483,11 @@ namespace coreinit
 		s_threadToFiber.clear();
 	}
 
+	bool OSIsSchedulerActive()
+	{
+		return sSchedulerActive;
+	}
+
 	SysAllocator<OSThread_t, PPC_CORE_COUNT> s_defaultThreads;
 	SysAllocator<uint8, PPC_CORE_COUNT * 1024 * 1024> s_stack;
 

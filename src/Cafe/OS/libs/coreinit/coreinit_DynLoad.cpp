@@ -59,7 +59,7 @@ namespace coreinit
 		PPCCoreCallback(_osDynLoadFuncFree, _mem);
 	}
 
-	uint32 OSDynLoad_Acquire(const char* libName, uint32be* moduleHandleOut)
+	uint32 OSDynLoad_AcquireInternal(const char* libName, uint32be* moduleHandleOut, bool checkOnly)
 	{
 		// truncate path
 		sint32 fileNameStartIndex = 0;
@@ -72,7 +72,7 @@ namespace coreinit
 				break;
 			}
 		}
-		// truncate file extension 
+		// truncate file extension
 		char tempLibName[512];
 		strcpy(tempLibName, libName + fileNameStartIndex);
 		tempLen = (sint32)strlen(tempLibName);
@@ -88,6 +88,11 @@ namespace coreinit
 		uint32 rplHandle = RPLLoader_GetHandleByModuleName(libName);
 		if (rplHandle == RPL_INVALID_HANDLE && !RPLLoader_HasDependency(libName))
 		{
+			if (checkOnly)
+			{
+				*moduleHandleOut = 0;
+				return 0;
+			}
 			RPLLoader_AddDependency(libName);
 			RPLLoader_UpdateDependencies();
 			RPLLoader_Link();
@@ -106,12 +111,22 @@ namespace coreinit
 		return 0;
 	}
 
+	uint32 OSDynLoad_Acquire(const char* libName, uint32be* moduleHandleOut)
+	{
+		return OSDynLoad_AcquireInternal(libName, moduleHandleOut, false);
+	}
+
 	void OSDynLoad_Release(uint32 moduleHandle)
 	{
 		if (moduleHandle == RPL_INVALID_HANDLE)
 			return;
 		RPLLoader_RemoveDependency(moduleHandle);
 		RPLLoader_UpdateDependencies();
+	}
+
+	uint32 OSDynLoad_IsModuleLoaded(const char* libName, uint32be* moduleHandleOut)
+	{
+		return OSDynLoad_AcquireInternal(libName, moduleHandleOut, true);
 	}
 
 	uint32 OSDynLoad_FindExport(uint32 moduleHandle, uint32 isData, const char* exportName, betype<MPTR>* addrOut)
@@ -140,6 +155,7 @@ namespace coreinit
 
 		cafeExportRegister("coreinit", OSDynLoad_Acquire, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDynLoad_Release, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSDynLoad_IsModuleLoaded, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDynLoad_FindExport, LogType::Placeholder);
 	}
 }
