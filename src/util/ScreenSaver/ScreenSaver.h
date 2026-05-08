@@ -1,9 +1,13 @@
 #include "Cemu/Logging/CemuLogging.h"
+
+#ifdef HAS_SDL
 #include <SDL3/SDL.h>
+#endif
 
 class ScreenSaver
 {
-public:
+#ifdef HAS_SDL
+  public:
 	static void SetInhibit(bool inhibit)
 	{
 		bool* inhibitArg = new bool(inhibit);
@@ -15,7 +19,7 @@ public:
 		}
 	}
 
-private:
+  private:
 	static void SDLCALL SetInhibitCallback(void* userdata)
 	{
 		if (!userdata)
@@ -59,4 +63,10 @@ private:
 			}
 		}
 	}
+#else
+  public:
+	static void SetInhibit(bool /*inhibit*/)
+	{
+	}
+#endif
 };

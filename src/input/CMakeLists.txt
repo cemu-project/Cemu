@@ -15,10 +15,6 @@ add_library(CemuInput
 	api/DSU/DSUControllerProvider.h
 	api/DSU/DSUMessages.h
 	api/DSU/DSUMessages.cpp
-	api/SDL/SDLController.cpp
-	api/SDL/SDLControllerProvider.cpp
-	api/SDL/SDLController.h
-	api/SDL/SDLControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp
@@ -91,6 +87,16 @@ if (SUPPORTS_WIIMOTE)
 	endif()
 endif ()
 
+
+if(ENABLE_SDL)
+	target_sources(CemuInput PRIVATE
+		api/SDL/SDLController.cpp
+		api/SDL/SDLControllerProvider.cpp
+		api/SDL/SDLController.h
+		api/SDL/SDLControllerProvider.h
+	)
+	target_link_libraries(CemuInput PRIVATE	SDL3::SDL3)
+endif()
 
 target_include_directories(CemuInput PUBLIC "../")
 

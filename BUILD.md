@@ -246,7 +246,7 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 | ENABLE_DISCORD_RPC |   | Enable Discord Rich presence support                                        | ON      |                    |
 | ENABLE_OPENGL      |   | Enable OpenGL graphics backend                                              | ON      | Currently required |
 | ENABLE_HIDAPI      |   | Enable HIDAPI (used for Wiimote controller API)                             | ON      |                    |
-| ENABLE_SDL         |   | Enable SDLController controller API                                         | ON      | Currently required |
+| ENABLE_SDL         |   | Enable SDLController controller API                                         | ON      |                    |
 | ENABLE_VCPKG       |   | Use VCPKG package manager to obtain dependencies                            | ON      |                    |
 | ENABLE_VULKAN      |   | Enable the Vulkan graphics backend                                          | ON      |                    |
 | ENABLE_WXWIDGETS   |   | Enable wxWidgets UI                                                         | ON      | Currently required |

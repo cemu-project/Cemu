@@ -148,7 +148,6 @@ option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
 find_package(Threads REQUIRED)
-find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
 find_package(CURL REQUIRED)
 find_package(pugixml REQUIRED)
 find_package(RapidJSON REQUIRED)
@@ -161,6 +160,11 @@ find_package(OpenSSL COMPONENTS Crypto SSL REQUIRED)
 find_package(glm REQUIRED)
 find_package(fmt 9 REQUIRED)
 find_package(PNG REQUIRED)
+
+if(ENABLE_SDL)
+	find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
+	add_compile_definitions(HAS_SDL)
+endif()
 
 # glslang versions older than 11.11.0 define targets without a namespace
 if (NOT TARGET glslang::SPIRV AND TARGET SPIRV)

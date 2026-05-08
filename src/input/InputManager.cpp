@@ -28,7 +28,7 @@ InputManager::InputManager()
 #if HAS_KEYBOARD
 	create_provider<KeyboardControllerProvider>();
 #endif
-#if HAS_SDL
+#ifdef HAS_SDL
 	create_provider<SDLControllerProvider>();
 #endif
 #if HAS_XINPUT

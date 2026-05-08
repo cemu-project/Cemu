@@ -1,4 +1,5 @@
 #include "HidapiWiimote.h"
+#include <SDL3/SDL.h>
 #include <cwchar>
 
 static constexpr uint16 WIIMOTE_VENDOR_ID = 0x057e;

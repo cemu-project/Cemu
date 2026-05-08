@@ -147,7 +147,6 @@ target_link_libraries(CemuWxGui PRIVATE
   libzip::zip
   ZArchive::zarchive
   CemuComponents
-  SDL3::SDL3
   pugixml::pugixml
   CemuCafe
   PUBLIC
@@ -164,6 +163,10 @@ endif()
 
 if(ENABLE_CUBEB)
 	target_link_libraries(CemuWxGui PRIVATE cubeb::cubeb)
+endif()
+
+if(ENABLE_SDL)
+	target_link_libraries(CemuWxGui PRIVATE SDL3::SDL3)
 endif()
 
 if(UNIX AND NOT APPLE)
