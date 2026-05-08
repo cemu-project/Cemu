@@ -6,10 +6,6 @@ class ScreenSaver
 public:
 	static void SetInhibit(bool inhibit)
 	{
-		// temporary workaround because feature crashes on macOS
-#if BOOST_OS_MACOS
-		return;
-#endif
 		bool* inhibitArg = new bool(inhibit);
 
 		if (!SDL_RunOnMainThread(SetInhibitCallback, inhibitArg, false))
@@ -27,8 +23,9 @@ private:
 			return;
 		}
 
-		bool inhibit = *static_cast<bool*>(userdata);
-		SDL_free(userdata);
+		auto* inhibitArg = static_cast<bool*>(userdata);
+		bool inhibit = *inhibitArg;
+		delete inhibitArg;
 
 		if (SDL_WasInit(SDL_INIT_VIDEO) == 0)
 		{
