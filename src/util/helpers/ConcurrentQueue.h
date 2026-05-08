@@ -62,7 +62,7 @@ public:
 			m_condVar.wait(mlock);
 		}
 
-		auto val = m_queue.front();
+		auto val = std::move(m_queue.front());
 		m_queue.pop();
 		return val;
 	}
@@ -75,7 +75,7 @@ public:
 			m_condVar.wait(mlock);
 		}
 
-		item = m_queue.front();
+		item = std::move(m_queue.front());
 		m_queue.pop();
 	}
 

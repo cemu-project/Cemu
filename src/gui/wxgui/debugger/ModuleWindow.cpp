@@ -129,6 +129,5 @@ void ModuleWindow::OnLeftDClick(wxMouseEvent& event)
 	const auto address = std::stoul(text.ToStdString(), nullptr, 16);
 	if (address == 0)
 		return;
-	debuggerState.debugSession.instructionPointer = address;
-	g_debuggerDispatcher.MoveIP();
+	debugger_jumpToAddressInDisasm(address);
 }

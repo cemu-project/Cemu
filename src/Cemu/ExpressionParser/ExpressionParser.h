@@ -29,10 +29,42 @@ inline std::from_chars_result _convFastFloatResult(fast_float::from_chars_result
 template<class TType = double>
 class TExpressionParser
 {
+	// starting with Cemu 2.7 reloc modifiers (like @ha or @l) have been changed to match LLVM/GAS behavior
+	// they may only be used once in an expression and get applied to the final result of the expression, regardless of their location
+	// E.g. "var@ha + 0x20" was intepreted as ha(var) + 0x20 before, now it's interpreted as ha(var+0x20)
+	enum class RelocModifier
+	{
+		None = 0,
+		High, // @hi @h
+		HighArithmetic, // @ha
+		Low, // @lo @l
+	};
+
 public:
 	static_assert(std::is_arithmetic_v<TType>);
 	using ConstantCallback_t = TType(*)(std::string_view var_name);
 	using FunctionCallback_t = TType(*)(std::string_view var_name, TType parameter);
+
+	static TType ExpressionFuncHA(TType input)
+	{
+		uint32 addr = (uint32)input;
+		addr = (((addr >> 16) + ((addr & 0x8000) ? 1 : 0)) & 0xffff);
+		return (TType)addr;
+	}
+
+	static TType ExpressionFuncHI(TType input)
+	{
+		uint32 addr = (uint32)input;
+		addr = (addr >> 16) & 0xffff;
+		return (TType)addr;
+	}
+
+	static TType ExpressionFuncLO(TType input)
+	{
+		uint32 addr = (uint32)input;
+		addr &= 0xffff;
+		return (TType)addr;
+	}
 
 	template<typename T>
 	T Evaluate(std::string_view expression) const
@@ -45,6 +77,7 @@ public:
 	{
 		std::queue<std::shared_ptr<TokenBase>> output;
 		std::stack<std::shared_ptr<TokenBase>> operators;
+		RelocModifier relocModifier = RelocModifier::None;
 
 		if (expression.empty())
 		{
@@ -73,11 +106,11 @@ public:
 				auto converted = (TType)ConvertString(view, &offset);
 				output.emplace(std::make_shared<TokenNumber>(converted));
 				i += offset;
-
 				last_operator_token = false;
+				// check for relocation modifier suffix (e.g. 74@ha)
+				i += ParseRelocModifier(expression.substr(i), relocModifier, false); // can throw
 				continue;
 			}
-
 			// check for variables
 			if (isalpha(c) || c == '_' || c == '$')
 			{
@@ -92,8 +125,14 @@ public:
 				}
 
 				const size_t len = j - i;
-				const std::string_view view = expression.substr(i, len);
+				std::string_view view = expression.substr(i, len);
 
+				// check for relocation modifier
+				if (auto suffixPos = view.find_last_of('@'); suffixPos != std::string::npos)
+				{
+					sint32 modifierLength = ParseRelocModifier(view.substr(suffixPos), relocModifier, true);
+					view.remove_suffix(modifierLength);
+				}
 				// check for function
 				if (m_function_callback)
 				{
@@ -358,6 +397,13 @@ public:
 			}
 		}
 
+		if (relocModifier == RelocModifier::High)
+			evaluation.top() = ExpressionFuncHI(evaluation.top());
+		else if (relocModifier == RelocModifier::HighArithmetic)
+			evaluation.top() = ExpressionFuncHA(evaluation.top());
+		else if (relocModifier == RelocModifier::Low)
+			evaluation.top() = ExpressionFuncLO(evaluation.top());
+
 		return evaluation.top();
 	}
 
@@ -418,7 +464,6 @@ public:
 	{
 		m_function_callback = callback;
 	}
-
 private:
 	std::unordered_map<std::string, TType> m_constants;
 	ConstantCallback_t m_constant_callback = nullptr;
@@ -427,6 +472,64 @@ private:
 	static bool _isNumberWithDecimalPoint(std::string_view str)
 	{
 		return str.find('.') != std::string_view::npos;
+	}
+
+	// update current relocation modifier for the expression
+	void SetRelocationModifier(RelocModifier& relocModifier, RelocModifier newModifier) const
+	{
+		if (relocModifier == newModifier)
+			return;
+		// catch mismatching relocation modifiers (e.g. sym@ha + sym2@lo)
+		if (relocModifier != RelocModifier::None)
+			throw std::runtime_error(fmt::format("Mismatching relocation modifiers (suffix @..) in expression"));
+		relocModifier = newModifier;
+	}
+
+	// parse modifiers like @ha, @l. Throws on parse error (unless ignored). Returns length of parsed suffix including @ symbol
+	sint32 ParseRelocModifier(std::string_view str, RelocModifier& relocModifier, bool ignoreParseError) const
+	{
+		auto origStr = str;
+		if (str.empty() || str[0] != '@')
+			return 0;
+		// skip the @
+		str.remove_prefix(1);
+		if (str.empty())
+			return 0;
+		char c0 = std::tolower(str[0]);
+		// check for two character modifiers: lo, ha, hi
+		if (str.size() >= 2)
+		{
+			char c1 = std::tolower(str[1]);
+			if (c0 == 'h' && c1 == 'a')
+			{
+				SetRelocationModifier(relocModifier, RelocModifier::HighArithmetic);
+				return 3;
+			}
+			else if (c0 == 'h' && c1 == 'i')
+			{
+				SetRelocationModifier(relocModifier, RelocModifier::High);
+				return 3;
+			}
+			else if (c0 == 'l' && c1 == 'o')
+			{
+				SetRelocationModifier(relocModifier, RelocModifier::Low);
+				return 3;
+			}
+		}
+		// check for single character modifiers
+		if (c0 == 'h')
+		{
+			SetRelocationModifier(relocModifier, RelocModifier::High);
+			return 2;
+		}
+		else if (c0 == 'l')
+		{
+			SetRelocationModifier(relocModifier, RelocModifier::Low);
+			return 2;
+		}
+		if (!ignoreParseError)
+			throw std::runtime_error(fmt::format("Unknown relocation modifier (only @lo, @hi, @ha, @l, @h are supported) at: {}", origStr));
+		return 0;
 	}
 
 	double ConvertString(std::string_view str, size_t* index_after = nullptr) const

@@ -43,4 +43,16 @@ void ExpressionParser_test()
 	cemu_assert_debug(_testEvaluateToType<float>("5 > 4 > 3 > 2") == 0.0f); // this should evaluate the operations from left to right, (5 > 4) -> 0.0, (0.0 > 4) -> 0.0, (0.0 > 3) -> 0.0, (0.0 > 2) -> 0.0
 	cemu_assert_debug(_testEvaluateToType<float>("5 > 4 > 3 > -2") == 1.0f); // this should evaluate the operations from left to right, (5 > 4) -> 0.0, (0.0 > 4) -> 0.0, (0.0 > 3) -> 0.0, (0.0 > -2) -> 1.0
 	cemu_assert_debug(_testEvaluateToType<float>("(5 == 5) > (5 == 6)") == 1.0f);
+
+	// reloc modifier behavior
+	ep = {};
+	ep.AddConstant("test", 5.0);
+	cemu_assert_debug(ep.IsValidExpression("test@ha") == true);
+	cemu_assert_debug(ep.IsValidExpression("test+15@lo") == true);
+	cemu_assert_debug(ep.IsValidExpression("test@ha + test@ha") == true); // technically not legal but we allow it for backwards compatibility (BotW extended memory pack relies on this)
+	cemu_assert_debug(ep.IsValidExpression("test@ha + test@lo") == false); // mixed modifier not allowed
+
+	cemu_assert_debug(ep.Evaluate("test+15@lo") == 20.0f);
+	cemu_assert_debug(ep.Evaluate("test+15@hi") == 0.0f);
+
 }

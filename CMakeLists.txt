@@ -134,6 +134,11 @@ endif()
 
 option(ENABLE_HIDAPI "Build with HIDAPI" ON)
 option(ENABLE_SDL "Enables the SDLController backend" ON)
+option(ENABLE_LIBUSB "Build with libusb support" ON)
+
+if (ENABLE_LIBUSB)
+	add_compile_definitions(HAS_LIBUSB)
+endif()
 
 # audio backends
 if (WIN32)
@@ -145,7 +150,7 @@ option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
 
 find_package(Threads REQUIRED)
-find_package(SDL2 REQUIRED)
+find_package(SDL3 REQUIRED CONFIG REQUIRED COMPONENTS SDL3)
 find_package(CURL REQUIRED)
 find_package(pugixml REQUIRED)
 find_package(RapidJSON REQUIRED)
@@ -210,7 +215,6 @@ if (ENABLE_DISCORD_RPC)
 endif()
 
 if (ENABLE_HIDAPI)
-	find_package(hidapi REQUIRED)
 	set(SUPPORTS_WIIMOTE ON)
 	add_compile_definitions(HAS_HIDAPI)
 endif ()

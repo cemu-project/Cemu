@@ -231,10 +231,15 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 
 void RegisterWindow::OnUpdateView()
 {
-	// m_register_ctrl->RefreshControl();
+	PPCSnapshot snapshot = {};
+	if (PPCInterpreter_t* hCPU = debugger_lockDebugSession(); hCPU)
+	{
+		snapshot = debugger_getSnapshotFromSession(hCPU);
+		debugger_unlockDebugSession(hCPU);
+	}
 	for (int i = 0; i < 32; ++i)
 	{
-		const uint32 registerValue = debuggerState.debugSession.ppcSnapshot.gpr[i];
+		const uint32 registerValue = snapshot.gpr[i];
 		const bool hasChanged = registerValue != m_prev_snapshot.gpr[i];
 		const auto value = dynamic_cast<wxTextCtrl*>(FindWindow(kRegisterValueR0 + i));
 		wxASSERT(value);
@@ -246,7 +251,7 @@ void RegisterWindow::OnUpdateView()
 
 	// update LR
 	{
-		const uint32 registerValue = debuggerState.debugSession.ppcSnapshot.spr_lr;
+		const uint32 registerValue = snapshot.spr_lr;
 		const bool hasChanged = registerValue != m_prev_snapshot.spr_lr;
 		const auto value = dynamic_cast<wxTextCtrl*>(FindWindow(kRegisterValueLR));
 		wxASSERT(value);
@@ -257,7 +262,7 @@ void RegisterWindow::OnUpdateView()
 
 	for (int i = 0; i < 32; ++i)
 	{
-		const uint64_t register_value = debuggerState.debugSession.ppcSnapshot.fpr[i].fp0int;
+		const uint64_t register_value = snapshot.fpr[i].fp0int;
 
 		const auto value = dynamic_cast<wxTextCtrl*>(FindWindow(kRegisterValueFPR0_0 + i));
 		wxASSERT(value);
@@ -271,14 +276,14 @@ void RegisterWindow::OnUpdateView()
 			continue;
 
 		if(m_show_double_values)
-			value->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0));
+			value->ChangeValue(wxString::Format("%lf", snapshot.fpr[i].fp0));
 		else
 			value->ChangeValue(wxString::Format("%016llx", register_value));
 	}
 
 	for (int i = 0; i < 32; ++i)
 	{
-		const uint64_t register_value = debuggerState.debugSession.ppcSnapshot.fpr[i].fp1int;
+		const uint64_t register_value = snapshot.fpr[i].fp1int;
 
 		const auto value = dynamic_cast<wxTextCtrl*>(FindWindow(kRegisterValueFPR1_0 + i));
 		wxASSERT(value);
@@ -292,7 +297,7 @@ void RegisterWindow::OnUpdateView()
 			continue;
 
 		if (m_show_double_values)
-			value->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1));
+			value->ChangeValue(wxString::Format("%lf", snapshot.fpr[i].fp1));
 		else
 			value->ChangeValue(wxString::Format("%016llx", register_value));
 	}
@@ -303,7 +308,7 @@ void RegisterWindow::OnUpdateView()
 		const auto value = dynamic_cast<wxTextCtrl*>(FindWindow(kRegisterValueCR0 + i));
 		wxASSERT(value);
 		
-		auto cr_bits_ptr = debuggerState.debugSession.ppcSnapshot.cr + i * 4;
+		auto cr_bits_ptr = snapshot.cr + i * 4;
 		auto cr_bits_ptr_cmp = m_prev_snapshot.cr + i * 4;
 
 		const bool has_changed = !std::equal(cr_bits_ptr, cr_bits_ptr + 4, cr_bits_ptr_cmp);
@@ -330,44 +335,53 @@ void RegisterWindow::OnUpdateView()
 			value->ChangeValue(fmt::format("{}", fmt::join(joinArray, ", ")));
 	}
 
-	memcpy(&m_prev_snapshot, &debuggerState.debugSession.ppcSnapshot, sizeof(m_prev_snapshot));
+	m_prev_snapshot = snapshot;
 }
 
 void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
 {
-	if (!debuggerState.debugSession.isTrapped)
+	PPCInterpreter_t* debugSession = debugger_lockDebugSession();
+	if (!debugSession)
 	{
 		event.Skip();
 		return;
 	}
+	PPCSnapshot ppcSnapshot = debugger_getSnapshotFromSession(debugSession);
+	debugger_unlockDebugSession(debugSession);
+	debugSession = nullptr;
 
 	const auto id = event.GetId();
 	if(kRegisterValueR0 <= id && id < kRegisterValueR0 + 32)
 	{
 		const uint32 register_index = id - kRegisterValueR0;
-		const uint32 register_value = debuggerState.debugSession.ppcSnapshot.gpr[register_index];
+		const uint32 register_value = ppcSnapshot.gpr[register_index];
 		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set R%d value"), register_index), wxString::Format("%08x", register_value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			const uint32 new_value = std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
-			debuggerState.debugSession.hCPU->gpr[register_index] = new_value;
-			debuggerState.debugSession.ppcSnapshot.gpr[register_index] = new_value;
+			if (debugSession = debugger_lockDebugSession(); debugSession)
+			{
+				debugSession->gpr[register_index] = new_value;
+				debugger_unlockDebugSession(debugSession);
+			}
 			OnUpdateView();
 		}
-				
 		return;
 	}
 
 	if (kRegisterValueFPR0_0 <= id && id < kRegisterValueFPR0_0 + 32)
 	{
 		const uint32 register_index = id - kRegisterValueFPR0_0;
-		const double register_value = debuggerState.debugSession.ppcSnapshot.fpr[register_index].fp0;
+		const double register_value = ppcSnapshot.fpr[register_index].fp0;
 		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set FP0_%d value"), register_index), wxString::Format("%lf", register_value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());
-			debuggerState.debugSession.hCPU->fpr[register_index].fp0 = new_value;
-			debuggerState.debugSession.ppcSnapshot.fpr[register_index].fp0 = new_value;
+			if (debugSession = debugger_lockDebugSession(); debugSession)
+			{
+				debugSession->fpr[register_index].fp0 = new_value;
+				debugger_unlockDebugSession(debugSession);
+			}
 			OnUpdateView();
 		}
 
@@ -377,16 +391,18 @@ void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
 	if (kRegisterValueFPR1_0 <= id && id < kRegisterValueFPR1_0 + 32)
 	{
 		const uint32 register_index = id - kRegisterValueFPR1_0;
-		const double register_value = debuggerState.debugSession.ppcSnapshot.fpr[register_index].fp1;
+		const double register_value = ppcSnapshot.fpr[register_index].fp1;
 		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set FP1_%d value"), register_index), wxString::Format("%lf", register_value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
 			const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());
-			debuggerState.debugSession.hCPU->fpr[register_index].fp1 = new_value;
-			debuggerState.debugSession.ppcSnapshot.fpr[register_index].fp1 = new_value;
+			if (debugSession = debugger_lockDebugSession(); debugSession)
+			{
+				debugSession->fpr[register_index].fp1 = new_value;
+				debugger_unlockDebugSession(debugSession);
+			}
 			OnUpdateView();
 		}
-
 		return;
 	}
 
@@ -396,7 +412,13 @@ void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
 void RegisterWindow::OnFPViewModePress(wxCommandEvent& event)
 {
 	m_show_double_values = !m_show_double_values;
-	
+
+	PPCInterpreter_t* debugSession = debugger_lockDebugSession();
+	if (!debugSession)
+		return;
+	PPCSnapshot ppcSnapshot = debugger_getSnapshotFromSession(debugSession);
+	debugger_unlockDebugSession(debugSession);
+
 	for (int i = 0; i < 32; ++i)
 	{
 		const auto value0 = dynamic_cast<wxTextCtrl*>(FindWindow(kRegisterValueFPR0_0 + i));
@@ -406,13 +428,13 @@ void RegisterWindow::OnFPViewModePress(wxCommandEvent& event)
 
 		if (m_show_double_values)
 		{
-			value0->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0));
-			value1->ChangeValue(wxString::Format("%lf", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1));
+			value0->ChangeValue(wxString::Format("%lf", ppcSnapshot.fpr[i].fp0));
+			value1->ChangeValue(wxString::Format("%lf", ppcSnapshot.fpr[i].fp1));
 		}
 		else
 		{
-			value0->ChangeValue(wxString::Format("%016llx", debuggerState.debugSession.ppcSnapshot.fpr[i].fp0int));
-			value1->ChangeValue(wxString::Format("%016llx", debuggerState.debugSession.ppcSnapshot.fpr[i].fp1int));
+			value0->ChangeValue(wxString::Format("%016llx", ppcSnapshot.fpr[i].fp0int));
+			value1->ChangeValue(wxString::Format("%016llx", ppcSnapshot.fpr[i].fp1int));
 		}
 	}
 }

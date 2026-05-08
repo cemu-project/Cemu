@@ -11,6 +11,7 @@
 #include "Cafe/HW/Latte/Core/LatteIndices.h"
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
+#include "Cafe/HW/Latte/Core/LatteSurfaceCopy.h"
 
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/TCL/TCL.h" // TCL currently handles the GPU command ringbuffer
@@ -805,37 +806,37 @@ LatteCMDPtr LatteCP_itHLEBottomOfPipeCB(LatteCMDPtr cmd, uint32 nWords)
 // GPU-side handler for GX2CopySurface/GX2CopySurfaceEx and similar
 LatteCMDPtr LatteCP_itHLECopySurfaceNew(LatteCMDPtr cmd, uint32 nWords)
 {
-	cemu_assert_debug(nWords == 26);
+	cemu_assert_debug(nWords == 4+9*2);
+	// copy rect
+	LatteSurfaceCopyRect copyRect;
+	copyRect.x = LatteReadCMD();
+	copyRect.y = LatteReadCMD();
+	copyRect.width = LatteReadCMD();
+	copyRect.height = LatteReadCMD();
 	// src
-	MPTR srcPhysAddr = LatteReadCMD();
-	MPTR srcMipAddr = LatteReadCMD();
-	uint32 srcSwizzle = LatteReadCMD();
-	Latte::E_GX2SURFFMT srcSurfaceFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
-	sint32 srcWidth = LatteReadCMD();
-	sint32 srcHeight = LatteReadCMD();
-	sint32 srcDepth = LatteReadCMD();
-	uint32 srcPitch = LatteReadCMD();
-	uint32 srcSlice = LatteReadCMD();
-	Latte::E_DIM srcDim = (Latte::E_DIM)LatteReadCMD();
-	Latte::E_HWTILEMODE srcTilemode = (Latte::E_HWTILEMODE)LatteReadCMD();
-	sint32 srcAA = LatteReadCMD();
-	sint32 srcLevel = LatteReadCMD();
+	LatteSurfaceCopyParam src{};
+	src.physDataAddr = LatteReadCMD();
+	src.swizzle = LatteReadCMD();
+	src.surfaceFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
+	src.pitch = LatteReadCMD();
+	src.heightInTexels = LatteReadCMD();
+	src.sliceIndex = LatteReadCMD();
+	src.dim = (Latte::E_DIM)LatteReadCMD();
+	src.tilemode = (Latte::E_GX2TILEMODE)LatteReadCMD();
+	src.aa = LatteReadCMD();
 	// dst
-	MPTR dstPhysAddr = LatteReadCMD();
-	MPTR dstMipAddr = LatteReadCMD();
-	uint32 dstSwizzle = LatteReadCMD();
-	Latte::E_GX2SURFFMT dstSurfaceFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
-	sint32 dstWidth = LatteReadCMD();
-	sint32 dstHeight = LatteReadCMD();
-	sint32 dstDepth = LatteReadCMD();
-	uint32 dstPitch = LatteReadCMD();
-	uint32 dstSlice = LatteReadCMD();
-	Latte::E_DIM dstDim = (Latte::E_DIM)LatteReadCMD();
-	Latte::E_HWTILEMODE dstTilemode = (Latte::E_HWTILEMODE)LatteReadCMD();
-	sint32 dstAA = LatteReadCMD();
-	sint32 dstLevel = LatteReadCMD();
+	LatteSurfaceCopyParam dst{};
+	dst.physDataAddr = LatteReadCMD();
+	dst.swizzle = LatteReadCMD();
+	dst.surfaceFormat = (Latte::E_GX2SURFFMT)LatteReadCMD();
+	dst.pitch = LatteReadCMD();
+	dst.heightInTexels = LatteReadCMD();
+	dst.sliceIndex = LatteReadCMD();
+	dst.dim = (Latte::E_DIM)LatteReadCMD();
+	dst.tilemode = (Latte::E_GX2TILEMODE)LatteReadCMD();
+	dst.aa = LatteReadCMD();
 
-	LatteSurfaceCopy_copySurfaceNew(srcPhysAddr, srcMipAddr, srcSwizzle, srcSurfaceFormat, srcWidth, srcHeight, srcDepth, srcPitch, srcSlice, srcDim, srcTilemode, srcAA, srcLevel, dstPhysAddr, dstMipAddr, dstSwizzle, dstSurfaceFormat, dstWidth, dstHeight, dstDepth, dstPitch, dstSlice, dstDim, dstTilemode, dstAA, dstLevel);
+	LatteSurfaceCopy_copySurfaceNew(src, dst, copyRect);
 	return cmd;
 }
 
