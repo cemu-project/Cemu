@@ -421,7 +421,7 @@ namespace coreinit
 		return 0;
 	}
 
-	uint32 MCP_DemoLaunchGetRemainder(MCPHANDLE mcpHandle, uint32 ukn_r4, uint32 inputA, uint32 inputB, uint32be* outRemainder)
+	uint32 MCP_DemoLaunchGetRemainder(uint32 mcpHandle, uint32 ukn_r4, uint32 titleId_high, uint32 titleId_low, uint32be* outRemainder)
 	{
 		// stub to always return 99 uses remaining for game demos.
 		// used by drmapp.rpl to determine remaining uses for game demos
