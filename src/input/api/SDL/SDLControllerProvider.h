@@ -28,12 +28,26 @@ public:
 
 	MotionSample motion_sample(SDL_JoystickID diid);
 
+	// exposed for manual event handling on macOS
+#if BOOST_OS_MACOS
+	static void InitSDL();
+	static void ShutdownSDL();
+	static void PumpSDLEvents();
+#endif
+
 private:
 	void event_thread();
+	static void HandleSDLEvent(union SDL_Event& event);
+#if !BOOST_OS_MACOS
+	static void InitSDL();
+	static void ShutdownSDL();
+#endif
 
-	std::atomic_bool m_running = false;
-	std::thread m_thread;
-	mutable std::shared_mutex m_mutex;
+	// there is only one SDL instance, for this reason all of our state can be static
+	inline static std::atomic_int s_initCount{0};
+	inline static std::shared_mutex s_mutex;
+	inline static std::atomic_bool s_running = false;
+	inline static std::thread s_thread;
 
 	struct MotionInfoTracking
 	{
@@ -55,5 +69,5 @@ private:
 		MotionState() = default;
 	};
 
-	std::unordered_map<SDL_JoystickID, MotionState> m_motion_states{};
+	inline static std::unordered_map<SDL_JoystickID, MotionState> s_motion_states{};
 };

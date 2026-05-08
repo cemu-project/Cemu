@@ -16,28 +16,43 @@ struct SDL_JoystickGUIDHash
 
 SDLControllerProvider::SDLControllerProvider()
 {
-	m_motion_states.reserve(8);
-
-	m_running = true;
-	m_thread = std::thread(&SDLControllerProvider::event_thread, this);
+#if !BOOST_OS_MACOS
+	std::scoped_lock _l(s_mutex);
+	if (s_initCount.fetch_add(1) == 0)
+	{
+		s_running = true;
+		s_thread = std::thread(&SDLControllerProvider::event_thread, this);
+	}
+#endif
 }
 
 SDLControllerProvider::~SDLControllerProvider()
 {
-	if (m_running)
+#if !BOOST_OS_MACOS
+	bool shutdownSDL = false;
 	{
-		m_running = false;
+		std::scoped_lock _l(s_mutex);
+		if (s_initCount.fetch_sub(1) == 1)
+		{
+			cemu_assert_debug(s_running);
+			s_running = false;
+			shutdownSDL = true;
+		}
+	}
+
+	if (shutdownSDL)
+	{
 		// wake the thread with a quit event if it's currently waiting for events
 		SDL_Event evt;
 		SDL_zero(evt);
 		evt.type = SDL_EVENT_QUIT;
 		SDL_PushEvent(&evt);
-
-		if (m_thread.joinable())
+		if (s_thread.joinable())
 		{
-			m_thread.join();
+			s_thread.join();
 		}
 	}
+#endif
 }
 
 std::vector<std::shared_ptr<ControllerBase>> SDLControllerProvider::get_controllers()
@@ -47,34 +62,22 @@ std::vector<std::shared_ptr<ControllerBase>> SDLControllerProvider::get_controll
 	std::unordered_map<SDL_GUID, size_t, SDL_JoystickGUIDHash> guid_counter;
 
 	TempState lock(SDL_LockJoysticks, SDL_UnlockJoysticks);
-
 	int gamepad_count = 0;
-
 	SDL_JoystickID *gamepad_ids = SDL_GetGamepads(&gamepad_count);
-
 	if (gamepad_ids)
 	{
 		for (size_t i = 0; i < gamepad_count; ++i)
 		{
 			const auto guid = SDL_GetGamepadGUIDForID(gamepad_ids[i]);
-
 			const auto it = guid_counter.try_emplace(guid, 0);
-
 			if (const char* name = SDL_GetGamepadNameForID(gamepad_ids[i]))
-			{
 				result.emplace_back(std::make_shared<SDLController>(guid, it.first->second, name));
-			}
 			else
-			{
 				result.emplace_back(std::make_shared<SDLController>(guid, it.first->second));
-			}
-
 			++it.first->second;
 		}
-
 		SDL_free(gamepad_ids);
 	}
-
 	return result;
 }
 
@@ -82,11 +85,8 @@ int SDLControllerProvider::get_index(size_t guid_index, const SDL_GUID& guid) co
 {
 	size_t index = 0;
 	int gamepad_count = 0;
-
 	TempState lock(SDL_LockJoysticks, SDL_UnlockJoysticks);
-
 	SDL_JoystickID *gamepad_ids = SDL_GetGamepads(&gamepad_count);
-
 	if (gamepad_ids)
 	{
 		for (size_t i = 0; i < gamepad_count; ++i)
@@ -98,30 +98,23 @@ int SDLControllerProvider::get_index(size_t guid_index, const SDL_GUID& guid) co
 					SDL_free(gamepad_ids);
 					return i;
 				}
-
 				++index;
 			}
 		}
-
 		SDL_free(gamepad_ids);
 	}
-
 	return -1;
 }
 
 MotionSample SDLControllerProvider::motion_sample(SDL_JoystickID diid)
 {
-	std::shared_lock lock(m_mutex);
-
-	auto it = m_motion_states.find(diid);
-
-	return (it != m_motion_states.end()) ? it->second.data : MotionSample{};
+	std::shared_lock lock(s_mutex);
+	auto it = s_motion_states.find(diid);
+	return (it != s_motion_states.end()) ? it->second.data : MotionSample{};
 }
 
-void SDLControllerProvider::event_thread()
+void SDLControllerProvider::InitSDL()
 {
-	SetThreadName("SDL_events");
-
 	SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, "1");
 	SDL_SetHint(SDL_HINT_JOYSTICK_ENHANCED_REPORTS, "1");
 	SDL_SetHint(SDL_HINT_JOYSTICK_HIDAPI_PS4, "1");
@@ -144,17 +137,30 @@ void SDLControllerProvider::event_thread()
 	{
 		cemuLog_log(LogType::Force, "Couldn't enable SDL gamecontroller event polling: {}", SDL_GetError());
 	}
+}
 
-	while (m_running.load(std::memory_order_relaxed))
+void SDLControllerProvider::ShutdownSDL()
+{
+	SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_HAPTIC);
+}
+
+#if BOOST_OS_MACOS
+void SDLControllerProvider::PumpSDLEvents()
+{
+	SDL_Event event;
+	while (SDL_PollEvent(&event))
+		HandleSDLEvent(event);
+}
+#endif
+
+void SDLControllerProvider::HandleSDLEvent(SDL_Event& event)
+{
+	switch (event.type)
 	{
-		SDL_Event event{};
-		SDL_WaitEvent(&event);
-
-		switch (event.type)
-		{
 		case SDL_EVENT_QUIT:
 		{
-			m_running = false;
+			std::scoped_lock _l(s_mutex);
+			s_running = false;
 			break;
 		}
 		case SDL_EVENT_GAMEPAD_AXIS_MOTION: /**< Game controller axis motion */
@@ -171,13 +177,15 @@ void SDLControllerProvider::event_thread()
 		}
 		case SDL_EVENT_GAMEPAD_ADDED: /**< A new Game controller has been inserted into the system */
 		{
+			std::scoped_lock _l(s_mutex);
 			InputManager::instance().on_device_changed();
 			break;
 		}
 		case SDL_EVENT_GAMEPAD_REMOVED: /**< An opened Game controller has been removed */
 		{
+			std::scoped_lock _l(s_mutex);
 			InputManager::instance().on_device_changed();
-			m_motion_states.erase(event.gdevice.which);
+			s_motion_states.erase(event.gdevice.which);
 			break;
 		}
 		case SDL_EVENT_GAMEPAD_REMAPPED: 			/**< The controller mapping was updated */
@@ -200,10 +208,8 @@ void SDLControllerProvider::event_thread()
 		{
 			SDL_JoystickID id = event.gsensor.which;
 			uint64_t ts = event.gsensor.timestamp;
-
-			std::scoped_lock lock(m_mutex);
-
-			auto& state = m_motion_states[id];
+			std::scoped_lock _l(s_mutex);
+			auto& state = s_motion_states[id];
 			auto& tracking = state.tracking;
 
 			if (event.gsensor.sensor == SDL_SENSOR_ACCEL)
@@ -274,7 +280,21 @@ void SDLControllerProvider::event_thread()
 			}
 			break;
 		}
-		}
 	}
-	SDL_QuitSubSystem(SDL_INIT_GAMEPAD | SDL_INIT_HAPTIC);
+}
+
+void SDLControllerProvider::event_thread()
+{
+#if BOOST_OS_MACOS
+	cemu_assert(false);
+#endif
+	SetThreadName("SDL_events");
+	InitSDL();
+	while (s_running.load(std::memory_order_relaxed))
+	{
+		SDL_Event event{};
+		SDL_WaitEvent(&event);
+		HandleSDLEvent(event);
+	}
+	ShutdownSDL();
 }
