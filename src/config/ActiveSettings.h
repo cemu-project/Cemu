@@ -56,6 +56,15 @@ public:
 
 	[[nodiscard]] static fs::path GetMlcPath();
 
+#if BOOST_PLAT_ANDROID
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetNativeLibPath(TArgs&&... args){ return GetPath(s_native_lib_path, std::forward<TArgs>(args)...); };
+
+	template <typename ...TArgs>
+	[[nodiscard]] static fs::path GetInternalPath(TArgs&&... args){ return GetPath(s_internal_dir_path, std::forward<TArgs>(args)...); };
+#endif
+
+
 	template <typename ...TArgs>
 	[[nodiscard]] static fs::path GetMlcPath(TArgs&&... args){ return GetPath(GetMlcPath(), std::forward<TArgs>(args)...); };
 	static bool IsCustomMlcPath();
@@ -73,8 +82,17 @@ private:
 	inline static fs::path s_data_path;
 	inline static fs::path s_executable_filename; // cemu.exe
 	inline static fs::path s_mlc_path;
+#if BOOST_PLAT_ANDROID
+	inline static fs::path s_native_lib_path;
+	inline static fs::path s_internal_dir_path;
+#endif
 
 public:
+
+#if BOOST_PLAT_ANDROID
+  static void SetNativeLibPath(const fs::path& nativeLibPath);
+  static void SetInternalDir(const fs::path& internalDirPath);
+#endif
 	// can be called before Init
 	[[nodiscard]] static bool IsPortableMode();
 

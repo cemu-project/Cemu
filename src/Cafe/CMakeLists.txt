@@ -623,6 +623,9 @@ if(ANDROID)
     Filesystem/fscDeviceAndroidSAF.cpp
     Filesystem/fscDeviceAndroidSAF.h
   )
+  if(CMAKE_SYSTEM_PROCESSOR MATCHES "(aarch64)|(AARCH64)")
+    target_link_libraries(CemuCafe PRIVATE adrenotools)
+  endif()
 endif()
 
 if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")

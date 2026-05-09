@@ -290,6 +290,11 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	emulated_usb_devices.emulate_infinity_base = usbdevices.get("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base);
 	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
 
+
+#if BOOST_PLAT_ANDROID
+	custom_driver_path = parser.get("custom_driver_path", "");
+#endif
+
 	return parser;
 }
 
@@ -453,6 +458,10 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
 	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 	usbdevices.set("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad.GetValue());
+
+#if BOOST_PLAT_ANDROID
+	config.set("custom_driver_path", custom_driver_path.GetValue());
+#endif
 
 	return config;
 }

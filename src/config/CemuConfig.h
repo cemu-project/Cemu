@@ -213,6 +213,16 @@ enum class CrashDump
 ENABLE_ENUM_ITERATORS(CrashDump, CrashDump::Disabled, CrashDump::Enabled);
 #endif
 
+#if BOOST_PLAT_ANDROID
+enum class DriverSettingMode
+{
+	Global,
+	System,
+	Custom,
+};
+ENABLE_ENUM_ITERATORS(DriverSettingMode, DriverSettingMode::Global, DriverSettingMode::Custom);
+#endif
+
 template <>
 struct fmt::formatter<PrecompiledShaderOption> : formatter<string_view> {
 	template <typename FormatContext>
@@ -418,6 +428,10 @@ struct CemuConfig
 	ConfigValue<bool> disable_screensaver{DISABLE_SCREENSAVER_DEFAULT};
 #undef DISABLE_SCREENSAVER_DEFAULT
 	ConfigValue<bool> play_boot_sound{false};
+
+#if BOOST_PLAT_ANDROID
+	ConfigValue<std::string> custom_driver_path{};
+#endif
 
 	std::vector<std::string> game_paths;
 	std::mutex game_cache_entries_mutex;

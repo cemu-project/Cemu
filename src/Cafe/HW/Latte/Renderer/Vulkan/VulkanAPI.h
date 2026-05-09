@@ -10,6 +10,11 @@
 bool InitializeGlobalVulkan();
 bool InitializeInstanceVulkan(VkInstance instance);
 bool InitializeDeviceVulkan(VkDevice device);
+
+#if BOOST_PLAT_ANDROID
+bool SupportsLoadingCustomDriver();
+#endif
+
 extern bool g_vulkan_available;
 
 #endif
