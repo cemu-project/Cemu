@@ -63,37 +63,45 @@ add_subdirectory(util)
 add_subdirectory(imgui)
 add_subdirectory(resource)
 
-add_executable(CemuBin
-	main.cpp
-	mainLLE.cpp
-)
-
-cemu_use_precompiled_header(CemuBin)
-
-if(MSVC AND MSVC_VERSION EQUAL 1940)
-	# workaround for an msvc issue on VS 17.10 where generated ILK files are too large
-	# see https://developercommunity.visualstudio.com/t/After-updating-to-VS-1710-the-size-of-/10665511
-	set_target_properties(CemuBin PROPERTIES LINK_FLAGS "/INCREMENTAL:NO")
-endif()
-
-if(WIN32)
-	target_sources(CemuBin PRIVATE
-	resource/cemu.rc
-	../dist/windows/cemu.manifest
-	)
-endif()
-
-if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
-    set_target_properties(CemuBin PROPERTIES
-        XCODE_ATTRIBUTE_ENABLE_DEBUG_DYLIB[variant=Debug] "YES"
+if(ANDROID)
+    add_library(CemuBin STATIC
+        main.cpp
+        mainLLE.cpp
     )
+
+	cemu_use_precompiled_header(CemuBin)
+else()
+	add_executable(CemuBin
+		main.cpp
+		mainLLE.cpp
+	)
+
+	cemu_use_precompiled_header(CemuBin)
+
+	if(MSVC AND MSVC_VERSION EQUAL 1940)
+		# workaround for an msvc issue on VS 17.10 where generated ILK files are too large
+		# see https://developercommunity.visualstudio.com/t/After-updating-to-VS-1710-the-size-of-/10665511
+		set_target_properties(CemuBin PROPERTIES LINK_FLAGS "/INCREMENTAL:NO")
+	endif()
+
+	if(WIN32)
+		target_sources(CemuBin PRIVATE
+			resource/cemu.rc
+			../dist/windows/cemu.manifest
+	)
+	endif()
+
+	if(APPLE AND CMAKE_GENERATOR STREQUAL "Xcode")
+		set_target_properties(CemuBin PROPERTIES
+			XCODE_ATTRIBUTE_ENABLE_DEBUG_DYLIB[variant=Debug] "YES"
+		)
+	endif()
+
+	string(TIMESTAMP CURRENT_YEAR "%Y" UTC)
+	set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
+	set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
 endif()
-
-string(TIMESTAMP CURRENT_YEAR "%Y" UTC)
-
-set_property(TARGET CemuBin PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-set_property(TARGET CemuBin PROPERTY WIN32_EXECUTABLE $<NOT:$<CONFIG:Debug>>)
-set(OUTPUT_NAME "Cemu_$<LOWER_CASE:$<CONFIG>>")
 
 if (MACOS_BUNDLE)
 	set_property(TARGET CemuBin PROPERTY MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/resource/MacOSXBundleInfo.plist.in")
