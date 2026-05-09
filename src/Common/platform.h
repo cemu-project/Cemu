@@ -1,10 +1,14 @@
 #pragma once
 
 #include <boost/predef/os.h>
+#include <boost/predef/platform.h>
 #include <cstdint>
 
 #if BOOST_OS_WINDOWS
 #include "Common/windows/platform.h"
+#elif BOOST_PLAT_ANDROID
+#include <byteswap.h>
+#include "Common/unix/platform.h"
 #elif BOOST_OS_LINUX || BOOST_OS_BSD
 #if BOOST_OS_LINUX
 #include <byteswap.h>
