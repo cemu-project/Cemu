@@ -477,7 +477,7 @@ private:
 
 		struct
 		{
-			bool useTFEmulationViaSSBO = true; // emulate transform feedback via shader writes to a storage buffer
+			bool useTFEmulationViaSSBO = false; // emulate transform feedback via shader writes to a storage buffer
 		}mode;
 
 		struct
