@@ -20,6 +20,11 @@ struct VkSupportedFormatInfo_t
 	bool fmt_r5g6b5_unorm_pack{};
 	bool fmt_r4g4b4a4_unorm_pack{};
 	bool fmt_a1r5g5b5_unorm_pack{};
+	bool fmt_bc1{};
+	bool fmt_bc2{};
+	bool fmt_bc3{};
+	bool fmt_bc4{};
+	bool fmt_bc5{};
 };
 
 struct VkDescriptorSetInfo
