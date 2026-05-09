@@ -12,6 +12,7 @@ namespace WindowSystem
 			Wayland,
 			Cocoa,
 			Windows,
+			Android,
 		} backend;
 		std::atomic<void*> display = nullptr;
 		std::atomic<void*> surface = nullptr;
