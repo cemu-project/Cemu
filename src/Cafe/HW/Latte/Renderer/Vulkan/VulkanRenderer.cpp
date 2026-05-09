@@ -2200,10 +2200,10 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 	const VkPipelineStageFlags semWaitStageMask[2] = { VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
 	VkSemaphore waitSemArray[2];
 	submitInfo.waitSemaphoreCount = 0;
-	if (m_numSubmittedCmdBuffers > 0)
-		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
 	if (waitSemaphore != VK_NULL_HANDLE)
 		waitSemArray[submitInfo.waitSemaphoreCount++] = waitSemaphore;
+	if (m_numSubmittedCmdBuffers > 0)
+		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
 	submitInfo.pWaitDstStageMask = semWaitStageMask;
 	submitInfo.pWaitSemaphores = waitSemArray;
 

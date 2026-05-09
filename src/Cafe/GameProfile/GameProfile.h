@@ -43,6 +43,28 @@ public:
 
 	[[nodiscard]] const std::array< std::optional<std::string>, 8>& GetControllerProfile() const { return m_controllerProfile; }
 
+#if BOOST_PLAT_ANDROID
+	struct DriverSetting
+	{
+		DriverSettingMode mode = DriverSettingMode::Global;
+		std::optional<std::string> customPath;
+	};
+
+	[[nodiscard]] DriverSetting GetDriverSetting() const
+	{
+		return m_driverSetting;
+	}
+
+	void SetDriverSetting(DriverSetting driverSetting)
+	{
+		m_driverSetting = driverSetting;
+	}
+
+  private:
+	DriverSetting m_driverSetting;
+
+#endif
+
 private:
 	uint64_t m_title_id = 0;
 	bool m_is_loaded = false;
