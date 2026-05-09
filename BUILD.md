@@ -20,6 +20,7 @@
    - [Installing Tool Dependencies](#installing-tool-dependencies)
    - [Installing Library Dependencies](#installing-library-dependencies)
    - [Build Cemu using CMake](#build-cemu-using-cmake)
+- [Android](#android)
 - [FreeBSD](#freebsd)
 	- [Installing Dependencies](#installing-dependencies)
 	- [Build Cemu on BSD with CMake](#build-cemu-on-bsd-with-cmake)
@@ -197,6 +198,16 @@ Alternatively, you can use the non-privateapi version of MoltenVK, but you may e
 - If step 3 gives you an error about not being able to find ninja, try appending the following to the command and try again:
    - **On an Apple Silicon Mac:** `-DCMAKE_MAKE_PROGRAM=/opt/homebrew/bin/ninja`
    - **On an Intel Mac:** `-DCMAKE_MAKE_PROGRAM=/usr/local/bin/ninja`
+
+## Android
+Prerequisites:
+- git
+- [Android studio](https://developer.android.com/studio)
+
+Instructions:
+1. Run `git clone --recursive https://github.com/cemu-project/Cemu`
+2. Open the project located in `src/android` in Android Studio
+3. Click Build > Make Project
 
 ## FreeBSD
 
