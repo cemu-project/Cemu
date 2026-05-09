@@ -17,7 +17,7 @@ DirectSoundAPI::DirectSoundAPI(GUID* guid, sint32 samplerate, sint32 channels, s
 	if (DirectSoundCreate8(guid, &m_direct_sound, nullptr) != DS_OK)
 		throw std::runtime_error("can't create directsound device");
 
-	if (FAILED(m_direct_sound->SetCooperativeLevel(static_cast<HWND>(WindowSystem::GetWindowInfo().window_main.surface), DSSCL_PRIORITY)))
+	if (FAILED(m_direct_sound->SetCooperativeLevel(static_cast<HWND>(WindowSystem::GetWindowInfo().window_main.surface.load()), DSSCL_PRIORITY)))
 		throw std::runtime_error("can't set directsound priority");
 
 	DSBUFFERDESC bd{};
