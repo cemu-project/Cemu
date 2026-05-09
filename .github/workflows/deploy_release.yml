@@ -50,6 +50,10 @@ jobs:
   call-release-build:
     uses: ./.github/workflows/build.yml
     needs: calculate-version
+    secrets:
+      android_store_file_base64: ${{ secrets.ANDROID_STORE_FILE_BASE64 }}
+      android_key_store_password: ${{ secrets.ANDROID_KEY_STORE_PASSWORD }}
+      android_key_alias: ${{ secrets.ANDROID_KEY_ALIAS }}
     with:
       next_version_major: ${{ needs.calculate-version.outputs.next_version_major }}
       next_version_minor: ${{ needs.calculate-version.outputs.next_version_minor }}
@@ -151,6 +155,9 @@ jobs:
             arch="${bin_dir##cemu-bin-macos-}"
             cp $bin_dir/Cemu.dmg ../upload/cemu-${{ env.CEMU_VERSION }}-macos-12-$arch.dmg
           done
+
+      - name: Create release from android-bin
+        run: cp cemu-bin-android/*.apk upload/cemu-${{ env.CEMU_VERSION }}.apk
 
       - name: Create release
         run: |

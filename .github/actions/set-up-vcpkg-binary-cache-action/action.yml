@@ -1,0 +1,43 @@
+name: Set up a vcpkg binary cache
+
+description: Bootstraps vcpkg and configures GitHub Packages as a binary cache.
+
+inputs:
+  github-token:
+    description: Token for authenticating with GitHub Packages
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Bootstrap vcpkg
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          ./dependencies/vcpkg/bootstrap-vcpkg.bat
+        else
+          bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+        fi
+
+    - name: Setup NuGet Credentials for vcpkg
+      shell: bash
+      run: |
+        function vcpkg_nuget() {
+            if [ "$RUNNER_OS" == "Windows" ]; then
+                $(./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1) "$@"
+            else
+                mono $(./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1) "$@"
+            fi
+        }
+
+        vcpkg_nuget \
+            sources add \
+            -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+            -storepasswordincleartext \
+            -name "GitHub" \
+            -username "${{ github.repository_owner }}" \
+            -password "${{ inputs.github-token }}"
+
+        vcpkg_nuget \
+            setapikey "${{ inputs.github-token }}" \
+            -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
