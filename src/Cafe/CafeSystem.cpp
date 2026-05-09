@@ -74,6 +74,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#if BOOST_PLAT_ANDROID
+#include <android/api-level.h>
+#endif
+
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
 
@@ -546,7 +550,10 @@ namespace CafeSystem
 	{
 		std::string buffer;
 		const char* platform = NULL;
-		#if BOOST_OS_WINDOWS
+		#if BOOST_PLAT_ANDROID
+		buffer = fmt::format("Android (API level {})", android_get_device_api_level());
+		platform = buffer.c_str();
+		#elif BOOST_OS_WINDOWS
 		uint32 buildNumber;
 		std::string windowsVersionName = GetWindowsNamedVersion(buildNumber);
 		buffer = fmt::format("{} (Build {})", windowsVersionName, buildNumber);
