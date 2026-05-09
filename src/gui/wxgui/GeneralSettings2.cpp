@@ -1336,7 +1336,7 @@ void GeneralSettings2::DisableSettings(bool game_launched)
 
 void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
 {
-	IAudioAPI::s_audioDelay = event.GetInt();
+	IAudioAPI::SetAudioDelay(event.GetInt());
 	event.Skip();
 }
 

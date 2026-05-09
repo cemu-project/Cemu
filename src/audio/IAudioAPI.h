@@ -8,8 +8,6 @@
 
 class IAudioAPI
 {
-	friend class GeneralSettings2;
-
 public:
 	class DeviceDescription
 	{
@@ -66,11 +64,11 @@ public:
 	virtual bool Stop() = 0;
 	void SetAudioDelayOverride(uint32 delay);
 	uint32 GetAudioDelay() const;
+	static void SetAudioDelay(uint32 audioDelay);
 
 	static void PrintLogging();
 	static void InitializeStatic();
 	static bool IsAudioAPIAvailable(AudioAPI api);
-
 	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample);
 	static std::unique_ptr<IAudioAPI> CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
 	static std::unique_ptr<IAudioAPI> CreateDevice(AudioAPI api, const DeviceDescriptionPtr& device, sint32 samplerate, sint32 channels, sint32 samples_per_block, sint32 bits_per_sample);
