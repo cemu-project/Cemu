@@ -46,6 +46,10 @@ InputManager::InputManager()
 #if HAS_WIIMOTE
 	create_provider<WiimoteControllerProvider>();
 #endif
+#if BOOST_PLAT_ANDROID
+	create_provider<AndroidControllerProvider>();
+	create_provider<DeviceControllerProvider>();
+#endif
 
 	m_update_thread_shutdown.store(false);
 	m_update_thread = std::thread(&InputManager::update_thread, this);
