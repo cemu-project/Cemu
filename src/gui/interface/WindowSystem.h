@@ -13,8 +13,32 @@ namespace WindowSystem
 			Cocoa,
 			Windows,
 		} backend;
-		void* display = nullptr;
-		void* surface = nullptr;
+		std::atomic<void*> display = nullptr;
+		std::atomic<void*> surface = nullptr;
+
+		WindowHandleInfo() = default;
+
+		WindowHandleInfo(WindowHandleInfo&& other) noexcept
+			: backend(other.backend),
+			  display(other.display.exchange(nullptr)),
+			  surface(other.surface.exchange(nullptr))
+		{
+		}
+
+		WindowHandleInfo(const WindowHandleInfo&) = delete;
+		WindowHandleInfo& operator=(const WindowHandleInfo&) = delete;
+
+		WindowHandleInfo& operator=(WindowHandleInfo&& other) noexcept
+		{
+			if (this != &other)
+			{
+				backend = other.backend;
+				display.store(other.display.exchange(nullptr));
+				surface.store(other.surface.exchange(nullptr));
+			}
+
+			return *this;
+		}
 	};
 
 	enum struct PlatformKeyCodes : uint32
