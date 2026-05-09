@@ -111,6 +111,8 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	requiredExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	#elif BOOST_PLAT_ANDROID
+	requiredExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX || BOOST_OS_BSD
 	auto backend = WindowSystem::GetWindowInfo().window_main.backend;
 	if(backend == WindowSystem::WindowHandleInfo::Backend::X11)
@@ -1437,6 +1439,8 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	requiredInstanceExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	#elif BOOST_PLAT_ANDROID
+	requiredInstanceExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX || BOOST_OS_BSD
 	auto backend = WindowSystem::GetWindowInfo().window_main.backend;
 	if(backend == WindowSystem::WindowHandleInfo::Backend::X11)
@@ -1524,7 +1528,25 @@ VkSurfaceKHR VulkanRenderer::CreateWinSurface(VkInstance instance, HWND hwindow)
 }
 #endif
 
-#if BOOST_OS_LINUX || BOOST_OS_BSD
+#if BOOST_PLAT_ANDROID
+VkSurfaceKHR VulkanRenderer::CreateAndroidSurface(VkInstance instance, ANativeWindow* window)
+{
+    VkAndroidSurfaceCreateInfoKHR sci{};
+    sci.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    sci.flags = 0;
+    sci.window = window;
+
+    VkSurfaceKHR result;
+    VkResult err;
+    if ((err = vkCreateAndroidSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
+    {
+		cemuLog_log(LogType::Force, "Cannot create an Android Vulkan surface: {}", (sint32)err);
+        throw std::runtime_error(fmt::format("Cannot create an Android Vulkan surface: {}", err));
+    }
+
+    return result;
+}
+#elif BOOST_OS_LINUX || BOOST_OS_BSD
 VkSurfaceKHR VulkanRenderer::CreateXlibSurface(VkInstance instance, Display* dpy, Window window)
 {
     VkXlibSurfaceCreateInfoKHR sci{};
@@ -1581,9 +1603,23 @@ VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_displa
 
     return result;
 }
-#endif // HAS_WAYLAND
-#endif // BOOST_OS_LINUX
+#endif
+#endif
 
+#if BOOST_PLAT_ANDROID
+VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struct WindowSystem::WindowHandleInfo& windowInfo, ANativeWindow** nativeWindow)
+{
+	auto window = static_cast<ANativeWindow*>(windowInfo.surface.load());
+	VkSurfaceKHR surface = CreateAndroidSurface(instance, window);
+
+	if (nativeWindow != nullptr)
+	{
+		*nativeWindow = window;
+	}
+
+	return surface;
+}
+#else
 VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, WindowSystem::WindowHandleInfo& windowInfo)
 {
 #if BOOST_OS_WINDOWS
@@ -1600,6 +1636,7 @@ VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, Windo
 	return CreateCocoaSurface(instance, windowInfo.surface.load());
 #endif
 }
+#endif
 
 void VulkanRenderer::CreateCommandPool()
 {
@@ -2985,6 +3022,11 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 	if (width != extent.width || height != extent.height)
 		stateChanged = true;
 
+#if BOOST_PLAT_ANDROID
+	if (chainInfo.surfaceWasLost)
+		stateChanged = true;
+#endif
+
 	if(stateChanged)
 	{
 		try
@@ -3060,18 +3102,33 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	}
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
+	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR
+#if BOOST_PLAT_ANDROID
+		&& result != VK_ERROR_SURFACE_LOST_KHR
+#endif
+	)
 	{
 		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
-	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(result >= 0)
+	if (result >= 0)
 	{
 		chainInfo.m_queueDepth++;
 		chainInfo.m_presentId++;
 	}
+
+#if BOOST_PLAT_ANDROID
+	if (result == VK_ERROR_SURFACE_LOST_KHR)
+		chainInfo.surfaceWasLost = true;
+#endif
+
+#if !BOOST_PLAT_ANDROID
+	if (result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
+#endif
 
 	chainInfo.hasDefinedSwapchainImage = false;
 
