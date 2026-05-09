@@ -1,4 +1,5 @@
 #include "Cafe/Filesystem/fsc.h"
+#include "Common/FileStream.h"
 
 class FSCVirtualFile_Host : public FSCVirtualFile
 {
@@ -23,7 +24,7 @@ private:
 
 private:
 	uint32 m_type; // FSC_TYPE_*
-	class FileStream* m_fs{};
+	FileStream* m_fs{};
 	// file
 	uint64 m_seek{ 0 };
 	uint64 m_fileSize{ 0 };

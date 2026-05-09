@@ -1,16 +1,17 @@
 #pragma once
-#include "Common/precompiled.h"
 
-class FileStreamUnix
+class IFileStream;
+
+class FileStreamAndroid
 {
- public:
-	static FileStreamUnix* openFile(std::string_view path);
-	static FileStreamUnix* openFile(const wchar_t* path, bool allowWrite = false);
-	static FileStreamUnix* openFile2(const fs::path& path, bool allowWrite = false);
+  public:
+	static FileStreamAndroid* openFile(std::string_view path);
+	static FileStreamAndroid* openFile(const wchar_t* path, bool allowWrite = false);
+	static FileStreamAndroid* openFile2(const fs::path& path, bool allowWrite = false);
 
-	static FileStreamUnix* createFile(const wchar_t* path);
-	static FileStreamUnix* createFile(std::string_view path);
-	static FileStreamUnix* createFile2(const fs::path& path);
+	static FileStreamAndroid* createFile(const wchar_t* path);
+	static FileStreamAndroid* createFile(std::string_view path);
+	static FileStreamAndroid* createFile2(const fs::path& path);
 
 	// helper function to load a file into memory
 	static std::optional<std::vector<uint8>> LoadIntoMemory(const fs::path& path);
@@ -35,6 +36,7 @@ class FileStreamUnix
 	sint32 writeData(const void* data, sint32 length);
 	void writeU64(uint64 v);
 	void writeU32(uint32 v);
+	void writeU16(uint16 v);
 	void writeU8(uint8 v);
 
 	// writing (strings)
@@ -42,15 +44,9 @@ class FileStreamUnix
 	void writeString(const char* str);
 	void writeLine(const char* str);
 
-	~FileStreamUnix();
-	FileStreamUnix() {};
+	~FileStreamAndroid();
 
- private:
-	void SyncReadWriteSeek(bool nextOpIsWrite);
-	FileStreamUnix(const fs::path& path, bool isOpen, bool isWriteable);
-
-	bool m_isValid{};
-	std::fstream m_fileStream;
-	bool m_prevOperationWasWrite{false};
-
+  private:
+	explicit FileStreamAndroid(IFileStream* impl);
+	IFileStream* m_impl;
 };

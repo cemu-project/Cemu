@@ -84,6 +84,61 @@
 #include <glm/gtc/quaternion.hpp>
 
 namespace fs = std::filesystem;
+#if BOOST_PLAT_ANDROID
+#include "Common/android/FilesystemAndroid.h"
+#endif
+
+namespace cemu::fs
+{
+inline bool is_directory(const std::filesystem::path& p)
+{
+#if BOOST_PLAT_ANDROID
+    if (FilesystemAndroid::IsContentUri(p))
+        return FilesystemAndroid::IsDirectory(p);
+#endif
+    return std::filesystem::is_directory(p);
+}
+inline bool is_directory(const std::filesystem::path& p, std::error_code& ec)
+{
+#if BOOST_PLAT_ANDROID
+    if (FilesystemAndroid::IsContentUri(p))
+        return FilesystemAndroid::IsDirectory(p);
+#endif
+    return std::filesystem::is_directory(p, ec);
+}
+inline bool is_file(const std::filesystem::path& p)
+{
+#if BOOST_PLAT_ANDROID
+    if (FilesystemAndroid::IsContentUri(p))
+        return FilesystemAndroid::IsFile(p);
+#endif
+    return std::filesystem::is_regular_file(p);
+}
+inline bool is_file(const std::filesystem::path& p, std::error_code& ec)
+{
+#if BOOST_PLAT_ANDROID
+    if (FilesystemAndroid::IsContentUri(p))
+        return FilesystemAndroid::IsFile(p);
+#endif
+    return std::filesystem::is_regular_file(p, ec);
+}
+inline bool exists(const std::filesystem::path& p)
+{
+#if BOOST_PLAT_ANDROID
+    if (FilesystemAndroid::IsContentUri(p))
+        return FilesystemAndroid::Exists(p);
+#endif
+    return std::filesystem::exists(p);
+}
+inline bool exists(const std::filesystem::path& p, std::error_code& ec)
+{
+#if BOOST_PLAT_ANDROID
+    if (FilesystemAndroid::IsContentUri(p))
+        return FilesystemAndroid::Exists(p);
+#endif
+    return std::filesystem::exists(p, ec);
+}
+}  // namespace cemu::fs
 
 #include "enumFlags.h"
 

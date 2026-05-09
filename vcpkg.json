@@ -28,6 +28,10 @@
     "boost-property-tree",
     "boost-static-string",
     {
+      "name": "boost-iostreams",
+      "platform": "android"
+    },
+    {
       "name": "boost-context",
       "platform": "android"
     },
