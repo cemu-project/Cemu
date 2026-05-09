@@ -31,7 +31,7 @@ public:
 		bool invariant_tsc{ false };
 	}x86;
 private:
-	char m_cpuBrandName[0x40]{ 0 };
+	std::string m_cpuBrandName;
 };
 
 extern CPUFeaturesImpl g_CPUFeatures;
