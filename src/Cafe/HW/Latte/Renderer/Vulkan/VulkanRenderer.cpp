@@ -645,7 +645,7 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &deviceFeatures2);
 
 	deviceFeatures.independentBlend = VK_TRUE;
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.samplerAnisotropy = deviceFeatures2.features.samplerAnisotropy;
 	deviceFeatures.imageCubeArray = VK_TRUE;
 	//moltenVK supports logicOp via private api
 	deviceFeatures.logicOp = deviceFeatures2.features.logicOp;
@@ -655,11 +655,9 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 		cemuLog_log(LogType::Force, "Install the privateapi variant of MoltenVK to get logicOp support on macOS");
 #endif
 	}
-#if !BOOST_OS_MACOS
-	deviceFeatures.geometryShader = VK_TRUE;
-#endif
-	deviceFeatures.occlusionQueryPrecise = VK_TRUE;
-	deviceFeatures.depthClamp = VK_TRUE;
+	deviceFeatures.geometryShader = deviceFeatures2.features.geometryShader;
+	deviceFeatures.occlusionQueryPrecise = deviceFeatures2.features.occlusionQueryPrecise;
+	deviceFeatures.depthClamp = deviceFeatures2.features.depthClamp;
 	deviceFeatures.depthBiasClamp = VK_TRUE;
 
 	if (m_featureControl.deviceExtensions.pipeline_robustness)
