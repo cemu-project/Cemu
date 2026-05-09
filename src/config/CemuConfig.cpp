@@ -123,7 +123,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 
 	// graphics
 	auto graphic = parser.get("Graphic");
-	graphic_api = graphic.get("api", kOpenGL);
+	graphic_api = graphic.get("api", kDefaultGraphicsAPI);
 	graphic.get("device", legacy_graphic_device_uuid);
 	if (graphic.get("vkDevice").valid())
 		graphic.get("vkDevice", vk_graphic_device_uuid);

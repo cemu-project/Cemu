@@ -108,15 +108,28 @@ bool ActiveSettings::WaitForGX2DrawDoneEnabled()
 
 GraphicAPI ActiveSettings::GetGraphicsAPI()
 {
-	GraphicAPI api = g_current_game_profile->GetGraphicsAPI().value_or(GetConfig().graphic_api);
-
-#if defined(ENABLE_VULKAN) && defined(ENABLE_OPENGL)
-	// check if vulkan even available
-	if (api == kVulkan && !g_vulkan_available)
-		api = kOpenGL;
+	const GraphicAPI api = g_current_game_profile->GetGraphicsAPI().value_or(GetConfig().graphic_api);
+	std::optional<GraphicAPI> fallbackAPI;
+#ifdef ENABLE_VULKAN
+	if (g_vulkan_available)
+	{
+		if (api == kVulkan)
+			return api;
+		fallbackAPI = kVulkan;
+	}
 #endif
-	
-	return api;
+#ifdef ENABLE_METAL
+	if (api == kMetal)
+		return api;
+	fallbackAPI = fallbackAPI.value_or(kMetal);
+#endif
+#ifdef ENABLE_OPENGL
+	if (api == kOpenGL)
+		return api;
+	fallbackAPI = fallbackAPI.value_or(kOpenGL);
+#endif
+	cemu_assert(fallbackAPI.has_value());
+	return *fallbackAPI;
 }
 
 float ActiveSettings::GetTVGamma()
