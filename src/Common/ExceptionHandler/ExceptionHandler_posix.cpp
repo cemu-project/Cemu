@@ -13,7 +13,11 @@
 #include "ELFSymbolTable.h"
 #endif
 
-#if BOOST_OS_LINUX
+#if BOOST_PLAT_ANDROID
+#include <boost/stacktrace.hpp>
+#endif
+
+#if BOOST_OS_LINUX && !BOOST_PLAT_ANDROID
 void DemangleAndPrintBacktrace(char** backtrace, size_t size)
 {
 	ELFSymbolTable symTable;
@@ -81,13 +85,18 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 	if (sigName)
 	{
 		printf("%s!\n", sigName);
+		CrashLog_WriteLine(fmt::format("Error: signal {}:", sigName));
 	}
 	else
 	{
 		// should never be the case
 		printf("Unknown core dumping signal!\n");
+		CrashLog_WriteLine(fmt::format("Error: signal {}:", sig));
 	}
 
+#if BOOST_PLAT_ANDROID
+    CrashLog_WriteLine(to_string(boost::stacktrace::stacktrace()));
+#else
 	void* backtraceArray[128];
 	size_t size;
 
@@ -98,8 +107,6 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
     ucontext_t *uc = (ucontext_t *)context;
     backtraceArray[0] = (void *)uc->uc_mcontext.gregs[REG_RIP];
 #endif
-
-    CrashLog_WriteLine(fmt::format("Error: signal {}:", sig));
 
 #if BOOST_OS_LINUX
 	char** symbol_trace = backtrace_symbols(backtraceArray, size);
@@ -115,6 +122,7 @@ void handlerDumpingSignal(int sig, siginfo_t *info, void *context)
 	}
 #else
 	backtrace_symbols_fd(backtraceArray, size, STDERR_FILENO);
+#endif
 #endif
 
     std::cerr << fmt::format("\nStacktrace and additional info written to:") << std::endl;
