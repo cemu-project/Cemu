@@ -27,6 +27,10 @@
     "boost-ptr-container",
     "boost-property-tree",
     "boost-static-string",
+    {
+      "name": "boost-context",
+      "platform": "android"
+    },
     "boost-random",
     {
       "name": "fmt",
