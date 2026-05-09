@@ -95,22 +95,16 @@ void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)
 	{
 		switch (g_renderer->GetType())
 		{
-#ifdef ENABLE_OPENGL
 		case RendererAPI::OpenGL:
 			renderer = "[OpenGL]";
 			break;
-#endif
-#ifdef ENABLE_VULKAN
 		case RendererAPI::Vulkan:
 			renderer = "[Vulkan]";
 			break;
-#endif
-#ifdef ENABLE_METAL
 		case RendererAPI::Metal:
 			renderer = "[Metal]";
 			break;
-#endif
-		default:;
+		default: break;
 		}
 	}
 

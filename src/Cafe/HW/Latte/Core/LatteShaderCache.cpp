@@ -396,11 +396,9 @@ void LatteShaderCache_Load()
 	fs::path pathGeneric;
 	switch(g_renderer->GetType())
 	{
-#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 	    pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_mtlshaders.bin", cacheTitleId);
 		break;
-#endif
 	default:
 	    pathGeneric = ActiveSettings::GetCachePath("shaderCache/transferable/{:016x}_shaders.bin", cacheTitleId);
 		break;

@@ -1071,22 +1071,16 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 	// emit code
 	if (shaderContext->shader->hasError == false)
 	{
-		switch(g_renderer->GetType())
+		if (g_renderer->GetType() == RendererAPI::OpenGL || g_renderer->GetType() == RendererAPI::Vulkan)
 		{
-#ifdef ENABLE_OPENGL
-			case RendererAPI::OpenGL:
-				LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
-				break;
+#if defined(ENABLE_OPENGL) || defined(ENABLE_VULKAN)
+			LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
 #endif
-#ifdef ENABLE_VULKAN
-			case RendererAPI::Vulkan:
-				LatteDecompiler_emitGLSLShader(shaderContext, shaderContext->shader);
-				break;
-#endif
+		}
+		if (g_renderer->GetType() == RendererAPI::Metal)
+		{
 #ifdef ENABLE_METAL
-			case RendererAPI::Metal:
-				LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
-				break;
+			LatteDecompiler_emitMSLShader(shaderContext, shaderContext->shader);
 #endif
 		}
 	}

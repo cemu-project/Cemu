@@ -65,12 +65,12 @@ struct GraphicPackEntry
 	bool enabled = true;
 };
 
-#define GRAPHIC_API_COUNT 3
 enum GraphicAPI
 {
 	kOpenGL = 0,
 	kVulkan,
 	kMetal,
+	COUNT
 };
 
 enum AudioChannels

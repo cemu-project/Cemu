@@ -9,11 +9,9 @@
 #ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #endif
-#include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/Renderer/Renderer.h"
-#include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
@@ -687,11 +685,17 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 	return auxHash;
 }
 
-void InitUniformLayoutFromDecompiler(
+static void InitUniformLayoutFromDecompiler(
     LatteDecompilerShader* shader,
     const LatteDecompilerOutput_t& decompilerOutput
 )
 {
+	if (g_renderer->GetType() == RendererAPI::OpenGL)
+	{
+		// hack - for OpenGL these are retrieved in _prepareSeparableUniforms()
+		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsGL.count_uniformRegister;
+		return;
+	}
     const auto& offsets = decompilerOutput.uniformOffsetsVK;
 
     shader->uniform.loc_remapped = offsets.offset_remapped;
@@ -731,24 +735,17 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	LatteDecompilerShader* shader = decompilerOutput.shader;
 	shader->baseHash = baseHash;
 	// copy resource mapping
-	// HACK
 	switch (g_renderer->GetType())
 	{
-#ifdef ENABLE_OPENGL
 	case RendererAPI::OpenGL:
 		shader->resourceMapping = decompilerOutput.resourceMappingGL;
 		break;
-#endif
-#ifdef ENABLE_VULKAN
 	case RendererAPI::Vulkan:
 		shader->resourceMapping = decompilerOutput.resourceMappingVK;
 		break;
-#endif
-#ifdef ENABLE_METAL
 	case RendererAPI::Metal:
 		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
 		break;
-#endif
 	}
 	// copy texture info
 	shader->textureUnitMask2 = decompilerOutput.textureUnitMask;
@@ -756,26 +753,7 @@ LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompi
 	shader->streamoutBufferWriteMask = decompilerOutput.streamoutBufferWriteMask;
 	shader->hasStreamoutBufferWrite = decompilerOutput.streamoutBufferWriteMask.any();
 	// copy uniform offsets
-	// for OpenGL these are retrieved in _prepareSeparableUniforms()
-	// HACK
-	switch (g_renderer->GetType())
-	{
-#ifdef ENABLE_OPENGL
-	case RendererAPI::OpenGL:
-		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsGL.count_uniformRegister;
-		break;
-#endif
-#ifdef ENABLE_VULKAN
-	case RendererAPI::Vulkan:
-		InitUniformLayoutFromDecompiler(shader, decompilerOutput);
-		break;
-#endif
-#ifdef ENABLE_METAL
-	case RendererAPI::Metal:
-		InitUniformLayoutFromDecompiler(shader, decompilerOutput);
-		break;
-#endif
-	}
+	InitUniformLayoutFromDecompiler(shader, decompilerOutput);
 	// calculate aux hash
 	if (calculateAuxHash)
 	{

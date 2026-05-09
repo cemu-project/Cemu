@@ -79,22 +79,18 @@ void PadViewFrame::InitializeRenderCanvas()
 {
 	auto sizer = new wxBoxSizer(wxVERTICAL);
 	{
+		#ifdef ENABLE_VULKAN
 		if (ActiveSettings::GetGraphicsAPI() == kVulkan)
-		{
-			#ifdef ENABLE_VULKAN
 			m_render_canvas = new VulkanCanvas(this, wxSize(854, 480), false);
-			#endif
-		}
-		else if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
-		{
-			#ifdef ENABLE_OPENGL
+		#endif
+		#ifdef ENABLE_OPENGL
+		if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
 			m_render_canvas = GLCanvas_Create(this, wxSize(854, 480), false);
-			#endif
-		}
-#ifdef ENABLE_METAL
-		else
-		    m_render_canvas = new MetalCanvas(this, wxSize(854, 480), false);
-#endif
+		#endif
+		#ifdef ENABLE_METAL
+		if (ActiveSettings::GetGraphicsAPI() == kMetal)
+			m_render_canvas = new MetalCanvas(this, wxSize(854, 480), false);
+		#endif
 		sizer->Add(m_render_canvas, 1, wxEXPAND, 0, nullptr);
 	}
 	cemu_assert(m_render_canvas != nullptr);

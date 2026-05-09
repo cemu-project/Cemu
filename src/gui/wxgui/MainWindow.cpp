@@ -3,9 +3,6 @@
 #include "wxCemuConfig.h"
 #include "wxgui/wxgui.h"
 #include "wxgui/MainWindow.h"
-
-#include <wx/mstream.h>
-
 #include "wxgui/GameUpdateWindow.h"
 #include "wxgui/PadViewFrame.h"
 #include "wxgui/windows/TextureRelationViewer/TextureRelationWindow.h"
@@ -16,9 +13,11 @@
 #endif
 #ifdef ENABLE_VULKAN
 #include "wxgui/canvas/VulkanCanvas.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
 #endif
 #ifdef ENABLE_METAL
 #include "wxgui/canvas/MetalCanvas.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #endif
 #include "Cafe/OS/libs/nfc/nfc.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
@@ -46,9 +45,6 @@
 #include "wxgui/DownloadGraphicPacksWindow.h"
 #include "wxgui/GettingStartedDialog.h"
 #include "wxgui/helpers/wxHelpers.h"
-#ifdef ENABLE_VULKAN
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
-#endif
 #include "wxgui/input/InputSettings2.h"
 #include "wxgui/input/HotkeySettings.h"
 #include "input/InputManager.h"
@@ -70,10 +66,6 @@
 //GameMode support
 #if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
 #include "gamemode_client.h"
-#endif
-
-#ifdef ENABLE_METAL
-#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
 #endif
 
 #include "Cafe/TitleList/TitleInfo.h"
@@ -1613,28 +1605,20 @@ void MainWindow::CreateCanvas()
     this->GetSizer()->Add(m_game_panel, 1, wxEXPAND);
 
     // create canvas
-	switch (ActiveSettings::GetGraphicsAPI())
-	{
-	case kOpenGL:
-#ifdef ENABLE_OPENGL
+	#ifdef ENABLE_OPENGL
+	if (ActiveSettings::GetGraphicsAPI() == kOpenGL)
 		m_render_canvas = GLCanvas_Create(m_game_panel, wxSize(1280, 720), true);
-		break;
-#endif
-	case kVulkan:
-#ifdef ENABLE_VULKAN
+	#endif
+	#ifdef ENABLE_VULKAN
+	if (ActiveSettings::GetGraphicsAPI() == kVulkan)
 		m_render_canvas = new VulkanCanvas(m_game_panel, wxSize(1280, 720), true);
-		break;
-#endif
-	case kMetal:
-#ifdef ENABLE_METAL
+	#endif
+	#ifdef ENABLE_METAL
+	if (ActiveSettings::GetGraphicsAPI() == kMetal)
 		m_render_canvas = new MetalCanvas(m_game_panel, wxSize(1280, 720), true);
-		break;
-#endif
-	default:
-		cemu_assert(false && "Invalid graphics API selected");
-		break;
-	}
-
+	#endif
+	if (!m_render_canvas)
+		cemu_assert(false && "Failed to create canvas or invalid graphics API selected");
 	cemu_assert(m_render_canvas != nullptr);
 
 	// mouse events
