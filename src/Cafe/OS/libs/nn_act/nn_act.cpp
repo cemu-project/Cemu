@@ -111,7 +111,7 @@ namespace act
 
 			return result;
 		}
-
+		
 		uint32 AcquireIndependentServiceToken(independentServiceToken_t* token, const char* clientId, uint32 cacheDurationInSeconds)
 		{
 			memset(token, 0, sizeof(independentServiceToken_t));
@@ -142,6 +142,21 @@ namespace act
 
 			*pOutOffset = GetUtcOffset();
 			return 0;
+		}
+
+		uint32 IsPasswordCacheEnabledEx(uint8 slot)
+		{
+			// this is currently a hack. It always returns true if just one other account has password cache enabled, regardless of slot.
+			// In the future we should implement this properly and read the value from the individual account via IOSU
+			const uint32 persistentId = GetPersistentIdEx(slot);
+			if (persistentId == 0)
+				return 0;
+			return Account::GetAccount(persistentId).IsPasswordCacheEnabled() ? 1 : 0;
+		}
+
+		uint32 IsPasswordCacheEnabled()
+		{
+			return IsPasswordCacheEnabledEx(ACT_SLOT_CURRENT);
 		}
 
 		nnResult GetTimeZoneId(CafeString<65>* outTimezoneId)
@@ -267,22 +282,6 @@ void nnActExport_IsNetworkAccountEx(PPCInterpreter_t* hCPU)
 	uint8 isNetAcc = 0;
 	IsNetworkAccount(&isNetAcc, slot);
 	osLib_returnFromFunction(hCPU, isNetAcc);
-}
-
-void nnActExport_IsPasswordCacheEnabledEx(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamU8(slot, 0);
-	cemuLog_logDebug(LogType::Force, "nn_act.IsPasswordCacheEnabledEx({})", slot);
-
-	const uint32 persistentId = nn::act::GetPersistentIdEx(slot);
-	if (persistentId == 0)
-	{
-		osLib_returnFromFunction(hCPU, 0);
-		return;
-	}
-
-	const Account& account = Account::GetAccount(persistentId);
-	osLib_returnFromFunction(hCPU, account.IsPasswordCacheEnabled() ? 1 : 0);
 }
 
 void nnActExport_GetSimpleAddressId(PPCInterpreter_t* hCPU)
@@ -784,7 +783,6 @@ namespace nn::act
 			osLib_addFunction("nn_act", "GetSlotNoEx__Q2_2nn3actFRC7ACTUuid", nnActExport_GetSlotNoEx);
 			osLib_addFunction("nn_act", "IsNetworkAccount__Q2_2nn3actFv", nnActExport_IsNetworkAccount);
 			osLib_addFunction("nn_act", "IsNetworkAccountEx__Q2_2nn3actFUc", nnActExport_IsNetworkAccountEx);
-			osLib_addFunction("nn_act", "IsPasswordCacheEnabledEx__Q2_2nn3actFUc", nnActExport_IsPasswordCacheEnabledEx);
 			// account id
 			osLib_addFunction("nn_act", "GetAccountId__Q2_2nn3actFPc", nnActExport_GetAccountId);
 			osLib_addFunction("nn_act", "GetAccountIdEx__Q2_2nn3actFPcUc", nnActExport_GetAccountIdEx);
@@ -834,6 +832,8 @@ namespace nn::act
 			osLib_addFunction("nn_act", "AcquirePrincipalIdByAccountId__Q2_2nn3actFPUiPA17_CcUi", nnActExport_AcquirePrincipalIdByAccountId);
 
 			cafeExportRegisterFunc(nn::act::GetErrorCode, "nn_act", "GetErrorCode__Q2_2nn3actFRCQ2_2nn6Result", LogType::Placeholder);
+			cafeExportRegisterFunc(nn::act::IsPasswordCacheEnabled, "nn_act", "IsPasswordCacheEnabled__Q2_2nn3actFv", LogType::Placeholder);
+			cafeExportRegisterFunc(nn::act::IsPasswordCacheEnabledEx, "nn_act", "IsPasswordCacheEnabledEx__Q2_2nn3actFUc", LogType::Placeholder);
 
 			// placeholders / incomplete implementations
 			osLib_addFunction("nn_act", "HasNfsAccount__Q2_2nn3actFv", nnActExport_HasNfsAccount);
