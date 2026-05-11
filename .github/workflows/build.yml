@@ -207,6 +207,7 @@ jobs:
   build-macos:
     runs-on: macos-14
     strategy:
+      fail-fast: false
       matrix:
         arch: [x86_64, arm64]
     steps:

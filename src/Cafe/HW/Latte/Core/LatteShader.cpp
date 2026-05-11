@@ -6,16 +6,16 @@
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
-#include "Cafe/OS/libs/gx2/GX2.h" // todo - remove dependency
+#endif
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "HW/Latte/Core/Latte.h"
 #include "HW/Latte/Renderer/Renderer.h"
-#include "util/helpers/StringParser.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/containers/flat_hash_map.hpp"
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "Cafe/HW/Latte/Renderer/Metal/LatteToMtl.h"
 #endif
 #include <cinttypes>
@@ -376,7 +376,9 @@ void LatteShader_FinishCompilation(LatteDecompilerShader* shader)
 	}
 	shader->shader->WaitForCompiled();
 
+#ifdef ENABLE_OPENGL
 	LatteShader_prepareSeparableUniforms(shader);
+#endif
 	LatteShader_CleanupAfterCompile(shader);
 }
 
@@ -525,7 +527,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 	if (LatteGPUState.contextNew.PA_CL_CLIP_CNTL.get_DX_CLIP_SPACE_DEF())
 		vsHash += 0x1537;
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
 	    bool isRectVertexShader = (primitiveType == Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE::RECTS);
@@ -550,7 +552,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
       		    vsHash += 51ULL;
 
             // Vertex fetch
-            if (_activeFetchShader->mtlFetchVertexManually)
+			if (_activeFetchShader->mtlFetchVertexManually)
                 vsHash += 349ULL;
 		}
 	}
@@ -650,7 +652,7 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 		auxHash += (uint64)dim;
 	}
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	if (g_renderer->GetType() == RendererAPI::Metal)
 	{
 		// Textures as render targets
@@ -683,56 +685,75 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 	return auxHash;
 }
 
+static void InitUniformLayoutFromDecompiler(
+    LatteDecompilerShader* shader,
+    const LatteDecompilerOutput_t& decompilerOutput
+)
+{
+	if (g_renderer->GetType() == RendererAPI::OpenGL)
+	{
+		// hack - for OpenGL these are retrieved in _prepareSeparableUniforms()
+		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsGL.count_uniformRegister;
+		return;
+	}
+    const auto& offsets = decompilerOutput.uniformOffsetsVK;
+
+    shader->uniform.loc_remapped = offsets.offset_remapped;
+    shader->uniform.loc_uniformRegister = offsets.offset_uniformRegister;
+    shader->uniform.count_uniformRegister = offsets.count_uniformRegister;
+    shader->uniform.loc_windowSpaceToClipSpaceTransform = offsets.offset_windowSpaceToClipSpaceTransform;
+    shader->uniform.loc_alphaTestRef = offsets.offset_alphaTestRef;
+    shader->uniform.loc_pointSize = offsets.offset_pointSize;
+    shader->uniform.loc_fragCoordScale = offsets.offset_fragCoordScale;
+
+    // Texture scale uniforms
+    shader->uniform.list_ufTexRescale.clear();
+    for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
+    {
+        if (offsets.offset_texScale[t] >= 0)
+        {
+            LatteUniformTextureScaleEntry_t entry{};
+            entry.texUnit = t;
+            entry.uniformLocation = offsets.offset_texScale[t];
+            shader->uniform.list_ufTexRescale.push_back(entry);
+        }
+    }
+
+    shader->uniform.loc_verticesPerInstance = offsets.offset_verticesPerInstance;
+
+    // Streamout buffers
+    for (sint32 t = 0; t < LATTE_NUM_STREAMOUT_BUFFER; t++)
+    {
+        shader->uniform.loc_streamoutBufferBase[t] = offsets.offset_streamoutBufferBase[t];
+    }
+
+    shader->uniform.uniformRangeSize = offsets.offset_endOfBlock;
+}
+
 LatteDecompilerShader* LatteShader_CreateShaderFromDecompilerOutput(LatteDecompilerOutput_t& decompilerOutput, uint64 baseHash, bool calculateAuxHash, uint64 optionalAuxHash, uint32* contextRegister)
 {
 	LatteDecompilerShader* shader = decompilerOutput.shader;
 	shader->baseHash = baseHash;
 	// copy resource mapping
-	// HACK
-	if (g_renderer->GetType() == RendererAPI::OpenGL)
+	switch (g_renderer->GetType())
+	{
+	case RendererAPI::OpenGL:
 		shader->resourceMapping = decompilerOutput.resourceMappingGL;
-	else if (g_renderer->GetType() == RendererAPI::Vulkan)
+		break;
+	case RendererAPI::Vulkan:
 		shader->resourceMapping = decompilerOutput.resourceMappingVK;
-#if ENABLE_METAL
-	else
+		break;
+	case RendererAPI::Metal:
 		shader->resourceMapping = decompilerOutput.resourceMappingMTL;
-#endif
+		break;
+	}
 	// copy texture info
 	shader->textureUnitMask2 = decompilerOutput.textureUnitMask;
 	// copy streamout info
 	shader->streamoutBufferWriteMask = decompilerOutput.streamoutBufferWriteMask;
 	shader->hasStreamoutBufferWrite = decompilerOutput.streamoutBufferWriteMask.any();
 	// copy uniform offsets
-	// for OpenGL these are retrieved in _prepareSeparableUniforms()
-	// HACK
-	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::Metal)
-	{
-		shader->uniform.loc_remapped = decompilerOutput.uniformOffsetsVK.offset_remapped;
-		shader->uniform.loc_uniformRegister = decompilerOutput.uniformOffsetsVK.offset_uniformRegister;
-		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsVK.count_uniformRegister;
-		shader->uniform.loc_windowSpaceToClipSpaceTransform = decompilerOutput.uniformOffsetsVK.offset_windowSpaceToClipSpaceTransform;
-		shader->uniform.loc_alphaTestRef = decompilerOutput.uniformOffsetsVK.offset_alphaTestRef;
-		shader->uniform.loc_pointSize = decompilerOutput.uniformOffsetsVK.offset_pointSize;
-		shader->uniform.loc_fragCoordScale = decompilerOutput.uniformOffsetsVK.offset_fragCoordScale;
-		for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
-		{
-			if (decompilerOutput.uniformOffsetsVK.offset_texScale[t] >= 0)
-			{
-				LatteUniformTextureScaleEntry_t entry = { 0 };
-				entry.texUnit = t;
-				entry.uniformLocation = decompilerOutput.uniformOffsetsVK.offset_texScale[t];
-				shader->uniform.list_ufTexRescale.push_back(entry);
-			}
-		}
-		shader->uniform.loc_verticesPerInstance = decompilerOutput.uniformOffsetsVK.offset_verticesPerInstance;
-		for (sint32 t = 0; t < LATTE_NUM_STREAMOUT_BUFFER; t++)
-			shader->uniform.loc_streamoutBufferBase[t] = decompilerOutput.uniformOffsetsVK.offset_streamoutBufferBase[t];
-		shader->uniform.uniformRangeSize = decompilerOutput.uniformOffsetsVK.offset_endOfBlock;
-	}
-	else
-	{
-		shader->uniform.count_uniformRegister = decompilerOutput.uniformOffsetsGL.count_uniformRegister;
-	}
+	InitUniformLayoutFromDecompiler(shader, decompilerOutput);
 	// calculate aux hash
 	if (calculateAuxHash)
 	{
@@ -766,10 +787,12 @@ void LatteShader_GetDecompilerOptions(LatteDecompilerOptions& options, LatteCons
 	options.usesGeometryShader = geometryShaderEnabled;
 	options.spirvInstrinsics.hasRoundingModeRTEFloat32 = false;
 	options.useTFViaSSBO = g_renderer->UseTFViaSSBO();
+#ifdef ENABLE_VULKAN
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		options.spirvInstrinsics.hasRoundingModeRTEFloat32 = VulkanRenderer::GetInstance()->HasSPRIVRoundingModeRTE32();
 	}
+#endif
 	options.strictMul = g_current_game_profile->GetAccurateShaderMul() != AccurateShaderMulOption::False;
 }
 
@@ -845,12 +868,14 @@ LatteDecompilerShader* LatteShader_CompileSeparableVertexShader(uint64 baseHash,
 	LatteShader_CreateRendererShader(vertexShader, false);
 	performanceMonitor.numCompiledVS++;
 
+#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (vertexShader->shader)
 			vertexShader->shader->PreponeCompilation(true);
 		LatteShader_FinishCompilation(vertexShader);
 	}
+#endif
 
 	LatteSHRC_RegisterShader(vertexShader, vertexShader->baseHash, vertexShader->auxHash);
 	return vertexShader;
@@ -874,12 +899,14 @@ LatteDecompilerShader* LatteShader_CompileSeparableGeometryShader(uint64 baseHas
 	LatteShader_CreateRendererShader(geometryShader, false);
 	performanceMonitor.numCompiledGS++;
 
+#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (geometryShader->shader)
 			geometryShader->shader->PreponeCompilation(true);
 		LatteShader_FinishCompilation(geometryShader);
 	}
+#endif
 
 	LatteSHRC_RegisterShader(geometryShader, geometryShader->baseHash, geometryShader->auxHash);
 	return geometryShader;
@@ -903,12 +930,14 @@ LatteDecompilerShader* LatteShader_CompileSeparablePixelShader(uint64 baseHash, 
 		LatteShaderCache_writeSeparablePixelShader(_shaderBaseHash_ps, psAuxHash, pixelShaderPtr, pixelShaderSize, LatteGPUState.contextRegister, usesGeometryShader);
 	}
 
+#ifdef ENABLE_OPENGL
 	if (g_renderer->GetType() == RendererAPI::OpenGL)
 	{
 		if (pixelShader->shader)
 			pixelShader->shader->PreponeCompilation(true);
 		LatteShader_FinishCompilation(pixelShader);
 	}
+#endif
 
 	LatteSHRC_RegisterShader(pixelShader, _shaderBaseHash_ps, psAuxHash);
 	return pixelShader;

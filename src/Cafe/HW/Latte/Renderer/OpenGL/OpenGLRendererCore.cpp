@@ -17,6 +17,7 @@
 #include "Cafe/OS/libs/gx2/GX2.h"
 
 #include "Cafe/GameProfile/GameProfile.h"
+#include "HW/Latte/Renderer/RendererCore.h"
 #include "config/ActiveSettings.h"
 
 
@@ -52,7 +53,7 @@ struct
 	uint32 maxIndex;
 	uint32 minIndex;
 	uint8* indexData;
-	// buffer 
+	// buffer
 	GLuint glIndexCacheBuffer;
 	VirtualBufferHeap_t* indexBufferVirtualHeap;
 	uint8* mappedIndexBuffer;
@@ -371,6 +372,8 @@ void _decodeAndUploadIndexData(indexDataCacheEntry2_t* cacheEntry)
 
 void LatteDraw_cleanupAfterFrame()
 {
+	if (g_renderer->GetType() != RendererAPI::OpenGL)
+		return;
 	// drop everything from cache that is older than 30 frames
 	uint32 frameCounter = LatteGPUState.frameCounter;
 	while (indexDataCacheFirst)
@@ -522,70 +525,6 @@ void LatteDrawGL_prepareIndicesWithGPUCache(MPTR indexDataMPTR, _INDEX_TYPE inde
 	indexState.minIndex = cacheEntry->minIndex;
 	indexState.maxIndex = cacheEntry->maxIndex;
 	indexState.indexData = (uint8*)(size_t)cacheEntry->heapEntry->startOffset;
-}
-
-void LatteDraw_handleSpecialState8_clearAsDepth()
-{
-	if (LatteGPUState.contextNew.GetSpecialStateValues()[0] == 0)
-		cemuLog_logDebug(LogType::Force, "Special state 8 requires special state 0 but it is not set?");
-	// get depth buffer information
-	uint32 regDepthBuffer = LatteGPUState.contextRegister[mmDB_HTILE_DATA_BASE];
-	uint32 regDepthSize = LatteGPUState.contextRegister[mmDB_DEPTH_SIZE];
-	uint32 regDepthBufferInfo = LatteGPUState.contextRegister[mmDB_DEPTH_INFO];
-	// get format and tileMode from info reg
-	uint32 depthBufferTileMode = (regDepthBufferInfo >> 15) & 0xF;
-
-	MPTR depthBufferPhysMem = regDepthBuffer << 8;
-	uint32 depthBufferPitch = (((regDepthSize >> 0) & 0x3FF) + 1);
-	uint32 depthBufferHeight = ((((regDepthSize >> 10) & 0xFFFFF) + 1) / depthBufferPitch);
-	depthBufferPitch <<= 3;
-	depthBufferHeight <<= 3;
-	uint32 depthBufferWidth = depthBufferPitch;
-
-	sint32 sliceIndex = 0; // todo
-	sint32 mipIndex = 0;
-
-	// clear all color buffers that match the format of the depth buffer
-	sint32 searchIndex = 0;
-	bool targetFound = false;
-	while (true)
-	{
-		LatteTextureView* view = LatteTC_LookupTextureByData(depthBufferPhysMem, depthBufferWidth, depthBufferHeight, depthBufferPitch, 0, 1, sliceIndex, 1, &searchIndex);
-		if (!view)
-		{
-			// should we clear in RAM instead?
-			break;
-		}
-		sint32 effectiveClearWidth = view->baseTexture->width;
-		sint32 effectiveClearHeight = view->baseTexture->height;
-		LatteTexture_scaleToEffectiveSize(view->baseTexture, &effectiveClearWidth, &effectiveClearHeight, 0);
-
-		// hacky way to get clear color
-		float* regClearColor = (float*)(LatteGPUState.contextRegister + 0xC000 + 0); // REG_BASE_ALU_CONST
-
-		uint8 clearColor[4] = { 0 };
-		clearColor[0] = (uint8)(regClearColor[0] * 255.0f);
-		clearColor[1] = (uint8)(regClearColor[1] * 255.0f);
-		clearColor[2] = (uint8)(regClearColor[2] * 255.0f);
-		clearColor[3] = (uint8)(regClearColor[3] * 255.0f);
-
-		// todo - use fragment shader software emulation (evoke for one pixel) to determine clear color
-		// todo - dont clear entire slice, use effectiveClearWidth, effectiveClearHeight
-
-		if (g_renderer->GetType() == RendererAPI::OpenGL)
-		{
-			//cemu_assert_debug(false); // implement g_renderer->texture_clearColorSlice properly for OpenGL renderer
-			if (glClearTexSubImage)
-				glClearTexSubImage(((LatteTextureViewGL*)view)->glTexId, mipIndex, 0, 0, 0, effectiveClearWidth, effectiveClearHeight, 1, GL_RGBA, GL_UNSIGNED_BYTE, clearColor);
-		}
-		else
-		{
-			if (view->baseTexture->isDepth)
-				g_renderer->texture_clearDepthSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, true, view->baseTexture->hasStencil, 0.0f, 0);
-			else
-				g_renderer->texture_clearColorSlice(view->baseTexture, sliceIndex + view->firstSlice, mipIndex + view->firstMip, clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-		}
-	}
 }
 
 void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count)
@@ -754,10 +693,6 @@ void OpenGLRenderer::_setupVertexAttributes()
 			SetAttributeArrayState(i, false, -1);
 	}
 }
-
-void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx);
-void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant);
-void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister);
 
 std::map<uint64, RendererShaderGL*> g_mapGLRectEmulationGS;
 

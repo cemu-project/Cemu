@@ -9,9 +9,10 @@
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
 #endif
 
-#include "util/helpers/Singleton.h"
-
+#ifdef HAS_SDL
 #include "input/api/SDL/SDLControllerProvider.h"
+#endif
+
 #include "input/api/Keyboard/KeyboardControllerProvider.h"
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/GameCube/GameCubeControllerProvider.h"
@@ -19,8 +20,7 @@
 #include "input/emulated/VPADController.h"
 #include "input/emulated/WPADController.h"
 
-#include <atomic>
-#include <optional>
+#include "util/helpers/Singleton.h"
 
 class InputManager : public Singleton<InputManager>
 {
@@ -46,6 +46,8 @@ public:
 
 	bool is_gameprofile_set(size_t player_index) const;
 
+	void Shutdown(); 
+	
 	EmulatedControllerPtr set_controller(EmulatedControllerPtr controller);
 	EmulatedControllerPtr set_controller(size_t player_index, EmulatedController::Type type);
 	EmulatedControllerPtr set_controller(size_t player_index, EmulatedController::Type type, const std::shared_ptr<ControllerBase>& controller);
@@ -106,16 +108,14 @@ private:
 
 	std::array<bool, kMaxController> m_is_gameprofile_set{};
 
-	template <typename TProvider>
-	void create_provider() // lambda templates only work in c++20 -> define locally in ctor
+	template<std::derived_from<ControllerProviderBase> TProvider>
+	void create_provider()
 	{
-		static_assert(std::is_base_of_v<ControllerProviderBase, TProvider>);
 		try
 		{
 			auto controller = std::make_shared<TProvider>();
-			m_api_available[controller->api()] = std::vector<ControllerProviderPtr>{ controller };
-		}
-		catch (const std::exception& ex)
+			m_api_available[controller->api()] = std::vector<ControllerProviderPtr>{controller};
+		} catch (const std::exception& ex)
 		{
 			cemuLog_log(LogType::Force, ex.what());
 		}

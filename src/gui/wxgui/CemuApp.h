@@ -3,6 +3,8 @@
 #include <wx/app.h>
 
 class MainWindow;
+class wxTimer;
+class wxTimerEvent;
 
 class CemuApp : public wxApp
 {
@@ -30,6 +32,10 @@ private:
 	static std::vector<const wxLanguageInfo*> GetAvailableTranslationLanguages(wxTranslations* translationsMgr);
 
 	MainWindow* m_mainFrame = nullptr;
+#if BOOST_OS_MACOS
+	void OnSDLEventPumpTimer(wxTimerEvent& event);
+	wxTimer* m_sdlEventPumpTimer = nullptr;
+#endif
 
 	wxLocale m_locale;
 	std::vector<const wxLanguageInfo*> m_availableTranslations;

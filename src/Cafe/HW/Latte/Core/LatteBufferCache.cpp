@@ -776,9 +776,8 @@ private:
 		{
 			TreeNode* treeNodeParent = (treeNode->parentNodeIndex != INVALID_NODE_INDEX) ? &m_treeNodes[treeNode->parentNodeIndex] : nullptr;
 			ReleaseTreeNode(treeNode, true);
-			if (treeNodeParent && treeNodeParent->usedCount > 0)
-				PropagateMinValue(treeNodeParent);
-			// note - this will never shrink the tree, since there is at least one left or right neighbor
+			if (treeNodeParent)
+				CollapseNode(treeNodeParent, depth - 1);
 			return;
 		}
 		// todo - redistribute values

@@ -70,7 +70,16 @@ enum GraphicAPI
 	kOpenGL = 0,
 	kVulkan,
 	kMetal,
+	COUNT
 };
+
+#if defined(ENABLE_VULKAN)
+constexpr GraphicAPI kDefaultGraphicsAPI = kVulkan;
+#elif defined(ENABLE_METAL)
+constexpr GraphicAPI kDefaultGraphicsAPI = kMetal;
+#elif defined(ENABLE_OPENGL)
+constexpr GraphicAPI kDefaultGraphicsAPI = kOpenGL;
+#endif
 
 enum AudioChannels
 {
@@ -429,7 +438,7 @@ struct CemuConfig
 	ConfigValueBounds<CafeConsoleLanguage> console_language{ CafeConsoleLanguage::EN };
 
 	// graphics
-	ConfigValue<GraphicAPI> graphic_api{ kVulkan };
+	ConfigValue<GraphicAPI> graphic_api{ kDefaultGraphicsAPI };
 	std::array<uint8, 16> legacy_graphic_device_uuid{}; // placeholder option for backwards compatibility with settings from 2.6 and before (renamed to "vkDevice")
 	std::array<uint8, 16> vk_graphic_device_uuid;
 	uint64 mtl_graphic_device_uuid{ 0 };
@@ -437,7 +446,7 @@ struct CemuConfig
 	ConfigValue<bool> gx2drawdone_sync { true };
 	ConfigValue<bool> render_upside_down{ false };
 	ConfigValue<bool> async_compile{ true };
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	ConfigValue<bool> force_mesh_shaders{ false };
 #endif
 
@@ -503,7 +512,7 @@ struct CemuConfig
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
 	ConfigValue<uint16> gdb_port{ 1337 };
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	ConfigValue<std::string> gpu_capture_dir{ "" };
 	ConfigValue<bool> framebuffer_fetch{ true };
 #endif

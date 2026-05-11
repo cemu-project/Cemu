@@ -266,7 +266,7 @@ struct LatteDecompilerShaderContext
 void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
 void LatteDecompiler_analyzeDataTypes(LatteDecompilerShaderContext* shaderContext);
 void LatteDecompiler_emitGLSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 void LatteDecompiler_emitMSLShader(LatteDecompilerShaderContext* shaderContext, LatteDecompilerShader* shader);
 #endif
 

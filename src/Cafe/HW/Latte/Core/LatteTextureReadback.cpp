@@ -1,12 +1,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
-
-#include "Common/GLInclude/GLInclude.h"
-
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
-#include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
 
 #define LOG_READBACK_TIME
 

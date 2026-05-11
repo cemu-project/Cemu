@@ -251,7 +251,7 @@ void InfoLog_PrintActiveSettings()
 		if (!GetConfig().vk_accurate_barriers.GetValue())
 			cemuLog_log(LogType::Force, "Accurate barriers are disabled!");
 	}
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	else if (ActiveSettings::GetGraphicsAPI() == GraphicAPI::kMetal)
 	{
 	    cemuLog_log(LogType::Force, "Async compile: {}", GetConfig().async_compile.GetValue() ? "true" : "false");

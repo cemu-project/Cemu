@@ -1,7 +1,6 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
-#include "Cafe/HW/Latte/Core/LatteDefaultShaders.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 #include "Cafe/HW/Latte/Core/LatteSurfaceCopy.h"
 

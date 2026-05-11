@@ -2360,6 +2360,7 @@ bool _ppcAssembler_emitDataDirective(PPCAssemblerContext& internalInfo, ASM_DATA
 			// write string bytes + null-termination character
 			internalInfo.ctx->outputData.insert(internalInfo.ctx->outputData.end(), stringData.data(), stringData.data() + stringData.size());
 			internalInfo.ctx->outputData.emplace_back(0);
+			writeIndex = internalInfo.ctx->outputData.size();
 			continue;
 		}
 		// numeric constants
@@ -2492,6 +2493,16 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 	internalInfo.listOperandStr.clear();
 
 	bool isInString = false;
+	auto isEscaped = [](const char* operandStartPtr, const char* ptr)
+	{
+		size_t backslashCount = 0;
+		while (ptr > operandStartPtr && ptr[-1] == '\\')
+		{
+			backslashCount++;
+			ptr--;
+		}
+		return (backslashCount & 1) != 0;
+	};
 
 	while (currentPtr < endPtr)
 	{
@@ -2500,7 +2511,7 @@ bool ppcAssembler_assembleSingleInstruction(char const* text, PPCAssemblerInOut*
 		// find end of operand
 		while (currentPtr < endPtr)
 		{
-			if (*currentPtr == '"')
+			if (*currentPtr == '"' && !isEscaped(startPtr, currentPtr))
 				isInString=!isInString;
 
 			if (*currentPtr == ',' && !isInString)
@@ -3587,6 +3598,9 @@ void ppcAsmTestDisassembler()
 	_testAsmArray({ 0x7f }, ".byte 0x7f");
 	_testAsmArray({ 0x74, 0x65, 0x73, 0x74, 0x00 }, ".byte \"test\"");
 	_testAsmArray({ 0x41, 0x42, 0x43, 0x00, 0x74, 0x65, 0x73, 0x74, 0x00 }, ".byte \"ABC\", \"test\"");
+	_testAsmArray({ 0x68, 0x65, 0x6c, 0x6c, 0x6f, 0x22, 0x77, 0x6f, 0x72, 0x6c, 0x64, 0x00, 0x00 }, R"(.byte "hello\"world", 0)");
+	_testAsmArray({ 0x61, 0x5c, 0x00, 0x00 }, R"(.byte "a\\", 0)");
+	_testAsmArray({ 0x61, 0x5c, 0x22, 0x62, 0x00, 0x00 }, R"(.byte "a\\\"b", 0)");
 
 }
 

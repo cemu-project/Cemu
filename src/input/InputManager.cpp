@@ -28,7 +28,7 @@ InputManager::InputManager()
 #if HAS_KEYBOARD
 	create_provider<KeyboardControllerProvider>();
 #endif
-#if HAS_SDL
+#ifdef HAS_SDL
 	create_provider<SDLControllerProvider>();
 #endif
 #if HAS_XINPUT
@@ -53,8 +53,7 @@ InputManager::InputManager()
 
 InputManager::~InputManager()
 {
-	m_update_thread_shutdown.store(true);
-	m_update_thread.join();
+	// destructors will not invoked forever, so we manually release resources in Shutdown().
 }
 
 void InputManager::load() noexcept
@@ -950,5 +949,23 @@ void InputManager::update_thread()
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		std::this_thread::yield();
+	}
+}
+
+void InputManager::Shutdown()
+{
+    m_update_thread_shutdown = true;
+
+    if (m_update_thread.joinable())
+    {
+        m_update_thread.join();
+    }
+
+    for (auto& pad : m_vpad) pad.reset();
+	for (auto& pad : m_wpad) pad.reset();
+
+	for (auto& providers : m_api_available)
+	{
+		providers.clear();
 	}
 }

@@ -1221,6 +1221,7 @@ void VulkanRenderer::draw_endRenderPass()
 	m_state.activeRenderpassFBO = nullptr;
 }
 
+// Defined in the Common renderer
 void LatteDraw_handleSpecialState8_clearAsDepth();
 
 // transfer depth buffer data to color buffer
