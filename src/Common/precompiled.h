@@ -341,44 +341,62 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 #define FORCE_INLINE inline
 #endif
 
-FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is undefined
+FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is 32
 {
 #if defined(_MSC_VER)
-	return _tzcnt_u32(v); // TZCNT requires BMI1. But if not supported it will execute as BSF
+    #if defined(_M_ARM64) || defined(_M_ARM)
+        unsigned long index;
+        if (_BitScanForward(&index, (unsigned long)v)) 
+            return (int)index;
+        return 32; 
+    #else
+        // This is the x86/x64 specific intrinsic that was causing ARM64 build failures
+        return (v == 0) ? 32 : (int)_tzcnt_u32(v); 
+    #endif
 #elif defined(__GNUC__) || defined(__clang__)
-	return __builtin_ctz(v);
+    return v == 0 ? 32 : __builtin_ctz(v);
 #else
-	return std::countr_zero(v);
+    return (int)std::countr_zero(v);
 #endif
 }
 
-// On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(_M_ARM64)
 
 inline void _mm_pause()
 {
+#if defined(_MSC_VER)
+    __yield();
+#else
     asm volatile("yield");
+#endif
 }
 
 inline uint64 __rdtsc()
 {
+#if defined(_MSC_VER)
+    return (uint64)_ReadStatusReg(ARM64_CNTVCT_EL0);
+#else
     uint64 t;
     asm volatile("mrs %0, cntvct_el0" : "=r" (t));
     return t;
+#endif
 }
 
 inline void _mm_mfence()
 {
-	asm volatile("" ::: "memory");
-	std::atomic_thread_fence(std::memory_order_seq_cst);
+#if defined(_MSC_VER)
+    __dmb(_ARM64_BARRIER_ISH); // Inner Shareable Data Memory Barrier
+#else
+    asm volatile("" ::: "memory");
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+#endif
 }
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
 {
-    *result = a + b + (unsigned long long)carry;
-    if (*result < a)
-        return 1;
-    return 0;
+    unsigned __int128 res = (unsigned __int128)a + b + carry;
+    *result = (unsigned long long)res;
+    return (res >> 64) ? 1 : 0;
 }
 
 #endif

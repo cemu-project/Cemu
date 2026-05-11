@@ -13,38 +13,25 @@
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// Neutral (Default) (unknown sub-lang: 0x8) resources
+// Neutral (Default) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ZZZ)
-LANGUAGE LANG_NEUTRAL, 0x8
+LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Icon
 //
 
-// Icon with lowest ID value placed first to ensure application icon
-// remains consistent on all systems.
 M_WND_ICON128           ICON                    "resource\\logo_icon.ico"
-
 M_WND_ICON16            ICON                    "resource\\logo_icon16.ico"
-
 X_INPUT_CONTROLLER      ICON                    "resource\\input\\icons8-game-controller-24.ico"
-
 X_BOX                   ICON                    "resource\\icons8_cardboard_box_filled.ico"
-
 X_SETTINGS              ICON                    "resource\\icons8_automatic_26_xQK_icon.ico"
-
 X_GAME_PROFILE          ICON                    "resource\\icons8-compose-filled-50.ico"
-
 X_HOTKEY_SETTINGS       ICON                    "resource\\icons8_hotkeys.ico"
 
 #ifdef APSTUDIO_INVOKED
-/////////////////////////////////////////////////////////////////////////////
-//
-// TEXTINCLUDE
-//
-
 1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
@@ -61,9 +48,7 @@ BEGIN
     "\r\n"
     "\0"
 END
-
 #endif    // APSTUDIO_INVOKED
-
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -73,16 +58,25 @@ END
 #define xstr(s) str(s)
 #define str(s) #s
 
+#if defined(_M_ARM64)
+    #define ARCH_DESC " (ARM64)"
+#elif defined(_M_X64) || defined(_M_AMD64)
+    #define ARCH_DESC " (x64)"
+#else
+    #define ARCH_DESC ""
+#endif
+
 VS_VERSION_INFO VERSIONINFO
-FILEVERSION        EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH, 0
-PRODUCTVERSION     EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH, 0
+ FILEVERSION     EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH, 0
+ PRODUCTVERSION  EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH, 0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
 #else
  FILEFLAGS 0x0L
 #endif
- FILEOS 0x0L
+ // VOS_NT_WINDOWS32 is used for both x64 and ARM64 NT-based systems
+ FILEOS 0x40004L 
  FILETYPE 0x1L
  FILESUBTYPE 0x0L
 BEGIN
@@ -90,12 +84,12 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "Cemu Wii U emulator"
+            VALUE "FileDescription", "Cemu Wii U emulator" ARCH_DESC
             VALUE "InternalName", "Cemu"
             VALUE "LegalCopyright", "Team Cemu"
             VALUE "OriginalFilename", "Cemu.exe"
             VALUE "ProductName", "Cemu"
-        	VALUE "ProductVersion", xstr(EMULATOR_VERSION_MAJOR) "." xstr(EMULATOR_VERSION_MINOR) "." xstr(EMULATOR_VERSION_PATCH) EMULATOR_VERSION_SUFFIX "\0"
+            VALUE "ProductVersion", xstr(EMULATOR_VERSION_MAJOR) "." xstr(EMULATOR_VERSION_MINOR) "." xstr(EMULATOR_VERSION_PATCH) EMULATOR_VERSION_SUFFIX "\0"
         END
     END
     BLOCK "VarFileInfo"
@@ -104,7 +98,6 @@ BEGIN
     END
 END
 
-
 /////////////////////////////////////////////////////////////////////////////
 //
 // RCDATA
@@ -112,10 +105,7 @@ END
 
 IDR_FONTAWESOME         RCDATA                  "resource\\fontawesome-webfont.ttf"
 
-#endif    // Neutral (Default) (unknown sub-lang: 0x8) resources
-/////////////////////////////////////////////////////////////////////////////
-
-
+#endif    // Neutral resources
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -126,4 +116,3 @@ IDR_FONTAWESOME         RCDATA                  "resource\\fontawesome-webfont.t
 
 /////////////////////////////////////////////////////////////////////////////
 #endif    // not APSTUDIO_INVOKED
-

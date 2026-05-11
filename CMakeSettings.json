@@ -1,4 +1,4 @@
-﻿{
+{
   "configurations": [
     {
       "name": "RelWithDebInfo",
@@ -13,6 +13,14 @@
       "configurationType": "Release",
       "generator": "Ninja",
       "inheritEnvironments": [ "msvc_x64_x64" ],
+      "buildRoot": "${projectDir}\\out\\build\\${name}",
+      "installRoot": "${projectDir}\\out\\install\\${name}"
+    },
+    {
+      "name": "ARM64-Release",
+      "configurationType": "Release",
+      "generator": "Ninja",
+      "inheritEnvironments": [ "msvc_arm64_x64" ],
       "buildRoot": "${projectDir}\\out\\build\\${name}",
       "installRoot": "${projectDir}\\out\\install\\${name}"
     },
