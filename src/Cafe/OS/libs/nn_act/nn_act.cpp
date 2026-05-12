@@ -9,7 +9,6 @@
 #include "Common/FileStream.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
-#include "Cafe/Account/Account.h"
 
 #define actPrepareRequest() \
 StackAllocator<iosuActCemuRequest_t> _buf_actRequest; \
@@ -146,12 +145,9 @@ namespace act
 
 		uint32 IsPasswordCacheEnabledEx(uint8 slot)
 		{
-			// this is currently a hack. It always returns true if just one other account has password cache enabled, regardless of slot.
-			// In the future we should implement this properly and read the value from the individual account via IOSU
-			const uint32 persistentId = GetPersistentIdEx(slot);
-			if (persistentId == 0)
-				return 0;
-			return Account::GetAccount(persistentId).IsPasswordCacheEnabled() ? 1 : 0;
+			// this is currently a hack.
+			// todo: read the value from the individual account via IOSU
+			return 1;
 		}
 
 		uint32 IsPasswordCacheEnabled()
