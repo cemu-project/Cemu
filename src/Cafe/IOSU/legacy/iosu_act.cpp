@@ -11,6 +11,7 @@
 #include "Cafe/Account/Account.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
+#include "Common/FileStream.h"
 
 #include "Cemu/napi/napi.h"
 #include "Cemu/ncrypto/ncrypto.h"
@@ -552,6 +553,44 @@ namespace iosu
 			}
 			*persistentId = _actAccountData[accountIndex].persistentId;
 			return true;
+		}
+
+		uint32 GetMiiImage(uint8 slot, uint32 imageType, void* outBuf, uint32 bufferSize, uint32* outImageSize)
+		{
+			uint32 persistentId = 0;
+			if (!GetPersistentId(slot, &persistentId))
+				return ACTResult_AccountDoesNotExist;
+
+			static constexpr uint32 kMaxMiiImageBytes = 2 * 1024 * 1024;
+
+			const auto filePath = ActiveSettings::GetMlcPath(
+				fmt::format("usr/save/system/act/{:08x}/miiimg{:02d}.dat", persistentId, imageType));
+
+			// reject oversized files before allocating. Prevents loading multi-GB crafted files into RAM
+			std::error_code ec;
+			if (fs::file_size(filePath, ec) > kMaxMiiImageBytes || ec)
+				return ACTResult_AccountDoesNotExist;
+
+			auto fileData = FileStream::LoadIntoMemory(filePath);
+			if (!fileData.has_value())
+				return ACTResult_AccountDoesNotExist;
+
+			// type 0 (FaceIcon) is stored raw; all others are zlib-compressed
+			if (imageType != 0)
+			{
+				fileData = zlibDecompress(*fileData);
+				if (!fileData.has_value())
+					return ACTResult_AccountDoesNotExist;
+			}
+
+			if (fileData->size() > kMaxMiiImageBytes)
+				return ACTResult_AccountDoesNotExist;
+
+			*outImageSize = (uint32)fileData->size();
+			if (bufferSize < *outImageSize)
+				return ACTResult_OutOfRange;
+			memcpy(outBuf, fileData->data(), fileData->size());
+			return 0;
 		}
 
 		nnResult AcquireNexToken(uint8 accountSlot, uint64 titleId, uint16 titleVersion, uint32 serverId, uint8* tokenOut, uint32 tokenLen)

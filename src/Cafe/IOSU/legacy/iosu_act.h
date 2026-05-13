@@ -50,6 +50,7 @@ namespace iosu
 		bool getScreenname(uint8 slot, uint16 screenname[ACT_NICKNAME_LENGTH]);
 		bool getCountryIndex(uint8 slot, uint32* countryIndex);
 		bool GetPersistentId(uint8 slot, uint32* persistentId);
+		uint32 GetMiiImage(uint8 slot, uint32 imageType, void* outBuf, uint32 bufferSize, uint32* outImageSize);
 
 		std::string getAccountId2(uint8 slot);
 
