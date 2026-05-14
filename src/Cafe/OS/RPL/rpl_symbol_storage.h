@@ -4,6 +4,7 @@ struct RPLStoredSymbol
 	void* libName;
 	void* symbolName;
 	uint32 flags;
+	RPLStoredSymbol* previous;
 };
 
 void rplSymbolStorage_init();

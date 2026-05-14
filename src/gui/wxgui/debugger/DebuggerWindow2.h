@@ -10,12 +10,17 @@
 #include <wx/frame.h>
 #include <wx/mstream.h>
 
+#include <memory>
+#include <string>
+#include <vector>
+
 class BreakpointWindow;
 class RegisterWindow;
 class DumpWindow;
 class ModuleWindow;
 class SymbolWindow;
 class wxStaticText;
+struct RPLStoredSymbol;
 
 wxDECLARE_EVENT(wxEVT_UPDATE_VIEW, wxCommandEvent);
 wxDECLARE_EVENT(wxEVT_BREAKPOINT_HIT, wxCommandEvent);
@@ -56,7 +61,7 @@ struct DebuggerModuleInfo
 		MPTR base;
 		uint32 size;
 
-		bool ContainsAddress(MPTR addr)
+		bool ContainsAddress(MPTR addr) const
 		{
 			return addr >= base && (addr < (base+size));
 		}
@@ -74,6 +79,7 @@ struct DebuggerModuleStorage
 {
 	DebuggerModuleInfo moduleInfo;
 	bool delete_breakpoints_after_saving;
+	std::vector<RPLStoredSymbol*> loaded_map_symbols;
 
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
@@ -126,6 +132,9 @@ private:
 
 	void CreateMenuBar();
 	void UpdateModuleLabel(uint32 address = 0);
+	void LoadModuleMap(DebuggerModuleStorage& moduleStorage);
+	void UnloadModuleMap(DebuggerModuleStorage& moduleStorage);
+	std::wstring GetModuleMapPath(std::string module_name, uint32_t crc_hash) const;
 
 	void UpdateViewThreadsafe() override;
 	void NotifyDebugBreakpointHit() override;
