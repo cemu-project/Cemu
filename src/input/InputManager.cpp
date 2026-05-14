@@ -46,6 +46,10 @@ InputManager::InputManager()
 #if HAS_WIIMOTE
 	create_provider<WiimoteControllerProvider>();
 #endif
+#if BOOST_PLAT_ANDROID
+	create_provider<AndroidControllerProvider>();
+	create_provider<DeviceControllerProvider>();
+#endif
 
 	m_update_thread_shutdown.store(false);
 	m_update_thread = std::thread(&InputManager::update_thread, this);
@@ -761,7 +765,7 @@ ControllerProviderPtr InputManager::get_api_provider(InputAPI::Type api, const C
 
 void InputManager::apply_game_profile()
 {
-	const auto& profiles = g_current_game_profile->GetControllerProfile();
+	const auto& profiles = g_current_game_profile->GetControllerProfiles();
 	for (int i = 0; i < kMaxController; ++i)
 	{
 		if (profiles[i] && !profiles[i]->empty())

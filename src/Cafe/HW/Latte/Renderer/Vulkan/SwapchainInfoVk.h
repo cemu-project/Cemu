@@ -3,6 +3,10 @@
 #include "util/math/vector2.h"
 #include <vulkan/vulkan_core.h>
 
+#if BOOST_PLAT_ANDROID
+#include <android/native_window.h>
+#endif
+
 struct SwapchainInfoVk
 {
 	enum class VSync
@@ -58,10 +62,13 @@ struct SwapchainInfoVk
 
 	bool mainWindow{};
 
+#if BOOST_PLAT_ANDROID
+	bool surfaceWasLost = false;
+#endif
+
 	bool m_shouldRecreate = false;
 	VSync m_vsyncState = VSync::Immediate;
 	bool hasDefinedSwapchainImage{}; // indicates if the swapchain image is in a defined state
-
 	VkInstance m_instance{};
 	VkPhysicalDevice m_physicalDevice{};
 	VkDevice m_logicalDevice{};
@@ -90,6 +97,11 @@ private:
 	VkFence m_imageAvailableFence{};
 	VkFence m_awaitableFence = VK_NULL_HANDLE;
 	VkSemaphore m_currentSemaphore = VK_NULL_HANDLE;
+
+#if BOOST_PLAT_ANDROID
+	void RecreateSurface();
+	ANativeWindow* m_currentWindow = nullptr;
+#endif
 
 	std::array<uint32, 2> m_swapchainQueueFamilyIndices;
 };

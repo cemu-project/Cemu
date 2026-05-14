@@ -136,10 +136,114 @@ bool InitializeDeviceVulkan(VkDevice device)
 
 #else
 
+void* g_vulkan_so = nullptr;
+
+#if BOOST_PLAT_ANDROID
+bool SupportsLoadingCustomDriver()
+{
+#ifdef __aarch64__
+	std::error_code ec;
+	return fs::exists("/dev/kgsl-3d0", ec);
+#else
+	return false;
+#endif
+}
+
+#ifdef __aarch64__
+
+constexpr auto CUSTOM_DRIVER_LIB_NAME = "custom_vulkan.so";
+
+#include <adrenotools/driver.h>
+#include <rapidjson/document.h>
+#include <rapidjson/istreamwrapper.h>
+#include "config/ActiveSettings.h"
+#include "Cafe/GameProfile/GameProfile.h"
+
+std::string get_custom_driver_lib_name(const fs::path& driver_path)
+{
+	static constexpr auto LIB_NAME_MEMBER = "libraryName";
+	std::ifstream in(driver_path / "meta.json");
+	if (!in.is_open())
+		return {};
+	rapidjson::IStreamWrapper str(in);
+	rapidjson::Document doc;
+	doc.ParseStream(str);
+
+	if (!doc.HasMember(LIB_NAME_MEMBER) || !doc[LIB_NAME_MEMBER].IsString())
+		return {};
+
+	std::string lib_name = doc[LIB_NAME_MEMBER].GetString();
+
+	std::error_code ec;
+	if (!fs::exists(driver_path / lib_name, ec))
+		return {};
+
+	return lib_name;
+}
+
+std::optional<std::string> get_custom_driver_path()
+{
+	const auto& driverSetting = g_current_game_profile->GetDriverSetting();
+	if (driverSetting.mode == DriverSettingMode::System)
+	{
+		return {};
+	}
+
+	std::error_code ec;
+	if (driverSetting.mode == DriverSettingMode::Custom &&
+		driverSetting.customPath.has_value() &&
+		fs::exists(driverSetting.customPath.value(), ec))
+	{
+		return driverSetting.customPath;
+	}
+
+	return GetConfig().custom_driver_path;
+}
+
+void* load_custom_driver()
+{
+	std::optional<std::string> driver_path = get_custom_driver_path();
+
+	if (!driver_path.has_value() || driver_path->empty())
+		return nullptr;
+	std::string driver_name = get_custom_driver_lib_name(driver_path.value());
+	if (driver_name.empty())
+		return nullptr;
+
+	std::error_code ec;
+	fs::copy(fs::path(driver_path.value()) / driver_name, ActiveSettings::GetInternalPath(CUSTOM_DRIVER_LIB_NAME), fs::copy_options::overwrite_existing, ec);
+
+	void* vulkan_so = adrenotools_open_libvulkan(
+		RTLD_NOW | RTLD_LOCAL,
+		ADRENOTOOLS_DRIVER_CUSTOM,
+		nullptr,
+		(ActiveSettings::GetNativeLibPath().string() + "/").c_str(),
+		(ActiveSettings::GetInternalPath().string() + "/").c_str(),
+		CUSTOM_DRIVER_LIB_NAME,
+		nullptr,
+		nullptr);
+	if (!vulkan_so)
+	{
+		cemuLog_log(LogType::Force, "Failed to load custom driver");
+		return nullptr;
+	}
+	cemuLog_log(LogType::Force, "Loaded custom driver");
+	return vulkan_so;
+}
+#endif // __aarch64__
+
+#endif // BOOST_PLAT_ANDROID
+
 void* dlopen_vulkan_loader()
 {
 #if BOOST_OS_LINUX || BOOST_OS_BSD
-	void* vulkan_so = dlopen("libvulkan.so", RTLD_NOW);
+	static void* vulkan_so = nullptr;
+#if BOOST_PLAT_ANDROID && defined(__aarch64__)
+	vulkan_so = load_custom_driver();
+	if (vulkan_so)
+		return vulkan_so;
+#endif
+	vulkan_so = dlopen("libvulkan.so", RTLD_NOW);
 	if(!vulkan_so)
 		vulkan_so = dlopen("libvulkan.so.1", RTLD_NOW);
 #elif BOOST_OS_MACOS
@@ -150,16 +254,18 @@ void* dlopen_vulkan_loader()
 
 bool InitializeGlobalVulkan()
 {
-	void* vulkan_so = dlopen_vulkan_loader();
+	g_vulkan_so = dlopen_vulkan_loader();
 
-	if(g_vulkan_available)
+	if (g_vulkan_available)
 		return true;
 
-	if (!vulkan_so)
+	if (!g_vulkan_so)
 	{
 		cemuLog_log(LogType::Force, "Vulkan loader not available.");
 		return false;
 	}
+
+	void* vulkan_so = g_vulkan_so;
 
 	#define VKFUNC_INIT
 	#include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
@@ -169,14 +275,30 @@ bool InitializeGlobalVulkan()
 		cemuLog_log(LogType::Force, "vkEnumerateInstanceVersion not available. Outdated graphics driver or Vulkan runtime?");
 		return false;
 	}
-	
+
 	g_vulkan_available = true;
 	return true;
 }
 
+void CleanupGlobalVulkan()
+{
+	if (g_vulkan_so)
+	{
+		dlclose(g_vulkan_so);
+		g_vulkan_so = nullptr;
+	}
+
+	g_vulkan_available = false;
+
+#if BOOST_PLAT_ANDROID && defined(__aarch64__)
+	std::error_code ec;
+	fs::remove(ActiveSettings::GetInternalPath(CUSTOM_DRIVER_LIB_NAME), ec);
+#endif
+}
+
 bool InitializeInstanceVulkan(VkInstance instance)
 {
-	void* vulkan_so = dlopen_vulkan_loader();
+	void* vulkan_so = g_vulkan_so;
 	if (!vulkan_so)
 		return false;
 
@@ -188,7 +310,7 @@ bool InitializeInstanceVulkan(VkInstance instance)
 
 bool InitializeDeviceVulkan(VkDevice device)
 {
-	void* vulkan_so = dlopen_vulkan_loader();
+	void* vulkan_so = g_vulkan_so;
 	if (!vulkan_so)
 		return false;
 

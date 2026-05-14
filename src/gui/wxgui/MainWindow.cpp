@@ -1467,7 +1467,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
 
-	if (swkbd_hasKeyboardInputHook())
+	if (swkbd::hasKeyboardInputHook())
 		return;
 
 	HotkeySettings::CaptureInput(event);
@@ -1496,8 +1496,8 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
 
 void MainWindow::OnChar(wxKeyEvent& event)
 {
-	if (swkbd_hasKeyboardInputHook())
-		swkbd_keyInput(event.GetUnicodeKey());
+	if (swkbd::hasKeyboardInputHook())
+		swkbd::keyInput(event.GetUnicodeKey());
 
 	// event.Skip();
 }

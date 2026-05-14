@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Common/FileStream.h"
 #include <mutex>
 
 class FileCache
@@ -80,7 +81,7 @@ private:
 	void _addFileInternal(uint64 name1, uint64 name2, const uint8* fileData, sint32 fileSize, bool noCompression);
 	bool _getFileDataInternal(const FileTableEntry* entry, std::vector<uint8>& dataOut);
 
-	class FileStream* fileStream{};
+	FileStream* fileStream{};
 	uint64 dataOffset{};
 	uint32 extraVersion{};
 	// file table

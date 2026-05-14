@@ -94,6 +94,42 @@ namespace coreinit
 		uint32 selectedCore;
 	};
 
+	void SuspendActiveThreads()
+	{
+		if (activeThreadCount == 0)
+		{
+			return;
+		}
+
+		__OSLockScheduler();
+
+		for (sint32 i = 0; i < activeThreadCount; i++)
+		{
+			auto thread = reinterpret_cast<OSThread_t*>(memory_getPointerFromVirtualOffset(activeThread[i]));
+			__OSSuspendThreadNolock(thread);
+		}
+
+		__OSUnlockScheduler();
+	}
+
+	void ResumeActiveThreads()
+	{
+		if (activeThreadCount == 0)
+		{
+			return;
+		}
+
+		__OSLockScheduler();
+
+		for (sint32 i = 0; i < activeThreadCount; i++)
+		{
+			auto thread = reinterpret_cast<OSThread_t*>(memory_getPointerFromVirtualOffset(activeThread[i]));
+			__OSResumeThreadInternal(thread, 1);
+		}
+
+		__OSUnlockScheduler();
+	}
+
 	std::unordered_map<OSThread_t*, OSHostThread*> s_threadToFiber;
 
 	bool __CemuIsMulticoreMode()

@@ -10,6 +10,14 @@ on:
         required: false
         type: string
 
+    secrets:
+      android_store_file_base64:
+        required: false
+      android_key_store_password:
+        required: false
+      android_key_alias:
+        required: false
+
 env:
   VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
   VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
@@ -53,23 +61,10 @@ jobs:
         sudo apt update -qq
         sudo apt install -y clang-15 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libudev-dev nasm ninja-build libbluetooth-dev
 
-    - name: "Bootstrap vcpkg"
-      run: |
-        bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
-
-    - name: 'Setup NuGet Credentials for vcpkg'
-      shell: 'bash'
-      run: |
-        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
-        sources add \
-        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-        -storepasswordincleartext \
-        -name "GitHub" \
-        -username "${{ github.repository_owner }}" \
-        -password "${{ secrets.GITHUB_TOKEN }}"
-        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
-        setapikey "${{ secrets.GITHUB_TOKEN }}" \
-        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+    - name: Setup vcpkg binary cache
+      uses: ./.github/actions/set-up-vcpkg-binary-cache-action
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
         
     - name: "cmake"
       run: |
@@ -152,23 +147,10 @@ jobs:
       with:
         cmake-version: '3.29.0'
 
-    - name: "Bootstrap vcpkg"
-      run: |
-        ./dependencies/vcpkg/bootstrap-vcpkg.bat
-
-    - name: 'Setup NuGet Credentials for vcpkg'
-      shell: 'bash'
-      run: |
-        `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
-        sources add \
-        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-        -storepasswordincleartext \
-        -name "GitHub" \
-        -username "${{ github.repository_owner }}" \
-        -password "${{ secrets.GITHUB_TOKEN }}"
-        `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
-        setapikey "${{ secrets.GITHUB_TOKEN }}" \
-        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+    - name: Setup vcpkg binary cache
+      uses: ./.github/actions/set-up-vcpkg-binary-cache-action
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
 
     - name: "cmake"
       run: |
@@ -245,23 +227,10 @@ jobs:
       with:
         cmake-version: '3.29.0'
 
-    - name: "Bootstrap vcpkg"
-      run: |
-        bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
-
-    - name: 'Setup NuGet Credentials for vcpkg'
-      shell: 'bash'
-      run: |
-        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
-        sources add \
-        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
-        -storepasswordincleartext \
-        -name "GitHub" \
-        -username "${{ github.repository_owner }}" \
-        -password "${{ secrets.GITHUB_TOKEN }}"
-        mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
-        setapikey "${{ secrets.GITHUB_TOKEN }}" \
-        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+    - name: Setup vcpkg binary cache
+      uses: ./.github/actions/set-up-vcpkg-binary-cache-action
+      with:
+        github-token: "${{ secrets.GITHUB_TOKEN }}"
 
     - name: "cmake"
       run: |
@@ -294,3 +263,62 @@ jobs:
       with:
         name: cemu-bin-macos-${{ matrix.arch }}
         path: ./bin/Cemu.dmg
+
+  build-android:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+        with:
+          submodules: "recursive"
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update -qq
+          sudo apt install -y gettext mono-complete
+
+      - name: Uncompile message catalogs
+        run: |
+          for mo_file in bin/resources/*/cemu.mo
+          do
+            echo $mo_file
+            language_code=$(basename $(dirname $mo_file))
+            po_file=src/android/app/src/main/assets/translations/$language_code/cemu.po
+            mkdir -p $(dirname $po_file)
+            msgunfmt $mo_file -o $po_file || echo "Failed to uncompile message catalog from $mo_file"
+          done
+
+      - name: Setup vcpkg binary cache
+        uses: ./.github/actions/set-up-vcpkg-binary-cache-action
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+      - name: Build Cemu
+        env:
+          ANDROID_STORE_FILE_BASE64: ${{ secrets.android_store_file_base64 }}
+          ANDROID_KEY_STORE_PASSWORD: ${{ secrets.android_key_store_password }}
+          ANDROID_KEY_ALIAS: ${{ secrets.android_key_alias }}
+          EMULATOR_VERSION_MAJOR: ${{ inputs.next_version_major }}
+          EMULATOR_VERSION_MINOR: ${{ inputs.next_version_minor }}
+        run: |
+          export JAVA_HOME=$JAVA_HOME_21_X64
+
+          cd ./src/android
+
+          if [[ -n "$ANDROID_STORE_FILE_BASE64" ]]; then
+            base64 --decode <<< "${ANDROID_STORE_FILE_BASE64}" > store.jks
+            export ANDROID_STORE_FILE=$(pwd)/store.jks
+            echo "Android signing store file has been set up."
+          else
+            echo "No Android signing store file provided. The APK will not be signed with a release key."
+          fi
+
+          ./gradlew assembleRelease
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-bin-android
+          path: ./src/android/app/build/outputs/apk/*/*.apk

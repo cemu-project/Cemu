@@ -1,0 +1,53 @@
+[versions]
+aboutlibraries = "14.2.0"
+agp = "9.2.1"
+androidx-activity-compose = "1.13.0"
+androidx-compose-bom = "2026.05.00"
+androidx-compose-material3 = "1.4.0"
+androidx-compose-ui = "1.11.1"
+androidx-core-ktx = "1.18.0"
+androidx-datastore = "1.2.1"
+androidx-documentfile = "1.1.0"
+androidx-junit = "1.3.0"
+androidx-navigation-compose = "2.9.8"
+appcompat = "1.7.1"
+archunit-junit4 = "1.4.2"
+espresso-core = "3.7.0"
+google-android-material = "1.13.0"
+junit = "4.13.2"
+kotlin = "2.3.21"
+kotlinx-gettext = "0.7.0"
+kotlinx-serialization-json = "1.11.0"
+ktor = "3.4.3"
+
+[libraries]
+aboutlibraries-compose-m3 = { module = "com.mikepenz:aboutlibraries-compose-m3", version.ref = "aboutlibraries" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidx-activity-compose" }
+androidx-appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidx-compose-bom" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "androidx-compose-material3" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "androidx-compose-ui" }
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidx-core-ktx" }
+androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "androidx-datastore" }
+androidx-documentfile = { module = "androidx.documentfile:documentfile", version.ref = "androidx-documentfile" }
+androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
+androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "androidx-navigation-compose" }
+androidx-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
+androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit4" }
+androidx-ui-test-manifest = { group = "androidx.compose.ui", name = "ui-test-manifest" }
+androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
+archunit-junit4 = { module = "com.tngtech.archunit:archunit-junit4", version.ref = "archunit-junit4" }
+google-android-material = { module = "com.google.android.material:material", version.ref = "google-android-material" }
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+kotlinx-gettext = { module = "name.kropp.kotlinx-gettext:kotlinx-gettext", version.ref = "kotlinx-gettext" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization-json" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+
+[plugins]
+aboutlibraries-android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+kotlinx-gettext = { id = "name.kropp.kotlinx-gettext", version.ref = "kotlinx-gettext" }

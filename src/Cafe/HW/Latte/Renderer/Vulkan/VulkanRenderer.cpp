@@ -111,6 +111,8 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 	requiredExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	#elif BOOST_PLAT_ANDROID
+	requiredExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX || BOOST_OS_BSD
 	auto backend = WindowSystem::GetWindowInfo().window_main.backend;
 	if(backend == WindowSystem::WindowHandleInfo::Backend::X11)
@@ -278,6 +280,8 @@ void VulkanRenderer::GetDeviceFeatures()
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &physicalDeviceFeatures2);
 
 	cemuLog_log(LogType::Force, "Vulkan: present_wait extension: {}", (pwf.presentWait && pidf.presentId) ? "supported" : "unsupported");
+
+	m_featureControl.mode.useTFEmulationViaSSBO = physicalDeviceFeatures2.features.vertexPipelineStoresAndAtomics;
 
 	/* Get Vulkan device properties and limits */
 	VkPhysicalDeviceFloatControlsPropertiesKHR pfcp{};
@@ -619,7 +623,7 @@ VulkanRenderer::VulkanRenderer()
 	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &deviceFeatures2);
 
 	deviceFeatures.independentBlend = VK_TRUE;
-	deviceFeatures.samplerAnisotropy = VK_TRUE;
+	deviceFeatures.samplerAnisotropy = deviceFeatures2.features.samplerAnisotropy;
 	deviceFeatures.imageCubeArray = VK_TRUE;
 	//moltenVK supports logicOp via private api
 	deviceFeatures.logicOp = deviceFeatures2.features.logicOp;
@@ -629,11 +633,9 @@ VulkanRenderer::VulkanRenderer()
 		cemuLog_log(LogType::Force, "Install the privateapi variant of MoltenVK to get logicOp support on macOS");
 #endif
 	}
-#if !BOOST_OS_MACOS
-	deviceFeatures.geometryShader = VK_TRUE;
-#endif
-	deviceFeatures.occlusionQueryPrecise = VK_TRUE;
-	deviceFeatures.depthClamp = VK_TRUE;
+	deviceFeatures.geometryShader = deviceFeatures2.features.geometryShader;
+	deviceFeatures.occlusionQueryPrecise = deviceFeatures2.features.occlusionQueryPrecise;
+	deviceFeatures.depthClamp = deviceFeatures2.features.depthClamp;
 	deviceFeatures.depthBiasClamp = VK_TRUE;
 
 	if (m_featureControl.deviceExtensions.pipeline_robustness)
@@ -1437,6 +1439,8 @@ std::vector<const char*> VulkanRenderer::CheckInstanceExtensionSupport(FeatureCo
 	requiredInstanceExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
 	#if BOOST_OS_WINDOWS
 	requiredInstanceExtensions.emplace_back(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+	#elif BOOST_PLAT_ANDROID
+	requiredInstanceExtensions.emplace_back(VK_KHR_ANDROID_SURFACE_EXTENSION_NAME);
 	#elif BOOST_OS_LINUX || BOOST_OS_BSD
 	auto backend = WindowSystem::GetWindowInfo().window_main.backend;
 	if(backend == WindowSystem::WindowHandleInfo::Backend::X11)
@@ -1524,7 +1528,25 @@ VkSurfaceKHR VulkanRenderer::CreateWinSurface(VkInstance instance, HWND hwindow)
 }
 #endif
 
-#if BOOST_OS_LINUX || BOOST_OS_BSD
+#if BOOST_PLAT_ANDROID
+VkSurfaceKHR VulkanRenderer::CreateAndroidSurface(VkInstance instance, ANativeWindow* window)
+{
+    VkAndroidSurfaceCreateInfoKHR sci{};
+    sci.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
+    sci.flags = 0;
+    sci.window = window;
+
+    VkSurfaceKHR result;
+    VkResult err;
+    if ((err = vkCreateAndroidSurfaceKHR(instance, &sci, nullptr, &result)) != VK_SUCCESS)
+    {
+		cemuLog_log(LogType::Force, "Cannot create an Android Vulkan surface: {}", (sint32)err);
+        throw std::runtime_error(fmt::format("Cannot create an Android Vulkan surface: {}", err));
+    }
+
+    return result;
+}
+#elif BOOST_OS_LINUX || BOOST_OS_BSD
 VkSurfaceKHR VulkanRenderer::CreateXlibSurface(VkInstance instance, Display* dpy, Window window)
 {
     VkXlibSurfaceCreateInfoKHR sci{};
@@ -1581,25 +1603,40 @@ VkSurfaceKHR VulkanRenderer::CreateWaylandSurface(VkInstance instance, wl_displa
 
     return result;
 }
-#endif // HAS_WAYLAND
-#endif // BOOST_OS_LINUX
+#endif
+#endif
 
+#if BOOST_PLAT_ANDROID
+VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, struct WindowSystem::WindowHandleInfo& windowInfo, ANativeWindow** nativeWindow)
+{
+	auto window = static_cast<ANativeWindow*>(windowInfo.surface.load());
+	VkSurfaceKHR surface = CreateAndroidSurface(instance, window);
+
+	if (nativeWindow != nullptr)
+	{
+		*nativeWindow = window;
+	}
+
+	return surface;
+}
+#else
 VkSurfaceKHR VulkanRenderer::CreateFramebufferSurface(VkInstance instance, WindowSystem::WindowHandleInfo& windowInfo)
 {
 #if BOOST_OS_WINDOWS
-	return CreateWinSurface(instance, static_cast<HWND>(windowInfo.surface));
+	return CreateWinSurface(instance, static_cast<HWND>(windowInfo.surface.load()));
 #elif BOOST_OS_LINUX || BOOST_OS_BSD
-	if(windowInfo.backend == WindowSystem::WindowHandleInfo::Backend::X11)
-		return CreateXlibSurface(instance, static_cast<Display*>(windowInfo.display), reinterpret_cast<Window>(windowInfo.surface));
-	#ifdef HAS_WAYLAND
-	if(windowInfo.backend == WindowSystem::WindowHandleInfo::Backend::Wayland)
-		return CreateWaylandSurface(instance, static_cast<wl_display*>(windowInfo.display), static_cast<wl_surface*>(windowInfo.surface));
-	#endif
+	if (windowInfo.backend == WindowSystem::WindowHandleInfo::Backend::X11)
+		return CreateXlibSurface(instance, static_cast<Display*>(windowInfo.display.load()), reinterpret_cast<Window>(windowInfo.surface.load()));
+#ifdef HAS_WAYLAND
+	if (windowInfo.backend == WindowSystem::WindowHandleInfo::Backend::Wayland)
+		return CreateWaylandSurface(instance, static_cast<wl_display*>(windowInfo.display.load()), static_cast<wl_surface*>(windowInfo.surface.load()));
+#endif
 	return {};
 #elif BOOST_OS_MACOS
-	return CreateCocoaSurface(instance, windowInfo.surface);
+	return CreateCocoaSurface(instance, windowInfo.surface.load());
 #endif
 }
+#endif
 
 void VulkanRenderer::CreateCommandPool()
 {
@@ -1914,42 +1951,31 @@ void VulkanRenderer::QueryMemoryInfo()
 
 void VulkanRenderer::QueryAvailableFormats()
 {
-	VkFormatProperties fmtProp{};
-	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_D24_UNORM_S8_UINT, &fmtProp);
+	// todo - more restrictive check
+	auto isFormatOptimal = [this](VkFormat format) -> bool {
+		VkFormatProperties fmtProp{};
+		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &fmtProp);
+		return fmtProp.optimalTilingFeatures != 0;
+	};
+	// BCn
+	m_supportedFormatInfo.fmt_bc1 = isFormatOptimal(VK_FORMAT_BC1_RGBA_SRGB_BLOCK) && isFormatOptimal(VK_FORMAT_BC1_RGBA_UNORM_BLOCK);
+	m_supportedFormatInfo.fmt_bc2 = isFormatOptimal(VK_FORMAT_BC2_UNORM_BLOCK) && isFormatOptimal(VK_FORMAT_BC2_SRGB_BLOCK);
+	m_supportedFormatInfo.fmt_bc3 = isFormatOptimal(VK_FORMAT_BC3_UNORM_BLOCK) && isFormatOptimal(VK_FORMAT_BC3_SRGB_BLOCK);
+	m_supportedFormatInfo.fmt_bc4 = isFormatOptimal(VK_FORMAT_BC4_UNORM_BLOCK) && isFormatOptimal(VK_FORMAT_BC4_SNORM_BLOCK);
+	m_supportedFormatInfo.fmt_bc5 = isFormatOptimal(VK_FORMAT_BC5_UNORM_BLOCK) && isFormatOptimal(VK_FORMAT_BC5_SNORM_BLOCK);
 	// D24S8
-	if (fmtProp.optimalTilingFeatures != 0) // todo - more restrictive check
-	{
-		m_supportedFormatInfo.fmt_d24_unorm_s8_uint = true;
-	}
+	m_supportedFormatInfo.fmt_d24_unorm_s8_uint = isFormatOptimal(VK_FORMAT_D24_UNORM_S8_UINT);
 	// R4G4
-	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R4G4_UNORM_PACK8, &fmtProp);
-	if (fmtProp.optimalTilingFeatures != 0)
-	{
-		m_supportedFormatInfo.fmt_r4g4_unorm_pack = true;
-	}
+	m_supportedFormatInfo.fmt_r4g4_unorm_pack = isFormatOptimal(VK_FORMAT_R4G4_UNORM_PACK8);;
 	// R5G6B5
-	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R5G6B5_UNORM_PACK16, &fmtProp);
-	if (fmtProp.optimalTilingFeatures != 0)
-	{
-		m_supportedFormatInfo.fmt_r5g6b5_unorm_pack = true;
-	}
+	m_supportedFormatInfo.fmt_r5g6b5_unorm_pack = isFormatOptimal(VK_FORMAT_R5G6B5_UNORM_PACK16);
 	// R4G4B4A4
-	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R4G4B4A4_UNORM_PACK16, &fmtProp);
-	if (fmtProp.optimalTilingFeatures != 0)
-	{
-		m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack = true;
-	}
+	m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack = isFormatOptimal(VK_FORMAT_R4G4B4A4_UNORM_PACK16);
 	// A1R5G5B5
-	fmtProp = {};
-	vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_A1R5G5B5_UNORM_PACK16, &fmtProp);
-	if (fmtProp.optimalTilingFeatures != 0)
-	{
-		m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack = true;
-	}
+	m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack = isFormatOptimal(VK_FORMAT_A1R5G5B5_UNORM_PACK16);
+
 	// print info about unsupported formats to log
+	VkFormatProperties fmtProp;
 	for (auto& it : requestedFormatList)
 	{
 		fmtProp = {};
@@ -2174,10 +2200,10 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 	const VkPipelineStageFlags semWaitStageMask[2] = { VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
 	VkSemaphore waitSemArray[2];
 	submitInfo.waitSemaphoreCount = 0;
-	if (m_numSubmittedCmdBuffers > 0)
-		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
 	if (waitSemaphore != VK_NULL_HANDLE)
 		waitSemArray[submitInfo.waitSemaphoreCount++] = waitSemaphore;
+	if (m_numSubmittedCmdBuffers > 0)
+		waitSemArray[submitInfo.waitSemaphoreCount++] = prevSem; // wait on semaphore from previous submit
 	submitInfo.pWaitDstStageMask = semWaitStageMask;
 	submitInfo.pWaitSemaphores = waitSemArray;
 
@@ -2652,44 +2678,124 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			break;
 			// compressed formats
 		case Latte::E_GX2SURFFMT::BC1_SRGB:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC1_RGBA_SRGB_BLOCK; // todo - verify
-			formatInfoOut->decoder = TextureDecoder_BC1::getInstance();
+			if (m_supportedFormatInfo.fmt_bc1)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC1_RGBA_SRGB_BLOCK; // todo - verify
+				formatInfoOut->decoder = TextureDecoder_BC1::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+				formatInfoOut->decoder = TextureDecoder_BC1_To_R8G8B8A8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC1_UNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC1_RGBA_UNORM_BLOCK; // todo - verify
-			formatInfoOut->decoder = TextureDecoder_BC1::getInstance();
+			if (m_supportedFormatInfo.fmt_bc1)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC1_RGBA_UNORM_BLOCK; // todo - verify
+				formatInfoOut->decoder = TextureDecoder_BC1::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_BC1_To_R8G8B8A8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC2_UNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC2_UNORM_BLOCK; // todo - verify
-			formatInfoOut->decoder = TextureDecoder_BC2::getInstance();
+			if (m_supportedFormatInfo.fmt_bc2)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC2_UNORM_BLOCK; // todo - verify
+				formatInfoOut->decoder = TextureDecoder_BC2::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_BC2_To_R8G8B8A8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC2_SRGB:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC2_SRGB_BLOCK; // todo - verify
-			formatInfoOut->decoder = TextureDecoder_BC2::getInstance();
+			if (m_supportedFormatInfo.fmt_bc2)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC2_SRGB_BLOCK; // todo - verify
+				formatInfoOut->decoder = TextureDecoder_BC2::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+				formatInfoOut->decoder = TextureDecoder_BC2_To_R8G8B8A8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC3_UNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC3_UNORM_BLOCK;
-			formatInfoOut->decoder = TextureDecoder_BC3::getInstance();
+			if (m_supportedFormatInfo.fmt_bc3)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC3_UNORM_BLOCK;
+				formatInfoOut->decoder = TextureDecoder_BC3::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_BC3_To_R8G8B8A8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC3_SRGB:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC3_SRGB_BLOCK;
-			formatInfoOut->decoder = TextureDecoder_BC3::getInstance();
+			if (m_supportedFormatInfo.fmt_bc3)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC3_SRGB_BLOCK;
+				formatInfoOut->decoder = TextureDecoder_BC3::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_SRGB;
+				formatInfoOut->decoder = TextureDecoder_BC3_To_R8G8B8A8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC4_UNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC4_UNORM_BLOCK;
-			formatInfoOut->decoder = TextureDecoder_BC4::getInstance();
+			if (m_supportedFormatInfo.fmt_bc4)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC4_UNORM_BLOCK;
+				formatInfoOut->decoder = TextureDecoder_BC4::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_BC4_To_R8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC4_SNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC4_SNORM_BLOCK;
-			formatInfoOut->decoder = TextureDecoder_BC4::getInstance();
+			if (m_supportedFormatInfo.fmt_bc4)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC4_SNORM_BLOCK;
+				formatInfoOut->decoder = TextureDecoder_BC4::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8_SNORM;
+				formatInfoOut->decoder = TextureDecoder_BC4_To_R8::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC5_UNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC5_UNORM_BLOCK;
-			formatInfoOut->decoder = TextureDecoder_BC5::getInstance();
+			if (m_supportedFormatInfo.fmt_bc5)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC5_UNORM_BLOCK;
+				formatInfoOut->decoder = TextureDecoder_BC5::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8_UNORM;
+				formatInfoOut->decoder = TextureDecoder_BC5_To_R8G8<decodeBC5Block_UNORM>::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::BC5_SNORM:
-			formatInfoOut->vkImageFormat = VK_FORMAT_BC5_SNORM_BLOCK;
-			formatInfoOut->decoder = TextureDecoder_BC5::getInstance();
+			if (m_supportedFormatInfo.fmt_bc5)
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_BC5_SNORM_BLOCK;
+				formatInfoOut->decoder = TextureDecoder_BC5::getInstance();
+			}
+			else
+			{
+				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8_SNORM;
+				formatInfoOut->decoder = TextureDecoder_BC5_To_R8G8<decodeBC5Block_SNORM>::getInstance();
+			}
 			break;
 		case Latte::E_GX2SURFFMT::R24_X8_UNORM:
 			formatInfoOut->vkImageFormat = VK_FORMAT_R32_SFLOAT;
@@ -2916,6 +3022,11 @@ bool VulkanRenderer::UpdateSwapchainProperties(bool mainWindow)
 	if (width != extent.width || height != extent.height)
 		stateChanged = true;
 
+#if BOOST_PLAT_ANDROID
+	if (chainInfo.surfaceWasLost)
+		stateChanged = true;
+#endif
+
 	if(stateChanged)
 	{
 		try
@@ -2991,18 +3102,33 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 	}
 
 	VkResult result = vkQueuePresentKHR(m_presentQueue, &presentInfo);
-	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR)
+	if (result < 0 && result != VK_ERROR_OUT_OF_DATE_KHR
+#if BOOST_PLAT_ANDROID
+		&& result != VK_ERROR_SURFACE_LOST_KHR
+#endif
+	)
 	{
 		throw std::runtime_error(fmt::format("Failed to present image: {}", result));
 	}
-	if(result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR)
+
+	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 		chainInfo.m_shouldRecreate = true;
 
-	if(result >= 0)
+	if (result >= 0)
 	{
 		chainInfo.m_queueDepth++;
 		chainInfo.m_presentId++;
 	}
+
+#if BOOST_PLAT_ANDROID
+	if (result == VK_ERROR_SURFACE_LOST_KHR)
+		chainInfo.surfaceWasLost = true;
+#endif
+
+#if !BOOST_PLAT_ANDROID
+	if (result == VK_SUBOPTIMAL_KHR)
+		chainInfo.m_shouldRecreate = true;
+#endif
 
 	chainInfo.hasDefinedSwapchainImage = false;
 

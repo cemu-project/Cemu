@@ -76,7 +76,7 @@ void IAudioAPI::InitWFX(sint32 samplerate, sint32 channels, sint32 bits_per_samp
 
 void IAudioAPI::InitializeStatic()
 {
-	s_audioDelay = GetConfig().audio_delay;
+	SetAudioDelay(GetConfig().audio_delay);
 
 #if BOOST_OS_WINDOWS
 	s_availableApis[DirectSound] = true;
@@ -96,6 +96,11 @@ bool IAudioAPI::IsAudioAPIAvailable(AudioAPI api)
 
 	cemu_assert_debug(false);
 	return false;
+}
+
+void IAudioAPI::SetAudioDelay(uint32 audioDelay)
+{
+	s_audioDelay = audioDelay;
 }
 
 AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint32 samples_per_block, sint32 bits_per_sample)

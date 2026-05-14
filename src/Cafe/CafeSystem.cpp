@@ -74,6 +74,10 @@
 #include <sys/sysctl.h>
 #endif
 
+#if BOOST_PLAT_ANDROID
+#include <android/api-level.h>
+#endif
+
 std::string _pathToExecutable;
 std::string _pathToBaseExecutable;
 
@@ -447,6 +451,8 @@ namespace CafeSystem
 	bool sSystemRunning = false;
 	TitleId sForegroundTitleId = 0;
 
+	bool sTitlePaused = false;
+
 	GameInfo2 sGameInfo_ForegroundTitle;
 
 
@@ -521,7 +527,10 @@ namespace CafeSystem
 	{
 		std::string buffer;
 		const char* platform = NULL;
-		#if BOOST_OS_WINDOWS
+		#if BOOST_PLAT_ANDROID
+		buffer = fmt::format("Android (API level {})", android_get_device_api_level());
+		platform = buffer.c_str();
+		#elif BOOST_OS_WINDOWS
 		uint32 buildNumber;
 		std::string windowsVersionName = GetWindowsNamedVersion(buildNumber);
 		buffer = fmt::format("{} (Build {})", windowsVersionName, buildNumber);
@@ -830,10 +839,10 @@ namespace CafeSystem
 			// check for content folder
 			fs::path contentPath = executablePath.parent_path().parent_path().append("content");
 			std::error_code ec;
-			if (fs::is_directory(contentPath, ec))
+			if (cemu::fs::is_directory(contentPath, ec))
 			{
 				// mounting content folder
-				bool r = FSCDeviceHostFS_Mount(std::string("/vol/content").c_str(), _pathToUtf8(contentPath), FSC_PRIORITY_BASE);
+				bool r = FSCDeviceHost_Mount("/vol/content", _pathToUtf8(contentPath), FSC_PRIORITY_BASE);
 				if (!r)
 				{
 					cemuLog_log(LogType::Force, "Failed to mount {}", _pathToUtf8(contentPath));
@@ -842,7 +851,7 @@ namespace CafeSystem
 			}
 		}
 		// mount code folder to a virtual temporary path
-		FSCDeviceHostFS_Mount(std::string("/internal/code/").c_str(), _pathToUtf8(executablePath.parent_path()), FSC_PRIORITY_BASE);
+		FSCDeviceHost_Mount("/internal/code/", _pathToUtf8(executablePath.parent_path()), FSC_PRIORITY_BASE);
 		std::string internalExecutablePath = "/internal/code/";
 		internalExecutablePath.append(_pathToUtf8(executablePath.filename()));
 		_pathToExecutable = internalExecutablePath;
@@ -887,6 +896,30 @@ namespace CafeSystem
 	bool IsTitleRunning()
 	{
 		return sSystemRunning;
+	}
+
+	void PauseTitle()
+	{
+		if (!sSystemRunning || sTitlePaused)
+		{
+			return;
+		}
+
+		sTitlePaused = true;
+
+		coreinit::SuspendActiveThreads();
+	}
+
+	void ResumeTitle()
+	{
+		if (!sSystemRunning || !sTitlePaused)
+		{
+			return;
+		}
+
+		sTitlePaused = false;
+
+		coreinit::ResumeActiveThreads();
 	}
 
 	TitleId GetForegroundTitleId()

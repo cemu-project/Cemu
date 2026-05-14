@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <uses-feature
+        android:name="android.hardware.vulkan.version"
+        android:required="true"
+        android:version="0x401000" />
+
+    <application
+        android:name=".CemuApplication"
+        android:allowBackup="true"
+        android:appCategory="game"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Cemu">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
+            android:name=".emulation.EmulationActivity"
+            android:configChanges="orientation|screenSize"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:parentActivityName=".MainActivity"
+            android:screenOrientation="userLandscape"
+            tools:ignore="DiscouragedApi">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+
+                <data android:scheme="content" />
+                <data android:mimeType="*/*" />
+                <data android:host="*" />
+                <data android:pathPattern=".*\\.wud" />
+                <data android:pathPattern=".*\\.wux" />
+                <data android:pathPattern=".*\\.wua" />
+                <data android:pathPattern=".*\\.wuhb" />
+                <data android:pathPattern=".*\\.iso" />
+                <data android:pathPattern=".*\\.elf" />
+                <data android:pathPattern=".*\\.rpx" />
+            </intent-filter>
+        </activity>
+
+        <provider
+            android:name=".provider.DocumentsProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+    </application>
+</manifest>

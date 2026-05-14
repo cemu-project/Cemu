@@ -112,5 +112,5 @@ WindowSystem::WindowHandleInfo initHandleContextFromWxWidgetsWindow(wxWindow* wx
 	handleInfo.backend = WindowSystem::WindowHandleInfo::Backend::Cocoa;
 	handleInfo.surface = reinterpret_cast<void*>(wxw->GetHandle());
 #endif
-	return handleInfo;
+	return std::move(handleInfo);
 }
