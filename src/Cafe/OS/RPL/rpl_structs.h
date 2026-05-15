@@ -171,7 +171,9 @@ struct RPLModule
 	uint32 tlsStartAddress;
 	uint32 tlsEndAddress;
 	uint32 regionSize_text;
+	uint32 regionOrigAddr_text;
 	uint32 regionSize_data;
+	uint32 regionOrigAddr_data;
 	uint32 regionSize_loaderInfo;
 
 	uint32 patchCRC; // Cemuhook style module crc for patches.txt

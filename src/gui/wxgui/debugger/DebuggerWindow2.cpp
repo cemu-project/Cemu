@@ -3,8 +3,6 @@
 
 #include "wxHelper.h"
 
-#include <filesystem>
-
 #include "Common/FileStream.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/HW/MMU/MMU.h"
@@ -88,10 +86,11 @@ DebuggerModuleInfo::DebuggerModuleInfo(RPLModule* module)
 	moduleName = module->moduleName2;
 	patchCRC = module->patchCRC;
 	textArea.base = module->regionMappingBase_text.GetMPTR();
+	textArea.origBase = module->regionOrigAddr_text;
 	textArea.size = module->regionSize_text;
 	dataArea.base = module->regionMappingBase_data;
+	dataArea.origBase = module->regionOrigAddr_data;
 	dataArea.size = module->regionSize_data;
-
 }
 
 struct DebuggerModuleInfoNotify : public wxClientData
@@ -129,89 +128,36 @@ static bool TryParseMapSymbolLine(std::string_view rawLine, uint32& address, std
 {
 	auto line = rawLine;
 	trim(line);
-	if (line.empty() || line.front() == '#' || line.front() == ';')
+	if (line.empty())
 		return false;
 
-	bool foundAddress = false;
-	bool foundPreferredAddress = false;
-	uint32 fallbackAddress = 0;
-	symbolName.clear();
-	while (!line.empty())
-	{
-		trim(line);
-		if (line.empty())
-			break;
-
-		const auto splitIndex = line.find_first_of(" \t");
-		auto token = splitIndex == std::string_view::npos ? line : line.substr(0, splitIndex);
-		line = splitIndex == std::string_view::npos ? std::string_view{} : line.substr(splitIndex + 1);
-		trim(token, "\t\n\v\f\r ,:;()[]");
-		if (token.empty())
-			continue;
-
-		if (!foundAddress)
-		{
-			if (TryParseMapAddress(token, address))
-			{
-				foundAddress = true;
-				fallbackAddress = address;
-				if (address >= MEMORY_CODEAREA_ADDR)
-					foundPreferredAddress = true;
-			}
-			continue;
-		}
-
-		uint32 parsedAddress = 0;
-		if (TryParseMapAddress(token, parsedAddress))
-		{
-			if (parsedAddress >= MEMORY_CODEAREA_ADDR)
-			{
-				address = parsedAddress;
-				foundPreferredAddress = true;
-			}
-			continue;
-		}
-
-		std::string lowerToken(token);
-		std::transform(lowerToken.begin(), lowerToken.end(), lowerToken.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-		if (lowerToken == "load" || lowerToken == "provide" || lowerToken == "assert" || lowerToken == "*fill*" || lowerToken == "=")
-			continue;
-		if (lowerToken.find('/') != std::string::npos || lowerToken.find('\\') != std::string::npos)
-			continue;
-		if (lowerToken.find(".a(") != std::string::npos || lowerToken.find(".o(") != std::string::npos || lowerToken.find(".obj(") != std::string::npos)
-			continue;
-		if (lowerToken.ends_with(".o") || lowerToken.ends_with(".obj") || lowerToken.ends_with(".a") || lowerToken.ends_with(".lib"))
-			continue;
-
-		if (symbolName.empty())
-			symbolName.assign(token);
-	}
-
-	if (!foundAddress || symbolName.empty())
+	const auto addressEnd = line.find_first_of(" \t");
+	if (addressEnd == std::string_view::npos)
+		return false;
+	if (!TryParseMapAddress(line.substr(0, addressEnd), address))
 		return false;
 
-	if (!foundPreferredAddress)
-		address = fallbackAddress;
+	line = line.substr(addressEnd + 1);
+	trim(line);
+	if (line.empty())
+		return false;
 
+	const auto symbolEnd = line.find_first_of(" \t");
+	auto symbolToken = symbolEnd == std::string_view::npos ? line : line.substr(0, symbolEnd);
+	trim(symbolToken);
+	if (symbolToken.empty())
+		return false;
+
+	symbolName.assign(symbolToken);
 	return true;
 }
 
 static std::optional<MPTR> GetRelocatedMapAddress(const DebuggerModuleInfo& moduleInfo, uint32 mapAddress)
 {
-	if (moduleInfo.textArea.ContainsAddress(mapAddress) || moduleInfo.dataArea.ContainsAddress(mapAddress))
-		return mapAddress;
-
-	if (mapAddress < moduleInfo.textArea.size)
-		return moduleInfo.textArea.base + mapAddress;
-	if (mapAddress < moduleInfo.dataArea.size)
-		return moduleInfo.dataArea.base + mapAddress;
-
-	if (mapAddress >= MEMORY_CODEAREA_ADDR && mapAddress < (MEMORY_CODEAREA_ADDR + moduleInfo.textArea.size))
-		return moduleInfo.textArea.base + (mapAddress - MEMORY_CODEAREA_ADDR);
-
-	if (mapAddress >= MEMORY_DATA_AREA_ADDR && mapAddress < (MEMORY_DATA_AREA_ADDR + moduleInfo.dataArea.size))
-		return moduleInfo.dataArea.base + (mapAddress - MEMORY_DATA_AREA_ADDR);
-
+	if (moduleInfo.textArea.ContainsOriginalAddress(mapAddress))
+		return moduleInfo.textArea.base + (mapAddress - moduleInfo.textArea.origBase);
+	if (moduleInfo.dataArea.ContainsOriginalAddress(mapAddress))
+		return moduleInfo.dataArea.base + (mapAddress - moduleInfo.dataArea.origBase);
 	return std::nullopt;
 }
 

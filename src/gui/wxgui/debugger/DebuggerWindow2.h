@@ -10,10 +10,6 @@
 #include <wx/frame.h>
 #include <wx/mstream.h>
 
-#include <memory>
-#include <string>
-#include <vector>
-
 class BreakpointWindow;
 class RegisterWindow;
 class DumpWindow;
@@ -59,11 +55,17 @@ struct DebuggerModuleInfo
 	struct ModuleArea
 	{
 		MPTR base;
+		MPTR origBase;
 		uint32 size;
 
 		bool ContainsAddress(MPTR addr) const
 		{
 			return addr >= base && (addr < (base+size));
+		}
+
+		bool ContainsOriginalAddress(MPTR addr) const
+		{
+			return addr >= origBase && (addr < (origBase + size));
 		}
 	};
 
