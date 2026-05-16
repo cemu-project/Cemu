@@ -263,6 +263,14 @@ void VulkanRenderer::GetDeviceFeatures()
 	pwf.pNext = prevStruct;
 	prevStruct = &pwf;
 
+	VkPhysicalDeviceTransformFeedbackFeaturesEXT tff{};
+	if (m_featureControl.deviceExtensions.transform_feedback)
+	{
+		tff.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT;
+		tff.pNext = prevStruct;
+		prevStruct = &tff;
+	}
+
 	VkPhysicalDevicePipelineRobustnessFeaturesEXT pprf{};
 	if (m_featureControl.deviceExtensions.pipeline_robustness)
 	{
@@ -329,6 +337,11 @@ void VulkanRenderer::GetDeviceFeatures()
 	{
 		if ( pprf.pipelineRobustness != VK_TRUE )
 			m_featureControl.deviceExtensions.pipeline_robustness = false;
+	}
+	if (m_featureControl.deviceExtensions.transform_feedback)
+	{
+		if (tff.transformFeedback != VK_TRUE)
+			m_featureControl.deviceExtensions.transform_feedback = false;
 	}
 	// get limits
 	m_featureControl.limits.minUniformBufferOffsetAlignment = std::max(prop2.properties.limits.minUniformBufferOffsetAlignment, (VkDeviceSize)4);
@@ -690,6 +703,15 @@ VulkanRenderer::VulkanRenderer()
 		deviceExtensionFeatures = &presentWaitFeature;
 		presentWaitFeature.presentWait = VK_TRUE;
 	}
+	// enable VK_EXT_transform_feedback
+	VkPhysicalDeviceTransformFeedbackFeaturesEXT transformFeedbackFeature{};
+	if (m_featureControl.deviceExtensions.transform_feedback)
+	{
+		transformFeedbackFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TRANSFORM_FEEDBACK_FEATURES_EXT;
+		transformFeedbackFeature.pNext = deviceExtensionFeatures;
+		deviceExtensionFeatures = &transformFeedbackFeature;
+		transformFeedbackFeature.transformFeedback = VK_TRUE;
+	}
 	// enable VK_EXT_pipeline_robustness
 	VkPhysicalDevicePipelineRobustnessFeaturesEXT pipelineRobustnessFeature{};
 	if (m_featureControl.deviceExtensions.pipeline_robustness)
@@ -787,7 +809,10 @@ VulkanRenderer::VulkanRenderer()
 	m_textureReadbackBufferPtr = (uint8*)bufferPtr;
 
 	// transform feedback ringbuffer
-	memoryManager->CreateBuffer(LatteStreamout_GetRingBufferSize(), VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | (m_featureControl.mode.useTFEmulationViaSSBO ? VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0), 0, m_xfbRingBuffer, m_xfbRingBufferMemory);
+	VkBufferUsageFlags xfbRingBufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | (m_featureControl.mode.useTFEmulationViaSSBO ? VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0);
+	if (m_featureControl.deviceExtensions.transform_feedback)
+		xfbRingBufferUsage |= VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT;
+	memoryManager->CreateBuffer(LatteStreamout_GetRingBufferSize(), xfbRingBufferUsage, 0, m_xfbRingBuffer, m_xfbRingBufferMemory);
 
 	// occlusion query result buffer
 	if (!memoryManager->CreateBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults))
@@ -1259,6 +1284,8 @@ VkDeviceCreateInfo VulkanRenderer::CreateDeviceCreateInfo(const std::vector<VkDe
 		used_extensions.emplace_back(VK_NV_FILL_RECTANGLE_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.pipeline_feedback)
 		used_extensions.emplace_back(VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME);
+	if (m_featureControl.deviceExtensions.transform_feedback)
+		used_extensions.emplace_back(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.cubic_filter)
 		used_extensions.emplace_back(VK_EXT_FILTER_CUBIC_EXTENSION_NAME);
 	if (m_featureControl.deviceExtensions.custom_border_color)
