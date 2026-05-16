@@ -401,7 +401,7 @@ void DebuggerWindow2::LoadModuleMap(DebuggerModuleStorage& moduleStorage)
 			const auto relocatedAddress = GetRelocatedMapAddress(moduleStorage.moduleInfo, mapAddress);
 			if (relocatedAddress)
 			{
-				moduleStorage.loaded_map_symbols.emplace_back(rplSymbolStorage_store(moduleStorage.moduleInfo.moduleName.c_str(), symbolName.c_str(), *relocatedAddress));
+				moduleStorage.loaded_map_symbols.emplace_back(rplSymbolStorage_store(moduleStorage.moduleInfo.moduleName.c_str(), symbolName.c_str(), *relocatedAddress, RPL_STORED_SYMBOL_MAP));
 			}
 		}
 	}

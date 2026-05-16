@@ -63,7 +63,7 @@ char* rplSymbolStorage_storeLibname(const char* libName)
 	return libEntry->libName;
 }
 
-RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolName, MPTR address)
+RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolName, MPTR address, uint32 type)
 {
 	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
 	char* libNameStorage = rplSymbolStorage_storeLibname(libName);
@@ -72,7 +72,7 @@ RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolN
 	storedSymbol->address = address;
 	storedSymbol->libName = libNameStorage;
 	storedSymbol->symbolName = symbolNameStorage;
-	storedSymbol->flags = 0;
+	storedSymbol->flags = type;
 	storedSymbol->previous = nullptr;
 	auto it = rplSymbolStorage.map_symbolByAddress.find(address);
 	if (it != rplSymbolStorage.map_symbolByAddress.end())
@@ -130,13 +130,41 @@ void rplSymbolStorage_remove(RPLStoredSymbol* storedSymbol)
 	delete storedSymbol;
 }
 
-void rplSymbolStorage_removeRange(MPTR address, sint32 length)
+
+void rplSymbolStorage_removeRange(MPTR address, sint32 length, uint32 type)
 {
+	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
 	while (length > 0)
 	{
-		RPLStoredSymbol* symbol = rplSymbolStorage_getByAddress(address);
-		if (symbol)
-			rplSymbolStorage_remove(symbol);
+		auto it = rplSymbolStorage.map_symbolByAddress.find(address);
+		if (it != rplSymbolStorage.map_symbolByAddress.end())
+		{
+			RPLStoredSymbol* current = it->second;
+			RPLStoredSymbol* newHead = current;
+			RPLStoredSymbol* previousKept = nullptr;
+			while (current)
+			{
+				RPLStoredSymbol* next = current->previous;
+				if ((current->flags & type) == type)
+				{
+					if (previousKept)
+						previousKept->previous = next;
+					else
+						newHead = next;
+					delete current;
+				}
+				else
+				{
+					previousKept = current;
+				}
+				current = next;
+			}
+
+			if (newHead)
+				it->second = newHead;
+			else
+				rplSymbolStorage.map_symbolByAddress.erase(it);
+		}
 		address += 4;
 		length -= 4;
 	}
