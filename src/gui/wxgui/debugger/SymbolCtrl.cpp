@@ -2,6 +2,7 @@
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include <wx/listctrl.h>
+#include <wx/clipbrd.h>
 
 enum ItemColumns
 {
@@ -100,23 +101,11 @@ void SymbolListCtrl::OnRightClick(wxListEvent& event)
 	long selected = GetFirstSelected();
 	if (selected == wxNOT_FOUND || selected >= static_cast<long>(m_visible_items.size()))
 		return;
-	auto text = wxString::Format("0x%08x", m_visible_items[selected]->first);
-#if BOOST_OS_WINDOWS
-	if (OpenClipboard(nullptr))
+	if (wxClipboard::Get()->Open())
 	{
-		EmptyClipboard();
-		const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, text.size()+1);
-		if (hGlobal)
-		{
-			memcpy(GlobalLock(hGlobal), text.c_str(), text.size() + 1);
-			GlobalUnlock(hGlobal);
-
-			SetClipboardData(CF_TEXT, hGlobal);
-			GlobalFree(hGlobal);
-		}
-		CloseClipboard();
+		wxClipboard::Get()->SetData(new wxTextDataObject(wxString::Format("0x%08x", m_visible_items[selected]->first)));
+		wxClipboard::Get()->Close();
 	}
-#endif
 }
 
 void SymbolListCtrl::RebuildVisibleItems()
