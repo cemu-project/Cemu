@@ -3,11 +3,12 @@
 
 #include "wxHelper.h"
 
-#include <filesystem>
-
+#include "Common/FileStream.h"
 #include "config/ActiveSettings.h"
+#include "Cafe/HW/MMU/MMU.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/OS/RPL/rpl_debug_symbols.h"
+#include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
 #include "wxgui/debugger/RegisterWindow.h"
 #include "wxgui/debugger/DumpWindow.h"
@@ -20,6 +21,7 @@
 #include "wxgui/debugger/BreakpointWindow.h"
 #include "wxgui/debugger/ModuleWindow.h"
 #include "util/helpers/helpers.h"
+#include "util/helpers/StringHelpers.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cemu/Logging/CemuLogging.h"
 
@@ -84,10 +86,11 @@ DebuggerModuleInfo::DebuggerModuleInfo(RPLModule* module)
 	moduleName = module->moduleName2;
 	patchCRC = module->patchCRC;
 	textArea.base = module->regionMappingBase_text.GetMPTR();
+	textArea.origBase = module->regionOrigAddr_text;
 	textArea.size = module->regionSize_text;
 	dataArea.base = module->regionMappingBase_data;
+	dataArea.origBase = module->regionOrigAddr_data;
 	dataArea.size = module->regionSize_data;
-
 }
 
 struct DebuggerModuleInfoNotify : public wxClientData
@@ -98,6 +101,65 @@ struct DebuggerModuleInfoNotify : public wxClientData
 };
 
 DebuggerWindow2* s_debuggerWindow;
+
+static bool TryParseMapAddress(std::string_view token, uint32& value)
+{
+	trim(token, "\t\n\v\f\r ,:;()[]");
+	if (const auto colonIndex = token.find_last_of(':'); colonIndex != std::string_view::npos)
+		token = token.substr(colonIndex + 1);
+	trim(token, "\t\n\v\f\r ,:;()[]");
+	if (!token.empty() && (token.back() == 'h' || token.back() == 'H'))
+		token.remove_suffix(1);
+	if (token.size() > 2 && token[0] == '0' && (token[1] == 'x' || token[1] == 'X'))
+		token.remove_prefix(2);
+	if (token.empty())
+		return false;
+
+	uint64 parsedValue = 0;
+	const auto result = std::from_chars(token.data(), token.data() + token.size(), parsedValue, 16);
+	if (result.ec != std::errc() || result.ptr != (token.data() + token.size()) || parsedValue > std::numeric_limits<uint32>::max())
+		return false;
+
+	value = static_cast<uint32>(parsedValue);
+	return true;
+}
+
+static bool TryParseMapSymbolLine(std::string_view rawLine, uint32& address, std::string& symbolName)
+{
+	auto line = rawLine;
+	trim(line);
+	if (line.empty())
+		return false;
+
+	const auto addressEnd = line.find_first_of(" \t");
+	if (addressEnd == std::string_view::npos)
+		return false;
+	if (!TryParseMapAddress(line.substr(0, addressEnd), address))
+		return false;
+
+	line = line.substr(addressEnd + 1);
+	trim(line);
+	if (line.empty())
+		return false;
+
+	const auto symbolEnd = line.find_first_of(" \t");
+	auto symbolToken = symbolEnd == std::string_view::npos ? line : line.substr(0, symbolEnd);
+	trim(symbolToken);
+	if (symbolToken.empty())
+		return false;
+
+	symbolName.assign(symbolToken);
+	return true;
+}
+
+static std::optional<MPTR> GetRelocatedMapAddress(const DebuggerModuleInfo& moduleInfo, uint32 mapAddress)
+{
+	if (moduleInfo.textArea.ContainsOriginalAddress(mapAddress))
+		return moduleInfo.textArea.base + (mapAddress - moduleInfo.textArea.origBase);
+	if (moduleInfo.dataArea.ContainsOriginalAddress(mapAddress))
+		return moduleInfo.dataArea.base + (mapAddress - moduleInfo.dataArea.origBase);
+	return std::nullopt;
+}
 
 void DebuggerConfig::Load(XMLConfigParser& parser)
 {
@@ -282,24 +344,77 @@ void DebuggerWindow2::LoadModuleStorage(const DebuggerModuleInfo& moduleInfo)
 	bool already_loaded = std::any_of(m_modulesStorage.begin(), m_modulesStorage.end(), [path](const std::unique_ptr<XMLDebuggerModuleConfig>& debug) { return debug->GetFilename() == path; });
 	if (!path.empty() && !already_loaded)
 	{
-		m_modulesStorage.emplace_back(new XMLDebuggerModuleConfig(path, { moduleInfo, false }))->Load();
+		auto& moduleStorage = m_modulesStorage.emplace_back(new XMLDebuggerModuleConfig(path, { moduleInfo, false }));
+		moduleStorage->Load();
+		LoadModuleMap(moduleStorage->data());
 	}
 }
 
 void DebuggerWindow2::SaveModuleStorage(const DebuggerModuleInfo& moduleInfo, bool deleteModuleStorage)
 {
 	auto path = GetModuleStoragePath(moduleInfo.moduleName, moduleInfo.patchCRC);
-	for (auto& moduleStorage : m_modulesStorage)
+	for (auto it = m_modulesStorage.begin(); it != m_modulesStorage.end(); ++it)
 	{
+		auto& moduleStorage = *it;
 		if (moduleStorage->data().moduleInfo.moduleName == moduleInfo.moduleName && moduleStorage->data().moduleInfo.patchCRC == moduleInfo.patchCRC)
 		{
 			moduleStorage->data().delete_breakpoints_after_saving = deleteModuleStorage; // make sure breakpoints are deleted when the storage is removed
 			moduleStorage->Save(path);
 			if (deleteModuleStorage)
-				m_modulesStorage.erase(std::find(m_modulesStorage.begin(), m_modulesStorage.end(), moduleStorage));
-			break;
+			{
+				UnloadModuleMap(moduleStorage->data());
+				m_modulesStorage.erase(it);
+			}
+			return;
 		}
 	}
+}
+
+void DebuggerWindow2::LoadModuleMap(DebuggerModuleStorage& moduleStorage)
+{
+	UnloadModuleMap(moduleStorage);
+
+	const auto mapPath = GetModuleMapPath(moduleStorage.moduleInfo.moduleName, moduleStorage.moduleInfo.patchCRC);
+	if (mapPath.empty())
+		return;
+
+	std::unique_ptr<FileStream> fileStream(FileStream::openFile(mapPath.c_str()));
+	if (!fileStream)
+		return;
+
+	const auto fileSize = fileStream->GetSize();
+	if (fileSize == 0 || fileSize > std::numeric_limits<uint32>::max())
+		return;
+
+	const auto readSize = static_cast<uint32>(fileSize);
+	std::vector<char> fileData(readSize);
+	if (fileStream->readData(fileData.data(), readSize) != readSize)
+		return;
+
+	std::string_view fileView(fileData.data(), fileData.size());
+	for (const auto& line : StringHelpers::StringLineIterator(fileView))
+	{
+		uint32 mapAddress = 0;
+		std::string symbolName;
+		if (TryParseMapSymbolLine(line, mapAddress, symbolName))
+		{
+			const auto relocatedAddress = GetRelocatedMapAddress(moduleStorage.moduleInfo, mapAddress);
+			if (relocatedAddress)
+			{
+				moduleStorage.loaded_map_symbols.emplace_back(rplSymbolStorage_store(moduleStorage.moduleInfo.moduleName.c_str(), symbolName.c_str(), *relocatedAddress, RPL_STORED_SYMBOL_MAP));
+			}
+		}
+	}
+}
+
+void DebuggerWindow2::UnloadModuleMap(DebuggerModuleStorage& moduleStorage)
+{
+	for (auto* symbol : moduleStorage.loaded_map_symbols)
+	{
+		if (symbol)
+			rplSymbolStorage_remove(symbol);
+	}
+	moduleStorage.loaded_map_symbols.clear();
 }
 
 DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
@@ -535,6 +650,12 @@ std::wstring DebuggerWindow2::GetModuleStoragePath(std::string module_name, uint
 {
 	if (module_name.empty() || crc_hash == 0) return {};
 	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.xml", module_name, crc_hash).generic_wstring();
+}
+
+std::wstring DebuggerWindow2::GetModuleMapPath(std::string module_name, uint32_t crc_hash) const
+{
+	if (module_name.empty() || crc_hash == 0) return {};
+	return ActiveSettings::GetConfigPath("debugger/{}_{:#10x}.map", module_name, crc_hash).generic_wstring();
 }
 
 void DebuggerWindow2::OnBreakpointHit(wxCommandEvent& event)
