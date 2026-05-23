@@ -135,6 +135,17 @@ struct HotkeyEntry
 HotkeySettings::HotkeySettings(wxWindow* parent)
 	: wxFrame(parent, wxID_ANY, _("Hotkey Settings"))
 {
+	// Esc closes the window, but yield to in-progress key capture so its own
+	// cancel path (OnKeyUp -> IsValidKeycodeUp rejects WXK_ESCAPE) still runs.
+	Bind(wxEVT_CHAR_HOOK, [this](wxKeyEvent& event) {
+		if (event.GetKeyCode() == WXK_ESCAPE && !m_activeInputButton)
+		{
+			Close();
+			return;
+		}
+		event.Skip();
+	});
+
 	SetIcon(wxICON(X_HOTKEY_SETTINGS));
 
 	m_sizer = new wxFlexGridSizer(0, 3, 5, 5);

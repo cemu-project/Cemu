@@ -18,6 +18,8 @@
 GameProfileWindow::GameProfileWindow(wxWindow* parent, uint64_t title_id)
 	: wxFrame(parent, wxID_ANY, _("Edit game profile"), wxDefaultPosition, wxSize{ 390, 350 }, wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER | wxTAB_TRAVERSAL | wxSYSTEM_MENU), m_title_id(title_id)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	SetIcon(wxICON(X_GAME_PROFILE));
 
 	m_game_profile.Reset();

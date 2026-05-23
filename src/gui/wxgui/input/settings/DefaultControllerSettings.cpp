@@ -19,6 +19,8 @@ DefaultControllerSettings::DefaultControllerSettings(wxWindow* parent, const wxP
 	: wxDialog(parent, wxID_ANY, _("Controller settings"), position, wxDefaultSize,
 	           wxDEFAULT_DIALOG_STYLE), m_controller(std::move(controller))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	m_settings = m_controller->get_settings();
 	m_rumble_backup = m_settings.rumble;
 

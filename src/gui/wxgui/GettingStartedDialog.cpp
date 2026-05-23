@@ -22,6 +22,7 @@
 #endif
 
 #include "wxHelper.h"
+#include "wxgui/helpers/wxHelpers.h"
 
 wxDEFINE_EVENT(EVT_REFRESH_FIRST_PAGE, wxCommandEvent); // used to refresh the first page after the language change
 
@@ -247,6 +248,8 @@ void GettingStartedDialog::OnClose(wxCloseEvent& event)
 GettingStartedDialog::GettingStartedDialog(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Getting started"), wxDefaultPosition, { 740,530 }, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	m_notebook = new wxSimplebook(this, wxID_ANY);

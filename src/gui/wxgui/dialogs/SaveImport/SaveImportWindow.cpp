@@ -22,6 +22,8 @@ SaveImportWindow::SaveImportWindow(wxWindow* parent, uint64 title_id)
 	: wxDialog(parent, wxID_ANY, _("Import save entry"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
 	m_title_id(title_id)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	{

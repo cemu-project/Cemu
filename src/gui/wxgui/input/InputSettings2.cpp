@@ -69,6 +69,8 @@ using wxControllerPageData = wxCustomData<ControllerPage>;
 InputSettings2::InputSettings2(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Input settings"))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
 	g_inputConfigWindowHasFocus = true;

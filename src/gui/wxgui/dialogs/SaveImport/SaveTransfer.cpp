@@ -18,6 +18,8 @@ SaveTransfer::SaveTransfer(wxWindow* parent, uint64 title_id, const wxString& so
 : wxDialog(parent, wxID_ANY, _("Save transfer"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
 	m_title_id(title_id), m_source_id(source_id)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	{

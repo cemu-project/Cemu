@@ -13,6 +13,8 @@
 wxCreateAccountDialog::wxCreateAccountDialog(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Create new account"))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* main_sizer = new wxFlexGridSizer(0, 2, 0, 0);
 	main_sizer->AddGrowableCol(1);
 	main_sizer->SetFlexibleDirection(wxBOTH);

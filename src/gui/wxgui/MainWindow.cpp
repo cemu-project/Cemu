@@ -1896,6 +1896,7 @@ public:
 	CemuAboutDialog(wxWindow* parent = NULL)
 		: wxDialog(NULL, wxID_ANY, _("About Cemu"), wxDefaultPosition, wxSize(500, 700))
 	{
+		wxHelper::BindEscapeCloses(this);
 		Create(parent);
 	}
 
@@ -2207,7 +2208,7 @@ void MainWindow::RecreateMenu()
 	if (m_game_launched)
 		m_fileMenu->Enable(MAINFRAME_MENU_ID_FILE_CLEAR_SPOTPASS_CACHE, false);
 	m_fileMenu->AppendSeparator();
-	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit"));
+	m_exitMenuItem = m_fileMenu->Append(MAINFRAME_MENU_ID_FILE_EXIT, _("&Exit\tCtrl+Q"));
 	m_menuBar->Append(m_fileMenu, _("&File"));
 	// options->account submenu
 	m_optionsAccountMenu = new wxMenu();

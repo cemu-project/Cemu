@@ -3,6 +3,7 @@
 
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/libs/snd_core/ax_internal.h"
+#include "wxgui/helpers/wxHelpers.h"
 
 enum
 {
@@ -24,6 +25,8 @@ wxEND_EVENT_TABLE()
 AudioDebuggerWindow::AudioDebuggerWindow(wxFrame& parent)
 	: wxFrame(&parent, wxID_ANY, _("AX voice viewer"), wxDefaultPosition, wxSize(1126, 580), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	wxPanel* mainPane = new wxPanel(this);
 	wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	

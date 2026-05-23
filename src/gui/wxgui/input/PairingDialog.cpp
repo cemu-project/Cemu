@@ -9,6 +9,7 @@
 #include <bluetooth/hci.h>
 #include <bluetooth/hci_lib.h>
 #include <input/api/Wiimote/l2cap/L2CapWiimote.h>
+#include "wxgui/helpers/wxHelpers.h"
 #endif
 
 wxDECLARE_EVENT(wxEVT_PROGRESS_PAIR, wxCommandEvent);
@@ -17,6 +18,8 @@ wxDEFINE_EVENT(wxEVT_PROGRESS_PAIR, wxCommandEvent);
 PairingDialog::PairingDialog(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Pairing..."), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	m_gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(350, 20), wxGA_HORIZONTAL);
 	m_gauge->SetValue(0);
