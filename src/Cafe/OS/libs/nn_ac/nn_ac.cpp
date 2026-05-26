@@ -102,7 +102,10 @@ void _GetLocalIPAndSubnetMask(uint32& localIp, uint32& subnetMask)
 		if (!(ifa->ifa_flags & IFF_UP) || !(ifa->ifa_flags & IFF_RUNNING))
 			continue;
 
-		if (ifa->ifa_flags & IFF_LOOPBACK)
+		if (ifa->ifa_flags & IFF_LOOPBACK || ifa->ifa_flags & IFF_POINTOPOINT)
+			continue;
+
+		if (boost::starts_with(ifa->ifa_name, "br-") || boost::starts_with(ifa->ifa_name, "docker"))
 			continue;
 
 		const auto* addr_in = reinterpret_cast<struct sockaddr_in*>(ifa->ifa_addr);
