@@ -198,6 +198,8 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 	: wxDialog(parent, wxID_ANY, _("Graphic packs"), wxDefaultPosition, wxSize(1000,670), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER),
 		m_installed_games(CafeTitleList::GetAllTitleIds())
 {
+	wxHelper::BindEscapeCloses(this);
+
 	if (title_id_filter != 0)
 		m_filter = fmt::format("{:x}", title_id_filter);
 

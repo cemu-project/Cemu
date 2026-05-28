@@ -1079,6 +1079,8 @@ wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 	: wxDialog(parent, wxID_ANY, _("General settings"), wxDefaultPosition, wxDefaultSize, wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER), m_game_launched(game_launched)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	SetIcon(wxICON(X_SETTINGS));
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);

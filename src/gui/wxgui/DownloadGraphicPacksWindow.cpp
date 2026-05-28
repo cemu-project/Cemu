@@ -11,6 +11,7 @@
 #include "Common/FileStream.h"
 
 #include "Cafe/CafeSystem.h"
+#include "wxgui/helpers/wxHelpers.h"
 
 struct DownloadGraphicPacksWindow::curlDownloadFileState_t
 {
@@ -294,6 +295,8 @@ DownloadGraphicPacksWindow::DownloadGraphicPacksWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Checking version..."), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
 	m_threadState(ThreadRunning), m_stage(StageCheckVersion), m_currentStage(StageCheckVersion)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	m_processBar = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);

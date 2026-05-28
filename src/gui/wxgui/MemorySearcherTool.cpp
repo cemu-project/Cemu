@@ -50,6 +50,8 @@ const wxString kDataTypeNames[] = {kDatatypeFloat,kDatatypeDouble,/*DATATYPE_STR
 MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	: wxFrame(parent, wxID_ANY, _("Memory Searcher"), wxDefaultPosition, wxSize(600, 540), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 	this->wxTopLevelWindowBase::SetMinSize(wxSize(600, 540));
 

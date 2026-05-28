@@ -85,6 +85,8 @@ ChecksumTool::ChecksumTool(wxWindow* parent, wxTitleManagerList::TitleEntry& ent
 		formatWxString(_("Title checksum of {:08x}-{:08x}"), (uint32) (entry.title_id >> 32), (uint32) (entry.title_id & 0xFFFFFFFF)),
 		wxDefaultPosition, wxDefaultSize, wxCAPTION | wxFRAME_TOOL_WINDOW | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX), m_entry(entry)
 {
+	wxHelper::BindEscapeCloses(this);
+
 
 	m_info = CafeTitleList::GetTitleInfoByUID(m_entry.location_uid);
 	if (!m_info.IsValid())

@@ -138,6 +138,8 @@ GameUpdateWindow::GameUpdateWindow(wxWindow& parent, const fs::path& filePath)
 	: wxDialog(&parent, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
 	  m_thread_state(ThreadRunning)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	try
 	{
 		#if BOOST_OS_WINDOWS

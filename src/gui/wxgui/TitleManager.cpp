@@ -233,6 +233,8 @@ wxPanel* TitleManager::CreateDownloadManagerPage()
 TitleManager::TitleManager(wxWindow* parent, TitleManagerPage default_page)
 	: wxFrame(parent, wxID_ANY, _("Title Manager"), wxDefaultPosition, wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	SetIcon(wxICON(X_BOX));
 	
 	auto* sizer = new wxBoxSizer(wxVERTICAL);

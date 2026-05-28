@@ -2,6 +2,7 @@
 #include "wxHelper.h"
 #include "TextureRelationWindow.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
+#include "wxgui/helpers/wxHelpers.h"
 
 enum
 {
@@ -37,6 +38,8 @@ void openTextureViewer(wxFrame& parentFrame)
 TextureRelationViewerWindow::TextureRelationViewerWindow(wxFrame& parent)
 	: wxFrame(&parent, wxID_ANY, _("Texture cache"), wxDefaultPosition, wxSize(1000, 480), wxCLOSE_BOX | wxCLIP_CHILDREN | wxCAPTION | wxRESIZE_BORDER)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	isTextureViewerOpen = true;
 
 	this->showOnlyActive = false;

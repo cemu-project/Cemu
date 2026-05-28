@@ -10,6 +10,7 @@
 #include "Cafe/OS/RPL/rpl_structs.h"
 
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "wxgui/helpers/wxHelpers.h"
 
 enum ItemColumns
 {
@@ -21,6 +22,8 @@ enum ItemColumns
 ModuleWindow::ModuleWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
 	: wxFrame(&parent, wxID_ANY, _("Modules"), wxDefaultPosition, wxSize(420, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);

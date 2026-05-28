@@ -7,6 +7,7 @@
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 
 #include "Cemu/ExpressionParser/ExpressionParser.h"
+#include "wxgui/helpers/wxHelpers.h"
 
 enum
 {
@@ -28,6 +29,8 @@ enum ItemColumns
 BreakpointWindow::BreakpointWindow(DebuggerWindow2& parent, const wxPoint& main_position, const wxSize& main_size)
 	: wxFrame(&parent, wxID_ANY, _("Breakpoints"), wxDefaultPosition, wxSize(420, 250), wxSYSTEM_MENU | wxCAPTION | wxCLIP_CHILDREN | wxRESIZE_BORDER | wxFRAME_FLOAT_ON_PARENT)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	this->SetSizeHints(wxDefaultSize, wxDefaultSize);
 	
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);

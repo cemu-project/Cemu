@@ -6,12 +6,15 @@
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/wupdlock.h>
+#include "wxgui/helpers/wxHelpers.h"
 
 wxDEFINE_EVENT(EVT_LOG, wxLogEvent);
 
 LoggingWindow::LoggingWindow(wxFrame* parent)
 	: wxFrame(parent, wxID_ANY, _("Logging window"), wxDefaultPosition, wxSize(800, 600), wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer( wxVERTICAL );
 	{
 		auto filter_row = new wxBoxSizer( wxHORIZONTAL );

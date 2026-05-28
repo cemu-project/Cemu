@@ -16,6 +16,7 @@
 
 #include <curl/curl.h>
 #include <zip.h>
+#include "wxgui/helpers/wxHelpers.h"
 
 static size_t curlDownloadFile_writeData(void *ptr, size_t size, size_t nmemb, DownloadCustomGraphicPackWindow::curlDownloadFileState_t* downloadState)
 {
@@ -67,6 +68,8 @@ DownloadCustomGraphicPackWindow::DownloadCustomGraphicPackWindow(wxWindow* paren
     : wxDialog(parent, wxID_ANY, _("Download Graphic Pack from URL"), wxDefaultPosition, wxDefaultSize, wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX),
     m_stage(StageDone), m_currentStage(StageDone)
 {
+	wxHelper::BindEscapeCloses(this);
+
     auto* sizer = new wxBoxSizer(wxVERTICAL);
     
     m_urlField = new wxTextCtrl(this, wxID_ANY, wxEmptyString);

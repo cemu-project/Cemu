@@ -37,6 +37,8 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	: wxFrame(parent, wxID_ANY, _("Emulated USB Devices"), wxDefaultPosition,
 			  wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	SetIcon(wxICON(X_BOX));
 
 	auto& config = GetConfig();
@@ -330,6 +332,8 @@ void EmulatedUSBDeviceFrame::ClearSkylander(uint8 slot)
 CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 	: wxDialog(parent, wxID_ANY, _("Skylander Figure Creator"), wxDefaultPosition, wxSize(500, 150))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
@@ -511,6 +515,8 @@ void EmulatedUSBDeviceFrame::ClearFigure(uint8 slot)
 CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 slot)
 	: wxDialog(parent, wxID_ANY, _("Infinity Figure Creator"), wxDefaultPosition, wxSize(500, 150))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
@@ -686,6 +692,8 @@ void EmulatedUSBDeviceFrame::MoveMinifig(uint8 pad, uint8 index)
 CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Dimensions Figure Creator"), wxDefaultPosition, wxSize(500, 200))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
@@ -774,6 +782,8 @@ wxString CreateDimensionFigureDialog::GetFilePath() const
 MoveDimensionFigureDialog::MoveDimensionFigureDialog(EmulatedUSBDeviceFrame* parent, uint8 currentIndex)
 	: wxDialog(parent, wxID_ANY, _("Dimensions Figure Mover"), wxDefaultPosition, wxSize(700, 300))
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxGridSizer(2, 5, 10, 10);
 
 	std::array<std::optional<uint32>, 7> ids = parent->GetCurrentMinifigs();

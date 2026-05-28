@@ -2,8 +2,27 @@
 
 #include "interface/WindowSystem.h"
 #include <wx/control.h>
+#include <wx/event.h>
 #include <wx/listbase.h>
 #include <wx/string.h>
+#include <wx/window.h>
+
+namespace wxHelper
+{
+	// Use CHAR_HOOK rather than wxDialog::SetEscapeId so the key is caught
+	// before a focused child control (notebook, combobox, ...) can consume it.
+	inline void BindEscapeCloses(wxWindow* target)
+	{
+		target->Bind(wxEVT_CHAR_HOOK, [target](wxKeyEvent& event) {
+			if (event.GetKeyCode() == WXK_ESCAPE)
+			{
+				target->Close();
+				return;
+			}
+			event.Skip();
+		});
+	}
+}
 
 template <>
 struct fmt::formatter<wxString> : formatter<string_view>

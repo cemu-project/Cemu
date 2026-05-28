@@ -21,6 +21,7 @@
 #include <curl/curl.h>
 #include <zip.h>
 #include <boost/tokenizer.hpp>
+#include "wxgui/helpers/wxHelpers.h"
 
 
 wxDECLARE_EVENT(wxEVT_RESULT, wxCommandEvent);
@@ -33,6 +34,8 @@ CemuUpdateWindow::CemuUpdateWindow(wxWindow* parent)
 	: wxDialog(parent, wxID_ANY, _("Cemu update"), wxDefaultPosition, wxDefaultSize,
 		wxCAPTION | wxMINIMIZE_BOX | wxSYSTEM_MENU | wxTAB_TRAVERSAL | wxCLOSE_BOX)
 {
+	wxHelper::BindEscapeCloses(this);
+
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 	m_gauge = new wxGauge(this, wxID_ANY, 100, wxDefaultPosition, wxSize(500, 20), wxGA_HORIZONTAL);
 	m_gauge->SetValue(0);
