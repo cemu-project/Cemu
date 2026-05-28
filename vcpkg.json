@@ -67,7 +67,8 @@
         "zip"
       ]
     },
-    "libusb"
+    "libusb",
+    "pkgconf"
   ],
   "overrides": [
     {

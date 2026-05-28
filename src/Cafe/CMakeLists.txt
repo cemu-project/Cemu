@@ -83,13 +83,6 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/PPCRecompilerImlGenFPU.cpp
   HW/Espresso/Recompiler/PPCRecompilerIml.h
   HW/Espresso/Recompiler/PPCRecompilerIntermediate.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64AVX.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64BMI.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64FPU.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64Gen.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
-  HW/Espresso/Recompiler/BackendX64/BackendX64.h
   HW/Espresso/Recompiler/BackendX64/X64Emit.hpp
   HW/Espresso/Recompiler/BackendX64/x86Emitter.h
   HW/Latte/Common/RegisterSerializer.cpp
@@ -618,12 +611,23 @@ if(ENABLE_METAL)
     )
 endif()
 
-if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
-  target_sources(CemuCafe PRIVATE
-    HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.cpp
-    HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.h
-  )
-  target_link_libraries(CemuCafe PRIVATE xbyak_aarch64)
+if(CEMU_ARCHITECTURE MATCHES "(x86_64|amd64|AMD64)")
+	target_sources(CemuCafe PRIVATE 
+	HW/Espresso/Recompiler/BackendX64/BackendX64.cpp
+	HW/Espresso/Recompiler/BackendX64/BackendX64.h
+	HW/Espresso/Recompiler/BackendX64/BackendX64AVX.cpp
+	HW/Espresso/Recompiler/BackendX64/BackendX64BMI.cpp
+	HW/Espresso/Recompiler/BackendX64/BackendX64FPU.cpp
+	HW/Espresso/Recompiler/BackendX64/BackendX64Gen.cpp
+	HW/Espresso/Recompiler/BackendX64/BackendX64GenFPU.cpp
+	)
+else()
+	target_sources(CemuCafe PRIVATE
+	HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.cpp
+	HW/Espresso/Recompiler/BackendAArch64/BackendAArch64.h
+	)
+	target_link_libraries(CemuCafe PRIVATE xbyak_aarch64)
+	target_compile_definitions(ih264d PRIVATE ARCH_GENERIC DISABLE_NEON)
 endif()
 
 set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
@@ -646,7 +650,7 @@ else()
 endif()
 
 target_link_libraries(CemuCafe PRIVATE
-	CemuCommon
+  CemuCommon
   CemuGui
   ZArchive::zarchive
   imguiImpl
@@ -660,6 +664,10 @@ target_link_libraries(CemuCafe PRIVATE
   OpenSSL::SSL
 )
 
+if(MSVC AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    target_link_libraries(CemuCafe PRIVATE ntdll.lib)
+endif()
+
 if (ENABLE_WAYLAND)
 	# PUBLIC because wayland-client.h is included in VulkanAPI.h
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
@@ -668,7 +676,9 @@ endif()
 if (ENABLE_LIBUSB)
   if (ENABLE_VCPKG)
     if(WIN32)
-      set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
+		if(DEFINED VCPKG_TARGET_TRIPLET)
+		    set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/pkgconf/pkgconf.exe")
+		endif()
     endif()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)

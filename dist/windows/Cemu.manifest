@@ -1,16 +1,29 @@
-﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+﻿﻿<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
     <dependency>
         <dependentAssembly>
-            <assemblyIdentity type="win32" name="Microsoft.Windows.Common-Controls" version="6.0.0.0" processorArchitecture="amd64" publicKeyToken="6595b64144ccf1df" language="*"></assemblyIdentity>
+            <!-- Changed processorArchitecture to "*" for ARM64/x64 compatibility -->
+            <assemblyIdentity 
+                type="win32" 
+                name="Microsoft.Windows.Common-Controls" 
+                version="6.0.0.0" 
+                processorArchitecture="*" 
+                publicKeyToken="6595b64144ccf1df" 
+                language="*" />
         </dependentAssembly>
     </dependency>
-    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3"><security><requestedPrivileges>
-        <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel></requestedPrivileges></security>
+    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+        <security>
+            <requestedPrivileges>
+                <requestedExecutionLevel level="asInvoker" uiAccess="false"></requestedExecutionLevel>
+            </requestedPrivileges>
+        </security>
     </trustInfo>
     <application xmlns="urn:schemas-microsoft-com:asm.v3">
         <windowsSettings>
+            <!-- Modern DPI awareness setting (covers Windows 7 through 11) -->
             <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">True/PM</dpiAware>
+            <dpiAwareness xmlns="http://schemas.microsoft.com/SMI/2016/WindowsSettings">PerMonitorV2</dpiAwareness>
         </windowsSettings>
     </application>
 </assembly>
