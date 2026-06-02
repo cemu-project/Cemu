@@ -161,7 +161,6 @@ target_link_libraries(CemuWxGui PRIVATE
   CemuComponents
   pugixml::pugixml
   CemuCafe
-  CemuCamera
   PUBLIC
   CURL::libcurl
 )
