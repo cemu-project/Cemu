@@ -252,8 +252,6 @@ void DumpCtrl::CenterOffset(uint32 offset)
 
 	RefreshControl();
 	//RefreshLine(line);
-
-	debug_printf("scroll to %x\n", debuggerState.debugSession.instructionPointer);
 }
 
 uint32 DumpCtrl::LineToOffset(uint32 line)

@@ -147,14 +147,21 @@ RendererShaderGL::RendererShaderGL(ShaderType type, uint64 baseHash, uint64 auxH
 
 RendererShaderGL::~RendererShaderGL()
 {
+	CleanupShaderObj();
+
+	if (m_program != 0)
+		glDeleteProgram(m_program);
+}
+
+void RendererShaderGL::CleanupShaderObj()
+{
 	if (m_shader_object != 0 && m_shader_attached)
 		glDetachShader(m_program, m_shader_object);
 
 	if (m_shader_object != 0)
 		glDeleteShader(m_shader_object);
 
-	if (m_program != 0)
-		glDeleteProgram(m_program);
+	m_shader_object = 0;
 }
 
 void RendererShaderGL::PreponeCompilation(bool isRenderThread)
@@ -192,9 +199,8 @@ bool RendererShaderGL::WaitForCompiled()
 			cemuLog_log(LogType::Force, "Compile error in shader. Log:");
 			cemuLog_log(LogType::Force, infoLog);
 		}
-		if (m_shader_object != 0)
-			glDeleteShader(m_shader_object);
 		m_isCompiled = true;
+		CleanupShaderObj();
 		return false;
 	}
 	// get shader binary
@@ -213,12 +219,12 @@ bool RendererShaderGL::WaitForCompiled()
 			cemuLog_log(LogType::Force, infoLog);
 		}
 		m_isCompiled = true;
+		CleanupShaderObj();
 		return false;
 	}
 
-	/*glDetachShader(m_program, m_shader_object);
-	m_shader_attached = false;*/
 	m_isCompiled = true;
+	CleanupShaderObj();
 	return true;
 }
 

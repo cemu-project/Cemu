@@ -9,58 +9,7 @@
 #include "util/helpers/helpers.h"
 #include "util/helpers/Serializer.h"
 #include "Cafe/HW/Latte/Common/RegisterSerializer.h"
-
-/* rects emulation */
-
-void rectsEmulationGS_outputSingleVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 vIdx, const LatteContextRegister& latteRegister)
-{
-	auto parameterMask = vertexShader->outputParameterMask;
-	for (uint32 i = 0; i < 32; i++)
-	{
-		if ((parameterMask & (1 << i)) == 0)
-			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
-		if (vsSemanticId < 0)
-			continue;
-		// make sure PS has matching input
-		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
-			continue;
-		gsSrc.append(fmt::format("passParameterSem{}Out = passParameterSem{}In[{}];\r\n", vsSemanticId, vsSemanticId, vIdx));
-	}
-	gsSrc.append(fmt::format("gl_Position = gl_in[{}].gl_Position;\r\n", vIdx));
-	gsSrc.append("EmitVertex();\r\n");
-}
-
-void rectsEmulationGS_outputGeneratedVertex(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, const char* variant, const LatteContextRegister& latteRegister)
-{
-	auto parameterMask = vertexShader->outputParameterMask;
-	for (uint32 i = 0; i < 32; i++)
-	{
-		if ((parameterMask & (1 << i)) == 0)
-			continue;
-		sint32 vsSemanticId = psInputTable->getVertexShaderOutParamSemanticId(latteRegister.GetRawView(), i);
-		if (vsSemanticId < 0)
-			continue;
-		// make sure PS has matching input
-		if (!psInputTable->hasPSImportForSemanticId(vsSemanticId))
-			continue;
-		gsSrc.append(fmt::format("passParameterSem{}Out = gen4thVertex{}(passParameterSem{}In[0], passParameterSem{}In[1], passParameterSem{}In[2]);\r\n", vsSemanticId, variant, vsSemanticId, vsSemanticId, vsSemanticId));
-	}
-	gsSrc.append(fmt::format("gl_Position = gen4thVertex{}(gl_in[0].gl_Position, gl_in[1].gl_Position, gl_in[2].gl_Position);\r\n", variant));
-	gsSrc.append("EmitVertex();\r\n");
-}
-
-void rectsEmulationGS_outputVerticesCode(std::string& gsSrc, LatteDecompilerShader* vertexShader, LatteShaderPSInputTable* psInputTable, sint32 p0, sint32 p1, sint32 p2, sint32 p3, const char* variant, const LatteContextRegister& latteRegister)
-{
-	sint32 pList[4] = { p0, p1, p2, p3 };
-	for (sint32 i = 0; i < 4; i++)
-	{
-		if (pList[i] == 3)
-			rectsEmulationGS_outputGeneratedVertex(gsSrc, vertexShader, psInputTable, variant, latteRegister);
-		else
-			rectsEmulationGS_outputSingleVertex(gsSrc, vertexShader, psInputTable, pList[i], latteRegister);
-	}
-}
+#include "HW/Latte/Renderer/RendererCore.h"
 
 RendererShaderVk* rectsEmulationGS_generate(LatteDecompilerShader* vertexShader, const LatteContextRegister& latteRegister)
 {

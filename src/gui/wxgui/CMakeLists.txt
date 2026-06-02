@@ -2,10 +2,6 @@ add_library(CemuWxGui STATIC
   CameraSettingsWindow.cpp
   CameraSettingsWindow.h
   canvas/IRenderCanvas.h
-  canvas/OpenGLCanvas.cpp
-  canvas/OpenGLCanvas.h
-  canvas/VulkanCanvas.cpp
-  canvas/VulkanCanvas.h
   CemuApp.cpp
   CemuApp.h
   CemuUpdateWindow.cpp
@@ -52,6 +48,8 @@ add_library(CemuWxGui STATIC
   AudioDebuggerWindow.h
   DownloadGraphicPacksWindow.cpp
   DownloadGraphicPacksWindow.h
+  DownloadCustomGraphicPackWindow.cpp
+  DownloadCustomGraphicPackWindow.h
   GameProfileWindow.cpp
   GameProfileWindow.h
   GameUpdateWindow.cpp
@@ -118,6 +116,20 @@ add_library(CemuWxGui STATIC
   wxHelper.h
 )
 
+if (ENABLE_OPENGL)
+  target_sources(CemuWxGui PRIVATE
+    canvas/OpenGLCanvas.cpp
+    canvas/OpenGLCanvas.h
+  )
+endif()
+
+if (ENABLE_VULKAN)
+  target_sources(CemuWxGui PRIVATE
+    canvas/VulkanCanvas.cpp
+    canvas/VulkanCanvas.h
+  )
+endif()
+
 if (ENABLE_METAL)
   target_sources(CemuWxGui PRIVATE
     canvas/MetalCanvas.cpp
@@ -147,7 +159,6 @@ target_link_libraries(CemuWxGui PRIVATE
   libzip::zip
   ZArchive::zarchive
   CemuComponents
-  SDL2::SDL2
   pugixml::pugixml
   CemuCafe
   CemuCamera
@@ -165,6 +176,10 @@ endif()
 
 if(ENABLE_CUBEB)
 	target_link_libraries(CemuWxGui PRIVATE cubeb::cubeb)
+endif()
+
+if(ENABLE_SDL)
+	target_link_libraries(CemuWxGui PRIVATE SDL3::SDL3)
 endif()
 
 if(UNIX AND NOT APPLE)

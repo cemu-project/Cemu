@@ -10,7 +10,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Common/MemPtr.h"
 #include "HW/Latte/ISA/LatteReg.h"
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 #include "HW/Latte/Renderer/Metal/MetalCommon.h"
 #endif
 
@@ -403,11 +403,9 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 		}
 		else if (cfInstruction->exportType == 0 && cfInstruction->exportArrayBase == 61)
 		{
-#if ENABLE_METAL
 			// Only check for depth buffer mask on Metal, as its not in the PS hash on other backends
 			if (g_renderer->GetType() != RendererAPI::Metal || LatteMRT::GetActiveDepthBufferMask(*shaderContext->contextRegistersNew))
 				shader->depthMask = true;
-#endif
 		}
 		else
 			debugBreakpoint();
@@ -512,7 +510,7 @@ namespace LatteDecompiler
 		}
 	}
 
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	void _initTextureBindingPointsMTL(LatteDecompilerShaderContext* decompilerContext)
 	{
 		// for Vulkan we use consecutive indices
@@ -563,7 +561,7 @@ namespace LatteDecompiler
 		{
 			decompilerContext->hasUniformVarBlock = true; // uf_verticesPerInstance and uf_streamoutBufferBase*
 		}
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 		if (g_renderer->GetType() == RendererAPI::Metal)
 		{
             bool usesGeometryShader = UseGeometryShader(*decompilerContext->contextRegistersNew, decompilerContext->options->usesGeometryShader);
@@ -1113,7 +1111,7 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		shaderContext->output->resourceMappingVK.setIndex = 2;
 	LatteDecompiler::_initTextureBindingPointsGL(shaderContext);
 	LatteDecompiler::_initTextureBindingPointsVK(shaderContext);
-#if ENABLE_METAL
+#ifdef ENABLE_METAL
 	LatteDecompiler::_initTextureBindingPointsMTL(shaderContext);
 #endif
 	LatteDecompiler::_initUniformBindingPoints(shaderContext);

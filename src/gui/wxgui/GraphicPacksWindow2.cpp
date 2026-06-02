@@ -2,6 +2,7 @@
 #include "wxgui/wxgui.h"
 #include "wxgui/GraphicPacksWindow2.h"
 #include "wxgui/DownloadGraphicPacksWindow.h"
+#include "wxgui/DownloadCustomGraphicPackWindow.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
 #include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
@@ -302,9 +303,14 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		sizer->Add(new wxStaticLine(m_right_panel, wxID_ANY), 0, wxLEFT|wxRIGHT | wxEXPAND, 3);
 
 		auto* row = new wxBoxSizer(wxHORIZONTAL);
+		
 		m_update_graphicPacks = new wxButton(m_right_panel, wxID_ANY, _("Download latest community graphic packs"));
 		m_update_graphicPacks->Bind(wxEVT_BUTTON, &GraphicPacksWindow2::OnCheckForUpdates, this);
-		row->Add(m_update_graphicPacks, 0, wxALL, 5);
+		row->Add(m_update_graphicPacks, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+
+		m_download_from_url = new wxHyperlinkCtrl(m_right_panel, wxID_ANY, _("Or download pack from URL..."), _(""));
+		m_download_from_url->Bind(wxEVT_HYPERLINK, &GraphicPacksWindow2::OnClickCustomDownload, this);
+		row->Add(m_download_from_url, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
 
 		sizer->Add(row, 0, wxALL | wxEXPAND, 5);
 
@@ -599,6 +605,16 @@ void GraphicPacksWindow2::OnReloadShaders(wxCommandEvent& event)
 		ReloadPack(m_shown_graphic_pack);
 }
 
+void GraphicPacksWindow2::OnClickCustomDownload(wxCommandEvent& event)
+{
+	DownloadCustomGraphicPackWindow frame(this);
+	if (frame.ShowModal() == wxID_OK)
+	{
+		RefreshGraphicPacks();
+		FillGraphicPackList();
+	}
+}
+
 void GraphicPacksWindow2::OnCheckForUpdates(wxCommandEvent& event)
 {
 	DownloadGraphicPacksWindow frame(this);
@@ -684,10 +700,17 @@ void GraphicPacksWindow2::OnInstalledGamesChanged(wxCommandEvent& event)
 void GraphicPacksWindow2::UpdateTitleRunning(bool running)
 {
 	m_update_graphicPacks->Enable(!running);
+	m_download_from_url->Enable(!running);
 	if(running)
+	{
+		m_download_from_url->SetToolTip(_("Graphic packs cannot be updated while a game is running."));
 		m_update_graphicPacks->SetToolTip(_("Graphic packs cannot be updated while a game is running."));
+	}
 	else
+	{
 		m_update_graphicPacks->SetToolTip(nullptr);
+		m_download_from_url->SetToolTip(nullptr);
+	}
 }
 
 void GraphicPacksWindow2::ReloadPack(const GraphicPackPtr& graphic_pack) const

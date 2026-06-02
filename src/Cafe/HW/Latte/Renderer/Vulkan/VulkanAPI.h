@@ -192,11 +192,6 @@ VKFUNC_DEVICE(vkCmdEndRenderingKHR);
 // khr_present_wait
 VKFUNC_DEVICE(vkWaitForPresentKHR);
 
-// transform feedback extension
-VKFUNC_DEVICE(vkCmdBindTransformFeedbackBuffersEXT);
-VKFUNC_DEVICE(vkCmdBeginTransformFeedbackEXT);
-VKFUNC_DEVICE(vkCmdEndTransformFeedbackEXT);
-
 // query
 VKFUNC_DEVICE(vkCreateQueryPool);
 VKFUNC_DEVICE(vkDestroyQueryPool);

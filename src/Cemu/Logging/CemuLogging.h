@@ -78,46 +78,34 @@ bool cemuLog_log(LogType type, std::string_view text);
 bool cemuLog_log(LogType type, std::u8string_view text);
 void cemuLog_waitForFlush(); // wait until all log lines are written
 
-template<typename T, typename ... TArgs>
-bool cemuLog_log(LogType type, std::basic_string<T> formatStr, TArgs&&... args)
+template<typename... TArgs>
+bool cemuLog_log(LogType type, fmt::format_string<TArgs...> formatStr, TArgs&&... args)
 {
 	if (!cemuLog_isLoggingEnabled(type))
 		return false;
-	if constexpr (sizeof...(TArgs) == 0)
-	{
-		cemuLog_log(type, std::basic_string_view<T>(formatStr.data(), formatStr.size()));
-		return true;
-	}
-	else
-	{
-		const auto format_view = fmt::basic_string_view<T>(formatStr);
-#if FMT_VERSION >= 110000
-		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffered_context<T>>(args...));
-#else
-		const auto text = fmt::vformat(format_view, fmt::make_format_args<fmt::buffer_context<T>>(args...));
-#endif
-		cemuLog_log(type, std::basic_string_view(text.data(), text.size()));
-	}
-	return true;
-}
 
-template<typename T, typename ... TArgs>
-bool cemuLog_log(LogType type, const T* format, TArgs&&... args)
-{
-	if (!cemuLog_isLoggingEnabled(type))
-		return false;
-	auto format_str = std::basic_string<T>(format);
-	return cemuLog_log(type, format_str, std::forward<TArgs>(args)...);
+	cemuLog_log(type, fmt::format(formatStr, std::forward<TArgs>(args)...));
+
+	return true;
 }
 
 #define cemuLog_logOnce(...) { static bool _not_first_call = false; if (!_not_first_call) { _not_first_call = true; cemuLog_log(__VA_ARGS__); } }
 
 // same as cemuLog_log, but only outputs in debug mode
-template<typename TFmt, typename ... TArgs>
-bool cemuLog_logDebug(LogType type, TFmt format, TArgs&&... args)
+template<typename ... TArgs>
+bool cemuLog_logDebug(LogType type, fmt::format_string<TArgs...> format, TArgs&&... args)
 {
 #ifdef CEMU_DEBUG_ASSERT
 	return cemuLog_log(type, format, std::forward<TArgs>(args)...);
+#else
+	return false;
+#endif
+}
+
+inline bool cemuLog_logDebug(LogType type, std::string_view message)
+{
+#ifdef CEMU_DEBUG_ASSERT
+	return cemuLog_log(type, message);
 #else
 	return false;
 #endif

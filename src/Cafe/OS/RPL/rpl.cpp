@@ -536,6 +536,10 @@ bool RPLLoader_LoadSections(sint32 aProcId, RPLModule* rplLoaderContext)
 	rplLoaderContext->regionSize_loaderInfo = regionLoaderinfoSize;
 	rplLoaderContext->regionSize_text = regionTextSize;
 
+	// set original base addresses
+	rplLoaderContext->regionOrigAddr_text = regionMappingTable.region[RPL_MAPPING_REGION_TEXT].baseAddress;
+	rplLoaderContext->regionOrigAddr_data = regionMappingTable.region[RPL_MAPPING_REGION_DATA].baseAddress;
+
 	// load data sections
 	for (sint32 i = 0; i < (sint32)rplLoaderContext->rplHeader.sectionTableEntryCount; i++)
 	{

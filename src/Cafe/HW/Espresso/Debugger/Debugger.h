@@ -21,9 +21,9 @@ class DebuggerCallbacks
 	virtual void UpdateViewThreadsafe() {}
 	virtual void NotifyDebugBreakpointHit() {}
 	virtual void NotifyRun() {}
-	virtual void MoveIP() {}
-	virtual void NotifyModuleLoaded(void* module) {}
-	virtual void NotifyModuleUnloaded(void* module) {}
+	virtual void MoveToAddressInDisassembly(MPTR address) {}
+	virtual void NotifyModuleLoaded(struct RPLModule* module) {}
+	virtual void NotifyModuleUnloaded(struct RPLModule* module) {}
 	virtual void NotifyGraphicPacksModified() {}
 	virtual ~DebuggerCallbacks() = default;
 };
@@ -64,17 +64,17 @@ class DebuggerDispatcher
 		m_callbacks->NotifyRun();
 	}
 
-	void MoveIP()
+	void MoveToAddressInDisassembly(MPTR address)
 	{
-		m_callbacks->MoveIP();
+		m_callbacks->MoveToAddressInDisassembly(address);
 	}
 
-	void NotifyModuleLoaded(void* module)
+	void NotifyModuleLoaded(struct RPLModule* module)
 	{
 		m_callbacks->NotifyModuleLoaded(module);
 	}
 
-	void NotifyModuleUnloaded(void* module)
+	void NotifyModuleUnloaded(struct RPLModule* module)
 	{
 		m_callbacks->NotifyModuleUnloaded(module);
 	}
@@ -85,8 +85,11 @@ class DebuggerDispatcher
 	}
 } extern g_debuggerDispatcher;
 
+using BreakpointId = uint64;
+
 struct DebuggerBreakpoint
 {
+	BreakpointId id;
 	uint32 address;
 	uint32 originalOpcodeValue;
 	mutable uint8 bpType;
@@ -97,9 +100,10 @@ struct DebuggerBreakpoint
 	DebuggerBreakpoint(uint32 address, uint32 originalOpcode, uint8 bpType = 0, bool enabled = true, std::wstring comment = std::wstring())
 		:address(address), originalOpcodeValue(originalOpcode), bpType(bpType), enabled(enabled), comment(std::move(comment)) 
 	{
+		static std::atomic<uint64_t> bpIdGen{1};
+		id = bpIdGen.fetch_add(1);
 		next = nullptr;
 	}
-
 
 	bool operator<(const DebuggerBreakpoint& rhs) const
 	{
@@ -133,64 +137,53 @@ struct DebuggerPatch
 
 struct PPCSnapshot
 {
-	uint32 gpr[32];
-	FPR_t fpr[32];
-	uint8 cr[32];
-	uint32 spr_lr;
+	uint32 gpr[32]{};
+	FPR_t fpr[32]{};
+	uint8 cr[32]{};
+	uint32 spr_lr{};
 };
 
-typedef struct  
+enum class DebuggerStepCommand : uint8
 {
-	bool breakOnEntry;
-	bool logOnlyMemoryBreakpoints;
-	// breakpoints
-	std::vector<DebuggerBreakpoint*> breakpoints;
-	std::vector<DebuggerPatch*> patches;
-	DebuggerBreakpoint* activeMemoryBreakpoint;
-	// debugging state
-	struct  
-	{
-		volatile bool shouldBreak; // debugger window requests a break asap
-		volatile bool isTrapped; // if set, breakpoint is active and stepping through the code is possible
-		uint32 debuggedThreadMPTR;
-		volatile uint32 instructionPointer;
-		PPCInterpreter_t* hCPU;
-		// step control
-		volatile bool stepOver;
-		volatile bool stepInto;
-		volatile bool run;
-		// snapshot of PPC state
-		PPCSnapshot ppcSnapshot;
-	}debugSession;
+	None,
+	StepInto,
+	StepOver,
+	Run
+};
 
-}debuggerState_t;
-
-extern debuggerState_t debuggerState;
-
-// new API
-DebuggerBreakpoint* debugger_getFirstBP(uint32 address);
+// breakpoint API
 void debugger_createCodeBreakpoint(uint32 address, uint8 bpType);
+void debugger_createMemoryBreakpoint(uint32 address, bool onRead, bool onWrite);
 void debugger_toggleExecuteBreakpoint(uint32 address); // create/remove execute breakpoint
 void debugger_toggleLoggingBreakpoint(uint32 address); // create/remove logging breakpoint
 void debugger_toggleBreakpoint(uint32 address, bool state, DebuggerBreakpoint* bp);
+void debugger_deleteBreakpoint(BreakpointId bpId);
+std::vector<DebuggerBreakpoint*>& debugger_lockBreakpoints();
+DebuggerBreakpoint* debugger_getFirstBP(uint32 address);
+DebuggerBreakpoint* debugger_getBreakpointById(BreakpointId bpId);
+void debugger_unlockBreakpoints();
 
-void debugger_createMemoryBreakpoint(uint32 address, bool onRead, bool onWrite);
-
-void debugger_handleEntryBreakpoint(uint32 address);
-
-void debugger_deleteBreakpoint(DebuggerBreakpoint* bp);
-
-void debugger_updateExecutionBreakpoint(uint32 address, bool forceRestore = false);
-
+// patch API
 void debugger_createPatch(uint32 address, std::span<uint8> patchData);
 bool debugger_hasPatch(uint32 address);
 void debugger_removePatch(uint32 address);
 
-void debugger_forceBreak(); // force breakpoint at the next possible instruction
+// debug session
+PPCInterpreter_t* debugger_lockDebugSession();
+void debugger_unlockDebugSession(PPCInterpreter_t* hCPU);
+PPCSnapshot debugger_getSnapshotFromSession(PPCInterpreter_t* hCPU);
+void debugger_stepCommand(DebuggerStepCommand stepCommand);
+
+// misc
+void debugger_requestBreak(); // break at the next possible instruction (any thread)
 bool debugger_isTrapped();
-void debugger_resume();
-
-void debugger_enterTW(PPCInterpreter_t* hCPU);
-void debugger_shouldBreak(PPCInterpreter_t* hCPU);
-
+void debugger_handleEntryBreakpoint(uint32 address);
+void debugger_enterTW(PPCInterpreter_t* hCPU, bool isSingleStep = false);
+void debugger_jumpToAddressInDisasm(MPTR address);
 void debugger_addParserSymbols(class ExpressionParser& ep);
+
+// options
+void debugger_setOptionBreakOnEntry(bool isEnabled);
+bool debugger_getOptionBreakOnEntry();
+void debugger_setOptionLogOnlyMemoryBreakpoints(bool isEnabled);
+bool debugger_getOptionLogOnlyMemoryBreakpoints();

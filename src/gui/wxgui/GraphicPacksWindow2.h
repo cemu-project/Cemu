@@ -1,9 +1,9 @@
 #pragma once
 
-#include <wx/frame.h>
 #include <wx/dialog.h>
 #include <wx/scrolwin.h>
 #include <wx/infobar.h>
+#include <wx/hyperlink.h>
 
 #include "wxcomponents/checktree.h"
 
@@ -46,6 +46,7 @@ private:
 	wxBoxSizer* m_preset_sizer;
 	std::vector<wxChoice*> m_active_preset;
 	wxButton* m_reload_shaders;
+	wxHyperlinkCtrl* m_download_from_url;
 	wxButton* m_update_graphicPacks;
 	wxInfoBar* m_info_bar;
 
@@ -64,6 +65,7 @@ private:
 	void OnTreeChoiceChanged(wxTreeEvent& event);
 	void OnActivePresetChanged(wxCommandEvent& event);
 	void OnReloadShaders(wxCommandEvent& event);
+	void OnClickCustomDownload(wxCommandEvent& event);
 	void OnCheckForUpdates(wxCommandEvent& event);
 	void OnSizeChanged(wxSizeEvent& event);
 	void SashPositionChanged(wxEvent& event);

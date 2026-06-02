@@ -207,6 +207,7 @@ jobs:
   build-macos:
     runs-on: macos-14
     strategy:
+      fail-fast: false
       matrix:
         arch: [x86_64, arm64]
     steps:
@@ -230,7 +231,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
-        brew install ninja nasm automake libtool
+        brew install nasm automake libtool
 
     - name: "Install molten-vk"
       run: |
@@ -282,7 +283,7 @@ jobs:
         mv bin/Cemu_release.app bin/Cemu_app/Cemu.app
         mv bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu_release bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
         sed -i '' 's/Cemu_release/Cemu/g' bin/Cemu_app/Cemu.app/Contents/Info.plist
-        chmod a+x bin/Cemu_app/Cemu.app/Contents/MacOS/{Cemu,update.sh}
+        codesign --entitlements ${{github.workspace}}/src/resource/cemu.macos.entitlements --force --deep --preserve-metadata=entitlements,requirements,flags,runtime --sign - --timestamp --options runtime bin/Cemu_app/Cemu.app/Contents/MacOS/Cemu
         ln -s /Applications bin/Cemu_app/Applications
         hdiutil create ./bin/tmp.dmg -ov -volname "Cemu" -fs HFS+ -srcfolder "./bin/Cemu_app"
         hdiutil convert ./bin/tmp.dmg -format UDZO -o bin/Cemu.dmg

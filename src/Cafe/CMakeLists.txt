@@ -106,8 +106,6 @@ add_library(CemuCafe
   HW/Latte/Core/LatteCachedFBO.h
   HW/Latte/Core/LatteCommandProcessor.cpp
   HW/Latte/Core/LatteConst.h
-  HW/Latte/Core/LatteDefaultShaders.cpp
-  HW/Latte/Core/LatteDefaultShaders.h
   HW/Latte/Core/LatteDraw.h
   HW/Latte/Core/LatteGSCopyShaderParser.cpp
   HW/Latte/Core/Latte.h
@@ -127,12 +125,12 @@ add_library(CemuCafe
   HW/Latte/Core/LatteShaderCache.cpp
   HW/Latte/Core/LatteShaderCache.h
   HW/Latte/Core/LatteShader.cpp
-  HW/Latte/Core/LatteShaderGL.cpp
   HW/Latte/Core/LatteShader.h
   HW/Latte/Core/LatteSoftware.cpp
   HW/Latte/Core/LatteSoftware.h
   HW/Latte/Core/LatteStreamoutGPU.cpp
   HW/Latte/Core/LatteSurfaceCopy.cpp
+  HW/Latte/Core/LatteSurfaceCopy.h
   HW/Latte/Core/LatteTextureCache.cpp
   HW/Latte/Core/LatteTexture.cpp
   HW/Latte/Core/LatteTexture.h
@@ -162,58 +160,14 @@ add_library(CemuCafe
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerInternal.h
   HW/Latte/LegacyShaderDecompiler/LatteDecompilerRegisterDataTypeTracker.cpp
-  HW/Latte/Renderer/OpenGL/CachedFBOGL.h
-  HW/Latte/Renderer/OpenGL/LatteTextureGL.cpp
-  HW/Latte/Renderer/OpenGL/LatteTextureGL.h
-  HW/Latte/Renderer/OpenGL/LatteTextureViewGL.cpp
-  HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h
-  HW/Latte/Renderer/OpenGL/OpenGLQuery.cpp
-  HW/Latte/Renderer/OpenGL/OpenGLRendererCore.cpp
-  HW/Latte/Renderer/OpenGL/OpenGLRenderer.cpp
-  HW/Latte/Renderer/OpenGL/OpenGLRenderer.h
-  HW/Latte/Renderer/OpenGL/OpenGLRendererStreamout.cpp
-  HW/Latte/Renderer/OpenGL/OpenGLRendererUniformData.cpp
-  HW/Latte/Renderer/OpenGL/OpenGLSurfaceCopy.cpp
-  HW/Latte/Renderer/OpenGL/OpenGLTextureReadback.h
-  HW/Latte/Renderer/OpenGL/RendererShaderGL.cpp
-  HW/Latte/Renderer/OpenGL/RendererShaderGL.h
-  HW/Latte/Renderer/OpenGL/TextureReadbackGL.cpp
   HW/Latte/Renderer/Renderer.cpp
   HW/Latte/Renderer/Renderer.h
+  HW/Latte/Renderer/RendererCore.cpp
+  HW/Latte/Renderer/RendererCore.h
   HW/Latte/Renderer/RendererOuputShader.cpp
   HW/Latte/Renderer/RendererOuputShader.h
   HW/Latte/Renderer/RendererShader.cpp
   HW/Latte/Renderer/RendererShader.h
-  HW/Latte/Renderer/Vulkan/CachedFBOVk.cpp
-  HW/Latte/Renderer/Vulkan/CachedFBOVk.h
-  HW/Latte/Renderer/Vulkan/CocoaSurface.h
-  HW/Latte/Renderer/Vulkan/LatteTextureViewVk.cpp
-  HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h
-  HW/Latte/Renderer/Vulkan/LatteTextureVk.cpp
-  HW/Latte/Renderer/Vulkan/LatteTextureVk.h
-  HW/Latte/Renderer/Vulkan/RendererShaderVk.cpp
-  HW/Latte/Renderer/Vulkan/RendererShaderVk.h
-  HW/Latte/Renderer/Vulkan/SwapchainInfoVk.cpp
-  HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h
-  HW/Latte/Renderer/Vulkan/TextureReadbackVk.cpp
-  HW/Latte/Renderer/Vulkan/VKRBase.h
-  HW/Latte/Renderer/Vulkan/VKRMemoryManager.cpp
-  HW/Latte/Renderer/Vulkan/VKRMemoryManager.h
-  HW/Latte/Renderer/Vulkan/VKRPipelineInfo.cpp
-  HW/Latte/Renderer/Vulkan/VsyncDriver.cpp
-  HW/Latte/Renderer/Vulkan/VsyncDriver.h
-  HW/Latte/Renderer/Vulkan/VulkanAPI.cpp
-  HW/Latte/Renderer/Vulkan/VulkanAPI.h
-  HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.cpp
-  HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h
-  HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.cpp
-  HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h
-  HW/Latte/Renderer/Vulkan/VulkanQuery.cpp
-  HW/Latte/Renderer/Vulkan/VulkanRendererCore.cpp
-  HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp
-  HW/Latte/Renderer/Vulkan/VulkanRenderer.h
-  HW/Latte/Renderer/Vulkan/VulkanSurfaceCopy.cpp
-  HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h
   HW/Latte/ShaderInfo/ShaderDescription.cpp
   HW/Latte/ShaderInfo/ShaderInfo.h
   HW/Latte/ShaderInfo/ShaderInstanceInfo.cpp
@@ -471,8 +425,6 @@ add_library(CemuCafe
   OS/libs/nsyshid/Whitelist.h
   OS/libs/nsyshid/BackendEmulated.cpp
   OS/libs/nsyshid/BackendEmulated.h
-  OS/libs/nsyshid/BackendLibusb.cpp
-  OS/libs/nsyshid/BackendLibusb.h
   OS/libs/nsyshid/Dimensions.cpp
   OS/libs/nsyshid/Dimensions.h
   OS/libs/nsyshid/Infinity.cpp
@@ -539,12 +491,73 @@ add_library(CemuCafe
   TitleList/TitleList.h
 )
 
+if (ENABLE_OPENGL)
+  target_sources(CemuCafe PRIVATE
+    HW/Latte/Renderer/OpenGL/CachedFBOGL.h
+    HW/Latte/Renderer/OpenGL/LatteShaderGL.cpp
+    HW/Latte/Renderer/OpenGL/LatteTextureGL.cpp
+    HW/Latte/Renderer/OpenGL/LatteTextureGL.h
+    HW/Latte/Renderer/OpenGL/LatteTextureViewGL.cpp
+    HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h
+    HW/Latte/Renderer/OpenGL/OpenGLQuery.cpp
+    HW/Latte/Renderer/OpenGL/OpenGLRendererCore.cpp
+    HW/Latte/Renderer/OpenGL/OpenGLRenderer.cpp
+    HW/Latte/Renderer/OpenGL/OpenGLRenderer.h
+    HW/Latte/Renderer/OpenGL/OpenGLRendererStreamout.cpp
+    HW/Latte/Renderer/OpenGL/OpenGLRendererUniformData.cpp
+    HW/Latte/Renderer/OpenGL/OpenGLSurfaceCopy.cpp
+    HW/Latte/Renderer/OpenGL/OpenGLTextureReadback.h
+    HW/Latte/Renderer/OpenGL/RendererShaderGL.cpp
+    HW/Latte/Renderer/OpenGL/RendererShaderGL.h
+    HW/Latte/Renderer/OpenGL/TextureReadbackGL.cpp
+  )
+endif()
+
+if (ENABLE_VULKAN)
+  target_sources(CemuCafe PRIVATE
+    HW/Latte/Renderer/Vulkan/CachedFBOVk.cpp
+    HW/Latte/Renderer/Vulkan/CachedFBOVk.h
+    HW/Latte/Renderer/Vulkan/CocoaSurface.h
+    HW/Latte/Renderer/Vulkan/LatteTextureViewVk.cpp
+    HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h
+    HW/Latte/Renderer/Vulkan/LatteTextureVk.cpp
+    HW/Latte/Renderer/Vulkan/LatteTextureVk.h
+    HW/Latte/Renderer/Vulkan/RendererShaderVk.cpp
+    HW/Latte/Renderer/Vulkan/RendererShaderVk.h
+    HW/Latte/Renderer/Vulkan/SwapchainInfoVk.cpp
+    HW/Latte/Renderer/Vulkan/SwapchainInfoVk.h
+    HW/Latte/Renderer/Vulkan/TextureReadbackVk.cpp
+    HW/Latte/Renderer/Vulkan/VKRBase.h
+    HW/Latte/Renderer/Vulkan/VKRMemoryManager.cpp
+    HW/Latte/Renderer/Vulkan/VKRMemoryManager.h
+    HW/Latte/Renderer/Vulkan/VKRPipelineInfo.cpp
+    HW/Latte/Renderer/Vulkan/VsyncDriver.cpp
+    HW/Latte/Renderer/Vulkan/VsyncDriver.h
+    HW/Latte/Renderer/Vulkan/VulkanAPI.cpp
+    HW/Latte/Renderer/Vulkan/VulkanAPI.h
+    HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.cpp
+    HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h
+    HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.cpp
+    HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h
+    HW/Latte/Renderer/Vulkan/VulkanQuery.cpp
+    HW/Latte/Renderer/Vulkan/VulkanRendererCore.cpp
+    HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp
+    HW/Latte/Renderer/Vulkan/VulkanRenderer.h
+    HW/Latte/Renderer/Vulkan/VulkanSurfaceCopy.cpp
+    HW/Latte/Renderer/Vulkan/VulkanTextureReadback.h
+  )
+endif()
+
 if(APPLE)
 	target_sources(CemuCafe PRIVATE
-	    HW/Latte/Renderer/Vulkan/CocoaSurface.mm
 	    HW/Latte/Renderer/MetalView.mm
 	    HW/Latte/Renderer/MetalView.h
 	)
+	if (ENABLE_VULKAN)
+		target_sources(CemuCafe PRIVATE
+		    HW/Latte/Renderer/Vulkan/CocoaSurface.mm
+		)
+	endif()
 endif()
 
 if(ENABLE_METAL)
@@ -617,6 +630,13 @@ set_property(TARGET CemuCafe PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CON
 
 cemu_use_precompiled_header(CemuCafe)
 
+if (ENABLE_LIBUSB)
+  target_sources(CemuCafe PRIVATE
+    OS/libs/nsyshid/BackendLibusb.cpp
+    OS/libs/nsyshid/BackendLibusb.h
+  )
+endif()
+
 target_include_directories(CemuCafe PUBLIC "../")
 
 if (glslang_VERSION VERSION_LESS "15.0.0")
@@ -646,17 +666,19 @@ if (ENABLE_WAYLAND)
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
 endif()
 
-if (ENABLE_VCPKG)
-  if(WIN32)
-    set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
-  endif()
-  find_package(PkgConfig REQUIRED)
-  pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
-  target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
-else ()
-  find_package(libusb MODULE REQUIRED)
-  target_link_libraries(CemuCafe PRIVATE libusb::libusb)
-endif ()
+if (ENABLE_LIBUSB)
+  if (ENABLE_VCPKG)
+    if(WIN32)
+      set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
+    endif()
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)
+    target_link_libraries(CemuCafe PRIVATE PkgConfig::libusb)
+  else ()
+    find_package(libusb MODULE REQUIRED)
+    target_link_libraries(CemuCafe PRIVATE libusb::libusb)
+  endif ()
+endif()
 
 if(WIN32)
 	target_link_libraries(CemuCafe PRIVATE iphlpapi)

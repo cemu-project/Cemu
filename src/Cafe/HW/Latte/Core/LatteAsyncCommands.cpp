@@ -1,6 +1,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteSurfaceCopy.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
 void LatteThread_Exit();
@@ -35,11 +36,19 @@ typedef struct
 			uint64 shaderAuxHash; 
 			LatteConst::ShaderType shaderType;
 		}deleteShader;
+
+		struct
+		{
+			LatteSurfaceCopyParam src;
+			LatteSurfaceCopyParam dst;
+			LatteSurfaceCopyRect rect;
+		}textureCopy;
 	};
 }LatteAsyncCommand_t;
 
 #define ASYNC_CMD_FORCE_TEXTURE_READBACK		1
 #define ASYNC_CMD_DELETE_SHADER					2
+#define ASYNC_CMD_TEXTURE_COPY					3
 
 std::queue<LatteAsyncCommand_t> LatteAsyncCommandQueue;
 
@@ -76,6 +85,20 @@ void LatteAsyncCommands_queueDeleteShader(uint64 shaderBaseHash, uint64 shaderAu
 	asyncCommand.deleteShader.shaderBaseHash = shaderBaseHash;
 	asyncCommand.deleteShader.shaderAuxHash = shaderAuxHash;
 	asyncCommand.deleteShader.shaderType = shaderType;
+
+	swl_gpuAsyncCommands.LockWrite();
+	LatteAsyncCommandQueue.push(asyncCommand);
+	swl_gpuAsyncCommands.UnlockWrite();
+}
+
+void LatteAsyncCommand_queueTextureCopy(const LatteSurfaceCopyParam& src, const LatteSurfaceCopyParam& dst, const LatteSurfaceCopyRect& rect)
+{
+	LatteAsyncCommand_t asyncCommand = {};
+	// setup command
+	asyncCommand.type = ASYNC_CMD_TEXTURE_COPY;
+	asyncCommand.textureCopy.src = src;
+	asyncCommand.textureCopy.dst = dst;
+	asyncCommand.textureCopy.rect = rect;
 
 	swl_gpuAsyncCommands.LockWrite();
 	LatteAsyncCommandQueue.push(asyncCommand);
@@ -126,6 +149,10 @@ void LatteAsyncCommands_checkAndExecute()
 		else if (asyncCommand.type == ASYNC_CMD_DELETE_SHADER)
 		{
 			LatteSHRC_RemoveFromCacheByHash(asyncCommand.deleteShader.shaderBaseHash, asyncCommand.deleteShader.shaderAuxHash, asyncCommand.deleteShader.shaderType);
+		}
+		else if (asyncCommand.type == ASYNC_CMD_TEXTURE_COPY)
+		{
+			LatteSurfaceCopy_copySurfaceNew(asyncCommand.textureCopy.src, asyncCommand.textureCopy.dst, asyncCommand.textureCopy.rect);
 		}
 		else
 		{

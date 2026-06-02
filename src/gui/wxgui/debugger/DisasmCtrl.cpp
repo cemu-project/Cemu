@@ -14,6 +14,8 @@
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 #include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
 
+#include <wx/clipbrd.h>
+
 wxDEFINE_EVENT(wxEVT_DISASMCTRL_NOTIFY_GOTO_ADDRESS, wxCommandEvent);
 
 #define MAX_SYMBOL_LEN			(120)
@@ -189,13 +191,19 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 
 	ppcAssembler_disassemble(virtualAddress, opcode, &disasmInstr);
 
-	const bool is_active_bp = debuggerState.debugSession.isTrapped && debuggerState.debugSession.instructionPointer == virtualAddress;
+	bool hasActiveBP = false;
+	PPCInterpreter_t* sessionCpu = debugger_lockDebugSession();
+	if (sessionCpu)
+	{
+		hasActiveBP = sessionCpu->instructionPointer == virtualAddress;
+		debugger_unlockDebugSession(sessionCpu);
+	}
 
 	// write virtual address
 	wxColour background_colour;
-	if (is_active_bp && bp != nullptr)
+	if (hasActiveBP && bp != nullptr)
 		background_colour = theme_lineBreakpointAndCurrentInstruction;
-	else if (is_active_bp)
+	else if (hasActiveBP)
 		background_colour = theme_lineCurrentInstruction;
 	else if (bp != nullptr)
 		background_colour = bp->bpType == DEBUGGER_BP_T_NORMAL ? theme_lineBreakpointSet : theme_lineLoggingBreakpointSet;
@@ -219,7 +227,7 @@ void DisasmCtrl::DrawDisassemblyLine(wxDC& dc, const wxPoint& linePosition, MPTR
 	position.x += OFFSET_ADDRESS_RELATIVE;
 
 	// draw arrow to clearly indicate instruction pointer
-	if(is_active_bp)
+	if(hasActiveBP)
 		dc.DrawBitmap(*g_ipArrowBitmap, wxPoint(position.x - 24, position.y + 2), false);
 
 	// handle data symbols
@@ -604,36 +612,35 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 		}
 	}
 
-
 	// debugger currently in break state
-	if (debuggerState.debugSession.isTrapped)
+	PPCInterpreter_t* debugCpu = debugger_lockDebugSession();
+	if (debugCpu)
 	{
 		switch (key_code)
 		{
-		case WXK_F5:
+			case WXK_F5:
 			{
-				debuggerState.debugSession.run = true;
-				return;
+				debugger_stepCommand(DebuggerStepCommand::Run);
+				break;
 			}
-		case WXK_F10:
+			case WXK_F10:
 			{
-				debuggerState.debugSession.stepOver = true;
-				return;
+				debugger_stepCommand(DebuggerStepCommand::StepOver);
+				break;
 			}
-		case WXK_F11:
+			case WXK_F11:
 			{
-				debuggerState.debugSession.stepInto = true;
+				debugger_stepCommand(DebuggerStepCommand::StepInto);
+				break;
 			}
 		}
+		debugger_unlockDebugSession(debugCpu);
 	}
 	else
 	{
-		switch (key_code)
+		if (key_code == WXK_F5)
 		{
-		case WXK_F5:
-			{
-				debuggerState.debugSession.shouldBreak = true;
-			}
+			debugger_requestBreak();
 		}
 	}
 }
@@ -694,20 +701,11 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 
 void DisasmCtrl::CopyToClipboard(std::string text)
 {
-#if BOOST_OS_WINDOWS
-	if (OpenClipboard(nullptr))
+	if (wxClipboard::Get()->Open())
 	{
-		EmptyClipboard();
-		const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
-		if (hGlobal)
-		{
-			memcpy(GlobalLock(hGlobal), text.c_str(), text.size() + 1);
-			GlobalUnlock(hGlobal);
-			SetClipboardData(CF_TEXT, hGlobal);
-		}
-		CloseClipboard();
+		wxClipboard::Get()->SetData(new wxTextDataObject(text));
+		wxClipboard::Get()->Close();
 	}
-#endif
 }
 
 static uint32 GetUnrelocatedAddress(MPTR address)

@@ -1,11 +1,21 @@
 add_library(imguiImpl
-	imgui_impl_opengl3.cpp
-	imgui_impl_opengl3.h
-	imgui_impl_vulkan.cpp
-	imgui_impl_vulkan.h
 	imgui_extension.cpp
 	imgui_extension.h
 )
+
+if (ENABLE_OPENGL)
+	target_sources(imguiImpl PRIVATE
+		imgui_impl_opengl3.cpp
+		imgui_impl_opengl3.h
+	)
+endif()
+
+if (ENABLE_VULKAN)
+	target_sources(imguiImpl PRIVATE
+		imgui_impl_vulkan.cpp
+		imgui_impl_vulkan.h
+	)
+endif()
 
 if (ENABLE_METAL)
     target_sources(imguiImpl PRIVATE

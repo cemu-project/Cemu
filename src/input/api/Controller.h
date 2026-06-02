@@ -168,14 +168,13 @@ protected:
 	Settings m_settings{};
 };
 
-template<class TProvider>
+template<std::derived_from<ControllerProviderBase> TProvider>
 class Controller : public ControllerBase
 {
 public:
 	Controller(std::string_view uuid, std::string_view display_name)
 		: ControllerBase(uuid, display_name)
 	{
-		static_assert(std::is_base_of_v<ControllerProviderBase, TProvider>);
 		m_provider = std::dynamic_pointer_cast<TProvider>(InputManager::instance().get_api_provider(TProvider::kAPIType));
 		cemu_assert_debug(m_provider != nullptr);
 	}
@@ -183,7 +182,6 @@ public:
 	Controller(std::string_view uuid, std::string_view display_name, const ControllerProviderSettings& settings)
 		: ControllerBase(uuid, display_name)
 	{
-		static_assert(std::is_base_of_v<ControllerProviderBase, TProvider>);
 		m_provider = std::dynamic_pointer_cast<TProvider>(InputManager::instance().get_api_provider(TProvider::kAPIType, settings));
 		cemu_assert_debug(m_provider != nullptr);
 	}

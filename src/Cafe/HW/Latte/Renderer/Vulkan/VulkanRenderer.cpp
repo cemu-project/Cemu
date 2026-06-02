@@ -614,12 +614,21 @@ VulkanRenderer::VulkanRenderer()
 	std::set<int> uniqueQueueFamilies = { m_indices.graphicsFamily, m_indices.presentFamily };
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos = CreateQueueCreateInfos(uniqueQueueFamilies);
 	VkPhysicalDeviceFeatures deviceFeatures = {};
+	VkPhysicalDeviceFeatures2 deviceFeatures2 = {};
+	deviceFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+	vkGetPhysicalDeviceFeatures2(m_physicalDevice, &deviceFeatures2);
 
 	deviceFeatures.independentBlend = VK_TRUE;
 	deviceFeatures.samplerAnisotropy = VK_TRUE;
 	deviceFeatures.imageCubeArray = VK_TRUE;
 	//moltenVK supports logicOp via private api
-	deviceFeatures.logicOp = VK_TRUE;
+	deviceFeatures.logicOp = deviceFeatures2.features.logicOp;
+	if (!deviceFeatures.logicOp) {
+		cemuLog_log(LogType::Force, "LogicOp not supported by the driver, some rendering issues might occur");
+#if BOOST_OS_MACOS
+		cemuLog_log(LogType::Force, "Install the privateapi variant of MoltenVK to get logicOp support on macOS");
+#endif
+	}
 #if !BOOST_OS_MACOS
 	deviceFeatures.geometryShader = VK_TRUE;
 #endif
@@ -637,10 +646,7 @@ VulkanRenderer::VulkanRenderer()
 		deviceFeatures.robustBufferAccess = VK_TRUE;
 	}
 
-	if (m_featureControl.mode.useTFEmulationViaSSBO)
-	{
-		deviceFeatures.vertexPipelineStoresAndAtomics = true;
-	}
+	deviceFeatures.vertexPipelineStoresAndAtomics = true;
 
 	void* deviceExtensionFeatures = nullptr;
 
@@ -778,7 +784,8 @@ VulkanRenderer::VulkanRenderer()
 	m_textureReadbackBufferPtr = (uint8*)bufferPtr;
 
 	// transform feedback ringbuffer
-	memoryManager->CreateBuffer(LatteStreamout_GetRingBufferSize(), VK_BUFFER_USAGE_TRANSFORM_FEEDBACK_BUFFER_BIT_EXT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | (m_featureControl.mode.useTFEmulationViaSSBO ? VK_BUFFER_USAGE_STORAGE_BUFFER_BIT : 0), 0, m_xfbRingBuffer, m_xfbRingBufferMemory);
+	VkBufferUsageFlags xfbRingBufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	memoryManager->CreateBuffer(LatteStreamout_GetRingBufferSize(), xfbRingBufferUsage, 0, m_xfbRingBuffer, m_xfbRingBufferMemory);
 
 	// occlusion query result buffer
 	if (!memoryManager->CreateBuffer(OCCLUSION_QUERY_POOL_SIZE * sizeof(uint64), VK_BUFFER_USAGE_TRANSFER_DST_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT, m_occlusionQueries.bufferQueryResults, m_occlusionQueries.memoryQueryResults))
@@ -1358,7 +1365,6 @@ bool VulkanRenderer::CheckDeviceExtensionSupport(const VkPhysicalDevice device, 
 	}
 
 	info.deviceExtensions.tooling_info = isExtensionAvailable(VK_EXT_TOOLING_INFO_EXTENSION_NAME);
-	info.deviceExtensions.transform_feedback = isExtensionAvailable(VK_EXT_TRANSFORM_FEEDBACK_EXTENSION_NAME);
 	info.deviceExtensions.depth_range_unrestricted = isExtensionAvailable(VK_EXT_DEPTH_RANGE_UNRESTRICTED_EXTENSION_NAME);
 	info.deviceExtensions.nv_fill_rectangle = isExtensionAvailable(VK_NV_FILL_RECTANGLE_EXTENSION_NAME);
 	info.deviceExtensions.pipeline_feedback = isExtensionAvailable(VK_EXT_PIPELINE_CREATION_FEEDBACK_EXTENSION_NAME);
@@ -3664,14 +3670,14 @@ void VulkanRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 LatteTextureReadbackInfo* VulkanRenderer::texture_createReadback(LatteTextureView* textureView)
 {
 	auto* result = new LatteTextureReadbackInfoVk(m_logicalDevice, textureView);
-
-	LatteTextureVk* vkTex = (LatteTextureVk*)textureView->baseTexture;
-
-	VkMemoryRequirements memRequirements;
-	vkGetImageMemoryRequirements(m_logicalDevice, vkTex->GetImageObj()->m_image, &memRequirements);
-
 	const uint32 linearImageSize = result->GetImageSize();
-	const uint32 uploadSize = (linearImageSize == 0) ? memRequirements.size : linearImageSize;
+	if (linearImageSize == 0)
+	{
+		delete result;
+		return nullptr;
+	}
+
+	const uint32 uploadSize = linearImageSize;
 	const uint32 uploadAlignment = 256; // todo - use Vk optimalBufferCopyOffsetAlignment
 	m_textureReadbackBufferWriteIndex = (m_textureReadbackBufferWriteIndex + uploadAlignment - 1) & ~(uploadAlignment - 1);
 
@@ -3705,46 +3711,14 @@ void VulkanRenderer::streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBuf
 
 void VulkanRenderer::streamout_begin()
 {
-	if (m_featureControl.mode.useTFEmulationViaSSBO)
-		return;
-	if (m_state.hasActiveXfb == false)
-		m_state.hasActiveXfb = true;
-}
-
-void VulkanRenderer::streamout_applyTransformFeedbackState()
-{
-	if (m_featureControl.mode.useTFEmulationViaSSBO)
-		return;
-	cemu_assert_debug(m_state.hasActiveXfb == false);
-	if (m_state.hasActiveXfb)
-	{
-		// set buffers
-		for (sint32 i = 0; i < LATTE_NUM_STREAMOUT_BUFFER; i++)
-		{
-			if (m_streamoutState.buffer[i].enabled)
-			{
-				VkBuffer tfBuffer = m_xfbRingBuffer;
-				VkDeviceSize tfBufferOffset = m_streamoutState.buffer[i].ringBufferOffset;
-				VkDeviceSize tfBufferSize = VK_WHOLE_SIZE;
-				vkCmdBindTransformFeedbackBuffersEXT(m_state.currentCommandBuffer, i, 1, &tfBuffer, &tfBufferOffset, &tfBufferSize);
-			}
-		}
-		// begin transform feedback
-		vkCmdBeginTransformFeedbackEXT(m_state.currentCommandBuffer, 0, 0, nullptr, nullptr);
-	}
 }
 
 void VulkanRenderer::streamout_rendererFinishDrawcall()
 {
-	if (m_state.hasActiveXfb)
-	{
-		vkCmdEndTransformFeedbackEXT(m_state.currentCommandBuffer, 0, 0, nullptr, nullptr);
-		m_streamoutState.buffer[0].enabled = false;
-		m_streamoutState.buffer[1].enabled = false;
-		m_streamoutState.buffer[2].enabled = false;
-		m_streamoutState.buffer[3].enabled = false;
-		m_state.hasActiveXfb = false;
-	}
+	m_streamoutState.buffer[0].enabled = false;
+	m_streamoutState.buffer[1].enabled = false;
+	m_streamoutState.buffer[2].enabled = false;
+	m_streamoutState.buffer[3].enabled = false;
 }
 
 
