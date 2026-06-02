@@ -2486,8 +2486,6 @@ void RPLLoader_UnloadAll()
 		cemu_assert_debug(dependency->referenceCount >= 0); // sanity check for ref count
 		if (!dependency->rplHLEModule)
 			continue;
-		if (dependency->referenceCount <= 0)
-			continue;
 		cemu_assert_debug(dependency->hleEntrypointCalled); // entrypoint should have been called
 		dependency->rplHLEModule->rpl_entry(dependency->coreinitHandle, coreinit::RplEntryReason::Unloaded);
 		dependency->rplHLEModule->RPLUnmapped();
