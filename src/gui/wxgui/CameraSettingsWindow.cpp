@@ -1,6 +1,6 @@
 #include "CameraSettingsWindow.h"
 
-#include "camera/CameraManager.h"
+#include "input/camera/CameraManager.h"
 
 #include <wx/sizer.h>
 #include <wx/dcbuffer.h>

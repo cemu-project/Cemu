@@ -51,15 +51,15 @@ namespace CameraManager
             CapFormatInfo formatInfo;
             if (Cap_getFormatInfo(s_ctx, device, formatId, &formatInfo) != CAPRESULT_OK)
                 continue;
-            cemuLog_log(LogType::Force, "{}: {} {}x{} @ {} fps, {} bpp", formatId, FourCC(formatInfo.fourcc),
+            cemuLog_log(LogType::InputAPI, "{}: {} {}x{} @ {} fps, {} bpp", formatId, FourCC(formatInfo.fourcc),
                         formatInfo.width, formatInfo.height, formatInfo.fps, formatInfo.bpp);
             if (formatInfo.width == CAMERA_WIDTH && formatInfo.height == CAMERA_HEIGHT)
             {
-                cemuLog_log(LogType::Force, "Selected video format {}", formatId);
+                cemuLog_log(LogType::InputAPI, "Selected video format {}", formatId);
                 return formatId;
             }
         }
-        cemuLog_log(LogType::Force, "Failed to find suitable video format");
+        cemuLog_log(LogType::InputAPI, "Failed to find suitable video format");
         return std::nullopt;
     }
 

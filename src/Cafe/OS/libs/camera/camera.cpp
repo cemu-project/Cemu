@@ -5,7 +5,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
-#include "camera/CameraManager.h"
+#include "input/camera/CameraManager.h"
 #include "Common/CafeString.h"
 #include "OS/common/OSUtil.h"
 #include "util/helpers/ringbuffer.h"
@@ -277,13 +277,13 @@ namespace camera
 
         void RPLMapped() override
         {
-            cafeExportRegister("camera", CAMGetMemReq, LogType::Placeholder);
-            cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::Placeholder);
-            cafeExportRegister("camera", CAMInit, LogType::Placeholder);
-            cafeExportRegister("camera", CAMExit, LogType::Placeholder);
-            cafeExportRegister("camera", CAMOpen, LogType::Placeholder);
-            cafeExportRegister("camera", CAMClose, LogType::Placeholder);
-            cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::Placeholder);
+            cafeExportRegister("camera", CAMGetMemReq, LogType::InputAPI);
+            cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::InputAPI);
+            cafeExportRegister("camera", CAMInit, LogType::InputAPI);
+            cafeExportRegister("camera", CAMExit, LogType::InputAPI);
+            cafeExportRegister("camera", CAMOpen, LogType::InputAPI);
+            cafeExportRegister("camera", CAMClose, LogType::InputAPI);
+            cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::InputAPI);
         };
 
         void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
