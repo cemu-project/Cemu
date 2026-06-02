@@ -60,11 +60,11 @@ void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
     wxArrayString choices = {_("None")};
     for (const auto& entry : CameraManager::EnumerateDevices())
     {
-        choices.push_back(entry.name);
+        choices.push_back(fmt::format("{} ({})", entry.name, entry.uniqueId));
     }
     m_cameraChoice->Set(choices);
     if (auto currentDevice = CameraManager::GetCurrentDevice())
-        m_cameraChoice->SetSelection(*currentDevice + 1);
+        m_cameraChoice->SetSelection(static_cast<int>(*currentDevice) + 1);
 }
 
 void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)

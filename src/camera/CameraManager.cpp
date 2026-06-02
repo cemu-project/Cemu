@@ -136,11 +136,7 @@ namespace CameraManager
             const auto name = Cap_getDeviceName(s_ctx, deviceNo);
             DeviceInfo info;
             info.uniqueId = uniqueId;
-
-            if (name)
-                info.name = fmt::format("{}: {}", deviceNo, name);
-            else
-                info.name = fmt::format("{}: Unknown", deviceNo);
+            info.name = name ? name : "";
             infos.push_back(info);
             cemuLog_log(LogType::InputAPI, "{}", info.name);
         }
@@ -158,13 +154,13 @@ namespace CameraManager
 
         s_captureThread = std::thread(&CaptureWorkerFunc);
 
-        const auto uniqueId = GetConfig().camera_id.GetValue();
-        if (!uniqueId.empty())
+        const auto deviceName = GetConfig().camera_id.GetValue();
+        if (!deviceName.empty())
         {
             const auto devices = InternalEnumerateDevices();
             for (CapDeviceID deviceId = 0; deviceId < devices.size(); ++deviceId)
             {
-                if (devices[deviceId].uniqueId == uniqueId)
+                if (devices[deviceId].name == deviceName)
                 {
                     s_device = deviceId;
                     return;
@@ -248,7 +244,7 @@ namespace CameraManager
     void SaveDevice()
     {
         std::scoped_lock lock(s_mutex);
-        const std::string cameraId = s_device ? Cap_getDeviceUniqueID(s_ctx, *s_device) : "";
+        const std::string cameraId = s_device ? Cap_getDeviceName(s_ctx, *s_device) : "";
         GetConfig().camera_id.SetValue(cameraId);
         GetConfigHandle().Save();
     }
