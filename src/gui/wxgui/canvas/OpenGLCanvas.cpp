@@ -119,7 +119,7 @@ public:
 	void UpdateVSyncState()
 	{
 		int configValue = GetConfig().vsync.GetValue();
-		(value < 0) ? 0 : (value > 1) ? 1 : value;
+		configValue = configValue > 0 ? 1 : 0;
 		if(m_activeVSyncState != configValue)
 		{
 #if BOOST_OS_WINDOWS
