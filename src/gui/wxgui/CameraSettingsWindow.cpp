@@ -1,7 +1,8 @@
 #include "CameraSettingsWindow.h"
 
 #include "input/camera/CameraManager.h"
-
+#include <wx/button.h>
+#include <wx/combobox.h>
 #include <wx/sizer.h>
 #include <wx/dcbuffer.h>
 #include <wx/rawbmp.h>
@@ -16,16 +17,15 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
     {
         auto* topSizer = new wxBoxSizer(wxHORIZONTAL);
         {
-            m_cameraChoice = new wxChoice(this, wxID_ANY, wxDefaultPosition, {300, -1});
-            m_cameraChoice->Bind(wxEVT_CHOICE, &CameraSettingsWindow::OnSelectCameraChoice, this);
-            m_cameraChoice->SetToolTip(_("Cameras are only listed if they support 640x480"));
+            m_cameraComboBox = new wxComboBox(this, wxID_ANY);
+            m_cameraComboBox->Bind(wxEVT_COMBOBOX, &CameraSettingsWindow::OnSelectCameraChoice, this);
+            m_cameraComboBox->SetToolTip(_("Cameras are only listed if they support 640x480"));
 
-            m_refreshButton = new wxButton(this, wxID_ANY, wxString::FromUTF8("⟳"));
-            m_refreshButton->Fit();
+            m_refreshButton = new wxButton(this, wxID_ANY, _("Refresh"));
             m_refreshButton->Bind(wxEVT_BUTTON, &CameraSettingsWindow::OnRefreshPressed, this);
             wxQueueEvent(m_refreshButton, new wxCommandEvent{wxEVT_BUTTON});
 
-            topSizer->Add(m_cameraChoice);
+            topSizer->Add(m_cameraComboBox);
             topSizer->Add(m_refreshButton);
         }
 
@@ -46,9 +46,12 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
 
 void CameraSettingsWindow::OnSelectCameraChoice(wxCommandEvent&)
 {
-    const auto selection = m_cameraChoice->GetSelection();
+    const auto selection = m_cameraComboBox->GetSelection();
     if (selection < 0)
+    {
+        m_cameraComboBox->Select(0);
         return;
+    }
     if (selection == 0)
         CameraManager::ResetDevice();
     else
@@ -62,9 +65,11 @@ void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
     {
         choices.push_back(fmt::format("{} ({})", entry.name, entry.uniqueId));
     }
-    m_cameraChoice->Set(choices);
+    m_cameraComboBox->Set(choices);
     if (auto currentDevice = CameraManager::GetCurrentDevice())
-        m_cameraChoice->SetSelection(static_cast<int>(*currentDevice) + 1);
+        m_cameraComboBox->SetSelection(static_cast<int>(*currentDevice) + 1);
+    else
+        m_cameraComboBox->SetSelection(0);
 }
 
 void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
