@@ -31,8 +31,8 @@ namespace camera
 
     enum class CAMFps : uint32
     {
-        _15 = 0,
-        _30 = 1
+        FPS_15 = 0,
+        FPS_30 = 1
     };
 
     enum class CAMEventType : uint32
@@ -166,7 +166,7 @@ namespace camera
         return CAM_STATUS_SUCCESS;
     }
 
-    sint32 CAMInit(uint32 cameraId, const CAMInitInfo_t* initInfo, betype<CAMStatus>* error)
+    sint32 CAMInit(sint32 channel, const CAMInitInfo_t* initInfo, betype<CAMStatus>* error)
     {
         *error = CAM_STATUS_SUCCESS;
         CafeLockGuard lock(s_cameraMutex);
@@ -176,9 +176,9 @@ namespace camera
             return -1;
         }
 
-        if (!initInfo || !initInfo->workMemoryData ||
+        if (channel != 0 || !initInfo || !initInfo->workMemoryData ||
             !match_any_of(initInfo->forceDisplay, CAMForceDisplay::None, CAMForceDisplay::DRC) ||
-            !match_any_of(initInfo->fps, CAMFps::_15, CAMFps::_30) ||
+            !match_any_of(initInfo->fps, CAMFps::FPS_15, CAMFps::FPS_30) ||
             initInfo->imageInfo.type != CAMImageType::Default)
         {
             *error = CAM_STATUS_INVALID_ARG;
@@ -190,7 +190,7 @@ namespace camera
         cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
 
         s_instance.isExiting = false;
-        s_instance.fps = initInfo->fps == CAMFps::_15 ? 15 : 30;
+        s_instance.fps = initInfo->fps == CAMFps::FPS_15 ? 15 : 30;
         s_instance.initialized = true;
         s_instance.eventCallback = initInfo->callback;
 
@@ -205,7 +205,7 @@ namespace camera
         s_cameraWorkerThreadNameBuffer->assign("CameraWorkerThread");
         coreinit::OSSetThreadName(s_cameraWorkerThread.GetPtr(), s_cameraWorkerThreadNameBuffer->c_str());
         coreinit::OSResumeThread(s_cameraWorkerThread.GetPtr());
-        return CAM_STATUS_SUCCESS;
+        return channel;
     }
 
     CAMStatus CAMClose(sint32 camHandle)
@@ -293,7 +293,7 @@ namespace camera
             }
             else if (reason == coreinit::RplEntryReason::Unloaded)
             {
-                CAMExit(0);
+                CAMExit(CAM_HANDLE);
             }
         }
     } s_COScameraModule;
