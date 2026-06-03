@@ -1,12 +1,14 @@
 #pragma once
 #include <wx/dialog.h>
 #include <wx/timer.h>
-#include <wx/choice.h>
-#include <wx/bmpbuttn.h>
+#include <wx/bitmap.h>
+
+class wxButton;
+class wxComboBox;
 
 class CameraSettingsWindow : public wxDialog
 {
-    wxChoice* m_cameraChoice;
+    wxComboBox* m_cameraComboBox;
     wxButton* m_refreshButton;
     wxWindow* m_imageWindow;
     wxBitmap m_imageBitmap;
