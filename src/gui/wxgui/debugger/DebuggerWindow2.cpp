@@ -83,7 +83,7 @@ wxEND_EVENT_TABLE()
 
 DebuggerModuleInfo::DebuggerModuleInfo(RPLModule* module)
 {
-	moduleName = module->moduleName2;
+	moduleName = module->moduleName;
 	patchCRC = module->patchCRC;
 	textArea.base = module->regionMappingBase_text.GetMPTR();
 	textArea.origBase = module->regionOrigAddr_text;
@@ -456,7 +456,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	{
 		RPLModule* currentModule = RPLLoader_FindModuleByCodeAddr(MEMORY_CODEAREA_ADDR);
 		if (currentModule)
-			label_text = wxString::Format("> %s", currentModule->moduleName2.c_str());
+			label_text = wxString::Format("> %s", currentModule->moduleName.c_str());
 		else
 			label_text = _("> unknown module");
 	}
@@ -612,7 +612,7 @@ void DebuggerWindow2::OnGameLoaded()
 
 	RPLModule* current_rpl_module = RPLLoader_FindModuleByCodeAddr(MEMORY_CODEAREA_ADDR);
 	if(current_rpl_module)
-		m_module_label->SetLabel(wxString::Format("> %s", current_rpl_module->moduleName2.c_str()));	
+		m_module_label->SetLabel(wxString::Format("> %s", current_rpl_module->moduleName.c_str()));	
 
 	this->SendSizeEvent();
 }
@@ -879,7 +879,7 @@ void DebuggerWindow2::UpdateModuleLabel(uint32 address)
 	RPLModule* module = RPLLoader_FindModuleByCodeAddr(address);
 	if (module && m_module_address != module->regionMappingBase_text.GetMPTR())
 	{
-		m_module_label->SetLabel(wxString::Format("> %s", module->moduleName2.c_str()));
+		m_module_label->SetLabel(wxString::Format("> %s", module->moduleName.c_str()));
 		m_module_address = module->regionMappingBase_text.GetMPTR();
 	}
 	else if (address >= mmuRange_CODECAVE.getBase() && address < mmuRange_CODECAVE.getEnd())

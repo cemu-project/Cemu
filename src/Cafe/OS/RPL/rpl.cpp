@@ -5,7 +5,6 @@
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
-#include "util/VirtualHeap/VirtualHeap.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
@@ -272,10 +271,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	// init section address table
 	rplLoaderContext->sectionAddressTable2.resize(sectionCount);
 	// init modulename
-	rplLoaderContext->moduleName2.assign(moduleName);
-	// convert modulename to lower-case
-	for(auto& c : rplLoaderContext->moduleName2)
-		c = _ansiToLower(c);
+	rplLoaderContext->moduleName.assign(moduleName);
 
 	// load CRC section
 	uint32 crcTableExpectedSize = sectionCount * sizeof(uint32be);
@@ -525,7 +521,7 @@ bool RPLLoader_LoadSections(sint32 aProcId, RPLModule* rplLoaderContext)
 	PPCRecompiler_allocateRange(rplLoaderContext->regionMappingBase_text.GetMPTR(), regionTextSize + 0x1000);
 
 	// workaround for DKC Tropical Freeze
-	if (boost::iequals(rplLoaderContext->moduleName2, "rs10_production"))
+	if (rplLoaderContext->moduleName == "rs10_production")
 	{
 		// allocate additional 12MB of unused data to get below a size of 0x3E200000 for the main ExpHeap
 		// otherwise the game will assume it's running on a Devkit unit with 2GB of RAM and subtract 1GB from available space
@@ -848,7 +844,7 @@ MPTR _findHLEExport(RPLModule* rplLoaderContext, RPLSharedImportTracking* shared
 		MPTR weakExportAddr = osLib_getPointer(libname, symbolName);
 		if (weakExportAddr != 0xFFFFFFFF)
 			return weakExportAddr;
-		cemuLog_logDebug(LogType::Force, "Unsupported data export ({}): {}.{}", rplLoaderContext->moduleName2, libname, symbolName);
+		cemuLog_logDebug(LogType::Force, "Unsupported data export ({}): {}.{}", rplLoaderContext->moduleName, libname, symbolName);
 		return MPTR_NULL;
 	}
 	else
@@ -1285,7 +1281,7 @@ bool RPLLoader_ApplyRelocs(RPLModule* rplLoaderContext, sint32 relaSectionIndex,
 	uint32 crc = rplLoaderContext->GetSectionCRC(relaSectionIndex);
 	if (calcCRC != crc)
 	{
-		cemuLog_log(LogType::Force, "RPLLoader {} - Relocation section {} has CRC mismatch - Calc: {:08x} Actual: {:08x}", rplLoaderContext->moduleName2.c_str(), relaSectionIndex, calcCRC, crc);
+		cemuLog_log(LogType::Force, "RPLLoader {} - Relocation section {} has CRC mismatch - Calc: {:08x} Actual: {:08x}", rplLoaderContext->moduleName.c_str(), relaSectionIndex, calcCRC, crc);
 	}
 	// process relocations
 	sint32 relocCount = relocSize / sizeof(rplRelocNew_t);
@@ -1383,7 +1379,7 @@ bool RPLLoader_HandleRelocs(RPLModule* rplLoaderContext, std::span<RPLSharedImpo
 	return true;
 }
 
-void _RPLLoader_ExtractModuleNameFromPath(char* output, std::string_view input)
+std::string _RPLLoader_ExtractModuleNameFromPath(std::string_view input)
 {
 	// scan to last '/'
 	cemu_assert(!input.empty());
@@ -1408,10 +1404,11 @@ void _RPLLoader_ExtractModuleNameFromPath(char* output, std::string_view input)
 	size_t nameLen = endIndex - startIndex;
 	cemu_assert(nameLen != 0);
 	nameLen = std::min<size_t>(nameLen, RPL_MODULE_NAME_LENGTH-1);
-	memcpy(output, input.data() + startIndex, nameLen);
-	output[nameLen] = '\0';
+	std::string output;
+	output.append(input.data() + startIndex, nameLen);
 	// convert to lower case
-	std::for_each(output, output + nameLen, [](char& c) {c = _ansiToLower(c);});
+	std::for_each(output.begin(), output.end(), [](char& c) {c = _ansiToLower(c);});
+	return output;
 }
 
 void RPLLoader_InitState()
@@ -1585,8 +1582,7 @@ void RPLLoader_InitModuleAllocator(RPLModule* rpl)
 // map rpl into memory, but do not resolve relocs and imports yet
 RPLModule* RPLLoader_LoadFromMemory(uint8* rplData, sint32 size, std::string_view name)
 {
-	char moduleName[RPL_MODULE_NAME_LENGTH];
-	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
+	std::string moduleName = _RPLLoader_ExtractModuleNameFromPath(name);
 	RPLModule* rpl = nullptr;
 	if (RPLLoader_ProcessHeaders({ moduleName }, rplData, size, &rpl) == false)
 	{
@@ -1600,9 +1596,7 @@ RPLModule* RPLLoader_LoadFromMemory(uint8* rplData, sint32 size, std::string_vie
 		delete rpl;
 		return nullptr;
 	}
-
 	cemuLog_logDebug(LogType::Force, "Load {} Code-Offset: -0x{:x}", name, rpl->regionMappingBase_text.GetMPTR() - 0x02000000);
-
 	// sdata (r2/r13)
 	uint32 sdataBaseAddress = rpl->fileInfo.sdataBase1; // base + 0x8000
 	uint32 sdataBaseAddress2 = rpl->fileInfo.sdataBase2; // base + 0x8000
@@ -1697,16 +1691,14 @@ void RPLLoader_LinkSingleModule(RPLModule* rplLoaderContext, bool resolveOnlyExp
 	{
 		if( rplLoaderContext->sectionTablePtr[i].type != (uint32be)SHT_RPL_IMPORTS )
 			continue;
+		cemu_assert(rplLoaderContext->sectionTablePtr[i].sectionSize >= 9);
 		char* libName = (char*)((uint8*)rplLoaderContext->sectionAddressTable2[i].ptr + 8);
 		// make module name
-		char _importModuleName[RPL_MODULE_NAME_LENGTH];
-		_RPLLoader_ExtractModuleNameFromPath(_importModuleName, libName);
-		// find in loaded module list
-		std::string importModuleName{_importModuleName};
+		std::string importModuleName = _RPLLoader_ExtractModuleNameFromPath(libName);
 		bool foundModule = false;
 		for (sint32 f = 0; f < rplModuleCount; f++)
 		{
-			if (boost::iequals(rplModuleList[f]->moduleName2, importModuleName))
+			if (rplModuleList[f]->moduleName == importModuleName)
 			{
 				sharedImportTracking[i].rplLoaderContext = rplModuleList[f];
 				memset(sharedImportTracking[i].modulename, 0, sizeof(sharedImportTracking[i].modulename));
@@ -1770,7 +1762,7 @@ void RPLLoader_LoadSectionDebugSymbols(RPLModule* rplLoaderContext, rplSectionEn
 			char* symbolName = (char*)strtabData + nameOffset;
 			if (sym->info == 0x12)
 			{
-				rplSymbolStorage_store(rplLoaderContext->moduleName2.c_str(), symbolName, sym->symbolAddress);
+				rplSymbolStorage_store(rplLoaderContext->moduleName.c_str(), symbolName, sym->symbolAddress);
 			}
 		}
 	}
@@ -1864,7 +1856,7 @@ void RPLLoader_FixModuleTLSIndex(RPLModule* rplLoaderContext)
 	sint16 tlsModuleIndex = -1;
 	for (auto& dep : rplDependencyList)
 	{
-		if (boost::iequals(rplLoaderContext->moduleName2, dep->modulename))
+		if (rplLoaderContext->moduleName == dep->moduleName)
 		{
 			tlsModuleIndex = dep->tlsModuleIndex;
 			break;
@@ -1932,23 +1924,21 @@ COSModule* RPLLoader_GetHLECafeOSModule(std::string_view moduleName)
 	std::span<COSModule*> cosModules = GetCOSModules();
 	for (auto& module : cosModules)
 	{
-		if (boost::iequals(module->GetName(), moduleName))
+		if (module->GetName() == moduleName)
 			return module;
 	}
 	return nullptr;
 }
 
 // increment reference counter for module
-void RPLLoader_AddDependency(std::string_view name)
+void RPLLoader_AddDependency(std::string_view name, bool isMainExecutable)
 {
 	cemu_assert(!name.empty());
-	// get module name from path
-	char moduleName[RPL_MODULE_NAME_LENGTH];
-	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
+	std::string moduleName = _RPLLoader_ExtractModuleNameFromPath(name);
 	// check if dependency already exists
 	for (auto& dep : rplDependencyList)
 	{
-		if (strcmp(moduleName, dep->modulename) == 0)
+		if (moduleName == dep->moduleName)
 		{
 			dep->referenceCount++;
 			return;
@@ -1956,7 +1946,8 @@ void RPLLoader_AddDependency(std::string_view name)
 	}
 	// add new entry
 	RPLDependency* newDependency = new RPLDependency();
-	strcpy(newDependency->modulename, moduleName);
+	newDependency->isMainExecutable = isMainExecutable;
+	newDependency->moduleName = moduleName;
 	newDependency->referenceCount = 1;
 	newDependency->coreinitHandle = rplLoader_currentHandleCounter;
 	newDependency->tlsModuleIndex = rplLoader_currentTlsModuleIndex;
@@ -1965,21 +1956,13 @@ void RPLLoader_AddDependency(std::string_view name)
 	rplLoader_currentHandleCounter++;
 	if (rplLoader_currentTlsModuleIndex == 0x7FFF)
 		cemuLog_log(LogType::Force, "RPLLoader: Exhausted TLS module indices pool");
-	// convert name to path/filename if it isn't already one
-	if (name.find_first_of('.') != std::string_view::npos)
-	{
-		newDependency->filepath = name;
-	}
-	else
-	{
-		newDependency->filepath = name;
-		newDependency->filepath.append(".rpl");
-	}
-	if (newDependency->filepath.size() >= RPL_MODULE_PATH_LENGTH)
-		cemuLog_log(LogType::Force, "RPLLoader_AddDependency(): RPL path too long \"{}\"", newDependency->filepath);
+	if (moduleName.size() >= RPL_MODULE_PATH_LENGTH)
+		cemuLog_log(LogType::Force, "RPLLoader_AddDependency(): RPL module name too long \"{}\"", moduleName);
+	std::string fileName = moduleName;
+	fileName.append(isMainExecutable ? ".rpx" : ".rpl");
 	// if no CafeLibs RPL is present then try to load as a HLE module
 	// we dont check for isCafeOSModule == true here because the user might want to replace application RPLs in some cases
-	const auto cafeLibsFilePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", newDependency->filepath);
+	const auto cafeLibsFilePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", fileName);
 	std::error_code ec;
 	if (!fs::exists(cafeLibsFilePath, ec))
 		newDependency->rplHLEModule = RPLLoader_GetHLECafeOSModule(moduleName);
@@ -1989,14 +1972,14 @@ void RPLLoader_AddDependency(std::string_view name)
 // decrement reference counter for dependency by module path
 void RPLLoader_RemoveDependency(std::string_view name)
 {
-	cemu_assert(!name.empty());
-	// get module name from path
-	char moduleName[RPL_MODULE_NAME_LENGTH];
-	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
+	cemu_assert_debug(!name.empty());
+	if (name.empty())
+		return;
+	std::string moduleName = _RPLLoader_ExtractModuleNameFromPath(name);
 	// find dependency and decrement ref count
 	for (auto& dep : rplDependencyList)
 	{
-		if (strcmp(moduleName, dep->modulename) == 0)
+		if (dep->moduleName == moduleName)
 		{
 			dep->referenceCount--;
 			return;
@@ -2006,11 +1989,12 @@ void RPLLoader_RemoveDependency(std::string_view name)
 
 bool RPLLoader_HasDependency(std::string_view name)
 {
-	char moduleName[RPL_MODULE_NAME_LENGTH];
-	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
+	if (name.empty())
+		return false;
+	std::string moduleName = _RPLLoader_ExtractModuleNameFromPath(name);
 	for (const auto& dep : rplDependencyList)
 	{
-		if (strcmp(moduleName, dep->modulename) == 0)
+		if (dep->moduleName == moduleName)
 			return true;
 	}
 	return false;
@@ -2045,13 +2029,11 @@ RPLDependency* RPLLoader_GetDependencyByRPLModule(RPLModule* rpl)
 
 uint32 RPLLoader_GetHandleByModuleName(const char* name)
 {
-	// get module name from path
-	char moduleName[RPL_MODULE_NAME_LENGTH];
-	_RPLLoader_ExtractModuleNameFromPath(moduleName, name);
+	std::string moduleName = _RPLLoader_ExtractModuleNameFromPath(name);
 	// search for existing dependency
 	for (auto& dep : rplDependencyList)
 	{
-		if (strcmp(moduleName, dep->modulename) == 0)
+		if (dep->moduleName == moduleName)
 		{
 			cemu_assert_debug(dep->loadAttempted);
 			if (!dep->isCafeOSModule && !dep->rplLoaderContext)
@@ -2111,7 +2093,7 @@ void RPLLoader_LoadDependency(RPLDependency* dependency)
 	{
 		dependency->rplHLEModule->RPLMapped();
 		// load chained dependencies
-		// this is necessary for something like GX2.rpl which uses TCL.rpl functions
+		// this is necessary for something like HLE GX2.rpl which uses TCL.rpl functions
 		auto depList = dependency->rplHLEModule->GetDependencies();
 		for (const auto& dep : depList)
 			RPLLoader_AddDependency(dep);
@@ -2120,43 +2102,36 @@ void RPLLoader_LoadDependency(RPLDependency* dependency)
 	// check if module is already loaded
 	for (sint32 i = 0; i < rplModuleCount; i++)
 	{
-		if(!boost::iequals(rplModuleList[i]->moduleName2, dependency->modulename))
+		if (rplModuleList[i]->moduleName != dependency->moduleName)
 			continue;
 		dependency->rplLoaderContext = rplModuleList[i];
 		return;
 	}
-	//char filePath[RPL_MODULE_PATH_LENGTH];
-	std::string rplPath;
-	// check if path is absolute
-	if (!dependency->filepath.empty() && dependency->filepath.front() == '/')
-	{
-		rplPath = dependency->filepath;
-		RPLLoader_LoadFromVirtualPath(dependency, rplPath);
-		return;
-	}
 	// attempt to load rpl from code directory of current title
-	rplPath =  "/internal/current_title/code/";
-	rplPath.append(dependency->filepath);
+	std::string rplFilename = dependency->moduleName;
+	rplFilename.append(dependency->isMainExecutable ? ".rpx" : ".rpl");
+	std::string rplPath = "/internal/current_title/code/";
+	rplPath.append(rplFilename);
 	// except if it is blacklisted
 	bool isBlacklisted = false;
-	if (boost::iequals(dependency->filepath, "erreula.rpl"))
+	if (dependency->moduleName == "erreula")
 	{
 		if (fsc_doesFileExist(rplPath.c_str()))
 			isBlacklisted = true;
 	}
 	if (isBlacklisted)
-		cemuLog_log(LogType::Force, fmt::format("Game tried to load \"{}\" but it is blacklisted (using Cemu's implementation instead)", rplPath));
+		cemuLog_log(LogType::Force, "Game tried to load code/{} but it is blacklisted (using Cemu's implementation instead)", rplFilename);
 	else if (RPLLoader_LoadFromVirtualPath(dependency, rplPath))
 		return;
 	// attempt to load rpl from Cemu's /cafeLibs/ directory
 	if (ActiveSettings::LoadSharedLibrariesEnabled())
 	{
-		const auto cafeLibsFilePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", dependency->filepath);
+		const auto cafeLibsFilePath = ActiveSettings::GetUserDataPath("cafeLibs/{}", rplFilename);
 		auto fileData = FileStream::LoadIntoMemory(cafeLibsFilePath);
 		if (fileData)
 		{
-			cemuLog_log(LogType::Force, "Loading RPL: /cafeLibs/{}", dependency->filepath);
-			dependency->rplLoaderContext = RPLLoader_LoadFromMemory(fileData->data(), fileData->size(), dependency->filepath);
+			cemuLog_log(LogType::Force, "Loading RPL: /cafeLibs/{}", rplFilename);
+			dependency->rplLoaderContext = RPLLoader_LoadFromMemory(fileData->data(), fileData->size(), rplFilename);
 			return;
 		}
 	}
@@ -2217,7 +2192,7 @@ void RPLLoader_LoadCoreinit()
 	RPLLoader_AddDependency("coreinit");
 	for (auto& dep : rplDependencyList)
 	{
-		if (strcmp(dep->modulename, "coreinit") == 0)
+		if (dep->moduleName == "coreinit")
 		{
 			dep->loadAttempted = true;
 			RPLLoader_LoadDependency(dep);
@@ -2280,7 +2255,7 @@ RPLModule* RPLLoader_FindModuleByName(std::string module)
 {
 	for (sint32 i = 0; i < rplModuleCount; i++)
 	{
-		if (rplModuleList[i]->moduleName2 == module) return rplModuleList[i];
+		if (rplModuleList[i]->moduleName == module) return rplModuleList[i];
 	}
 	return nullptr;
 }
@@ -2302,7 +2277,7 @@ void RPLLoader_CallEntrypoints()
 	{
 		if (rplModuleList[i]->entrypointCalled)
 			continue;
-		uint32 moduleHandle = RPLLoader_GetHandleByModuleName(rplModuleList[i]->moduleName2.c_str());
+		uint32 moduleHandle = RPLLoader_GetHandleByModuleName(rplModuleList[i]->moduleName.c_str());
 		MPTR entryPoint = RPLLoader_GetModuleEntrypoint(rplModuleList[i]);
 		PPCCoreCallback(entryPoint, moduleHandle, 1); // 1 -> load, 2 -> unload
 		rplModuleList[i]->entrypointCalled = true;
@@ -2315,7 +2290,7 @@ void RPLLoader_CallCoreinitEntrypoint()
 	// for HLE modules we need to check the dependency list
 	for (auto& dependency : rplDependencyList)
 	{
-		if (strcmp(dependency->modulename, "coreinit") != 0)
+		if (dependency->moduleName != "coreinit")
 			continue;
 		if (!dependency->rplHLEModule)
 			continue;
@@ -2358,13 +2333,13 @@ uint32 RPLLoader_FindModuleOrHLEExport(uint32 moduleHandle, bool isData, const c
 		// attempt to find HLE export
 		if (isData)
 		{
-			MPTR weakExportAddr = osLib_getPointer(dependency->modulename, exportName);
+			MPTR weakExportAddr = osLib_getPointer(dependency->moduleName.c_str(), exportName);
 			cemu_assert_debug(weakExportAddr != 0xFFFFFFFF);
 			exportResult = weakExportAddr;
 		}
 		else
 		{
-			exportResult = rpl_mapHLEImport(rplLoaderContext, dependency->modulename, exportName, true);
+			exportResult = rpl_mapHLEImport(rplLoaderContext, dependency->moduleName.c_str(), exportName, true);
 		}
 	}
 

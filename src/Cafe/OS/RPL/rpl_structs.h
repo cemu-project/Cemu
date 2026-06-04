@@ -164,7 +164,7 @@ struct RPLModule
 	uint32 exportFCount;
 	rplExportTableEntry_t* exportFDataPtr;
 
-	std::string moduleName2;
+	std::string moduleName;
 	
 	std::vector<rplSectionAddressEntry_t> sectionAddressTable2;
 
@@ -236,11 +236,11 @@ struct RPLModule
 
 struct RPLDependency
 {
-	char modulename[RPL_MODULE_NAME_LENGTH];
-	std::string filepath;
-	bool loadAttempted;
+	std::string moduleName;
+	bool isMainExecutable{false};
+	bool loadAttempted{false};
 	bool hleEntrypointCalled{false};
-	bool isCafeOSModule; // name is a known Cafe OS system RPL
+	bool isCafeOSModule{false}; // name is a known Cafe OS system RPL
 	RPLModule* rplLoaderContext{}; // context of loaded module, can be nullptr for HLE COS modules
 	class COSModule* rplHLEModule{}; // set if this is a HLE module
 	sint32 referenceCount;
