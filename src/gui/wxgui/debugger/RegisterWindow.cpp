@@ -222,7 +222,7 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 	RPLModule* code_module = RPLLoader_FindModuleByCodeAddr(registerValue);
 	if (code_module)
 	{
-		label->ChangeValue(wxString::Format("<%s> + %x", code_module->moduleName2.c_str(), registerValue - code_module->regionMappingBase_text.GetMPTR()));
+		label->ChangeValue(wxString::Format("<%s> + %x", code_module->moduleName.c_str(), registerValue - code_module->regionMappingBase_text.GetMPTR()));
 		return;
 	}
 

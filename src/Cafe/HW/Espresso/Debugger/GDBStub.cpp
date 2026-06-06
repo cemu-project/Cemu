@@ -556,7 +556,7 @@ void GDBServer::HandleQuery(std::unique_ptr<CommandContext>& context) const
 			const auto module_list = RPLLoader_GetModuleList();
 			for (sint32 i = 0; i < module_count; i++)
 			{
-				library_list += fmt::format(R"(<library name="{}"><segment address="{:#x}"/></library>)", CommandContext::EscapeXMLString(module_list[i]->moduleName2), module_list[i]->regionMappingBase_text.GetMPTR());
+				library_list += fmt::format(R"(<library name="{}"><segment address="{:#x}"/></library>)", CommandContext::EscapeXMLString(module_list[i]->moduleName), module_list[i]->regionMappingBase_text.GetMPTR());
 			}
 			library_list += "</library-list>";
 

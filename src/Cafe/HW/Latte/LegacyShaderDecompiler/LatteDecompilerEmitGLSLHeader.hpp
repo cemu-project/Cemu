@@ -243,7 +243,7 @@ namespace LatteDecompiler
 					cemu_assert_debug(decompilerContext->output->resourceMappingVK.attributeMapping[i] >= 0);
 					cemu_assert_debug(decompilerContext->output->resourceMappingGL.attributeMapping[i] == decompilerContext->output->resourceMappingVK.attributeMapping[i]);
 
-					shaderSrc->addFmt("ATTR_LAYOUT({}, {}) in uvec4 attrDataSem{};" _CRLF, (sint32)decompilerContext->output->resourceMappingVK.setIndex, (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i], i);
+					shaderSrc->addFmt("ATTR_LAYOUT({}) in uvec4 attrDataSem{};" _CRLF, (sint32)decompilerContext->output->resourceMappingVK.attributeMapping[i], i);
 				}
 			}
 		}
@@ -255,7 +255,7 @@ namespace LatteDecompiler
 		// OpenGL/Vulkan ifdefs
 		src->add("#ifdef VULKAN" _CRLF);
 		// Vulkan defines
-		src->add("#define ATTR_LAYOUT(__vkSet, __location) layout(set = __vkSet, location = __location)" _CRLF);
+		src->add("#define ATTR_LAYOUT(__location) layout(location = __location)" _CRLF);
 		src->add("#define UNIFORM_BUFFER_LAYOUT(__glLocation, __vkSet, __vkLocation) layout(set = __vkSet, binding = __vkLocation, std140)" _CRLF);
 		src->add("#define TEXTURE_LAYOUT(__glLocation, __vkSet, __vkLocation) layout(set = __vkSet, binding = __vkLocation)" _CRLF);
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
@@ -293,7 +293,7 @@ namespace LatteDecompiler
 		}
 		src->add("#else" _CRLF);
 		// OpenGL defines
-		src->add("#define ATTR_LAYOUT(__vkSet, __location) layout(location = __location)" _CRLF);
+		src->add("#define ATTR_LAYOUT(__location) layout(location = __location)" _CRLF);
 		src->add("#define UNIFORM_BUFFER_LAYOUT(__glLocation, __vkSet, __vkLocation) layout(binding = __glLocation, std140) " _CRLF);
 		src->add("#define TEXTURE_LAYOUT(__glLocation, __vkSet, __vkLocation) layout(binding = __glLocation)" _CRLF);
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex || decompilerContext->shaderType == LatteConst::ShaderType::Geometry)

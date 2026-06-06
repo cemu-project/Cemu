@@ -1,9 +1,9 @@
 #pragma once
 
-#include <wx/frame.h>
 #include <wx/dialog.h>
 #include <wx/scrolwin.h>
 #include <wx/infobar.h>
+#include <wx/hyperlink.h>
 
 #include "wxcomponents/checktree.h"
 
@@ -46,7 +46,7 @@ private:
 	wxBoxSizer* m_preset_sizer;
 	std::vector<wxChoice*> m_active_preset;
 	wxButton* m_reload_shaders;
-	wxButton* m_download_from_url;
+	wxHyperlinkCtrl* m_download_from_url;
 	wxButton* m_update_graphicPacks;
 	wxInfoBar* m_info_bar;
 
