@@ -670,6 +670,7 @@ namespace snd_user
 		}
 
 		AXCHMIX2 mix[AX_TV_CHANNEL_COUNT][AX_MAX_NUM_BUS];
+		sint32 inputSamples = AXGetInputSamplesPerFrame();
 		for (size_t i = 0; i < AX_MAX_NUM_BUS; ++i)
 		{
 			for (size_t j = 0; j < AX_TV_CHANNEL_COUNT; ++j)
@@ -678,7 +679,7 @@ namespace snd_user
 				const uint16 volume = channel->tv_volume[i][j].volume;
 
 				mix[j][i].vol = volume;
-				mix[j][i].delta = (sint16)(target - volume) / 96; // 32000HZ SAMPLES_3MS
+				mix[j][i].delta = (sint16)(target - volume) / inputSamples;
 			}
 		}
 		AXSetVoiceDeviceMix(channel->voice.GetPtr(), AX_DEV_TV, 0, (snd_core::AXCHMIX_DEPR*)&mix[0][0]);
