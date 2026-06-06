@@ -798,7 +798,7 @@ void debugger_addParserSymbols(class ExpressionParser& ep)
 		if (module)
 		{
 			moduleTmp[i] = (double)module->regionMappingBase_text.GetMPTR();
-			ep.AddConstant(module->moduleName2, moduleTmp[i]);
+			ep.AddConstant(module->moduleName, moduleTmp[i]);
 		}
 	}
 	PPCInterpreter_t* hCPU = debugger_lockDebugSession();

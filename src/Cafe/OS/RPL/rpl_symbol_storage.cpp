@@ -63,7 +63,7 @@ char* rplSymbolStorage_storeLibname(const char* libName)
 	return libEntry->libName;
 }
 
-RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolName, MPTR address)
+RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolName, MPTR address, uint32 type)
 {
 	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
 	char* libNameStorage = rplSymbolStorage_storeLibname(libName);
@@ -72,7 +72,11 @@ RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolN
 	storedSymbol->address = address;
 	storedSymbol->libName = libNameStorage;
 	storedSymbol->symbolName = symbolNameStorage;
-	storedSymbol->flags = 0;
+	storedSymbol->flags = type;
+	storedSymbol->previous = nullptr;
+	auto it = rplSymbolStorage.map_symbolByAddress.find(address);
+	if (it != rplSymbolStorage.map_symbolByAddress.end())
+		storedSymbol->previous = it->second;
 	rplSymbolStorage.map_symbolByAddress[address] = storedSymbol;
 	return storedSymbol;
 }
@@ -80,7 +84,10 @@ RPLStoredSymbol* rplSymbolStorage_store(const char* libName, const char* symbolN
 RPLStoredSymbol* rplSymbolStorage_getByAddress(MPTR address)
 {
 	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
-	return rplSymbolStorage.map_symbolByAddress[address];
+	auto it = rplSymbolStorage.map_symbolByAddress.find(address);
+	if (it == rplSymbolStorage.map_symbolByAddress.end())
+		return nullptr;
+	return it->second;
 }
 
 RPLStoredSymbol* rplSymbolStorage_getByClosestAddress(MPTR address)
@@ -89,7 +96,8 @@ RPLStoredSymbol* rplSymbolStorage_getByClosestAddress(MPTR address)
     std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
     for(uint32 i=0; i<4096; i++)
     {
-        RPLStoredSymbol* symbol = rplSymbolStorage.map_symbolByAddress[address];
+		auto it = rplSymbolStorage.map_symbolByAddress.find(address);
+		RPLStoredSymbol* symbol = (it == rplSymbolStorage.map_symbolByAddress.end()) ? nullptr : it->second;
         if(symbol)
             return symbol;
         address -= 4;
@@ -100,18 +108,63 @@ RPLStoredSymbol* rplSymbolStorage_getByClosestAddress(MPTR address)
 void rplSymbolStorage_remove(RPLStoredSymbol* storedSymbol)
 {
 	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
-	if (rplSymbolStorage.map_symbolByAddress[storedSymbol->address] == storedSymbol)
-		rplSymbolStorage.map_symbolByAddress[storedSymbol->address] = nullptr;
+	auto it = rplSymbolStorage.map_symbolByAddress.find(storedSymbol->address);
+	if (it != rplSymbolStorage.map_symbolByAddress.end())
+	{
+		if (it->second == storedSymbol)
+		{
+			if (storedSymbol->previous)
+				it->second = storedSymbol->previous;
+			else
+				rplSymbolStorage.map_symbolByAddress.erase(it);
+		}
+		else
+		{
+			RPLStoredSymbol* parentSymbol = it->second;
+			while (parentSymbol && parentSymbol->previous != storedSymbol)
+				parentSymbol = parentSymbol->previous;
+			if (parentSymbol)
+				parentSymbol->previous = storedSymbol->previous;
+		}
+	}
 	delete storedSymbol;
 }
 
-void rplSymbolStorage_removeRange(MPTR address, sint32 length)
+
+void rplSymbolStorage_removeRange(MPTR address, sint32 length, uint32 type)
 {
+	std::unique_lock<std::mutex> lck(rplSymbolStorage.m_symbolStorageMutex);
 	while (length > 0)
 	{
-		RPLStoredSymbol* symbol = rplSymbolStorage_getByAddress(address);
-		if (symbol)
-			rplSymbolStorage_remove(symbol);
+		auto it = rplSymbolStorage.map_symbolByAddress.find(address);
+		if (it != rplSymbolStorage.map_symbolByAddress.end())
+		{
+			RPLStoredSymbol* current = it->second;
+			RPLStoredSymbol* newHead = current;
+			RPLStoredSymbol* previousKept = nullptr;
+			while (current)
+			{
+				RPLStoredSymbol* next = current->previous;
+				if ((current->flags & type) == type)
+				{
+					if (previousKept)
+						previousKept->previous = next;
+					else
+						newHead = next;
+					delete current;
+				}
+				else
+				{
+					previousKept = current;
+				}
+				current = next;
+			}
+
+			if (newHead)
+				it->second = newHead;
+			else
+				rplSymbolStorage.map_symbolByAddress.erase(it);
+		}
 		address += 4;
 		length -= 4;
 	}
@@ -145,7 +198,15 @@ void rplSymbolStorage_unloadAll()
 {
 	// free symbols
 	for (auto& it : rplSymbolStorage.map_symbolByAddress)
-		delete it.second;
+	{
+		RPLStoredSymbol* symbol = it.second;
+		while (symbol)
+		{
+			RPLStoredSymbol* previous = symbol->previous;
+			delete symbol;
+			symbol = previous;
+		}
+	}
 	rplSymbolStorage.map_symbolByAddress.clear();
 	// free libs
 	rplSymbolLib_t* lib = rplSymbolStorage.libs;

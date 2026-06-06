@@ -244,7 +244,7 @@ void TextureRelationViewerWindow::_setTextureRelationListItemTexture(wxListCtrl*
 	uiList->SetItem(rowIndex, columnIndex, texInfo->mipLevels == 1 ? "1 mip" : wxString::Format("%d mips", texInfo->mipLevels));
 	columnIndex++;
 	// last access
-	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%lus", (GetTickCount() - texInfo->lastAccessTick + 499) / 1000));
+	uiList->SetItem(rowIndex, columnIndex, wxString::Format("%uus", (GetTickCount() - texInfo->lastAccessTick + 499) / 1000));
 	columnIndex++;
 	// overwrite resolution
 	wxString overwriteResLabel;

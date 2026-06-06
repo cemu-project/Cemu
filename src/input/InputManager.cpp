@@ -696,7 +696,7 @@ std::shared_ptr<VPADController> InputManager::get_vpad_controller(size_t index) 
 		return {};
 
 	std::shared_lock lock(m_mutex);
-	return std::static_pointer_cast<VPADController>(m_vpad[index]);
+	return std::dynamic_pointer_cast<VPADController>(m_vpad[index]);
 }
 
 std::shared_ptr<WPADController> InputManager::get_wpad_controller(size_t index) const
@@ -705,7 +705,7 @@ std::shared_ptr<WPADController> InputManager::get_wpad_controller(size_t index) 
 		return {};
 
 	std::shared_lock lock(m_mutex);
-	return std::static_pointer_cast<WPADController>(m_wpad[index]);
+	return std::dynamic_pointer_cast<WPADController>(m_wpad[index]);
 }
 
 std::pair<size_t, size_t> InputManager::get_controller_count() const

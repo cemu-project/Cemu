@@ -14,6 +14,8 @@
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 #include "Cafe/HW/Espresso/Debugger/DebugSymbolStorage.h"
 
+#include <wx/clipbrd.h>
+
 wxDEFINE_EVENT(wxEVT_DISASMCTRL_NOTIFY_GOTO_ADDRESS, wxCommandEvent);
 
 #define MAX_SYMBOL_LEN			(120)
@@ -699,20 +701,11 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 
 void DisasmCtrl::CopyToClipboard(std::string text)
 {
-#if BOOST_OS_WINDOWS
-	if (OpenClipboard(nullptr))
+	if (wxClipboard::Get()->Open())
 	{
-		EmptyClipboard();
-		const HGLOBAL hGlobal = GlobalAlloc(GMEM_MOVEABLE, text.size() + 1);
-		if (hGlobal)
-		{
-			memcpy(GlobalLock(hGlobal), text.c_str(), text.size() + 1);
-			GlobalUnlock(hGlobal);
-			SetClipboardData(CF_TEXT, hGlobal);
-		}
-		CloseClipboard();
+		wxClipboard::Get()->SetData(new wxTextDataObject(text));
+		wxClipboard::Get()->Close();
 	}
-#endif
 }
 
 static uint32 GetUnrelocatedAddress(MPTR address)

@@ -420,7 +420,7 @@ void PatchEntryInstruction::undoPatch()
 	uint8* patchAddr = (uint8*)memory_base + addr;
 	memcpy(patchAddr, m_dataBackup, m_length);
 	PPCRecompiler_invalidateRange(addr, addr + m_length);
-	rplSymbolStorage_removeRange(addr, m_length);
+	rplSymbolStorage_removeRange(addr, m_length, RPL_STORED_SYMBOL_PATCH);
 	DebugSymbolStorage::ClearRange(addr, m_length);
 }
 
@@ -434,7 +434,7 @@ bool registerU32Variable(PatchContext_t& ctx, std::string& name, uint32 value, P
 	}
 	ctx.map_values[name] = value;
 	// keep track of address symbols for the debugger
-	rplSymbolStorage_store(ctx.graphicPack->GetName().data(), name.data(), value);
+	rplSymbolStorage_store(ctx.graphicPack->GetName().data(), name.data(), value, RPL_STORED_SYMBOL_PATCH);
 
 	return true;
 }
@@ -688,7 +688,7 @@ void GraphicPack2::UndoPatchGroups(std::vector<PatchGroup*>& groups, const RPLMo
 
 void GraphicPack2::NotifyModuleLoaded(const RPLModule* rpl)
 {
-	cemuLog_log(LogType::Force, "Loaded module \'{}\' with checksum 0x{:08x}", rpl->moduleName2, rpl->patchCRC);
+	cemuLog_log(LogType::Force, "Loaded module \'{}\' with checksum 0x{:08x}", rpl->moduleName, rpl->patchCRC);
 
 	std::lock_guard<std::recursive_mutex> lock(mtx_patches);
 	list_modules.emplace_back(rpl);

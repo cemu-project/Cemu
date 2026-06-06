@@ -380,9 +380,6 @@ private:
 			uint32 offset;
 		}currentVertexBinding[LATTE_MAX_VERTEX_BUFFERS]{};
 
-		// transform feedback
-		bool hasActiveXfb{};
-
 		// index buffer
 		Renderer::INDEX_TYPE activeIndexType{};
 		uint32 activeIndexBufferIndex{};
@@ -442,7 +439,6 @@ private:
 		{
 			// if using new optional extensions add to CheckDeviceExtensionSupport and CreateDeviceCreateInfo
 			bool tooling_info = false; // VK_EXT_tooling_info
-			bool transform_feedback = false;
 			bool depth_range_unrestricted = false;
 			bool nv_fill_rectangle = false; // NV_fill_rectangle
 			bool pipeline_feedback = false;
@@ -469,11 +465,6 @@ private:
 		{
 			bool debug_utils = false; // VK_EXT_DEBUG_UTILS
 		}instanceExtensions;
-
-		struct
-		{
-			bool useTFEmulationViaSSBO = true; // emulate transform feedback via shader writes to a storage buffer
-		}mode;
 
 		struct
 		{
@@ -521,7 +512,10 @@ private:
 	void DeleteFontTextures() override;
 	bool BeginFrame(bool mainWindow) override;
 
-	bool UseTFViaSSBO() const override { return m_featureControl.mode.useTFEmulationViaSSBO; }
+	bool UseTFViaSSBO() const override
+	{
+		return true;
+	}
 
 	// drawcall emulation
 	PipelineInfo* draw_createGraphicsPipeline(uint32 indexCount);
@@ -567,7 +561,6 @@ private:
 	// streamout
 	void streamout_setupXfbBuffer(uint32 bufferIndex, sint32 ringBufferOffset, uint32 rangeAddr, uint32 rangeSize) override;
 	void streamout_begin() override;
-	void streamout_applyTransformFeedbackState();
 	void bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size) override;
 	void streamout_rendererFinishDrawcall() override;
 

@@ -121,12 +121,6 @@ DownloadCustomGraphicPackWindow::~DownloadCustomGraphicPackWindow()
 
 int DownloadCustomGraphicPackWindow::ShowModal()
 {
-    if (CafeSystem::IsTitleRunning())
-	{
-		wxMessageBox(_("Graphic packs cannot be updated while a game is running."), _("Graphic packs"), 5, this);
-		return wxID_CANCEL;
-	}
-    
 	wxDialog::ShowModal();
 	return wxID_OK;
 }

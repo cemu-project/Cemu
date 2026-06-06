@@ -28,7 +28,7 @@ void RPLLoader_CallEntrypoints();
 void RPLLoader_CallCoreinitEntrypoint();
 void RPLLoader_NotifyControlPassedToApplication();
 
-void RPLLoader_AddDependency(std::string_view name);
+void RPLLoader_AddDependency(std::string_view name, bool isMainExecutable = false);
 void RPLLoader_RemoveDependency(uint32 handle);
 bool RPLLoader_HasDependency(std::string_view name);
 void RPLLoader_UpdateDependencies();

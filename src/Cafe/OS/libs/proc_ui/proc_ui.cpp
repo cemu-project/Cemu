@@ -355,6 +355,8 @@ namespace proc_ui
 	{
 		if (!s_isInitialized.exchange(false))
 			return;
+		if (!OSIsSchedulerActive())
+			return; // CafeSystem shutdown in progress, OS functions shouldn't be called anymore. reset() will clean up state on next re-init
 		if ( !s_isInForeground )
 			CancelBackgroundAlarms();
 		for (sint32 i = 0; i < Espresso::CORE_COUNT; i++)
