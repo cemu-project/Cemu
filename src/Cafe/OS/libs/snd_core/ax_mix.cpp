@@ -8,7 +8,6 @@ void mic_updateOnAXFrame();
 namespace snd_core
 {
 	uint32 __AXDefaultMixerSelect = AX_MIXER_SELECT_BOTH;
-
 	uint16 __AXTVAuxReturnVolume[AX_AUX_BUS_COUNT];
 
 	void AXSetDefaultMixerSelect(uint32 mixerSelect)
@@ -226,7 +225,6 @@ namespace snd_core
 
 		uint32 newInternalCurrentOffset = internalCurrentOffset + (playbackNibbleOffset - playbackNibbleOffsetStart);
 		*(uint32*)&internalShadowCopy->internalOffsets.currentOffsetPtrHigh = _swapEndianU32(newInternalCurrentOffset);
-
 	}
 
 	void AX_DecodeSamplesADPCM_NoSrc(AXVPBInternal_t* internalShadowCopy, float* output, sint32 sampleCount)
@@ -459,8 +457,6 @@ namespace snd_core
 		uint16* endOffsetAddr = (uint16*)(memory_base + ((endOffsetPtr * 2) | (ptrHighExtension << 29)));
 		uint16* currentOffsetAddr = (uint16*)(memory_base + ((currentOffsetPtr * 2) | (ptrHighExtension << 29)));
 
-		uint16* loopOffsetAddrDebug = (uint16*)(memory_base + ((loopOffsetPtr * 2) | (ptrHighExtension << 29)));
-
 		sint16 historySamples[4];
 		historySamples[0] = _swapEndianS16(internalShadowCopy->src.historySamples[0]);
 		historySamples[1] = _swapEndianS16(internalShadowCopy->src.historySamples[1]);
@@ -469,17 +465,19 @@ namespace snd_core
 
 		sint32 historyIndex = 0;
 
+		sint32 s = 0;
 		for (sint32 i = 0; i < sampleCount; i++)
 		{
 			currentFracPos += ratio;
 			while (currentFracPos >= 0x10000)
 			{
 				// read next sample
+				sint32 prevIndex = historyIndex;
 				historyIndex = (historyIndex + 1) & 3;
 				if (internalShadowCopy->playbackState)
 				{
-					sint32 s = _swapEndianS16(*currentOffsetAddr);
-					historySamples[historyIndex] = s;
+					s = _swapEndianS16(*currentOffsetAddr);
+					historySamples[prevIndex] = s;
 					if (currentOffsetAddr == endOffsetAddr)
 					{
 						if (internalShadowCopy->internalOffsets.loopFlag)
@@ -501,15 +499,15 @@ namespace snd_core
 				else
 				{
 					// voice not playing -> sample is silent
-					historySamples[historyIndex] = 0;
+					historySamples[historyIndex] = s;
 				}
 				currentFracPos -= 0x10000;
 			}
 			// interpolate sample
-			sint32 previousSample = historySamples[(historyIndex + 3) & 3];
-			sint32 nextSample = historySamples[historyIndex];
+			sint32 curSample = historySamples[historyIndex];
+			sint32 nextSample = historySamples[(historyIndex + 1) & 3];
 
-			sint32 p0 = (sint32)previousSample * (sint32)(0x10000 - currentFracPos);
+			sint32 p0 = (sint32)curSample * (sint32)(0x10000 - currentFracPos);
 			sint32 p1 = (sint32)nextSample * (sint32)(currentFracPos);
 			p0 >>= 7;
 			p1 >>= 7;
@@ -659,7 +657,7 @@ namespace snd_core
 	float __AXMixBufferTV[AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT * AX_BUS_COUNT];
 	float __AXMixBufferDRC[2 * AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * AX_BUS_COUNT];
 
-	void AXVoiceMix_ApplyADSR(AXVPBInternal_t* internalShadowCopy, float* sampleData, sint32 sampleCount)
+	void AXVoiceMix_ApplyADSR_NoClamp(AXVPBInternal_t* internalShadowCopy, float* sampleData, sint32 sampleCount)
 	{
 		uint16 volume = internalShadowCopy->veVolume;
 		sint16 volumeDelta = (sint16)internalShadowCopy->veDelta;
@@ -669,23 +667,73 @@ namespace snd_core
 		if (volumeDelta == 0)
 		{
 			// without delta
-			for (sint32 i = 0; i < sampleCount; i++)
-				sampleData[i] *= volumeScaler;
+			for (sint32 i = 0; i < sampleCount; i += 4)
+			{
+				sampleData[i+0] *= volumeScaler;
+				sampleData[i+1] *= volumeScaler;
+				sampleData[i+2] *= volumeScaler;
+				sampleData[i+3] *= volumeScaler;
+			}
 			return;
 		}
 		// with delta
-		double volumeScalerDelta = (double)volumeDelta / 32768.0;
-		volumeScalerDelta = volumeScalerDelta + volumeScalerDelta;
+		float volumeScalerDelta = volumeDelta / 32768.0f;
 		for (sint32 i = 0; i < sampleCount; i++)
 		{
 			volumeScaler += (float)volumeScalerDelta;
 			sampleData[i] *= volumeScaler;
 		}
-		if (volumeDelta != 0)
+		internalShadowCopy->veVolume = (uint16)((sint32)internalShadowCopy->veVolume + volumeDelta * sampleCount);
+	}
+
+	FORCE_INLINE float ClampADSRSample(float x)
+	{
+		if (x > 8388352.0f)
+			return 8388352.0f;
+		if (x < -8388608.0f)
+			return -8388608.0f;
+		return x;
+	}
+
+	void AXVoiceMix_ApplyADSR_Sndcore2(AXVPBInternal_t* internalShadowCopy, float* sampleData, sint32 sampleCount)
+	{
+		// sndcore2 clamps samples to -8388608,8388352 range (16bit signed range << 8)
+		uint16 volume = internalShadowCopy->veVolume;
+		sint16 volumeDelta = (sint16)internalShadowCopy->veDelta;
+		uint16 finalVolume =  (uint16)((sint32)volume + volumeDelta * sampleCount);
+		if (volume == 0x8000 && volumeDelta == 0)
+			return;
+		if (volume <= 0x8000 && finalVolume <= 0x8000) // if volume scaler doesn't exceed 1.0 then we don't need to clamp. We assume that volume never wraps around
+			return AXVoiceMix_ApplyADSR_NoClamp(internalShadowCopy, sampleData, sampleCount);
+		float volumeScaler = (float)volume / 32768.0f;
+		if (volumeDelta == 0)
 		{
-			volume = (uint16)(volumeScaler * 32768.0);
-			internalShadowCopy->veVolume = volume;
+			// without delta
+			for (sint32 i = 0; i < sampleCount; i += 4)
+			{
+				sampleData[i+0] = ClampADSRSample(sampleData[i+0] * volumeScaler);
+				sampleData[i+1] = ClampADSRSample(sampleData[i+1] * volumeScaler);
+				sampleData[i+2] = ClampADSRSample(sampleData[i+2] * volumeScaler);
+				sampleData[i+3] = ClampADSRSample(sampleData[i+3] * volumeScaler);
+			}
+			return;
 		}
+		// with delta
+		float volumeScalerDelta = volumeDelta / 32768.0f;
+		for (sint32 i = 0; i < sampleCount; i++)
+		{
+			volumeScaler += volumeScalerDelta;
+			sampleData[i] = ClampADSRSample(sampleData[i] * volumeScaler);
+		}
+		internalShadowCopy->veVolume = finalVolume;
+	}
+
+	void AXVoiceMix_ApplyADSR(AXVPBInternal_t* internalShadowCopy, float* sampleData, sint32 sampleCount)
+	{
+		if (sndGeneric.isSoundCore2)
+			AXVoiceMix_ApplyADSR_Sndcore2(internalShadowCopy, sampleData, sampleCount);
+		else
+			AXVoiceMix_ApplyADSR_NoClamp(internalShadowCopy, sampleData, sampleCount);
 	}
 
 	void AXVoiceMix_ApplyBiquad(AXVPBInternal_t* internalShadowCopy, float* sampleData, sint32 sampleCount)

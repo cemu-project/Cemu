@@ -379,137 +379,15 @@ namespace snd_core
 		return 0;
 	}
 
-	// void loadExportsSndCore1()
-	// {
-	// 	cafeExportRegisterFunc(sndcore1_AXInit, "snd_core", "AXInit", LogType::SoundAPI);
-	// 	cafeExportRegisterFunc(sndcore1_AXInitEx, "snd_core", "AXInitEx", LogType::SoundAPI);
-	// 	cafeExportRegister("snd_core", AXIsInit, LogType::SoundAPI);
-	// 	cafeExportRegister("snd_core", AXQuit, LogType::SoundAPI);
-	//
-	// 	cafeExportRegister("snd_core", AXGetMaxVoices, LogType::SoundAPI);
-	// 	cafeExportRegister("snd_core", AXGetInputSamplesPerFrame, LogType::SoundAPI);
-	// 	cafeExportRegister("snd_core", AXGetInputSamplesPerSec, LogType::SoundAPI);
-	// 	cafeExportRegister("snd_core", AXSetDefaultMixerSelect, LogType::SoundAPI);
-	// 	cafeExportRegister("snd_core", AXGetDefaultMixerSelect, LogType::SoundAPI);
-	//
-	// 	osLib_addFunction("snd_core", "AXGetDeviceFinalMixCallback", export_AXGetDeviceFinalMixCallback);
-	// 	osLib_addFunction("snd_core", "AXRegisterDeviceFinalMixCallback", export_AXRegisterDeviceFinalMixCallback);
-	//
-	// 	osLib_addFunction("snd_core", "AXRegisterAppFrameCallback", export_AXRegisterAppFrameCallback);
-	// 	osLib_addFunction("snd_core", "AXDeregisterAppFrameCallback", export_AXDeregisterAppFrameCallback);
-	//
-	// 	osLib_addFunction("snd_core", "AXRegisterFrameCallback", export_AXRegisterFrameCallback);
-	// 	osLib_addFunction("snd_core", "AXRegisterCallback", export_AXRegisterCallback);
-	//
-	// 	osLib_addFunction("snd_core", "AXRegisterAuxCallback", export_AXRegisterAuxCallback);
-	// 	osLib_addFunction("snd_core", "AXGetAuxCallback", export_AXGetAuxCallback);
-	//
-	// 	osLib_addFunction("snd_core", "AXSetAuxReturnVolume", export_AXSetAuxReturnVolume);
-	//
-	// 	osLib_addFunction("snd_core", "AXGetDeviceMode", export_AXGetDeviceMode);
-	//
-	// 	osLib_addFunction("snd_core", "AXSetDeviceUpsampleStage", export_AXSetDeviceUpsampleStage);
-	// 	osLib_addFunction("snd_core", "AXGetDeviceUpsampleStage", export_AXGetDeviceUpsampleStage);
-	//
-	// 	osLib_addFunction("snd_core", "AXAcquireVoiceEx", export_AXAcquireVoiceEx);
-	// 	osLib_addFunction("snd_core", "AXAcquireVoice", export_AXAcquireVoice);
-	// 	osLib_addFunction("snd_core", "AXFreeVoice", export_AXFreeVoice);
-	//
-	// 	osLib_addFunction("snd_core", "AXUserIsProtected", export_AXUserIsProtected);
-	// 	osLib_addFunction("snd_core", "AXUserBegin", export_AXUserBegin);
-	// 	osLib_addFunction("snd_core", "AXUserEnd", export_AXUserEnd);
-	// 	osLib_addFunction("snd_core", "AXVoiceBegin", export_AXVoiceBegin);
-	// 	osLib_addFunction("snd_core", "AXVoiceEnd", export_AXVoiceEnd);
-	// 	osLib_addFunction("snd_core", "AXVoiceIsProtected", export_AXVoiceIsProtected);
-	//
-	// 	osLib_addFunction("snd_core", "AXCheckVoiceOffsets", export_AXCheckVoiceOffsets);
-	//
-	// 	osLib_addFunction("snd_core", "AXSetDeviceRemixMatrix", export_AXSetDeviceRemixMatrix);
-	// 	osLib_addFunction("snd_core", "AXGetDeviceRemixMatrix", export_AXGetDeviceRemixMatrix);
-	//
-	// 	cafeExportRegister("snd_core", AXGetDeviceFinalOutput, LogType::SoundAPI);
-	// }
-	//
-	// void loadExportsSndCore2()
-	// {
-	// 	cafeExportRegisterFunc(sndcore2_AXInitWithParams, "sndcore2", "AXInitWithParams", LogType::SoundAPI);
-	// 	cafeExportRegisterFunc(sndcore2_AXInit, "sndcore2", "AXInit", LogType::SoundAPI);
-	// 	cafeExportRegisterFunc(sndcore2_AXInitEx, "sndcore2", "AXInitEx", LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXIsInit, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXQuit, LogType::SoundAPI);
-	//
-	// 	cafeExportRegister("sndcore2", AXGetMaxVoices, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXGetInputSamplesPerFrame, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXGetInputSamplesPerSec, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetDefaultMixerSelect, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXGetDefaultMixerSelect, LogType::SoundAPI);
-	//
-	// 	osLib_addFunction("sndcore2", "AXGetDeviceFinalMixCallback", export_AXGetDeviceFinalMixCallback);
-	// 	osLib_addFunction("sndcore2", "AXRegisterDeviceFinalMixCallback", export_AXRegisterDeviceFinalMixCallback);
-	//
-	// 	osLib_addFunction("sndcore2", "AXRegisterAppFrameCallback", export_AXRegisterAppFrameCallback);
-	// 	osLib_addFunction("sndcore2", "AXDeregisterAppFrameCallback", export_AXDeregisterAppFrameCallback);
-	//
-	// 	osLib_addFunction("sndcore2", "AXRegisterFrameCallback", export_AXRegisterFrameCallback);
-	// 	osLib_addFunction("sndcore2", "AXRegisterCallback", export_AXRegisterCallback);
-	//
-	// 	osLib_addFunction("sndcore2", "AXRegisterAuxCallback", export_AXRegisterAuxCallback);
-	// 	osLib_addFunction("sndcore2", "AXGetAuxCallback", export_AXGetAuxCallback);
-	//
-	// 	osLib_addFunction("sndcore2", "AXSetAuxReturnVolume", export_AXSetAuxReturnVolume);
-	//
-	// 	osLib_addFunction("sndcore2", "AXGetDeviceMode", export_AXGetDeviceMode);
-	//
-	// 	osLib_addFunction("sndcore2", "AXSetDeviceUpsampleStage", export_AXSetDeviceUpsampleStage);
-	// 	osLib_addFunction("sndcore2", "AXGetDeviceUpsampleStage", export_AXGetDeviceUpsampleStage);
-	//
-	// 	osLib_addFunction("sndcore2", "AXAcquireVoiceEx", export_AXAcquireVoiceEx);
-	// 	osLib_addFunction("sndcore2", "AXAcquireVoice", export_AXAcquireVoice);
-	// 	osLib_addFunction("sndcore2", "AXFreeVoice", export_AXFreeVoice);
-	//
-	// 	osLib_addFunction("sndcore2", "AXUserIsProtected", export_AXUserIsProtected);
-	// 	osLib_addFunction("sndcore2", "AXUserBegin", export_AXUserBegin);
-	// 	osLib_addFunction("sndcore2", "AXUserEnd", export_AXUserEnd);
-	// 	osLib_addFunction("sndcore2", "AXVoiceBegin", export_AXVoiceBegin);
-	// 	osLib_addFunction("sndcore2", "AXVoiceEnd", export_AXVoiceEnd);
-	//
-	// 	osLib_addFunction("sndcore2", "AXVoiceIsProtected", export_AXVoiceIsProtected);
-	//
-	// 	osLib_addFunction("sndcore2", "AXCheckVoiceOffsets", export_AXCheckVoiceOffsets);
-	//
-	// 	osLib_addFunction("sndcore2", "AXSetDeviceRemixMatrix", export_AXSetDeviceRemixMatrix);
-	// 	osLib_addFunction("sndcore2", "AXGetDeviceRemixMatrix", export_AXGetDeviceRemixMatrix);
-	//
-	// 	cafeExportRegister("sndcore2", AXGetDeviceFinalOutput, LogType::SoundAPI);
-	//
-	// 	// multi voice
-	// 	cafeExportRegister("sndcore2", AXAcquireMultiVoice, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXFreeMultiVoice, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXGetMultiVoiceReformatBufferSize, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceType, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceAdpcm, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceSrcType, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceOffsets, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceVe, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceSrcRatio, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceSrc, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceLoop, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceState, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXSetMultiVoiceAdpcmLoop, LogType::SoundAPI);
-	// 	cafeExportRegister("sndcore2", AXIsMultiVoiceRunning, LogType::SoundAPI);
-	// }
-
-	// void loadExports()
-	// {
- //        AXResetToDefaultState();
- //
-	// 	loadExportsSndCore1();
-	// 	loadExportsSndCore2();
-	// }
-
 	bool isInitialized()
 	{
 		return sndGeneric.isInitialized;
+	}
+
+	bool IsSndCore2()
+	{
+		cemu_assert_debug(sndGeneric.isInitialized);
+		return sndGeneric.isSoundCore2;
 	}
 
 	void reset()
@@ -517,6 +395,7 @@ namespace snd_core
         AXOut_reset();
         AXResetToDefaultState();
         sndGeneric.isInitialized = false;
+		sndGeneric.isSoundCore2 = false;
 	}
 
 	void RegisterVoiceFunctions()
