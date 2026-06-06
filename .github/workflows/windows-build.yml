@@ -1,0 +1,45 @@
+name: Build Windows Cemu
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Bootstrap vcpkg
+        shell: pwsh
+        run: |
+          if (Test-Path dependencies\vcpkg) {
+            Push-Location dependencies\vcpkg
+            .\bootstrap-vcpkg.bat
+            Pop-Location
+          } else {
+            Write-Host "vcpkg submodule not present; skipping bootstrap"
+          }
+
+      - name: Configure CMake
+        shell: pwsh
+        run: |
+          $toolchain = ""
+          if (Test-Path dependencies\vcpkg\scripts\buildsystems\vcpkg.cmake) { $toolchain = "-DCMAKE_TOOLCHAIN_FILE=${{ github.workspace }}\\dependencies\\vcpkg\\scripts\\buildsystems\\vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-windows" }
+          cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=release $toolchain -G "Visual Studio 17 2022"
+
+      - name: Build (Release)
+        shell: pwsh
+        run: cmake --build build --config Release -- /m
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-windows-build
+          path: |
+            build\bin
+            bin
