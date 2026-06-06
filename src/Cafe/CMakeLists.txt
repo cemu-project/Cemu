@@ -664,10 +664,6 @@ target_link_libraries(CemuCafe PRIVATE
   OpenSSL::SSL
 )
 
-if(MSVC AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
-    target_link_libraries(CemuCafe PRIVATE ntdll.lib)
-endif()
-
 if (ENABLE_WAYLAND)
 	# PUBLIC because wayland-client.h is included in VulkanAPI.h
   target_link_libraries(CemuCafe PUBLIC Wayland::Client)
@@ -676,9 +672,7 @@ endif()
 if (ENABLE_LIBUSB)
   if (ENABLE_VCPKG)
     if(WIN32)
-		if(DEFINED VCPKG_TARGET_TRIPLET)
-		    set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/pkgconf/pkgconf.exe")
-		endif()
+		set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/tools/pkgconf/pkgconf.exe")
     endif()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)

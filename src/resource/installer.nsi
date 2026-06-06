@@ -2,9 +2,12 @@
 ; Licensed under MPL 2.0 with permission from authors
 
 ; Usage:
+;   get the latest nsis: https://nsis.sourceforge.io/Download
+;   probably also want vscode extension: https://marketplace.visualstudio.com/items?itemName=idleberg.nsis
 ;   makensis.exe /DPRODUCT_VERSION=2.0 /DARCH=arm64 installer.nsi
 ;   makensis.exe /DPRODUCT_VERSION=2.0 /DARCH=x64   installer.nsi
 
+; Require /DPRODUCT_VERSION for makensis.
 !ifndef PRODUCT_VERSION
   !error "PRODUCT_VERSION must be defined (e.g. /DPRODUCT_VERSION=2.0)"
 !endif
@@ -32,6 +35,7 @@ ShowInstDetails show
 ShowUnInstDetails show
 
 !include "MUI2.nsh"
+; Custom page plugin
 !include "nsDialogs.nsh"
 !include "x64.nsh"
 
@@ -39,17 +43,22 @@ ShowUnInstDetails show
 !define MUI_ICON "logo_icon.ico"
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
 
+; License page
 !insertmacro MUI_PAGE_LICENSE "..\..\LICENSE.txt"
+; Desktop Shortcut page
 Page custom desktopShortcutPageCreate desktopShortcutPageLeave
+; Directory page
 !insertmacro MUI_PAGE_DIRECTORY
+; Instfiles page
 !insertmacro MUI_PAGE_INSTFILES
-
+; Finish page
 !define MUI_FINISHPAGE_RUN "$INSTDIR\Cemu.exe"
 !insertmacro MUI_PAGE_FINISH
 
 ; Uninstaller pages
 !insertmacro MUI_UNPAGE_INSTFILES
 
+; Variables
 Var DesktopShortcutPageDialog
 Var DesktopShortcutCheckbox
 Var DesktopShortcut
@@ -125,6 +134,7 @@ Section "Base"
   ; This will pull files from the directory defined at the top
   File /r "${BINARY_SOURCE_DIR}\*"
 
+  ; Create start menu and desktop shortcuts
   CreateShortCut "$SMPROGRAMS\$(^Name).lnk" "$INSTDIR\Cemu.exe"
   ${If} $DesktopShortcut == 1
     CreateShortCut "$DESKTOP\$(^Name).lnk" "$INSTDIR\Cemu.exe"
@@ -135,7 +145,10 @@ SectionEnd
 
 Section -Post
   WriteUninstaller "$INSTDIR\uninst.exe"
+
   WriteRegStr HKCU "${PRODUCT_DIR_REGKEY}" "" "$INSTDIR\Cemu.exe"
+
+  ; Write metadata for add/remove programs applet
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "UninstallString" "$INSTDIR\uninst.exe"
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayIcon" "$INSTDIR\Cemu.exe"
@@ -158,6 +171,8 @@ SectionEnd
 Section Uninstall
   Delete "$DESKTOP\$(^Name).lnk"
   Delete "$SMPROGRAMS\$(^Name).lnk"
+
+; Be a bit careful to not delete files a user may have put into the install directory  
   Delete "$INSTDIR\Cemu.exe"
   Delete "$INSTDIR\uninst.exe"
   RMDir /r "$INSTDIR\gameProfiles"
@@ -168,6 +183,9 @@ Section Uninstall
   DeleteRegKey HKCU "Software\Classes\.wux"
   DeleteRegKey HKCU "Software\Classes\.wua"
   DeleteRegKey HKCU "Software\Classes\$(^Name)"
+  
+  DeleteRegKey HKCU "Software\Classes\discord-460807638964371468"
+  
   DeleteRegKey HKCU "${PRODUCT_UNINST_KEY}"
   DeleteRegKey HKCU "${PRODUCT_DIR_REGKEY}"
 

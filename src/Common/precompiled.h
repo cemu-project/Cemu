@@ -394,13 +394,17 @@ inline void _mm_mfence()
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
 {
+#if !defined(_MSC_VER)
     unsigned __int128 res = (unsigned __int128)a + b + carry;
     *result = (unsigned long long)res;
     return (res >> 64) ? 1 : 0;
+#else
+    *result = a + b + carry;
+    return (*result < a || (*result == a && carry > 0)) ? 1 : 0;
+#endif
 }
 
 #endif
-
 // asserts
 
 

@@ -23,15 +23,28 @@ LANGUAGE LANG_NEUTRAL, SUBLANG_NEUTRAL
 // Icon
 //
 
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
 M_WND_ICON128           ICON                    "resource\\logo_icon.ico"
+
 M_WND_ICON16            ICON                    "resource\\logo_icon16.ico"
+
 X_INPUT_CONTROLLER      ICON                    "resource\\input\\icons8-game-controller-24.ico"
+
 X_BOX                   ICON                    "resource\\icons8_cardboard_box_filled.ico"
+
 X_SETTINGS              ICON                    "resource\\icons8_automatic_26_xQK_icon.ico"
+
 X_GAME_PROFILE          ICON                    "resource\\icons8-compose-filled-50.ico"
+
 X_HOTKEY_SETTINGS       ICON                    "resource\\icons8_hotkeys.ico"
 
 #ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
 1 TEXTINCLUDE 
 BEGIN
     "resource.h\0"
@@ -48,6 +61,7 @@ BEGIN
     "\r\n"
     "\0"
 END
+
 #endif    // APSTUDIO_INVOKED
 
 /////////////////////////////////////////////////////////////////////////////

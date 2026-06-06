@@ -287,7 +287,7 @@ endif()
 if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
 	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
 	if(MSVC)
-        set_target_properties(xbyak_aarch64 PROPERTIES COMPILE_FLAGS "/wd4245 /wd4458")
+		target_compile_options(xbyak_aarch64 PRIVATE "/wd4245" "/wd4458")
     endif()
 endif()
 
