@@ -117,6 +117,9 @@ std::optional<T> parse_numeric(const wxString& text)
 		if (std::is_same<T, float>::value)
 			return std::stof(text.ToStdString());
 
+		else if (std::is_same<T, double>::value)
+			return std::stod(text.ToStdString());
+
 		// it's integral
 		return static_cast<T>(std::stol(text.ToStdString(), nullptr, 0));
 	}
