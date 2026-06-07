@@ -950,6 +950,23 @@ namespace CafeSystem
 	{
 		if (sLaunchModeIsStandalone)
 			return CosCapabilityBits::All;
+
+		uint64 resultMask = 0;
+		for (const auto& pack : GraphicPack2::GetGraphicPacks())
+		{
+			if (pack->IsEnabled()) 
+			{	
+				for (const auto& permissionOverrides : pack->GetPermissionOverrides()) 
+				{
+					if (permissionOverrides.first == group)
+						resultMask |= permissionOverrides.second;
+				}
+			}
+		}
+
+		if (resultMask != 0)
+    		return static_cast<CosCapabilityBits>(resultMask);
+
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
 		if (update.IsValid())
 		{
