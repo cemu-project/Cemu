@@ -951,35 +951,29 @@ namespace CafeSystem
 		if (sLaunchModeIsStandalone)
 			return CosCapabilityBits::All;
 
-		uint64 resultMask = 0;
-		for (const auto& pack : GraphicPack2::GetGraphicPacks())
+		CosCapabilityBits resultMask = static_cast<CosCapabilityBits>(0);
+		for (const auto& pack : GraphicPack2::GetActiveGraphicPacks())
 		{
-			if (pack->IsEnabled()) 
-			{	
-				for (const auto& permissionOverrides : pack->GetPermissionOverrides()) 
-				{
-					if (permissionOverrides.first == group)
-						resultMask |= permissionOverrides.second;
-				}
+			for (const auto& permissionOverrides : pack->GetPermissionOverrides()) 
+			{
+				if (permissionOverrides.first == group)
+					resultMask |= static_cast<CosCapabilityBits>(permissionOverrides.second);
 			}
 		}
-
-		if (resultMask != 0)
-    		return static_cast<CosCapabilityBits>(resultMask);
 
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
 		if (update.IsValid())
 		{
 			ParsedCosXml* cosXml = update.GetCosInfo();
 			if (cosXml)
-				return cosXml->GetCapabilityBits(group);
+				return cosXml->GetCapabilityBits(group) | resultMask;
 		}
 		auto& base = sGameInfo_ForegroundTitle.GetBase();
 		if(base.IsValid())
 		{
 			ParsedCosXml* cosXml = base.GetCosInfo();
 			if (cosXml)
-				return cosXml->GetCapabilityBits(group);
+				return cosXml->GetCapabilityBits(group) | resultMask;
 		}
 		return CosCapabilityBits::All;
 	}
