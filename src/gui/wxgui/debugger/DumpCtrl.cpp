@@ -1,5 +1,6 @@
 #include "wxgui/wxgui.h"
 #include "wxgui/debugger/DumpCtrl.h"
+#include "wxgui/helpers/wxHelpers.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
@@ -28,6 +29,8 @@ DumpCtrl::DumpCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, c
 		m_memoryRegion.size = 0x1000;
 		Init();
 	}
+
+	Bind(wxEVT_MENU, &DumpCtrl::OnMenuSelected, this);
 }
 
 void DumpCtrl::Init()
@@ -163,32 +166,47 @@ void DumpCtrl::OnMouseMove(const wxPoint& start_position, uint32 line)
 	position.x -= OFFSET_MEMORY;
 }
 
+uint32 DumpCtrl::PositionToAddress(const wxPoint& position, uint32 line)
+{
+    wxPoint pos = position;
+
+    if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE)
+        return MPTR_NULL;
+
+    pos.x -= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE;
+
+    if (pos.x > OFFSET_MEMORY)
+        return MPTR_NULL;
+
+    const uint32 byteIndex = (pos.x / m_char_width) / 3;
+    return LineToOffset(line) + byteIndex;
+}
+
 void DumpCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 {
-	wxPoint pos = position;
-	if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE)
+	uint32 address = PositionToAddress(position, line);
+
+	if (address == MPTR_NULL)
 		return;
-	 
-	pos.x -= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE;
-	if(pos.x <= OFFSET_MEMORY)
+
+	if (!memory_isAddressRangeAccessible(address, 1))
+		return;
+
+	if (WriteNumericDialog<uint8>(address))
 	{
-		const uint32 byte_index = (pos.x / m_char_width) / 3;
-		const uint32 offset = LineToOffset(line) + byte_index;
-		if (!memory_isAddressRangeAccessible(offset, 1))
-			return;
-		const uint8 value = memory_readU8(offset);
-
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set byte at address %08x"), offset), wxString::Format("%02x", value));
-		if (set_value_dialog.ShowModal() == wxID_OK)
-		{
-			const uint8 new_value = std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
-			memory_writeU8(offset, new_value);
-			wxRect update_rect(0, line * m_line_height, GetSize().x, m_line_height);
-			RefreshControl(&update_rect);
-		}
-
-		return;
+		wxRect updateRect(0, line * m_line_height, GetSize().x, m_line_height);
+		RefreshControl(&updateRect);
 	}
+	// const uint8 value = memory_readU8(address);
+
+	// wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set byte at address %08x"), address), wxString::Format("%02x", value));
+	// if (set_value_dialog.ShowModal() == wxID_OK)
+	// {
+	// 	const uint8 new_value = std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
+	// 	memory_writeU8(address, new_value);
+	// 	wxRect update_rect(0, line * m_line_height, GetSize().x, m_line_height);
+	// 	RefreshControl(&update_rect);
+	// }
 }
 
 void DumpCtrl::GoToAddressDialog()
@@ -264,7 +282,6 @@ uint32 DumpCtrl::OffsetToLine(uint32 offset)
 	return (offset - m_memoryRegion.baseAddress) / 0x10;
 }
 
-
 void DumpCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 {
 	switch (key_code)
@@ -283,4 +300,158 @@ void DumpCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 wxSize DumpCtrl::DoGetBestSize() const
 {
 	return TextList::DoGetBestSize();
+}
+
+void DumpCtrl::OnContextMenu(const wxPoint& position, uint32 line)
+{
+	wxPoint pos = position;
+
+	if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE)
+		return;
+
+	pos.x -= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE;
+
+	if (pos.x > OFFSET_MEMORY)
+		return;
+
+	const uint32 byteIndex = (pos.x / m_char_width) / 3;
+	const uint32 address = LineToOffset(line) + byteIndex;
+
+	if (!memory_isAddressRangeAccessible(address, 1))
+		return;
+
+	m_writerContextAddress = address;
+	m_writerContextLine = line;
+
+	wxMenu menu;
+
+	menu.Append(ID_WRITE_U8, "Write Byte");
+	menu.Append(ID_WRITE_U16, "Write Int16");
+	menu.Append(ID_WRITE_U32, "Write Int32");
+	menu.Append(ID_WRITE_FLOAT, "Write Float");
+	menu.Append(ID_WRITE_STRING, "Write String");
+
+	PopupMenu(&menu);
+}
+
+void DumpCtrl::OnMenuSelected(wxCommandEvent& event)
+{
+	bool update = false;
+	switch (event.GetId())
+	{
+		case ID_WRITE_U8:
+			update = WriteNumericDialog<uint8>(m_writerContextAddress);
+			break;
+		case ID_WRITE_U16:
+			update = WriteNumericDialog<uint16>(m_writerContextAddress);
+			break;
+		case ID_WRITE_U32:
+			update = WriteNumericDialog<uint32>(m_writerContextAddress);
+			break;
+		case ID_WRITE_FLOAT:
+			update = WriteNumericDialog<float>(m_writerContextAddress);
+			break;
+		case ID_WRITE_STRING:
+			update = WriteString(m_writerContextAddress);
+			break;
+	}
+
+	if (update)
+	{
+		wxRect updateRect(0, m_writerContextLine * m_line_height, GetSize().x, m_line_height);
+		RefreshControl(&updateRect);
+	}
+}
+
+template <typename T>
+bool DumpCtrl::WriteNumericDialog(uint32 address)
+{
+	static_assert(
+		std::is_same<T, uint8>::value  ||
+		std::is_same<T, uint16>::value ||
+		std::is_same<T, uint32>::value ||
+		std::is_same<T, float>::value,
+		"Unsupported type"
+	);
+
+	T value;
+	const char* dataType;
+	wxString label;
+
+	if constexpr (std::is_same<T, uint8>::value)
+	{
+		value = memory_readU8(address);
+		dataType = "byte";
+		label = wxString::Format("0x%02x", value);
+	}
+	else if constexpr (std::is_same<T, uint16>::value)
+	{
+		value = memory_readU16(address);
+		dataType = "int16";
+		label = wxString::Format("0x%04x", value);
+	}
+	else if constexpr (std::is_same<T, uint32>::value)
+	{
+		value = memory_readU32(address);
+		dataType = "int32";
+		label = wxString::Format("0x%08x", value);
+	}
+	else if constexpr (std::is_same<T, float>::value)
+	{
+		value = memory_readFloat(address);
+		dataType = "float";
+		label = wxString::Format("%f", value);
+	}
+
+	wxTextEntryDialog dialog(
+		this,
+		_("Enter a new value."),
+		wxString::Format(_("Write %s at address 0x%08x"), dataType, address),
+		label
+	);
+
+	if (dialog.ShowModal() != wxID_OK)
+		return false;
+	
+	const std::optional<T> opt = parse_numeric<T>(dialog.GetValue());
+
+	if (!opt.has_value())
+	{
+		wxMessageBox(_("Invalid value."), _("Error"), wxOK | wxICON_ERROR, this);
+		return false;
+	}
+
+	if constexpr (std::is_same<T, uint8>::value)
+		memory_writeU8(address, opt.value());
+	else if constexpr (std::is_same<T, uint16>::value)
+		memory_writeU16(address, opt.value());
+	else if constexpr (std::is_same<T, uint32>::value)
+		memory_writeU32(address, opt.value());
+	else if constexpr (std::is_same<T, float>::value)
+		memory_writeFloat(address, opt.value());
+	
+	return true;
+}
+
+bool DumpCtrl::WriteString(uint32 address)
+{
+	wxTextEntryDialog dialog(
+		this,
+		_("Enter string"),
+		wxString::Format(_("Write string at address 0x%08x"), address),
+		""
+	);
+
+	if (dialog.ShowModal() != wxID_OK)
+		return false;
+
+	std::string text = dialog.GetValue().ToStdString();
+
+    for (size_t i = 0; i < text.size(); i++)
+        memory_writeU8(address + i, static_cast<uint8>(text[i]));
+
+	// null-terminator
+    memory_writeU8(address + text.size(), 0);
+
+	return true;
 }

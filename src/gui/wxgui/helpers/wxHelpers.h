@@ -5,6 +5,8 @@
 #include <wx/listbase.h>
 #include <wx/string.h>
 
+#include <concepts>
+
 template <>
 struct fmt::formatter<wxString> : formatter<string_view>
 {
@@ -106,3 +108,20 @@ void update_slider_text(wxCommandEvent& event, const wxFormatString& format = "%
 uint32 fix_raw_keycode(uint32 keycode, uint32 raw_flags);
 
 WindowSystem::WindowHandleInfo initHandleContextFromWxWidgetsWindow(wxWindow* wxw);
+
+template <typename T>
+std::optional<T> parse_numeric(const wxString& text)
+{
+	try
+	{
+		if (std::is_same<T, float>::value)
+			return std::stof(text.ToStdString());
+
+		// it's integral
+		return static_cast<T>(std::stol(text.ToStdString(), nullptr, 0));
+	}
+	catch (...)
+	{
+		return std::nullopt;
+	}
+}
