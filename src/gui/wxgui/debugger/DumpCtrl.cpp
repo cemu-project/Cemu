@@ -431,6 +431,9 @@ bool DumpCtrl::WriteString(uint32 address)
 
 	std::string text = dialog.GetValue().ToStdString();
 
+	if (text.empty())
+		return false;
+
     for (size_t i = 0; i < text.size(); i++)
         memory_writeU8(address + i, static_cast<uint8>(text[i]));
 
