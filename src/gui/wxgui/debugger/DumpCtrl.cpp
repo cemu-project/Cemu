@@ -1,6 +1,5 @@
 #include "wxgui/wxgui.h"
 #include "wxgui/debugger/DumpCtrl.h"
-#include "wxgui/helpers/wxHelpers.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
@@ -403,22 +402,17 @@ bool DumpCtrl::WriteNumericDialog(uint32 address)
 	if (dialog.ShowModal() != wxID_OK)
 		return false;
 	
-	const std::optional<T> opt = parse_numeric<T>(dialog.GetValue());
-
-	if (!opt.has_value())
-	{
-		wxMessageBox(_("Invalid value."), _("Error"), wxOK | wxICON_ERROR, this);
-		return false;
-	}
+	
+	const T newValue = ConvertString<T>(dialog.GetValue().ToStdString());
 
 	if constexpr (std::is_same<T, uint8>::value)
-		memory_writeU8(address, opt.value());
+		memory_writeU8(address, newValue);
 	else if constexpr (std::is_same<T, uint16>::value)
-		memory_writeU16(address, opt.value());
+		memory_writeU16(address, newValue);
 	else if constexpr (std::is_same<T, uint32>::value)
-		memory_writeU32(address, opt.value());
+		memory_writeU32(address, newValue);
 	else if constexpr (std::is_same<T, float>::value)
-		memory_writeFloat(address, opt.value());
+		memory_writeFloat(address, newValue);
 	
 	return true;
 }
