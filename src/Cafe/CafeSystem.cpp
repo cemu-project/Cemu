@@ -526,7 +526,7 @@ namespace CafeSystem
 			RegCloseKey(hKey);
 		}
 		std::string result(productName);
-		// ProductName can still read "Windows 10" on Windows 11 after an in-place upgrade
+		// ProductName still reads as "Windows 10" on Windows 11. Find and replace with "Windows 11" based on build number.
 		if (buildNumber >= 22000)
 		{
 			size_t pos = result.find("Windows 10");
