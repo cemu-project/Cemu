@@ -960,6 +960,52 @@ namespace snd_user
 		AXVoiceEnd(vpb);
 	}
 
+	void MIXSetDeviceSPan(AXVPB* vpb, uint32 device, uint32 deviceIndex, sint16 newSPan)
+	{
+		CheckVoice(vpb);
+		cemu_assert(device < AX_DEV_COUNT);
+		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
+
+		AXVoiceBegin(vpb);
+		MixControl& mixControl = mixChannel.GetMixControl(device, deviceIndex);
+		MixMode& mixMode = mixChannel.GetMode(device, deviceIndex);
+		sint16* deviceChannels = mixChannel.GetChannels(device, deviceIndex);
+		if (mixControl.span == newSPan)
+		{
+			AXVoiceEnd(vpb);
+			return;
+		}
+		mixControl.span = newSPan;
+		_MIXControl_SetDevicePan(&mixControl, device, deviceChannels);
+		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
+		AXVoiceEnd(vpb);
+	}
+
+	void MIXSetDeviceLFE(AXVPB* vpb, uint32 device, uint32 deviceIndex, sint16 newLFE)
+	{
+		CheckVoice(vpb);
+		cemu_assert(device < AX_DEV_COUNT);
+		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
+		AXVoiceBegin(vpb);
+		if (device != AX_DEV_TV)
+		{
+			cemuLog_log(LogType::APIErrors, "MIXSetDeviceLFE(): Device must be TV");
+			AXVoiceEnd(vpb);
+			return;
+		}
+		cemu_assert(deviceIndex == 0);
+		MixControl& mixControl = mixChannel.GetMixControl(device, 0);
+		MixMode& mixMode = mixChannel.GetMode(device, 0);
+		if (mixControl.lfe == newLFE)
+		{
+			AXVoiceEnd(vpb);
+			return;
+		}
+		mixControl.lfe = newLFE;
+		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
+		AXVoiceEnd(vpb);
+	}
+
 	void MIXSetDeviceAux(AXVPB* vpb, uint32 device, uint32 deviceIndex, uint32 aux, sint16 newAux)
 	{
 		CheckVoice(vpb);
@@ -1309,6 +1355,8 @@ namespace snd_user
 			cafeExportRegister("snd_user", MIXSetDeviceSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetDeviceFader, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetDevicePan, LogType::SoundAPI);
+			cafeExportRegister("snd_user", MIXSetDeviceSPan, LogType::SoundAPI);
+			cafeExportRegister("snd_user", MIXSetDeviceLFE, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetDeviceAux, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXInitDeviceControl, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXInitInputControl, LogType::SoundAPI);
@@ -1355,6 +1403,8 @@ namespace snd_user
 			cafeExportRegister("snduser2", MIXSetDeviceSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetDeviceFader, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetDevicePan, LogType::SoundAPI);
+			cafeExportRegister("snduser2", MIXSetDeviceSPan, LogType::SoundAPI);
+			cafeExportRegister("snduser2", MIXSetDeviceLFE, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetDeviceAux, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXInitDeviceControl, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXInitInputControl, LogType::SoundAPI);
