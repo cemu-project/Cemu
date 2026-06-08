@@ -498,8 +498,8 @@ namespace snd_core
 				}
 				else
 				{
-					// voice not playing -> sample is silent
-					historySamples[historyIndex] = s;
+					// voice not playing -> repeat previous sample
+					historySamples[prevIndex] = s;
 				}
 				currentFracPos -= 0x10000;
 			}
@@ -969,10 +969,8 @@ namespace snd_core
 		sint32* output = __AXTVOutputBuffer.GetPtr();
 		cemu_assert_debug(masterVolume == 0x8000); // todo -> Calculate delta between old master volume and new volume
 		sint16 delta = 0;
-		uint16 volVar;
 		for (uint16 c = 0; c < AX_TV_CHANNEL_COUNT; c++)
 		{
-			volVar = _swapEndianU16(masterVolume);
 			AXMix_MergeBusSamples(input, output, sampleCount, masterVolume, delta);
 			output += sampleCount;
 			input += sampleCount;
