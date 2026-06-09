@@ -301,19 +301,8 @@ wxSize DumpCtrl::DoGetBestSize() const
 
 void DumpCtrl::OnContextMenu(const wxPoint& position, uint32 line)
 {
-	wxPoint pos = position;
-
-	if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE)
-		return;
-
-	pos.x -= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE;
-
-	if (pos.x > OFFSET_MEMORY)
-		return;
-
-	const uint32 byteIndex = (pos.x / m_char_width) / 3;
-	const uint32 address = LineToOffset(line) + byteIndex;
-
+	const uint32 address = PositionToAddress(position, line);
+	
 	if (!memory_isAddressRangeAccessible(address, 1))
 		return;
 
@@ -322,11 +311,11 @@ void DumpCtrl::OnContextMenu(const wxPoint& position, uint32 line)
 
 	wxMenu menu;
 
-	menu.Append(ID_WRITE_U8, "Write Byte");
-	menu.Append(ID_WRITE_U16, "Write Int16");
-	menu.Append(ID_WRITE_U32, "Write Int32");
-	menu.Append(ID_WRITE_FLOAT, "Write Float");
-	menu.Append(ID_WRITE_STRING, "Write String");
+	menu.Append(ID_WRITE_U8, _("Write Byte"));
+	menu.Append(ID_WRITE_U16, _("Write Int16"));
+	menu.Append(ID_WRITE_U32, _("Write Int32"));
+	menu.Append(ID_WRITE_FLOAT, _("Write Float"));
+	menu.Append(ID_WRITE_STRING, _("Write String"));
 
 	PopupMenu(&menu);
 }
