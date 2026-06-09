@@ -1,15 +1,6 @@
 #pragma once
 #include "wxgui/components/TextList.h"
 
-
-enum {
-	ID_WRITE_U8 = wxID_HIGHEST + 1,
-	ID_WRITE_U16,
-	ID_WRITE_U32,
-	ID_WRITE_FLOAT,
-	ID_WRITE_STRING
-};
-
 class DumpCtrl : public TextList
 {
 public:

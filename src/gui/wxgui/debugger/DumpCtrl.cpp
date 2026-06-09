@@ -12,6 +12,14 @@
 #define OFFSET_ADDRESS_RELATIVE (90)
 #define OFFSET_MEMORY (450)
 
+enum {
+	ID_WRITE_U8 = wxID_HIGHEST + 1,
+	ID_WRITE_U16,
+	ID_WRITE_U32,
+	ID_WRITE_FLOAT,
+	ID_WRITE_STRING
+};
+
 DumpCtrl::DumpCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& pos, const wxSize& size, long style)
 	: TextList(parent, id, pos, size, style)
 {
