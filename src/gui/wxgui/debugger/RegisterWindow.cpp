@@ -8,6 +8,7 @@
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/HW/Espresso/EspressoISA.h"
+#include "util/helpers/helpers.h"
 
 enum
 {
@@ -355,15 +356,17 @@ void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
 	{
 		const uint32 register_index = id - kRegisterValueR0;
 		const uint32 register_value = ppcSnapshot.gpr[register_index];
-		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set R%d value"), register_index), wxString::Format("%08x", register_value));
+		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set R%d value"), register_index), wxString::Format("0x%08x", register_value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
-			const uint32 new_value = std::stoul(set_value_dialog.GetValue().ToStdString(), nullptr, 16);
+			const uint32 value = ConvertString<uint32>(set_value_dialog.GetValue().ToStdString());
+
 			if (debugSession = debugger_lockDebugSession(); debugSession)
 			{
-				debugSession->gpr[register_index] = new_value;
+				debugSession->gpr[register_index] = value;
 				debugger_unlockDebugSession(debugSession);
 			}
+			
 			OnUpdateView();
 		}
 		return;
@@ -376,12 +379,14 @@ void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
 		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set FP0_%d value"), register_index), wxString::Format("%lf", register_value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
-			const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());
+			const double value = ConvertString<double>(set_value_dialog.GetValue().ToStdString());
+
 			if (debugSession = debugger_lockDebugSession(); debugSession)
 			{
-				debugSession->fpr[register_index].fp0 = new_value;
+				debugSession->fpr[register_index].fp0 = value;
 				debugger_unlockDebugSession(debugSession);
 			}
+			
 			OnUpdateView();
 		}
 
@@ -395,12 +400,14 @@ void RegisterWindow::OnMouseDClickEvent(wxMouseEvent& event)
 		wxTextEntryDialog set_value_dialog(this, _("Enter a new value."), wxString::Format(_("Set FP1_%d value"), register_index), wxString::Format("%lf", register_value));
 		if (set_value_dialog.ShowModal() == wxID_OK)
 		{
-			const double new_value = std::stod(set_value_dialog.GetValue().ToStdString());
+			const double value = ConvertString<double>(set_value_dialog.GetValue().ToStdString());
+
 			if (debugSession = debugger_lockDebugSession(); debugSession)
 			{
-				debugSession->fpr[register_index].fp1 = new_value;
+				debugSession->fpr[register_index].fp1 = value;
 				debugger_unlockDebugSession(debugSession);
 			}
+			
 			OnUpdateView();
 		}
 		return;
