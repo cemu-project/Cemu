@@ -2,6 +2,13 @@ name: Build Cemu
 
 on:
   workflow_dispatch:
+    inputs:
+      next_version_major:
+        required: false
+        type: string
+      next_version_minor:
+        required: false
+        type: string
   workflow_call:
     inputs:
       next_version_major:
