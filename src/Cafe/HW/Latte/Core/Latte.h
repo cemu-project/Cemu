@@ -125,6 +125,7 @@ void LatteTextureReadback_StartTransfer(LatteTextureView* textureView);
 bool LatteTextureReadback_Update(bool forceStart = false);
 void LatteTextureReadback_NotifyTextureDeletion(LatteTexture* texture);
 void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish);
+bool LatteTextureReadback_ReadbackToLinearBlocking(LatteTextureView* sourceView, uint8* dstPtr, uint32 dstWidth, uint32 dstHeight, uint32 dstPitch);
 
 // query
 
