@@ -232,12 +232,11 @@ void RegisterWindow::UpdateIntegerRegister(wxTextCtrl* label, wxTextCtrl* value,
 
 void RegisterWindow::OnUpdateView()
 {
-	PPCSnapshot snapshot = {};
-	if (PPCInterpreter_t* hCPU = debugger_lockDebugSession(); hCPU)
-	{
-		snapshot = debugger_getSnapshotFromSession(hCPU);
-		debugger_unlockDebugSession(hCPU);
-	}
+	PPCInterpreter_t* hCPU = debugger_lockDebugSession();
+	if (!hCPU)
+		return;
+	PPCSnapshot snapshot = debugger_getSnapshotFromSession(hCPU);
+	debugger_unlockDebugSession(hCPU);
 	for (int i = 0; i < 32; ++i)
 	{
 		const uint32 registerValue = snapshot.gpr[i];
