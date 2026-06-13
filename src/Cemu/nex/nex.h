@@ -1,6 +1,6 @@
 #pragma once
 #include "nexTypes.h"
-#include<mutex>
+#include <mutex>
 
 const int NEX_PROTOCOL_AUTHENTICATION = 0xA;
 const int NEX_PROTOCOL_SECURE = 0xB;
