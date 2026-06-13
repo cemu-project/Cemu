@@ -1,76 +1,67 @@
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "interface/WindowSystem.h"
-#include "wxCemuConfig.h"
-#include "wxgui/wxgui.h"
-#include "wxgui/MainWindow.h"
-#include "wxgui/GameUpdateWindow.h"
-#include "wxgui/PadViewFrame.h"
-#include "wxgui/windows/TextureRelationViewer/TextureRelationWindow.h"
-#include "wxgui/windows/PPCThreadsViewer/DebugPPCThreadsWindow.h"
+#include "MainWindow.h"
+
+// subwindows
+#include "TitleManager.h"
+#include "GeneralSettings2.h"
+#include "GameUpdateWindow.h"
+#include "CemuUpdateWindow.h"
+#include "GraphicPacksWindow2.h"
 #include "AudioDebuggerWindow.h"
-#ifdef ENABLE_OPENGL
-#include "wxgui/canvas/OpenGLCanvas.h"
-#endif
-#ifdef ENABLE_VULKAN
-#include "wxgui/canvas/VulkanCanvas.h"
-#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
-#endif
-#ifdef ENABLE_METAL
-#include "wxgui/canvas/MetalCanvas.h"
-#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
-#endif
-#include "Cafe/OS/libs/nfc/nfc.h"
-#include "Cafe/OS/libs/swkbd/swkbd.h"
-#include "wxgui/debugger/DebuggerWindow2.h"
-#include "util/helpers/helpers.h"
-#include "config/CemuConfig.h"
-#include "Cemu/DiscordPresence/DiscordPresence.h"
-#include "util/ScreenSaver/ScreenSaver.h"
-#include "wxgui/GeneralSettings2.h"
-#include "wxgui/GraphicPacksWindow2.h"
-#include "wxgui/CemuApp.h"
-#include "wxgui/CemuUpdateWindow.h"
-#include "wxgui/LoggingWindow.h"
-#include "config/ActiveSettings.h"
-#include "config/LaunchSettings.h"
+#include "input/InputSettings2.h"
+#include "input/HotkeySettings.h"
+#include "debugger/DebuggerWindow2.h"
+#include "EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
+#include "windows/PPCThreadsViewer/DebugPPCThreadsWindow.h"
+#include "windows/TextureRelationViewer/TextureRelationWindow.h"
 
-#include "Cafe/Filesystem/FST/FST.h"
-
-#include "wxgui/TitleManager.h"
-#include "wxgui/EmulatedUSBDevices/EmulatedUSBDeviceFrame.h"
-
-#include "Cafe/CafeSystem.h"
-
-#include "util/helpers/SystemException.h"
-#include "wxgui/DownloadGraphicPacksWindow.h"
-#include "wxgui/GettingStartedDialog.h"
-#include "wxgui/helpers/wxHelpers.h"
-#include "wxgui/input/InputSettings2.h"
-#include "wxgui/input/HotkeySettings.h"
-#include "input/InputManager.h"
-
-#if BOOST_OS_WINDOWS
-#define exit(__c) ExitProcess(__c)
-#else
-#define exit(__c) _Exit(__c)
-#endif
+//wxgui + misc.
+#include "wxgui.h"
+#include "wxCemuConfig.h"
+#include "interface/WindowSystem.h"
+#include "wxHelper.h"
+#include "helpers/wxHelpers.h"
+#include "PadViewFrame.h"
 
 #if BOOST_OS_LINUX || BOOST_OS_MACOS || BOOST_OS_BSD
 #include "resource/embedded/resources.h"
 #endif
 
-#if ( BOOST_OS_LINUX || BOOST_OS_BSD ) && HAS_WAYLAND
-#include "wxgui/helpers/wxWayland.h"
-#endif
+// settings
+#include "config/CemuConfig.h"
+#include "config/LaunchSettings.h"
+#include "config/ActiveSettings.h"
 
-//GameMode support
-#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
-#include "gamemode_client.h"
-#endif
-
-#include "Cafe/TitleList/TitleInfo.h"
+// External functionality headers
+#include "input/InputManager.h"
 #include "Cafe/TitleList/TitleList.h"
-#include "wxHelper.h"
+#include "Cemu/DiscordPresence/DiscordPresence.h"
+#include "util/ScreenSaver/ScreenSaver.h"
+#include "util/helpers/SystemException.h"
+#include "Cafe/HW/Latte/Renderer/Vulkan/VsyncDriver.h"
+#if BOOST_OS_LINUX && defined(ENABLE_FERAL_GAMEMODE)
+#include <gamemode_client.h>
+#endif
+#if ( BOOST_OS_LINUX || BOOST_OS_BSD ) && HAS_WAYLAND
+#include "helpers/wxWayland.h"
+#endif
+
+// Renderer Canvasses
+#ifdef ENABLE_OPENGL
+#include "canvas/OpenGLCanvas.h"
+#endif
+#ifdef ENABLE_VULKAN
+#include "canvas/VulkanCanvas.h"
+#endif
+#ifdef ENABLE_METAL
+#include "canvas/MetalCanvas.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#endif
+
+//Cafe libs
+#include "Cafe/OS/libs/nfc/nfc.h"
+#include "Cafe/OS/libs/swkbd/swkbd.h"
+
+#include "Cafe/HW/Latte/Renderer/Renderer.h" // For renderer API checks
 
 extern WindowSystem::WindowInfo g_window_info;
 extern std::shared_mutex g_mutex;
