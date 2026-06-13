@@ -12,12 +12,6 @@
 #include "Common/unix/fast_float.h"
 #endif
 
-template <typename TType>
-constexpr auto to_underlying(TType v) noexcept
-{
-	return static_cast<std::underlying_type_t<TType>>(v);
-}
-
 // wrapper to allow reverse iteration with range-based loops before C++20
 template<typename T>
 class reverse_itr {
