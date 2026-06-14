@@ -45,64 +45,49 @@ typedef struct
 
 struct LatteDecompilerShaderResourceMapping
 {
+	static constexpr sint8 UNUSED_BINDING = -1;
+
 	LatteDecompilerShaderResourceMapping()
 	{
-		std::fill(textureUnitToBindingPoint, textureUnitToBindingPoint + LATTE_NUM_MAX_TEX_UNITS, -1);
-		std::fill(uniformBuffersBindingPoint, uniformBuffersBindingPoint + LATTE_NUM_MAX_UNIFORM_BUFFERS, -1);
-		std::fill(attributeMapping, attributeMapping + LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS, -1);
+		std::fill(textureUnitToBindingPoint, textureUnitToBindingPoint + LATTE_NUM_MAX_TEX_UNITS, UNUSED_BINDING);
+		std::fill(relBindingPointToRelTextureUnit, relBindingPointToRelTextureUnit + LATTE_NUM_MAX_TEX_UNITS, UNUSED_BINDING);
+		std::fill(uniformBuffersBindingPoint, uniformBuffersBindingPoint + LATTE_NUM_MAX_UNIFORM_BUFFERS, UNUSED_BINDING);
+		std::fill(attributeMapping, attributeMapping + LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS, UNUSED_BINDING);
 	}
-	static const sint8 UNUSED_BINDING = -1;
-	// most of this is for Vulkan
-	sint8 setIndex{};
 	// texture
-	sint8 textureUnitToBindingPoint[LATTE_NUM_MAX_TEX_UNITS];
+	sint8 textureUnitToBindingPoint[LATTE_NUM_MAX_TEX_UNITS]; // mostly for OpenGL backwards compatibility where texture units are not remapped and binding points are sparse
+	sint8 relBindingPointToRelTextureUnit[LATTE_NUM_MAX_TEX_UNITS]; // (only used on VK and Metal) index is relative binding point (absoluteBindingPoint - textureUnitBaseBindingPoint)
+	sint8 textureUnitBaseBindingPoint{UNUSED_BINDING};
+	sint8 textureUnitCount{0}; // number of entries set in textureUnitToBindingPoint
 	// uniform buffer
-	sint8 uniformVarsBufferBindingPoint{-1}; // special block for uniform registers/remapped array/custom variables
+	sint8 uniformVarsBufferBindingPoint{UNUSED_BINDING}; // special block for uniform registers/remapped array/custom variables
 	sint8 uniformBuffersBindingPoint[LATTE_NUM_MAX_UNIFORM_BUFFERS];
 	// shader storage buffer for transform feedback (if alternative mode is used)
-	sint8 tfStorageBindingPoint{-1};
+	sint8 tfStorageBindingPoint{UNUSED_BINDING};
 	// attributes (vertex shader only)
 	sint8 attributeMapping[LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS];
+	// Vulkan exclusive
+	sint8 setIndex{};
 	// Metal exclusive
-	sint8 verticesPerInstanceBinding{-1};
-	sint8 indexBufferBinding{-1};
-	sint8 indexTypeBinding{-1};
+	sint8 verticesPerInstanceBinding{UNUSED_BINDING};
+	sint8 indexBufferBinding{UNUSED_BINDING};
+	sint8 indexTypeBinding{UNUSED_BINDING};
 
 	sint32 getTextureCount()
 	{
-		sint32 count = 0;
-		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
-		{
-			if (textureUnitToBindingPoint[i] >= 0)
-				count++;
-		}
-		return count;
+		return textureUnitCount;
 	}
 
-	sint32 getTextureUnitFromBindingPoint(sint8 bindingPoint)
+	sint32 getRelativeTextureUnitFromRelativeBindingPoint(sint8 relativeBindingPoint)
 	{
-		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
-		{
-			if (textureUnitToBindingPoint[i] == bindingPoint)
-				return i;
-		}
-
-		cemu_assert_debug(false);
-		return -1;
+		cemu_assert_debug(relativeBindingPoint >= 0 && relativeBindingPoint < LATTE_NUM_MAX_TEX_UNITS);
+		return relBindingPointToRelTextureUnit[relativeBindingPoint];
 	}
 
 	// returns -1 if no there is no texture binding point
 	sint32 getTextureBaseBindingPoint()
 	{
-		sint32 bindingPoint = 9999;
-		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
-		{
-			if (textureUnitToBindingPoint[i] >= 0)
-				bindingPoint = std::min(bindingPoint, (sint32)textureUnitToBindingPoint[i]);
-		}
-		if (bindingPoint == 9999)
-			return -1;
-		return bindingPoint;
+		return textureUnitBaseBindingPoint;
 	}
 
 	bool getUniformBufferBindingRange(sint32& minBinding, sint32& maxBinding)
