@@ -104,17 +104,17 @@ MTL::Texture* LatteTextureViewMtl::GetSwizzledView(uint32 gpuSamplerSwizzle)
     }
 
     // Fallback cache
-    auto& fallbackEntry = m_fallbackViewCache[gpuSamplerSwizzle];
-    if (fallbackEntry)
+    auto it = m_fallbackViewCache.find(gpuSamplerSwizzle);
+    if (it != m_fallbackViewCache.end())
     {
-        return fallbackEntry;
+        return it->second;
     }
 
     MTL::Texture* texture = CreateSwizzledView(gpuSamplerSwizzle);
     if (freeIndex != -1)
         m_viewCache[freeIndex] = {gpuSamplerSwizzle, texture};
     else
-        fallbackEntry = texture;
+        m_fallbackViewCache[gpuSamplerSwizzle] = texture;
 
     return texture;
 }
