@@ -330,19 +330,18 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 	return cmd;
 }
 
+// similar to LatteCP_itSetRegistersGeneric, but calls a callback for every register range checked and returns true ONLY if any register value has actually changed (e.g. not updated to the same value as before)
 template<uint32 TRegisterBase, typename TRegRangeCallback>
-LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords, TRegRangeCallback cbRegRange)
+bool LatteCP_itSetRegistersGeneric2(LatteCMDPtr cmd, uint32 nWords, TRegRangeCallback cbRegRange)
 {
-	uint32 registerOffset = LatteReadCMD();
-	uint32 registerIndex = TRegisterBase + registerOffset;
-	uint32 registerStartIndex = registerIndex;
-	uint32 registerEndIndex = registerStartIndex + nWords;
-#ifdef CEMU_DEBUG_ASSERT
+	const uint32 registerOffset = LatteReadCMD();
+	const uint32 registerIndex = TRegisterBase + registerOffset;
+	const uint32 registerStartIndex = registerIndex;
+	const uint32 registerEndIndex = registerStartIndex + nWords;
 	cemu_assert_debug((registerIndex + nWords) <= LATTE_MAX_REGISTER);
-#endif
-	cbRegRange(registerStartIndex, registerEndIndex);
 
 	uint32* outputReg = (uint32*)(LatteGPUState.contextRegister + registerIndex);
+	bool hasRegChange = false;
 	if (LatteGPUState.contextControl0 == 0x80000077)
 	{
 		// state shadowing enabled
@@ -354,6 +353,7 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords, TRegRa
 			MPTR regShadowAddr = shadowAddrs[indexCounter];
 			if (regShadowAddr)
 				*(uint32*)(memory_base + regShadowAddr) = _swapEndianU32(dataWord);
+			hasRegChange |= (outputReg[indexCounter] != dataWord);
 			outputReg[indexCounter] = dataWord;
 			indexCounter++;
 		}
@@ -364,13 +364,17 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords, TRegRa
 		sint32 indexCounter = 0;
 		while (--nWords)
 		{
-			*outputReg = LatteReadCMD();
+			uint32 dataWord = LatteReadCMD();
+			hasRegChange |= (*outputReg != dataWord);
+			*outputReg = dataWord;
 			outputReg++;
 		}
 	}
 	// some register writes trigger special behavior
 	LatteCP_itSetRegistersGeneric_handleSpecialRanges<TRegisterBase>(registerStartIndex, registerEndIndex);
-	return cmd;
+	// callback
+	cbRegRange(registerStartIndex, registerEndIndex, hasRegChange);
+	return hasRegChange;
 }
 
 LatteCMDPtr LatteCP_itIndexType(LatteCMDPtr cmd, uint32 nWords)
@@ -973,6 +977,7 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 		LatteCMDPtr cmd, cmdStart, cmdEnd;
 		if (!drawPassCtx.PopCurrentCommandQueuePos(cmd, cmdStart, cmdEnd))
 		{
+			// cemuLog_log(LogType::Force, "[FastDrawMode] End due running out of commands");
 			drawPassCtx.endDrawPass();
 			return;
 		}
@@ -992,16 +997,28 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 				{
 				case IT_SET_RESOURCE: // attribute buffers, uniform buffers or texture units
 				{
-					LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_RESOURCE>(cmdData, nWords, [&drawPassCtx](uint32 registerStart, uint32 registerEnd)
+					LatteCP_itSetRegistersGeneric2<LATTE_REG_BASE_RESOURCE>(cmdData, nWords, [&drawPassCtx](uint32 registerStart, uint32 registerEnd, bool regValuesChanged)
 						{
 							if ((registerStart >= Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS && registerStart < (Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS + Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 7)) ||
 								(registerStart >= Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS && registerStart < (Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS + Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 7)) ||
 								(registerStart >= Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS && registerStart < (Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS + Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 7)))
-								drawPassCtx.endDrawPass(); // texture updates end the current draw sequence
+							{
+								if (regValuesChanged)
+								{
+									// cemuLog_log(LogType::Force, "[FastDrawMode] End due to texture change");
+									drawPassCtx.endDrawPass(); // texture updates end the current draw sequence
+								}
+							}
 							else if (registerStart >= mmSQ_VTX_ATTRIBUTE_BLOCK_START && registerEnd <= mmSQ_VTX_ATTRIBUTE_BLOCK_END)
-								drawPassCtx.notifyModifiedVertexBuffer();
+							{
+								if (regValuesChanged)
+									drawPassCtx.notifyModifiedVertexBuffer();
+							}
 							else
-								drawPassCtx.notifyModifiedUniformBuffer();
+							{
+								if (regValuesChanged)
+									drawPassCtx.notifyModifiedUniformBuffer();
+							}
 						});
 					if (!drawPassCtx.isWithinDrawPass())
 					{
@@ -1042,9 +1059,18 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 				}
 				case IT_SET_CONTEXT_REG:
 				{
-					drawPassCtx.endDrawPass();
-					drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
-					return;
+					// LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_CONTEXT>(cmd, nWords);
+					bool hasChanged = LatteCP_itSetRegistersGeneric2<LATTE_REG_BASE_CONTEXT>(cmdData, nWords, [](uint32 registerStart, uint32 registerEnd, bool regValuesChanged){});
+					//cemuLog_log(LogType::Force, "[FastDrawMode] Potential end due to SetContextReg (itHeader {:08x} data {:08x}) -> HasChanged {}", itHeader, (uint32)cmdData[0], hasChanged);
+					// drawPassCtx.endDrawPass();
+					// drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
+					if (hasChanged)
+					{
+						drawPassCtx.endDrawPass();
+						drawPassCtx.PushCurrentCommandQueuePos(cmd, cmdStart, cmdEnd);
+						return;
+					}
+					break;
 				}
 				case IT_INDIRECT_BUFFER_PRIV:
 				{
@@ -1052,13 +1078,25 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 					LatteCP_itIndirectBuffer(cmdData, nWords, drawPassCtx);
 					if (!drawPassCtx.PopCurrentCommandQueuePos(cmd, cmdStart, cmdEnd)) // switch to sub buffer
 						cemu_assert_debug(false);
-
-					//if (!drawPassCtx.isWithinDrawPass())
-					//	return cmdData;
+					break;
+				}
+				case IT_SET_SAMPLER:
+				{
+					bool hasChanged = LatteCP_itSetRegistersGeneric2<LATTE_REG_BASE_SAMPLER>(cmdData, nWords, [](uint32 registerStart, uint32 registerEnd, bool regValuesChanged){});
+					//cemuLog_log(LogType::Force, "[FastDrawMode] Set sampler (reg change = {} - filtered)", hasChanged);
+					if (hasChanged)
+					{
+						//cemuLog_log(LogType::Force, "[FastDrawMode] End due to sampler change");
+						drawPassCtx.endDrawPass();
+						drawPassCtx.PushCurrentCommandQueuePos(cmd, cmdStart, cmdEnd);
+						return;
+					}
 					break;
 				}
 				default:
 					// unsupported command for fast draw
+					//cemuLog_log(LogType::Force, "[FastDrawMode] Unallowed command. Data: {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}", (uint32)itHeader, (uint32)cmdData[0], (uint32)cmdData[1], (uint32)cmdData[2], (uint32)cmdData[3], (uint32)cmdData[4], (uint32)cmdData[5]);
+					//cemuLog_log(LogType::Force, "[FastDrawMode] End due to unallowed packet 0x{:08x}", itHeader);
 					drawPassCtx.endDrawPass();
 					drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
 					return;
@@ -1071,6 +1109,7 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 			else
 			{
 				// unsupported command for fast draw
+				//cemuLog_log(LogType::Force, "[FastDrawMode] End due to uknown packet 0x{:08x}", itHeader);
 				drawPassCtx.endDrawPass();
 				drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
 				return;
@@ -1167,6 +1206,7 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				case IT_DRAW_INDEX_2:
 				{
 					drawPassCtx.beginDrawPass();
+					//cemuLog_log(LogType::Force, "[CmdBuf] DrawIndex2");
 					LatteCP_itDrawIndex2(cmdData, nWords, drawPassCtx);
 					// enter fast draw mode
 					drawPassCtx.PushCurrentCommandQueuePos(cmd, cmdStart, cmdEnd);
@@ -1179,6 +1219,7 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				case IT_DRAW_INDEX_AUTO:
 				{
 					drawPassCtx.beginDrawPass();
+					//cemuLog_log(LogType::Force, "[CmdBuf] DrawIndexAuto");
 					LatteCP_itDrawIndexAuto(cmdData, nWords, drawPassCtx);
 					// enter fast draw mode
 					drawPassCtx.PushCurrentCommandQueuePos(cmd, cmdStart, cmdEnd);
@@ -1192,6 +1233,7 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				{
 					DrawPassContext drawPassCtx;
 					drawPassCtx.beginDrawPass();
+					//cemuLog_log(LogType::Force, "[CmdBuf] DrawIndexImm");
 					LatteCP_itDrawImmediate(cmdData, nWords, drawPassCtx);
 					drawPassCtx.endDrawPass();
 					break;
@@ -1448,6 +1490,7 @@ void LatteCP_ProcessRingbuffer()
 			{
 				DrawPassContext drawPassCtx;
 				drawPassCtx.beginDrawPass();
+				cemuLog_log(LogType::Force, "[TopLevel] DrawIndex2");
 				LatteCP_itDrawIndex2(cmd, nWords, drawPassCtx);
 				drawPassCtx.endDrawPass();
 				timerRecheck += CP_TIMER_RECHECK / 64;
@@ -1457,6 +1500,7 @@ void LatteCP_ProcessRingbuffer()
 			{
 				DrawPassContext drawPassCtx;
 				drawPassCtx.beginDrawPass();
+				cemuLog_log(LogType::Force, "[TopLevel] DrawIndexAuto");
 				LatteCP_itDrawIndexAuto(cmd, nWords, drawPassCtx);
 				drawPassCtx.endDrawPass();
 				timerRecheck += CP_TIMER_RECHECK / 512;
@@ -1466,6 +1510,7 @@ void LatteCP_ProcessRingbuffer()
 			{
 				DrawPassContext drawPassCtx;
 				drawPassCtx.beginDrawPass();
+				cemuLog_log(LogType::Force, "[TopLevel] DrawIndexImm");
 				LatteCP_itDrawImmediate(cmd, nWords, drawPassCtx);
 				drawPassCtx.endDrawPass();
 				timerRecheck += CP_TIMER_RECHECK / 64;
