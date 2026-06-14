@@ -482,45 +482,58 @@ namespace LatteDecompiler
 	void _initTextureBindingPointsGL(LatteDecompilerShaderContext* decompilerContext)
 	{
 		// for OpenGL we use the relative texture unit index
+		sint8 bindingBase = 0;
+		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
+			bindingBase = LATTE_CEMU_VS_TEX_UNIT_BASE;
+		else if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
+			bindingBase = LATTE_CEMU_GS_TEX_UNIT_BASE;
+		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
+			bindingBase = LATTE_CEMU_PS_TEX_UNIT_BASE;
+
 		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 		{
 			if (!decompilerContext->output->textureUnitMask[i])
 				continue;
-			sint32 textureBindingPoint;
-			if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex)
-				textureBindingPoint = i + LATTE_CEMU_VS_TEX_UNIT_BASE;
-			else if (decompilerContext->shaderType == LatteConst::ShaderType::Geometry)
-				textureBindingPoint = i + LATTE_CEMU_GS_TEX_UNIT_BASE;
-			else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
-				textureBindingPoint = i + LATTE_CEMU_PS_TEX_UNIT_BASE;
-
-			decompilerContext->output->resourceMappingGL.textureUnitToBindingPoint[i] = textureBindingPoint;
+			decompilerContext->output->resourceMappingGL.textureUnitToBindingPoint[i] = bindingBase + i;
 		}
 	}
 
 	void _initTextureBindingPointsVK(LatteDecompilerShaderContext* decompilerContext)
 	{
 		// for Vulkan we use consecutive indices
+		decompilerContext->output->resourceMappingVK.textureUnitBaseBindingPoint = decompilerContext->currentBindingPointVK;
+		sint32 relBindingPointIndex = 0;
 		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 		{
 			if (!decompilerContext->output->textureUnitMask[i])
 				continue;
 			decompilerContext->output->resourceMappingVK.textureUnitToBindingPoint[i] = decompilerContext->currentBindingPointVK;
+			decompilerContext->output->resourceMappingVK.relBindingPointToRelTextureUnit[relBindingPointIndex] = i;
+			relBindingPointIndex++;
+			decompilerContext->output->resourceMappingVK.textureUnitCount++;
 			decompilerContext->currentBindingPointVK++;
 		}
+		if (relBindingPointIndex==0)
+			decompilerContext->output->resourceMappingVK.textureUnitBaseBindingPoint = -1;
 	}
 
 #ifdef ENABLE_METAL
 	void _initTextureBindingPointsMTL(LatteDecompilerShaderContext* decompilerContext)
 	{
-		// for Vulkan we use consecutive indices
+		decompilerContext->output->resourceMappingMTL.textureUnitBaseBindingPoint = decompilerContext->currentTextureBindingPointMTL;
+		sint32 relBindingPointIndex = 0;
 		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 		{
 			if (!decompilerContext->output->textureUnitMask[i] || decompilerContext->shader->textureRenderTargetIndex[i] != 255)
 				continue;
 			decompilerContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] = decompilerContext->currentTextureBindingPointMTL;
+			decompilerContext->output->resourceMappingMTL.relBindingPointToRelTextureUnit[relBindingPointIndex] = i;
+			relBindingPointIndex++;
+			decompilerContext->output->resourceMappingMTL.textureUnitCount++;
 			decompilerContext->currentTextureBindingPointMTL++;
 		}
+		if (relBindingPointIndex==0)
+			decompilerContext->output->resourceMappingMTL.textureUnitBaseBindingPoint = -1;
 	}
 #endif
 

@@ -1996,7 +1996,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     sint32 textureCount = shader->resourceMapping.getTextureCount();
 	for (int i = 0; i < textureCount; ++i)
 	{
-		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
+		const auto relative_textureUnit = shader->resourceMapping.getRelativeTextureUnitFromRelativeBindingPoint(i);
 		auto hostTextureUnit = relative_textureUnit;
 
 		// Don't bind textures that are accessed with a framebuffer fetch
