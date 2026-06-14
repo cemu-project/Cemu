@@ -191,45 +191,73 @@ namespace H264
 
 	H264DEC_STATUS H264DECGetImageSize(uint8* stream, uint32 length, uint32 offset, uint32be* outputWidth, uint32be* outputHeight)
 	{
-		if(!stream || length < 4 || !outputWidth || !outputHeight)
-			return H264DEC_STATUS::INVALID_PARAM;
-		if( (offset+4) > length )
-			return H264DEC_STATUS::INVALID_PARAM;
-		uint8* cur = stream + offset;
-		uint8* end = stream + length;
-		cur += 2; // we access cur[-2] and cur[-1] so we need to start at offset 2
-		while(cur < end-2)
+		if (!stream || length < 4 || !outputWidth || !outputHeight || (offset + 4) > length)
 		{
-			// check for start code
-			if(*cur != 1)
-			{
-				cur++;
-				continue;
-			}
-			// check if this is a valid NAL header
-			if(cur[-2] != 0 || cur[-1] != 0 || cur[0] != 1)
-			{
-				cur++;
-				continue;
-			}
-			uint8 nalHeader = cur[1];
-			if((nalHeader & 0x1F) != 7)
-			{
-				cur++;
-				continue;
-			}
-			h264State_seq_parameter_set_t psp;
-			bool r = h264Parser_ParseSPS(cur+2, end-cur-2, psp);
-			if(!r)
-			{
-				cemu_assert_suspicious(); // should not happen
-				return H264DEC_STATUS::BAD_STREAM;
-			}
-			*outputWidth = (psp.pic_width_in_mbs_minus1 + 1) * 16;
-			*outputHeight = (psp.pic_height_in_map_units_minus1 + 1) * 16; // affected by frame_mbs_only_flag?
-			return H264DEC_STATUS::SUCCESS;
+			return H264DEC_STATUS::INVALID_PARAM;
 		}
-		return H264DEC_STATUS::BAD_STREAM;
+
+		uint8* data = stream + offset;
+		uint32 dataLength = length - offset;
+
+		uint32 startCodeOffset = 0;
+		bool hasSPS = false;
+		while (startCodeOffset < (dataLength - 3))
+		{
+			if (data[startCodeOffset + 0] == 0x00 && data[startCodeOffset + 1] == 0x00 && data[startCodeOffset + 2] == 0x01 && (data[startCodeOffset + 3] & 0x1F) == 7)
+			{
+				hasSPS = true;
+				break;
+			}
+			startCodeOffset++;
+		}
+
+		if (!hasSPS)
+		{
+			return H264DEC_STATUS::BAD_STREAM;
+		}
+
+		data += startCodeOffset;
+		dataLength -= startCodeOffset;
+
+		startCodeOffset += 4;
+		bool startCodeFound = false;
+		while (startCodeOffset < (dataLength - 3))
+		{
+			if (data[startCodeOffset + 0] == 0x00 && data[startCodeOffset + 1] == 0x00 && data[startCodeOffset + 2] == 0x01)
+			{
+				startCodeFound = true;
+				break;
+			}
+			startCodeOffset++;
+		}
+
+		if (startCodeFound)
+		{
+			dataLength = startCodeOffset - 4;
+		}
+		else
+		{
+			dataLength -= 4;
+		}
+
+		data += 4;
+
+		h264State_seq_parameter_set_t sps;
+		bool r = h264Parser_ParseSPS(data, dataLength, sps);
+		if (!r)
+		{
+			cemu_assert_suspicious(); // should not happen
+			return H264DEC_STATUS::BAD_STREAM;
+		}
+
+		*outputWidth = (sps.pic_width_in_mbs_minus1 + 1) * 16;
+		*outputHeight = (sps.pic_height_in_map_units_minus1 + 1) * 16; // affected by frame_mbs_only_flag?
+
+		if (H264_IsBotW() && *outputWidth == 1920 && *outputHeight == 1088)
+		{
+			*outputHeight = 1080;
+		}
+		return H264DEC_STATUS::SUCCESS;
 	}
 
 	uint32 H264DECInitParam(uint32 workMemorySize, void* workMemory)
