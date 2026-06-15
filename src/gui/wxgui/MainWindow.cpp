@@ -1389,6 +1389,12 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	std::unique_lock lock(instance.m_main_mouse.m_mutex);
 	auto physPos = ToPhys(event.GetPosition());
 	instance.m_main_mouse.position = { physPos.x, physPos.y };
+	auto renderCanvasMouse = m_render_canvas->ScreenToClient(m_mouse_position);
+	instance.SetMousePositionInRenderBox
+	({
+		static_cast<float>(renderCanvasMouse.x) / m_render_canvas->m_width,
+		static_cast<float>(renderCanvasMouse.y) / m_render_canvas->m_height,
+	});
 	lock.unlock();
 
 	if (!IsFullScreen())

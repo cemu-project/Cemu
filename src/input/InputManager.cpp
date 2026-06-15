@@ -928,6 +928,16 @@ std::optional<glm::ivec2> InputManager::get_right_down_mouse_info(bool* is_pad)
 	return {};
 }
 
+glm::vec2 InputManager::GetMousePositionInRenderBox() const
+{
+	return m_mouseInRenderCanvas;
+}
+
+void InputManager::SetMousePositionInRenderBox(glm::vec2 newMousePosition)
+{
+	m_mouseInRenderCanvas = newMousePosition;
+}
+
 void InputManager::update_thread()
 {
 	SetThreadName("Input_update");

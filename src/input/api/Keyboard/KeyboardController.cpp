@@ -11,8 +11,7 @@ KeyboardController::KeyboardController()
 
 glm::vec2 KeyboardController::get_position()
 {
-	// arbitrary values for test purpose
-	return {0.5, 0.5};
+	return InputManager::instance().GetMousePositionInRenderBox();
 }
 
 std::string KeyboardController::get_button_name(uint64 button) const
