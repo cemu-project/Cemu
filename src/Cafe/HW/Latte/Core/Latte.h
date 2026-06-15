@@ -70,6 +70,15 @@ struct LatteGPUState_t
 
 extern LatteGPUState_t LatteGPUState;
 
+// drawcall context
+
+struct LatteDrawcallContext
+{
+	bool isFirst{}; // first _execute() in current sequence
+	// these are only valid if isFirst is false:
+	// todo
+};
+
 // texture
 
 #include "Cafe/HW/Latte/Core/LatteTexture.h"

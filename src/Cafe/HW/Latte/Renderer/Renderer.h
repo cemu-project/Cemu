@@ -140,7 +140,7 @@ public:
 
 	// core drawing logic
 	virtual void draw_beginSequence() = 0;
-	virtual void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst) = 0;
+	virtual void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext) = 0;
 	virtual void draw_endSequence() = 0;
 
 	// index
