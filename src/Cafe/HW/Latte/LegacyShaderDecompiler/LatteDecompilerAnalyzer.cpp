@@ -562,7 +562,7 @@ namespace LatteDecompiler
 		bool alphaTestEnable = decompilerContext->contextRegistersNew->SX_ALPHA_TEST_CONTROL.get_ALPHA_TEST_ENABLE();
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel && alphaTestEnable != 0)
 			decompilerContext->hasUniformVarBlock = true; // uf_alphaTestRef
-		if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
+		if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel && decompilerContext->analyzer.hasFragCoordAccess)
 			decompilerContext->hasUniformVarBlock = true; // uf_fragCoordScale
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->analyzer.outputPointSize && decompilerContext->analyzer.writesPointSize == false)
 			decompilerContext->hasUniformVarBlock = true; // uf_pointSize
@@ -605,6 +605,11 @@ namespace LatteDecompiler
 			decompilerContext->output->resourceMappingVK.uniformVarsBufferBindingPoint = decompilerContext->currentBindingPointVK;
 			decompilerContext->currentBindingPointVK++;
 			decompilerContext->output->resourceMappingMTL.uniformVarsBufferBindingPoint = decompilerContext->currentBufferBindingPointMTL;
+			decompilerContext->currentBufferBindingPointMTL++;
+		}
+		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel) // compatibility workaround to keep binding indices the same with existing gfx pack shader replacements, we now only emit uf_fragCoord when needed and it can lead to hasUniformVarBlock being false
+		{
+			decompilerContext->currentBindingPointVK++;
 			decompilerContext->currentBufferBindingPointMTL++;
 		}
 		// assign binding points to uniform buffers
@@ -1004,6 +1009,23 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 		for (sint32 i = 0; i < psInputTable->count; i++)
 		{
 			shaderContext->analyzer.gprUseMask[i / 8] |= (1 << (i % 8));
+		}
+	}
+	// check if shader accesses frag coord
+	if (shader->shaderType == LatteConst::ShaderType::Pixel)
+	{
+		LatteShaderPSInputTable* psInputTable = LatteSHRC_GetPSInputTable();
+		for (sint32 i = 0; i < psInputTable->count; i++)
+		{
+			sint32 gprIndex = i;
+			if ((shaderContext->analyzer.gprUseMask[gprIndex / 8] & (1 << (gprIndex % 8))) == 0 && shaderContext->analyzer.usesRelativeGPRRead == false)
+				continue;
+			uint32 psInputSemanticId = psInputTable->import[i].semanticId;
+			if (psInputSemanticId == LATTE_ANALYZER_IMPORT_INDEX_SPIPOSITION)
+			{
+				shaderContext->analyzer.hasFragCoordAccess = true;
+				break;
+			}
 		}
 	}
 	// analyze CF stack
