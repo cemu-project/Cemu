@@ -1,10 +1,8 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/libs/gx2/GX2.h" // for write gatherer and special state. Get rid of dependency
-#include "Cafe/OS/libs/gx2/GX2_Misc.h" // for GX2::sGX2MainCoreIndex. Legacy dependency
 #include "Cafe/OS/libs/gx2/GX2_Event.h" // for notification callbacks
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
@@ -53,7 +51,7 @@ public:
 	void beginDrawPass()
 	{
 		m_drawPassActive = true;
-		m_isFirstDraw = true;
+		m_drawcallContext.isFirst = true;
 		m_vertexBufferChanged = true;
 		m_uniformBufferChanged = true;
 		g_renderer->draw_beginSequence();
@@ -71,16 +69,16 @@ public:
 			if (physIndices == MPTR_NULL)
 				return;
 			auto indexType = LatteGPUState.contextNew.VGT_DMA_INDEX_TYPE.get_INDEX_TYPE();
-			g_renderer->draw_execute(baseVertex, baseInstance, numInstances, count, physIndices, indexType, m_isFirstDraw);
+			g_renderer->draw_execute(baseVertex, baseInstance, numInstances, count, physIndices, indexType, m_drawcallContext);
 		}
 		else
 		{
-			g_renderer->draw_execute(baseVertex, baseInstance, numInstances, count, MPTR_NULL, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::AUTO, m_isFirstDraw);
+			g_renderer->draw_execute(baseVertex, baseInstance, numInstances, count, MPTR_NULL, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::AUTO, m_drawcallContext);
 		}
 		performanceMonitor.cycle[performanceMonitor.cycleIndex].drawCallCounter++;
-		if (!m_isFirstDraw)
+		if (!m_drawcallContext.isFirst)
 			performanceMonitor.cycle[performanceMonitor.cycleIndex].fastDrawCallCounter++;
-		m_isFirstDraw = false;
+		m_drawcallContext.isFirst = false;
 		m_vertexBufferChanged = false;
 		m_uniformBufferChanged = false;
 	}
@@ -121,7 +119,7 @@ public:
 
 private:
 	bool m_drawPassActive{ false };
-	bool m_isFirstDraw{false};
+	LatteDrawcallContext m_drawcallContext{};
 	bool m_vertexBufferChanged{ false };
 	bool m_uniformBufferChanged{ false };
 	boost::container::static_vector<CmdQueuePos, 4> m_queuePosStack;
