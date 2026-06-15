@@ -9,6 +9,12 @@ KeyboardController::KeyboardController()
 	
 }
 
+glm::vec2 KeyboardController::get_position()
+{
+	// arbitrary values for test purpose
+	return {0.5, 0.5};
+}
+
 std::string KeyboardController::get_button_name(uint64 button) const
 {
 	return WindowSystem::GetKeyCodeName(button);
