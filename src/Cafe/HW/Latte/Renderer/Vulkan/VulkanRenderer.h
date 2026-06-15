@@ -470,6 +470,8 @@ private:
 		{
 			uint32 minUniformBufferOffsetAlignment = 256;
 			uint32 nonCoherentAtomSize = 256;
+			// calculated
+			uint32 calcUniformBufferAlignmentM1{};
 		}limits;
 
 		bool usingDebugMarkerTool{ false }; // validation layer or other tool capable of handling debug markers is used

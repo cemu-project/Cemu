@@ -325,22 +325,17 @@ LatteTextureView* LatteMRT::GetColorAttachmentTexture(uint32 index, bool createN
 // get mask of all used color buffers
 uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShader, const LatteContextRegister& lcr)
 {
+	if (!pixelShader) [[unlikely]]
+		return 0;
 	const uint32* regView = lcr.GetRawView();
-
-	uint8 colorBufferMask = 0;
-	for (uint32 i = 0; i < 8; i++)
-	{
-		if (regView[mmCB_COLOR0_BASE + i] != MPTR_NULL)
-			colorBufferMask |= (1 << i);
-	}
 	// check if color buffer output is active
 	const Latte::LATTE_CB_COLOR_CONTROL& colorControlReg = lcr.CB_COLOR_CONTROL;
 	uint32 colorBufferDisable = colorControlReg.get_SPECIAL_OP() == Latte::LATTE_CB_COLOR_CONTROL::E_SPECIALOP::DISABLE;
 	if (colorBufferDisable)
 		return 0;
 	cemu_assert_debug(colorControlReg.get_DEGAMMA_ENABLE() == false); // not supported
-	// combine color buffer mask with pixel output mask from pixel shader
-	colorBufferMask &= (pixelShader ? pixelShader->pixelColorOutputMask : 0);
+	// start with color buffer mask from pixel shader output
+	uint8 colorBufferMask = pixelShader->pixelColorOutputMask;
 	// combine color buffer mask with color channel mask from mmCB_TARGET_MASK (disable render buffer if all colors are blocked)
 	uint32 channelTargetMask = lcr.CB_TARGET_MASK.get_MASK();
 	for (uint32 i = 0; i < 8; i++)
@@ -348,9 +343,9 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 		if (((channelTargetMask >> (i * 4)) & 0xF) == 0)
 			colorBufferMask &= ~(1 << i);
 	}
-
 	// render targets smaller than the scissor size are not allowed
 	// this fixes a few render issues in Cemu but we dont know if this matches HW behavior
+	// also check for color buffers without a valid pointer
 	cemu_assert_debug(lcr.PA_SC_GENERIC_SCISSOR_TL.get_WINDOW_OFFSET_DISABLE() == true); // todo (not exposed by GX2 API)
 	uint32 scissorAccessWidth = lcr.PA_SC_GENERIC_SCISSOR_BR.get_BR_X();
 	uint32 scissorAccessHeight = lcr.PA_SC_GENERIC_SCISSOR_BR.get_BR_Y();
@@ -358,6 +353,8 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 	{
 		if( (colorBufferMask&(1<<i)) == 0 )
 			continue;
+		if (regView[mmCB_COLOR0_BASE + i] == MPTR_NULL) [[unlikely]]
+			colorBufferMask &= ~(1 << i);
 		// get width/height
 		uint32 regColorSize = regView[mmCB_COLOR0_SIZE + i];
 		uint32 regColorInfo = regView[mmCB_COLOR0_INFO + i];
@@ -369,15 +366,12 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 		uint32 colorBufferHeight = pitchHeight / colorBufferPitch;
 		uint32 colorBufferWidth = colorBufferPitch;
 
-		if ((colorBufferWidth < (sint32)scissorAccessWidth) ||
-			(colorBufferHeight < (sint32)scissorAccessHeight))
+		if ((colorBufferWidth < (sint32)scissorAccessWidth) || (colorBufferHeight < (sint32)scissorAccessHeight))
 		{
             // log this?
 			colorBufferMask &= ~(1<<i);
 		}
-
 	}
-
 	return colorBufferMask;
 }
 
