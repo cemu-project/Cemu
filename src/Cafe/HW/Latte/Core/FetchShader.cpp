@@ -1,9 +1,6 @@
 #include "Cafe/HW/Latte/Core/LatteConst.h"
-#include "Cafe/HW/Latte/Core/LatteShaderAssembly.h"
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
-#include "Cafe/OS/libs/gx2/GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
 #include "Cafe/HW/Latte/Core/FetchShader.h"
@@ -503,7 +500,7 @@ LatteFetchShader::CacheHash LatteFetchShader::CalculateCacheHash(void* programCo
 
 LatteFetchShader* LatteFetchShader::FindInCacheByHash(LatteFetchShader::CacheHash fsHash)
 {
-	// does not hold s_fetchShaderCache for better performance. Be careful not to call this while another thread invokes RegisterInCache()
+	// does not hold s_spinlockFetchShaderCache for better performance. Be careful not to call this while another thread invokes RegisterInCache()
 	auto itr = s_fetchShaderByHash.find(fsHash);
 	if (itr == s_fetchShaderByHash.end())
 		return nullptr;
@@ -539,6 +536,11 @@ LatteFetchShader* LatteFetchShader::FindByGPUState()
 		}
 		// update lookup info
 		CacheHash fsHash = CalculateCacheHash(_getFSProgramPtr(), _getFSProgramSize());
+		if (lookupInfo->fetchShader->m_cacheHash == fsHash && lookupInfo->programSize == fsSize) // check if its still the same hash
+		{
+			lookupInfo->lastFrameAccessed = LatteGPUState.frameCounter;
+			return lookupInfo->fetchShader;
+		}
 		LatteFetchShader* fetchShader = FindInCacheByHash(fsHash);
 		if (!fetchShader)
 		{

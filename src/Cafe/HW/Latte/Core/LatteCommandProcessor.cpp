@@ -124,7 +124,7 @@ private:
 	bool m_isFirstDraw{false};
 	bool m_vertexBufferChanged{ false };
 	bool m_uniformBufferChanged{ false };
-	boost::container::small_vector<CmdQueuePos, 4> m_queuePosStack;
+	boost::container::static_vector<CmdQueuePos, 4> m_queuePosStack;
 };
 
 void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx);
@@ -299,11 +299,11 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 #ifdef CEMU_DEBUG_ASSERT
 	cemu_assert_debug((registerIndex + nWords) <= LATTE_MAX_REGISTER);
 #endif
-	uint32* outputReg = (uint32*)(LatteGPUState.contextRegister + registerIndex);
+	uint32* __restrict outputReg = (uint32*)(LatteGPUState.contextRegister + registerIndex);
 	if (LatteGPUState.contextControl0 == 0x80000077)
 	{
 		// state shadowing enabled
-		uint32* shadowAddrs = LatteGPUState.contextRegisterShadowAddr + registerIndex;
+		uint32* __restrict shadowAddrs = LatteGPUState.contextRegisterShadowAddr + registerIndex;
 		sint32 indexCounter = 0;
 		while (--nWords)
 		{
@@ -318,7 +318,6 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 	else
 	{
 		// state shadowing disabled
-		sint32 indexCounter = 0;
 		while (--nWords)
 		{
 			*outputReg = LatteReadCMD();

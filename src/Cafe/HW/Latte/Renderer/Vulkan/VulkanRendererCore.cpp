@@ -315,7 +315,7 @@ float s_vkUniformData[512 * 4];
 
 uint32 VulkanRenderer::uniformData_uploadUniformDataBufferGetOffset(std::span<uint8> data)
 {
-	const uint32 bufferAlignmentM1 = std::max(m_featureControl.limits.minUniformBufferOffsetAlignment, m_featureControl.limits.nonCoherentAtomSize) - 1;
+	const uint32 bufferAlignmentM1 = m_featureControl.limits.calcUniformBufferAlignmentM1;
 	const uint32 uniformSize = ((uint32)data.size() + bufferAlignmentM1) & ~bufferAlignmentM1;
 
 	auto waitWhileCondition = [&](std::function<bool()> condition) {
@@ -481,40 +481,44 @@ uint64 VulkanRenderer::GetDescriptorSetStateHash(LatteDecompilerShader* shader)
 	uint64 hash = 0;
 
 	const sint32 textureCount = shader->resourceMapping.getTextureCount();
+
+	LatteTextureViewVk** texViewBase = m_state.boundTexture;
+	uint32* __restrict texRegBase = LatteGPUState.contextRegister;
+	uint32 samplerBaseIndex = 0;
+	switch (shader->shaderType)
+	{
+	case LatteConst::ShaderType::Vertex:
+		texViewBase += LATTE_CEMU_VS_TEX_UNIT_BASE;
+		texRegBase += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS;
+		samplerBaseIndex = Latte::SAMPLER_BASE_INDEX_VERTEX;
+		break;
+	case LatteConst::ShaderType::Pixel:
+		texViewBase += LATTE_CEMU_PS_TEX_UNIT_BASE;
+		texRegBase += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS;
+		samplerBaseIndex = Latte::SAMPLER_BASE_INDEX_PIXEL;
+		break;
+	case LatteConst::ShaderType::Geometry:
+		texViewBase += LATTE_CEMU_GS_TEX_UNIT_BASE;
+		texRegBase += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
+		samplerBaseIndex = Latte::SAMPLER_BASE_INDEX_GEOMETRY;
+		break;
+	default:
+		UNREACHABLE;
+	}
+
+
 	for (int i = 0; i < textureCount; ++i)
 	{
 		const auto relative_textureUnit = shader->resourceMapping.getRelativeTextureUnitFromRelativeBindingPoint(i);
-		auto hostTextureUnit = relative_textureUnit;
-		auto textureDim = shader->textureUnitDim[relative_textureUnit];
-		auto texUnitRegIndex = hostTextureUnit * 7;
-		switch (shader->shaderType)
-		{
-		case LatteConst::ShaderType::Vertex:
-			hostTextureUnit += LATTE_CEMU_VS_TEX_UNIT_BASE;
-			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS;
-			break;
-		case LatteConst::ShaderType::Pixel:
-			hostTextureUnit += LATTE_CEMU_PS_TEX_UNIT_BASE;
-			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_PS;
-			break;
-		case LatteConst::ShaderType::Geometry:
-			hostTextureUnit += LATTE_CEMU_GS_TEX_UNIT_BASE;
-			texUnitRegIndex += Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS;
-			break;
-		default:
-			UNREACHABLE;
-		}
-
-		auto texture = m_state.boundTexture[hostTextureUnit];
+		uint32* __restrict texRegs = texRegBase + relative_textureUnit * 7;
+		auto texture = texViewBase[relative_textureUnit];
 		if (!texture)
 			continue;
-
-		const uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];
-
+		const uint32 word4 = texRegs[4];
 		uint32 samplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
-		if (samplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
+		if (samplerIndex != LATTE_DECOMPILER_SAMPLER_NONE) [[likely]]
 		{
-			samplerIndex += LatteDecompiler_getTextureSamplerBaseIndex(shader->shaderType);
+			samplerIndex += samplerBaseIndex;
 			hash += LatteGPUState.contextRegister[Latte::REGADDR::SQ_TEX_SAMPLER_WORD0_0 + samplerIndex * 3 + 0];
 			hash = std::rotl<uint64>(hash, 7);
 			hash += LatteGPUState.contextRegister[Latte::REGADDR::SQ_TEX_SAMPLER_WORD0_0 + samplerIndex * 3 + 1];

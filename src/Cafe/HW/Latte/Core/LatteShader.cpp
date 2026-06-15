@@ -217,7 +217,7 @@ void LatteShader_CreatePSInputTable(LatteShaderPSInputTable* psInputTable, uint3
 	uint32 spi0_positionEnable = (psControl0 >> 8) & 1;
 	uint32 spi0_positionCentroid = (psControl0 >> 9) & 1;
 	cemu_assert_debug(spi0_positionCentroid == 0); // controls gl_FragCoord
-	uint32 spi0_positionAddr = (psControl0 >> 10) & 0x1F; // controls gl_FragCoord
+	uint32 spi0_positionAddr = spi0_positionEnable ? ((psControl0 >> 10) & 0x1F) : 0xFFFFFFFF; // controls gl_FragCoord
 	uint32 spi0_paramGen = (psControl0 >> 15) & 0xF; // used for gl_PointCoords
 	uint32 spi0_paramGenAddr = (psControl0 >> 19) & 0x7F;
 	sint32 importIndex = 0;
@@ -278,7 +278,7 @@ void LatteShader_CreatePSInputTable(LatteShaderPSInputTable* psInputTable, uint3
 
 		key += (uint64)psInputControl;
 		key = std::rotl<uint64>(key, 7);
-		if (spi0_positionEnable && f == spi0_positionAddr)
+		if (f == spi0_positionAddr)
 		{
 			psInputTable->import[f].semanticId = LATTE_ANALYZER_IMPORT_INDEX_SPIPOSITION;
 			psInputTable->import[f].isFlat = false;
@@ -1053,7 +1053,7 @@ void LatteSHRC_UpdateActiveShaders()
 		vsProgramCode = (uint8*)memory_getPointerFromPhysicalOffset((LatteGPUState.contextRegister[mmSQ_PGM_START_ES] & 0xFFFFFF) << 8);
 		vsProgramSize = LatteGPUState.contextRegister[mmSQ_PGM_START_ES + 1] << 3;
 		copyProgramCode = (uint8*)memory_getPointerFromPhysicalOffset((LatteGPUState.contextRegister[mmSQ_PGM_START_VS] & 0xFFFFFF) << 8);
-		if (LatteGPUState.contextRegister[mmSQ_PGM_START_VS] == 0)
+		if (LatteGPUState.contextRegister[mmSQ_PGM_START_VS] == 0) [[unlikely]]
 		{
 			copyProgramCode = NULL;
 			debug_printf("copyProgram is NULL but used. Might be because of unsupported vertex/geometry mode?");
@@ -1062,7 +1062,7 @@ void LatteSHRC_UpdateActiveShaders()
 	}
 	else
 	{
-		if (LatteGPUState.contextRegister[mmSQ_PGM_START_VS] == 0)
+		if (LatteGPUState.contextRegister[mmSQ_PGM_START_VS] == 0) [[unlikely]]
 		{
 			debug_printf("No vertex shader program set\n");
 			LatteGPUState.activeShaderHasError = true;
@@ -1089,7 +1089,6 @@ void LatteSHRC_UpdateActiveShaders()
 // returns the sampler base index for the given shader type
 sint32 LatteDecompiler_getTextureSamplerBaseIndex(LatteConst::ShaderType shaderType)
 {
-	uint32 samplerId = LATTE_DECOMPILER_SAMPLER_NONE;
 	if (shaderType == LatteConst::ShaderType::Vertex)
 		return Latte::SAMPLER_BASE_INDEX_VERTEX;
 	else if (shaderType == LatteConst::ShaderType::Pixel)

@@ -171,15 +171,16 @@ bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance
 	LatteFetchShader* parsedFetchShader = LatteSHRC_GetActiveFetchShader();
 	if (!parsedFetchShader)
 		return false;
+	uint32* __restrict bufferRegStartPtr = LatteGPUState.contextRegister + mmSQ_VTX_ATTRIBUTE_BLOCK_START;
 	for (auto& bufferGroup : parsedFetchShader->bufferGroups)
 	{
 		uint32 bufferIndex = bufferGroup.attributeBufferIndex;
-		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
-		MPTR bufferAddress = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 0];
-		uint32 bufferSize = LatteGPUState.contextRegister[bufferBaseRegisterIndex + 1] + 1;
-		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
+		uint32* __restrict bufferRegs = bufferRegStartPtr + bufferIndex * 7;
+		MPTR bufferAddress = bufferRegs[0];
+		/* uint32 bufferSize = bufferRegs[1] + 1; */
+		uint32 bufferStride = (bufferRegs[2] >> 11) & 0xFFFF;
 
-		if (bufferAddress == MPTR_NULL)
+		if (bufferAddress == MPTR_NULL) [[unlikely]]
 		{
 			g_renderer->buffer_bindVertexBuffer(bufferIndex, 0, 0);
 			continue;
