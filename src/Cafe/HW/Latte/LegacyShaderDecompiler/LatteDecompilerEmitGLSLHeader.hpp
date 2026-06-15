@@ -83,9 +83,15 @@ namespace LatteDecompiler
 			}
 		}
 		// define uf_fragCoordScale which holds the xy scale for render target resolution vs effective resolution
+		bool compatNeedFragCoordScalePadding = false; // 2026-06-15 - uf_fragCoordScale is only emitted when accessed now. To keep compatible with old shader replacements we insert padding if its not the last element
 		if (shader->shaderType == LatteConst::ShaderType::Pixel)
 		{
-			if (rendererType == RendererAPI::OpenGL)
+			if (!decompilerContext->analyzer.hasFragCoordAccess)
+			{
+				// omit uf_fragCoordScale
+				compatNeedFragCoordScalePadding = true;
+			}
+			else if (rendererType == RendererAPI::OpenGL)
 			{
 				uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
 				shaderSrc->add("uniform vec2 uf_fragCoordScale;" _CRLF);
@@ -106,6 +112,20 @@ namespace LatteDecompiler
 		{
 			if (decompilerContext->analyzer.texUnitUsesTexelCoordinates.test(t) == false)
 				continue;
+			if (compatNeedFragCoordScalePadding)
+			{
+				if (rendererType == RendererAPI::OpenGL)
+				{
+					uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
+					shaderSrc->add("uniform vec2 uf_fragCoordScaleCompatPadding;" _CRLF); uniformCurrentOffset += 8;
+				}
+				else
+				{
+					uniformCurrentOffset = (uniformCurrentOffset + 15)&~15;
+					shaderSrc->add("uniform vec4 uf_fragCoordScaleCompatPadding;" _CRLF); uniformCurrentOffset += 16;
+				}
+				compatNeedFragCoordScalePadding = false;
+			}
 			uniformCurrentOffset = (uniformCurrentOffset + 7) & ~7;
 			shaderSrc->addFmt("uniform vec2 uf_tex{}Scale;" _CRLF, t);
 			uniformOffsets.offset_texScale[t] = uniformCurrentOffset;
@@ -116,6 +136,7 @@ namespace LatteDecompiler
 			(shader->shaderType == LatteConst::ShaderType::Vertex && decompilerContext->options->usesGeometryShader == false) ||
 			(shader->shaderType == LatteConst::ShaderType::Geometry) )
 		{
+			// note - we dont need to handle compatNeedFragCoordScalePadding here because it's pixel shader only
 			shaderSrc->add("uniform int uf_verticesPerInstance;" _CRLF);
 			uniformOffsets.offset_verticesPerInstance = uniformCurrentOffset;
 			uniformCurrentOffset += 4;
@@ -280,7 +301,7 @@ namespace LatteDecompiler
 					src->add("#define V2G_LAYOUT layout(location = 0)" _CRLF);
 			}
 		}
-		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
+		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel && decompilerContext->analyzer.hasFragCoordAccess)
 		{
 			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale.xy,gl_FragCoord.z, 1.0/gl_FragCoord.w)" _CRLF);
 		}
@@ -305,7 +326,7 @@ namespace LatteDecompiler
 			if (decompilerContext->options->usesGeometryShader)
 				src->add("#define V2G_LAYOUT" _CRLF);
 		}
-		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
+		else if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel && decompilerContext->analyzer.hasFragCoordAccess)
 		{
 			src->add("#define GET_FRAGCOORD() vec4(gl_FragCoord.xy*uf_fragCoordScale,gl_FragCoord.zw)" _CRLF);
 		}
