@@ -70,8 +70,6 @@ void rectGenerate4thVertex(uint32be* output, uint32be* input0, uint32be* input1,
 		output[f] = _swapEndianU32(output[f]);
 }
 
-#define ATTRIBUTE_CACHE_RING_SIZE		(128) // up to 128 entries can be cached
-
 void LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float* uniformData)
 {
 	uint32 shaderAluConst;
@@ -92,7 +90,7 @@ void LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 		shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
 		break;
 	default:
-		cemu_assert_debug(false);
+		UNREACHABLE;
 	}
 
 	// sourced from uniform registers
@@ -110,11 +108,11 @@ void LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 		MPTR physicalAddr = LatteGPUState.contextRegister[shaderUniformRegisterOffset + bufferGroup.kcacheBankIdOffset / 4];
 		if (physicalAddr)
 		{
-			uint8* uniformBase = memory_base + physicalAddr;
+			uint8* __restrict uniformBase = memory_base + physicalAddr;
 			for (auto& it : bufferGroup.entries)
 			{
-				uint64* regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
-				uint64* uniformEntrySrc = (uint64*)(uniformBase + it.indexOffset);
+				uint64* __restrict regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
+				uint64* __restrict uniformEntrySrc = (uint64*)(uniformBase + it.indexOffset);
 				memcpy(regDest, uniformEntrySrc, 16);
 			}
 		}
