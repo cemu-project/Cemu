@@ -369,7 +369,6 @@ private:
 		VkDescriptorSetInfo* activeGeometryDS{ nullptr };
 		bool descriptorSetsChanged{ false };
 		bool hasRenderSelfDependency{ false }; // set if current drawcall samples textures which are also output as a rendertarget
-
 		// viewport and scissor box
 		VkViewport currentViewport{};
 		VkRect2D currentScissorRect{};
@@ -551,7 +550,8 @@ private:
 
 	// uniform
 	uint32 uniformData_uploadUniformDataBufferGetOffset(std::span<uint8, std::dynamic_extent> data);
-	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader);
+	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader, float* __restrict uniformBuf);
+	void uniformData_updateUniformVarsIncremental(uint32 shaderStageIndex, LatteDecompilerShader* shader, const LatteDrawcallContext& drawcallContext, uint8& stageUniformModifiedMask, float* __restrict uniformBuf);
 
 	// misc
 	void CreatePipelineCache();

@@ -42,6 +42,7 @@ struct LatteFetchShader
 	std::vector<LatteParsedFetchShaderBufferGroup_t> bufferGroupsInvalid; // groups with buffer index not being a valid buffer (dst components of these can affect shader code, but no actual vertex imports are done)
 
 	uint64 key{};
+	uint32 attributeBufferMask{}; // mask of buffers sourced by this fetch shader
 
 	// Vulkan
 	uint64 vkPipelineHashFragment{}; // hash of all fetch shader state that influences the Vulkan graphics pipeline
