@@ -311,7 +311,9 @@ void VulkanRenderer::indexData_uploadIndexMemory(IndexAllocation& allocation)
 	memoryManager->GetIndexAllocator().FlushReservation((VKRSynchronizedHeapAllocator::AllocatorReservation*)allocation.rendererInternal);
 }
 
-float s_vkUniformData[512 * 4];
+float s_vkUniformDataVS[512 * 4];
+float s_vkUniformDataPS[512 * 4];
+float s_vkUniformDataGS[512 * 4];
 
 uint32 VulkanRenderer::uniformData_uploadUniformDataBufferGetOffset(std::span<uint8> data)
 {
@@ -375,84 +377,135 @@ uint32 VulkanRenderer::uniformData_uploadUniformDataBufferGetOffset(std::span<ui
 	return uniformOffset;
 }
 
-void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader)
+void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader, float* __restrict uniformBuf)
 {
-	auto GET_UNIFORM_DATA_PTR = [](size_t index) { return s_vkUniformData + (index / 4); };
-
-	sint32 shaderAluConst;
-
-	switch (shader->shaderType)
+	auto GET_UNIFORM_DATA_PTR = [&uniformBuf](size_t index) { return uniformBuf + (index / 4); };
+	if (shader->resourceMapping.uniformVarsBufferBindingPoint < 0)
+		return;
+	if (shader->uniform.list_ufTexRescale.empty() == false)
 	{
-	case LatteConst::ShaderType::Vertex:
-		shaderAluConst = 0x400;
-		break;
-	case LatteConst::ShaderType::Pixel:
-		shaderAluConst = 0;
-		break;
-	case LatteConst::ShaderType::Geometry:
-		shaderAluConst = 0; // geometry shader has no ALU const
-		break;
-	default:
-		UNREACHABLE;
-	}
-
-	if (shader->resourceMapping.uniformVarsBufferBindingPoint >= 0)
-	{
-		if (shader->uniform.list_ufTexRescale.empty() == false)
+		for (auto& entry : shader->uniform.list_ufTexRescale)
 		{
-			for (auto& entry : shader->uniform.list_ufTexRescale)
+			float* xyScale = LatteTexture_getEffectiveTextureScale(shader->shaderType, entry.texUnit);
+			memcpy(entry.currentValue, xyScale, sizeof(float) * 2);
+			memcpy(GET_UNIFORM_DATA_PTR(entry.uniformLocation), xyScale, sizeof(float) * 2);
+		}
+	}
+	if (shader->uniform.loc_alphaTestRef >= 0)
+	{
+		*GET_UNIFORM_DATA_PTR(shader->uniform.loc_alphaTestRef) = LatteGPUState.contextNew.SX_ALPHA_REF.get_ALPHA_TEST_REF();
+	}
+	if (shader->uniform.loc_pointSize >= 0)
+	{
+		const auto& pointSizeReg = LatteGPUState.contextNew.PA_SU_POINT_SIZE;
+		float pointWidth = (float)pointSizeReg.get_WIDTH() / 8.0f;
+		if (pointWidth == 0.0f)
+			pointWidth = 1.0f / 8.0f; // minimum size
+		*GET_UNIFORM_DATA_PTR(shader->uniform.loc_pointSize) = pointWidth;
+	}
+	if (shader->uniform.loc_remapped >= 0)
+	{
+		LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped));
+	}
+	if (shader->uniform.loc_uniformRegister >= 0)
+	{
+		sint32 shaderAluConst;
+		switch (shader->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+			shaderAluConst = 0x400;
+			break;
+		case LatteConst::ShaderType::Pixel:
+			shaderAluConst = 0;
+			break;
+		case LatteConst::ShaderType::Geometry:
+			shaderAluConst = 0; // geometry shader has no ALU const
+			break;
+		default:
+			UNREACHABLE;
+		}
+		uint32* uniformRegData = (uint32*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst);
+		memcpy(GET_UNIFORM_DATA_PTR(shader->uniform.loc_uniformRegister), uniformRegData, shader->uniform.count_uniformRegister * 16);
+	}
+	if (shader->uniform.loc_windowSpaceToClipSpaceTransform >= 0)
+	{
+		sint32 viewportWidth;
+		sint32 viewportHeight;
+		LatteRenderTarget_GetCurrentVirtualViewportSize(&viewportWidth, &viewportHeight); // always call after _updateViewport()
+		float* v = GET_UNIFORM_DATA_PTR(shader->uniform.loc_windowSpaceToClipSpaceTransform);
+		v[0] = 2.0f / (float)viewportWidth;
+		v[1] = 2.0f / (float)viewportHeight;
+	}
+	if (shader->uniform.loc_fragCoordScale >= 0)
+	{
+		LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
+	}
+	if (shader->uniform.loc_verticesPerInstance >= 0)
+	{
+		*(int*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_verticesPerInstance) = m_streamoutState.verticesPerInstance;
+		for (sint32 b = 0; b < LATTE_NUM_STREAMOUT_BUFFER; b++)
+		{
+			if (shader->uniform.loc_streamoutBufferBase[b] >= 0)
 			{
-				float* xyScale = LatteTexture_getEffectiveTextureScale(shader->shaderType, entry.texUnit);
-				memcpy(entry.currentValue, xyScale, sizeof(float) * 2);
-				memcpy(GET_UNIFORM_DATA_PTR(entry.uniformLocation), xyScale, sizeof(float) * 2);
+				*(uint32*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_streamoutBufferBase[b]) = m_streamoutState.buffer[b].ringBufferOffset;
 			}
 		}
-		if (shader->uniform.loc_alphaTestRef >= 0)
+	}
+	dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformData_uploadUniformDataBufferGetOffset({(uint8*)uniformBuf, shader->uniform.uniformRangeSize});
+}
+
+void VulkanRenderer::uniformData_updateUniformVarsIncremental(uint32 shaderStageIndex, LatteDecompilerShader* shader, const LatteDrawcallContext& drawcallContext, uint8& stageUniformModifiedMask, float* __restrict uniformBuf)
+{
+	// similar to uniformData_updateUniformVars, but checks only the fields that can change during a fast draw sequence
+	auto GET_UNIFORM_DATA_PTR = [&uniformBuf](size_t index) { return uniformBuf + (index / 4); };
+	if (shader->resourceMapping.uniformVarsBufferBindingPoint < 0)
+		return;
+	// list_ufTexRescale -> Skipped because textures do not change
+	// loc_alphaTestRef -> Skipped because modifying SX_ALPHA_REF ends sequence
+	// loc_pointSize -> Skipped because modifying PA_SU_POINT_SIZE ends sequence
+	// loc_windowSpaceToClipSpaceTransform/loc_fragCoordScale/ -> Skipped because viewport doesn't change
+	// loc_verticesPerInstance -> Skipped because sequences with streamout enabled are not allowed
+
+	bool hasChange = false; // todo - For loc_remapped and loc_uniformRegister we want to pass a mask of dirty uniform var / buffers. If nothing is dirty we can also skip it
+	if (shader->uniform.loc_remapped >= 0)
+	{
+		cemu_assert_debug(shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_REMAPPED);
+		hasChange = LatteBufferCache_LoadRemappedUniformsIncremental(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped), drawcallContext);
+	}
+	if (shader->uniform.loc_uniformRegister >= 0)
+	{
+		cemu_assert_debug(shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE);
+		bool isDirty = false;
+		sint32 shaderAluConst;
+		switch (shader->shaderType)
 		{
-			*GET_UNIFORM_DATA_PTR(shader->uniform.loc_alphaTestRef) = LatteGPUState.contextNew.SX_ALPHA_REF.get_ALPHA_TEST_REF();
+		case LatteConst::ShaderType::Vertex:
+			shaderAluConst = 0x400;
+			isDirty = drawcallContext.aluConstVSDirty;
+			break;
+		case LatteConst::ShaderType::Pixel:
+			shaderAluConst = 0;
+			isDirty = drawcallContext.aluConstPSDirty;
+			break;
+		case LatteConst::ShaderType::Geometry:
+			cemu_assert_suspicious();
+			shaderAluConst = 0;
+			UNREACHABLE; // geometry shader has no ALU const
+			break;
+		default:
+			UNREACHABLE;
 		}
-		if (shader->uniform.loc_pointSize >= 0)
+		if (isDirty)
 		{
-			const auto& pointSizeReg = LatteGPUState.contextNew.PA_SU_POINT_SIZE;
-			float pointWidth = (float)pointSizeReg.get_WIDTH() / 8.0f;
-			if (pointWidth == 0.0f)
-				pointWidth = 1.0f / 8.0f; // minimum size
-			*GET_UNIFORM_DATA_PTR(shader->uniform.loc_pointSize) = pointWidth;
-		}
-		if (shader->uniform.loc_remapped >= 0)
-		{
-			LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped));
-		}
-		if (shader->uniform.loc_uniformRegister >= 0)
-		{
+			hasChange = true;
 			uint32* uniformRegData = (uint32*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst);
 			memcpy(GET_UNIFORM_DATA_PTR(shader->uniform.loc_uniformRegister), uniformRegData, shader->uniform.count_uniformRegister * 16);
 		}
-		if (shader->uniform.loc_windowSpaceToClipSpaceTransform >= 0)
-		{
-			sint32 viewportWidth;
-			sint32 viewportHeight;
-			LatteRenderTarget_GetCurrentVirtualViewportSize(&viewportWidth, &viewportHeight); // always call after _updateViewport()
-			float* v = GET_UNIFORM_DATA_PTR(shader->uniform.loc_windowSpaceToClipSpaceTransform);
-			v[0] = 2.0f / (float)viewportWidth;
-			v[1] = 2.0f / (float)viewportHeight;
-		}
-		if (shader->uniform.loc_fragCoordScale >= 0)
-		{
-			LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
-		}
-		if (shader->uniform.loc_verticesPerInstance >= 0)
-		{
-			*(int*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_verticesPerInstance) = m_streamoutState.verticesPerInstance;
-			for (sint32 b = 0; b < LATTE_NUM_STREAMOUT_BUFFER; b++)
-			{
-				if (shader->uniform.loc_streamoutBufferBase[b] >= 0)
-				{
-					*(uint32*)GET_UNIFORM_DATA_PTR(shader->uniform.loc_streamoutBufferBase[b]) = m_streamoutState.buffer[b].ringBufferOffset;
-				}
-			}
-		}
-		dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformData_uploadUniformDataBufferGetOffset({(uint8*)s_vkUniformData, shader->uniform.uniformRangeSize});
+	}
+	if (hasChange)
+	{
+		dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformData_uploadUniformDataBufferGetOffset({(uint8*)uniformBuf, shader->uniform.uniformRangeSize});
+		stageUniformModifiedMask |= (1 << shaderStageIndex);
 	}
 }
 
@@ -1331,11 +1384,11 @@ void VulkanRenderer::draw_execute_first(uint32 baseVertex, uint32 baseInstance, 
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 
 	if (vertexShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader);
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader, s_vkUniformDataVS);
 	if (pixelShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader, s_vkUniformDataPS);
 	if (geometryShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
+		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader, s_vkUniformDataGS);
 	// store where the read pointer should go after command buffer execution
 	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
 
@@ -1497,12 +1550,15 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetActivePixelShader();
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetActiveGeometryShader();
 
+	uint8 stageUniformModifiedMask = 0; // one bit for each stage (using SHADER_STAGE_INDEX_* as bit index). Set if any uniform data has been modified and needs to be reuploaded
 	if (vertexShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader);
+		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader, drawcallContext, stageUniformModifiedMask, s_vkUniformDataVS);
 	if (pixelShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader);
+		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader, drawcallContext, stageUniformModifiedMask, s_vkUniformDataPS);
 	if (geometryShader)
-		uniformData_updateUniformVars(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader);
+		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader, drawcallContext, stageUniformModifiedMask, s_vkUniformDataGS);
+	drawcallContext.aluConstVSDirty = false;
+	drawcallContext.aluConstPSDirty = false;
 	// store where the read pointer should go after command buffer execution
 	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
 
@@ -1554,20 +1610,25 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 	else
 	{
 		// synchronize vertex and uniform cache and update buffer bindings
-		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+		LatteBufferCache_SyncIncremental(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount, drawcallContext, stageUniformModifiedMask);
 	}
 
-	PipelineInfo* pipeline_info;
+	m_state.descriptorSetsChanged = false;
+	PipelineInfo* pipeline_info = m_state.activePipelineInfo;
 	// recalculate the part of the pipeline hash that can change during fast draws
-	if (m_state.activePipelineInfo->minimalStateHash != draw_calculateMinimalGraphicsPipelineHash(vertexShader->compatibleFetchShader, LatteGPUState.contextNew))
+	if (m_state.activePipelineInfo->minimalStateHash != draw_calculateMinimalGraphicsPipelineHash(vertexShader->compatibleFetchShader, LatteGPUState.contextNew)) [[unlikely]]
 	{
 		// pipeline changed
 		pipeline_info = draw_getOrCreateGraphicsPipeline(count);
 		m_state.activePipelineInfo = pipeline_info;
+		// if the pipeline is changed then we also need to get the descriptor sets
+		draw_prepareDescriptorSets(pipeline_info, m_state.activeVertexDS, m_state.activePixelDS, m_state.activeGeometryDS);
+		m_state.descriptorSetsChanged = true;
+		stageUniformModifiedMask = 0x7;
 	}
 	else
 	{
-		pipeline_info = m_state.activePipelineInfo;
+		// sanity check that we are using the right pipeline
 #ifdef CEMU_DEBUG_ASSERT
 		auto pipeline_info2 = draw_getOrCreateGraphicsPipeline(count);
 		if (pipeline_info != pipeline_info2)
@@ -1581,7 +1642,7 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 	if (vkObjPipeline->GetPipeline() == VK_NULL_HANDLE)
 	{
 		// invalid/uninitialized pipeline
-		m_state.activeVertexDS = nullptr;
+		//m_state.activeVertexDS = nullptr;
 		return;
 	}
 
@@ -1591,15 +1652,10 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 		vertexDS = m_state.activeVertexDS;
 		pixelDS = m_state.activePixelDS;
 		geometryDS = m_state.activeGeometryDS;
-		m_state.descriptorSetsChanged = false;
 	}
 	else
 	{
-		draw_prepareDescriptorSets(pipeline_info, vertexDS, pixelDS, geometryDS);
-		m_state.activeVertexDS = vertexDS;
-		m_state.activePixelDS = pixelDS;
-		m_state.activeGeometryDS = geometryDS;
-		m_state.descriptorSetsChanged = true;
+		__debugbreak(); // should never happen unless draw_prepareDescriptorSets can fail?
 	}
 
 	draw_setRenderPass();
@@ -1625,32 +1681,58 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 
 	// update descriptor sets
 	uint32_t dynamicOffsets[17 * 2];
-	if (vertexDS && pixelDS)
+	VkDescriptorSet dsArray[2];
+	sint32 dsArraySize = 0;
+	sint32 dsArrayBase = 0;
+	sint32 numDynOffsets = 0;
+	if (vertexDS && (stageUniformModifiedMask&(1<<VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX)))
 	{
-		// update vertex and pixel descriptor set in a single call to vkCmdBindDescriptorSets
-		sint32 numDynOffsetsVS;
-		sint32 numDynOffsetsPS;
-		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, dynamicOffsets, numDynOffsetsVS, pipeline_info);
-		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, dynamicOffsets + numDynOffsetsVS, numDynOffsetsPS, pipeline_info);
-
-		VkDescriptorSet dsArray[2];
+		sint32 tmpNumDynOffsets = 0;
 		dsArray[0] = vertexDS->m_vkObjDescriptorSet->descriptorSet;
-		dsArray[1] = pixelDS->m_vkObjDescriptorSet->descriptorSet;
+		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, dynamicOffsets, tmpNumDynOffsets, pipeline_info);
+		dsArraySize = 1;
+		numDynOffsets += tmpNumDynOffsets;
+	}
+	if (pixelDS && (stageUniformModifiedMask&(1<<VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT)))
+	{
+		sint32 tmpNumDynOffsets = 0;
+		dsArrayBase = 1 - dsArraySize;
+		dsArray[dsArraySize] = pixelDS->m_vkObjDescriptorSet->descriptorSet;
+		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, dynamicOffsets + numDynOffsets, tmpNumDynOffsets, pipeline_info);
+		dsArraySize++;
+		numDynOffsets += tmpNumDynOffsets;
+	}
+	if (dsArraySize > 0)
+	{
+		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, dsArrayBase, dsArraySize, dsArray, numDynOffsets, dynamicOffsets);
+	}
 
-		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, 0, 2, dsArray, numDynOffsetsVS + numDynOffsetsPS, dynamicOffsets);
-	}
-	else if (vertexDS)
-	{
-		sint32 numDynOffsets;
-		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, dynamicOffsets, numDynOffsets, pipeline_info);
-		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, 0, 1, &vertexDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets, dynamicOffsets);
-	}
-	else if (pixelDS)
-	{
-		sint32 numDynOffsets;
-		draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, dynamicOffsets, numDynOffsets, pipeline_info);
-		vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, 1, 1, &pixelDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets, dynamicOffsets);
-	}
+	// if (vertexDS && pixelDS)
+	// {
+	// 	// update vertex and pixel descriptor set in a single call to vkCmdBindDescriptorSets
+	// 	sint32 numDynOffsetsVS;
+	// 	sint32 numDynOffsetsPS;
+	// 	draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, dynamicOffsets, numDynOffsetsVS, pipeline_info);
+	// 	draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, dynamicOffsets + numDynOffsetsVS, numDynOffsetsPS, pipeline_info);
+	//
+	// 	VkDescriptorSet dsArray[2];
+	// 	dsArray[0] = vertexDS->m_vkObjDescriptorSet->descriptorSet;
+	// 	dsArray[1] = pixelDS->m_vkObjDescriptorSet->descriptorSet;
+	//
+	// 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, 0, 2, dsArray, numDynOffsetsVS + numDynOffsetsPS, dynamicOffsets);
+	// }
+	// else if (vertexDS)
+	// {
+	// 	sint32 numDynOffsets;
+	// 	draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, dynamicOffsets, numDynOffsets, pipeline_info);
+	// 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, 0, 1, &vertexDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets, dynamicOffsets);
+	// }
+	// else if (pixelDS)
+	// {
+	// 	sint32 numDynOffsets;
+	// 	draw_prepareDynamicOffsetsForDescriptorSet(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, dynamicOffsets, numDynOffsets, pipeline_info);
+	// 	vkCmdBindDescriptorSets(m_state.currentCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, vkObjPipeline->m_pipelineLayout, 1, 1, &pixelDS->m_vkObjDescriptorSet->descriptorSet, numDynOffsets, dynamicOffsets);
+	// }
 	if (geometryDS)
 	{
 		sint32 numDynOffsets;

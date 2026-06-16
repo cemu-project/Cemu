@@ -240,6 +240,7 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 		else
 			attribGroup = &parsedFetchShader->bufferGroupsInvalid.emplace_back();
 
+		parsedFetchShader->attributeBufferMask |= (1 << bufferIndex);
 		attribGroup->attributeBufferIndex = bufferIndex;
 		attribGroup->minOffset = offset;
 		attribGroup->maxOffset = offset;

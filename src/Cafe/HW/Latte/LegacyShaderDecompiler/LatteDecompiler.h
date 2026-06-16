@@ -209,9 +209,9 @@ struct LatteDecompilerShader
 	// fast access
 	struct _RemappedUniformBufferGroup
 	{
-		_RemappedUniformBufferGroup(uint32 _kcacheBankIdOffset) : kcacheBankIdOffset(_kcacheBankIdOffset) {};
-
-		uint32 kcacheBankIdOffset;
+		_RemappedUniformBufferGroup(uint16 bufferId, uint16 _kcacheBankIdOffset) : bufferId(bufferId), kcacheBankIdOffset(_kcacheBankIdOffset) {};
+		uint16 bufferId;
+		uint16 kcacheBankIdOffset;
 		std::vector<LatteFastAccessRemappedUniformEntry_buffer_t> entries;
 	};
 	std::vector<LatteFastAccessRemappedUniformEntry_register_t>	list_remappedUniformEntries_register;
