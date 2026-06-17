@@ -590,31 +590,27 @@ uint64 VulkanRenderer::GetDescriptorSetStateHash(LatteDecompilerShader* shader)
 VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo* pipeline_info, LatteDecompilerShader* shader)
 {
 	const uint64 stateHash = GetDescriptorSetStateHash(shader);
+	cemu_assert_debug(shader->shaderType == LatteConst::ShaderType::Vertex || shader->shaderType == LatteConst::ShaderType::Pixel || shader->shaderType == LatteConst::ShaderType::Geometry);
+	auto& ds_cache = pipeline_info->GetDescriptorSetCache(shader->shaderType);
+	const auto it = ds_cache.find(stateHash);
+	if (it != ds_cache.cend())
+		return it->second;
 
 	VkDescriptorSetLayout descriptor_set_layout;
 	switch (shader->shaderType)
 	{
 	case LatteConst::ShaderType::Vertex:
 	{
-		const auto it = pipeline_info->vertex_ds_cache.find(stateHash);
-		if (it != pipeline_info->vertex_ds_cache.cend())
-			return it->second;
 		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->m_vertexDSL;
 		break;
 	}
 	case LatteConst::ShaderType::Pixel:
 	{
-		const auto it = pipeline_info->pixel_ds_cache.find(stateHash);
-		if (it != pipeline_info->pixel_ds_cache.cend())
-			return it->second;
 		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->m_pixelDSL;
 		break;
 	}
 	case LatteConst::ShaderType::Geometry:
 	{
-		const auto it = pipeline_info->geometry_ds_cache.find(stateHash);
-		if (it != pipeline_info->geometry_ds_cache.cend())
-			return it->second;
 		descriptor_set_layout = pipeline_info->m_vkrObjPipeline->m_geometryDSL;
 		break;
 	}
@@ -1006,26 +1002,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 	if (!descriptorWrites.empty())
 		vkUpdateDescriptorSets(m_logicalDevice, (uint32)descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 
-	switch (shader->shaderType)
-	{
-	case LatteConst::ShaderType::Vertex:
-	{
-		pipeline_info->vertex_ds_cache[stateHash] = dsInfo;
-		break;
-	}
-	case LatteConst::ShaderType::Pixel:
-	{
-		pipeline_info->pixel_ds_cache[stateHash] = dsInfo;
-		break;
-	}
-	case LatteConst::ShaderType::Geometry:
-	{
-		pipeline_info->geometry_ds_cache[stateHash] = dsInfo;
-		break;
-	}
-	default:
-		UNREACHABLE;
-	}
+	ds_cache[stateHash] = dsInfo;
 
 	return dsInfo;
 }

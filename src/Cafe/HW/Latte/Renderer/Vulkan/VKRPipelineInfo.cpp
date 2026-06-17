@@ -58,20 +58,13 @@ PipelineInfo::~PipelineInfo()
 	}
 
 	// delete descriptor sets
-	while (!pixel_ds_cache.empty())
+	for (auto& it : ds_cache)
 	{
-		VkDescriptorSetInfo* dsInfo = pixel_ds_cache.begin()->second;
-		delete dsInfo;
-	}
-	while (!geometry_ds_cache.empty())
-	{
-		VkDescriptorSetInfo* dsInfo = geometry_ds_cache.begin()->second;
-		delete dsInfo;
-	}
-	while (!vertex_ds_cache.empty())
-	{
-		VkDescriptorSetInfo* dsInfo = vertex_ds_cache.begin()->second;
-		delete dsInfo;
+		while (!it.empty())
+		{
+			VkDescriptorSetInfo* dsInfo = it.begin()->second;
+			delete dsInfo;
+		}
 	}
 
 	// disassociate from shaders

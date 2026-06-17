@@ -311,6 +311,7 @@ void LatteCP_itSetRegistersGeneric_handleSpecialRanges(uint32 registerStartIndex
 template<uint32 TRegisterBase>
 LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 {
+	nWords--; // subtract the register offset field
 	uint32 registerOffset = LatteReadCMD();
 	uint32 registerIndex = TRegisterBase + registerOffset;
 	uint32 registerStartIndex = registerIndex;
@@ -324,7 +325,7 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 		// state shadowing enabled
 		uint32* __restrict shadowAddrs = LatteGPUState.contextRegisterShadowAddr + registerIndex;
 		sint32 indexCounter = 0;
-		while (--nWords)
+		while (nWords--)
 		{
 			uint32 dataWord = LatteReadCMD();
 			MPTR regShadowAddr = shadowAddrs[indexCounter];
@@ -337,10 +338,19 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 	else
 	{
 		// state shadowing disabled
-		while (--nWords)
+		if (nWords == 1) // common case
 		{
 			*outputReg = LatteReadCMD();
-			outputReg++;
+		}
+		else
+		{
+			sint32 i = 0;
+			while (i < nWords)
+			{
+				outputReg[i] = cmd[i];
+				i++;
+			}
+			cmd += nWords;
 		}
 	}
 	// some register writes trigger special behavior
@@ -352,6 +362,7 @@ LatteCMDPtr LatteCP_itSetRegistersGeneric(LatteCMDPtr cmd, uint32 nWords)
 template<uint32 TRegisterBase, typename TRegRangeCallback>
 bool LatteCP_itSetRegistersGeneric2(LatteCMDPtr cmd, uint32 nWords, TRegRangeCallback cbRegRange)
 {
+	nWords--;
 	const uint32 registerOffset = LatteReadCMD();
 	const uint32 registerIndex = TRegisterBase + registerOffset;
 	const uint32 registerStartIndex = registerIndex;
@@ -365,7 +376,7 @@ bool LatteCP_itSetRegistersGeneric2(LatteCMDPtr cmd, uint32 nWords, TRegRangeCal
 		// state shadowing enabled
 		uint32* shadowAddrs = LatteGPUState.contextRegisterShadowAddr + registerIndex;
 		sint32 indexCounter = 0;
-		while (--nWords)
+		while (nWords--)
 		{
 			uint32 dataWord = LatteReadCMD();
 			MPTR regShadowAddr = shadowAddrs[indexCounter];
@@ -379,13 +390,23 @@ bool LatteCP_itSetRegistersGeneric2(LatteCMDPtr cmd, uint32 nWords, TRegRangeCal
 	else
 	{
 		// state shadowing disabled
-		sint32 indexCounter = 0;
-		while (--nWords)
+		if (nWords == 1) // common case
 		{
-			uint32 dataWord = LatteReadCMD();
-			hasRegChange |= (*outputReg != dataWord);
-			*outputReg = dataWord;
-			outputReg++;
+			uint32 v = LatteReadCMD();
+			hasRegChange |= (*outputReg != v);
+			*outputReg = v;
+		}
+		else
+		{
+			sint32 i = 0;
+			while (i < nWords)
+			{
+				uint32 v = cmd[i];
+				hasRegChange |= (outputReg[i] != v);
+				outputReg[i] = v;
+				i++;
+			}
+			cmd += nWords;
 		}
 	}
 	// some register writes trigger special behavior
