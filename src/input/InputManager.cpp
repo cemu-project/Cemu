@@ -5,6 +5,7 @@
 #include <pugixml.hpp>
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/EventService.h"
+#include "input/api/Mouse/MouseControllerProvider.h"
 
 InputManager::InputManager()
 {
@@ -27,6 +28,9 @@ InputManager::InputManager()
 	*/
 #if HAS_KEYBOARD
 	create_provider<KeyboardControllerProvider>();
+#endif
+#if HAS_MOUSE
+	create_provider<MouseControllerProvider>();
 #endif
 #ifdef HAS_SDL
 	create_provider<SDLControllerProvider>();
@@ -233,6 +237,8 @@ bool InputManager::migrate_config(const fs::path& file_path)
 		std::string uuid;
 		if (api_string == to_string(InputAPI::Keyboard))
 			uuid = to_string(InputAPI::Keyboard);
+		else if (api_string == to_string(InputAPI::Mouse))
+			uuid = to_string(InputAPI::Mouse);
 		else
 		{
 			if (!uuid_opt)

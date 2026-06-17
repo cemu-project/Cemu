@@ -9,11 +9,6 @@ KeyboardController::KeyboardController()
 	
 }
 
-glm::vec2 KeyboardController::get_position()
-{
-	return InputManager::instance().GetMousePositionInRenderBox();
-}
-
 std::string KeyboardController::get_button_name(uint64 button) const
 {
 	return WindowSystem::GetKeyCodeName(button);

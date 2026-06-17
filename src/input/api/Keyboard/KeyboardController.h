@@ -19,10 +19,6 @@ public:
 
 	bool has_axis() const override { return false; }
 
-	bool has_position() override { return true; }
-	glm::vec2 get_position() override;
-	PositionVisibility GetPositionVisibility() override { return PositionVisibility::FULL; }
-
 	std::string get_button_name(uint64 button) const override;
 
 protected:

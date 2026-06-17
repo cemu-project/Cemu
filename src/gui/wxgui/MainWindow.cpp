@@ -1392,8 +1392,8 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	auto renderCanvasMouse = m_render_canvas->ScreenToClient(m_mouse_position);
 	instance.SetMousePositionInRenderBox
 	({
-		static_cast<float>(renderCanvasMouse.x) / m_render_canvas->m_width,
-		static_cast<float>(renderCanvasMouse.y) / m_render_canvas->m_height,
+		static_cast<float>(renderCanvasMouse.x) / m_render_canvas->m_clientWidth,
+		static_cast<float>(renderCanvasMouse.y) / m_render_canvas->m_clientHeight,
 	});
 	lock.unlock();
 
