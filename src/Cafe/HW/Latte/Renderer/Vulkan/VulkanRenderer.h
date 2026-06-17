@@ -55,11 +55,16 @@ private:
 
 namespace VulkanRendererConst
 {
-	static const inline int SHADER_STAGE_INDEX_VERTEX = 0;
-	static const inline int SHADER_STAGE_INDEX_FRAGMENT = 1;
-	static const inline int SHADER_STAGE_INDEX_GEOMETRY = 2;
-	static const inline int SHADER_STAGE_INDEX_COUNT = 3;
+	static const inline int SHADER_STAGE_INDEX_VERTEX = static_cast<int>(LatteConst::ShaderType::Vertex);
+	static const inline int SHADER_STAGE_INDEX_FRAGMENT = static_cast<int>(LatteConst::ShaderType::Pixel);
+	static const inline int SHADER_STAGE_INDEX_GEOMETRY = static_cast<int>(LatteConst::ShaderType::Geometry);
+	static const inline int SHADER_STAGE_INDEX_COUNT = 4;
 };
+
+// the order doesnt really matter but the types should cover range 0-2 since we use them as an array index
+static_assert(static_cast<int>(LatteConst::ShaderType::Vertex) == 0);
+static_assert(static_cast<int>(LatteConst::ShaderType::Pixel) == 1);
+static_assert(static_cast<int>(LatteConst::ShaderType::Geometry) == 2);
 
 class PipelineInfo
 {
@@ -82,11 +87,18 @@ public:
 			return k;
 		}
 	};
+	using DescriptorSetCache = ska::flat_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>>;
+
+	FORCEINLINE DescriptorSetCache& GetDescriptorSetCache(LatteConst::ShaderType shaderType)
+	{
+		cemu_assert_debug(shaderType == LatteConst::ShaderType::Vertex || shaderType == LatteConst::ShaderType::Pixel || shaderType == LatteConst::ShaderType::Geometry);
+		return ds_cache[static_cast<size_t>(shaderType)];
+	}
 
 	// std::unordered_map<uint64, VkDescriptorSetInfo*> 3.16% (total CPU time)
-	// robin_hood::unordered_flat_map<uint64, VkDescriptorSetInfo*> vertex_ds_cache, pixel_ds_cache, geometry_ds_cache; ~1.80%
-	// ska::bytell_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>> vertex_ds_cache, pixel_ds_cache, geometry_ds_cache; -> 1.91%
-	ska::flat_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>> vertex_ds_cache, pixel_ds_cache, geometry_ds_cache; // 1.71%
+	// robin_hood::unordered_flat_map<uint64, VkDescriptorSetInfo*> descriptor set cache; ~1.80%
+	// ska::bytell_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>> descriptor set cache; -> 1.91%
+	DescriptorSetCache ds_cache[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT]; // 1.71%
 
 	VKRObjectPipeline* m_vkrObjPipeline;
 

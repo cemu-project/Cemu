@@ -109,16 +109,13 @@ namespace LatteConst
 {
 	enum class ShaderType : uint32
 	{
-		Reserved = 0,
 		// shaders for drawing
-		FirstRender = 1,
-		Vertex = 1,
-		Pixel = 2,
-		Geometry = 3,
-		LastRender = 3,
+		Vertex = 0,
+		Pixel = 1,
+		Geometry = 2,
 		// compute shader
-		Compute = 4,
-		TotalCount = 5
+		Compute = 3,
+		TotalCount = 4
 	};
 
 	enum class VertexFetchNFA

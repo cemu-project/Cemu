@@ -3374,29 +3374,8 @@ VkDescriptorSetInfo::~VkDescriptorSetInfo()
 	for (auto& it : list_referencedViews)
 		it->RemoveDescriptorSetReference(this);
 	// unregister
-	switch (shaderType)
-	{
-	case LatteConst::ShaderType::Vertex:
-	{
-		auto r = pipeline_info->vertex_ds_cache.erase(stateHash);
-		cemu_assert_debug(r == 1);
-		break;
-	}
-	case LatteConst::ShaderType::Pixel:
-	{
-		auto r = pipeline_info->pixel_ds_cache.erase(stateHash);
-		cemu_assert_debug(r == 1);
-		break;
-	}
-	case LatteConst::ShaderType::Geometry:
-	{
-		auto r = pipeline_info->geometry_ds_cache.erase(stateHash);
-		cemu_assert_debug(r == 1);
-		break;
-	}
-	default:
-		UNREACHABLE;
-	}
+	auto r = pipeline_info->GetDescriptorSetCache(shaderType).erase(stateHash);
+	cemu_assert_debug(r == 1);
 	// update global stats
 	performanceMonitor.vk.numDescriptorSamplerTextures.decrement(statsNumSamplerTextures);
 	performanceMonitor.vk.numDescriptorDynUniformBuffers.decrement(statsNumDynUniformBuffers);
