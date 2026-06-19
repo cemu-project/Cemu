@@ -2,6 +2,7 @@
 
 #include "util/helpers/helpers.h"
 #include "Cemu/ExpressionParser/ExpressionParser.h"
+#include "Cafe/TitleList/TitleInfo.h"
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 #include "util/helpers/Serializer.h"
 #include "Cafe/OS/RPL/rpl.h"
@@ -147,6 +148,9 @@ public:
 
 	[[nodiscard]] const std::vector<PresetPtr>& GetPresets() const { return m_presets; }
 	[[nodiscard]] std::unordered_map<std::string, std::vector<PresetPtr>> GetCategorizedPresets(std::vector<std::string>& order) const;
+	
+	// permissions
+	const std::vector<std::pair<CosCapabilityGroup, uint64>>& GetPermissionOverrides() { return m_permissions; }
 
 	// shaders
 	void LoadShaders();
@@ -264,6 +268,9 @@ private:
 
 	// ram mappings
 	std::vector<std::pair<MPTR, MPTR>> m_ramMappings;
+	
+	// permissions
+	std::vector<std::pair<CosCapabilityGroup, uint64>> m_permissions;
 
 	// patches
 	void LoadPatchFiles(); // loads Cemuhook or Cemu patches

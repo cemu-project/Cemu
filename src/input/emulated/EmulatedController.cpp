@@ -16,7 +16,7 @@ std::string_view EmulatedController::type_to_string(Type type)
 	case Wiimote: return "Wiimote";
 	}
 
-	throw std::runtime_error(fmt::format("unknown emulated controller: {}", to_underlying(type)));
+	throw std::runtime_error(fmt::format("unknown emulated controller: {}", stdx::to_underlying(type)));
 }
 
 EmulatedController::Type EmulatedController::type_from_string(std::string_view str)

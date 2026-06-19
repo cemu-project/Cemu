@@ -135,6 +135,6 @@ struct fmt::formatter<EmulatedController::Type> : formatter<string_view> {
 		case EmulatedController::Type::Classic: return formatter<string_view>::format("Wii U Classic Controller Pro", ctx);
 		case EmulatedController::Type::Wiimote: return formatter<string_view>::format("Wiimote", ctx);
 		}
-		throw std::invalid_argument(fmt::format("invalid emulated controller type with value {}", to_underlying(v)));
+		throw std::invalid_argument(fmt::format("invalid emulated controller type with value {}", stdx::to_underlying(v)));
 	}
 };

@@ -451,6 +451,39 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 				}
 			}
 		}
+		else if (boost::iequals(currentSectionName, "Permissions")) 
+		{
+			std::array<std::pair<std::string_view, CosCapabilityGroup>, 15> permissionTable
+			{{
+				{"BSP",  CosCapabilityGroup::BSP},
+				{"DK",   CosCapabilityGroup::DK},
+				{"USB",  CosCapabilityGroup::USB},
+				{"UHS",  CosCapabilityGroup::UHS},
+				{"FS",   CosCapabilityGroup::FS},
+				{"MCP",  CosCapabilityGroup::MCP},
+				{"NIM",  CosCapabilityGroup::NIM},
+				{"ACT",  CosCapabilityGroup::ACT},
+				{"FPD",  CosCapabilityGroup::FPD},
+				{"BOSS", CosCapabilityGroup::BOSS},
+				{"ACP",  CosCapabilityGroup::ACP},
+				{"PDM",  CosCapabilityGroup::PDM},
+				{"AC",   CosCapabilityGroup::AC},
+				{"NDM",  CosCapabilityGroup::NDM},
+				{"NSEC", CosCapabilityGroup::NSEC}
+			}};
+
+			for (const auto& [name, group] : permissionTable)
+			{
+				const auto permissionOption = rules.FindOption(name);
+				if (permissionOption)
+				{
+					cemuLog_log(LogType::Force, "Graphic pack \"{}\": has permission mask {} for {}", GetNormalizedPathString(), *permissionOption, name);
+					uint64 permissionMask = ConvertString<uint64>(*permissionOption, 16);
+					m_permissions.push_back({group, permissionMask});
+				}
+
+			}
+		}
 	}
 
 	if (m_version >= 5)

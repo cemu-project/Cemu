@@ -29,7 +29,6 @@ void LatteSurfaceCopy_CopyInRAM(const LatteSurfaceCopyParam& src, const LatteSur
 		copyWidth = (copyWidth + 3) / 4;
 		copyHeight = (copyHeight + 3) / 4;
 	}
-
 	uint32 dstBpp = Latte::GetFormatBits(dstHwFormat);
 
 	gx2SurfaceCopySoftware((uint8*)MEMPTR<void>(src.physDataAddr).GetPtr(), src.heightInTexels, src.pitch, 1, src.sliceIndex, src.swizzle, (uint32)src.tilemode,
@@ -44,10 +43,9 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	cemu_assert_debug((rect.x + rect.width) <= dst.pitch * (Latte::IsCompressedFormat(dst.surfaceFormat)?4:1));
 	cemu_assert_debug((rect.x + rect.width) <= src.pitch * (Latte::IsCompressedFormat(src.surfaceFormat)?4:1));
 
-	if (src.tilemode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL || dst.tilemode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL)
+	if (src.tilemode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL)
 	{
 		// todo - it's technically possible for a matching linear texture to be in the texture cache already
-		//        there is also a case of tiled to linear_special where we should trigger a readback without an actual destination texture
 		LatteSurfaceCopy_CopyInRAM(src, dst, rect);
 		return;
 	}
@@ -68,6 +66,13 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	{
 		LatteTexture_UpdateCacheFromDynamicTextures(sourceTexture);
 		sourceTexture->reloadFromDynamicTextures = false;
+	}
+	// special case: RAM copy from cached texture to linear special format
+	if (dst.tilemode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL)
+	{
+		cemu_assert_debug(rect.x == 0 && rect.y == 0);
+		LatteTextureReadback_ReadbackToLinearBlocking(sourceView, MEMPTR<uint8>(dst.physDataAddr).GetPtr(), rect.width, rect.height, dst.pitch);
+		return;
 	}
 	// look up destination texture
 	LatteTexture* destinationTexture = nullptr;
