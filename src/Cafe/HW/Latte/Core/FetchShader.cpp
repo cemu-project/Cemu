@@ -14,6 +14,8 @@
 #include <openssl/sha.h> /* SHA1_DIGEST_LENGTH */
 #include <openssl/evp.h> /* EVP_Digest */
 
+void LatteSHRC_RemoveShaderStateCacheEntryByKey(uint64 key);
+
 uint32 LatteShaderRecompiler_getAttributeSize(LatteParsedFetchShaderAttribute_t* attrib)
 {
 	if (attrib->format == FMT_32_32_32_32 || attrib->format == FMT_32_32_32_32_FLOAT)
@@ -468,6 +470,9 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 LatteFetchShader::~LatteFetchShader()
 {
 	UnregisterInCache();
+	// remove from shader state cache
+	while (!m_shaderStateCacheKeys.empty())
+		LatteSHRC_RemoveShaderStateCacheEntryByKey(m_shaderStateCacheKeys.back());
 }
 
 struct FetchShaderLookupInfo

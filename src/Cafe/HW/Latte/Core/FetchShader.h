@@ -64,11 +64,12 @@ struct LatteFetchShader
 
 	static bool isValidBufferIndex(const uint32 index) { return index < 0x10; };
 
-	// cache
-	LatteFetchShader* RegisterInCache(CacheHash fsHash); // Fails if another fetch shader object is already registered with the same fsHash. Returns the previously registered fetch shader or null
-	void UnregisterInCache();
+	// keys in shader state cache
+	std::vector<uint64> m_shaderStateCacheKeys;
 
 	// fetch shader cache (move these to separate Cache class?)
+	LatteFetchShader* RegisterInCache(CacheHash fsHash); // fails if another fetch shader object is already registered with the same fsHash. Returns the previously registered fetch shader or null
+	void UnregisterInCache();
 	static CacheHash CalculateCacheHash(void* programCode, uint32 programSize);
 	static LatteFetchShader* FindInCacheByHash(CacheHash fsHash);
 	static LatteFetchShader* FindByGPUState();

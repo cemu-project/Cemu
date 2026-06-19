@@ -1262,7 +1262,6 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				case IT_DRAW_INDEX_2:
 				{
 					drawPassCtx.beginDrawPass();
-					//cemuLog_log(LogType::Force, "[CmdBuf] DrawIndex2");
 					LatteCP_itDrawIndex2(cmdData, nWords, drawPassCtx);
 					// enter fast draw mode
 					drawPassCtx.PushCurrentCommandQueuePos(cmd, cmdStart, cmdEnd);
