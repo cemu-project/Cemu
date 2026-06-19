@@ -8,6 +8,7 @@
 #include "input/camera/CameraManager.h"
 #include "Common/CafeString.h"
 #include "OS/common/OSUtil.h"
+#include "OS/libs/coreinit/coreinit_Misc.h"
 #include "util/helpers/ringbuffer.h"
 
 namespace camera
@@ -38,7 +39,8 @@ namespace camera
     enum class CAMEventType : uint32
     {
         Decode = 0,
-        Detached = 1
+        // Implement when AVM*DRC* functions are added
+        Detached [[maybe_unused]] = 1
     };
 
     enum class CAMForceDisplay
@@ -98,20 +100,24 @@ namespace camera
 
     struct
     {
+        bool previouslyInitialized = false;
         bool initialized = false;
         std::atomic_bool isOpen = false;
         std::atomic_bool isExiting = false;
+        std::atomic_bool isWorkerExiting = false;
         unsigned fps = 30;
         MEMPTR<void> eventCallback = nullptr;
         RingBuffer<MEMPTR<uint8>, 20> inTargetBuffers{};
-        RingBuffer<MEMPTR<uint8>, 20> outTargetBuffers{};
     } s_instance;
+
     SysAllocator<coreinit::OSMutex> s_cameraMutex;
     SysAllocator<CAMDecodeEventParam> s_cameraEventData;
     SysAllocator<OSThread_t> s_cameraWorkerThread;
     SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
-    SysAllocator<CafeString<22>> s_cameraWorkerThreadNameBuffer;
+    SysAllocator s_cameraWorkerThreadName("CameraWorkerThread");
     SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
+    SysAllocator<coreinit::OSDriverInterface> s_driverInterface;
+    SysAllocator s_driverName("CAM");
 
     static void WorkerThreadFunc(PPCInterpreter_t*)
     {
@@ -146,9 +152,10 @@ namespace camera
                 s_cameraEventData->type = CAMEventType::Decode;
                 s_cameraEventData->channel = 0;
                 PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
-                coreinit::OSSleepTicks(Espresso::TIMER_CLOCK / (s_instance.fps - 1));
+                coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertMsToTimerTicks(1000 / s_instance.fps));
             }
         }
+        s_instance.isWorkerExiting = false;
         coreinit::OSExitThread(0);
     }
 
@@ -159,7 +166,7 @@ namespace camera
         return 1 * 1024; // always return 1KB
     }
 
-    CAMStatus CAMCheckMemSegmentation(void* startAddr, uint32 size)
+    CAMStatus CAMCheckMemSegmentation(const void* startAddr, uint32 size)
     {
         if (!startAddr || size == 0)
             return CAM_STATUS_INVALID_ARG;
@@ -185,6 +192,14 @@ namespace camera
             return -1;
         }
 
+        if (s_instance.previouslyInitialized)
+        {
+            while (s_instance.isWorkerExiting)
+            {
+                coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertMsToTimerTicks(1000));
+            }
+        }
+
         cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
         cemu_assert_debug(initInfo->workMemorySize != 0);
         cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
@@ -202,9 +217,11 @@ namespace camera
             s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(),
             s_cameraWorkerThreadStack.GetByteSize(),
             0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
-        s_cameraWorkerThreadNameBuffer->assign("CameraWorkerThread");
-        coreinit::OSSetThreadName(s_cameraWorkerThread.GetPtr(), s_cameraWorkerThreadNameBuffer->c_str());
+        coreinit::OSSetThreadName(s_cameraWorkerThread.GetPtr(), s_cameraWorkerThreadName.GetPtr());
         coreinit::OSResumeThread(s_cameraWorkerThread.GetPtr());
+
+        s_instance.previouslyInitialized = true;
+
         return channel;
     }
 
@@ -212,11 +229,18 @@ namespace camera
     {
         if (camHandle != CAM_HANDLE)
             return CAM_STATUS_INVALID_HANDLE;
-        CafeLockGuard lock(s_cameraMutex);
+
+        // Check necessary because this function is called on unload, and OSMutex needs an active scheduler
+        const auto schedulerActive = coreinit::OSIsSchedulerActive();
+        if (schedulerActive)
+            coreinit::OSLockMutex(s_cameraMutex);
+
         if (!s_instance.initialized || !s_instance.isOpen)
             return CAM_STATUS_UNINITIALIZED;
         s_instance.isOpen = false;
         CameraManager::Close();
+        if (schedulerActive)
+            coreinit::OSUnlockMutex(s_cameraMutex);
         return CAM_STATUS_SUCCESS;
     }
 
@@ -233,7 +257,6 @@ namespace camera
         s_instance.isOpen = true;
         coreinit::OSSignalEvent(s_cameraOpenEvent);
         s_instance.inTargetBuffers.Clear();
-        s_instance.outTargetBuffers.Clear();
         return CAM_STATUS_SUCCESS;
     }
 
@@ -254,17 +277,35 @@ namespace camera
 
     void CAMExit(sint32 camHandle)
     {
-        if (camHandle != CAM_HANDLE)
+        if (camHandle != CAM_HANDLE || !s_instance.previouslyInitialized)
             return;
         CafeLockGuard lock(s_cameraMutex);
         if (!s_instance.initialized)
             return;
         s_instance.isExiting = true;
+        s_instance.isWorkerExiting = true;
         if (s_instance.isOpen)
             CAMClose(camHandle);
         coreinit::OSSignalEvent(s_cameraOpenEvent.GetPtr());
-        coreinit::OSJoinThread(s_cameraWorkerThread, nullptr);
         s_instance.initialized = false;
+    }
+
+    namespace Driver
+    {
+        MEMPTR<char> Name()
+        {
+            return s_driverName.GetPtr();
+        }
+        void Init() {}
+        void Acquire() {}
+        void Release()
+        {
+            CAMClose(CAM_HANDLE);
+        }
+        void Done()
+        {
+            CAMClose(CAM_HANDLE);
+        }
     }
 
     class : public COSModule
@@ -290,10 +331,38 @@ namespace camera
         {
             if (reason == coreinit::RplEntryReason::Loaded)
             {
+                s_driverInterface->getDriverName = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
+                {
+                    osLib_returnFromFunction(hCPU, Driver::Name().GetMPTR());
+                });
+
+                s_driverInterface->init = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
+                {
+                    Driver::Init();
+                    osLib_returnFromFunction(hCPU, 0);
+                });
+                s_driverInterface->onAcquireForeground = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
+                {
+                    Driver::Acquire();
+                    osLib_returnFromFunction(hCPU, 0);
+                });
+                s_driverInterface->onReleaseForeground = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
+                {
+                    Driver::Release();
+                    osLib_returnFromFunction(hCPU, 0);
+                });
+                s_driverInterface->done = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
+                {
+                    Driver::Done();
+                    osLib_returnFromFunction(hCPU, 0);
+                });
+                coreinit::OSDriver_Register(moduleHandle, 0x226, s_driverInterface.GetPtr(), 0, nullptr, nullptr,
+                                            nullptr);
             }
             else if (reason == coreinit::RplEntryReason::Unloaded)
             {
-                CAMExit(CAM_HANDLE);
+                Driver::Done();
+                coreinit::OSDriver_Deregister(moduleHandle, 0);
             }
         }
     } s_COScameraModule;
