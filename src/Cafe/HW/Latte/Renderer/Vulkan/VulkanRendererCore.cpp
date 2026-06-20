@@ -405,7 +405,7 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 	}
 	if (shader->uniform.loc_remapped >= 0)
 	{
-		LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped));
+		LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped), true, (1<<LATTE_NUM_MAX_UNIFORM_BUFFERS)-1);
 	}
 	if (shader->uniform.loc_uniformRegister >= 0)
 	{
@@ -454,7 +454,7 @@ void VulkanRenderer::uniformData_updateUniformVars(uint32 shaderStageIndex, Latt
 	dynamicOffsetInfo.uniformVarBufferOffset[shaderStageIndex] = uniformData_uploadUniformDataBufferGetOffset({(uint8*)uniformBuf, shader->uniform.uniformRangeSize});
 }
 
-void VulkanRenderer::uniformData_updateUniformVarsIncremental(uint32 shaderStageIndex, LatteDecompilerShader* shader, const LatteDrawcallContext& drawcallContext, uint8& stageUniformModifiedMask, float* __restrict uniformBuf)
+void VulkanRenderer::uniformData_updateUniformVarsIncremental(uint32 shaderStageIndex, LatteDecompilerShader* shader, uint8& stageUniformModifiedMask, float* __restrict uniformBuf, bool aluConstDirty, uint32 uniformBufferDirtyMask)
 {
 	// similar to uniformData_updateUniformVars, but checks only the fields that can change during a fast draw sequence
 	auto GET_UNIFORM_DATA_PTR = [&uniformBuf](size_t index) { return uniformBuf + (index / 4); };
@@ -470,22 +470,19 @@ void VulkanRenderer::uniformData_updateUniformVarsIncremental(uint32 shaderStage
 	if (shader->uniform.loc_remapped >= 0)
 	{
 		cemu_assert_debug(shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_REMAPPED);
-		hasChange = LatteBufferCache_LoadRemappedUniformsIncremental(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped), drawcallContext);
+		hasChange = LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped), aluConstDirty, uniformBufferDirtyMask);
 	}
-	if (shader->uniform.loc_uniformRegister >= 0)
+	if (shader->uniform.loc_uniformRegister >= 0 && aluConstDirty)
 	{
 		cemu_assert_debug(shader->uniformMode == LATTE_DECOMPILER_UNIFORM_MODE_FULL_CFILE);
-		bool isDirty = false;
 		sint32 shaderAluConst;
 		switch (shader->shaderType)
 		{
 		case LatteConst::ShaderType::Vertex:
 			shaderAluConst = 0x400;
-			isDirty = drawcallContext.aluConstVSDirty;
 			break;
 		case LatteConst::ShaderType::Pixel:
 			shaderAluConst = 0;
-			isDirty = drawcallContext.aluConstPSDirty;
 			break;
 		case LatteConst::ShaderType::Geometry:
 			cemu_assert_suspicious();
@@ -495,12 +492,9 @@ void VulkanRenderer::uniformData_updateUniformVarsIncremental(uint32 shaderStage
 		default:
 			UNREACHABLE;
 		}
-		if (isDirty)
-		{
-			hasChange = true;
-			uint32* uniformRegData = (uint32*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst);
-			memcpy(GET_UNIFORM_DATA_PTR(shader->uniform.loc_uniformRegister), uniformRegData, shader->uniform.count_uniformRegister * 16);
-		}
+		hasChange = true;
+		uint32* uniformRegData = (uint32*)(LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst);
+		memcpy(GET_UNIFORM_DATA_PTR(shader->uniform.loc_uniformRegister), uniformRegData, shader->uniform.count_uniformRegister * 16);
 	}
 	if (hasChange)
 	{
@@ -1417,7 +1411,8 @@ void VulkanRenderer::draw_execute_first(uint32 baseVertex, uint32 baseInstance, 
 	else
 	{
 		// synchronize vertex and uniform cache and update buffer bindings
-		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+		uint8 stageUniformModifiedMask = 0;
+		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, stageUniformModifiedMask);
 	}
 
 	PipelineInfo* pipeline_info = draw_getOrCreateGraphicsPipeline(count);
@@ -1529,13 +1524,11 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 
 	uint8 stageUniformModifiedMask = 0; // one bit for each stage (using SHADER_STAGE_INDEX_* as bit index). Set if any uniform data has been modified and needs to be reuploaded
 	if (vertexShader)
-		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader, drawcallContext, stageUniformModifiedMask, s_vkUniformDataVS);
+		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_VERTEX, vertexShader, stageUniformModifiedMask, s_vkUniformDataVS, drawcallContext.aluConstVSDirty, drawcallContext.vsUniformBufferDirtyMask);
 	if (pixelShader)
-		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader, drawcallContext, stageUniformModifiedMask, s_vkUniformDataPS);
+		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_FRAGMENT, pixelShader, stageUniformModifiedMask, s_vkUniformDataPS, drawcallContext.aluConstPSDirty, drawcallContext.psUniformBufferDirtyMask);
 	if (geometryShader)
-		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader, drawcallContext, stageUniformModifiedMask, s_vkUniformDataGS);
-	drawcallContext.aluConstVSDirty = false;
-	drawcallContext.aluConstPSDirty = false;
+		uniformData_updateUniformVarsIncremental(VulkanRendererConst::SHADER_STAGE_INDEX_GEOMETRY, geometryShader, stageUniformModifiedMask, s_vkUniformDataGS, false, drawcallContext.gsUniformBufferDirtyMask);
 	// store where the read pointer should go after command buffer execution
 	m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] = m_uniformVarBufferWriteIndex;
 
@@ -1587,7 +1580,7 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 	else
 	{
 		// synchronize vertex and uniform cache and update buffer bindings
-		LatteBufferCache_SyncIncremental(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount, drawcallContext, stageUniformModifiedMask);
+		LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount, drawcallContext.vertexBufferDirtyMask, drawcallContext.vsUniformBufferDirtyMask, drawcallContext.psUniformBufferDirtyMask, drawcallContext.gsUniformBufferDirtyMask, stageUniformModifiedMask, true);
 	}
 
 	m_state.descriptorSetsChanged = false;

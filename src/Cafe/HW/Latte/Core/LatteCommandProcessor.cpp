@@ -84,6 +84,11 @@ public:
 			performanceMonitor.cycle[performanceMonitor.cycleIndex].fastDrawCallCounter++;
 		m_drawcallContext.isFirst = false;
 		m_drawcallContext.vertexBufferDirtyMask = 0;
+		m_drawcallContext.vsUniformBufferDirtyMask = 0;
+		m_drawcallContext.psUniformBufferDirtyMask = 0;
+		m_drawcallContext.gsUniformBufferDirtyMask = 0;
+		m_drawcallContext.aluConstVSDirty = false;
+		m_drawcallContext.aluConstPSDirty = false;
 	}
 
 	void endDrawPass()

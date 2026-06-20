@@ -10,7 +10,7 @@
 #define LATTE_NUM_COLOR_TARGET				8
 
 #define LATTE_NUM_MAX_TEX_UNITS				18 // number of available texture units per shader stage (this might be higher than 18? BotW is the only game which uses more than 16?)
-#define LATTE_NUM_MAX_UNIFORM_BUFFERS		16 // number of supported uniform buffer binding locations
+#define LATTE_NUM_MAX_UNIFORM_BUFFERS		16 // number of supported uniform buffer binding locations per shader stage
 
 #define LATTE_VS_ATTRIBUTE_LIMIT			32 // todo: verify
 #define	LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS	256 // should this be 128 since there are only 128 GPRs?
