@@ -4,7 +4,10 @@
 #include "Cafe/OS/libs/coreinit/coreinit_OSScreen.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/Filesystem/fsc.h"
+#include "config/LaunchSettings.h"
 #include <pugixml.hpp>
+
+#include <iostream>
 
 namespace coreinit
 {
@@ -544,15 +547,18 @@ namespace coreinit
 	}
 
 	std::mutex sCafeConsoleMutex;
+	bool s_forwardConsoleLogs;
 	
 	void WriteCafeConsole(CafeLogType cafeLogType, const char* msg, sint32 len)
 	{
 		std::unique_lock _l(sCafeConsoleMutex);
 		CafeLogBuffer& logBuffer = getLogBuffer(cafeLogType);
 		// once a line is full or \n is written it will be posted to log
-		auto flushLine = [](CafeLogBuffer& cafeLogBuffer, std::string_view cafeLogName) -> void
+		auto flushLine = [](CafeLogBuffer& cafeLogBuffer, std::string_view cafeLogName, bool forwardToConsole) -> void
 		{
 			cemuLog_log(LogType::CoreinitLogging, "[{0}] {1}", cafeLogName, std::basic_string_view(cafeLogBuffer.lineBuffer.data(), cafeLogBuffer.lineLength));
+			if (forwardToConsole)
+				std::cerr << fmt::format("{0}\n", std::basic_string_view(cafeLogBuffer.lineBuffer.data(), cafeLogBuffer.lineLength));
 			cafeLogBuffer.lineLength = 0;
 		};
 
@@ -566,13 +572,13 @@ namespace coreinit
 			if (c == '\n')
 			{
 				// flush line immediately
-				flushLine(logBuffer, getLogBufferName(cafeLogType));
+				flushLine(logBuffer, getLogBufferName(cafeLogType), s_forwardConsoleLogs);
 				continue;
 			}
 			logBuffer.lineBuffer[logBuffer.lineLength] = c;
 			logBuffer.lineLength++;
 			if (logBuffer.lineLength >= logBuffer.lineBuffer.size())
-				flushLine(logBuffer, getLogBufferName(cafeLogType));
+				flushLine(logBuffer, getLogBufferName(cafeLogType), s_forwardConsoleLogs);
 		}
 	}
 
@@ -846,6 +852,7 @@ namespace coreinit
 	{
 		s_currentTitleId = CafeSystem::GetForegroundTitleId();
 		s_sdkVersion = CafeSystem::GetForegroundTitleSDKVersion();
+		s_forwardConsoleLogs = LaunchSettings::ForwardConsoleLogging();
 		s_transitionToBackground = false;
 		s_transitionToForeground = false;
 

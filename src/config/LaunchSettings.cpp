@@ -63,13 +63,17 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 #endif
 
 		("game,g", po::wvalue<std::wstring>(), "Path of game to launch")
-        ("title-id,t", po::value<std::string>(), "Title ID of the title to be launched (overridden by --game)")
+		("title-id,t", po::value<std::string>(), "Title ID of the title to be launched (overridden by --game)")
 		("mlc,m", po::wvalue<std::wstring>(), "Custom mlc folder location")
 
 		("fullscreen,f", po::value<bool>()->implicit_value(true), "Launch games in fullscreen mode")
 		("ud,u", po::value<bool>()->implicit_value(true), "Render output upside-down")
 
 		("account,a", po::value<std::string>(), "Persistent id of account")
+
+		("extra-mounts", po::wvalue<std::vector<std::wstring>>()->composing(), "A series of mounts in the form of: (path on host:path within emulated system, e.g. `/tmp:/vol/temporary/`)")
+		("forward-console-logging", "Forward OSReport, OSConsoleWrite, etc. to stderr.")
+		("standalone-title-arguments", po::value<std::string>(), "Custom arguments to pass as arguments to a standalone RPX that is launched.")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler. Useful for debugging purposes where you want to get accurate memory accesses and stack traces.")
 		("force-multicore-interpreter", po::value<bool>()->implicit_value(true), "Force multi-core interpreter CPU emulation, disables recompiler. Only useful for getting stack traces, but slightly faster than the single-core interpreter mode.")
@@ -188,6 +192,30 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		
 		if (vm.count("enable-gdbstub"))
 			s_enable_gdbstub = vm["enable-gdbstub"].as<bool>();
+
+		if (vm.count("forward-console-logging"))
+		{
+			requireConsole();
+			s_forward_console_logging = true;
+		}
+
+		if (vm.count("standalone-title-arguments"))
+			s_standalone_title_arguments = vm["standalone-title-arguments"].as<std::string>();
+
+		if (vm.count("extra-mounts"))
+		{
+			for (const auto& argument : vm["extra-mounts"].as<std::vector<std::wstring>>())
+			{
+				size_t colon_location = argument.find(L':');
+				if (colon_location == std::wstring::npos)
+				{
+					std::cerr << "Argument for a mount expects to be in the format: `path on host:path in emulated system`, was not: `" << boost::nowide::narrow(argument) << "`\n";
+					continue;
+				}
+
+				s_extra_mounts[argument.substr(0, colon_location)] = argument.substr(colon_location + 1);
+			}
+		}
 
 		std::wstring extract_path, log_path;
 		std::string output_path;

@@ -685,6 +685,22 @@ namespace CafeSystem
         fsc_unmount("/cemuBossStorage/", FSC_PRIORITY_BASE);
     }
 
+	void MountExtras()
+	{
+		for (const auto& [host_path, emulatedPath] : LaunchSettings::ExtraMounts())
+		{
+			FSCDeviceHostFS_Mount(boost::nowide::narrow(emulatedPath), _pathToUtf8(host_path), FSC_PRIORITY_BASE);
+		}
+	}
+
+	void UnmountExtras()
+	{
+		for (const auto& [_, emulatedPath] : LaunchSettings::ExtraMounts())
+		{
+			fsc_unmount(boost::nowide::narrow(emulatedPath), FSC_PRIORITY_BASE);
+		}
+	}
+
 	PREPARE_STATUS_CODE LoadAndMountForegroundTitle(TitleId titleId)
 	{
         cemuLog_log(LogType::Force, "Mounting title {:016x}", (uint64)titleId);
@@ -838,6 +854,7 @@ namespace CafeSystem
 		if (r != PREPARE_STATUS_CODE::SUCCESS)
 			return r;
 		InitVirtualMlcStorage();
+		MountExtras();
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
@@ -881,6 +898,7 @@ namespace CafeSystem
         // load executable
         PrepareExecutable();
 		InitVirtualMlcStorage();
+		MountExtras();
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
@@ -961,7 +979,12 @@ namespace CafeSystem
 	std::string GetForegroundTitleArgStr()
 	{
 		if (sLaunchModeIsStandalone)
+		{
+			auto optional_arguments = LaunchSettings::StandaloneTitleArguments();
+			if (optional_arguments.has_value())
+				return *optional_arguments;
 			return "";
+		}
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
 		if (update.IsValid())
 			return update.GetArgStr();
@@ -1059,6 +1082,7 @@ namespace CafeSystem
         PPCRecompiler_Shutdown();
         GraphicPack2::Reset();
         UnmountCurrentTitle();
+        UnmountExtras();
         MlcStorageUnmountAllTitles();
         UnmountBaseDirectories();
         DestroyMemorySpace();
