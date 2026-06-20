@@ -76,12 +76,12 @@ struct LatteDrawcallContext
 {
 	bool isFirst{}; // first _execute() in current sequence
 	// these are only valid if isFirst is false:
-	mutable uint32 vertexBufferDirtyMask{}; // mask of vertex buffer indices which have been modified since last draw execute. It's the responsibility of the backend to unset bits
-	mutable uint32 vsUniformBufferDirtyMask{}; // mask of uniform buffer indices which have been modified (changed address or size) since last draw execute. It's the responsibility of the backend to unset bits
-	mutable uint32 psUniformBufferDirtyMask{};
-	mutable uint32 gsUniformBufferDirtyMask{};
-	mutable bool aluConstVSDirty{};
-	mutable bool aluConstPSDirty{};
+	mutable uint32 vertexBufferDirtyMask{}; // mask of vertex buffer indices which have been modified since last draw execute
+	uint32 vsUniformBufferDirtyMask{}; // mask of uniform buffer indices which have been modified (changed address or size) since last draw execute
+	uint32 psUniformBufferDirtyMask{};
+	uint32 gsUniformBufferDirtyMask{};
+	bool aluConstVSDirty{};
+	bool aluConstPSDirty{};
 };
 
 // texture
@@ -168,10 +168,8 @@ void LatteCP_ProcessRingbuffer();
 
 // buffer cache
 
-bool LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance, uint32 instanceCount);
-void LatteBufferCache_SyncIncremental(uint32 minIndex, uint32 maxIndex, uint32 baseInstance, uint32 instanceCount, const LatteDrawcallContext& drawcallContext, uint8& stageUniformModifiedMask);
-void LatteBufferCache_LoadRemappedUniforms(struct LatteDecompilerShader* shader, float* uniformData);
-bool LatteBufferCache_LoadRemappedUniformsIncremental(LatteDecompilerShader* shader, float* uniformData, const LatteDrawcallContext& drawcallContext);
+void LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance, uint32 instanceCount, uint32 attribBufferDirtyMask, uint32 vsUniformBufferDirtyMask, uint32 psUniformBufferDirtyMask, uint32 gsUniformBufferDirtyMask, uint8& stageUniformModifiedMask, bool isIncremental = false);
+bool LatteBufferCache_LoadRemappedUniforms(struct LatteDecompilerShader* shader, float* uniformData, bool aluConstDirty, uint32 uniformBufferDirtyMask);
 
 void LatteRenderTarget_updateViewport();
 
