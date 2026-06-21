@@ -7,8 +7,6 @@
 #include "config/LaunchSettings.h"
 #include <pugixml.hpp>
 
-#include <iostream>
-
 namespace coreinit
 {
 	sint32 ppc_vcprintf_pad(char* strOut, sint32 maxLength, sint32 padLength, char padChar)

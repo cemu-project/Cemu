@@ -20,6 +20,5 @@ target_include_directories(CemuConfig PUBLIC "../")
 target_link_libraries(CemuConfig PRIVATE
 	CemuCommon
     CemuGui
-    Boost::nowide
     Boost::program_options
 )
