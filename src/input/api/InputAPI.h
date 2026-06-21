@@ -46,7 +46,7 @@ namespace InputAPI
 			break;
 		}
 
-		throw std::runtime_error(fmt::format("unknown input api: {}", to_underlying(type)));
+		throw std::runtime_error(fmt::format("unknown input api: {}", stdx::to_underlying(type)));
 	}
 
 	constexpr Type from_string(std::string_view str)

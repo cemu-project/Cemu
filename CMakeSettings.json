@@ -17,14 +17,6 @@
       "installRoot": "${projectDir}\\out\\install\\${name}"
     },
     {
-      "name": "ARM64-Release",
-      "configurationType": "Release",
-      "generator": "Ninja",
-      "inheritEnvironments": [ "msvc_arm64_x64" ],
-      "buildRoot": "${projectDir}\\out\\build\\${name}",
-      "installRoot": "${projectDir}\\out\\install\\${name}"
-    },
-    {
       "name": "Debug",
       "configurationType": "Debug",
       "generator": "Ninja",

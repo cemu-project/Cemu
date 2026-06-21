@@ -12,7 +12,8 @@ namespace snd_user
 #define AX_MAX_NUM_DRC (2)
 #define AX_MAX_NUM_RMT (4)
 
-#define AX_UPDATE_MODE_10000000 (0x10000000)
+#define AX_UPDATE_MODE_8 (0x8)
+#define AX_UPDATE_MODE_10000000_INPUT_LEVEL (0x10000000)
 #define AX_UPDATE_MODE_20000000 (0x20000000)
 #define AX_UPDATE_MODE_40000000_VOLUME (0x40000000)
 #define AX_UPDATE_MODE_50000000 (0x50000000)
@@ -21,18 +22,18 @@ namespace snd_user
 
 	struct VolumeData
 	{
-		sint16 volume; // 0x00
-		sint16 volume_target; // 0x02
+		uint16 volume; // 0x00
+		uint16 volume_target; // 0x02
 	};
 	static_assert(sizeof(VolumeData) == 0x4, "sizeof(VolumeData)");
 
 	struct MixControl
 	{
-		sint16 aux[AX_AUX_BUS_COUNT];
-		sint16 pan;
-		sint16 span;
-		sint16 fader;
-		sint16 lfe;
+		sint16be aux[AX_AUX_BUS_COUNT];
+		sint16be pan;
+		sint16be span;
+		sint16be fader;
+		sint16be lfe;
 	};
 	static_assert(sizeof(MixControl) == 0xE, "sizeof(MixControl)");
 
@@ -131,9 +132,9 @@ namespace snd_user
 
 	struct DeviceInfo
 	{
-		uint32 tv_sound_mode; // 0x00
-		uint32 drc_sound_mode; // 0x04
-		uint32 rmt_sound_mode; // 0x08
+		MixSoundMode tv_sound_mode;
+		MixSoundMode drc_sound_mode;
+		MixSoundMode rmt_sound_mode;
 	};
 
 	struct snd_user_data_t
@@ -147,6 +148,7 @@ namespace snd_user
 
 		const uint16 volume[0x388 + 0x3C + 1] =
 		{
+			// (uint16)(0x8000 * pow(10.0,(i - 0x388) / 200.0))
 			0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
 			2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
 			5, 5, 5, 5, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 9, 9, 9, 9, 9, 9, 9, 9, 9, 0xA, 0xA, 0xA, 0xA, 0xA, 0xA, 0xA, 0xA, 0xA, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xB, 0xC,
@@ -175,36 +177,39 @@ namespace snd_user
 			0xDE70, 0xE103, 0xE39E, 0xE641, 0xE8EB, 0xEB9E, 0xEE58, 0xF11B, 0xF3E6, 0xF6B9, 0xF994, 0xFC78, 0xFF64
 		};
 
-		const uint32 pan_values[128] =
+		const sint16 pan_values[128] =
 		{
-			00, 00,
-			0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFE, 0xFFFFFFFD, 0xFFFFFFFD, 0xFFFFFFFC, 0xFFFFFFFC, 0xFFFFFFFC, 0xFFFFFFFB, 0xFFFFFFFB, 0xFFFFFFFB,
-			0xFFFFFFFA, 0xFFFFFFFA, 0xFFFFFFF9, 0xFFFFFFF9, 0xFFFFFFF9, 0xFFFFFFF8, 0xFFFFFFF8, 0xFFFFFFF7, 0xFFFFFFF7, 0xFFFFFFF6, 0xFFFFFFF6, 0xFFFFFFF6, 0xFFFFFFF5, 0xFFFFFFF5,
-			0xFFFFFFF4, 0xFFFFFFF4, 0xFFFFFFF3, 0xFFFFFFF3, 0xFFFFFFF2, 0xFFFFFFF2, 0xFFFFFFF2, 0xFFFFFFF1, 0xFFFFFFF1, 0xFFFFFFF0, 0xFFFFFFF0, 0xFFFFFFEF, 0xFFFFFFEF, 0xFFFFFFEE,
-			0xFFFFFFEE,	0xFFFFFFED, 0xFFFFFFEC, 0xFFFFFFEC, 0xFFFFFFEB, 0xFFFFFFEB, 0xFFFFFFEA, 0xFFFFFFEA, 0xFFFFFFE9, 0xFFFFFFE9, 0xFFFFFFE8, 0xFFFFFFE7, 0xFFFFFFE7, 0xFFFFFFE6,
-			0xFFFFFFE6,	0xFFFFFFE5, 0xFFFFFFE4, 0xFFFFFFE4, 0xFFFFFFE3, 0xFFFFFFE2, 0xFFFFFFE2, 0xFFFFFFE1, 0xFFFFFFE0, 0xFFFFFFDF, 0xFFFFFFDF, 0xFFFFFFDE, 0xFFFFFFDD, 0xFFFFFFDC,
-			0xFFFFFFDC, 0xFFFFFFDB,	0xFFFFFFDA, 0xFFFFFFD9, 0xFFFFFFD8, 0xFFFFFFD8, 0xFFFFFFD7, 0xFFFFFFD6, 0xFFFFFFD5, 0xFFFFFFD4, 0xFFFFFFD3, 0xFFFFFFD2, 0xFFFFFFD1, 0xFFFFFFD0,
-			0xFFFFFFCF, 0xFFFFFFCE, 0xFFFFFFCD, 0xFFFFFFCC, 0xFFFFFFCA, 0xFFFFFFC9, 0xFFFFFFC8, 0xFFFFFFC7, 0xFFFFFFC5, 0xFFFFFFC4, 0xFFFFFFC3, 0xFFFFFFC1, 0xFFFFFFC0, 0xFFFFFFBE,
-			0xFFFFFFBD, 0xFFFFFFBB, 0xFFFFFFB9,	0xFFFFFFB8, 0xFFFFFFB6, 0xFFFFFFB4, 0xFFFFFFB2, 0xFFFFFFB0, 0xFFFFFFAD, 0xFFFFFFAB, 0xFFFFFFA9, 0xFFFFFFA6, 0xFFFFFFA3, 0xFFFFFFA0,
-			0xFFFFFF9D, 0xFFFFFF9A, 0xFFFFFF96,	0xFFFFFF92, 0xFFFFFF8D, 0xFFFFFF88, 0xFFFFFF82, 0xFFFFFF7B, 0xFFFFFF74, 0xFFFFFF6A, 0xFFFFFF5D, 0xFFFFFF4C, 0xFFFFFF2E, 0xFFFFFC78
+			// round(100 * log10((127 - index) / 127.0))
+			0, 0,
+			-1, -1, -1, -2, -2, -2, -3, -3, -4, -4, -4, -5, -5, -5,
+			-6, -6, -7, -7, -7, -8, -8, -9, -9, -10, -10, -10, -11, -11,
+			-12, -12, -13, -13, -14, -14, -14, -15, -15, -16, -16, -17, -17, -18,
+			-18, -19, -20, -20, -21, -21, -22, -22, -23, -23, -24, -25, -25, -26,
+			-26, -27, -28, -28, -29, -30, -30, -31, -32, -33, -33, -34, -35, -36,
+			-36, -37, -38, -39, -40, -40, -41, -42, -43, -44, -45, -46, -47, -48,
+			-49, -50, -51, -52, -54, -55, -56, -57, -59, -60, -61, -63, -64, -66,
+			-67, -69, -71, -72, -74, -76, -78, -80, -83, -85, -87, -90, -93, -96,
+			-99, -102, -106, -110, -115, -120, -126, -133, -140, -150, -163, -180, -210, -904
 		};
 
-		const uint16 pan_values_low[128] =
+		const sint16 pan_values_low[128] =
 		{
-		 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFE, 0xFFFE, 0xFFFE, 0xFFFE, 0xFFFD, 0xFFFD, 0xFFFD, 0xFFFC, 0xFFFC, 0xFFFC, 0xFFFB, 0xFFFB, 0xFFFA, 0xFFFA, 0xFFFA, 0xFFF9, 0xFFF9, 0xFFF8, 0xFFF8,
-		0xFFF7, 0xFFF7, 0xFFF6, 0xFFF5, 0xFFF5, 0xFFF4, 0xFFF4, 0xFFF3, 0xFFF2, 0xFFF2, 0xFFF1, 0xFFF0, 0xFFEF, 0xFFEF, 0xFFEE, 0xFFED, 0xFFEC, 0xFFEB, 0xFFEB, 0xFFEA, 0xFFE9, 0xFFE8, 0xFFE7, 0xFFE6, 0xFFE5, 0xFFE4, 0xFFE3, 0xFFE2, 0xFFE1,
-		0xFFE0, 0xFFDE, 0xFFDD, 0xFFDC, 0xFFDB, 0xFFDA, 0xFFD8, 0xFFD7, 0xFFD6, 0xFFD4, 0xFFD3, 0xFFD1, 0xFFD0, 0xFFCE, 0xFFCC, 0xFFCB, 0xFFC9, 0xFFC7, 0xFFC6, 0xFFC4, 0xFFC2, 0xFFC0, 0xFFBE, 0xFFBC, 0xFFBA, 0xFFB7, 0xFFB5, 0xFFB3, 0xFFB0,
-		0xFFAE, 0xFFAB, 0xFFA8, 0xFFA6, 0xFFA3, 0xFFA0, 0xFF9C, 0xFF99, 0xFF96, 0xFF92, 0xFF8E, 0xFF8A, 0xFF86, 0xFF82, 0xFF7D, 0xFF78, 0xFF73, 0xFF6E, 0xFF68, 0xFF61, 0xFF5A, 0xFF53, 0xFF4B, 0xFF42, 0xFF37, 0xFF2C, 0xFF1F, 0xFF0F, 0xFEFB,
-		0xFEE2, 0xFEBF, 0xFE83, 0xFC40
-		};
+			// (200.0 * log10(cos((i * M_PI) / 254.0)))
+			0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -2, -2, -2, -2, -3, -3, -3, -4, -4, -4, -5, -5, -6, -6, -6, -7, -7, -8, -8,
+		   -9, -9, -10, -11, -11, -12, -12, -13, -14, -14, -15, -16, -17, -17, -18, -19, -20, -21, -21, -22, -23, -24, -25, -26, -27, -28, -29, -30, -31,
+		   -32, -34, -35, -36, -37, -38, -40, -41, -42, -44, -45, -47, -48, -50, -52, -53, -55, -57, -58, -60, -62, -64, -66, -68, -70, -73, -75, -77, -80,
+		   -82, -85, -88, -90, -93, -96, -100, -103, -106, -110, -114, -118, -122, -126, -131, -136, -141, -146, -152, -159, -166, -173, -181, -190, -201, -212, -225, -241, -261,
+		   -286, -321, -381, -960
+	   };
 
-		const uint16 pan_values_high[128] =
+		const sint16 pan_values_high[128] =
 		{
-		0xFFC3, 0xFFC3, 0xFFC4, 0xFFC5, 0xFFC5, 0xFFC6, 0xFFC6, 0xFFC7, 0xFFC8, 0xFFC8, 0xFFC9, 0xFFC9, 0xFFCA, 0xFFCB, 0xFFCB, 0xFFCC, 0xFFCC, 0xFFCD, 0xFFCE, 0xFFCE, 0xFFCF, 0xFFCF, 0xFFD0, 0xFFD0, 0xFFD1, 0xFFD1, 0xFFD2, 0xFFD2, 0xFFD3,
-		0xFFD3, 0xFFD4, 0xFFD4, 0xFFD5, 0xFFD5, 0xFFD6, 0xFFD6, 0xFFD7, 0xFFD7, 0xFFD8, 0xFFD8, 0xFFD9, 0xFFD9, 0xFFDA, 0xFFDA, 0xFFDA, 0xFFDB, 0xFFDB, 0xFFDC, 0xFFDC, 0xFFDD, 0xFFDD, 0xFFDD, 0xFFDE, 0xFFDE, 0xFFDF, 0xFFDF, 0xFFE0, 0xFFE0,
-		0xFFE0, 0xFFE1, 0xFFE1, 0xFFE1, 0xFFE2, 0xFFE2, 0xFFE3, 0xFFE3, 0xFFE3, 0xFFE4, 0xFFE4, 0xFFE4, 0xFFE5, 0xFFE5, 0xFFE5, 0xFFE6, 0xFFE6, 0xFFE6, 0xFFE7, 0xFFE7, 0xFFE7, 0xFFE8, 0xFFE8, 0xFFE8, 0xFFE9, 0xFFE9, 0xFFE9, 0xFFEA, 0xFFEA,
-		0xFFEA, 0xFFEB, 0xFFEB, 0xFFEB, 0xFFEC, 0xFFEC, 0xFFEC, 0xFFEC, 0xFFED, 0xFFED, 0xFFED, 0xFFEE, 0xFFEE, 0xFFEE, 0xFFEE, 0xFFEF, 0xFFEF, 0xFFEF, 0xFFEF, 0xFFF0, 0xFFF0, 0xFFF0, 0xFFF0, 0xFFF1, 0xFFF1, 0xFFF1, 0xFFF1, 0xFFF2, 0xFFF2,
-		0xFFF2, 0xFFF2, 0xFFF3, 0xFFF3, 0xFFF3, 0xFFF3, 0xFFF3, 0xFFF4, 0xFFF4, 0xFFF4, 0xFFF4, 0xFFF5
+			// (sint16)(200.0 * log10(sin((M_PI / 4.0) + (((double)i - 63.5) * M_PI / 730.0))))
+			-61, -61, -60, -59, -59, -58, -58, -57, -56, -56, -55, -55, -54, -53, -53, -52, -52, -51, -50, -50, -49, -49, -48, -48, -47, -47, -46, -46, -45,
+			-45, -44, -44, -43, -43, -42, -42, -41, -41, -40, -40, -39, -39, -38, -38, -38, -37, -37, -36, -36, -35, -35, -35, -34, -34, -33, -33, -32, -32,
+			-32, -31, -31, -31, -30, -30, -29, -29, -29, -28, -28, -28, -27, -27, -27, -26, -26, -26, -25, -25, -25, -24, -24, -24, -23, -23, -23, -22, -22,
+			-22, -21, -21, -21, -20, -20, -20, -20, -19, -19, -19, -18, -18, -18, -18, -17, -17, -17, -17, -16, -16, -16, -16, -15, -15, -15, -15, -14, -14,
+			-14, -14, -13, -13, -13, -13, -13, -12, -12, -12, -12, -11
 		};
 
 	} g_snd_user_data{};
@@ -215,15 +220,13 @@ namespace snd_user
 
 		channel->tv_mode = 0;
 
-		channel->tv_control.pan = 0x40;
-		channel->tv_control.span = 0x7F;
+		channel->tv_control.pan = 64;
+		channel->tv_control.span = 127;
 		channel->tv_control.fader = 0;
-		channel->tv_control.lfe = -960;
+		// channel->tv_control.lfe = -960; seems to accidentally set rmt[0] lfe instead of TV? -> Investigate
 
 		for (size_t i = 0; i < AX_AUX_BUS_COUNT; ++i)
-		{
 			channel->tv_control.aux[i] = -960;
-		}
 
 		for (size_t i = 0; i < AX_MAX_NUM_BUS; ++i)
 		{
@@ -308,17 +311,41 @@ namespace snd_user
 
 		if (device_type == AX_DEV_TV)
 		{
-			const uint32 sound_mode = g_snd_user_data.device_info.tv_sound_mode;
-			if (sound_mode == 3)
+			const auto soundMode = g_snd_user_data.device_info.tv_sound_mode;
+			if (soundMode == MixSoundMode::SurroundDPL2)
 			{
 				channels[0] = g_snd_user_data.pan_values_low[control->pan];
 				channels[1] = g_snd_user_data.pan_values_low[pandiff];
 				channels[2] = g_snd_user_data.pan_values_high[pandiff];
 				channels[3] = g_snd_user_data.pan_values_high[control->pan];
-				channels[4] = g_snd_user_data.pan_values_high[spandiff];
-				channels[5] = g_snd_user_data.pan_values_high[control->span];
+				channels[4] = g_snd_user_data.pan_values_low[spandiff];
+				channels[5] = g_snd_user_data.pan_values_low[control->span];
 			}
-			else if (sound_mode != 4)
+			else if (soundMode == MixSoundMode::Surround6CH)
+			{
+				uint32 pan = control->pan * 2;
+				pan = std::min<uint32>(pan, 0x7F);
+
+				channels[0] = g_snd_user_data.pan_values[pan] + g_snd_user_data.pan_values[spandiff];
+
+				uint32 span = pandiff * 2;
+				if (span >= 0x7E) // 0x7E clamps to 0x7F
+					span = 0x7F;
+				channels[1] = g_snd_user_data.pan_values[span] + g_snd_user_data.pan_values[spandiff];
+
+				uint32 surroundPan;
+				if (control->pan < 64)
+					surroundPan = (64 - control->pan) * 2;
+				else
+					surroundPan = (control->pan - 64) * 2;
+				surroundPan = std::min<uint32>(surroundPan, 0x7F);
+
+				channels[2] = g_snd_user_data.pan_values[control->span] + g_snd_user_data.pan_values[control->pan];
+				channels[3] = g_snd_user_data.pan_values[control->span] + g_snd_user_data.pan_values[pandiff];
+				channels[4] = g_snd_user_data.pan_values[surroundPan] + g_snd_user_data.pan_values[spandiff];
+				channels[5] = 0;
+			}
+			else // stereo fallback
 			{
 				channels[0] = g_snd_user_data.pan_values[control->pan];
 				channels[1] = g_snd_user_data.pan_values[pandiff];
@@ -327,22 +354,6 @@ namespace snd_user
 				channels[4] = g_snd_user_data.pan_values[spandiff];
 				channels[5] = g_snd_user_data.pan_values[control->span];
 			}
-			else
-			{
-				uint32 pan = 0x7F;
-				if (((uint32)control->pan >> 1) < 0x7F)
-					pan = (uint32)control->pan >> 1;
-
-				channels[0] = g_snd_user_data.pan_values[pan] + g_snd_user_data.pan_values[spandiff];
-
-				uint32 span = 0x7F;
-				if (((uint32)pandiff >> 1) < 0x7E)
-					span = (uint32)pandiff >> 1;
-
-				channels[1] = g_snd_user_data.pan_values[span] + g_snd_user_data.pan_values[spandiff];
-
-				// TODO
-			}
 		}
 		else if (device_type == AX_DEV_DRC)
 		{
@@ -350,18 +361,30 @@ namespace snd_user
 		}
 	}
 
-	sint16 __MIXTranslateVolume(sint16 input)
+	uint16 __MIXTranslateVolume(sint32 input)
 	{
 		if (input <= -904)
 			return 0;
-
-		if (input > 0x3C)
-			return -156;
-
-		return (sint16)g_snd_user_data.volume[input + 903];
+		if (input >= 0x3C)
+			return 0xFF64;
+		return g_snd_user_data.volume[input + 904];
 	}
 
 	void AXFXInitDefaultHooks();
+
+	static void CheckVoice(AXVPB* voice)
+	{
+		if (!voice)
+		{
+			cemuLog_log(LogType::APIErrors, "Voice 0x{:08x} nullptr passed to MIX function", MEMPTR<void>(voice).GetMPTR());
+			cemu_assert(false);
+		}
+		if (voice->index < 0 || voice->index >= AX_MAX_VOICES)
+		{
+			cemuLog_log(LogType::APIErrors, "Voice 0x{:08x} passed to MIX function has invalid index (0x{:08x})", MEMPTR<void>(voice).GetMPTR(), (uint32)voice->index);
+			cemu_assert(false);
+		}
+	}
 
 	void MIXInit()
 	{
@@ -377,33 +400,103 @@ namespace snd_user
 		}
 
 		g_snd_user_data.initialized = true;
-		g_snd_user_data.device_info.tv_sound_mode = 1;
-		g_snd_user_data.device_info.drc_sound_mode = 1;
-		g_snd_user_data.device_info.rmt_sound_mode = 0;
+		g_snd_user_data.device_info.tv_sound_mode = MixSoundMode::Stereo;
+		g_snd_user_data.device_info.drc_sound_mode = MixSoundMode::Stereo;
+		g_snd_user_data.device_info.rmt_sound_mode = MixSoundMode::Mono;
 
 		AXFXInitDefaultHooks();
 	}
 
-	void MIXSetSoundMode(uint32 sound_mode)
+	void MIXSetSoundMode(MixSoundMode soundMode)
 	{
-		cemuLog_log(LogType::SoundAPI, "MIXSetSoundMode(0x{:x})", sound_mode);
+		cemuLog_log(LogType::SoundAPI, "MIXSetSoundMode(0x{:x})", (uint32)soundMode);
+		if (soundMode == MixSoundMode::Surround || soundMode == MixSoundMode::SurroundDPL2)
+			soundMode = MixSoundMode::Stereo;
 
-		if (sound_mode >= 2)
-			sound_mode = 1;
-
-		g_snd_user_data.device_info.tv_sound_mode = sound_mode;
+		if (soundMode != MixSoundMode::Mono && soundMode != MixSoundMode::Stereo)
+		{
+			cemuLog_log(LogType::APIErrors, "MIXSetSoundMode() invalid sound mode");
+			soundMode = MixSoundMode::Stereo;
+		}
+		g_snd_user_data.device_info.tv_sound_mode = soundMode;
 	}
 
-	uint32 MIXGetSoundMode()
+	MixSoundMode MIXGetSoundMode()
 	{
 		cemuLog_log(LogType::SoundAPI, "MIXGetSoundMode()");
 		return g_snd_user_data.device_info.tv_sound_mode;
 	}
 
-	void _MIXUpdateTV(MixChannel* channel, sint32 index)
+	void MIXSetDeviceSoundMode(uint32 device, MixSoundMode mode)
 	{
-		assert(index == 0);
+		cemuLog_log(LogType::SoundAPI, "MIXSetDeviceSoundMode(0x{:x}, {:})", device, (uint32)mode);
+		cemu_assert_debug(device < AX_DEV_COUNT);
+		bool is_tv_device = false;
+		bool is_drc_device = false;
+		if (device == AX_DEV_TV)
+		{
+			if (mode != MixSoundMode::Mono && mode != MixSoundMode::Stereo && mode != MixSoundMode::Surround && mode != MixSoundMode::SurroundDPL2 && mode != MixSoundMode::Surround6CH)
+			{
+				cemuLog_log(LogType::APIErrors, "MIXSetDeviceSoundMode(): Invalid mode");
+				mode = MixSoundMode::Stereo;
+			}
+			g_snd_user_data.device_info.tv_sound_mode = mode;
+			is_tv_device = true;
+		}
+		else if (device == AX_DEV_DRC)
+		{
+			if (mode != MixSoundMode::Mono && mode != MixSoundMode::Stereo && mode != MixSoundMode::Surround)
+			{
+				cemuLog_log(LogType::APIErrors, "MIXSetDeviceSoundMode(): Invalid mode");
+				mode = MixSoundMode::Stereo;
+			}
+			g_snd_user_data.device_info.drc_sound_mode = mode;
+			is_drc_device = true;
+		}
+		else if (device == AX_DEV_RMT)
+		{
+			if (mode != MixSoundMode::Mono)
+			{
+				cemuLog_log(LogType::APIErrors, "MIXSetDeviceSoundMode(): Invalid mode");
+				mode = MixSoundMode::Mono;
+			}
+			g_snd_user_data.device_info.rmt_sound_mode = mode;
+		}
+		else
+		{
+			cemuLog_log(LogType::SoundAPI, "ERROR: MIXSetDeviceSoundMode(0x{:x}, 0x{:x}) -> wrong device", device, mode);
+		}
 
+		for (sint32 i = 0; i < g_snd_user_data.max_voices; ++i)
+		{
+			auto& channel = g_snd_user_data.mix_channel[i];
+			if (!channel.voice)
+				continue;
+
+			const auto voice = channel.voice.GetPtr();
+			AXVoiceBegin(voice);
+
+			if (is_tv_device)
+			{
+				channel.tv_mode |= AX_UPDATE_MODE_40000000_VOLUME;
+				_MIXControl_SetDevicePan(&channel.tv_control, AX_DEV_TV, channel.tv_channels);
+			}
+
+			if (is_drc_device)
+			{
+				for (sint32 j = 0; j < AX_MAX_NUM_DRC; ++j)
+				{
+					channel.drc_mode[j] |= AX_UPDATE_MODE_40000000_VOLUME;
+					_MIXControl_SetDevicePan(&channel.drc_control[j], AX_DEV_DRC, channel.drc_channels[j]);
+				}
+			}
+
+			AXVoiceEnd(voice);
+		}
+	}
+
+	void _MIXUpdateTV(MixChannel* channel)
+	{
 		bool updated_volume = false;
 		if ((channel->tv_mode & AX_UPDATE_MODE_80000000) != 0)
 		{
@@ -426,7 +519,7 @@ namespace snd_user
 		}
 		else
 		{
-			if (g_snd_user_data.device_info.tv_sound_mode == 0)
+			if (g_snd_user_data.device_info.tv_sound_mode == MixSoundMode::Mono)
 			{
 				sint32 chan4 = channel->tv_channels[4];
 				if (chan4 < -0x78)
@@ -464,7 +557,7 @@ namespace snd_user
 				channel->tv_mode &= ~AX_UPDATE_MODE_40000000_VOLUME;
 				channel->tv_mode |= AX_UPDATE_MODE_80000000;
 			}
-			else if (g_snd_user_data.device_info.tv_sound_mode < 3)
+			else if (g_snd_user_data.device_info.tv_sound_mode == MixSoundMode::Stereo || g_snd_user_data.device_info.tv_sound_mode == MixSoundMode::Surround)
 			{
 				sint32 chan4 = channel->tv_channels[4];
 				if (chan4 < -0x78)
@@ -504,13 +597,70 @@ namespace snd_user
 				channel->tv_mode &= ~AX_UPDATE_MODE_40000000_VOLUME;
 				channel->tv_mode |= AX_UPDATE_MODE_80000000;
 			}
-			else if (g_snd_user_data.device_info.tv_sound_mode == 3)
+			else if (g_snd_user_data.device_info.tv_sound_mode == MixSoundMode::SurroundDPL2)
 			{
-				// TODO
+				const sint32 fader = channel->tv_control.fader;
+				const sint32 chan0 = channel->tv_channels[0];
+				const sint32 chan1 = channel->tv_channels[1];
+				const sint32 chan2 = channel->tv_channels[2];
+				const sint32 chan3 = channel->tv_channels[3];
+				const sint32 chan4 = channel->tv_channels[4];
+				const sint32 chan5 = channel->tv_channels[5];
+
+				channel->tv_volume[0][0].volume_target = __MIXTranslateVolume(fader + chan4 + chan0);
+				channel->tv_volume[0][1].volume_target = __MIXTranslateVolume(fader + chan4 + chan1);
+				channel->tv_volume[0][2].volume_target = __MIXTranslateVolume(fader + chan5);
+				channel->tv_volume[0][3].volume_target = __MIXTranslateVolume(fader + chan3 + chan5);
+				channel->tv_volume[0][4].volume_target = 0;
+				channel->tv_volume[0][0].volume_target = 0;
+
+				for (int i = 0; i < 2; ++i)
+				{
+					const sint32 aux = channel->tv_control.aux[i];
+					const sint32 base = ((channel->tv_mode & (1 << i)) != 0) ? aux : fader + aux;
+					channel->tv_volume[1 + i][0].volume_target = __MIXTranslateVolume(base + chan4 + chan0);
+					channel->tv_volume[1 + i][1].volume_target = __MIXTranslateVolume(base + chan4 + chan1);
+					channel->tv_volume[1 + i][2].volume_target = __MIXTranslateVolume(base + chan5 + chan2);
+					channel->tv_volume[1 + i][3].volume_target = __MIXTranslateVolume(base + chan5 + chan3);
+					channel->tv_volume[1 + i][0].volume_target = 0;
+					channel->tv_volume[1 + i][4].volume_target = 0;
+				}
+
+				channel->tv_mode &= ~AX_UPDATE_MODE_40000000_VOLUME;
+				channel->tv_mode |= AX_UPDATE_MODE_80000000;
 			}
-			else if (g_snd_user_data.device_info.tv_sound_mode == 4)
+			else if (g_snd_user_data.device_info.tv_sound_mode == MixSoundMode::Surround6CH)
 			{
-				// TODO
+				const sint32 fader = channel->tv_control.fader;
+				const sint32 lfe = channel->tv_control.lfe;
+				const sint32 chan0 = channel->tv_channels[0];
+				const sint32 chan1 = channel->tv_channels[1];
+				const sint32 chan2 = channel->tv_channels[2];
+				const sint32 chan3 = channel->tv_channels[3];
+				const sint32 chan4 = channel->tv_channels[4];
+
+				channel->tv_volume[0][0].volume_target = __MIXTranslateVolume(fader + chan0);
+				channel->tv_volume[0][1].volume_target = __MIXTranslateVolume(fader + chan1);
+				channel->tv_volume[0][4].volume_target = __MIXTranslateVolume(fader + chan4);
+				channel->tv_volume[0][2].volume_target = __MIXTranslateVolume(fader + chan2);
+				channel->tv_volume[0][3].volume_target = __MIXTranslateVolume(fader + chan3);
+				channel->tv_volume[0][5].volume_target = __MIXTranslateVolume(fader + lfe);
+
+				for (int i = 0; i < 3; ++i)
+				{
+					const sint32 aux = channel->tv_control.aux[i];
+					const sint32 base = ((channel->tv_mode & (1 << i)) != 0) ? aux : fader + aux;
+					channel->tv_volume[1 + i][0].volume_target = __MIXTranslateVolume(base + chan0);
+					channel->tv_volume[1 + i][1].volume_target = __MIXTranslateVolume(base + chan1);
+					channel->tv_volume[1 + i][4].volume_target = __MIXTranslateVolume(base + chan4);
+					channel->tv_volume[1 + i][2].volume_target = __MIXTranslateVolume(base + chan2);
+					channel->tv_volume[1 + i][3].volume_target = __MIXTranslateVolume(base + chan3);
+
+					channel->tv_volume[0][5].volume_target = __MIXTranslateVolume(base + lfe);
+				}
+
+				channel->tv_mode &= ~AX_UPDATE_MODE_40000000_VOLUME;
+				channel->tv_mode |= AX_UPDATE_MODE_80000000;
 			}
 			else
 			{
@@ -520,18 +670,19 @@ namespace snd_user
 		}
 
 		AXCHMIX2 mix[AX_TV_CHANNEL_COUNT][AX_MAX_NUM_BUS];
+		sint32 inputSamples = AXGetInputSamplesPerFrame();
 		for (size_t i = 0; i < AX_MAX_NUM_BUS; ++i)
 		{
 			for (size_t j = 0; j < AX_TV_CHANNEL_COUNT; ++j)
 			{
-				const sint16 target = channel->tv_volume[i][j].volume_target;
-				const sint16 volume = channel->tv_volume[i][j].volume;
+				const uint16 target = channel->tv_volume[i][j].volume_target;
+				const uint16 volume = channel->tv_volume[i][j].volume;
 
 				mix[j][i].vol = volume;
-				mix[j][i].delta = (target - volume) / 96; // 32000HZ SAMPLES_3MS
+				mix[j][i].delta = (sint16)(target - volume) / inputSamples;
 			}
 		}
-		AXSetVoiceDeviceMix(channel->voice.GetPtr(), AX_DEV_TV, index, (snd_core::AXCHMIX_DEPR*)&mix[0][0]);
+		AXSetVoiceDeviceMix(channel->voice.GetPtr(), AX_DEV_TV, 0, (snd_core::AXCHMIX_DEPR*)&mix[0][0]);
 	}
 
 	void _MIXUpdateDRC(MixChannel* channel, sint32 index)
@@ -544,15 +695,14 @@ namespace snd_user
 		// todo
 	}
 
-	void MIXInitChannel(AXVPB* voice, uint16 mode, uint16 input, uint16 aux1, uint16 aux2, uint16 aux3, uint16 pan, uint16 span, uint16 fader)
+	void MIXInitChannel(AXVPB* voice, uint32 flags, sint16 input, sint16 aux1, sint16 aux2, sint16 aux3, sint16 pan, sint16 span, sint16 fader)
 	{
-		cemuLog_log(LogType::SoundAPI, "MIXInitChannel(0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), mode, input, aux1, aux2, aux3, pan, span, fader);
-		cemu_assert_debug(voice);
-
+		cemuLog_log(LogType::SoundAPI, "MIXInitChannel(0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), flags, input, aux1, aux2, aux3, pan, span, fader);
+		CheckVoice(voice);
 		AXVoiceBegin(voice);
 
 		MIXAssignChannel(voice);
-		MIXInitInputControl(voice, input, mode);
+		MIXInitInputControl(voice, input, flags);
 
 		const uint32 index = voice->index;
 		auto& channel = g_snd_user_data.mix_channel[index];
@@ -564,49 +714,51 @@ namespace snd_user
 		channel.tv_control.pan = pan;
 		channel.tv_control.span = span;
 		channel.tv_control.fader = fader;
-		// channel.tv_control.lfe = lfe; // 0x1A -> not set?
+		// .lfe is not updated
 
-		channel.tv_mode = AX_UPDATE_MODE_40000007 & mode;
+		channel.tv_mode = flags & AX_UPDATE_MODE_40000007;
 		_MIXControl_SetDevicePan(&channel.tv_control, AX_DEV_TV, channel.tv_channels);
 
 		channel.tv_mode |= AX_UPDATE_MODE_40000000_VOLUME;
-		_MIXUpdateTV(&channel, 0);
+		_MIXUpdateTV(&channel);
 
+		AXVoiceEnd(voice);
+	}
+
+	void MIXReleaseChannel(AXVPB* voice)
+	{
+		CheckVoice(voice);
+		AXVoiceBegin(voice);
+		MixChannel& channel = g_snd_user_data.mix_channel[voice->index];
+		channel.voice = nullptr;
 		AXVoiceEnd(voice);
 	}
 
 	void MIXAssignChannel(AXVPB* voice)
 	{
 		cemuLog_log(LogType::SoundAPI, "MIXAssignChannel(0x{:x})", MEMPTR(voice).GetMPTR());
-		cemu_assert_debug(voice);
-
+		CheckVoice(voice);
 		AXVoiceBegin(voice);
-
-		const uint32 voice_index = voice->index;
-		auto channel = &g_snd_user_data.mix_channel[voice_index];
-		MIXResetChannelData(channel);
-		channel->voice = voice;
-
+		MixChannel& channel = g_snd_user_data.mix_channel[voice->index];
+		MIXResetChannelData(&channel);
+		channel.voice = voice;
 		AXVoiceEnd(voice);
 	}
 
-	void MIXDRCInitChannel(AXVPB* voice, uint16 mode, uint16 vol1, uint16 vol2, uint16 vol3)
+	void MIXDRCInitChannel(AXVPB* voice, uint32 flags, uint16 aux, uint16 pan, uint16 fader)
 	{
-		cemuLog_log(LogType::SoundAPI, "MIXDRCInitChannel(0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), mode, vol1, vol2, vol3);
-		cemu_assert_debug(voice);
-
+		cemuLog_log(LogType::SoundAPI, "MIXDRCInitChannel(0x{:x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), flags, aux, pan, fader);
+		CheckVoice(voice);
 		AXVoiceBegin(voice);
-
-		const uint32 index = voice->index;
-		auto& channel = g_snd_user_data.mix_channel[index];
+		MixChannel& channel = g_snd_user_data.mix_channel[voice->index];
 
 		_MIXChannelResetDRC(&channel, 0);
 
-		channel.drc_volume[1][1][1].volume = vol1;
-		channel.drc_volume[1][1][2].volume_target = vol2;
-		channel.drc_volume[1][1][3].volume_target = vol3;
+		channel.drc_control[0].aux[0] = aux;
+		channel.drc_control[0].pan = pan;
+		channel.drc_control[0].fader = fader;
 
-		channel.drc_mode[0] = AX_UPDATE_MODE_40000007 & mode;
+		channel.drc_mode[0] = flags & AX_UPDATE_MODE_40000007;
 		_MIXControl_SetDevicePan(&channel.drc_control[0], AX_DEV_DRC, &channel.drc_channels[0][0]);
 
 		channel.drc_mode[0] |= AX_UPDATE_MODE_40000000_VOLUME;
@@ -618,13 +770,10 @@ namespace snd_user
 	void MIXSetInput(AXVPB* voice, uint16 input)
 	{
 		cemuLog_log(LogType::SoundAPI, "MIXSetInput(0x{:x}, 0x{:x})", MEMPTR(voice).GetMPTR(), input);
-
-		const uint32 voice_index = voice->index;
-		const auto channel = &g_snd_user_data.mix_channel[voice_index];
-
-		channel->input_level = input;
-		channel->update_mode |= AX_UPDATE_MODE_10000000;
-
+		CheckVoice(voice);
+		MixChannel& channel = g_snd_user_data.mix_channel[voice->index];
+		channel.input_level = input;
+		channel.update_mode |= AX_UPDATE_MODE_10000000_INPUT_LEVEL;
 	}
 
 	void MIXUpdateSettings()
@@ -646,7 +795,6 @@ namespace snd_user
 			const auto voice = channel.voice.GetPtr();
 
 			AXVoiceBegin(voice);
-
 			bool volume_updated = false;
 			if ((channel.update_mode & AX_UPDATE_MODE_20000000) != 0)
 			{
@@ -655,45 +803,40 @@ namespace snd_user
 				volume_updated = true;
 			}
 
-			if ((channel.update_mode & AX_UPDATE_MODE_10000000) == 0)
+			if ((channel.update_mode & AX_UPDATE_MODE_10000000_INPUT_LEVEL) == 0)
 			{
 				if (volume_updated)
 				{
 					AXPBVE ve;
 					ve.currentVolume = channel.volume.volume;
-					ve.currentDelta = (channel.volume.volume_target - channel.volume.volume) / 96;
+					ve.currentDelta = (sint32(channel.volume.volume_target) - sint32(channel.volume.volume)) / 96;
 					AXSetVoiceVe(voice, &ve);
 				}
 			}
 			else
 			{
-				sint32 volume = 0;
+				uint16 volume = 0;
 				if ((channel.update_mode & 8) == 0)
 					volume = __MIXTranslateVolume(channel.input_level);
 
 				channel.volume.volume_target = volume;
 
-				channel.update_mode &= ~AX_UPDATE_MODE_10000000;
+				channel.update_mode &= ~AX_UPDATE_MODE_10000000_INPUT_LEVEL;
 				channel.update_mode |= AX_UPDATE_MODE_20000000;
 
 				AXPBVE ve;
 				ve.currentVolume = channel.volume.volume;
-				ve.currentDelta = (channel.volume.volume_target - channel.volume.volume) / 96;
+				ve.currentDelta = (sint32(channel.volume.volume_target) - sint32(channel.volume.volume)) / 96;
 				AXSetVoiceVe(voice, &ve);
 			}
 
-			_MIXUpdateTV(&channel, 0);
+			_MIXUpdateTV(&channel);
 
 			for (int i = 0; i < 2; ++i)
 				_MIXUpdateDRC(&channel, i);
 
-			// TODO remote mix
-			AXCHMIX2 mix[4];
-			for (int j = 0; j < 4; ++j)
-			{
-				AXSetVoiceDeviceMix(voice, AX_DEV_RMT, i, (snd_core::AXCHMIX_DEPR*)mix);
-			}
-
+			for (int j = 0; j < AX_MAX_NUM_RMT; ++j)
+				_MIXUpdateRmt(&channel, j);
 
 			AXVoiceEnd(voice);
 		}
@@ -701,110 +844,63 @@ namespace snd_user
 		// TODO
 	}
 
-	void MIXSetDeviceSoundMode(uint32 device, uint32 mode)
+	void MIXInitDeviceControl(AXVPB* voice, uint32 device, uint32 deviceSubIndex, MixControl* control, uint32 mode)
 	{
-		cemuLog_log(LogType::SoundAPI, "MIXSetDeviceSoundMode(0x{:x}, 0x{:x})", device, mode);
+		// note - lfe is not copied from control
+		cemuLog_log(LogType::SoundAPI, "MIXInitDeviceControl(0x{:0x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x} )", MEMPTR(voice).GetMPTR(), device, deviceSubIndex, MEMPTR(control).GetMPTR(), mode);
+		CheckVoice(voice);
+
 		cemu_assert_debug(device < AX_DEV_COUNT);
-		cemu_assert_debug(mode <= 4);
-
-		bool is_tv_device = false;
-		bool is_drc_device = false;
-		if (device == AX_DEV_TV)
-		{
-			g_snd_user_data.device_info.tv_sound_mode = mode;
-			is_tv_device = true;
-		}
-		else if (device == AX_DEV_DRC)
-		{
-			cemu_assert_debug(mode <= 2);
-			g_snd_user_data.device_info.drc_sound_mode = mode;
-			is_drc_device = true;
-		}
-		else if (device == AX_DEV_RMT)
-		{
-			cemu_assert_debug(mode == 0);
-			g_snd_user_data.device_info.rmt_sound_mode = mode;
-		}
-		else
-		{
-			cemuLog_log(LogType::SoundAPI, "ERROR: MIXSetDeviceSoundMode(0x{:x}, 0x{:x}) -> wrong device", device, mode);
-		}
-
-		for (sint32 i = 0; i < g_snd_user_data.max_voices; ++i)
-		{
-			auto& channel = g_snd_user_data.mix_channel[i];
-			if (!channel.voice)
-				continue;
-
-			const auto voice = channel.voice.GetPtr();
-			AXVoiceBegin(voice);
-
-			if (is_tv_device)
-			{
-				channel.tv_mode |= AX_UPDATE_MODE_40000000_VOLUME;
-				_MIXControl_SetDevicePan(&channel.tv_control, AX_DEV_TV, channel.tv_channels);
-			}
-
-			if (is_drc_device)
-			{
-				for (sint32 j = 0; j < AX_MAX_NUM_DRC; ++j)
-				{
-					channel.drc_mode[j] |= AX_UPDATE_MODE_40000000_VOLUME;
-					_MIXControl_SetDevicePan(&channel.drc_control[j], AX_DEV_DRC, channel.drc_channels[j]);
-				}
-			}
-
-			AXVoiceEnd(voice);
-		}
-	}
-
-	void MIXInitDeviceControl(AXVPB* voice, uint32 device_type, uint32 index, MixControl* control, uint32 mode)
-	{
-		cemuLog_log(LogType::SoundAPI, "MIXInitDeviceControl(0x{:0x}, 0x{:x}, 0x{:x}, 0x{:x}, 0x{:x} )", MEMPTR(voice).GetMPTR(), device_type, index, MEMPTR(control).GetMPTR(), mode);
-
-		cemu_assert_debug(device_type < AX_DEV_COUNT);
-		cemu_assert_debug(voice);
 		cemu_assert_debug(control);
 
 		AXVoiceBegin(voice);
 
-		const uint32 voice_index = voice->index;
-		auto& channel = g_snd_user_data.mix_channel[voice_index];
-
+		MixChannel& channel = g_snd_user_data.mix_channel[voice->index];
 		channel.voice = voice;
 
-		if (device_type == AX_DEV_TV)
+		if (device == AX_DEV_TV)
 		{
-			cemu_assert_debug(index == 0);
-			_MIXChannelResetTV(&channel, index);
-
-			memcpy(&channel.tv_control, control, sizeof(MixControl));
-			_MIXControl_SetDevicePan(&channel.tv_control, device_type, channel.tv_channels);
-
-			channel.tv_mode |= AX_UPDATE_MODE_40000000_VOLUME;
-			_MIXUpdateTV(&channel, index);
+			cemu_assert_debug(deviceSubIndex == 0);
+			_MIXChannelResetTV(&channel, deviceSubIndex);
+			channel.tv_control.pan = control->pan;
+			channel.tv_control.span = control->span;
+			channel.tv_control.fader = control->fader;
+			for (sint32 i=0; i<AX_AUX_BUS_COUNT; i++)
+				channel.tv_control.aux[i] = control->aux[i];
+			_MIXControl_SetDevicePan(&channel.tv_control, device, channel.tv_channels);
+			channel.tv_mode = (mode & 0xF) | AX_UPDATE_MODE_40000000_VOLUME;
+			_MIXUpdateTV(&channel);
 		}
-		else if (device_type == AX_DEV_DRC)
+		else if (device == AX_DEV_DRC)
 		{
-			cemu_assert_debug(index < 2);
-			_MIXChannelResetDRC(&channel, index);
+			cemu_assert_debug(deviceSubIndex < 2);
+			_MIXChannelResetDRC(&channel, deviceSubIndex);
 
-			memcpy(&channel.drc_control[index], control, sizeof(MixControl));
-			_MIXControl_SetDevicePan(&channel.drc_control[index], device_type, channel.drc_channels[index]);
+			channel.drc_control[deviceSubIndex].pan = control->pan;
+			channel.drc_control[deviceSubIndex].span = control->span;
+			channel.drc_control[deviceSubIndex].fader = control->fader;
+			for (sint32 i=0; i<AX_AUX_BUS_COUNT; i++)
+				channel.drc_control[deviceSubIndex].aux[i] = control->aux[i];
+			_MIXControl_SetDevicePan(&channel.drc_control[deviceSubIndex], device, channel.drc_channels[deviceSubIndex]);
 
-			channel.drc_mode[index] |= AX_UPDATE_MODE_40000000_VOLUME;
-			_MIXUpdateDRC(&channel, index);
+			channel.drc_mode[deviceSubIndex] = (mode & 0xF) | AX_UPDATE_MODE_40000000_VOLUME;
+			_MIXUpdateDRC(&channel, deviceSubIndex);
 		}
-		else if (device_type == AX_DEV_RMT)
+		else if (device == AX_DEV_RMT)
 		{
-			cemu_assert_debug(index < 4);
-			_MIXChannelResetRmt(&channel, index);
+			cemu_assert_debug(deviceSubIndex < 4);
+			_MIXChannelResetRmt(&channel, deviceSubIndex);
 
-			memcpy(&channel.rmt_control[index], control, sizeof(MixControl));
-			_MIXControl_SetDevicePan(&channel.rmt_control[index], device_type, channel.rmt_channels[index]);
+			channel.rmt_control[deviceSubIndex].pan = control->pan;
+			channel.rmt_control[deviceSubIndex].span = control->span;
+			channel.rmt_control[deviceSubIndex].fader = control->fader;
+			for (sint32 i=0; i<AX_AUX_BUS_COUNT; i++)
+				channel.rmt_control[deviceSubIndex].aux[i] = control->aux[i];
 
-			channel.rmt_mode[index] = mode & 0xf;
-			_MIXUpdateRmt(&channel, index);
+			_MIXControl_SetDevicePan(&channel.rmt_control[deviceSubIndex], device, channel.rmt_channels[deviceSubIndex]);
+
+			channel.rmt_mode[deviceSubIndex] = (mode & 0xF);
+			_MIXUpdateRmt(&channel, deviceSubIndex);
 		}
 
 		AXVoiceEnd(voice);
@@ -814,17 +910,11 @@ namespace snd_user
 	void MIXInitInputControl(AXVPB* voice, uint16 input, uint32 mode)
 	{
 		cemuLog_log(LogType::SoundAPI, "MIXInitInputControl(0x{:x}, 0x{:x}, 0x{:x} )", MEMPTR(voice).GetMPTR(), input, mode);
-		cemu_assert_debug(voice);
+		CheckVoice(voice);
 
 		AXVoiceBegin(voice);
-
-		const uint32 voice_index = voice->index;
-		auto& channel = g_snd_user_data.mix_channel[voice_index];
-
-		mode &= 8;
-		mode |= AX_UPDATE_MODE_10000000;
-		channel.update_mode = mode;
-
+		MixChannel& channel = g_snd_user_data.mix_channel[voice->index];
+		channel.update_mode = (mode & AX_UPDATE_MODE_8) | AX_UPDATE_MODE_10000000_INPUT_LEVEL;
 		channel.input_level = input;
 
 		AXVoiceEnd(voice);
@@ -832,21 +922,18 @@ namespace snd_user
 
 	void MIXSetDeviceFader(AXVPB* vpb, uint32 device, uint32 deviceIndex, sint16 newFader)
 	{
-		// not well tested
+		CheckVoice(vpb);
 		cemu_assert(device < AX_DEV_COUNT);
 		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
 
 		AXVoiceBegin(vpb);
-
 		MixControl& mixControl = mixChannel.GetMixControl(device, deviceIndex);
 		MixMode& mixMode = mixChannel.GetMode(device, deviceIndex);
-
 		if (mixControl.fader == newFader)
 		{
 			AXVoiceEnd(vpb);
 			return;
 		}
-
 		mixControl.fader = newFader;
 		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
 		AXVoiceEnd(vpb);
@@ -854,25 +941,92 @@ namespace snd_user
 
 	void MIXSetDevicePan(AXVPB* vpb, uint32 device, uint32 deviceIndex, sint16 newPan)
 	{
-		// not well tested
+		CheckVoice(vpb);
 		cemu_assert(device < AX_DEV_COUNT);
 		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
 
 		AXVoiceBegin(vpb);
-
 		MixControl& mixControl = mixChannel.GetMixControl(device, deviceIndex);
 		MixMode& mixMode = mixChannel.GetMode(device, deviceIndex);
 		sint16* deviceChannels = mixChannel.GetChannels(device, deviceIndex);
+		if (mixControl.pan == newPan)
+		{
+			AXVoiceEnd(vpb);
+			return;
+		}
+		mixControl.pan = newPan;
+		_MIXControl_SetDevicePan(&mixControl, device, deviceChannels);
+		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
+		AXVoiceEnd(vpb);
+	}
 
-		if (mixControl.fader == newPan)
+	void MIXSetDeviceSPan(AXVPB* vpb, uint32 device, uint32 deviceIndex, sint16 newSPan)
+	{
+		CheckVoice(vpb);
+		cemu_assert(device < AX_DEV_COUNT);
+		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
+
+		AXVoiceBegin(vpb);
+		MixControl& mixControl = mixChannel.GetMixControl(device, deviceIndex);
+		MixMode& mixMode = mixChannel.GetMode(device, deviceIndex);
+		sint16* deviceChannels = mixChannel.GetChannels(device, deviceIndex);
+		if (mixControl.span == newSPan)
+		{
+			AXVoiceEnd(vpb);
+			return;
+		}
+		mixControl.span = newSPan;
+		_MIXControl_SetDevicePan(&mixControl, device, deviceChannels);
+		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
+		AXVoiceEnd(vpb);
+	}
+
+	void MIXSetDeviceLFE(AXVPB* vpb, uint32 device, uint32 deviceIndex, sint16 newLFE)
+	{
+		CheckVoice(vpb);
+		cemu_assert(device < AX_DEV_COUNT);
+		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
+		AXVoiceBegin(vpb);
+		if (device != AX_DEV_TV)
+		{
+			cemuLog_log(LogType::APIErrors, "MIXSetDeviceLFE(): Device must be TV");
+			AXVoiceEnd(vpb);
+			return;
+		}
+		cemu_assert(deviceIndex == 0);
+		MixControl& mixControl = mixChannel.GetMixControl(device, 0);
+		MixMode& mixMode = mixChannel.GetMode(device, 0);
+		if (mixControl.lfe == newLFE)
+		{
+			AXVoiceEnd(vpb);
+			return;
+		}
+		mixControl.lfe = newLFE;
+		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
+		AXVoiceEnd(vpb);
+	}
+
+	void MIXSetDeviceAux(AXVPB* vpb, uint32 device, uint32 deviceIndex, uint32 aux, sint16 newAux)
+	{
+		CheckVoice(vpb);
+		cemu_assert(device < AX_DEV_COUNT);
+		cemu_assert(aux < AX_AUX_BUS_COUNT);
+
+		MixChannel& mixChannel = g_snd_user_data.mix_channel[vpb->index];
+
+		AXVoiceBegin(vpb);
+		MixControl& mixControl = mixChannel.GetMixControl(device, deviceIndex);
+		MixMode& mixMode = mixChannel.GetMode(device, deviceIndex);
+
+		if (mixControl.aux[aux] == newAux)
 		{
 			AXVoiceEnd(vpb);
 			return;
 		}
 
-		mixControl.pan = newPan;
-		_MIXControl_SetDevicePan(&mixControl, device, deviceChannels);
+		mixControl.aux[aux] = newAux;
 		mixMode |= AX_UPDATE_MODE_40000000_VOLUME;
+
 		AXVoiceEnd(vpb);
 	}
 
@@ -1193,6 +1347,7 @@ namespace snd_user
 			cafeExportRegister("snd_user", MIXSetSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXGetSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXInitChannel, LogType::SoundAPI);
+			cafeExportRegister("snd_user", MIXReleaseChannel, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXAssignChannel, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXDRCInitChannel, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetInput, LogType::SoundAPI);
@@ -1200,6 +1355,9 @@ namespace snd_user
 			cafeExportRegister("snd_user", MIXSetDeviceSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetDeviceFader, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetDevicePan, LogType::SoundAPI);
+			cafeExportRegister("snd_user", MIXSetDeviceSPan, LogType::SoundAPI);
+			cafeExportRegister("snd_user", MIXSetDeviceLFE, LogType::SoundAPI);
+			cafeExportRegister("snd_user", MIXSetDeviceAux, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXInitDeviceControl, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXInitInputControl, LogType::SoundAPI);
 
@@ -1237,6 +1395,7 @@ namespace snd_user
 			cafeExportRegister("snduser2", MIXSetSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXGetSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXInitChannel, LogType::SoundAPI);
+			cafeExportRegister("snduser2", MIXReleaseChannel, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXAssignChannel, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXDRCInitChannel, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetInput, LogType::SoundAPI);
@@ -1244,6 +1403,9 @@ namespace snd_user
 			cafeExportRegister("snduser2", MIXSetDeviceSoundMode, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetDeviceFader, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetDevicePan, LogType::SoundAPI);
+			cafeExportRegister("snduser2", MIXSetDeviceSPan, LogType::SoundAPI);
+			cafeExportRegister("snduser2", MIXSetDeviceLFE, LogType::SoundAPI);
+			cafeExportRegister("snduser2", MIXSetDeviceAux, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXInitDeviceControl, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXInitInputControl, LogType::SoundAPI);
 

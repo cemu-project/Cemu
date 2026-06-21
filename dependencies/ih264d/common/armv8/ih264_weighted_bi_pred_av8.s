@@ -142,6 +142,9 @@ ih264_weighted_bi_pred_luma_av8:
     sxtw      x4, w4
     sxtw      x5, w5
     stp       x19, x20, [sp, #-16]!
+    add       w6, w6, #1                //w6  = log_WD + 1
+    neg       w10, w6                   //w10 = -(log_WD + 1)
+    dup       v0.8h, w10                //Q0  = -(log_WD + 1) (32-bit)
 #ifndef __APPLE__
     ldr       w8, [sp, #80]             //Load wt2 in w8
     ldr       w9, [sp, #88]             //Load ofst1 in w9
@@ -155,9 +158,6 @@ ih264_weighted_bi_pred_luma_av8:
     ldr       w11,  [sp, #92]           //Load ht in w11
     ldr       w12,  [sp, #96]           //Load wd in w12
 #endif
-    add       w6, w6, #1                //w6  = log_WD + 1
-    neg       w10, w6                   //w10 = -(log_WD + 1)
-    dup       v0.8h, w10                //Q0  = -(log_WD + 1) (32-bit)
     add       w9, w9, #1                //w9 = ofst1 + 1
     add       w9, w9, w10               //w9 = ofst1 + ofst2 + 1
     mov       v2.s[0], w7

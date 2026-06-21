@@ -159,3 +159,25 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 	}
 	performanceMonitor.gpuTime_waitForAsync.endMeasuring();
 }
+
+bool LatteTextureReadback_ReadbackToLinearBlocking(LatteTextureView* sourceView, uint8* dstPtr, uint32 dstWidth, uint32 dstHeight, uint32 dstPitch)
+{
+	LatteTextureReadbackInfo* info = g_renderer->texture_createReadback(sourceView);
+	if (!info)
+		return false;
+
+	info->StartTransfer();
+	info->ForceFinish();
+	cemu_assert(info->IsFinished());
+
+	uint8* data = info->GetData(); // returned pixel format should match Latte format
+	uint32 bpp = Latte::GetFormatBits(sourceView->baseTexture->format) / 8;
+	uint32 srcRowBytes = sourceView->baseTexture->width * bpp;
+	uint32 dstRowBytes = dstWidth * bpp;
+	for (uint32 y = 0; y < dstHeight; y++)
+		memcpy(dstPtr + y * dstPitch * bpp, data + y * srcRowBytes, dstRowBytes);
+
+	info->ReleaseData();
+	delete info;
+	return true;
+}

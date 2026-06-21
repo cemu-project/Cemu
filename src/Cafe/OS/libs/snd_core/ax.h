@@ -78,6 +78,7 @@ namespace snd_core
 	const int AX_FILTER_LOWPASS_16K = 0x2;
 
 	bool isInitialized();
+	bool IsSndCore2();
 	void reset();
 
 	// AX VPB

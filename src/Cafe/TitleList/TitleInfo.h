@@ -51,6 +51,18 @@ enum class CosCapabilityBits : uint64
 	All = 0xFFFFFFFFFFFFFFFFull
 };
 
+inline CosCapabilityBits operator|(CosCapabilityBits a, CosCapabilityBits b)
+{
+    return static_cast<CosCapabilityBits>(
+        static_cast<uint64>(a) | static_cast<uint64>(b));
+}
+
+inline CosCapabilityBits& operator|=(CosCapabilityBits& a, CosCapabilityBits b)
+{
+    a = a | b;
+    return a;
+}
+
 enum class CosCapabilityBitsFS : uint64
 {
 	ODD_READ         = (1llu << 0),

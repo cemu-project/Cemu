@@ -179,6 +179,12 @@ inline sint16 _swapEndianS16(sint16 v)
 {
 	return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
+#if defined(_M_ARM64)
+inline uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
+    *highProduct = __umulh(multiplier, multiplicand);
+    return multiplier * multiplicand;
+}
+#endif
 #else
 inline uint64 _swapEndianU64(uint64 v)
 {
@@ -290,6 +296,18 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
     *remainder = (uint64)((dividend % divisor) & 0xFFFFFFFFFFFFFFFF);
     return       (uint64)((dividend / divisor) & 0xFFFFFFFFFFFFFFFF);
 }
+#elif defined(_M_ARM64)
+inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, uint64 *remainder)
+{
+    uint64 high = highDividend;
+    uint64 low = lowDividend;
+    if (high >= divisor) {
+        high %= divisor;
+    } 
+    unsigned __int128 dividend = (((unsigned __int128)highDividend) << 64) | lowDividend;
+    *remainder = (uint64)(dividend % divisor);
+    return (uint64)(dividend / divisor);
+}
 #endif
 
 #if defined(_MSC_VER)
@@ -384,12 +402,7 @@ inline uint64 __rdtsc()
 
 inline void _mm_mfence()
 {
-#if defined(_MSC_VER)
-    __dmb(_ARM64_BARRIER_ISH); // Inner Shareable Data Memory Barrier
-#else
-    asm volatile("" ::: "memory");
     std::atomic_thread_fence(std::memory_order_seq_cst);
-#endif
 }
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
