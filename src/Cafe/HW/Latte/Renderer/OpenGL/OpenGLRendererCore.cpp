@@ -976,7 +976,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 
 	// synchronize vertex and uniform buffers
 	uint8 stageUniformModifiedMask = 0;
-	LatteBufferCache_Sync(indexState.minIndex + baseVertex, indexState.maxIndex + baseVertex, baseInstance, instanceCount, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, stageUniformModifiedMask);
+	LatteBufferCache_Sync(indexState.maxIndex + baseVertex, baseInstance, instanceCount, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, stageUniformModifiedMask);
 
 	_setupVertexAttributes();
 

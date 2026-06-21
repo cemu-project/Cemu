@@ -58,6 +58,14 @@ void VulkanBenchmarkPrintResults()
 	cemuLog_log(LogType::Force, "--- Vulkan API CPU benchmark ---");
 	cemuLog_log(LogType::Force, "Elapsed cycles this frame: {:} | Current cycle {:} | NumFunc {:}", elapsedCycles, currentCycle, s_vulkanBenchmarkFuncs.size());
 
+	// sum up total time of Vulkan calls
+	uint64 totalVkCycles = 0;
+	for (auto& it : s_vulkanBenchmarkFuncs)
+	{
+		totalVkCycles += it->cycles;
+	}
+	cemuLog_log(LogType::Force, "Total Vulkan time: {:.4}%", ((double)totalVkCycles / elapsedCyclesDbl) * 100.0);
+
 	std::vector<sint32> sortedIndices(s_vulkanBenchmarkFuncs.size());
 	std::iota(sortedIndices.begin(), sortedIndices.end(), 0);
 	std::sort(sortedIndices.begin(), sortedIndices.end(),

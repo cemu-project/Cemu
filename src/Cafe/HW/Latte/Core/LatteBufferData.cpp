@@ -185,7 +185,7 @@ void LatteBufferCache_ProcessQueues()
 }
 
 // upload vertex and uniform buffers and update bindings
-void LatteBufferCache_Sync(uint32 minIndex, uint32 maxIndex, uint32 baseInstance, uint32 instanceCount, uint32 attribBufferDirtyMask, uint32 vsUniformBufferDirtyMask, uint32 psUniformBufferDirtyMask, uint32 gsUniformBufferDirtyMask, uint8& stageUniformModifiedMask, bool isIncremental)
+void LatteBufferCache_Sync(uint32 maxIndex, uint32 baseInstance, uint32 instanceCount, uint32 attribBufferDirtyMask, uint32 vsUniformBufferDirtyMask, uint32 psUniformBufferDirtyMask, uint32 gsUniformBufferDirtyMask, uint8& stageUniformModifiedMask, bool isIncremental)
 {
 	LatteFetchShader* parsedFetchShader = LatteSHRC_GetActiveFetchShader();
 	cemu_assert_debug(parsedFetchShader);
