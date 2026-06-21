@@ -548,8 +548,7 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
-		else if (initiatedBy == wxLaunchGameEvent::INITIATED_BY::MENU ||
-			initiatedBy == wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE)
+		else
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
 			t.append(_pathToUtf8(launchPath));
@@ -563,13 +562,6 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 				t.append("\n\n");
 				t.append(_("Could not decrypt title because title.tik is missing."));
 			}
-			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-			return false;
-		}
-		else
-		{
-			wxString t = _("Unable to launch game\nPath:\n");
-			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
