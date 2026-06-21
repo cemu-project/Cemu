@@ -72,7 +72,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		("account,a", po::value<std::string>(), "Persistent id of account")
 
 		("extra-mounts", po::wvalue<std::vector<std::wstring>>()->composing(), "A series of mounts in the form of: (path on host:path within emulated system, e.g. `/tmp:/vol/temporary/`)")
-		("forward-console-logging", "Forward OSReport, OSConsoleWrite, etc. to stderr.")
+		("forward-console-logging", "Forward OSReport, OSConsoleWrite, etc. to stdout/stderr.")
 		("standalone-title-arguments", po::value<std::string>(), "Custom arguments to pass as arguments to a standalone RPX that is launched.")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler. Useful for debugging purposes where you want to get accurate memory accesses and stack traces.")

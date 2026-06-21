@@ -554,14 +554,19 @@ namespace coreinit
 		std::unique_lock _l(sCafeConsoleMutex);
 		CafeLogBuffer& logBuffer = getLogBuffer(cafeLogType);
 		// once a line is full or \n is written it will be posted to log
-		auto flushLine = [](CafeLogBuffer& cafeLogBuffer, std::string_view cafeLogName, bool forwardToConsole) -> void
+		auto flushLine = [](CafeLogBuffer& cafeLogBuffer, std::string_view cafeLogName) -> void
 		{
 			cemuLog_log(LogType::CoreinitLogging, "[{0}] {1}", cafeLogName, std::basic_string_view(cafeLogBuffer.lineBuffer.data(), cafeLogBuffer.lineLength));
-			if (forwardToConsole)
-				std::cerr << fmt::format("{0}\n", std::basic_string_view(cafeLogBuffer.lineBuffer.data(), cafeLogBuffer.lineLength));
 			cafeLogBuffer.lineLength = 0;
 		};
 
+		if (s_forwardConsoleLogs) {
+			if (cafeLogType == CafeLogType::OSCONSOLE) {
+				fwrite(msg, 1, len, stdout);
+			} else {
+				fwrite(msg, 1, len, stderr);
+			}
+		}
 		while (len)
 		{
 			char c = *msg;
@@ -572,13 +577,13 @@ namespace coreinit
 			if (c == '\n')
 			{
 				// flush line immediately
-				flushLine(logBuffer, getLogBufferName(cafeLogType), s_forwardConsoleLogs);
+				flushLine(logBuffer, getLogBufferName(cafeLogType));
 				continue;
 			}
 			logBuffer.lineBuffer[logBuffer.lineLength] = c;
 			logBuffer.lineLength++;
 			if (logBuffer.lineLength >= logBuffer.lineBuffer.size())
-				flushLine(logBuffer, getLogBufferName(cafeLogType), s_forwardConsoleLogs);
+				flushLine(logBuffer, getLogBufferName(cafeLogType));
 		}
 	}
 
