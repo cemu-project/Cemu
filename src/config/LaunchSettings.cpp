@@ -71,9 +71,9 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 
 		("account,a", po::value<std::string>(), "Persistent id of account")
 
-		("extra-mounts", po::wvalue<std::vector<std::wstring>>()->composing(), "A series of mounts in the form of: (path on host:path within emulated system, e.g. `/tmp:/vol/temporary/`)")
+		("cos-mounts", po::wvalue<std::vector<std::wstring>>()->composing(), "A series of mounts in the form of: (path on host:path within emulated system, e.g. `/tmp:/vol/temporary/`)")
 		("forward-console-logging", "Forward OSReport, OSConsoleWrite, etc. to stdout/stderr.")
-		("standalone-title-arguments", po::value<std::string>(), "Custom arguments to pass as arguments to a standalone RPX that is launched.")
+		("cos-argstr", po::value<std::string>(), "A custom argstr used to override to the arguments to the first RPX that is launched, will be unset after the first launch.")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler. Useful for debugging purposes where you want to get accurate memory accesses and stack traces.")
 		("force-multicore-interpreter", po::value<bool>()->implicit_value(true), "Force multi-core interpreter CPU emulation, disables recompiler. Only useful for getting stack traces, but slightly faster than the single-core interpreter mode.")
@@ -199,12 +199,12 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			s_forward_console_logging = true;
 		}
 
-		if (vm.count("standalone-title-arguments"))
-			s_standalone_title_arguments = vm["standalone-title-arguments"].as<std::string>();
+		if (vm.count("cos-argstr"))
+			s_cos_argstr = vm["cos-argstr"].as<std::string>();
 
-		if (vm.count("extra-mounts"))
+		if (vm.count("cos-mounts"))
 		{
-			for (const auto& argument : vm["extra-mounts"].as<std::vector<std::wstring>>())
+			for (const auto& argument : vm["cos-mounts"].as<std::vector<std::wstring>>())
 			{
 				size_t colon_location = argument.find(L':');
 				if (colon_location == std::wstring::npos)
@@ -213,7 +213,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 					continue;
 				}
 
-				s_extra_mounts[argument.substr(0, colon_location)] = argument.substr(colon_location + 1);
+				s_cos_mounts[argument.substr(0, colon_location)] = argument.substr(colon_location + 1);
 			}
 		}
 

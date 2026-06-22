@@ -26,8 +26,9 @@ public:
 	static bool Verbose() { return s_verbose; }
 
 	static bool ForwardConsoleLogging() { return s_forward_console_logging; }
-	static std::optional<std::string> StandaloneTitleArguments() { return s_standalone_title_arguments; }
-	static std::unordered_map<fs::path, std::wstring>& ExtraMounts() { return s_extra_mounts; }
+	static std::optional<std::string> CosArgstr() { return s_cos_argstr; }
+	static void ClearCosArgstr() { s_cos_argstr.reset(); }
+	static std::unordered_map<fs::path, std::wstring>& CosMounts() { return s_cos_mounts; }
 
 	static bool GDBStubEnabled() { return s_enable_gdbstub; }
 	static bool NSightModeEnabled() { return s_nsight_mode; }
@@ -51,8 +52,8 @@ private:
 	inline static bool s_verbose = false;
 
 	inline static bool s_forward_console_logging = false;
-	inline static std::optional<std::string> s_standalone_title_arguments{};
-	inline static std::unordered_map<fs::path, std::wstring> s_extra_mounts{};
+	inline static std::optional<std::string> s_cos_argstr{};
+	inline static std::unordered_map<fs::path, std::wstring> s_cos_mounts{};
 
 	inline static bool s_enable_gdbstub = false;
 	inline static bool s_nsight_mode = false;

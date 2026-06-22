@@ -687,7 +687,7 @@ namespace CafeSystem
 
 	void MountExtras()
 	{
-		for (const auto& [host_path, emulatedPath] : LaunchSettings::ExtraMounts())
+		for (const auto& [host_path, emulatedPath] : LaunchSettings::CosMounts())
 		{
 			FSCDeviceHostFS_Mount(boost::nowide::narrow(emulatedPath), _pathToUtf8(host_path), FSC_PRIORITY_BASE);
 		}
@@ -695,7 +695,7 @@ namespace CafeSystem
 
 	void UnmountExtras()
 	{
-		for (const auto& [_, emulatedPath] : LaunchSettings::ExtraMounts())
+		for (const auto& [_, emulatedPath] : LaunchSettings::CosMounts())
 		{
 			fsc_unmount(boost::nowide::narrow(emulatedPath), FSC_PRIORITY_BASE);
 		}
@@ -978,13 +978,11 @@ namespace CafeSystem
 
 	std::string GetForegroundTitleArgStr()
 	{
+		auto optional_arguments = LaunchSettings::CosArgstr();
+		if (optional_arguments.has_value())
+			return *optional_arguments;
 		if (sLaunchModeIsStandalone)
-		{
-			auto optional_arguments = LaunchSettings::StandaloneTitleArguments();
-			if (optional_arguments.has_value())
-				return *optional_arguments;
 			return "";
-		}
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
 		if (update.IsValid())
 			return update.GetArgStr();
@@ -1067,25 +1065,26 @@ namespace CafeSystem
 	{
 		if(!sSystemRunning)
 			return;
-        coreinit::OSSchedulerEnd();
-        Latte_Stop();
-        // reset Cafe OS userspace modules
-        snd_core::reset();
-        coreinit::OSAlarm_Shutdown();
-        GX2::_GX2DriverReset();
-        nn::save::ResetToDefaultState();
-        coreinit::__OSDeleteAllActivePPCThreads();
-        RPLLoader_UnloadAll();
+		coreinit::OSSchedulerEnd();
+		Latte_Stop();
+		// reset Cafe OS userspace modules
+		snd_core::reset();
+		coreinit::OSAlarm_Shutdown();
+		GX2::_GX2DriverReset();
+		nn::save::ResetToDefaultState();
+		coreinit::__OSDeleteAllActivePPCThreads();
+		RPLLoader_UnloadAll();
 		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
 			(*it)->TitleStop();
-        // reset Cemu subsystems
-        PPCRecompiler_Shutdown();
-        GraphicPack2::Reset();
-        UnmountCurrentTitle();
-        UnmountExtras();
-        MlcStorageUnmountAllTitles();
-        UnmountBaseDirectories();
-        DestroyMemorySpace();
+		// reset Cemu subsystems
+		PPCRecompiler_Shutdown();
+		GraphicPack2::Reset();
+		UnmountCurrentTitle();
+		UnmountExtras();
+		MlcStorageUnmountAllTitles();
+		UnmountBaseDirectories();
+		DestroyMemorySpace();
+		LaunchSettings::ClearCosArgstr();
 		sSystemRunning = false;
 	}
 
