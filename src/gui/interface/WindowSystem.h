@@ -98,6 +98,10 @@ namespace WindowSystem
 	}
 
 	void Create();
+	int GetExitCode();
+	void SetExitCode(int value);
+
+	void RequestEndCurrentEmulation();
 
 	WindowInfo& GetWindowInfo();
 

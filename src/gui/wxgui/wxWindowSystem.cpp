@@ -30,6 +30,7 @@
 
 WindowSystem::WindowInfo g_window_info{};
 
+int g_exitCode = 0;
 std::shared_mutex g_mutex;
 MainWindow* g_mainFrame = nullptr;
 
@@ -54,6 +55,21 @@ void WindowSystem::Create()
 	char* argv[1]{};
 	wxEntry(argc, argv);
 #endif
+}
+
+int WindowSystem::GetExitCode()
+{
+	return g_exitCode;
+}
+
+void WindowSystem::SetExitCode(int value)
+{
+	g_exitCode = value;
+}
+
+void WindowSystem::RequestEndCurrentEmulation()
+{
+	MainWindow::RequestEndEmulation();
 }
 
 void WindowSystem::ShowErrorDialog(std::string_view message, std::string_view title, std::optional<WindowSystem::ErrorCategory> /*errorId*/)

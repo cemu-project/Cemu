@@ -1077,6 +1077,11 @@ void wxGameList::OnColumnResize(wxListEvent& event)
 void wxGameList::OnClose(wxCloseEvent& event)
 {
 	event.Skip();
+	Close();
+}
+
+void wxGameList::Close()
+{
 	m_exit = true;
 }
 

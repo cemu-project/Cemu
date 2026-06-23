@@ -245,7 +245,7 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
 	if (!LaunchSettings::HandleCommandline(lpCmdLine))
 		return 0;
 	WindowSystem::Create();
-	return 0;
+	return WindowSystem::GetExitCode();
 }
 
 // entrypoint for debug builds with console
@@ -259,7 +259,7 @@ int main(int argc, char* argv[])
 	if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
 	WindowSystem::Create();
-	return 0;
+	return WindowSystem::GetExitCode();
 }
 
 #else
@@ -278,7 +278,7 @@ int main(int argc, char *argv[])
     if (!LaunchSettings::HandleCommandline(argc, argv))
 		return 0;
 	WindowSystem::Create();
-	return 0;
+	return WindowSystem::GetExitCode();
 }
 #endif
 

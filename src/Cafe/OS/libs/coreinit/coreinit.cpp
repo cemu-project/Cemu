@@ -2,6 +2,7 @@
 #include "Common/SysAllocator.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 
+#include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
 // includes for Initialize coreinit submodules
@@ -241,10 +242,8 @@ namespace coreinit
 	void coreinit_exit(uint32 r)
 	{
 		cemuLog_log(LogType::Force, "The title terminated the process by calling coreinit.exit({})", (sint32)r);
-        DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
-		cemu_assert_debug(false);
-		// never return
-		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
+		CafeSystem::RequestEndTitle((int) r);
 	}
 
 	bool OSIsOffBoot()

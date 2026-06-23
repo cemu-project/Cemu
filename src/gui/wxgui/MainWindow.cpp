@@ -161,6 +161,7 @@ enum
 wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_GAMELIST_REFRESH, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
+wxDEFINE_EVENT(wxEVT_END_EMULATION, wxEndEmulationEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_RECREATE_CANVAS, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
@@ -324,11 +325,13 @@ MainWindow::MainWindow()
 
 	if (load_file)
 	{
+		m_launched_bare = true;
 		MainWindow::RequestLaunchGame(load_file.value(), wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE);
 		quick_launch = true;
 	}
 	else if (load_title_id)
 	{
+		m_launched_bare = true;
 		TitleInfo info;
 		TitleId baseId;
 		if (CafeTitleList::FindBaseTitleId(load_title_id.value(), baseId) && CafeTitleList::GetFirstByTitleId(baseId, info))
@@ -370,6 +373,7 @@ MainWindow::MainWindow()
 
 	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
 	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
+	Bind(wxEVT_END_EMULATION, &MainWindow::OnEndEmulation, this);
 
 	if (LaunchSettings::GDBStubEnabled())
 	{
@@ -623,6 +627,34 @@ void MainWindow::OnLaunchFromFile(wxLaunchGameEvent& event)
 	if (event.GetPath().empty())
 		return;
 	FileLoad(event.GetPath(), event.GetInitiatedBy());
+}
+
+void MainWindow::OnEndEmulation(wxEndEmulationEvent& event)
+{
+	// Game launched with `-g`, or `-t`, no window to return to.
+	if (m_launched_bare)
+	{
+		if (m_debugger_window)
+		{
+			m_debugger_window->CleanupForDestroy();
+			m_debugger_window->Destroy();
+			m_debugger_window = nullptr;
+		}
+
+		if(m_game_list)
+			m_game_list->Close();
+
+		if (!IsMaximized() && !WindowSystem::IsFullScreen())
+			m_restored_size = GetSize();
+
+		SaveSettings();
+		m_timer->Stop();
+
+		CafeSystem::Shutdown();
+		Destroy();
+	}
+	else
+		EndEmulation();
 }
 
 void MainWindow::OnFileMenu(wxCommandEvent& event)
@@ -2449,6 +2481,12 @@ void MainWindow::RequestGameListRefresh()
 void MainWindow::RequestLaunchGame(fs::path filePath, wxLaunchGameEvent::INITIATED_BY initiatedBy)
 {
 	wxLaunchGameEvent evt(filePath, initiatedBy);
+	wxPostEvent(g_mainFrame, evt);
+}
+
+void MainWindow::RequestEndEmulation()
+{
+	wxEndEmulationEvent evt;
 	wxPostEvent(g_mainFrame, evt);
 }
 

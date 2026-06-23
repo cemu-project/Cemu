@@ -650,22 +650,23 @@ namespace CafeSystem
 		s_implementation = impl;
 	}
 
-    void Shutdown()
-    {
-        cemu_assert_debug(s_initialized);
-        // if a title is running, shut it down
-        if (sSystemRunning)
-            ShutdownTitle();
-        // shutdown persistent subsystems (deprecated manual shutdown)
+	void Shutdown()
+	{
+		if (!s_initialized)
+			return;
+		// if a title is running, shut it down
+		if (sSystemRunning)
+			ShutdownTitle();
+		// shutdown persistent subsystems (deprecated manual shutdown)
 		iosu::odm::Shutdown();
 		iosu::act::Stop();
-        iosu::mcp::Shutdown();
-        iosu::fsa::Shutdown();
+		iosu::mcp::Shutdown();
+		iosu::fsa::Shutdown();
 		// shutdown IOSU modules
 		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
 			(*it)->SystemExit();
-        s_initialized = false;
-    }
+		s_initialized = false;
+	}
 
 	std::string GetInternalVirtualCodeFolder()
 	{
@@ -1086,6 +1087,12 @@ namespace CafeSystem
 		DestroyMemorySpace();
 		LaunchSettings::ClearCosArgstr();
 		sSystemRunning = false;
+	}
+
+	void RequestEndTitle(int exitCode)
+	{
+		WindowSystem::SetExitCode(exitCode);
+		WindowSystem::RequestEndCurrentEmulation();
 	}
 
 	/* Virtual mlc storage */

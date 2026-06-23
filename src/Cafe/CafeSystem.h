@@ -23,7 +23,7 @@ namespace CafeSystem
 
 	void Initialize();
 	void SetImplementation(SystemImplementation* impl);
-    void Shutdown();
+	void Shutdown();
 
 	PREPARE_STATUS_CODE PrepareForegroundTitle(TitleId titleId);
 	PREPARE_STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path);
@@ -45,6 +45,7 @@ namespace CafeSystem
 	CosCapabilityBits GetForegroundTitleCosCapabilities(CosCapabilityGroup group);
 
 	void ShutdownTitle();
+	void RequestEndTitle(int exitCode);
 
 	std::string GetMlcStoragePath(TitleId titleId);
 	void MlcStorageMountAllTitles();

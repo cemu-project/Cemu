@@ -23,8 +23,10 @@ class TitleManager;
 class GraphicPacksWindow2;
 class EmulatedUSBDeviceFrame;
 class wxLaunchGameEvent;
+class wxEndEmulationEvent;
 
 wxDECLARE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
+wxDECLARE_EVENT(wxEVT_END_EMULATION, wxEndEmulationEvent);
 wxDECLARE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 
 class wxLaunchGameEvent : public wxCommandEvent
@@ -50,6 +52,14 @@ public:
 private:
 	fs::path m_launchPath;
 	INITIATED_BY m_initiatedBy;
+};
+
+class wxEndEmulationEvent : public wxCommandEvent
+{
+public:
+	wxEndEmulationEvent() : wxCommandEvent(wxEVT_END_EMULATION) {}
+
+	wxEvent* Clone() const { return new wxEndEmulationEvent(*this); }
 };
 
 class MainWindow : public wxFrame, public CafeSystem::SystemImplementation
@@ -132,6 +142,7 @@ public:
 	void OnGesturePan(wxPanGestureEvent& event);
 
 	void OnGameLoaded();
+	void OnEndEmulation(wxEndEmulationEvent& event);
 
 	void AsyncSetTitle(std::string_view windowTitle);
 
@@ -144,6 +155,7 @@ public:
 
 	static void RequestGameListRefresh();
 	static void RequestLaunchGame(fs::path filePath, wxLaunchGameEvent::INITIATED_BY initiatedBy);
+	static void RequestEndEmulation();
 
 private:
 	bool FullscreenEnabled() const;
@@ -176,6 +188,7 @@ private:
 
 	bool m_menu_visible = false;
 	bool m_game_launched = false;
+	bool m_launched_bare = false;
 
 	#ifdef ENABLE_DISCORD_RPC
 	std::unique_ptr<DiscordPresence> m_discord;

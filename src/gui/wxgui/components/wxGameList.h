@@ -57,6 +57,7 @@ public:
 	long FindListItemByTitleId(uint64 title_id) const;
 
 	void OnClose(wxCloseEvent& event);
+	void Close();
 
 private:
 	std::atomic_bool m_exit = false;
@@ -163,4 +164,3 @@ private:
 
 	static inline std::once_flag s_launch_file_once;
 };
-

@@ -1,4 +1,5 @@
 #include "wxgui/CemuApp.h"
+#include "interface/WindowSystem.h"
 #include "wxCemuConfig.h"
 #include "wxgui/MainWindow.h"
 #include "wxgui/wxgui.h"
@@ -422,9 +423,9 @@ int CemuApp::OnExit()
 	SDLControllerProvider::ShutdownSDL();
 #endif
 #if BOOST_OS_WINDOWS
-	ExitProcess(0);
+	ExitProcess(WindowSystem::GetExitCode());
 #else
-	_Exit(0);
+	_Exit(WindowSystem::GetExitCode());
 #endif
 }
 

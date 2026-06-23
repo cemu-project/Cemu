@@ -364,7 +364,7 @@ int BreathOfTheWildChildProcessMain()
 	vkEnumeratePhysicalDevices(instance, &count, nullptr);
 
 	vkDestroyInstance(instance, nullptr);
-	return 0;
+	return WindowSystem::GetExitCode();
 }
 
 static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanceCreateInfo* create_info)
