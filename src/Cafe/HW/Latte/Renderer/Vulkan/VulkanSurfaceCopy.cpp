@@ -557,7 +557,7 @@ VKRObjectDescriptorSet* VulkanRenderer::surfaceCopy_getOrCreateDescriptorSet(VkC
 
 	descriptorImageInfo.sampler = vkObjImageView->m_textureDefaultSampler[0];
 	descriptorImageInfo.imageView = vkObjImageView->m_textureImageView;
-	descriptorImageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	descriptorImageInfo.imageLayout = state.sourceTexture->GetDefaultLayout();
 
 	VkWriteDescriptorSet write_descriptor{};
 	write_descriptor.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -673,8 +673,8 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 
 	cemu_assert_debug(srcTextureVk->GetImageObj()->m_image != dstTextureVk->GetImageObj()->m_image);
 
-	barrier_image<SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER, SYNC_OP::IMAGE_READ>(srcTextureVk, srcImageSubresource, VK_IMAGE_LAYOUT_GENERAL); // wait for any modifying operations on source image to complete
-	barrier_image<SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER, SYNC_OP::IMAGE_WRITE>(dstTextureVk, dstImageSubresource, VK_IMAGE_LAYOUT_GENERAL); // wait for any operations on destination image to complete
+	barrier_image<SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER, SYNC_OP::IMAGE_READ>(srcTextureVk, srcImageSubresource, srcTextureVk->GetDefaultLayout()); // wait for any modifying operations on source image to complete
+	barrier_image<SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER, SYNC_OP::IMAGE_WRITE>(dstTextureVk, dstImageSubresource, dstTextureVk->GetDefaultLayout()); // wait for any operations on destination image to complete
 
 	
 	vkCmdBeginRenderPass(m_state.currentCommandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
@@ -692,8 +692,8 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 
 	vkCmdEndRenderPass(m_state.currentCommandBuffer);
 
-	barrier_image<SYNC_OP::IMAGE_READ, SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER>(srcTextureVk, srcImageSubresource, VK_IMAGE_LAYOUT_GENERAL); // wait for drawcall to complete before any other operations on the source image
-	barrier_image<SYNC_OP::IMAGE_WRITE, SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER>(dstTextureVk, dstImageSubresource, VK_IMAGE_LAYOUT_GENERAL); // wait for drawcall to complete before any other operations on the destination image
+	barrier_image<SYNC_OP::IMAGE_READ, SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER>(srcTextureVk, srcImageSubresource, srcTextureVk->GetDefaultLayout()); // wait for drawcall to complete before any other operations on the source image
+	barrier_image<SYNC_OP::IMAGE_WRITE, SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER>(dstTextureVk, dstImageSubresource, dstTextureVk->GetDefaultLayout()); // wait for drawcall to complete before any other operations on the destination image
 
 	// restore viewport and scissor box
 	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);

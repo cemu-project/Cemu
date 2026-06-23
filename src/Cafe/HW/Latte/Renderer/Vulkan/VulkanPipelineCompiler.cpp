@@ -815,6 +815,10 @@ void PipelineCompiler::InitDynamicState(PipelineInfo* pipelineInfo, bool usesBle
 		dynamicStates.emplace_back(VK_DYNAMIC_STATE_DEPTH_BIAS);
 		pipelineInfo->usesDepthBias = true;
 	}
+	if (VulkanRenderer::GetInstance()->UseAttachmentFeedbackLoop())
+	{
+		dynamicStates.emplace_back(VK_DYNAMIC_STATE_ATTACHMENT_FEEDBACK_LOOP_ENABLE_EXT);
+	}
 
 	dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	dynamicState.dynamicStateCount = dynamicStates.size();

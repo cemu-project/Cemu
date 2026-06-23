@@ -380,7 +380,7 @@ private:
 		VkDescriptorSetInfo* activePixelDS{ nullptr };
 		VkDescriptorSetInfo* activeGeometryDS{ nullptr };
 		bool descriptorSetsChanged{ false };
-		bool hasRenderSelfDependency{ false }; // set if current drawcall samples textures which are also output as a rendertarget
+		VkImageAspectFlags feedbackLoopImageAspect{0xFFFFFFFF};
 		// viewport and scissor box
 		VkViewport currentViewport{};
 		VkRect2D currentScissorRect{};
@@ -414,6 +414,7 @@ private:
 			activeIndexType = Renderer::INDEX_TYPE::NONE;
 			activeIndexBufferIndex = std::numeric_limits<uint32>::max();
 			activeIndexBufferOffset = std::numeric_limits<uint32>::max();
+			feedbackLoopImageAspect = 0xFFFFFFFF;
 		}
 
 		// invalidation / flushing
@@ -465,6 +466,8 @@ private:
 			bool present_wait = false; // VK_KHR_present_wait
 			bool depth_clip_enable = false; // VK_EXT_depth_clip_enable
 			bool pipeline_robustness = false; // VK_EXT_pipeline_robustness
+			bool attachment_feedback_loop_layout = false; // VK_EXT_attachment_feedback_loop_layout
+			bool attachment_feedback_loop_dynamic_state = false; // VK_EXT_attachment_feedback_loop_dynamic_state (this is forced to false if VK_EXT_attachment_feedback_loop_layout is not supported)
 		}deviceExtensions;
 
 		struct
@@ -553,7 +556,7 @@ private:
 	void draw_handleSpecialState5();
 
 	// draw synchronization helper
-	void sync_inputTexturesChanged();
+	void sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass = false);
 	void sync_RenderPassLoadTextures(CachedFBOVk* fboVk);
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
@@ -952,6 +955,7 @@ public:
 	bool HasSPRIVRoundingModeRTE32() const { return m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32; }
 	bool IsDebugMarkersEnabled() const { return m_featureControl.usingDebugMarkerTool; }
 	bool IsTracingToolEnabled() const { return m_featureControl.usingTracingTool; }
+	bool UseAttachmentFeedbackLoop() const { return m_featureControl.deviceExtensions.attachment_feedback_loop_dynamic_state; }
 
 private:
 

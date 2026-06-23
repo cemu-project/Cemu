@@ -711,14 +711,13 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 			continue;
 		}
 
-		info.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-
 		VkSamplerCustomBorderColorCreateInfoEXT samplerCustomBorderColor{};
 
 		VkSamplerCreateInfo samplerInfo{};
 		samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
 
-		LatteTexture* baseTexture = textureView->baseTexture;
+		LatteTextureVk* baseTexture = static_cast<LatteTextureVk*>(textureView->baseTexture);
+		info.imageLayout = baseTexture->GetDefaultLayout();
 		// get texture register word 0
 		uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];
 
@@ -731,7 +730,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 		textureView->AddDescriptorSetReference(dsInfo);
 
 		if (!baseTexture->IsCompressedFormat())
-			vectorAppendUnique(dsInfo->list_fboCandidates, (LatteTextureVk*)baseTexture);
+			vectorAppendUnique(dsInfo->list_fboCandidates, baseTexture);
 
 		uint32 stageSamplerIndex = shader->textureUnitSamplerAssignment[relative_textureUnit];
 		if (stageSamplerIndex != LATTE_DECOMPILER_SAMPLER_NONE)
@@ -1001,7 +1000,7 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 	return dsInfo;
 }
 
-void VulkanRenderer::sync_inputTexturesChanged()
+void VulkanRenderer::sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass)
 {
 	bool writeFlushRequired = false;
 
@@ -1050,14 +1049,27 @@ void VulkanRenderer::sync_inputTexturesChanged()
 		srcStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 		memoryBarrier.srcAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
-		// dst
-		dstStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		memoryBarrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+		if (withinFeedbackLoopRenderPass)
+		{
+			// this renderpass has a pixel self dependency. Feedback loop extension allows barriers during renderpass, but they must be BY_REGION
+			dstStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			memoryBarrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 
-		dstStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
-		memoryBarrier.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+			dstStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			memoryBarrier.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+		}
+		else
+		{
+			// dst
+			dstStage |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			memoryBarrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
 
-		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, 0, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
+			dstStage |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+			memoryBarrier.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_SHADER_READ_BIT;
+		}
+
+		VkDependencyFlags dependencyFlags = withinFeedbackLoopRenderPass ? VK_DEPENDENCY_BY_REGION_BIT : 0;
+		vkCmdPipelineBarrier(m_state.currentCommandBuffer, srcStage, dstStage, dependencyFlags, 1, &memoryBarrier, 0, nullptr, 0, nullptr);
 
 		performanceMonitor.vk.numDrawBarriersPerFrame.increment();
 
@@ -1180,22 +1192,32 @@ bool s_syncOnNextDraw = false;
 void VulkanRenderer::draw_setRenderPass()
 {
 	CachedFBOVk* fboVk = m_state.activeFBO;
+	// note - pixel self dependency can be handled via feedback_loop extension
+	// vertex/geometry self dependency needs renderpass split
+	CachedFBOVk::RendertargetSelfDependencyMask renderSelfDependencyInfo{};
 
-	// update self-dependency flag
+	// update self-dependency state
 	if (m_state.descriptorSetsChanged || m_state.activeRenderpassFBO != fboVk)
 	{
-		m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
+		renderSelfDependencyInfo = fboVk->CheckForSelfDependency(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 	}
 
 	auto vkObjRenderPass = fboVk->GetRenderPassObj();
 	auto vkObjFramebuffer = fboVk->GetFramebufferObj();
 
-	bool overridePassReuse = m_state.hasRenderSelfDependency && (GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
+	bool feedbackLoopHandlesSelfDependency = UseAttachmentFeedbackLoop() && renderSelfDependencyInfo.HasSelfDependency() && !renderSelfDependencyInfo.HasVertexOrGeometrySelfDependency();
+	bool selfDependencyNeedsPassSplit = renderSelfDependencyInfo.HasSelfDependency() && !feedbackLoopHandlesSelfDependency;
+	bool overridePassReuse = selfDependencyNeedsPassSplit && (GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
 	if (!overridePassReuse && m_state.activeRenderpassFBO == fboVk)
 	{
 		if (m_state.descriptorSetsChanged)
-			sync_inputTexturesChanged();
+			sync_inputTexturesChanged(feedbackLoopHandlesSelfDependency);
+		if (UseAttachmentFeedbackLoop() && renderSelfDependencyInfo.GetAspectMask() != m_state.feedbackLoopImageAspect)
+		{
+			m_state.feedbackLoopImageAspect = renderSelfDependencyInfo.GetAspectMask();
+			vkCmdSetAttachmentFeedbackLoopEnableEXT(m_state.currentCommandBuffer, renderSelfDependencyInfo.GetAspectMask());
+		}
 		return;
 	}
 	draw_endRenderPass();
@@ -1203,7 +1225,7 @@ void VulkanRenderer::draw_setRenderPass()
 		sync_inputTexturesChanged();
 
 	// assume that FBO changed, update self-dependency state
-	m_state.hasRenderSelfDependency = fboVk->CheckForCollision(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
+	renderSelfDependencyInfo = fboVk->CheckForSelfDependency(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 
 	sync_RenderPassLoadTextures(fboVk);
 
@@ -1228,6 +1250,11 @@ void VulkanRenderer::draw_setRenderPass()
 	}
 
 	m_state.activeRenderpassFBO = fboVk;
+	if (UseAttachmentFeedbackLoop() && renderSelfDependencyInfo.GetAspectMask() != m_state.feedbackLoopImageAspect)
+	{
+		m_state.feedbackLoopImageAspect = renderSelfDependencyInfo.GetAspectMask();
+		vkCmdSetAttachmentFeedbackLoopEnableEXT(m_state.currentCommandBuffer, renderSelfDependencyInfo.GetAspectMask());
+	}
 
 	vkObjRenderPass->flagForCurrentCommandBuffer();
 	vkObjFramebuffer->flagForCurrentCommandBuffer();
