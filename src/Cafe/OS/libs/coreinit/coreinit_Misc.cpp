@@ -4,6 +4,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_OSScreen.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/Filesystem/fsc.h"
+#include "config/LaunchSettings.h"
 #include <pugixml.hpp>
 
 namespace coreinit
@@ -544,6 +545,7 @@ namespace coreinit
 	}
 
 	std::mutex sCafeConsoleMutex;
+	bool s_forwardConsoleLogs;
 	
 	void WriteCafeConsole(CafeLogType cafeLogType, const char* msg, sint32 len)
 	{
@@ -556,6 +558,13 @@ namespace coreinit
 			cafeLogBuffer.lineLength = 0;
 		};
 
+		if (s_forwardConsoleLogs) {
+			if (cafeLogType == CafeLogType::OSCONSOLE) {
+				fwrite(msg, 1, len, stdout);
+			} else {
+				fwrite(msg, 1, len, stderr);
+			}
+		}
 		while (len)
 		{
 			char c = *msg;
@@ -846,6 +855,7 @@ namespace coreinit
 	{
 		s_currentTitleId = CafeSystem::GetForegroundTitleId();
 		s_sdkVersion = CafeSystem::GetForegroundTitleSDKVersion();
+		s_forwardConsoleLogs = LaunchSettings::ForwardConsoleLogging();
 		s_transitionToBackground = false;
 		s_transitionToForeground = false;
 
