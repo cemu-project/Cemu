@@ -126,7 +126,10 @@ void CachedFBOVk::InitDynamicRenderingData()
 			continue;
 		}
 		else
+		{
+			m_vkColorAttachments[i].imageLayout = static_cast<LatteTextureVk*>(buffer.texture->baseTexture)->GetDefaultLayout();
 			m_vkColorAttachments[i].imageView = cbView->m_textureImageView;
+		}
 	}
 
 	m_vkRenderingInfo.pColorAttachments = m_vkColorAttachments;
@@ -167,6 +170,9 @@ void CachedFBOVk::InitDynamicRenderingData()
 	// setup depth and stencil attachment
 	if (depthStencilView)
 	{
+		auto depthTexVk = static_cast<LatteTextureVk*>(depthBuffer.texture->baseTexture);
+		m_vkDepthAttachment.imageLayout = depthTexVk->GetDefaultLayout();
+		m_vkStencilAttachment.imageLayout = depthTexVk->GetDefaultLayout();
 		m_vkDepthAttachment.imageView = depthStencilView->m_textureImageView;
 		m_vkDepthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 		m_vkDepthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -189,41 +195,46 @@ void CachedFBOVk::InitDynamicRenderingData()
 	m_vkRenderingInfo.layerCount = 1;
 }
 
+static uint32 s_selfDependencyCheckIndex = 1;
 
-uint32 s_currentCollisionCheckIndex = 1;
-
-bool CachedFBOVk::CheckForCollision(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS, VkDescriptorSetInfo* psDS) const
+CachedFBOVk::RendertargetSelfDependencyMask CachedFBOVk::CheckForSelfDependency(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS, VkDescriptorSetInfo* psDS) const
 {
-	s_currentCollisionCheckIndex++;
-	const uint32 curColIndex = s_currentCollisionCheckIndex;
-	for (auto& itr : m_referencedTextures)
+	s_selfDependencyCheckIndex++;
+	const uint32 curColIndex = s_selfDependencyCheckIndex;
+	for (auto& colorAttachment : colorBuffer)
 	{
-		LatteTextureVk* vkTex = (LatteTextureVk*)itr;
-		vkTex->m_collisionCheckIndex = curColIndex;
-	}
-	if (vsDS)
-	{
-		for (auto& itr : vsDS->list_fboCandidates)
+		if (colorAttachment.texture)
 		{
-			if (itr->m_collisionCheckIndex == curColIndex)
-				return true;
+			LatteTextureVk* vkTex = static_cast<LatteTextureVk*>(colorAttachment.texture->baseTexture);
+			vkTex->m_selfDependencyCheckIndex = curColIndex;
+			vkTex->m_selfDependencyCheckAspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		}
 	}
-	if (gsDS)
+	if (depthBuffer.texture)
 	{
-		for (auto& itr : gsDS->list_fboCandidates)
-		{
-			if (itr->m_collisionCheckIndex == curColIndex)
-				return true;
-		}
+		LatteTextureVk* vkTex = static_cast<LatteTextureVk*>(depthBuffer.texture->baseTexture);
+		vkTex->m_selfDependencyCheckIndex = curColIndex;
+		vkTex->m_selfDependencyCheckAspectMask = depthBuffer.hasStencil ? (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT): VK_IMAGE_ASPECT_DEPTH_BIT;
 	}
-	if (psDS)
+
+	auto getSelfDependencyMask = [curColIndex](VkDescriptorSetInfo* ds) -> VkImageAspectFlags
 	{
-		for (auto& itr : psDS->list_fboCandidates)
+		VkImageAspectFlags aspectMask = 0;
+		if (!ds)
+			return aspectMask;
+		for (auto& itr : ds->list_fboCandidates)
 		{
-			if (itr->m_collisionCheckIndex == curColIndex)
-				return true;
+			if (itr->m_selfDependencyCheckIndex == curColIndex)
+				aspectMask |= itr->m_selfDependencyCheckAspectMask;
 		}
-	}
-	return false;
+		return aspectMask;
+	};
+
+	RendertargetSelfDependencyMask selfDepInfo{};
+	VkImageAspectFlags vertexAspectFlags = getSelfDependencyMask(vsDS);
+	VkImageAspectFlags geometryAspectFlags = getSelfDependencyMask(gsDS);
+	VkImageAspectFlags pixelAspectFlags = getSelfDependencyMask(psDS);
+	selfDepInfo.aspectMaskFlags = vertexAspectFlags | geometryAspectFlags | pixelAspectFlags;
+	selfDepInfo.hasNonPixelSelfDependency = (vertexAspectFlags | geometryAspectFlags) != 0;
+	return selfDepInfo;
 }

@@ -20,6 +20,7 @@ public:
 	
 	VkFormat GetFormat() const { return vkObjTex->m_format; }
 	VkImageAspectFlags GetImageAspect() const { return vkObjTex->m_imageAspect; }
+	VkImageLayout GetDefaultLayout() const { return m_defaultLayout; }
 
 	VkImageLayout GetImageLayout(VkImageSubresource& subresource)
 	{
@@ -83,12 +84,14 @@ public:
 	uint64 m_vkFlushIndex_read{};
 	uint64 m_vkFlushIndex_write{};
 
-	uint32 m_collisionCheckIndex{}; // used to track if texture is being both sampled and output to during drawcall
+	uint32 m_selfDependencyCheckIndex{}; // used to track if texture is being both sampled and output to during drawcall
+	VkImageAspectFlags m_selfDependencyCheckAspectMask{};
 
 private:
 	class VulkanRenderer* m_vkr;
 
 	VKRObjectTexture* vkObjTex{};
+	VkImageLayout m_defaultLayout{ VK_IMAGE_LAYOUT_GENERAL }; // the targetted long term layout of the texture. Can be either VK_IMAGE_LAYOUT_GENERAL or VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT for potential rendertargets if supported
 	std::vector<VkImageLayout> m_layouts;
 	uint32 m_layoutsMips;
 	uint32 m_layoutsDepth;
