@@ -561,6 +561,7 @@ namespace coreinit
 		if (s_forwardConsoleLogs) {
 			if (cafeLogType == CafeLogType::OSCONSOLE) {
 				fwrite(msg, 1, len, stdout);
+				fflush(stdout);
 			} else {
 				fwrite(msg, 1, len, stderr);
 			}
