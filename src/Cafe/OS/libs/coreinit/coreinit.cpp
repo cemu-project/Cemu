@@ -238,15 +238,6 @@ namespace coreinit
 		osLib_returnFromFunction(hCPU, 1);
 	}
 
-	void coreinit_exit(uint32 r)
-	{
-		cemuLog_log(LogType::Force, "The title terminated the process by calling coreinit.exit({})", (sint32)r);
-        DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
-		cemu_assert_debug(false);
-		// never return
-		while (true) std::this_thread::sleep_for(std::chrono::milliseconds(100));
-	}
-
 	bool OSIsOffBoot()
 	{
 		return true;
@@ -289,7 +280,6 @@ namespace coreinit
 
 		osLib_addFunction("coreinit", "ENVGetEnvironmentVariable", coreinitExport_ENVGetEnvironmentVariable);
 
-		cafeExportRegisterFunc(coreinit_exit, "coreinit", "exit", LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSIsOffBoot, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetBootPMFlags, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSGetSystemMode, LogType::CoreinitThread);

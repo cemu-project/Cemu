@@ -693,13 +693,18 @@ namespace coreinit
 		return s_sdkVersion;
 	}
 
-	// move this to CafeSystem.cpp?
 	void OSLauncherThread(uint64 titleId)
 	{
 		CafeSystem::ShutdownTitle();
 		CafeSystem::PrepareForegroundTitle(titleId);
 		CafeSystem::RequestRecreateCanvas();
 		CafeSystem::LaunchForegroundTitle();
+	}
+
+	void OSShutdownThread(sint32 status)
+	{
+		CafeSystem::ShutdownTitle();
+		CafeSystem::NotifyPPCProcessExit(status);
 	}
 
 	uint32 __LaunchByTitleId(uint64 titleId, uint32 argc, MEMPTR<char>* argv)
@@ -851,6 +856,26 @@ namespace coreinit
 		return 0;
 	}
 
+	void __PPCExit(sint32 status)
+	{
+		// spawn shutdown thread (the current thread has to be destroyed as part of the shutdown process)
+		std::thread shutdownThread(OSShutdownThread, status);
+		shutdownThread.detach();
+		// suspend this thread
+		coreinit::OSSuspendThread(coreinit::OSGetCurrentThread());
+	}
+
+	void coreinit_exit(sint32 status)
+	{
+		cemuLog_log(LogType::Force, "The title terminated the process by calling coreinit.exit({})", (sint32)status);
+		DebugLogStackTrace(coreinit::OSGetCurrentThread(), coreinit::OSGetStackPointer());
+		if (gCoreinitData->__atexit_cleanup)
+			PPCCoreCallback(gCoreinitData->__atexit_cleanup, status);
+		if (gCoreinitData->__stdio_cleanup)
+			PPCCoreCallback(gCoreinitData->__stdio_cleanup);
+		__PPCExit(status);
+	}
+
 	void miscInit()
 	{
 		s_currentTitleId = CafeSystem::GetForegroundTitleId();
@@ -886,6 +911,9 @@ namespace coreinit
 
 		cafeExportRegister("coreinit", OSDriver_Register, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDriver_Deregister, LogType::Placeholder);
+
+		cafeExportRegisterFunc(coreinit_exit, "coreinit", "exit", LogType::CoreinitThread);
+		cafeExportRegister("coreinit", __PPCExit, LogType::CoreinitThread);
 	}
 
 };

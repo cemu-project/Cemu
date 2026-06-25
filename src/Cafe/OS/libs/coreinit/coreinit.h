@@ -15,13 +15,13 @@ void coreinitAsyncCallback_addWithLock(MPTR functionMPTR, uint32 numParameters, 
 // coreinit shared memory
 struct CoreinitSharedData
 {
-	MEMPTR<void> MEMAllocFromDefaultHeap;
-	MEMPTR<void> MEMAllocFromDefaultHeapEx;
-	MEMPTR<void> MEMFreeToDefaultHeap;
-	MPTR __atexit_cleanup;
-	MPTR __cpp_exception_init_ptr;
-	MPTR __cpp_exception_cleanup_ptr;
-	MPTR __stdio_cleanup;
+	MEMPTR<void> MEMAllocFromDefaultHeap{nullptr};
+	MEMPTR<void> MEMAllocFromDefaultHeapEx{nullptr};
+	MEMPTR<void> MEMFreeToDefaultHeap{nullptr};
+	MEMPTR<void> __atexit_cleanup{nullptr};
+	MEMPTR<void> __stdio_cleanup{nullptr};
+	MPTR __cpp_exception_init_ptr{0};
+	MPTR __cpp_exception_cleanup_ptr{0};
 };
 
 extern CoreinitSharedData* gCoreinitData;
