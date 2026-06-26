@@ -570,6 +570,7 @@ namespace coreinit
 		case FSA_CMD_OPERATION_TYPE::MAKEDIR:
 		case FSA_CMD_OPERATION_TYPE::REMOVE:
 		case FSA_CMD_OPERATION_TYPE::RENAME:
+		case FSA_CMD_OPERATION_TYPE::REWINDDIR:
 		case FSA_CMD_OPERATION_TYPE::CLOSEDIR:
 		case FSA_CMD_OPERATION_TYPE::READ:
 		case FSA_CMD_OPERATION_TYPE::WRITE:
@@ -2718,6 +2719,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", FSReadDir, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSCloseDirAsync, LogType::CoreinitFile);
 		cafeExportRegister("coreinit", FSCloseDir, LogType::CoreinitFile);
+		cafeExportRegister("coreinit", FSRewindDirAsync, LogType::CoreinitFile);
+		cafeExportRegister("coreinit", FSRewindDir, LogType::CoreinitFile);
 
 		// stat
 		cafeExportRegister("coreinit", FSGetFreeSpaceSizeAsync, LogType::CoreinitFile);
