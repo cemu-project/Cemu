@@ -236,7 +236,7 @@ MetalRenderer::MetalRenderer()
    	for (uint32 i = 0; i < MAX_MTL_VERTEX_BUFFERS; i++)
         m_state.m_vertexBufferOffsets[i] = INVALID_OFFSET;
 
-   	for (uint32 i = 0; i < METAL_SHADER_TYPE_TOTAL; i++)
+   	for (uint32 i = 0; i < METAL_GENERAL_SHADER_TYPE_TOTAL; i++)
     {
         for (uint32 j = 0; j < MAX_MTL_BUFFERS; j++)
             m_state.m_uniformBufferOffsets[i][j] = INVALID_OFFSET;

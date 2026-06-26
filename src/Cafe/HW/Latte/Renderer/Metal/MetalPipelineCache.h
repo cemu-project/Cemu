@@ -31,9 +31,9 @@ private:
     std::map<uint64, PipelineObject*> m_pipelineCache;
     FSpinlock m_pipelineCacheLock;
 
-	std::thread* m_pipelineCacheStoreThread;
+	std::thread* m_pipelineCacheStoreThread = nullptr;
 
-	class FileCache* s_cache;
+	class FileCache* s_cache = nullptr;
 
 	std::atomic_uint32_t m_numCompilationThreads{ 0 };
 	ConcurrentQueue<std::vector<uint8>> m_compilationQueue;
