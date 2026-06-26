@@ -157,8 +157,10 @@ private:
 
 	// CafeSystem implementation
 	void CafeRecreateCanvas() override;
+	void CafePPCProcessExit() override;
 
 	void OnRequestRecreateCanvas(wxCommandEvent& event);
+	void OnRequestGameExit(wxCommandEvent& event);
 
 	wxRect GetDesktopRect();
 
