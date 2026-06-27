@@ -199,10 +199,9 @@ void GX2CopySurfaceInternal(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSli
 		return;
 	}
 	// make sure formats are compatible
-	if( srcHwFormat != dstHwFormat )
+	if( surfOutSrc.bpp != surfOutDst.bpp )
 	{
-		// mismatching format
-		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format mismatch (src=0x{:04x} dst=0x{:04x})", (sint32)srcFormat, (sint32)dstFormat);
+		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format bpp mismatch (src=0x{:04x} dst=0x{:04x})", (sint32)srcFormat, (sint32)dstFormat);
 		return;
 	}
 	// get input pointer

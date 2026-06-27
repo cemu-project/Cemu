@@ -1027,6 +1027,21 @@ void LatteDecompiler_analyze(LatteDecompilerShaderContext* shaderContext, LatteD
 				break;
 			}
 		}
+		// some existing graphic pack replacement shaders rely on uf_fragCoordScale despite the original shader not needing it. We handle these exceptions here
+		switch (shaderContext->shaderBaseHash)
+		{
+		case 0x21e6bc9b0cdbe8d7: case 0x37040a485a29d54e: case 0x37a4ec1a7dbc7391:
+		case 0x50e29e8929cea348: case 0x572a6cfa3943923d: case 0x59df1c7e1806366c:
+		case 0x6ea8b1aa69c0b6f7: case 0x88133ee405eaae28: case 0x95a5a89d62998e0d:
+		case 0x998a9f67e353657b: case 0x9f6adb9a651f84b9: case 0xa5e9d150276a805c:
+		case 0xa7f4801a8d29e333: case 0xbe99d80628d31127: case 0xc14019840473ff86:
+		case 0xc612390d4c70f430: case 0xcb0e6e8cbec4502a: case 0xe334517825fdd599:
+		case 0xe39a2a718bc419fe: case 0xfdf33c607cd1d737: case 0xff71dcd2ad4defdc:
+			shaderContext->analyzer.hasFragCoordAccess = true;
+			break;
+		default:
+			break;
+		}
 	}
 	// analyze CF stack
 	sint32 cfCurrentStackDepth = 0;

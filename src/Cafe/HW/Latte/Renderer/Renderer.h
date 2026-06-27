@@ -50,9 +50,10 @@ public:
 		U32
 	};
 
+	Renderer(RendererAPI api) : m_rendererAPI(api) {};
 	virtual ~Renderer() = default;
 
-	virtual RendererAPI GetType() = 0;
+	RendererAPI GetType() const { return m_rendererAPI; }
 
 	virtual void Initialize();
 	virtual void Shutdown();
@@ -162,6 +163,7 @@ public:
 
 protected:
 	virtual void GetVendorInformation() { }
+	RendererAPI m_rendererAPI;
 	GfxVendor m_vendor = GfxVendor::Generic;
 
 	static uint8 SRGBComponentToRGB(uint8 ci);

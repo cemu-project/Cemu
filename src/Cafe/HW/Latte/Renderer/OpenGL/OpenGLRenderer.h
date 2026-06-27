@@ -35,8 +35,6 @@ public:
 	OpenGLRenderer();
 	~OpenGLRenderer();
 
-	RendererAPI GetType() override { return RendererAPI::OpenGL; }
-
 	static OpenGLRenderer* GetInstance();
 
 	// imgui
