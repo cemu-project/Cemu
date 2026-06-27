@@ -194,15 +194,21 @@ void LatteBufferCache_Sync(uint32 maxIndex, uint32 baseInstance, uint32 instance
 	if (isIncremental)
 	{
 		// dont process flush queue and dont process deallocations yet, we are in the middle of a sequence of drawcalls that (most likely) reuse previous bindings
+		uint32 maxInstance = baseInstance + instanceCount - 1;
+		bool hasBufferChange = attribBufferDirtyMask != 0;
 		if ( maxIndex > s_vtxStateMaxIndex )
 		{
 			attribBufferDirtyMask = 0xFFFFFFFF;
 			s_vtxStateMaxIndex = maxIndex;
 		}
-		uint32 maxInstance = baseInstance + instanceCount - 1;
 		if ( maxInstance > s_vtxStateMaxInstance )
 		{
 			attribBufferDirtyMask = 0xFFFFFFFF;
+			s_vtxStateMaxInstance = maxInstance;
+		}
+		if (hasBufferChange)
+		{
+			s_vtxStateMaxIndex = maxIndex;
 			s_vtxStateMaxInstance = maxInstance;
 		}
 	}

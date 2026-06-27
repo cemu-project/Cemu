@@ -153,11 +153,6 @@ public:
     MetalRenderer();
 	~MetalRenderer() override;
 
-	RendererAPI GetType() override
-	{
-	    return RendererAPI::Metal;
-	}
-
 	static MetalRenderer* GetInstance() {
 	    return static_cast<MetalRenderer*>(g_renderer.get());
 	}

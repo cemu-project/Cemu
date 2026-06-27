@@ -50,7 +50,7 @@ std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
     return result;
 }
 
-MetalRenderer::MetalRenderer()
+MetalRenderer::MetalRenderer() : Renderer(RendererAPI::Metal)
 {
     // Options
 

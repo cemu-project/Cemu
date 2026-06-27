@@ -1062,7 +1062,7 @@ robin_hood::unordered_flat_map<uint64, ShaderStateInfo, ShaderStateDirectHash> s
 // folly::F14FastMap<uint64, ShaderStateInfo, FPHDirectHash>
 // robin_hood::unordered_flat_map ended up performing close to best and was choosen because we already have it included in the project anyway
 
-FORCEINLINE uint64 CalcCombinedAuxHash(LatteFetchShader* fetchShader, LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader)
+FORCE_INLINE uint64 CalcCombinedAuxHash(LatteFetchShader* fetchShader, LatteDecompilerShader* vertexShader, LatteDecompilerShader* pixelShader)
 {
 	uint64 vsAuxHash = vertexShader ? LatteSHRC_CalcVSAuxHash(vertexShader, LatteGPUState.contextRegister) : 0;
 	uint64 psAuxHash = pixelShader ? LatteSHRC_CalcPSAuxHash(pixelShader, LatteGPUState.contextRegister) : 0;

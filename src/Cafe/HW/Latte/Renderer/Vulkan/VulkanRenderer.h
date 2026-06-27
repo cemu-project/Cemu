@@ -89,7 +89,7 @@ public:
 	};
 	using DescriptorSetCache = ska::flat_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>>;
 
-	FORCEINLINE DescriptorSetCache& GetDescriptorSetCache(LatteConst::ShaderType shaderType)
+	FORCE_INLINE DescriptorSetCache& GetDescriptorSetCache(LatteConst::ShaderType shaderType)
 	{
 		cemu_assert_debug(shaderType == LatteConst::ShaderType::Vertex || shaderType == LatteConst::ShaderType::Pixel || shaderType == LatteConst::ShaderType::Geometry);
 		return ds_cache[static_cast<size_t>(shaderType)];
@@ -188,8 +188,6 @@ public:
 	static std::vector<DeviceInfo> GetDevices();
 	VulkanRenderer();
 	virtual ~VulkanRenderer();
-
-	RendererAPI GetType() override { return RendererAPI::Vulkan; }
 
 	static VulkanRenderer* GetInstance();
 
@@ -661,8 +659,8 @@ private:
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)
 	size_t m_commandBufferIDOfPrevFrame = 0;
-	std::array<size_t, kCommandBufferPoolSize> m_cmdBufferUniformRingbufIndices {}; // index in the uniform ringbuffer
-	std::array<VkFence, kCommandBufferPoolSize> m_cmd_buffer_fences;
+	std::array<size_t, kCommandBufferPoolSize> m_cmdBufferUniformRingbufIndices {}; // read index in the uniform ringbuffer after the command buffer finishes
+	std::array<VkFence, kCommandBufferPoolSize> m_cmdBufferFences;
 	std::array<VkCommandBuffer, kCommandBufferPoolSize> m_commandBuffers;
 	std::array<VkSemaphore, kCommandBufferPoolSize> m_commandBufferSemaphores;
 

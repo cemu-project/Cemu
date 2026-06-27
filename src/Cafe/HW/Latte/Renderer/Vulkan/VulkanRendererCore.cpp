@@ -320,23 +320,18 @@ uint32 VulkanRenderer::uniformData_uploadUniformDataBufferGetOffset(std::span<ui
 	const uint32 bufferAlignmentM1 = m_featureControl.limits.calcUniformBufferAlignmentM1;
 	const uint32 uniformSize = ((uint32)data.size() + bufferAlignmentM1) & ~bufferAlignmentM1;
 
-	auto waitWhileCondition = [&](std::function<bool()> condition) {
+	auto waitWhileCondition = [&]<class TCondition>(TCondition&& condition) {
 		while (condition())
 		{
 			if (m_commandBufferSyncIndex == m_commandBufferIndex)
 			{
-				if (m_cmdBufferUniformRingbufIndices[m_commandBufferIndex] != m_uniformVarBufferReadIndex)
-				{
-					draw_endRenderPass();
-					SubmitCommandBuffer();
-				}
-				else
-				{
-					// submitting work would not change readIndex, so there's no way for conditions based on it to change
-					cemuLog_log(LogType::Force, "draw call overflowed and corrupted uniform ringbuffer. expect visual corruption");
-					cemu_assert_suspicious();
-					break;
-				}
+				// we caught up to the current command buffer and there is still not enough space in the uniform ringbuffer
+				// in this case we just accept the corruption. In practice this is very unlikely to happen with recent reductions to uniform size
+				// If this does continue to be an issue then the likely easiest solution is to start a new command buffer at the end of a draw sequence if the ringbuffer is filled beyond a certain threshold
+				// submitting the command buffere here is complicated because we'd have to restore all of the dynamic state
+				cemuLog_log(LogType::Force, "Vulkan: Uniform ring buffer overflowed. Expect visual corruption");
+				cemu_assert_suspicious();
+				break;
 			}
 			WaitForNextFinishedCommandBuffer();
 		}
@@ -1650,7 +1645,7 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 	}
 	else
 	{
-		__debugbreak(); // should never happen unless draw_prepareDescriptorSets can fail?
+		cemu_assert(false); // should never happen unless draw_prepareDescriptorSets can fail?
 	}
 
 	draw_setRenderPass();

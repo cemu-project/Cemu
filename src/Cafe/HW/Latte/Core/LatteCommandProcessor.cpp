@@ -1021,7 +1021,6 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 		LatteCMDPtr cmd, cmdStart, cmdEnd;
 		if (!drawPassCtx.PopCurrentCommandQueuePos(cmd, cmdStart, cmdEnd))
 		{
-			// cemuLog_log(LogType::Force, "[FastDrawMode] End due running out of commands");
 			drawPassCtx.endDrawPass();
 			return;
 		}
@@ -1049,7 +1048,6 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 								(registerStart >= Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS && registerStart < (Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_VS + Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 7)) ||
 								(registerStart >= Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS && registerStart < (Latte::REGADDR::SQ_TEX_RESOURCE_WORD0_N_GS + Latte::GPU_LIMITS::NUM_TEXTURES_PER_STAGE * 7)))
 							{
-								// cemuLog_log(LogType::Force, "[FastDrawMode] End due to texture change");
 								drawPassCtx.endDrawPass(); // texture updates end the current draw sequence
 							}
 							else if (registerStart >= mmSQ_VTX_ATTRIBUTE_BLOCK_START && registerEnd <= mmSQ_VTX_ATTRIBUTE_BLOCK_END)
@@ -1089,7 +1087,7 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 							drawPassCtx.MarkVSAluConstantsDirty();
 						else
 							drawPassCtx.MarkPSAluConstantsDirty();
-						// todo - we could further optimize by tracking the min/max range of modified ALU constants
+						// todo - we could further optimize by tracking the min/max range of modified ALU constants and only uploading the affected range. Possibly not worth it
 					});
 					break;
 				}
@@ -1120,11 +1118,7 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 				}
 				case IT_SET_CONTEXT_REG:
 				{
-					// LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_CONTEXT>(cmd, nWords);
 					bool hasChanged = LatteCP_itSetRegistersGeneric2<LATTE_REG_BASE_CONTEXT>(cmdData, nWords, [](uint32 registerStart, uint32 registerEnd, bool regValuesChanged){});
-					//cemuLog_log(LogType::Force, "[FastDrawMode] Potential end due to SetContextReg (itHeader {:08x} data {:08x}) -> HasChanged {}", itHeader, (uint32)cmdData[0], hasChanged);
-					// drawPassCtx.endDrawPass();
-					// drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
 					if (hasChanged)
 					{
 						drawPassCtx.endDrawPass();
@@ -1144,10 +1138,8 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 				case IT_SET_SAMPLER:
 				{
 					bool hasChanged = LatteCP_itSetRegistersGeneric2<LATTE_REG_BASE_SAMPLER>(cmdData, nWords, [](uint32 registerStart, uint32 registerEnd, bool regValuesChanged){});
-					//cemuLog_log(LogType::Force, "[FastDrawMode] Set sampler (reg change = {} - filtered)", hasChanged);
 					if (hasChanged)
 					{
-						//cemuLog_log(LogType::Force, "[FastDrawMode] End due to sampler change");
 						drawPassCtx.endDrawPass();
 						drawPassCtx.PushCurrentCommandQueuePos(cmd, cmdStart, cmdEnd);
 						return;
@@ -1155,9 +1147,7 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 					break;
 				}
 				default:
-					// unsupported command for fast draw
-					//cemuLog_log(LogType::Force, "[FastDrawMode] Unallowed command. Data: {:08x} {:08x} {:08x} {:08x} {:08x} {:08x}", (uint32)itHeader, (uint32)cmdData[0], (uint32)cmdData[1], (uint32)cmdData[2], (uint32)cmdData[3], (uint32)cmdData[4], (uint32)cmdData[5]);
-					//cemuLog_log(LogType::Force, "[FastDrawMode] End due to unallowed packet 0x{:08x}", itHeader);
+					// unallowed command for fast draw
 					drawPassCtx.endDrawPass();
 					drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
 					return;
@@ -1169,8 +1159,7 @@ void LatteCP_processCommandBuffer_continuousDrawPass(DrawPassContext& drawPassCt
 			}
 			else
 			{
-				// unsupported command for fast draw
-				//cemuLog_log(LogType::Force, "[FastDrawMode] End due to uknown packet 0x{:08x}", itHeader);
+				// unallowed command for fast draw
 				drawPassCtx.endDrawPass();
 				drawPassCtx.PushCurrentCommandQueuePos(cmdBeforeCommand, cmdStart, cmdEnd);
 				return;

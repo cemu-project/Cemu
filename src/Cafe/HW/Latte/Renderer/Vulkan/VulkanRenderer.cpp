@@ -492,7 +492,7 @@ static void LinuxBreathOfTheWildWorkaround(VkInstance& instance, const VkInstanc
 
 #endif
 
-VulkanRenderer::VulkanRenderer()
+VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 {
 	glslang::InitializeProcess();
 
@@ -908,7 +908,7 @@ VulkanRenderer::~VulkanRenderer()
 	defaultShaders.copySurface_psDepth2Color = nullptr;
 
 	// destroy misc
-	for (auto& it : m_cmd_buffer_fences)
+	for (auto& it : m_cmdBufferFences)
 	{
 		vkDestroyFence(m_logicalDevice, it, nullptr);
 		it = VK_NULL_HANDLE;
@@ -958,11 +958,8 @@ VulkanRenderer::~VulkanRenderer()
 
 VulkanRenderer* VulkanRenderer::GetInstance()
 {
-#ifdef CEMU_DEBUG_ASSERT
-	cemu_assert_debug(g_renderer && dynamic_cast<VulkanRenderer*>(g_renderer.get()));
-	// Use #if here because dynamic_casts dont get optimized away even if the result is not stored as with cemu_assert_debug
-#endif
-	return (VulkanRenderer*)g_renderer.get();
+	cemu_assert_debug(g_renderer->GetType() == RendererAPI::Vulkan);
+	return static_cast<VulkanRenderer*>(g_renderer.get());
 }
 
 void VulkanRenderer::InitializeSurface(const Vector2i& size, bool mainWindow)
@@ -1664,14 +1661,14 @@ void VulkanRenderer::CreateCommandPool()
 
 void VulkanRenderer::CreateCommandBuffers()
 {
-	auto it = m_cmd_buffer_fences.begin();
+	auto it = m_cmdBufferFences.begin();
 	VkFenceCreateInfo fenceInfo{};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &*it);
 
 	++it;
 	fenceInfo.flags = 0;
-	for (; it != m_cmd_buffer_fences.end(); ++it)
+	for (; it != m_cmdBufferFences.end(); ++it)
 	{
 		vkCreateFence(m_logicalDevice, &fenceInfo, nullptr, &*it);
 	}
@@ -2131,7 +2128,7 @@ void VulkanRenderer::InitFirstCommandBuffer()
 	m_commandBufferSyncIndex = 0;
 
 	m_state.currentCommandBuffer = m_commandBuffers[m_commandBufferIndex];
-	vkResetFences(m_logicalDevice, 1, &m_cmd_buffer_fences[m_commandBufferIndex]);
+	vkResetFences(m_logicalDevice, 1, &m_cmdBufferFences[m_commandBufferIndex]);
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -2148,7 +2145,7 @@ void VulkanRenderer::ProcessFinishedCommandBuffers()
 	bool finishedCmdBuffers = false;
 	while (m_commandBufferSyncIndex != m_commandBufferIndex)
 	{
-		VkResult fenceStatus = vkGetFenceStatus(m_logicalDevice, m_cmd_buffer_fences[m_commandBufferSyncIndex]);
+		VkResult fenceStatus = vkGetFenceStatus(m_logicalDevice, m_cmdBufferFences[m_commandBufferSyncIndex]);
 		if (fenceStatus == VK_SUCCESS)
 		{
 			ProcessDestructionQueue();
@@ -2177,7 +2174,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 {
 	cemu_assert_debug(m_commandBufferSyncIndex != m_commandBufferIndex);
 	// wait on least recently submitted command buffer
-	VkResult result = vkWaitForFences(m_logicalDevice, 1, &m_cmd_buffer_fences[m_commandBufferSyncIndex], true, UINT64_MAX);
+	VkResult result = vkWaitForFences(m_logicalDevice, 1, &m_cmdBufferFences[m_commandBufferSyncIndex], true, UINT64_MAX);
 	if (result == VK_TIMEOUT)
 	{
 		cemuLog_log(LogType::Force, "vkWaitForFences: Returned VK_TIMEOUT on infinite fence");
@@ -2230,7 +2227,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 	submitInfo.pWaitDstStageMask = semWaitStageMask;
 	submitInfo.pWaitSemaphores = waitSemArray;
 
-	const VkResult result = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_cmd_buffer_fences[m_commandBufferIndex]);
+	const VkResult result = vkQueueSubmit(m_graphicsQueue, 1, &submitInfo, m_cmdBufferFences[m_commandBufferIndex]);
 	if (result != VK_SUCCESS)
 		UnrecoverableError(fmt::format("failed to submit command buffer. Error {}", result).c_str());
 	m_numSubmittedCmdBuffers++;
@@ -2251,7 +2248,7 @@ void VulkanRenderer::SubmitCommandBuffer(VkSemaphore signalSemaphore, VkSemaphor
 
 
 	m_state.currentCommandBuffer = m_commandBuffers[m_commandBufferIndex];
-	vkResetFences(m_logicalDevice, 1, &m_cmd_buffer_fences[m_commandBufferIndex]);
+	vkResetFences(m_logicalDevice, 1, &m_cmdBufferFences[m_commandBufferIndex]);
 	vkResetCommandBuffer(m_state.currentCommandBuffer, 0);
 
 	VkCommandBufferBeginInfo beginInfo{};

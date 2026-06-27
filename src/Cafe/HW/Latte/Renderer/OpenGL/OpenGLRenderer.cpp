@@ -111,7 +111,7 @@ static const GLenum glAlphaTestFunc[] =
 	GL_ALWAYS
 };
 
-OpenGLRenderer::OpenGLRenderer()
+OpenGLRenderer::OpenGLRenderer() : Renderer(RendererAPI::OpenGL)
 {
 	glRendererState.useTextureUploadBuffer = false;
 	if (glRendererState.useTextureUploadBuffer)
