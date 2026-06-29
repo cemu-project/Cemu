@@ -7,7 +7,7 @@ class RBSPInputBitstream
 public:
 	RBSPInputBitstream() {};
 
-	RBSPInputBitstream(uint8* stream, uint32 length)
+	RBSPInputBitstream(uint8* stream, uint32 length, bool removeEmulationByte = true) : m_removeEmulationByte(removeEmulationByte)
 	{
 		this->streamPtr = stream;
 		this->streamLength = length;
@@ -169,7 +169,7 @@ private:
 	void _nextRBSPByte()
 	{
 		readIndex += sizeof(uint8);
-		if (readIndex >= 2 && streamPtr[readIndex - 2] == 0x00 && streamPtr[readIndex - 1] == 0x00 && streamPtr[readIndex] == 0x03)
+		if (readIndex >= 2 && streamPtr[readIndex - 2] == 0x00 && streamPtr[readIndex - 1] == 0x00 && streamPtr[readIndex] == 0x03 && m_removeEmulationByte)
 		{
 			readIndex += 1;
 			currentRBSPByte = streamPtr[readIndex];
@@ -188,6 +188,7 @@ private:
 	uint8  currentRBSPByte{};
 	sint32 bitIndex{};
 	bool errorFlag{};
+	bool m_removeEmulationByte{};
 };
 
 class NALInputBitstream
