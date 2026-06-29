@@ -15,7 +15,12 @@ public:
 	ControllerState raw_state() override { return {}; }
 
 	bool has_position() override { return true; }
+	bool IsPositionEnabled() const { return m_isPositionEnabled; }
+	MouseController& SetPositionEnabled(bool value);
 	glm::vec2 get_position() override;
-	PositionVisibility GetPositionVisibility() override { return PositionVisibility::FULL; }
+	PositionVisibility GetPositionVisibility() override;
+
+private:
+	bool m_isPositionEnabled = false;
 };
 
