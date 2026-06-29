@@ -1038,7 +1038,7 @@ void _LatteDecompiler_GenerateDataForFastAccess(LatteDecompilerShader* shader)
 		else
 		{
 			LatteFastAccessRemappedUniformEntry_buffer_t entryBuf;
-			uint32 kcacheBankIdOffset = entry->kcacheBankId* (7 * 4);
+			uint32 kcacheBankIdOffset = entry->kcacheBankId * (7 * 4);
 			entryBuf.indexOffset = entry->index * 16;
 			entryBuf.mappedIndexOffset = entry->mappedIndex * 16;
 			// find or create buffer group
@@ -1049,7 +1049,7 @@ void _LatteDecompiler_GenerateDataForFastAccess(LatteDecompilerShader* shader)
 			}
 			else
 			{
-				shader->list_remappedUniformEntries_bufferGroups.emplace_back(kcacheBankIdOffset).entries.emplace_back(entryBuf);
+				shader->list_remappedUniformEntries_bufferGroups.emplace_back(entry->kcacheBankId, kcacheBankIdOffset).entries.emplace_back(entryBuf);
 			}
 		}
 	}

@@ -153,11 +153,6 @@ public:
     MetalRenderer();
 	~MetalRenderer() override;
 
-	RendererAPI GetType() override
-	{
-	    return RendererAPI::Metal;
-	}
-
 	static MetalRenderer* GetInstance() {
 	    return static_cast<MetalRenderer*>(g_renderer.get());
 	}
@@ -250,7 +245,7 @@ public:
 
 	// core drawing logic
 	void draw_beginSequence() override;
-	void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst) override;
+	void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext) override;
 	void draw_endSequence() override;
 
 	void draw_updateVertexBuffersDirectAccess();

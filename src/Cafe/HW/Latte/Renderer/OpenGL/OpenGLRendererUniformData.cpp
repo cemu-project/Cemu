@@ -36,7 +36,7 @@ void OpenGLRenderer::uniformData_update()
 			auto& list_uniformMapping = shader->list_remappedUniformEntries;
 			cemu_assert_debug(list_uniformMapping.size() <= 256);
 			sint32 remappedArraySize = (sint32)list_uniformMapping.size();
-			LatteBufferCache_LoadRemappedUniforms(shader, (float*)(_gl_remappedUniformData));
+			LatteBufferCache_LoadRemappedUniforms(shader, (float*)(_gl_remappedUniformData), true, (1<<LATTE_NUM_MAX_UNIFORM_BUFFERS)-1);
 			// update values only when the hash changed
 			if (remappedArraySize > 0)
 			{
