@@ -45,8 +45,7 @@ jobs:
             exit 1
           fi
 
-          echo "::set-output name=tag::$ALL_TAGS"
-          # echo "tag=$ALL_TAGS" >> $GITHUB_STATE
+          echo "tag=$ALL_TAGS" >> "$GITHUB_OUTPUT"
 
       - name: Calculate next semver minor
         id: calculate_next_version

@@ -239,6 +239,7 @@ jobs:
     - name: "Install molten-vk"
       run: |
         curl -L -O https://github.com/KhronosGroup/MoltenVK/releases/download/v1.4.1/MoltenVK-macos-privateapi.tar
+        echo "5e662d77f7f280d9bd692ac5d626831198f404e28b0c8d4d11aac04bff8ff418  MoltenVK-macos-privateapi.tar" | shasum -a 256 -c -
         tar xf MoltenVK-macos-privateapi.tar
         sudo mkdir -p /usr/local/lib
         sudo cp MoltenVK/MoltenVK/dynamic/dylib/macOS/libMoltenVK.dylib /usr/local/lib

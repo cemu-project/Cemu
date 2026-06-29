@@ -13,6 +13,11 @@ on:
     branches:
       - main
 
+# Cancel superseded runs for the same ref to save CI minutes
+concurrency:
+  group: build-check-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
     uses: ./.github/workflows/build.yml
