@@ -39,7 +39,7 @@ namespace H264
 		struct
 		{
 			MEMPTR<void> outputFunc{ nullptr };
-			uint8be outputPerFrame{ 0 }; // whats the default?
+			uint8be outputPerFrame{ 0 }; // default is 0
 			MEMPTR<void> userMemoryParam{ nullptr };
 		}Param;
 		// misc
@@ -52,18 +52,18 @@ namespace H264
 		}decoderState;
 	};
 
-	uint32 H264DECMemoryRequirement(uint32 codecProfile, uint32 codecLevel, uint32 width, uint32 height, uint32be* sizeRequirementOut)
+	H264DEC_STATUS H264DECMemoryRequirement(uint32 codecProfile, uint32 codecLevel, uint32 width, uint32 height, uint32be* sizeRequirementOut)
 	{
 		if (H264_IsBotW())
 		{
 			static_assert(sizeof(H264Context) < 256);
 			*sizeRequirementOut = 256;
-			return 0;
+			return H264DEC_STATUS::SUCCESS;
 		}
 
 		// note: On console this seems to check if maxWidth or maxHeight < 64 but Pikmin 3 passes 32x32 and crashes if this function fails ?
-		if (width < 0x20 || height < 0x20 || width > 2800 || height > 1408 || sizeRequirementOut == MPTR_NULL || codecLevel >= 52 || (codecProfile != 0x42 && codecProfile != 0x4D && codecProfile != 0x64))
-			return 0x1010000;
+		if (width < 32 || height < 32 || width > 2800 || height > 1408 || !sizeRequirementOut || codecLevel >= 52 || (codecProfile != 66 && codecProfile != 77 && codecProfile != 100))
+			return H264DEC_STATUS::INVALID_PARAM;
 
 		uint32 workbufferSize = 0;
 		if (codecLevel < 0xB)
@@ -112,7 +112,7 @@ namespace H264
 		}
 		workbufferSize += 0x447;
 		*sizeRequirementOut = workbufferSize;
-		return 0;
+		return H264DEC_STATUS::SUCCESS;
 	}
 
 	uint32 H264DECCheckMemSegmentation(MPTR memory, uint32 size)
@@ -189,16 +189,15 @@ namespace H264
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
-	H264DEC_STATUS H264DECGetImageSize(uint8* stream, uint32 length, uint32 offset, uint32be* outputWidth, uint32be* outputHeight)
+	H264DEC_STATUS H264DECGetImageSize(uint8* stream, sint32 streamSize, sint32 offset, uint32be* outputWidth, uint32be* outputHeight)
 	{
-		if(!stream || length < 4 || !outputWidth || !outputHeight)
+		if (!stream || streamSize < 4 || offset < 0 || !outputWidth || !outputHeight || offset < streamSize)
 			return H264DEC_STATUS::INVALID_PARAM;
-		if( (offset+4) > length )
+		if ( (offset+4) >= streamSize )
 			return H264DEC_STATUS::INVALID_PARAM;
 		uint8* cur = stream + offset;
-		uint8* end = stream + length;
-		cur += 2; // we access cur[-2] and cur[-1] so we need to start at offset 2
-		while(cur < end-2)
+		uint8* end = stream + streamSize;
+		while (cur < end-2)
 		{
 			// check for start code
 			if(*cur != 1)
@@ -207,7 +206,7 @@ namespace H264
 				continue;
 			}
 			// check if this is a valid NAL header
-			if(cur[-2] != 0 || cur[-1] != 0 || cur[0] != 1)
+			if(cur[-2] != 0 || cur[-1] != 0 || cur[0] != 1) // if offset is < 2, this will read out of bounds. The console implementation has this behavior too so we have to replicate this bug
 			{
 				cur++;
 				continue;
@@ -226,7 +225,14 @@ namespace H264
 				return H264DEC_STATUS::BAD_STREAM;
 			}
 			*outputWidth = (psp.pic_width_in_mbs_minus1 + 1) * 16;
-			*outputHeight = (psp.pic_height_in_map_units_minus1 + 1) * 16; // affected by frame_mbs_only_flag?
+			*outputHeight = (psp.pic_height_in_map_units_minus1 + 1) * 16;
+			if (!psp.frame_mbs_only_flag)
+				*outputHeight *= 2;
+			if (!*outputHeight || !*outputWidth)
+				return H264DEC_STATUS::BAD_STREAM;
+			// BotW 1080p video support
+			if (H264_IsBotW() && *outputWidth == 1920 && *outputHeight == 1088)
+				*outputHeight = 1080;
 			return H264DEC_STATUS::SUCCESS;
 		}
 		return H264DEC_STATUS::BAD_STREAM;

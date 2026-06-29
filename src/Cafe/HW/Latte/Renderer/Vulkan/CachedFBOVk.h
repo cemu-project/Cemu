@@ -51,8 +51,29 @@ public:
 
 	[[nodiscard]] const VkExtent2D& GetExtend() const { return m_extend;}
 
+	struct RendertargetSelfDependencyMask
+	{
+		VkImageAspectFlags aspectMaskFlags{}; // aspect flags which are simultaneously sampled and written
+		bool hasNonPixelSelfDependency{false};
+
+		VkImageAspectFlags GetAspectMask() const
+		{
+			return aspectMaskFlags;
+		}
+
+		bool HasSelfDependency() const
+		{
+			return GetAspectMask() != 0;
+		}
+
+		bool HasVertexOrGeometrySelfDependency() const
+		{
+			return hasNonPixelSelfDependency; // vertex or geometry shader samples texture which is written to
+		}
+	};
+
 	// checks if any of the sampled textures are output by the FBO
-	bool CheckForCollision(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS, VkDescriptorSetInfo* psDS) const;
+	RendertargetSelfDependencyMask CheckForSelfDependency(VkDescriptorSetInfo* vsDS, VkDescriptorSetInfo* gsDS, VkDescriptorSetInfo* psDS) const;
 
 private:
 

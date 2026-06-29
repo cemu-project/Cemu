@@ -975,7 +975,8 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	endPerfMonProfiling(performanceMonitor.gpuTime_dcStageIndexMgr);
 
 	// synchronize vertex and uniform buffers
-	LatteBufferCache_Sync(indexState.minIndex + baseVertex, indexState.maxIndex + baseVertex, baseInstance, instanceCount);
+	uint8 stageUniformModifiedMask = 0;
+	LatteBufferCache_Sync(indexState.maxIndex + baseVertex, baseInstance, instanceCount, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, stageUniformModifiedMask);
 
 	_setupVertexAttributes();
 
@@ -1148,9 +1149,9 @@ void OpenGLRenderer::draw_beginSequence()
 	// no-op
 }
 
-void OpenGLRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
+void OpenGLRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext)
 {
-	bool isMinimal = !isFirst;
+	bool isMinimal = !drawcallContext.isFirst;
     if (isMinimal)
         draw_genericDrawHandler<true, false>(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType);
     else

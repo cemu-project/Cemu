@@ -189,6 +189,9 @@ VKFUNC_DEVICE(vkCmdPipelineBarrier2KHR);
 VKFUNC_DEVICE(vkCmdBeginRenderingKHR);
 VKFUNC_DEVICE(vkCmdEndRenderingKHR);
 
+// ext_attachment_feedback_loop_dynamic_state
+VKFUNC_DEVICE(vkCmdSetAttachmentFeedbackLoopEnableEXT);
+
 // khr_present_wait
 VKFUNC_DEVICE(vkWaitForPresentKHR);
 

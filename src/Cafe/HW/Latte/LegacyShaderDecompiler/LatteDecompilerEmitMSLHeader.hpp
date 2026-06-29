@@ -68,18 +68,34 @@ namespace LatteDecompiler
 			}
 		}
 		// define fragCoordScale which holds the xy scale for render target resolution vs effective resolution
+		bool compatNeedFragCoordScalePadding = false; // 2026-06-15 - fragCoordScale is only emitted when accessed now. To keep compatible with old shader replacements we insert padding if its not the last element
 		if (shader->shaderType == LatteConst::ShaderType::Pixel)
 		{
-			uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
-			src->add("float2 fragCoordScale;" _CRLF);
-			uniformOffsets.offset_fragCoordScale = uniformCurrentOffset;
-			uniformCurrentOffset += 8;
+			if (!decompilerContext->analyzer.hasFragCoordAccess)
+			{
+				// omit fragCoordScale
+				compatNeedFragCoordScalePadding = true;
+			}
+			else
+			{
+				uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
+				src->add("float2 fragCoordScale;" _CRLF);
+				uniformOffsets.offset_fragCoordScale = uniformCurrentOffset;
+				uniformCurrentOffset += 8;
+			}
 		}
 		// provide scale factor for every texture that is accessed via texel coordinates (texelFetch)
 		for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
 		{
 			if (decompilerContext->analyzer.texUnitUsesTexelCoordinates.test(t) == false)
 				continue;
+			if (compatNeedFragCoordScalePadding)
+			{
+				uniformCurrentOffset = (uniformCurrentOffset + 7)&~7;
+				src->add("float2 fragCoordScaleCompatPadding;" _CRLF);
+				uniformCurrentOffset += 8;
+				compatNeedFragCoordScalePadding = false;
+			}
 			uniformCurrentOffset = (uniformCurrentOffset + 7) & ~7;
 			src->addFmt("float2 tex{}Scale;" _CRLF, t);
 			uniformOffsets.offset_texScale[t] = uniformCurrentOffset;
@@ -248,7 +264,8 @@ namespace LatteDecompiler
 	{
 		auto* src = shaderContext->shaderSource;
 
-		src->add("#define GET_FRAGCOORD() float4(in.position.xy * supportBuffer.fragCoordScale.xy, in.position.z, 1.0 / in.position.w)" _CRLF);
+		if (shaderContext->analyzer.hasFragCoordAccess)
+			src->add("#define GET_FRAGCOORD() float4(in.position.xy * supportBuffer.fragCoordScale.xy, in.position.z, 1.0 / in.position.w)" _CRLF);
 
 		src->add("struct FragmentIn {" _CRLF);
 		src->add("float4 position [[position]];" _CRLF);

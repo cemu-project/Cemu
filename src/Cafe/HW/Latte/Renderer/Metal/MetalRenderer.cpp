@@ -50,7 +50,7 @@ std::vector<MetalRenderer::DeviceInfo> MetalRenderer::GetDevices()
     return result;
 }
 
-MetalRenderer::MetalRenderer()
+MetalRenderer::MetalRenderer() : Renderer(RendererAPI::Metal)
 {
     // Options
 
@@ -1067,7 +1067,7 @@ void MetalRenderer::draw_beginSequence()
 		m_state.m_skipDrawSequence = true;
 }
 
-void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst)
+void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext)
 {
     if (m_state.m_skipDrawSequence)
 	{
@@ -1142,10 +1142,9 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	// Index buffer
 	Renderer::INDEX_TYPE hostIndexType;
 	uint32 hostIndexCount;
-	uint32 indexMin = 0;
 	uint32 indexMax = 0;
 	Renderer::IndexAllocation indexAllocation;
-	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMin, indexMax, hostIndexType, hostIndexCount, indexAllocation);
+	LatteIndices_decode(memory_getPointerFromVirtualOffset(indexDataMPTR), indexType, count, primitiveMode, indexMax, hostIndexType, hostIndexCount, indexAllocation);
 	auto indexAllocationMtl = static_cast<MetalSynchronizedHeapAllocator::AllocatorReservation*>(indexAllocation.rendererInternal);
 
 	// Buffer cache
@@ -1164,7 +1163,8 @@ void MetalRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 
 	{
     	// synchronize vertex and uniform cache and update buffer bindings
     	// We need to call this before getting the render command encoder, since it can cause buffer copies
-    	LatteBufferCache_Sync(indexMin + baseVertex, indexMax + baseVertex, baseInstance, instanceCount);
+		uint8 stageUniformModifiedMask = 0;
+    	LatteBufferCache_Sync(indexMax + baseVertex, baseInstance, instanceCount, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, stageUniformModifiedMask);
 	}
 
 	// Render pass
@@ -1996,7 +1996,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
     sint32 textureCount = shader->resourceMapping.getTextureCount();
 	for (int i = 0; i < textureCount; ++i)
 	{
-		const auto relative_textureUnit = shader->resourceMapping.getTextureUnitFromBindingPoint(i);
+		const auto relative_textureUnit = shader->resourceMapping.getRelativeTextureUnitFromRelativeBindingPoint(i);
 		auto hostTextureUnit = relative_textureUnit;
 
 		// Don't bind textures that are accessed with a framebuffer fetch
@@ -2138,7 +2138,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		}
 		if (shader->uniform.loc_remapped >= 0)
 		{
-			LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped));
+			LatteBufferCache_LoadRemappedUniforms(shader, GET_UNIFORM_DATA_PTR(shader->uniform.loc_remapped), true, (1<<LATTE_NUM_MAX_UNIFORM_BUFFERS)-1);
 		}
 		if (shader->uniform.loc_uniformRegister >= 0)
 		{
