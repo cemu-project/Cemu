@@ -556,7 +556,8 @@ namespace iosu
 			FSCDirEntry fscDirEntry;
 			if (fsc_nextDir(fscFile, &fscDirEntry) == false)
 				return FSA_RESULT::END_OF_DIRECTORY;
-			strcpy(dirEntryOut->name, fscDirEntry.path);
+			strncpy(dirEntryOut->name, fscDirEntry.path, sizeof(dirEntryOut->name));
+			dirEntryOut->name[sizeof(dirEntryOut->name) - 1] = '\0';
 			FSFlag statFlag = FSFlag::NONE;
 			dirEntryOut->stat.size = 0;
 			if (fscDirEntry.isDirectory)

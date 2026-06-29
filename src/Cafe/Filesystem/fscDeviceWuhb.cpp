@@ -75,7 +75,8 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile
 				dirEntry->isDirectory = true;
 				dirEntry->isFile = false;
 				dirEntry->fileSize = 0;
-				std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
+				std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH - 1);
+				dirEntry->path[FSC_MAX_DIR_NAME_LENGTH - 1] = '\0';
 				return true;
 			}
 		}
@@ -88,7 +89,8 @@ class FSCDeviceWuhbFileCtx : public FSCVirtualFile
 				dirEntry->isDirectory = false;
 				dirEntry->isFile = true;
 				dirEntry->fileSize = entry.size;
-				std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH);
+				std::strncpy(dirEntry->path, entry.name.c_str(), FSC_MAX_DIR_NAME_LENGTH - 1);
+				dirEntry->path[FSC_MAX_DIR_NAME_LENGTH - 1] = '\0';
 				return true;
 			}
 		}

@@ -115,6 +115,8 @@ uint32 WUHBReader::GetHashTableEntryOffset(uint32 hash, bool isFile) const
 	const uint64 hash_table_ofs = (isFile ? m_header.file_hash_table_ofs : m_header.dir_hash_table_ofs);
 
 	const uint64 hash_table_entry_count = hash_table_size / sizeof(uint32);
+	if (hash_table_entry_count == 0)
+		return ROMFS_ENTRY_EMPTY;
 	const uint64 hash_table_entry_offset = hash_table_ofs + (hash % hash_table_entry_count) * sizeof(uint32);
 
 	m_fileIn->SetPosition(hash_table_entry_offset);
@@ -131,10 +133,15 @@ uint32 WUHBReader::GetHashTableEntryOffset(uint32 hash, bool isFile) const
 template<bool T>
 bool WUHBReader::SearchHashList(uint32& entryOffset, const fs::path& targetName) const
 {
-	for (;;)
+	for (uint32 iterations = 0; ; iterations++)
 	{
 		if (entryOffset == ROMFS_ENTRY_EMPTY)
 			return false;
+		if (iterations >= 0x100000)
+		{
+			cemuLog_log(LogType::Force, "WUHB: aborting suspected cyclic hash chain");
+			return false;
+		}
 		auto entry = GetEntry<T>(entryOffset);
 
 		if (entry.name == targetName)

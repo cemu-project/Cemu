@@ -43,8 +43,20 @@ wud_t* wud_open(const fs::path& path)
 		wud->offsetSectorArray = (wud->offsetSectorArray + (long long)(wud->sectorSize-1));
 		wud->offsetSectorArray = wud->offsetSectorArray - (wud->offsetSectorArray%(long long)wud->sectorSize);
 		// read index table
-		unsigned int indexTableSize = sizeof(unsigned int) * wud->indexTableEntryCount;
+		uint64 indexTableSize64 = (uint64)sizeof(unsigned int) * (uint64)wud->indexTableEntryCount;
+		if (indexTableSize64 == 0 || indexTableSize64 > 0x40000000ull || indexTableSize64 > (uint64)inputFileSize)
+		{
+			// reject implausible/crafted index table sizes to avoid integer overflow and over-allocation
+			wud_close(wud);
+			return nullptr;
+		}
+		unsigned int indexTableSize = (unsigned int)indexTableSize64;
 		wud->indexTable = (unsigned int*)malloc(indexTableSize);
+		if (!wud->indexTable)
+		{
+			wud_close(wud);
+			return nullptr;
+		}
 		wud->fs->SetPosition(wud->offsetIndexTable);
 		if( wud->fs->readData(wud->indexTable, indexTableSize) != indexTableSize )
 		{
