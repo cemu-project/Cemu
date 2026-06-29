@@ -231,6 +231,7 @@ jobs:
     - name: "Install system dependencies"
       run: |
         brew update
+        brew untap aws/tap azure/bicep
         brew install nasm automake libtool
 
     - name: "Install molten-vk"
