@@ -81,6 +81,14 @@
     {
       "name": "wxwidgets",
       "version": "3.3.1"
+    },
+    {
+      "name": "openssl",
+      "version": "3.6.2"
+    },
+    {
+      "name": "curl",
+      "version": "8.20.0"
     }
   ]
 }
