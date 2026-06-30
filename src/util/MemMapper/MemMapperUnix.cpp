@@ -32,7 +32,8 @@ namespace MemMapper
 
 	void* ReserveMemory(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags)
 	{
-		return mmap(baseAddr, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		void* r = mmap(baseAddr, size, PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+		return r == MAP_FAILED ? nullptr : r;
 	}
 
 	void FreeReservation(void* baseAddr, size_t size)
@@ -55,7 +56,11 @@ namespace MemMapper
                 r = nullptr;
 		}
 		else
+		{
 			r = mmap(baseAddr, size, GetProt(permissionFlags), MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+			if (r == MAP_FAILED)
+				r = nullptr;
+		}
 		return r;
 	}
 

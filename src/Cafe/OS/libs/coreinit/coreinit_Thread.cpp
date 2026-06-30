@@ -154,8 +154,13 @@ namespace coreinit
 		}
 		if (alreadyActive == false)
 		{
-			activeThread[activeThreadCount] = threadMPTR;
-			activeThreadCount++;
+			if (activeThreadCount < 256)
+			{
+				activeThread[activeThreadCount] = threadMPTR;
+				activeThreadCount++;
+			}
+			else
+				cemuLog_log(LogType::Force, "coreinit: active thread list is full, cannot register thread");
 		}
 
 		__OSCreateHostThread(thread);

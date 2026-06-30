@@ -157,7 +157,7 @@ public:
 		return *this;
 	}
 
-	betype<T>& operator|(const betype<T>& v) const requires (requires (T& x, const T& y) { x | y; })
+	betype<T> operator|(const betype<T>& v) const requires (requires (T& x, const T& y) { x | y; })
 	{
 		betype<T> tmp(*this);
 		tmp.m_value = tmp.m_value | v.m_value;
