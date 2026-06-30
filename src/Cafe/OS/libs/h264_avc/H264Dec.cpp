@@ -189,9 +189,114 @@ namespace H264
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
+	struct H264Dec_SeqParameterSet
+	{
+		// for now this contains only the fields we care about
+		uint32 pic_width_in_luma_samples{};
+		uint32 pic_height_in_map_units_x16{};
+		uint8 frame_mbs_only_flag{};
+	};
+
+	void H264Dec_parseScalingList(RBSPInputBitstream& stream, sint32 size)
+	{
+		sint32 lastScale = 8;
+		sint32 nextScale = 8;
+		for (sint32 i = 0; i < size; i++)
+		{
+			if (nextScale != 0)
+			{
+				sint32 deltaScale = stream.readSV_E();
+				nextScale = (lastScale + deltaScale + 256) % 256;
+			}
+			if (nextScale != 0)
+				lastScale = nextScale;
+		}
+	}
+
+	bool H264Dec_parseSequencePS(RBSPInputBitstream& stream, H264Dec_SeqParameterSet& ps)
+	{
+		ps = {};
+		uint32 profileIdc = stream.readBits<8>();
+		if (profileIdc != 66 && profileIdc != 77 && profileIdc != 100)
+			return false;
+		stream.readBits<8>(); // constraint_set flags
+		stream.readBits<8>(); // level_idc
+		uint32 seqParameterSetId = stream.readUV_E();
+		if (seqParameterSetId >= 32)
+			return false;
+		if (profileIdc == 100)
+		{
+			uint32 chromaFormatIdc = stream.readUV_E();
+			if (chromaFormatIdc > 1)
+				return false;
+			stream.readUV_E(); // bit_depth_luma_minus8
+			stream.readUV_E(); // bit_depth_chroma_minus8
+			stream.readBit(); // qpprime_y_zero_transform_bypass_flag
+			if (stream.readBit()) // seq_scaling_matrix_present_flag
+			{
+				for (sint32 i = 0; i < 8; i++)
+				{
+					if (stream.readBit())
+						H264Dec_parseScalingList(stream, i < 6 ? 16 : 64);
+				}
+			}
+		}
+		uint32 log2MaxFrameNumMinus4 = stream.readUV_E();
+		if (log2MaxFrameNumMinus4 > 12)
+			return false;
+		uint32 picOrderCntType = stream.readUV_E();
+		if (picOrderCntType > 2)
+			return false;
+		if (picOrderCntType == 0)
+		{
+			uint32 log2MaxPicOrderCntLsbMinus4 = stream.readUV_E();
+			if (log2MaxPicOrderCntLsbMinus4 > 12)
+				return false;
+		}
+		else if (picOrderCntType == 1)
+		{
+			stream.readBit(); // delta_pic_order_always_zero_flag
+			stream.readSV_E(); // offset_for_non_ref_pic
+			stream.readSV_E(); // offset_for_top_to_bottom_field
+			uint32 numRefFramesInPicOrderCntCycle = stream.readUV_E();
+			if (numRefFramesInPicOrderCntCycle > 0xFF)
+				return false;
+			for (uint32 i = 0; i < numRefFramesInPicOrderCntCycle; i++)
+				stream.readSV_E();
+		}
+		uint32 maxNumRefFrames = stream.readUV_E();
+		if (maxNumRefFrames > 16)
+			return false;
+		stream.readBit(); // gaps_in_frame_num_value_allowed_flag
+		uint32 picWidthInMbsMinus1 = stream.readUV_E();
+		uint32 width = 16 * (picWidthInMbsMinus1 + 1);
+		if ((width & 0xFFF0) < 0x10)
+			return false;
+		uint32 picHeightInMapUnitsMinus1 = stream.readUV_E();
+		uint32 heightInMapUnitsX16 = 16 * (picHeightInMapUnitsMinus1 + 1);
+		if ((heightInMapUnitsX16 & 0xFFF0) < 0x10)
+			return false;
+		ps.pic_width_in_luma_samples = width;
+		ps.pic_height_in_map_units_x16 = heightInMapUnitsX16;
+		ps.frame_mbs_only_flag = stream.readBit();
+		if (!ps.frame_mbs_only_flag)
+			stream.readBit(); // mb_adaptive_frame_field_flag
+		stream.readBit(); // direct_8x8_inference_flag
+		if (stream.readBit()) // frame_cropping_flag
+		{
+			stream.readUV_E(); // frame_crop_left_offset
+			stream.readUV_E(); // frame_crop_right_offset
+			stream.readUV_E(); // frame_crop_top_offset
+			stream.readUV_E(); // frame_crop_bottom_offset
+		}
+		stream.readBit(); // vui_parameters_present_flag
+		// vui parsing unnecessary as we currently dont need any of the fields
+		return true;
+	}
+
 	H264DEC_STATUS H264DECGetImageSize(uint8* stream, sint32 streamSize, sint32 offset, uint32be* outputWidth, uint32be* outputHeight)
 	{
-		if (!stream || streamSize < 4 || offset < 0 || !outputWidth || !outputHeight || offset < streamSize)
+		if (!stream || streamSize < 4 || offset < 0 || !outputWidth || !outputHeight || offset >= streamSize)
 			return H264DEC_STATUS::INVALID_PARAM;
 		if ( (offset+4) >= streamSize )
 			return H264DEC_STATUS::INVALID_PARAM;
@@ -217,15 +322,19 @@ namespace H264
 				cur++;
 				continue;
 			}
-			h264State_seq_parameter_set_t psp;
-			bool r = h264Parser_ParseSPS(cur+2, end-cur-2, psp);
+			uint8* spsStart = cur + 2;
+			uint32 spsLength = (uint32)(end - spsStart);
+			H264Dec_SeqParameterSet psp;
+			RBSPInputBitstream rbspStream(spsStart, spsLength, false);
+			bool r = H264Dec_parseSequencePS(rbspStream, psp);
 			if(!r)
 			{
+				cemuLog_log(LogType::Force, "H264DECGetImageSize: Invalid SPS data");
 				cemu_assert_suspicious(); // should not happen
 				return H264DEC_STATUS::BAD_STREAM;
 			}
-			*outputWidth = (psp.pic_width_in_mbs_minus1 + 1) * 16;
-			*outputHeight = (psp.pic_height_in_map_units_minus1 + 1) * 16;
+			*outputWidth = psp.pic_width_in_luma_samples;
+			*outputHeight = psp.pic_height_in_map_units_x16;
 			if (!psp.frame_mbs_only_flag)
 				*outputHeight *= 2;
 			if (!*outputHeight || !*outputWidth)
