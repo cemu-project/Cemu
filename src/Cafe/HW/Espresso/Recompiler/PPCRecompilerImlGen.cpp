@@ -1545,7 +1545,7 @@ bool PPCRecompilerImlGen_STWCX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	IMLReg regCrGT = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_GT);
 	IMLReg regCrEQ = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_EQ);
 	IMLReg regCrSO = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_SO);
-	IMLReg regXerSO = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_SO);
+	IMLReg regXerSO = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_XER_SO);
 	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, regCrLT, 0);
 	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, regCrGT, 0);
 	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_ASSIGN, regCrSO, regXerSO);

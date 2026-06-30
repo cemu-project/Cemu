@@ -47,7 +47,7 @@ public:
 		//m_raw |= (uint32)regId;
 	}
 
-	IMLReg(const IMLReg& other) : m_raw(other.m_raw) {}
+	IMLReg(const IMLReg& other) = default;
 
 	IMLRegFormat GetBaseFormat() const
 	{
@@ -351,10 +351,7 @@ struct IMLUsedRegisters
 struct IMLInstruction
 {
 	IMLInstruction() {}
-	IMLInstruction(const IMLInstruction& other) 
-	{
-		memcpy(this, &other, sizeof(IMLInstruction));
-	}
+	IMLInstruction(const IMLInstruction& other) = default;
 
 	uint8 type;
 	uint8 operation;
