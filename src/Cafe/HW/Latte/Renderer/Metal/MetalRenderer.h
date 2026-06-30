@@ -535,9 +535,9 @@ private:
 	MetalEncoderType m_encoderType = MetalEncoderType::None;
 	MTL::CommandEncoder* m_commandEncoder = nullptr;
 
-    uint32 m_recordedDrawcalls;
-    uint32 m_defaultCommitTreshlod;
-    uint32 m_commitTreshold;
+	uint32 m_recordedDrawcalls = 0;
+	uint32 m_defaultCommitTreshlod = 0;
+	uint32 m_commitTreshold = 0;
 
 	// State
 	MetalState m_state;

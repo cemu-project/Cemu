@@ -159,7 +159,7 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 					h256 = _mm256_xor_si256(h256, temp);
 				}
 #ifdef __clang__
-				hashVal = h256[0] + h256[1] + h256[2] + h256[3] + h256[4] + h256[5] + h256[6] + h256[7];
+				hashVal = (uint32)h256[0] + (uint32)(h256[0] >> 32) + (uint32)h256[1] + (uint32)(h256[1] >> 32) + (uint32)h256[2] + (uint32)(h256[2] >> 32) + (uint32)h256[3] + (uint32)(h256[3] >> 32);
 #else
 				hashVal = h256.m256i_u32[0] + h256.m256i_u32[1] + h256.m256i_u32[2] + h256.m256i_u32[3] + h256.m256i_u32[4] + h256.m256i_u32[5] + h256.m256i_u32[6] + h256.m256i_u32[7];
 #endif

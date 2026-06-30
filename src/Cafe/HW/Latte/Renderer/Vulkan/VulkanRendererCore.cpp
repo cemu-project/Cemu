@@ -1772,6 +1772,7 @@ void VulkanRenderer::draw_updateVertexBuffersDirectAccess()
 		VkBuffer attrBuffer = m_importedMem;
 		VkDeviceSize attrOffset = bufferAddress - m_importedMemBaseAddress;
 		vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+		m_state.currentVertexBinding[bufferIndex].offset = bufferAddress;
 	}
 }
 

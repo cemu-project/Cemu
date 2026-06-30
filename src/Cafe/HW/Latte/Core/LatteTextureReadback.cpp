@@ -151,11 +151,11 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 		LatteTextureView* origTexView = LatteTextureViewLookupCache::lookupSlice(readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.pitch, 0, 0, readbackInfo->hostTextureCopy.format);
 		if (origTexView)
 			LatteTC_ResetTextureChangeTracker(origTexView->baseTexture, true);
-		delete readbackInfo;
 		// remove from queue
 		cemu_assert_debug(!sTextureActiveReadbackQueue.empty());
 		cemu_assert_debug(readbackInfo == sTextureActiveReadbackQueue.front());
 		sTextureActiveReadbackQueue.pop();
+		delete readbackInfo;
 	}
 	performanceMonitor.gpuTime_waitForAsync.endMeasuring();
 }

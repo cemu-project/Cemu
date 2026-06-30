@@ -187,6 +187,7 @@ void LatteSHRC_RemoveFromCaches(LatteDecompilerShader* shader)
 				removed = true;
 				break;
 			}
+			shaderChain = shaderChain->next;
 		}
 	}
 	cemu_assert(removed);
@@ -355,7 +356,7 @@ void LatteShader_CreateRendererShader(LatteDecompilerShader* shader, bool compil
 		shader->isCustomShader = true;
 	}
 	else
-		shaderSrc.assign(shader->strBuf_shaderSource->c_str());
+		shaderSrc.assign(shader->strBuf_shaderSource->c_str(), shader->strBuf_shaderSource->getLen());
 
 	if (shaderType == RendererShader::ShaderType::kVertex &&
 		(shader->baseHash == 0x15bc7edf9de2ed30 || shader->baseHash == 0x83a697d61a3b9202 ||
