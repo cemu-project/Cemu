@@ -25,6 +25,7 @@
 #include "wxgui/input/PairingDialog.h"
 #endif
 
+#include "input/api/Mouse/MouseController.h"
 #include "wxgui/input/panels/VPADInputPanel.h"
 #include "wxgui/input/panels/ProControllerInputPanel.h"
 
@@ -35,6 +36,7 @@
 #include "util/EventService.h"
 
 #include "resource/embedded/resources.h"
+#include "settings/MouseControllerSettings.h"
 
 bool g_inputConfigWindowHasFocus = false;
 
@@ -960,7 +962,14 @@ void InputSettings2::on_controller_settings(wxCommandEvent& event)
 		wnd.ShowModal();
 		break;
 	}
-
+	case InputAPI::Mouse:
+	{
+		const auto mouse_controller = std::dynamic_pointer_cast<MouseController>(controller);
+		wxASSERT(mouse_controller);
+		MouseControllerSettings wnd(this, wxGetMousePosition() + wxSize(5, 5), mouse_controller);
+		wnd.ShowModal();
+		break;
+	}
 	case InputAPI::Keyboard: break;
 
 	#ifdef SUPPORTS_WIIMOTE

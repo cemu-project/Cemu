@@ -88,6 +88,8 @@ add_library(CemuWxGui STATIC
   input/settings/DefaultControllerSettings.h
   input/settings/WiimoteControllerSettings.cpp
   input/settings/WiimoteControllerSettings.h
+  input/settings/MouseControllerSettings.cpp
+  input/settings/MouseControllerSettings.h
   LoggingWindow.cpp
   LoggingWindow.h
   MainWindow.cpp
