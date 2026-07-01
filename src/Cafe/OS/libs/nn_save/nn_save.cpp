@@ -6,11 +6,24 @@
 
 #include <filesystem>
 #include <sstream>
+#include <thread>
 #include "config/ActiveSettings.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/OS/libs/coreinit/coreinit_FS.h"
 #include "Cafe/CafeSystem.h"
 #include "Cafe/Filesystem/fsc.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
+
+#if BOOST_OS_WINDOWS
+#include <Windows.h>
+#else
+#include <spawn.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <cstdlib>
+#include <vector>
+extern char** environ;
+#endif
 
 #define SAVE_STATUS_OK ((FSStatus)FS_RESULT::SUCCESS)
 #define SAVE_MAX_PATH_SIZE (FSA_CMD_PATH_MAX_LENGTH)
@@ -229,6 +242,229 @@ namespace save
     }
 
 
+	// Host path of the local save directory: <mlc>/usr/save/<high>/<low>/
+	fs::path CloudSync_GetLocalSaveDir(uint32 high, uint32 low)
+	{
+		char subDir[64];
+		sprintf(subDir, "usr/save/%08x/%08x", high, low);
+		return ActiveSettings::GetMlcPath(subDir);
+	}
+
+	bool CloudSync_LocalSaveDirExists(uint32 high, uint32 low)
+	{
+		std::error_code ec;
+		return fs::is_directory(CloudSync_GetLocalSaveDir(high, low), ec);
+	}
+
+	// Dropbox:Cemu Cloud Saves/<Game Name> (<Game ID>)
+	std::string CloudSync_GetRemotePath(uint64 titleId)
+	{
+		std::string gameName = CafeSystem::GetForegroundTitleName();
+		for (char& c : gameName)
+		{
+			if (c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|')
+				c = '_';
+		}
+		if (gameName.empty())
+			gameName = "Unknown Game";
+
+		return fmt::format("Dropbox:Cemu Cloud Saves/{} ({:016x})", gameName, titleId);
+	}
+
+#if BOOST_OS_WINDOWS
+	// Runs rclone and blocks the calling thread until it finishes. Returns the process exit code, or -1 on launch failure.
+	sint32 CloudSync_RunRcloneBlocking(std::wstring cmdLine)
+	{
+		STARTUPINFOW si{};
+		si.cb = sizeof(si);
+		si.dwFlags = STARTF_USESHOWWINDOW;
+		si.wShowWindow = SW_HIDE;
+		PROCESS_INFORMATION pi{};
+
+		if (!CreateProcessW(nullptr, cmdLine.data(), nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, nullptr, &si, &pi))
+		{
+			cemuLog_log(LogType::Save, "CloudSync: failed to launch rclone, error code {}", (uint32)GetLastError());
+			return -1;
+		}
+
+		WaitForSingleObject(pi.hProcess, INFINITE);
+		DWORD exitCode = 0;
+		GetExitCodeProcess(pi.hProcess, &exitCode);
+		CloseHandle(pi.hThread);
+		CloseHandle(pi.hProcess);
+		return (sint32)exitCode;
+	}
+#else
+	// AppImages mount their payload as a squashfs and typically don't expose the host's real
+	// $PATH to child processes the way a normally installed binary would, so a plain execvp("rclone", ...)
+	// often fails to find a system-installed rclone. We instead probe a fixed list of common install
+	// locations directly. /proc/1/root re-anchors the lookup at PID 1's root filesystem, which lets us
+	// reach the real host filesystem even if we're running inside a mount namespace/sandbox that
+	// otherwise hides it (e.g. some AppImage integrations, Steam Deck's read-only rootfs).
+	std::string CloudSync_FindRclonePath()
+	{
+		std::vector<std::string> candidates = {
+			"/usr/bin/rclone",
+			"/usr/local/bin/rclone",
+			"/var/lib/flatpak/exports/bin/rclone",
+		};
+		if (const char* home = getenv("HOME"))
+		{
+			candidates.emplace_back(std::string(home) + "/bin/rclone");
+			candidates.emplace_back(std::string(home) + "/.local/bin/rclone");
+		}
+
+		const std::vector<std::string> baseCandidates = candidates;
+		for (const std::string& path : baseCandidates)
+			candidates.push_back("/proc/1/root" + path);
+
+		for (const std::string& path : candidates)
+		{
+			if (access(path.c_str(), X_OK) == 0)
+				return path;
+		}
+		return {};
+	}
+
+	// Builds a copy of the current environment with AppImage-specific variables stripped.
+	// Cemu's AppImage sets APPDIR/APPIMAGE/OWD and may prepend its bundled lib dir to
+	// LD_LIBRARY_PATH; if that leaks into rclone's process it can load Cemu-bundled versions of
+	// shared libs (e.g. libssl/libcrypto) that don't match what rclone was linked/tested against,
+	// causing obscure TLS/certificate failures. Stripping them lets rclone resolve its own
+	// dependencies from the host system as if launched outside the AppImage.
+	std::vector<std::string> CloudSync_BuildCleanEnv()
+	{
+		static const std::vector<std::string> blockedVars = {
+			"LD_LIBRARY_PATH", "LD_PRELOAD", "APPDIR", "APPIMAGE", "OWD", "ARGV0"
+		};
+
+		std::vector<std::string> env;
+		for (char** envp = environ; *envp != nullptr; ++envp)
+		{
+			std::string entry(*envp);
+			const size_t eq = entry.find('=');
+			const std::string key = (eq == std::string::npos) ? entry : entry.substr(0, eq);
+
+			bool blocked = false;
+			for (const std::string& blockedVar : blockedVars)
+			{
+				if (key == blockedVar)
+				{
+					blocked = true;
+					break;
+				}
+			}
+			if (!blocked)
+				env.push_back(std::move(entry));
+		}
+		return env;
+	}
+
+	// Runs rclone via posix_spawn and blocks the calling thread until it finishes.
+	// Returns the process exit code, or -1 if rclone couldn't be found/launched.
+	sint32 CloudSync_RunRcloneBlocking(const std::vector<std::string>& args)
+	{
+		const std::string rclonePath = CloudSync_FindRclonePath();
+		if (rclonePath.empty())
+		{
+			cemuLog_log(LogType::Save, "CloudSync: could not find an rclone executable");
+			return -1;
+		}
+
+		std::vector<char*> argv;
+		argv.push_back(const_cast<char*>(rclonePath.c_str()));
+		for (const std::string& arg : args)
+			argv.push_back(const_cast<char*>(arg.c_str()));
+		argv.push_back(nullptr);
+
+		std::vector<std::string> envStorage = CloudSync_BuildCleanEnv();
+		std::vector<char*> envp;
+		for (const std::string& entry : envStorage)
+			envp.push_back(const_cast<char*>(entry.c_str()));
+		envp.push_back(nullptr);
+
+		pid_t pid;
+		if (posix_spawn(&pid, rclonePath.c_str(), nullptr, nullptr, argv.data(), envp.data()) != 0)
+		{
+			cemuLog_log(LogType::Save, "CloudSync: failed to spawn rclone at {}", rclonePath);
+			return -1;
+		}
+
+		int status = 0;
+		waitpid(pid, &status, 0);
+		if (WIFEXITED(status))
+			return WEXITSTATUS(status);
+		return -1;
+	}
+#endif
+
+	// Pushes the local save directory for the current title to Dropbox. Fire-and-forget on a background thread.
+	void CloudSync_PushSaveToDropbox(uint32 high, uint32 low, uint64 titleId)
+	{
+#if BOOST_OS_WINDOWS
+		std::string localPath = _pathToUtf8(CloudSync_GetLocalSaveDir(high, low));
+		std::string remotePath = CloudSync_GetRemotePath(titleId);
+
+		std::wstring cmdLine = L"rclone copy \"" + boost::nowide::widen(localPath) + L"\" \"" + boost::nowide::widen(remotePath) + L"\" -v";
+		cmdLine.push_back(L'\0'); // CreateProcessW requires a writable, mutable buffer
+
+		std::thread([cmdLine = std::move(cmdLine)]() mutable {
+			sint32 exitCode = CloudSync_RunRcloneBlocking(std::move(cmdLine));
+			cemuLog_log(LogType::Save, "CloudSync: rclone push finished with exit code {}", exitCode);
+			if (exitCode == 0)
+				LatteOverlay_pushNotification("Save pushed to Dropbox", 3000);
+			else
+				LatteOverlay_pushNotification("CloudSync: push to Dropbox failed", 5000);
+		}).detach();
+#else
+		std::string localPath = _pathToUtf8(CloudSync_GetLocalSaveDir(high, low));
+		std::string remotePath = CloudSync_GetRemotePath(titleId);
+
+		std::thread([localPath, remotePath]() {
+			sint32 exitCode = CloudSync_RunRcloneBlocking({"copy", localPath, remotePath, "-v"});
+			cemuLog_log(LogType::Save, "CloudSync: rclone push finished with exit code {}", exitCode);
+			if (exitCode == 0)
+				LatteOverlay_pushNotification("Save pushed to Dropbox", 3000);
+			else
+				LatteOverlay_pushNotification("CloudSync: push to Dropbox failed", 5000);
+		}).detach();
+#endif
+	}
+
+	// Pulls the save directory down from Dropbox. Runs synchronously (blocking) since the game
+	// is about to start reading save data right after SAVEInit returns.
+	void CloudSync_PullSaveFromDropbox(uint32 high, uint32 low, uint64 titleId)
+	{
+#if BOOST_OS_WINDOWS
+		std::string localPath = _pathToUtf8(CloudSync_GetLocalSaveDir(high, low));
+		std::string remotePath = CloudSync_GetRemotePath(titleId);
+
+		cemuLog_log(LogType::Save, "CloudSync: no local save dir found, pulling from {}", remotePath);
+
+		std::wstring cmdLine = L"rclone copy \"" + boost::nowide::widen(remotePath) + L"\" \"" + boost::nowide::widen(localPath) + L"\" -v";
+		cmdLine.push_back(L'\0'); // CreateProcessW requires a writable, mutable buffer
+
+		sint32 exitCode = CloudSync_RunRcloneBlocking(std::move(cmdLine));
+		cemuLog_log(LogType::Save, "CloudSync: rclone pull finished with exit code {}", exitCode);
+		if (exitCode == 0)
+			LatteOverlay_pushNotification("Save pulled from Dropbox", 3000);
+		else
+			LatteOverlay_pushNotification("CloudSync: pull from Dropbox failed", 5000);
+#else
+		std::string localPath = _pathToUtf8(CloudSync_GetLocalSaveDir(high, low));
+		std::string remotePath = CloudSync_GetRemotePath(titleId);
+
+		cemuLog_log(LogType::Save, "CloudSync: no local save dir found, pulling from {}", remotePath);
+
+		sint32 exitCode = CloudSync_RunRcloneBlocking({"copy", remotePath, localPath, "-v"});
+		cemuLog_log(LogType::Save, "CloudSync: rclone pull finished with exit code {}", exitCode);
+		if (exitCode == 0)
+			LatteOverlay_pushNotification("Save pulled from Dropbox", 3000);
+		else
+			LatteOverlay_pushNotification("CloudSync: pull from Dropbox failed", 5000);
+#endif
+	}
+
 	SAVEStatus SAVEInit()
 	{
 		const uint64 titleId = CafeSystem::GetForegroundTitleId();
@@ -244,12 +480,15 @@ namespace save
 				uint32 persistentId = act::GetPersistentIdEx(accountId);
 				SetPersistentIdToLocalCache(accountId, persistentId);
 			}
-			
+
 			SAVEMountSaveDir();
 			g_nn_save->initialized = true;
 
 			uint32 high = GetTitleIdHigh(titleId) & (~0xC);
 			uint32 low = GetTitleIdLow(titleId);
+
+			if (!CloudSync_LocalSaveDirExists(high, low))
+				CloudSync_PullSaveFromDropbox(high, low, titleId);
 
 			sint32 fscStatus = FSC_STATUS_FILE_NOT_FOUND;
 			char path[256];
@@ -261,6 +500,8 @@ namespace save
 			fsc_createDir(path, &fscStatus);
 
 			iosu::acp::CreateSaveMetaFiles(ActiveSettings::GetPersistentId(), titleId);
+
+			CloudSync_PushSaveToDropbox(high, low, titleId);
 		}
 
 		return SAVE_STATUS_OK;
