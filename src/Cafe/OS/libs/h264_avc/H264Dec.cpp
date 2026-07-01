@@ -49,6 +49,8 @@ namespace H264
 		struct
 		{
 			uint32 numFramesInFlight{0};
+			bool isFirstBegin{true};
+			bool isTryingToRecover{false};
 		}decoderState;
 	};
 
@@ -430,8 +432,14 @@ namespace H264
 			cemuLog_log(LogType::Force, "H264DECBegin(): Invalid session");
 			return 0;
 		}
-		session->Init(ctx->Param.outputPerFrame == 0);
-		ctx->decoderState.numFramesInFlight = 0;
+		if (ctx->decoderState.isFirstBegin)
+		{
+			session->Init(ctx->Param.outputPerFrame == 0);
+			ctx->decoderState.isFirstBegin = false;
+		}
+		else
+			ctx->decoderState.isTryingToRecover = true;
+		//ctx->decoderState.numFramesInFlight = 0;
 		_ReleaseDecoderSession(session);
 		return 0;
 	}
@@ -462,6 +470,7 @@ namespace H264
 		}
 		cemu_assert_debug(ctx->decoderState.numFramesInFlight == 0); // no frames should be in flight anymore. Exact behavior is not well understood but we may have to output dummy frames if necessary
 		_ReleaseDecoderSession(session);
+		// does not destroy decoder session, keeps it mostly intact so playback can resume after the next H264DECBegin call (potentially at a different location in the stream)
 		return H264DEC_STATUS::SUCCESS;
 	}
 
@@ -598,8 +607,35 @@ namespace H264
 		}
 	}
 
+	// find the first framedata slice (if there is any) and check if the type is idr
+	bool IsIDRSlice(uint8* streamData, sint32 length)
+	{
+		NALInputBitstream nalStream(streamData, length);
+		RBSPInputBitstream rbspStream;
+		while (nalStream.getNextRBSP(rbspStream))
+		{
+			// parse NAL header
+			uint8 nalHeaderByte = rbspStream.readU8();
+			if ((nalHeaderByte & 0x80) == 0)
+			{
+				uint8 nal_unit_type = (nalHeaderByte >> 0) & 0x1f;
+				if (nal_unit_type == 1) // non-idr
+					return false;
+				else if (nal_unit_type == 5) // idr
+					return true;
+			}
+			else
+			{
+				cemu_assert_suspicious();
+				return false; // corrupted stream?
+			}
+		}
+		return false;
+	}
+
 	uint32 H264DECExecute(void* workMemory, void* imageOutput)
 	{
+		cemuLog_log(LogType::Force, "H264DECExecute(): [BEGIN]");
 		BenchmarkTimer bt;
 		bt.Start();
 		H264Context* ctx = (H264Context*)workMemory;
@@ -608,6 +644,19 @@ namespace H264
 		{
 			cemuLog_log(LogType::Force, "H264DECExecute(): Invalid session");
 			return 0;
+		}
+		// if in recovery mode then return an error until we reach a IDR frame
+		if (ctx->decoderState.isTryingToRecover)
+		{
+			bool isIDR = IsIDRSlice((uint8*)ctx->BitStream.ptr.GetPtr(), ctx->BitStream.length);
+			if (isIDR)
+			{
+				ctx->decoderState.isTryingToRecover = false;
+			}
+			else
+			{
+				return 0x400; // error (figure out exact error code. Bit 0x80 indicates presence of frame?)
+			}
 		}
 		// feed data to backend
 		session->QueueForDecode((uint8*)ctx->BitStream.ptr.GetPtr(), ctx->BitStream.length, ctx->BitStream.timestamp, imageOutput);
