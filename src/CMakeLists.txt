@@ -70,10 +70,16 @@ add_executable(CemuBin
 
 cemu_use_precompiled_header(CemuBin)
 
-if(MSVC AND MSVC_VERSION EQUAL 1940)
+if(MSVC)
+    set(CEMU_LINKER_FLAGS "/NODEFAULTLIB:MSVCRT")
+
+    if(MSVC_VERSION EQUAL 1940)
 	# workaround for an msvc issue on VS 17.10 where generated ILK files are too large
 	# see https://developercommunity.visualstudio.com/t/After-updating-to-VS-1710-the-size-of-/10665511
-	set_target_properties(CemuBin PROPERTIES LINK_FLAGS "/INCREMENTAL:NO")
+        string(APPEND CEMU_LINKER_FLAGS " /INCREMENTAL:NO")
+    endif()
+
+    set_target_properties(CemuBin PROPERTIES LINK_FLAGS "${CEMU_LINKER_FLAGS}")
 endif()
 
 if(WIN32)
