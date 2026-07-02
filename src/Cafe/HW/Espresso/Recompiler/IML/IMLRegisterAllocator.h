@@ -63,19 +63,7 @@ public:
 	IMLPhysReg GetFirstAvailableReg()
 	{
 		cemu_assert_debug(m_regBitmask != 0);
-		sint32 regIndex = 0;
-		auto tmp = m_regBitmask;
-		while ((tmp & 0xFF) == 0)
-		{
-			regIndex += 8;
-			tmp >>= 8;
-		}
-		while ((tmp & 0x1) == 0)
-		{
-			regIndex++;
-			tmp >>= 1;
-		}
-		return regIndex;
+		return (IMLPhysReg)std::countr_zero(m_regBitmask);
 	}
 
 	// returns index of next available register (search includes any register index >= startIndex)
@@ -84,22 +72,10 @@ public:
 	{
 		if (startIndex >= 64)
 			return -1;
-		uint32 regIndex = startIndex;
-		auto tmp = m_regBitmask;
-		tmp >>= regIndex;
+		uint64 tmp = m_regBitmask >> startIndex;
 		if (!tmp)
 			return -1;
-		while ((tmp & 0xFF) == 0)
-		{
-			regIndex += 8;
-			tmp >>= 8;
-		}
-		while ((tmp & 0x1) == 0)
-		{
-			regIndex++;
-			tmp >>= 1;
-		}
-		return regIndex;
+		return startIndex + (IMLPhysReg)std::countr_zero(tmp);
 	}
 
 	sint32 CountAvailableRegs() const
