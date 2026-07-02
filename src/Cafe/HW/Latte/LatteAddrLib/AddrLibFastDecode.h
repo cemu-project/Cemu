@@ -149,21 +149,27 @@ void optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy(LatteTextureLoade
 					// bpp = 32
 					if (texelBaseTypeCount == 1)
 					{
-						uint64* blockOutput64 = (uint64*)blockOutput;
-						uint64* blockData64 = (uint64*)blockData;
 						if (isEncodeDirection)
 						{
-							blockData64[0] = blockOutput64[0];
-							blockData64[1] = blockOutput64[1];
-							blockData64[4] = blockOutput64[2];
-							blockData64[5] = blockOutput64[3];
+							blockData[0] = blockOutput[0];
+							blockData[1] = blockOutput[1];
+							blockData[2] = blockOutput[2];
+							blockData[3] = blockOutput[3];
+							blockData[8] = blockOutput[4];
+							blockData[9] = blockOutput[5];
+							blockData[10] = blockOutput[6];
+							blockData[11] = blockOutput[7];
 						}
 						else
 						{
-							blockOutput64[0] = blockData64[0];
-							blockOutput64[1] = blockData64[1];
-							blockOutput64[2] = blockData64[4];
-							blockOutput64[3] = blockData64[5];
+							blockOutput[0] = blockData[0];
+							blockOutput[1] = blockData[1];
+							blockOutput[2] = blockData[2];
+							blockOutput[3] = blockData[3];
+							blockOutput[4] = blockData[8];
+							blockOutput[5] = blockData[9];
+							blockOutput[6] = blockData[10];
+							blockOutput[7] = blockData[11];
 						}
 						blockOutput += 8;
 					}
@@ -175,12 +181,10 @@ void optimizedDecodeLoop_tm04_numSamples1_8x8_optimizedRowCopy(LatteTextureLoade
 					// bpp = 8
 					if (texelBaseTypeCount == 1)
 					{
-						uint64* blockOutput64 = (uint64*)blockOutput;
-						uint64* blockData64 = (uint64*)blockData;
 						if (isEncodeDirection)
-							blockData64[0] = blockOutput64[0];
+							memcpy(blockData, blockOutput, 8);
 						else
-							blockOutput64[0] = blockData64[0];
+							memcpy(blockOutput, blockData, 8);
 						blockOutput += 8;
 					}
 					else

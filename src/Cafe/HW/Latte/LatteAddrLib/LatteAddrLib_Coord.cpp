@@ -12,7 +12,7 @@ namespace LatteAddrLib
 	{
 		if (!_Mask)
 			return 0;
-		*_Index = 31 - __builtin_clzl(_Mask);
+		*_Index = 31 - __builtin_clz(_Mask);
 		return 1;
 	}
 #endif
