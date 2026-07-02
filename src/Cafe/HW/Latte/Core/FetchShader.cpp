@@ -252,11 +252,10 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	}
 	// add attribute
 	sint32 groupAttribIndex = attribGroup->attribCount;
-	if (attribGroup->attribCount < (groupAttribIndex + 1))
-	{
-		attribGroup->attribCount = (groupAttribIndex + 1);
-		attribGroup->attrib = (LatteParsedFetchShaderAttribute_t*)realloc(attribGroup->attrib, sizeof(LatteParsedFetchShaderAttribute_t) * attribGroup->attribCount);
-	}
+	attribGroup->attribCount = groupAttribIndex + 1;
+	// grow the attribute array with power-of-two capacity to avoid O(n^2) reallocation as attributes are appended
+	if ((attribGroup->attribCount & (attribGroup->attribCount - 1)) == 0)
+		attribGroup->attrib = (LatteParsedFetchShaderAttribute_t*)realloc(attribGroup->attrib, sizeof(LatteParsedFetchShaderAttribute_t) * (size_t)attribGroup->attribCount * 2);
 	attribGroup->attrib[groupAttribIndex].semanticId = semanticId;
 	attribGroup->attrib[groupAttribIndex].format = (uint8)dataFormat;
 	attribGroup->attrib[groupAttribIndex].fetchType = fetchType;
