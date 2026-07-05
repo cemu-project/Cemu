@@ -672,7 +672,9 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 		deviceFeatures.robustBufferAccess = VK_TRUE;
 	}
 
-	deviceFeatures.vertexPipelineStoresAndAtomics = true;
+	deviceFeatures.vertexPipelineStoresAndAtomics = deviceFeatures2.features.vertexPipelineStoresAndAtomics;
+	if (!deviceFeatures.vertexPipelineStoresAndAtomics)
+		cemuLog_log(LogType::Force, "vertexPipelineStoresAndAtomics not supported by the driver. Games which use the streamout feature will not render correctly");
 
 	void* deviceExtensionFeatures = nullptr;
 
