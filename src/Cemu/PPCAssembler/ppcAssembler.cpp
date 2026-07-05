@@ -307,6 +307,8 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	case PPCASM_OP_MTLR: return "MTLR";
 	case PPCASM_OP_MFCTR: return "MFCTR";
 	case PPCASM_OP_MTCTR: return "MTCTR";
+	case PPCASM_OP_MFCR: return "MFCR";
+	case PPCASM_OP_MTCRF: return "MTCRF";
 
 	case PPCASM_OP_CROR: return "CROR";
 	case PPCASM_OP_CRNOR: return "CRNOR";
@@ -1192,6 +1194,8 @@ PPCInstructionDef ppcInstructionTable[] =
 	{PPCASM_OP_MTLR, 0, 31, 467, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(8)} },
 	{PPCASM_OP_MFCTR, 0, 31, 339, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(9)} },
 	{PPCASM_OP_MTCTR, 0, 31, 467, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(9)} },
+	{PPCASM_OP_MFCR,  0, 31, 19,  OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}},
+	{PPCASM_OP_MTCRF, 0, 31, 144, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_IMM(12, 8, false), EncodedOperand_GPR(21)}},
 
 	{PPCASM_OP_ADD, 0, 31, 266, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
 	{PPCASM_OP_ADD_, 0, 31, 266, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
@@ -3590,6 +3594,18 @@ void ppcAsmTestDisassembler()
 	_testAsm(0x6fe9f000, "xoris     r9, r31, 0xF000");
 	_testAsm(0x6fe9ff00, "xoris     r9, r31, 0xFF00");
 	_testAsm(0x6fe9ffff, "xoris     r9, r31, 0xFFFF");
+
+	// mfcr / mtcrf
+	_testAsm(0x7D800026, "mfcr r12");
+	disassemble(0x7D800026, PPCASM_OP_MFCR);
+	checkOperandMask(true);
+	checkOpGPR(0, 12);
+
+	_testAsm(0x7D808120, "mtcrf 8, r12");
+	disassemble(0x7D808120, PPCASM_OP_MTCRF);
+	checkOperandMask(true, true);
+	checkOpImm(0, 8);
+	checkOpGPR(1, 12);
 
 	// data directives
 	_testAsmArray({ 0x00, 0x00, 0x00, 0x01 }, ".int 1");
