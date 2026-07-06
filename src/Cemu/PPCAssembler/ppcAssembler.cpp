@@ -309,6 +309,7 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	case PPCASM_OP_MTCTR: return "MTCTR";
 	case PPCASM_OP_MFCR: return "MFCR";
 	case PPCASM_OP_MTCRF: return "MTCRF";
+	case PPCASM_OP_MCRF: return "MCRF";
 
 	case PPCASM_OP_CROR: return "CROR";
 	case PPCASM_OP_CRNOR: return "CRNOR";
@@ -541,6 +542,40 @@ public:
 		disInstr->operandMask |= (1<<index);
 		disInstr->operand[index].type = PPCASM_OPERAND_TYPE_FPR;
 		disInstr->operand[index].registerIndex = regIndex;
+	}
+private:
+	uint8 m_bitPos;
+};
+
+class EncodedOperand_CR
+{
+public:
+	EncodedOperand_CR(uint8 bitPos) : m_bitPos(bitPos) {}
+
+	bool AssembleOperand(PPCAssemblerContext* assemblerCtx, PPCInstructionDef* iDef, uint32& opcode, size_t index)
+	{
+		if (index >= assemblerCtx->listOperandStr.size())
+		{
+			ppcAssembler_setError(assemblerCtx->ctx, "Missing operand");
+			return false;
+		}
+		sint32 crIndex = _parseRegIndex(assemblerCtx->listOperandStr[index].str, "cr");
+		if (crIndex < 0 || crIndex >= 8)
+		{
+			ppcAssembler_setError(assemblerCtx->ctx, fmt::format("Operand \"{}\" is not a valid CR field (expected cr0 - cr7)", assemblerCtx->listOperandStr[index].str));
+			return false;
+		}
+		opcode &= ~((uint32)0x1F << m_bitPos);
+		opcode |= ((uint32)(crIndex << 2) << m_bitPos);
+		return true;
+	}
+
+	void DisassembleOperand(PPCDisassembledInstruction* disInstr, PPCInstructionDef* iDef, const uint32 opcode, size_t index)
+	{
+		uint32 crField = (opcode >> m_bitPos) & 0x1F;
+		disInstr->operandMask |= (1 << index);
+		disInstr->operand[index].type = PPCASM_OPERAND_TYPE_CR;
+		disInstr->operand[index].registerIndex = crField >> 2;
 	}
 private:
 	uint8 m_bitPos;
@@ -1032,7 +1067,7 @@ struct PPCInstructionDef
 	uint32 compareBits;
 	bool(*extraCheck)(uint32 opcode); // used for unique criteria (e.g. SRWI checks SH/mask) -> Replaced by constraints
 
-	std::array<std::variant<EncodedOperand_None, EncodedOperand_GPR<false>, EncodedOperand_GPR<true>, EncodedOperand_FPR, EncodedOperand_SPR, EncodedOperand_IMM, EncodedOperand_U5Reverse, EncodedOperand_MemLoc>, 4> encodedOperands{}; // note: The default constructor of std::variant will default-construct the first type (which we want to be EncodedOperand_None)
+	std::array<std::variant<EncodedOperand_None, EncodedOperand_GPR<false>, EncodedOperand_GPR<true>, EncodedOperand_FPR, EncodedOperand_CR, EncodedOperand_SPR, EncodedOperand_IMM, EncodedOperand_U5Reverse, EncodedOperand_MemLoc>, 4> encodedOperands{}; // note: The default constructor of std::variant will default-construct the first type (which we want to be EncodedOperand_None)
 	std::array<std::variant<EncodedConstraint_None, EncodedConstraint_MirrorRegister, EncodedConstraint_MirrorReverseU5, EncodedConstraint_FixedRegister, EncodedConstraint_FixedSPR, EncodedConstraint_CheckSignBit>, 3> constraints{};
 };
 
@@ -1196,6 +1231,7 @@ PPCInstructionDef ppcInstructionTable[] =
 	{PPCASM_OP_MTCTR, 0, 31, 467, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}, {EncodedConstraint_FixedSPR(9)} },
 	{PPCASM_OP_MFCR,  0, 31, 19,  OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21)}},
 	{PPCASM_OP_MTCRF, 0, 31, 144, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_IMM(12, 8, false), EncodedOperand_GPR(21)}},
+	{PPCASM_OP_MCRF,  0, 19, 0,   OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_CR(21), EncodedOperand_CR(16)}},
 
 	{PPCASM_OP_ADD, 0, 31, 266, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
 	{PPCASM_OP_ADD_, 0, 31, 266, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, C_MASK_RC, C_BIT_RC, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR(16), EncodedOperand_GPR(11)} },
@@ -3606,6 +3642,12 @@ void ppcAsmTestDisassembler()
 	checkOperandMask(true, true);
 	checkOpImm(0, 8);
 	checkOpGPR(1, 12);
+
+	_testAsm(0x4E1C0000, "mcrf cr4, cr7");
+	disassemble(0x4E1C0000, PPCASM_OP_MCRF);
+	checkOperandMask(true, true);
+	checkOpCR(0, 4);
+	checkOpCR(1, 7);
 
 	// data directives
 	_testAsmArray({ 0x00, 0x00, 0x00, 0x01 }, ".int 1");
