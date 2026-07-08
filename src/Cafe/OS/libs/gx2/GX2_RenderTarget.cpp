@@ -176,8 +176,6 @@ void gx2Export_GX2SetColorBuffer(PPCInterpreter_t* hCPU)
 	gx2WriteGather_submitU32AsBE(mmCB_COLOR0_SIZE - 0xA000 + hCPU->gpr[4]);
 	gx2WriteGather_submitU32AsBE((uint32)colorBufferBE->reg_size);
 
-	cemu_assert_debug(tileMode != Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL);
-
 	// set mmCB_COLOR*_VIEW
 	gx2WriteGather_submit(
 		pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
