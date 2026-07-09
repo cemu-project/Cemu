@@ -275,7 +275,23 @@ namespace coreinit
 		cemuLog_log(LogType::Force, "FSShutdown called");
 	}
 
-	FS_RESULT FSAddClientEx(FSClient_t* fsClient, uint32 uknR4, uint32 errHandling)
+	struct AttachCallbackData
+	{
+		/* +0x00 */ uint8 unk[0x1c];
+		/* +0x1c */ char mountName[8];
+	};
+
+	SysAllocator<AttachCallbackData> s_fsAttachCallbackData;
+
+	void invokeAttachCallback(FSAttachParams& attachParams)
+	{
+		*s_fsAttachCallbackData = { .mountName = "sdcard" /* expected by Mii Maker */ };
+		PPCCoreCallback(attachParams.userCallback,
+			0 /* r3 = unknown */, 1 /* r4 = non-zero means device is attached */,
+			s_fsAttachCallbackData.GetMPTR(), attachParams.userContext);
+	}
+
+	FS_RESULT FSAddClientEx(FSClient_t* fsClient, FSAttachParams* attachParams, uint32 errHandling)
 	{
 		if (!sFSInitialized || sFSShutdown || !fsClient)
 		{
@@ -283,15 +299,13 @@ namespace coreinit
 			return FS_RESULT::FATAL_ERROR;
 		}
 		FSLockMutex();
-		if (uknR4 != 0)
+		if (attachParams != nullptr &&
+			attachParams->userCallback == nullptr)
 		{
-			uint32 uknValue = memory_readU32(uknR4 + 0x00);
-			if (uknValue == 0)
-			{
-				FSUnlockMutex();
-				__FSErrorAndBlock("FSAddClientEx - unknown error");
-				return FS_RESULT::FATAL_ERROR;
-			}
+			FSUnlockMutex();
+			// "FS: FSAddClient: attachParams->userCallback must be set.\n"
+			__FSErrorAndBlock("FSAddClientEx - unknown error");
+			return FS_RESULT::FATAL_ERROR;
 		}
 		if (__FSIsClientRegistered(__FSGetClientBody(fsClient)))
 		{
@@ -324,12 +338,16 @@ namespace coreinit
 			fsClientBody->fsClientBodyNext = nullptr;
 		}
 		FSUnlockMutex();
+
+		if (attachParams != nullptr) // invoke right before returning
+			invokeAttachCallback(*attachParams);
+
 		return FS_RESULT::SUCCESS;
 	}
 
 	FS_RESULT FSAddClient(FSClient_t* fsClient, uint32 errHandling)
 	{
-		return FSAddClientEx(fsClient, 0, errHandling);
+		return FSAddClientEx(fsClient, nullptr, errHandling);
 	}
 
 	FS_RESULT FSDelClient(FSClient_t* fsClient, uint32 errHandling)
