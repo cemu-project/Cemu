@@ -275,7 +275,37 @@ namespace coreinit
 		cemuLog_log(LogType::Force, "FSShutdown called");
 	}
 
-	FS_RESULT FSAddClientEx(FSClient_t* fsClient, uint32 uknR4, uint32 errHandling)
+	/// Buffer for the notification passed to the FSAddClientEx callback.
+	/// Only the name at 0x18 ("sdcard") is read out of this from Mii Maker.
+	SysAllocator<uint8, 0x40> s_fsClientNotification;
+	// NOTE: Size is unknown, just using something generous.
+
+	/// Notifies the guest that the SD card is present when they
+	/// register a callback via FSAddClientEx's r4 parameter.
+	static void __FSInvokeNotificationSDCard(MPTR notifyParamMPTR)
+	{
+		constexpr uint32 nameOffset = 0x1c;
+
+		// The callback should be non-null before reaching this point.
+		MPTR callbackMPTR = memory_readU32(notifyParamMPTR + 0x00);
+		cemu_assert_debug(callbackMPTR != MPTR_NULL);
+		MPTR contextMPTR = memory_readU32(notifyParamMPTR + 0x04); // User object/context pointer.
+
+		// Zero-initialize the notification.
+		uint8* pNotification = s_fsClientNotification.GetPtr();
+		memset(pNotification, 0, s_fsClientNotification.GetByteSize());
+		// Copy the string "sdcard" into the notification at 0x18.
+		// Mii Maker USA v50 compares this at 0202e6a4
+		char* pMountName = reinterpret_cast<char*>(pNotification + nameOffset);
+		strcpy(pMountName, "sdcard");
+
+		// Invoke the user's callback. This happens synchronously in the same thread.
+		PPCCoreCallback(callbackMPTR,
+			0 /* r3 = Unknown */, 1 /* r4 = Set to 0 if not present */,
+			s_fsClientNotification.GetMPTR(), contextMPTR);
+	}
+
+	FS_RESULT FSAddClientEx(FSClient_t* fsClient, MPTR notifyParam, uint32 errHandling)
 	{
 		if (!sFSInitialized || sFSShutdown || !fsClient)
 		{
@@ -283,13 +313,13 @@ namespace coreinit
 			return FS_RESULT::FATAL_ERROR;
 		}
 		FSLockMutex();
-		if (uknR4 != 0)
+		if (notifyParam != MPTR_NULL)
 		{
-			uint32 uknValue = memory_readU32(uknR4 + 0x00);
-			if (uknValue == 0)
+			MPTR callbackMPTR = memory_readU32(notifyParam + 0x00);
+			if (callbackMPTR == MPTR_NULL)
 			{
 				FSUnlockMutex();
-				__FSErrorAndBlock("FSAddClientEx - unknown error");
+				__FSErrorAndBlock("FSAddClientEx: Notification parameter was passed, but the inner callback is null.");
 				return FS_RESULT::FATAL_ERROR;
 			}
 		}
@@ -324,6 +354,12 @@ namespace coreinit
 			fsClientBody->fsClientBodyNext = nullptr;
 		}
 		FSUnlockMutex();
+
+		// Emulate a notification that the SD card (always mounted) was
+		// attached, if the title (e.g. Mii Maker) specified a callback.
+		if (notifyParam != MPTR_NULL)
+			__FSInvokeNotificationSDCard(notifyParam);
+
 		return FS_RESULT::SUCCESS;
 	}
 
