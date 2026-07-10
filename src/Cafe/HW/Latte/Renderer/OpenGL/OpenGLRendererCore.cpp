@@ -866,7 +866,7 @@ void OpenGLRenderer::draw_genericDrawHandler(uint32 baseVertex, uint32 baseInsta
 	}
 	if (LatteGPUState.activeShaderHasError)
 	{
-		debug_printf("Skipped drawcall due to shader error\n");
+		cemuLog_logDebugOnce(LogType::Force, "Skipped drawcall due to shader error\n");
 		return;
 	}
 	// check for blacklisted shaders

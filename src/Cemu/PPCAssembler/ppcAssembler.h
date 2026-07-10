@@ -278,6 +278,9 @@ enum PPCASM_OP
 
 	// cache & misc
 	PPCASM_OP_ISYNC,
+	PPCASM_OP_MFCR, // move from condition register
+	PPCASM_OP_MTCRF, // move to condition register fields
+	PPCASM_OP_MCRF, // move condition register field
 
 	// extended mnemonics
 	PPCASM_OP_NOP, // ORI

@@ -1245,6 +1245,7 @@ void LatteSHRC_UpdateActiveShaders()
 			_activeVertexShader = shaderStateInfo->vertexShader;
 			_activePixelShader = shaderStateInfo->pixelShader;
 			_activeGeometryShader = shaderStateInfo->geometryShader;
+			LatteGPUState.activeShaderHasError = shaderStateInfo->shaderError;
 			return;
 		}
 		for (auto& auxVariant : shaderStateInfo->auxVariants)
@@ -1255,6 +1256,7 @@ void LatteSHRC_UpdateActiveShaders()
 				_activeVertexShader = auxVariant.vertexShader;
 				_activePixelShader = auxVariant.pixelShader;
 				_activeGeometryShader = auxVariant.geometryShader;
+				LatteGPUState.activeShaderHasError = shaderStateInfo->shaderError;
 				return;
 			}
 		}
@@ -1262,13 +1264,19 @@ void LatteSHRC_UpdateActiveShaders()
 	// no cache entry found, get/create shaders individually and add to cache
 	LatteFetchShader* fetchShader = LatteSHRC_GetOrCreateFetchShader();
 	_activeFetchShader = fetchShader;
+
+	// check whether shaders have errors
 	bool shaderError = LatteGPUState.activeShaderHasError;
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetOrCreateVertexShader((uint8*)memory_getPointerFromPhysicalOffset(vsProgramAddr), vsProgramSize, geometryShaderUsed, fetchShader);
-	shaderError |= LatteGPUState.activeShaderHasError;
+	if (vertexShader)
+		shaderError |= vertexShader->hasError;
 	LatteDecompilerShader* pixelShader = LatteSHRC_GetOrCreatePixelShader((uint8*)memory_getPointerFromPhysicalOffset(psProgramAddr), psProgramSize, geometryShaderUsed);
-	shaderError |= LatteGPUState.activeShaderHasError;
+	if (pixelShader)
+		shaderError |= pixelShader->hasError;
 	LatteDecompilerShader* geometryShader = LatteSHRC_GetOrCreateGeometryShader(geometryShaderUsed, (uint8*)memory_getPointerFromPhysicalOffset(gsProgramAddr), gsProgramSize, (uint8*)memory_getPointerFromPhysicalOffset(copyProgramAddr), copyProgramSize, vertexShader);
-	shaderError |= LatteGPUState.activeShaderHasError;
+	if (geometryShader)
+		shaderError |= geometryShader->hasError;
+
 	uint64 combinedAuxHash = CalcCombinedAuxHash(fetchShader, vertexShader, pixelShader);
 
 	if (!shaderStateInfo)
