@@ -459,7 +459,7 @@ OnlineValidator Account::ValidateOnlineFiles() const
 	return result;
 }
 
-void Account::ParseFile(class FileStream* file)
+void Account::ParseFile(FileStream* file)
 {
 	std::vector<uint8> buffer;
 	buffer.resize(file->GetSize());

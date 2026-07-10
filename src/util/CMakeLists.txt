@@ -38,6 +38,7 @@ add_library(CemuUtil
   helpers/StringParser.h
   helpers/SystemException.h
   helpers/TempState.h
+  helpers/ZArchiveHelpers.h
   highresolutiontimer/HighResolutionTimer.cpp
   highresolutiontimer/HighResolutionTimer.h
   ImageWriter/bmp.h
@@ -74,7 +75,12 @@ if(WIN32)
 	target_sources(CemuUtil PRIVATE MemMapper/MemMapperWin.cpp)
 	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoWin.cpp)
 elseif(UNIX)
-	target_sources(CemuUtil PRIVATE Fiber/FiberUnix.cpp)
+  if(ANDROID)
+    target_sources(CemuUtil PRIVATE Fiber/FiberFContext.cpp)
+    target_link_libraries(CemuUtil PRIVATE Boost::context)
+  else()
+    target_sources(CemuUtil PRIVATE Fiber/FiberUContext.cpp)
+  endif()
 	target_sources(CemuUtil PRIVATE MemMapper/MemMapperUnix.cpp)
 	target_sources(CemuUtil PRIVATE SystemInfo/SystemInfoUnix.cpp)
 	if(NOT APPLE)

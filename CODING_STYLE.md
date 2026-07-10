@@ -1,7 +1,9 @@
 
 # Coding style guidelines for Cemu
 
-This document describes the latest version of our coding-style guidelines. Since we did not use this style from the beginning, older code may not adhere to these guidelines. Nevertheless, use these rules even if the surrounding code does not match. 
+This document describes the latest version of our coding-style guidelines. Since we did not use this style from the beginning, older code may not adhere to these guidelines. Nevertheless, use these rules even if the surrounding code does not match.
+
+These coding-style guidelines apply only to the C/C++ codebase. For Kotlin, we follow the official Kotlin Coding Conventions as outlined in the [Kotlin documentation](https://kotlinlang.org/docs/coding-conventions.html).
 
 Cemu comes with a `.clang-format` file which is supported by most IDEs for formatting. Avoid auto-reformatting whole files, PRs with a lot of formatting changes are difficult to review.
 

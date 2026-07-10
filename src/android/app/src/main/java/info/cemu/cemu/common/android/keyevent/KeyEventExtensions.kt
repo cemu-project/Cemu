@@ -1,0 +1,43 @@
+package info.cemu.cemu.common.android.keyevent
+
+import android.view.KeyEvent
+
+fun keyCodeToDisplayName(key: Int) = when (key) {
+    KeyEvent.KEYCODE_BUTTON_A -> "A"
+    KeyEvent.KEYCODE_BUTTON_B -> "B"
+    KeyEvent.KEYCODE_BUTTON_C -> "C"
+    KeyEvent.KEYCODE_BUTTON_X -> "X"
+    KeyEvent.KEYCODE_BUTTON_Y -> "Y"
+    KeyEvent.KEYCODE_BUTTON_Z -> "Z"
+    KeyEvent.KEYCODE_BUTTON_L1 -> "L1"
+    KeyEvent.KEYCODE_BUTTON_R1 -> "R1"
+    KeyEvent.KEYCODE_BUTTON_L2 -> "L2"
+    KeyEvent.KEYCODE_BUTTON_R2 -> "R2"
+    KeyEvent.KEYCODE_BUTTON_THUMBL -> "ThumbL"
+    KeyEvent.KEYCODE_BUTTON_THUMBR -> "ThumbR"
+    KeyEvent.KEYCODE_BUTTON_START -> "Start"
+    KeyEvent.KEYCODE_BUTTON_SELECT -> "Select"
+    KeyEvent.KEYCODE_BUTTON_MODE -> "Mode"
+    KeyEvent.KEYCODE_DPAD_UP -> "↑"
+    KeyEvent.KEYCODE_DPAD_DOWN -> "↓"
+    KeyEvent.KEYCODE_DPAD_LEFT -> "←"
+    KeyEvent.KEYCODE_DPAD_RIGHT -> "→"
+    KeyEvent.KEYCODE_DPAD_CENTER -> "●"
+    KeyEvent.KEYCODE_BUTTON_1 -> "1"
+    KeyEvent.KEYCODE_BUTTON_2 -> "2"
+    KeyEvent.KEYCODE_BUTTON_3 -> "3"
+    KeyEvent.KEYCODE_BUTTON_4 -> "4"
+    KeyEvent.KEYCODE_BUTTON_5 -> "5"
+    KeyEvent.KEYCODE_BUTTON_6 -> "6"
+    KeyEvent.KEYCODE_BUTTON_7 -> "7"
+    KeyEvent.KEYCODE_BUTTON_8 -> "8"
+    KeyEvent.KEYCODE_BUTTON_9 -> "9"
+    KeyEvent.KEYCODE_BUTTON_10 -> "10"
+    KeyEvent.KEYCODE_BUTTON_11 -> "11"
+    KeyEvent.KEYCODE_BUTTON_12 -> "12"
+    KeyEvent.KEYCODE_BUTTON_13 -> "13"
+    KeyEvent.KEYCODE_BUTTON_14 -> "14"
+    KeyEvent.KEYCODE_BUTTON_15 -> "15"
+    KeyEvent.KEYCODE_BUTTON_16 -> "16"
+    else -> KeyEvent.keyCodeToString(key).removePrefix("KEYCODE_")
+}

@@ -25,3 +25,6 @@
 [submodule "dependencies/xbyak_aarch64"]
 	path = dependencies/xbyak_aarch64
 	url = https://github.com/fujitsu/xbyak_aarch64
+[submodule "dependencies/libadrenotools"]
+	path = dependencies/libadrenotools
+	url = https://github.com/bylaws/libadrenotools

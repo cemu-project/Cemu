@@ -20,6 +20,11 @@ struct VkSupportedFormatInfo_t
 	bool fmt_r5g6b5_unorm_pack{};
 	bool fmt_r4g4b4a4_unorm_pack{};
 	bool fmt_a1r5g5b5_unorm_pack{};
+	bool fmt_bc1{};
+	bool fmt_bc2{};
+	bool fmt_bc3{};
+	bool fmt_bc4{};
+	bool fmt_bc5{};
 };
 
 struct VkDescriptorSetInfo
@@ -211,16 +216,21 @@ public:
 #if BOOST_OS_WINDOWS
 	static VkSurfaceKHR CreateWinSurface(VkInstance instance, HWND hwindow);
 #endif
-#if BOOST_OS_LINUX || BOOST_OS_BSD
+#if BOOST_PLAT_ANDROID
+	static VkSurfaceKHR CreateAndroidSurface(VkInstance instance, ANativeWindow* window);
+#elif BOOST_OS_LINUX || BOOST_OS_BSD
 	static VkSurfaceKHR CreateXlibSurface(VkInstance instance, Display* dpy, Window window);
     static VkSurfaceKHR CreateXcbSurface(VkInstance instance, xcb_connection_t* connection, xcb_window_t window);
-	#ifdef HAS_WAYLAND
+#ifdef HAS_WAYLAND
 	static VkSurfaceKHR CreateWaylandSurface(VkInstance instance, wl_display* display, wl_surface* surface);
-	#endif
+#endif // HAS_WAYLAND
 #endif
 
+#if BOOST_PLAT_ANDROID
+	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowSystem::WindowHandleInfo& windowInfo, ANativeWindow** nativeWindow = nullptr);
+#else
 	static VkSurfaceKHR CreateFramebufferSurface(VkInstance instance, struct WindowSystem::WindowHandleInfo& windowInfo);
-
+#endif
 	void AppendOverlayDebugInfo() override;
 
 	void ImguiInit();

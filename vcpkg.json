@@ -13,7 +13,8 @@
     "rapidjson",
     {
       "name": "sdl3",
-      "default-features": false
+      "default-features": false,
+      "platform": "!android"
     },
     "boost-tokenizer",
     "boost-container",
@@ -27,6 +28,18 @@
     "boost-ptr-container",
     "boost-property-tree",
     "boost-static-string",
+    {
+      "name": "boost-iostreams",
+      "platform": "android"
+    },
+    {
+      "name": "boost-stacktrace",
+      "platform": "android"
+    },
+    {
+      "name": "boost-context",
+      "platform": "android"
+    },
     "boost-random",
     {
       "name": "fmt",
@@ -44,7 +57,8 @@
       "default-features": false,
       "features": [
         "debug-support"
-      ]
+      ],
+      "platform": "!android"
     },
     "openssl",
     {

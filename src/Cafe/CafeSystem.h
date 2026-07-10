@@ -31,6 +31,9 @@ namespace CafeSystem
 	void LaunchForegroundTitle();
 	bool IsTitleRunning();
 
+	void PauseTitle();
+	void ResumeTitle();
+
 	bool GetOverrideArgStr(std::vector<std::string>& args);
 	void SetOverrideArgs(std::span<std::string> args);
 	void UnsetOverrideArgs();

@@ -1,0 +1,3 @@
+<resources>
+    <integer name="games_view_span_count">2</integer>
+</resources>
