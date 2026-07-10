@@ -264,7 +264,7 @@ public:
 		pb->writeU8(showGame);
 		pb->writeU8(blockFriendRequests);
 	}
-	
+
 	void readData(nexPacketBuffer* pb) override
 	{
 		showOnline = pb->readU8();
@@ -537,7 +537,7 @@ public:
 	};
 
 public:
-	NexFriends(uint32 authServerIp, uint16 authServerPort, const char* accessKey, uint32 pid, const char* nexPassword, const char* nexToken, const char* nnid, uint8* miiData, const wchar_t* miiNickname, uint8 countryCode, nexPresenceV2& myPresence);
+	NexFriends(uint32 authServerIp, uint16 authServerPort, const char* accessKey, uint32 pid, const char* nexPassword, const char* nexToken, const char* nnid, uint8* miiData, const uint16* miiNickname, uint8 countryCode, nexPresenceV2& myPresence);
 
 	~NexFriends();
 
@@ -586,7 +586,7 @@ private:
 
 	void generateNotification(NOTIFICATION_TYPE notificationType, uint32 pid);
 	void trackNotifications();
-	
+
 	// notification-service handlers
 	void processServerNotification_friendOffline(uint32 pid);
 	void processServerNotification_presenceChange(uint32 pid, nexPresenceV2& presence);
@@ -612,7 +612,7 @@ private:
 	uint32 numFailedLogins;
 	uint32 numSuccessfulLogins;
 	// auth
-	struct  
+	struct
 	{
 		uint32 serverIp;
 		uint16 port;
@@ -629,7 +629,7 @@ private:
 	std::vector<nexFriend> list_friends;
 	std::vector<nexFriendRequest> list_friendReqOutgoing;
 	std::vector<nexFriendRequest> list_friendReqIncoming;
-	struct  
+	struct
 	{
 		std::vector<nexFriend> list_friends;
 		std::vector<nexFriendRequest> list_friendReqOutgoing;

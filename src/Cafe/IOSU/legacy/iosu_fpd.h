@@ -6,6 +6,14 @@ namespace iosu
 {
 	namespace fpd
 	{
+		static const int RELATIONSHIP_INVALID = 0;
+		static const int RELATIONSHIP_FRIENDREQUEST_OUT = 1;
+		static const int RELATIONSHIP_FRIENDREQUEST_IN = 2;
+		static const int RELATIONSHIP_FRIEND = 3;
+
+		static const int GAMEMODE_MAX_MESSAGE_LENGTH = 0x80; // limit includes null-terminator character, so only 0x7F actual characters can be used
+		static const int MY_COMMENT_LENGTH = 0x11; // includes null-terminator character
+
 		struct FPDDate
 		{
 			/* +0x0 */ uint16be year;
@@ -67,6 +75,14 @@ namespace iosu
 		};
 		static_assert(sizeof(GameMode) == 0x2C);
 
+		struct Comment
+		{
+			/* +0x00 */ uint8 unk0;
+			/* +0x01 */ uint8 unk1;
+			/* +0x02 */ uint16be commentString[MY_COMMENT_LENGTH];
+		};
+		static_assert(sizeof(Comment) == 0x24);
+
 		struct FriendData
 		{
 			/* +0x000 */ uint8 type; // type (Non-Zero -> Friend, 0 -> Friend request ? )
@@ -83,23 +99,27 @@ namespace iosu
 			// sub struct (the part above seems to be shared with friend requests)
 			union
 			{
-				struct 
+				struct
 				{
 					/* +0x0A0 */ Profile profile; // this is returned for nn_fp.GetFriendProfile
 					/* +0x0A4 */ uint32be ukn0A4;
 					/* +0x0A8 */ GameKey gameKey;
 					/* +0x0B8 */ GameMode gameMode;
-					/* +0x0E4 */ CafeWideString<0x82> gameModeDescription;
+					/* +0x0E4 */ uint8 unk0E4;
+					/* +0x0E5 */ uint8 unk0E5;
+					/* +0x0E6 */ uint16be gameModeDescription[GAMEMODE_MAX_MESSAGE_LENGTH];
+					/* +0x1E6 */ uint8 unk1E6;
+					/* +0x1E7 */ uint8 unk1E7;
 					/* +0x1E8 */ Profile profile1E8; // how does it differ from the one at 0xA0? Returned by GetFriendPresence
 					/* +0x1EC */ uint8 isOnline;
 					/* +0x1ED */ uint8 _padding1ED[3];
 					// some other sub struct?
-					/* +0x1F0 */ CafeWideString<0x12> comment; // pops up every few seconds in friend list
+					/* +0x1F0 */ Comment comment; // pops up every few seconds in friend list
 					/* +0x214 */ uint32be _padding214;
 					/* +0x218 */ FPDDate approvalTime;
 					/* +0x220 */ FPDDate lastOnline;
 				}friendExtraData;
-				struct 
+				struct
 				{
 					/* +0x0A0 */ uint64be messageId; // guessed. If 0, then relationship is FRIENDSHIP_REQUEST_OUT, otherwise FRIENDSHIP_REQUEST_IN
 					/* +0x0A8 */ uint8 ukn0A8;
@@ -118,9 +138,9 @@ namespace iosu
 		};
 		static_assert(sizeof(FriendData) == 0x228);
 		static_assert(offsetof(FriendData, friendExtraData.gameKey) == 0x0A8);
-		static_assert(offsetof(FriendData, friendExtraData.gameModeDescription) == 0x0E4);
+		static_assert(offsetof(FriendData, friendExtraData.gameModeDescription) == 0x0E6);
 		static_assert(offsetof(FriendData, friendExtraData.comment) == 0x1F0);
-		
+
 		static_assert(offsetof(FriendData, requestExtraData.messageId) == 0x0A0);
 		static_assert(offsetof(FriendData, requestExtraData.comment) == 0x0AA);
 		static_assert(offsetof(FriendData, requestExtraData.uknMessage) == 0x12C);
@@ -205,14 +225,6 @@ namespace iosu
 			uint8be ukn; // probably padding?
 		};
 		static_assert(sizeof(FPDPreference) == 4);
-
-		static const int RELATIONSHIP_INVALID = 0;
-		static const int RELATIONSHIP_FRIENDREQUEST_OUT = 1;
-		static const int RELATIONSHIP_FRIENDREQUEST_IN = 2;
-		static const int RELATIONSHIP_FRIEND = 3;
-
-		static const int GAMEMODE_MAX_MESSAGE_LENGTH = 0x80; // limit includes null-terminator character, so only 0x7F actual characters can be used
-		static const int MY_COMMENT_LENGTH = 0x12;
 
 		enum class FPD_REQUEST_ID
 		{
