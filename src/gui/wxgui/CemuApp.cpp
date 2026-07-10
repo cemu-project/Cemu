@@ -34,6 +34,7 @@
 
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/SaveList.h"
+#include "Cafe/CafeSystem.h"
 
 wxIMPLEMENT_APP_NO_MAIN(CemuApp);
 
@@ -414,17 +415,19 @@ int CemuApp::OnExit()
 		m_sdlEventPumpTimer = nullptr;
 	}
 #endif
-
 	wxApp::OnExit();
 	wxTheClipboard->Flush();
 	InputManager::instance().Shutdown();
+	int retValue = 0;
+	if (auto r = CafeSystem::GetForegroundTitleReturnStatus(); (LaunchSettings::GetLoadFile() || LaunchSettings::GetLoadTitleID()) && r)
+		retValue = *r;
 #if BOOST_OS_MACOS
 	SDLControllerProvider::ShutdownSDL();
 #endif
 #if BOOST_OS_WINDOWS
-	ExitProcess(0);
+	ExitProcess(retValue);
 #else
-	_Exit(0);
+	_Exit(retValue);
 #endif
 }
 

@@ -39,7 +39,7 @@ namespace H264
 		struct
 		{
 			MEMPTR<void> outputFunc{ nullptr };
-			uint8be outputPerFrame{ 0 }; // whats the default?
+			uint8be outputPerFrame{ 0 }; // default is 0
 			MEMPTR<void> userMemoryParam{ nullptr };
 		}Param;
 		// misc
@@ -52,18 +52,18 @@ namespace H264
 		}decoderState;
 	};
 
-	uint32 H264DECMemoryRequirement(uint32 codecProfile, uint32 codecLevel, uint32 width, uint32 height, uint32be* sizeRequirementOut)
+	H264DEC_STATUS H264DECMemoryRequirement(uint32 codecProfile, uint32 codecLevel, uint32 width, uint32 height, uint32be* sizeRequirementOut)
 	{
 		if (H264_IsBotW())
 		{
 			static_assert(sizeof(H264Context) < 256);
 			*sizeRequirementOut = 256;
-			return 0;
+			return H264DEC_STATUS::SUCCESS;
 		}
 
 		// note: On console this seems to check if maxWidth or maxHeight < 64 but Pikmin 3 passes 32x32 and crashes if this function fails ?
-		if (width < 0x20 || height < 0x20 || width > 2800 || height > 1408 || sizeRequirementOut == MPTR_NULL || codecLevel >= 52 || (codecProfile != 0x42 && codecProfile != 0x4D && codecProfile != 0x64))
-			return 0x1010000;
+		if (width < 32 || height < 32 || width > 2800 || height > 1408 || !sizeRequirementOut || codecLevel >= 52 || (codecProfile != 66 && codecProfile != 77 && codecProfile != 100))
+			return H264DEC_STATUS::INVALID_PARAM;
 
 		uint32 workbufferSize = 0;
 		if (codecLevel < 0xB)
@@ -112,7 +112,7 @@ namespace H264
 		}
 		workbufferSize += 0x447;
 		*sizeRequirementOut = workbufferSize;
-		return 0;
+		return H264DEC_STATUS::SUCCESS;
 	}
 
 	uint32 H264DECCheckMemSegmentation(MPTR memory, uint32 size)
@@ -189,122 +189,161 @@ namespace H264
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
-	/**
-	 * Changed to detect 3 or 4 emulation prevention bytes.
-	 *  The "escape character" is 0x03 - also known as emulation_prevention_three_byte
-	 * ([0x000001][first NAL unit]) | ([0x000001][second NAL unit]) | ([0x000001][third NAL unit]) 
-	 */
-	H264DEC_STATUS H264DECGetImageSize(
-		uint8* stream,
-		uint32 length,
-		uint32 offset,
-		uint32be* outputWidth,
-		uint32be* outputHeight)
+	struct H264Dec_SeqParameterSet
 	{
-		if (!stream || length < 4 || !outputWidth || !outputHeight)
-			return H264DEC_STATUS::INVALID_PARAM;
+		// for now this contains only the fields we care about
+		uint32 pic_width_in_luma_samples{};
+		uint32 pic_height_in_map_units_x16{};
+		uint8 frame_mbs_only_flag{};
+	};
 
-		if ((offset + 4) > length)
-			return H264DEC_STATUS::INVALID_PARAM;
-
-		uint8* cur = stream + offset;
-		uint8* end = stream + length;
-
-		while (cur < end - 4)
+	void H264Dec_parseScalingList(RBSPInputBitstream& stream, sint32 size)
+	{
+		sint32 lastScale = 8;
+		sint32 nextScale = 8;
+		for (sint32 i = 0; i < size; i++)
 		{
-			// Detect start code (3-byte or 4-byte)
-			uint32 startCodeSize = 0;
-
-			if (cur[0] == 0x00 && cur[1] == 0x00)
+			if (nextScale != 0)
 			{
-				if (cur[2] == 0x01)
+				sint32 deltaScale = stream.readSV_E();
+				nextScale = (lastScale + deltaScale + 256) % 256;
+			}
+			if (nextScale != 0)
+				lastScale = nextScale;
+		}
+	}
+
+	bool H264Dec_parseSequencePS(RBSPInputBitstream& stream, H264Dec_SeqParameterSet& ps)
+	{
+		ps = {};
+		uint32 profileIdc = stream.readBits<8>();
+		if (profileIdc != 66 && profileIdc != 77 && profileIdc != 100)
+			return false;
+		stream.readBits<8>(); // constraint_set flags
+		stream.readBits<8>(); // level_idc
+		uint32 seqParameterSetId = stream.readUV_E();
+		if (seqParameterSetId >= 32)
+			return false;
+		if (profileIdc == 100)
+		{
+			uint32 chromaFormatIdc = stream.readUV_E();
+			if (chromaFormatIdc > 1)
+				return false;
+			stream.readUV_E(); // bit_depth_luma_minus8
+			stream.readUV_E(); // bit_depth_chroma_minus8
+			stream.readBit(); // qpprime_y_zero_transform_bypass_flag
+			if (stream.readBit()) // seq_scaling_matrix_present_flag
+			{
+				for (sint32 i = 0; i < 8; i++)
 				{
-					startCodeSize = 3;
-				}
-				else if (cur[2] == 0x00 && cur[3] == 0x01)
-				{
-					startCodeSize = 4;
+					if (stream.readBit())
+						H264Dec_parseScalingList(stream, i < 6 ? 16 : 64);
 				}
 			}
+		}
+		uint32 log2MaxFrameNumMinus4 = stream.readUV_E();
+		if (log2MaxFrameNumMinus4 > 12)
+			return false;
+		uint32 picOrderCntType = stream.readUV_E();
+		if (picOrderCntType > 2)
+			return false;
+		if (picOrderCntType == 0)
+		{
+			uint32 log2MaxPicOrderCntLsbMinus4 = stream.readUV_E();
+			if (log2MaxPicOrderCntLsbMinus4 > 12)
+				return false;
+		}
+		else if (picOrderCntType == 1)
+		{
+			stream.readBit(); // delta_pic_order_always_zero_flag
+			stream.readSV_E(); // offset_for_non_ref_pic
+			stream.readSV_E(); // offset_for_top_to_bottom_field
+			uint32 numRefFramesInPicOrderCntCycle = stream.readUV_E();
+			if (numRefFramesInPicOrderCntCycle > 0xFF)
+				return false;
+			for (uint32 i = 0; i < numRefFramesInPicOrderCntCycle; i++)
+				stream.readSV_E();
+		}
+		uint32 maxNumRefFrames = stream.readUV_E();
+		if (maxNumRefFrames > 16)
+			return false;
+		stream.readBit(); // gaps_in_frame_num_value_allowed_flag
+		uint32 picWidthInMbsMinus1 = stream.readUV_E();
+		uint32 width = 16 * (picWidthInMbsMinus1 + 1);
+		if ((width & 0xFFF0) < 0x10)
+			return false;
+		uint32 picHeightInMapUnitsMinus1 = stream.readUV_E();
+		uint32 heightInMapUnitsX16 = 16 * (picHeightInMapUnitsMinus1 + 1);
+		if ((heightInMapUnitsX16 & 0xFFF0) < 0x10)
+			return false;
+		ps.pic_width_in_luma_samples = width;
+		ps.pic_height_in_map_units_x16 = heightInMapUnitsX16;
+		ps.frame_mbs_only_flag = stream.readBit();
+		if (!ps.frame_mbs_only_flag)
+			stream.readBit(); // mb_adaptive_frame_field_flag
+		stream.readBit(); // direct_8x8_inference_flag
+		if (stream.readBit()) // frame_cropping_flag
+		{
+			stream.readUV_E(); // frame_crop_left_offset
+			stream.readUV_E(); // frame_crop_right_offset
+			stream.readUV_E(); // frame_crop_top_offset
+			stream.readUV_E(); // frame_crop_bottom_offset
+		}
+		stream.readBit(); // vui_parameters_present_flag
+		// vui parsing unnecessary as we currently dont need any of the fields
+		return true;
+	}
 
-			if (startCodeSize == 0)
+	H264DEC_STATUS H264DECGetImageSize(uint8* stream, sint32 streamSize, sint32 offset, uint32be* outputWidth, uint32be* outputHeight)
+	{
+		if (!stream || streamSize < 4 || offset < 0 || !outputWidth || !outputHeight || offset >= streamSize)
+			return H264DEC_STATUS::INVALID_PARAM;
+		if ( (offset+4) >= streamSize )
+			return H264DEC_STATUS::INVALID_PARAM;
+		uint8* cur = stream + offset;
+		uint8* end = stream + streamSize;
+		while (cur < end-2)
+		{
+			// check for start code
+			if(*cur != 1)
 			{
 				cur++;
 				continue;
 			}
-
-			uint8* nalStart = cur + startCodeSize;
-			if (nalStart >= end)
-				break;
-
-			uint8 nalHeader = nalStart[0];
-
-			// Check if SPS (NAL type 7)
-			if ((nalHeader & 0x1F) == 7)
+			// check if this is a valid NAL header
+			if(cur[-2] != 0 || cur[-1] != 0 || cur[0] != 1) // if offset is < 2, this will read out of bounds. The console implementation has this behavior too so we have to replicate this bug
 			{
-				// Find end of this NAL (next start code)
-				uint8* nalEnd = nalStart + 1;
-				while (nalEnd < end - 3)
-				{
-					if (nalEnd[0] == 0x00 && nalEnd[1] == 0x00 &&
-						(nalEnd[2] == 0x01 || (nalEnd[2] == 0x00 && nalEnd[3] == 0x01)))
-					{
-						break;
-					}
-					nalEnd++;
-				}
-
-				size_t nalSize = nalEnd - (nalStart + 1);
-
-				// --- EBSP -> RBSP ---
-				uint8_t rbsp[2048]; // consider dynamic if needed
-				size_t rbspSize = 0;
-
-				int zeroCount = 0;
-				for (size_t i = 0; i < nalSize; i++)
-				{
-					uint8_t b = nalStart[1 + i];
-
-					if (zeroCount == 2 && b == 0x03)
-					{
-						zeroCount = 0;
-						continue; // skip emulation prevention byte
-					}
-
-					rbsp[rbspSize++] = b;
-
-					if (b == 0x00)
-						zeroCount++;
-					else
-						zeroCount = 0;
-				}
-
-				// Parse SPS
-				h264State_seq_parameter_set_t psp;
-				bool r = h264Parser_ParseSPS(rbsp, (uint32)rbspSize, psp);
-
-				if (!r)
-				{
-					cemu_assert_suspicious();
-					return H264DEC_STATUS::BAD_STREAM;
-				}
-
-				// Width
-				*outputWidth = (psp.pic_width_in_mbs_minus1 + 1) * 16;
-
-				// Height (correct handling)
-				uint32 height = (psp.pic_height_in_map_units_minus1 + 1) * 16;
-				if (!psp.frame_mbs_only_flag)
-					height *= 2;
-
-				*outputHeight = height;
-
-				return H264DEC_STATUS::SUCCESS;
+				cur++;
+				continue;
 			}
-
-			cur += startCodeSize;
+			uint8 nalHeader = cur[1];
+			if((nalHeader & 0x1F) != 7)
+			{
+				cur++;
+				continue;
+			}
+			uint8* spsStart = cur + 2;
+			uint32 spsLength = (uint32)(end - spsStart);
+			H264Dec_SeqParameterSet psp;
+			RBSPInputBitstream rbspStream(spsStart, spsLength, false);
+			bool r = H264Dec_parseSequencePS(rbspStream, psp);
+			if(!r)
+			{
+				cemuLog_log(LogType::Force, "H264DECGetImageSize: Invalid SPS data");
+				cemu_assert_suspicious(); // should not happen
+				return H264DEC_STATUS::BAD_STREAM;
+			}
+			*outputWidth = psp.pic_width_in_luma_samples;
+			*outputHeight = psp.pic_height_in_map_units_x16;
+			if (!psp.frame_mbs_only_flag)
+				*outputHeight *= 2;
+			if (!*outputHeight || !*outputWidth)
+				return H264DEC_STATUS::BAD_STREAM;
+			// BotW 1080p video support
+			if (H264_IsBotW() && *outputWidth == 1920 && *outputHeight == 1088)
+				*outputHeight = 1080;
+			return H264DEC_STATUS::SUCCESS;
 		}
-
 		return H264DEC_STATUS::BAD_STREAM;
 	}
 
@@ -348,6 +387,7 @@ namespace H264
 	static void _ReleaseDecoderSession(H264DecoderBackend* session)
 	{
 		std::unique_lock _lock(sDecoderSessionsMutex);
+
 	}
 
 	static void _DestroyDecoderSession(uint32 handle)
@@ -411,10 +451,10 @@ namespace H264
 		coreinit::OSResetEvent(flushEvt);
 		session->QueueFlush();
 		coreinit::OSWaitEvent(flushEvt);
-		while (true)
+		while(true)
 		{
 			H264DecoderBackend::DecodeResult decodeResult;
-			if (!session->GetFrameOutputIfReady(decodeResult))
+			if( !session->GetFrameOutputIfReady(decodeResult) )
 				break;
 			// todo - output all frames in a single callback?
 			H264DoFrameOutputCallback(ctx, decodeResult);
@@ -575,15 +615,15 @@ namespace H264
 		// H264DECExecute is synchronous and will return a frame after either every call (non-buffered) or after 6 calls (buffered)
 		// normally frame decoding happens only during H264DECExecute, but in order to hide the latency of our CPU decoder we will decode asynchronously in buffered mode
 		uint32 numFramesToBuffer = (ctx->Param.outputPerFrame == 0) ? 5 : 0;
-		if (ctx->decoderState.numFramesInFlight > numFramesToBuffer)
+		if(ctx->decoderState.numFramesInFlight > numFramesToBuffer)
 		{
 			ctx->decoderState.numFramesInFlight--;
-			while (true)
+			while(true)
 			{
 				coreinit::OSEvent& evt = session->GetFrameOutputEvent();
 				coreinit::OSWaitEvent(&evt);
 				H264DecoderBackend::DecodeResult decodeResult;
-				if (!session->GetFrameOutputIfReady(decodeResult))
+				if( !session->GetFrameOutputIfReady(decodeResult) )
 					continue;
 				H264DoFrameOutputCallback(ctx, decodeResult);
 				break;
@@ -633,7 +673,7 @@ namespace H264
 		maxLength -= startCodeOffset;
 
 		// parse NAL data
-		while(true)
+		while (true)
 		{
 			if (nalStream.isEndOfStream())
 				break;
@@ -694,7 +734,7 @@ namespace H264
 
 	class : public COSModule
 	{
-	  	public:
+		public:
 		std::string_view GetName() override
 		{
 			return "h264";

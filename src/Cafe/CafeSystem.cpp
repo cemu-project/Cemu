@@ -443,6 +443,7 @@ namespace CafeSystem
 	static SystemImplementation* s_implementation{nullptr};
     bool sLaunchModeIsStandalone = false;
 	std::optional<std::vector<std::string>> s_overrideArgs;
+	std::optional<sint32> s_foregroundReturnStatus;
 
 	bool sSystemRunning = false;
 	TitleId sForegroundTitleId = 0;
@@ -685,6 +686,22 @@ namespace CafeSystem
         fsc_unmount("/cemuBossStorage/", FSC_PRIORITY_BASE);
     }
 
+	void MountExtras()
+	{
+		for (const auto& [host_path, emulatedPath] : LaunchSettings::CosMounts())
+		{
+			FSCDeviceHostFS_Mount(boost::nowide::narrow(emulatedPath), _pathToUtf8(host_path), FSC_PRIORITY_BASE);
+		}
+	}
+
+	void UnmountExtras()
+	{
+		for (const auto& [_, emulatedPath] : LaunchSettings::CosMounts())
+		{
+			fsc_unmount(boost::nowide::narrow(emulatedPath), FSC_PRIORITY_BASE);
+		}
+	}
+
 	PREPARE_STATUS_CODE LoadAndMountForegroundTitle(TitleId titleId)
 	{
         cemuLog_log(LogType::Force, "Mounting title {:016x}", (uint64)titleId);
@@ -820,6 +837,7 @@ namespace CafeSystem
 	{
 		CafeTitleList::WaitForMandatoryScan();
 		sLaunchModeIsStandalone = false;
+		s_foregroundReturnStatus = std::nullopt;
         _pathToExecutable.clear();
 		TitleIdParser tip(titleId);
 		if (tip.GetType() == TitleIdParser::TITLE_TYPE::AOC || tip.GetType() == TitleIdParser::TITLE_TYPE::BASE_TITLE_UPDATE)
@@ -838,6 +856,7 @@ namespace CafeSystem
 		if (r != PREPARE_STATUS_CODE::SUCCESS)
 			return r;
 		InitVirtualMlcStorage();
+		MountExtras();
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
@@ -881,6 +900,7 @@ namespace CafeSystem
         // load executable
         PrepareExecutable();
 		InitVirtualMlcStorage();
+		MountExtras();
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
@@ -960,6 +980,9 @@ namespace CafeSystem
 
 	std::string GetForegroundTitleArgStr()
 	{
+		auto optional_arguments = LaunchSettings::CosArgstr();
+		if (optional_arguments.has_value())
+			return *optional_arguments;
 		if (sLaunchModeIsStandalone)
 			return "";
 		auto& update = sGameInfo_ForegroundTitle.GetUpdate();
@@ -1044,24 +1067,26 @@ namespace CafeSystem
 	{
 		if(!sSystemRunning)
 			return;
-        coreinit::OSSchedulerEnd();
-        Latte_Stop();
-        // reset Cafe OS userspace modules
-        snd_core::reset();
-        coreinit::OSAlarm_Shutdown();
-        GX2::_GX2DriverReset();
-        nn::save::ResetToDefaultState();
-        coreinit::__OSDeleteAllActivePPCThreads();
-        RPLLoader_UnloadAll();
+		coreinit::OSSchedulerEnd();
+		Latte_Stop();
+		// reset Cafe OS userspace modules
+		snd_core::reset();
+		coreinit::OSAlarm_Shutdown();
+		GX2::_GX2DriverReset();
+		nn::save::ResetToDefaultState();
+		coreinit::__OSDeleteAllActivePPCThreads();
+		RPLLoader_UnloadAll();
 		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
 			(*it)->TitleStop();
-        // reset Cemu subsystems
-        PPCRecompiler_Shutdown();
-        GraphicPack2::Reset();
-        UnmountCurrentTitle();
-        MlcStorageUnmountAllTitles();
-        UnmountBaseDirectories();
-        DestroyMemorySpace();
+		// reset Cemu subsystems
+		PPCRecompiler_Shutdown();
+		GraphicPack2::Reset();
+		UnmountCurrentTitle();
+		UnmountExtras();
+		MlcStorageUnmountAllTitles();
+		UnmountBaseDirectories();
+		DestroyMemorySpace();
+		LaunchSettings::ClearCosArgstr();
 		sSystemRunning = false;
 	}
 
@@ -1161,6 +1186,17 @@ namespace CafeSystem
 	void RequestRecreateCanvas()
 	{
 		s_implementation->CafeRecreateCanvas();
+	}
+
+	void NotifyPPCProcessExit(sint32 status)
+	{
+		s_foregroundReturnStatus = status;
+		s_implementation->CafePPCProcessExit();
+	}
+
+	std::optional<sint32> GetForegroundTitleReturnStatus()
+	{
+		return s_foregroundReturnStatus;
 	}
 
 }

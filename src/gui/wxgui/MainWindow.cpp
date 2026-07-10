@@ -162,6 +162,7 @@ wxDEFINE_EVENT(wxEVT_SET_WINDOW_TITLE, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_GAMELIST_REFRESH, wxCommandEvent);
 wxDEFINE_EVENT(wxEVT_LAUNCH_GAME, wxLaunchGameEvent);
 wxDEFINE_EVENT(wxEVT_REQUEST_RECREATE_CANVAS, wxCommandEvent);
+wxDEFINE_EVENT(wxEVT_REQUEST_GAME_EXIT, wxCommandEvent);
 
 wxBEGIN_EVENT_TABLE(MainWindow, wxFrame)
 EVT_TIMER(MAINFRAME_ID_TIMER1, MainWindow::OnTimer)
@@ -243,6 +244,7 @@ EVT_COMMAND(wxID_ANY, wxEVT_ACCOUNTLIST_REFRESH, MainWindow::OnAccountListRefres
 EVT_COMMAND(wxID_ANY, wxEVT_SET_WINDOW_TITLE, MainWindow::OnSetWindowTitle)
 
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_RECREATE_CANVAS, MainWindow::OnRequestRecreateCanvas)
+EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_GAME_EXIT, MainWindow::OnRequestGameExit)
 
 wxEND_EVENT_TABLE()
 
@@ -548,8 +550,7 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
-		else if (initiatedBy == wxLaunchGameEvent::INITIATED_BY::MENU ||
-			initiatedBy == wxLaunchGameEvent::INITIATED_BY::COMMAND_LINE)
+		else
 		{
 			wxString t = _("Unable to launch game\nPath:\n");
 			t.append(_pathToUtf8(launchPath));
@@ -563,13 +564,6 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 				t.append("\n\n");
 				t.append(_("Could not decrypt title because title.tik is missing."));
 			}
-			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
-			return false;
-		}
-		else
-		{
-			wxString t = _("Unable to launch game\nPath:\n");
-			t.append(_pathToUtf8(launchPath));
 			wxMessageBox(t, _("Error"), wxOK | wxCENTRE | wxICON_ERROR);
 			return false;
 		}
@@ -2475,6 +2469,27 @@ void MainWindow::CafeRecreateCanvas()
 	evt->SetClientData((void*)&sem);
 	wxQueueEvent(g_mainFrame, evt);
 	sem.decrementWithWait();
+}
+
+void MainWindow::CafePPCProcessExit()
+{
+	// this is called from the emulated PPC thread, so queue an event instead of handling it directly
+	wxQueueEvent(g_mainFrame, new wxCommandEvent(wxEVT_REQUEST_GAME_EXIT));
+}
+
+void MainWindow::OnRequestGameExit(wxCommandEvent& event)
+{
+	// if the title was launched via the command line we close Cemu and use the foreground title's exit status as Cemu's process return code (via CemuApp:OnExit)
+	// this is useful for homebrew testing setups that use Cemu via CLI
+	// otherwise the title was launched from the game list, so we just stop it and return to the game list instead of closing Cemu
+	if (LaunchSettings::GetLoadFile() || LaunchSettings::GetLoadTitleID())
+	{
+		Close();
+	}
+	else
+	{
+		EndEmulation();
+	}
 }
 
 bool MainWindow::FullscreenEnabled() const

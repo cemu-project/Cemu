@@ -55,11 +55,16 @@ private:
 
 namespace VulkanRendererConst
 {
-	static const inline int SHADER_STAGE_INDEX_VERTEX = 0;
-	static const inline int SHADER_STAGE_INDEX_FRAGMENT = 1;
-	static const inline int SHADER_STAGE_INDEX_GEOMETRY = 2;
-	static const inline int SHADER_STAGE_INDEX_COUNT = 3;
+	static const inline int SHADER_STAGE_INDEX_VERTEX = static_cast<int>(LatteConst::ShaderType::Vertex);
+	static const inline int SHADER_STAGE_INDEX_FRAGMENT = static_cast<int>(LatteConst::ShaderType::Pixel);
+	static const inline int SHADER_STAGE_INDEX_GEOMETRY = static_cast<int>(LatteConst::ShaderType::Geometry);
+	static const inline int SHADER_STAGE_INDEX_COUNT = 4;
 };
+
+// the order doesnt really matter but the types should cover range 0-2 since we use them as an array index
+static_assert(static_cast<int>(LatteConst::ShaderType::Vertex) == 0);
+static_assert(static_cast<int>(LatteConst::ShaderType::Pixel) == 1);
+static_assert(static_cast<int>(LatteConst::ShaderType::Geometry) == 2);
 
 class PipelineInfo
 {
@@ -82,11 +87,18 @@ public:
 			return k;
 		}
 	};
+	using DescriptorSetCache = ska::flat_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>>;
+
+	FORCE_INLINE DescriptorSetCache& GetDescriptorSetCache(LatteConst::ShaderType shaderType)
+	{
+		cemu_assert_debug(shaderType == LatteConst::ShaderType::Vertex || shaderType == LatteConst::ShaderType::Pixel || shaderType == LatteConst::ShaderType::Geometry);
+		return ds_cache[static_cast<size_t>(shaderType)];
+	}
 
 	// std::unordered_map<uint64, VkDescriptorSetInfo*> 3.16% (total CPU time)
-	// robin_hood::unordered_flat_map<uint64, VkDescriptorSetInfo*> vertex_ds_cache, pixel_ds_cache, geometry_ds_cache; ~1.80%
-	// ska::bytell_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>> vertex_ds_cache, pixel_ds_cache, geometry_ds_cache; -> 1.91%
-	ska::flat_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>> vertex_ds_cache, pixel_ds_cache, geometry_ds_cache; // 1.71%
+	// robin_hood::unordered_flat_map<uint64, VkDescriptorSetInfo*> descriptor set cache; ~1.80%
+	// ska::bytell_hash_map<uint64, VkDescriptorSetInfo*, direct_hash<uint64>> descriptor set cache; -> 1.91%
+	DescriptorSetCache ds_cache[VulkanRendererConst::SHADER_STAGE_INDEX_COUNT]; // 1.71%
 
 	VKRObjectPipeline* m_vkrObjPipeline;
 
@@ -176,8 +188,6 @@ public:
 	static std::vector<DeviceInfo> GetDevices();
 	VulkanRenderer();
 	virtual ~VulkanRenderer();
-
-	RendererAPI GetType() override { return RendererAPI::Vulkan; }
 
 	static VulkanRenderer* GetInstance();
 
@@ -368,8 +378,7 @@ private:
 		VkDescriptorSetInfo* activePixelDS{ nullptr };
 		VkDescriptorSetInfo* activeGeometryDS{ nullptr };
 		bool descriptorSetsChanged{ false };
-		bool hasRenderSelfDependency{ false }; // set if current drawcall samples textures which are also output as a rendertarget
-
+		VkImageAspectFlags feedbackLoopImageAspect{0xFFFFFFFF};
 		// viewport and scissor box
 		VkViewport currentViewport{};
 		VkRect2D currentScissorRect{};
@@ -403,6 +412,7 @@ private:
 			activeIndexType = Renderer::INDEX_TYPE::NONE;
 			activeIndexBufferIndex = std::numeric_limits<uint32>::max();
 			activeIndexBufferOffset = std::numeric_limits<uint32>::max();
+			feedbackLoopImageAspect = 0xFFFFFFFF;
 		}
 
 		// invalidation / flushing
@@ -454,6 +464,8 @@ private:
 			bool present_wait = false; // VK_KHR_present_wait
 			bool depth_clip_enable = false; // VK_EXT_depth_clip_enable
 			bool pipeline_robustness = false; // VK_EXT_pipeline_robustness
+			bool attachment_feedback_loop_layout = false; // VK_EXT_attachment_feedback_loop_layout
+			bool attachment_feedback_loop_dynamic_state = false; // VK_EXT_attachment_feedback_loop_dynamic_state (this is forced to false if VK_EXT_attachment_feedback_loop_layout is not supported)
 		}deviceExtensions;
 
 		struct
@@ -470,6 +482,8 @@ private:
 		{
 			uint32 minUniformBufferOffsetAlignment = 256;
 			uint32 nonCoherentAtomSize = 256;
+			// calculated
+			uint32 calcUniformBufferAlignmentM1{};
 		}limits;
 
 		bool usingDebugMarkerTool{ false }; // validation layer or other tool capable of handling debug markers is used
@@ -528,7 +542,7 @@ private:
 	void draw_endRenderPass();
 
 	void draw_beginSequence() override;
-	void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, bool isFirst) override;
+	void draw_execute(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext) override;
 	void draw_endSequence() override;
 
 	void draw_updateVertexBuffersDirectAccess();
@@ -540,7 +554,7 @@ private:
 	void draw_handleSpecialState5();
 
 	// draw synchronization helper
-	void sync_inputTexturesChanged();
+	void sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass = false);
 	void sync_RenderPassLoadTextures(CachedFBOVk* fboVk);
 	void sync_RenderPassStoreTextures(CachedFBOVk* fboVk);
 
@@ -549,7 +563,8 @@ private:
 
 	// uniform
 	uint32 uniformData_uploadUniformDataBufferGetOffset(std::span<uint8, std::dynamic_extent> data);
-	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader);
+	void uniformData_updateUniformVars(uint32 shaderStageIndex, LatteDecompilerShader* shader, float* __restrict uniformBuf);
+	void uniformData_updateUniformVarsIncremental(uint32 shaderStageIndex, LatteDecompilerShader* shader, uint8& stageUniformModifiedMask, float* __restrict uniformBuf, bool aluConstDirty, uint32 uniformBufferDirtyMask);
 
 	// misc
 	void CreatePipelineCache();
@@ -633,7 +648,7 @@ private:
 	// if VK_EXT_external_memory_host is supported we can (optionally) import all of the Wii U memory into a Vulkan memory object
 	// this allows us to skip any vertex/uniform caching logic and let the GPU directly read the memory from main RAM
 	// Wii U memory imported into a buffer
-	bool m_useHostMemoryForCache{ false };
+	static constexpr bool m_useHostMemoryForCache{ false }; // currently disabled and made constexpr so the compiler eliminates the branches that will never be taken
 	VkBuffer m_importedMem = VK_NULL_HANDLE;
 	VkDeviceMemory m_importedMemMemory = VK_NULL_HANDLE;
 	MPTR m_importedMemBaseAddress = 0;
@@ -644,8 +659,8 @@ private:
 	size_t m_commandBufferIndex = 0; // current buffer being filled
 	size_t m_commandBufferSyncIndex = 0; // latest buffer that finished execution (updated on submit)
 	size_t m_commandBufferIDOfPrevFrame = 0;
-	std::array<size_t, kCommandBufferPoolSize> m_cmdBufferUniformRingbufIndices {}; // index in the uniform ringbuffer
-	std::array<VkFence, kCommandBufferPoolSize> m_cmd_buffer_fences;
+	std::array<size_t, kCommandBufferPoolSize> m_cmdBufferUniformRingbufIndices {}; // read index in the uniform ringbuffer after the command buffer finishes
+	std::array<VkFence, kCommandBufferPoolSize> m_cmdBufferFences;
 	std::array<VkCommandBuffer, kCommandBufferPoolSize> m_commandBuffers;
 	std::array<VkSemaphore, kCommandBufferPoolSize> m_commandBufferSemaphores;
 
@@ -660,6 +675,10 @@ private:
 	uint32 m_recordedDrawcalls{}; // number of drawcalls recorded into current command buffer
 	uint32 m_submitThreshold{}; // submit current buffer if recordedDrawcalls exceeds this number
 	bool m_submitOnIdle{}; // submit current buffer if Latte command processor goes into idle state (no more commands or waiting for externally signaled condition)
+
+	// drawcall handling
+	void draw_execute_first(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext);
+	void draw_execute_continued(uint32 baseVertex, uint32 baseInstance, uint32 instanceCount, uint32 count, MPTR indexDataMPTR, Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE indexType, const LatteDrawcallContext& drawcallContext);
 
 	// tracking for dynamic offsets
 	struct
@@ -934,6 +953,7 @@ public:
 	bool HasSPRIVRoundingModeRTE32() const { return m_featureControl.shaderFloatControls.shaderRoundingModeRTEFloat32; }
 	bool IsDebugMarkersEnabled() const { return m_featureControl.usingDebugMarkerTool; }
 	bool IsTracingToolEnabled() const { return m_featureControl.usingTracingTool; }
+	bool UseAttachmentFeedbackLoop() const { return m_featureControl.deviceExtensions.attachment_feedback_loop_dynamic_state; }
 
 private:
 

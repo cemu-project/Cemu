@@ -10,7 +10,7 @@
 #define LATTE_NUM_COLOR_TARGET				8
 
 #define LATTE_NUM_MAX_TEX_UNITS				18 // number of available texture units per shader stage (this might be higher than 18? BotW is the only game which uses more than 16?)
-#define LATTE_NUM_MAX_UNIFORM_BUFFERS		16 // number of supported uniform buffer binding locations
+#define LATTE_NUM_MAX_UNIFORM_BUFFERS		16 // number of supported uniform buffer binding locations per shader stage
 
 #define LATTE_VS_ATTRIBUTE_LIMIT			32 // todo: verify
 #define	LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS	256 // should this be 128 since there are only 128 GPRs?
@@ -109,16 +109,13 @@ namespace LatteConst
 {
 	enum class ShaderType : uint32
 	{
-		Reserved = 0,
 		// shaders for drawing
-		FirstRender = 1,
-		Vertex = 1,
-		Pixel = 2,
-		Geometry = 3,
-		LastRender = 3,
+		Vertex = 0,
+		Pixel = 1,
+		Geometry = 2,
 		// compute shader
-		Compute = 4,
-		TotalCount = 5
+		Compute = 3,
+		TotalCount = 4
 	};
 
 	enum class VertexFetchNFA

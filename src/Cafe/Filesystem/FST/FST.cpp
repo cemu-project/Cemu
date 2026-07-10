@@ -200,7 +200,7 @@ bool FSTVolume::FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey)
 	if (dataSource->readData(0, 0, 0x18000 + 0x100, header, sizeof(header)) != sizeof(header))
 		return false;
 
-	// try all the keys
+	// try all the keys in the key cache
 	uint8 headerDecrypted[sizeof(header)-16];
 	for (sint32 i = 0; i < 0x7FFFFFFF; i++)
 	{
@@ -215,7 +215,12 @@ bool FSTVolume::FindDiscKey(const fs::path& path, NCrypto::AesKey& discTitleKey)
 			return true;
 		}
 	}
-	return false;
+
+	// check for a key file next to the WUD file
+	fs::path keyPath = path;
+	keyPath.replace_extension("key");
+	std::unique_ptr<FileStream> keyFile(FileStream::openFile2(keyPath));
+	return keyFile && keyFile->readData(discTitleKey.b, sizeof(discTitleKey.b)) == sizeof(discTitleKey.b);
 }
 
 // open WUD image using key cache

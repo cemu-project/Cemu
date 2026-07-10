@@ -237,6 +237,7 @@ struct LatteDecompilerShaderContext
 		uint8 gprUseMask[(LATTE_NUM_GPR + 7) / 8]; // 1 bit per GPR, set if GPR is read/written anywhere in the program (ignores GPR accesses with relative index)
 		bool hasStreamoutWrite; // stream-out CF instructions are used
 		bool hasRedcCUBE; // has cube reduction instruction
+		bool hasFragCoordAccess{false}; // accesses gl_FragCoord
 		bool modifiesPixelActiveState; // set if the active mask is changed anywhere in the shader (If false, we can skip active mask checks)
 		bool usesIntegerValues; // set if the shader uses any kind of integer instruction or integer-based GPR/AR access
 		sint32 activeStackMaxDepth; // maximum depth of pixel state stack
