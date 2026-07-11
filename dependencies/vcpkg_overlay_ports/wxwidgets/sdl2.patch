@@ -1,29 +1,20 @@
 diff --git a/build/cmake/init.cmake b/build/cmake/init.cmake
-index 4ed7b264ef..9abf7c9d5d 100644
+index 5447d33..f5440b4 100644
 --- a/build/cmake/init.cmake
 +++ b/build/cmake/init.cmake
-@@ -667,7 +667,9 @@ if(wxUSE_GUI)
-     endif()
- 
+@@ -693,3 +693,5 @@
      if(wxUSE_SOUND AND wxUSE_LIBSDL AND UNIX AND NOT APPLE)
 -        find_package(SDL2)
 +        find_package(SDL2 CONFIG REQUIRED)
 +        set(SDL2_INCLUDE_DIR "" CACHE INTERNAL "")
 +        set(SDL2_LIBRARY SDL2::SDL2 CACHE INTERNAL "")
          if(NOT SDL2_FOUND)
-             find_package(SDL)
-             mark_as_advanced(SDL_INCLUDE_DIR SDLMAIN_LIBRARY)
 diff --git a/build/cmake/wxWidgetsConfig.cmake.in b/build/cmake/wxWidgetsConfig.cmake.in
-index c134900764..7bcb691074 100644
 --- a/build/cmake/wxWidgetsConfig.cmake.in
 +++ b/build/cmake/wxWidgetsConfig.cmake.in
-@@ -156,6 +156,9 @@ endforeach()
+@@ -179,2 +179,5 @@ include(CMakeFindDependencyMacro)
  
- include(CMakeFindDependencyMacro)
- find_dependency(NanoSVG CONFIG)
 +if("@wxUSE_LIBSDL@")
 +    find_dependency(SDL2 CONFIG)
 +endif()
- 
  if(TARGET wx::wxnet AND @wxUSE_WEBREQUEST_CURL@)
-     # make sure CURL targets are available:
