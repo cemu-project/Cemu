@@ -214,8 +214,8 @@ namespace iosu
 			friendData->friendExtraData.gameKey.ukn08 = frd->presence.gameKey.ukn;
 			NexPresenceToGameMode(&frd->presence, &friendData->friendExtraData.gameMode);
 
-			convertMultiByteStringToBigEndianWidechar(frd->presence.msg.c_str(), friendData->friendExtraData.gameModeDescription, GAMEMODE_MAX_MESSAGE_LENGTH);
-			convertMultiByteStringToBigEndianWidechar(frd->comment.commentString.c_str(), friendData->friendExtraData.comment.commentString, MY_COMMENT_LENGTH);
+			friendData->friendExtraData.gameModeDescription.assignFromUTF8(frd->presence.msg);
+			friendData->friendExtraData.comment.commentString.assignFromUTF8(frd->comment.commentString);
 
 			// set valid dates
 			friendData->uknDate.year = 2018;
@@ -730,7 +730,7 @@ namespace iosu
 					}
 					nexComment myNexComment;
 					g_fpd.nexFriendSession->getMyComment(myNexComment);
-					convertMultiByteStringToBigEndianWidechar(myNexComment.commentString.c_str(), outComment.commentString, MY_COMMENT_LENGTH);
+					outComment.commentString.assignFromUTF8(myNexComment.commentString);
 				}
 				memcpy(vecOut->basePhys.GetPtr(), &outComment, sizeof(Comment));
 				return FPResult_Ok;

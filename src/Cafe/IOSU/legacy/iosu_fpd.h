@@ -79,7 +79,7 @@ namespace iosu
 		{
 			/* +0x00 */ uint8 unk0;
 			/* +0x01 */ uint8 unk1;
-			/* +0x02 */ uint16be commentString[MY_COMMENT_LENGTH];
+			/* +0x02 */ CafeWideString<MY_COMMENT_LENGTH> commentString;
 		};
 		static_assert(sizeof(Comment) == 0x24);
 
@@ -107,7 +107,7 @@ namespace iosu
 					/* +0x0B8 */ GameMode gameMode;
 					/* +0x0E4 */ uint8 unk0E4;
 					/* +0x0E5 */ uint8 unk0E5;
-					/* +0x0E6 */ uint16be gameModeDescription[GAMEMODE_MAX_MESSAGE_LENGTH];
+					/* +0x0E6 */ CafeWideString<GAMEMODE_MAX_MESSAGE_LENGTH> gameModeDescription;
 					/* +0x1E6 */ uint8 unk1E6;
 					/* +0x1E7 */ uint8 unk1E7;
 					/* +0x1E8 */ Profile profile1E8; // how does it differ from the one at 0xA0? Returned by GetFriendPresence
