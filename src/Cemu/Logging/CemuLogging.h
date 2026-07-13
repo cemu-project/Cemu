@@ -41,11 +41,12 @@ enum class LogType : sint32
 	TextureReadback = 29,
 	ProcUi = 39,
 	nlibcurl = 41,
+	SWKBD = 45,
 
 	PRUDP = 40,
 
-	NFC	= 41,
-	NTAG = 42,
+	NFC	= 43,
+	NTAG = 44,
 	Recompiler = 60,
 };
 

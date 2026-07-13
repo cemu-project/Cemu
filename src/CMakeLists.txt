@@ -211,6 +211,10 @@ set_target_properties(CemuBin PROPERTIES
 	OUTPUT_NAME "${OUTPUT_NAME}"
 )
 
+if(ENABLE_SDL)
+	target_link_libraries(CemuBin PRIVATE SDL3::SDL3)
+endif()
+
 target_link_libraries(CemuBin PRIVATE
 	CemuAudio
 	CemuCafe
@@ -221,10 +225,6 @@ target_link_libraries(CemuBin PRIVATE
 	CemuInput
 	CemuUtil
 )
-
-if(ENABLE_SDL)
-	target_link_libraries(CemuBin PRIVATE SDL3::SDL3)
-endif()
 
 if(UNIX AND NOT APPLE)
 	# due to nasm output some linkers will make stack executable

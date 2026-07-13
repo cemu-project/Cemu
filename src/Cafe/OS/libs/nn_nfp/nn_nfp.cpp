@@ -915,7 +915,7 @@ void nnNfpExport_GetNfpState(PPCInterpreter_t* hCPU)
 	uint64 titleId = CafeSystem::GetForegroundTitleId();
 	if (titleId == 0x0005000010162d00 || titleId == 0x0005000010162e00)
 	{
-		coreinit::OSSleepTicks(ESPRESSO_CORE_CLOCK / 100); // pause for 10ms
+		coreinit::OSSleepTicks(ESPRESSO_TIMER_CLOCK / 100); // pause for 10ms
 	}
 
 	uint32 nfpState;

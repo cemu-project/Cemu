@@ -179,6 +179,7 @@ namespace H264
 				// resolution change
 				ResetDecoder();
 				m_hasBufferSizeInfo = false;
+				cemuLog_log(LogType::H264, "H264: Resolution change detected");
 				Decode(decodedSlice);
 				return;
 			}
@@ -266,6 +267,19 @@ namespace H264
 
 		void Flush()
 		{
+			auto releaseDisplayFrame = [this](uint32 displayBufferId)
+			{
+				ivd_rel_display_frame_ip_t s_video_rel_disp_ip{ 0 };
+				ivd_rel_display_frame_op_t s_video_rel_disp_op{ 0 };
+				s_video_rel_disp_ip.e_cmd = IVD_CMD_REL_DISPLAY_FRAME;
+				s_video_rel_disp_ip.u4_size = sizeof(ivd_rel_display_frame_ip_t);
+				s_video_rel_disp_op.u4_size = sizeof(ivd_rel_display_frame_op_t);
+				s_video_rel_disp_ip.u4_disp_buf_id = displayBufferId;
+
+				WORD32 status = ih264d_api_function(m_codecCtx, &s_video_rel_disp_ip, &s_video_rel_disp_op);
+				cemu_assert(!status);
+			};
+
 			// set flush mode
 			ivd_ctl_flush_ip_t s_video_flush_ip{ 0 };
 			ivd_ctl_flush_op_t s_video_flush_op{ 0 };
@@ -301,7 +315,12 @@ namespace H264
 						s_dec_op.s_disp_frm_buf.u4_y_ht = 1080;
 				}
 				PushDecodedFrame(s_dec_op);
+				releaseDisplayFrame(s_dec_op.u4_disp_buf_id);
 			}
+
+			// release display buffers
+			for (size_t i = 0; i < m_displayBuf.size(); i++)
+				releaseDisplayFrame((uint32)i);
 		}
 
 		void CopyImageToResultBuffer(uint8* yIn, uint8* uvIn, uint8* bufOut, ivd_video_decode_op_t& decodeInfo)
@@ -377,7 +396,6 @@ namespace H264
 		{
 			ivd_ctl_getbufinfo_ip_t s_ctl_ip{ 0 };
 			ivd_ctl_getbufinfo_op_t s_ctl_op{ 0 };
-			WORD32 outlen = 0;
 
 			s_ctl_ip.e_cmd = IVD_CMD_VIDEO_CTL;
 			s_ctl_ip.e_sub_cmd = IVD_CMD_CTL_GETBUFINFO;
@@ -387,7 +405,6 @@ namespace H264
 			WORD32 status = ih264d_api_function(m_codecCtx, &s_ctl_ip, &s_ctl_op);
 			cemu_assert(!status);
 
-			//away with the old.
 			m_displayBuf.clear();
 			// allocate
 			for (uint32 i = 0; i < s_ctl_op.u4_num_disp_bufs; i++)
@@ -418,7 +435,6 @@ namespace H264
 
 			status = ih264d_api_function(m_codecCtx, &s_set_display_frame_ip, &s_set_display_frame_op);
 			cemu_assert(!status);
-
 
 			// mark all as released (available)
 			for (uint32 i = 0; i < s_ctl_op.u4_num_disp_bufs; i++)

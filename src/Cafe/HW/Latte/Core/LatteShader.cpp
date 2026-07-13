@@ -172,7 +172,7 @@ void LatteSHRC_RemoveFromCaches(LatteDecompilerShader* shader)
             cemu_assert_debug(shader->baseHash == shader->next->baseHash);
             cache.emplace(shader->baseHash, shader->next);
         }
-        shader->next = 0;
+        shader->next = nullptr;
 		removed = true;
 	}
 	else
@@ -187,6 +187,7 @@ void LatteSHRC_RemoveFromCaches(LatteDecompilerShader* shader)
 				removed = true;
 				break;
 			}
+			shaderChain = shaderChain->next;
 		}
 	}
 	cemu_assert(removed);
@@ -1256,7 +1257,7 @@ void LatteSHRC_UpdateActiveShaders()
 				_activeVertexShader = auxVariant.vertexShader;
 				_activePixelShader = auxVariant.pixelShader;
 				_activeGeometryShader = auxVariant.geometryShader;
-				LatteGPUState.activeShaderHasError = shaderStateInfo->shaderError;
+				LatteGPUState.activeShaderHasError = auxVariant.hasError;
 				return;
 			}
 		}
