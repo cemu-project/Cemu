@@ -36,6 +36,12 @@ Pre-2.0 releases can be found on Cemu's [changelog page](https://cemu.info/chang
 
 To compile Cemu yourself on Windows, Linux or macOS, view [BUILD.md](/BUILD.md).
 
+## Graphic pack binary patches
+
+CemuExtend supports CPB1 binary patches named `patch_*.cpb`. Graphic pack
+authors can find the packaging workflow, binary format, relocation types, and
+validation notes in [GRAPHIC_PACK_CPB.md](/GRAPHIC_PACK_CPB.md).
+
 ## Issues
 
 Issues with the emulator should be filed using [GitHub Issues](https://github.com/cemu-project/Cemu/issues).  
