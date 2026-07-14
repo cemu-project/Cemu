@@ -1,0 +1,8 @@
+build/
+cmake-build-*/
+out/
+.cache/
+result
+bin/Cemu_*
+bin/*.pdb
+bin/*.ilk

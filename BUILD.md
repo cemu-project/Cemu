@@ -15,6 +15,8 @@
       - [Troubleshooting Steps](#troubleshooting-steps)
          - [Compiling Errors](#compiling-errors)
          - [Building Errors](#building-errors)
+- [Nix](#nix)
+- [Docker](#docker)
 - [macOS](#macos)
    - [Installing brew](#installing-brew)
    - [Installing Tool Dependencies](#installing-tool-dependencies)
@@ -130,6 +132,32 @@ This section refers to running `cmake -S...` (truncated).
 
 
 If you are getting a different error than any of the errors listed above, you may either open an issue in this repo or try using [GCC](#gcc). Make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
+
+## Nix
+
+The repository includes a flake that provides a reproducible Linux build and development shell. It uses Nixpkgs for the native dependencies and does not invoke vcpkg.
+
+From the CemuExtend directory:
+
+```
+nix develop
+cmake -S . -B build/nix -G Ninja -DCMAKE_BUILD_TYPE=Debug -DENABLE_VCPKG=OFF -DALLOW_PORTABLE=OFF
+cmake --build build/nix --parallel
+```
+
+The development build is written to `bin/Cemu_debug`. To build the packaged Nix output instead, run `nix build .#cemu-extend`; the executable is available as `result/bin/cemu`.
+
+## Docker
+
+The Dockerfile uses CemuExtend's vcpkg manifest and initializes all git submodules inside the image. Build from the CemuExtend directory:
+
+```
+git submodule update --init --recursive
+docker build -t cemu-extend:build .
+docker run --rm -it cemu-extend:build
+```
+
+The default image performs a Release build. Use `--build-arg BUILD_TYPE=Debug` for a Debug build. The compiled executable is at `/workspace/CemuExtend/bin/Cemu_release` (or `Cemu_debug`) inside the container. To create only the dependency-enabled development image without compiling, use `docker build --target dev -t cemu-extend:dev .`.
 
 
 ##### Building Errors

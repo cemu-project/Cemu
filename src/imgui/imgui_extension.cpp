@@ -133,8 +133,6 @@ void ImGui_UpdateWindowInformation(bool mainWindow)
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 #if BOOST_OS_WINDOWS
 	io.ImeWindowHandle = mainWindow ? windowInfo.window_main.surface : windowInfo.window_pad.surface;
-#else
-	io.ImeWindowHandle = nullptr;
 #endif
 
 	io.MousePos = ImVec2(-FLT_MAX, -FLT_MAX);
