@@ -66,56 +66,66 @@ void PatchErrorHandler::showStageErrorMessageBox()
 	WindowSystem::ShowErrorDialog(errorMsg, _tr("Graphic pack error"), WindowSystem::ErrorCategory::GRAPHIC_PACKS);
 }
 
-// loads Cemu-style patches (patch_<anything>.asm)
+// loads Cemu-style patches (patch_<anything>.cpb or patch_<anything>.asm)
 // returns true if at least one file was found even if it could not be successfully parsed
 bool GraphicPack2::LoadCemuPatches()
 {
-	bool foundPatches = false;
 	fs::path path(m_rulesPath);
 	path.remove_filename();
-	for (auto& p : fs::directory_iterator(path))
+
+	auto loadPatchFilesByExtension = [&](const char* extension, bool isBinaryPatch) -> bool
 	{
-		auto& path = p.path();
-		if (fs::is_regular_file(p.status()) && path.has_filename())
+		bool foundPatches = false;
+		for (auto& p : fs::directory_iterator(path))
 		{
-			// check if filename matches
-			std::string filename = _pathToUtf8(path.filename());
-			if (boost::istarts_with(filename, "patch_") && boost::iends_with(filename, ".asm"))
+			auto& patchPath = p.path();
+			if (fs::is_regular_file(p.status()) && patchPath.has_filename())
 			{
-				FileStream* patchFile = FileStream::openFile2(path);
-				if (patchFile)
+				// check if filename matches
+				std::string filename = _pathToUtf8(patchPath.filename());
+				if (boost::istarts_with(filename, "patch_") && boost::iends_with(filename, extension))
 				{
-					// read file
-					std::vector<uint8> fileData;
-					patchFile->extract(fileData);
-					delete patchFile;
-					MemStreamReader patchesStream(fileData.data(), (sint32)fileData.size());
-					// load Cemu style patch file
-					if (!ParseCemuPatchesTxtInternal(patchesStream))
+					FileStream* patchFile = FileStream::openFile2(patchPath);
+					if (patchFile)
 					{
-						cemuLog_log(LogType::Force, "Error while processing \"{}\". No patches for this graphic pack will be applied.", _pathToUtf8(path));
-						cemu_assert_debug(list_patchGroups.empty());
-						return true; // return true since a .asm patch was found even if we could not parse it
+						// read file
+						std::vector<uint8> fileData;
+						patchFile->extract(fileData);
+						delete patchFile;
+						MemStreamReader patchesStream(fileData.data(), (sint32)fileData.size());
+						// load Cemu style patch file
+						const bool parseResult = isBinaryPatch ? ParseCemuBinaryPatchesInternal(patchesStream) : ParseCemuPatchesTxtInternal(patchesStream);
+						if (!parseResult)
+						{
+							cemuLog_log(LogType::Force, "Error while processing \"{}\". No patches for this graphic pack will be applied.", _pathToUtf8(patchPath));
+							cemu_assert_debug(list_patchGroups.empty());
+							return true; // return true since a patch was found even if we could not parse it
+						}
 					}
+					else
+					{
+						cemuLog_log(LogType::Force, "Unable to load patch file \"{}\"", _pathToUtf8(patchPath));
+					}
+					foundPatches = true;
 				}
-				else
-				{
-					cemuLog_log(LogType::Force, "Unable to load patch file \"{}\"", _pathToUtf8(path));
-				}
-				foundPatches = true;
 			}
 		}
-	}
-	return foundPatches;
+		return foundPatches;
+	};
+
+	if (loadPatchFilesByExtension(".cpb", true))
+		return true;
+	return loadPatchFilesByExtension(".asm", false);
 }
 
 void GraphicPack2::LoadPatchFiles()
 {
 	// order of loading patches:
-	// 1) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
-	// 2) Load Cemuhook patches.txt
+	// 1) Load Cemu binary patches (patch_<name>.cpb), stop here if at least one patch file exists
+	// 2) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
+	// 3) Load Cemuhook patches.txt
 	if (LoadCemuPatches())
-		return; // exit if at least one Cemu style patch file was found
+		return; // exit if at least one Cemu patch file was found
 	// fall back to Cemuhook patches.txt to guarantee backward compatibility
 	fs::path path(m_rulesPath);
 	path.remove_filename();

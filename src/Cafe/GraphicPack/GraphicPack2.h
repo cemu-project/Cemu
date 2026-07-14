@@ -278,6 +278,7 @@ private:
 
 	void ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStream);
 	bool ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream);
+	bool ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream);
 	void CancelParsingPatches();
 
 	void ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLModule* rpl);

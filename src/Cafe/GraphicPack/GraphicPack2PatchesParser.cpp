@@ -33,6 +33,133 @@ void GraphicPack2::LogPatchesSyntaxError(sint32 lineNumber, std::string_view err
 	list_patchGroups.clear();
 }
 
+enum class RAW_HEX_PARSE_RESULT
+{
+	NO_MATCH,
+	MATCH,
+	PARSE_ERROR
+};
+
+static constexpr uint32 CEMU_PATCH_BINARY_MAGIC = 0x43504231; // CPB1
+static constexpr uint8 CEMU_PATCH_BINARY_ENTRY_LABEL = 1;
+static constexpr uint8 CEMU_PATCH_BINARY_ENTRY_DATA = 2;
+
+static bool _isHexDigit(char c)
+{
+	return (c >= '0' && c <= '9') ||
+		(c >= 'a' && c <= 'f') ||
+		(c >= 'A' && c <= 'F');
+}
+
+static uint8 _hexDigitToValue(char c)
+{
+	if (c >= '0' && c <= '9')
+		return (uint8)(c - '0');
+	if (c >= 'a' && c <= 'f')
+		return (uint8)(c - 'a' + 10);
+	return (uint8)(c - 'A' + 10);
+}
+
+static RAW_HEX_PARSE_RESULT _parseRawHexPatchData(std::string_view text, std::vector<uint8>& outData, std::string& errorMsg)
+{
+	auto isWhitespace = [](char c) { return c == ' ' || c == '\t'; };
+	size_t index = 0;
+	bool parsedAnyValue = false;
+	while (index < text.size())
+	{
+		while (index < text.size() && (isWhitespace(text[index]) || text[index] == ','))
+			index++;
+		if (index >= text.size())
+			break;
+		if (index + 2 > text.size() || text[index] != '0' || (text[index + 1] != 'x' && text[index + 1] != 'X'))
+		{
+			if (parsedAnyValue)
+				errorMsg = "Unexpected characters in raw binary patch data";
+			return parsedAnyValue ? RAW_HEX_PARSE_RESULT::PARSE_ERROR : RAW_HEX_PARSE_RESULT::NO_MATCH;
+		}
+		index += 2;
+		size_t digitStart = index;
+		uint32 value = 0;
+		while (index < text.size() && _isHexDigit(text[index]))
+		{
+			if ((index - digitStart) >= 8)
+			{
+				errorMsg = "Raw binary patch values must fit in 32 bits";
+				return RAW_HEX_PARSE_RESULT::PARSE_ERROR;
+			}
+			value = (value << 4) | _hexDigitToValue(text[index]);
+			index++;
+		}
+		size_t digitCount = index - digitStart;
+		if (digitCount == 0)
+		{
+			errorMsg = "Expected hexadecimal digits after 0x";
+			return RAW_HEX_PARSE_RESULT::PARSE_ERROR;
+		}
+		uint32 byteCount = (uint32)((digitCount + 1) / 2);
+		for (sint32 byteIndex = (sint32)byteCount - 1; byteIndex >= 0; byteIndex--)
+			outData.emplace_back((uint8)((value >> (byteIndex * 8)) & 0xFF));
+		parsedAnyValue = true;
+		if (index < text.size() && !isWhitespace(text[index]) && text[index] != ',')
+		{
+			errorMsg = "Unexpected characters after raw binary patch value";
+			return RAW_HEX_PARSE_RESULT::PARSE_ERROR;
+		}
+	}
+	return parsedAnyValue ? RAW_HEX_PARSE_RESULT::MATCH : RAW_HEX_PARSE_RESULT::NO_MATCH;
+}
+
+static bool _isValidBinaryRelocType(uint8 relocType)
+{
+	switch ((PPCASM_RELOC)relocType)
+	{
+	case PPCASM_RELOC::U32_MASKED_IMM:
+	case PPCASM_RELOC::BRANCH_S16:
+	case PPCASM_RELOC::BRANCH_S26:
+	case PPCASM_RELOC::FLOAT:
+	case PPCASM_RELOC::DOUBLE:
+	case PPCASM_RELOC::U32:
+	case PPCASM_RELOC::U16:
+	case PPCASM_RELOC::U8:
+		return true;
+	default:
+		return false;
+	}
+}
+
+static uint32 _getBinaryRelocSize(PPCASM_RELOC relocType)
+{
+	switch (relocType)
+	{
+	case PPCASM_RELOC::DOUBLE:
+		return sizeof(betype<double>);
+	case PPCASM_RELOC::U16:
+		return sizeof(betype<uint16>);
+	case PPCASM_RELOC::U8:
+		return sizeof(betype<uint8>);
+	case PPCASM_RELOC::U32_MASKED_IMM:
+	case PPCASM_RELOC::BRANCH_S16:
+	case PPCASM_RELOC::BRANCH_S26:
+	case PPCASM_RELOC::FLOAT:
+	case PPCASM_RELOC::U32:
+		return sizeof(betype<uint32>);
+	default:
+		return 0;
+	}
+}
+
+static bool _readBinaryPatchString(MemStreamReader& patchesStream, std::string& str)
+{
+	uint16 strLength = patchesStream.readBE<uint16>();
+	if (patchesStream.hasError())
+		return false;
+	auto strData = patchesStream.readDataNoCopy(strLength);
+	if (patchesStream.hasError())
+		return false;
+	str.assign((const char*)strData.data(), strData.size());
+	return true;
+}
+
 void GraphicPack2::CancelParsingPatches()
 {
 	// unload everything, set error flag
@@ -50,6 +177,7 @@ void GraphicPack2::AddPatchGroup(PatchGroup* group)
 	}
 	// calculate code cave size
 	uint32 codeCaveMaxAddr = 0;
+	uint32 codeCavePatchedBytes = 0;
 	for (auto& itr : group->list_patches)
 	{
 		PatchEntryInstruction* patchData = dynamic_cast<PatchEntryInstruction*>(itr);
@@ -60,12 +188,12 @@ void GraphicPack2::AddPatchGroup(PatchGroup* group)
 			{
 				// everything in low 1MB of memory we consider part of the code cave
 				codeCaveMaxAddr = std::max(codeCaveMaxAddr, patchAddr + patchData->getSize());
+				codeCavePatchedBytes += patchData->getSize();
 			}
 		}
 
 	}
-	uint32 numEstimatedCodeCaveInstr = codeCaveMaxAddr / 4;
-	if (group->list_patches.size() < (numEstimatedCodeCaveInstr / 8))
+	if (codeCavePatchedBytes < (codeCaveMaxAddr / 8))
 	{
 		// if less than 1/8th of the code cave is filled print a warning
 		cemuLog_log(LogType::Force, "Graphic pack patches: Code cave for group [{}] in gfx pack \"{}\" ranges from 0 to 0x{:x} but has only few instructions. Is this intentional?", group->name, this->m_name, codeCaveMaxAddr);
@@ -141,8 +269,30 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 			}
 			parser.skipWhitespaces();
 			parser.trimWhitespaces();
-			// assemble instruction
+			// raw binary patch data
 			std::string instrText(parser.getCurrentPtr(), parser.getCurrentLen());
+			std::vector<uint8> rawPatchData;
+			std::string rawPatchError;
+			RAW_HEX_PARSE_RESULT rawPatchResult = _parseRawHexPatchData(instrText, rawPatchData, rawPatchError);
+			if (rawPatchResult == RAW_HEX_PARSE_RESULT::PARSE_ERROR)
+			{
+				LogPatchesSyntaxError(lineNumber, rawPatchError);
+				CancelParsingPatches();
+				return;
+			}
+			if (rawPatchResult == RAW_HEX_PARSE_RESULT::MATCH)
+			{
+				if (currentGroup == nullptr)
+				{
+					LogPatchesSyntaxError(lineNumber, "Raw binary patch data specified outside of a group");
+					CancelParsingPatches();
+					return;
+				}
+				std::vector<PPCAssemblerReloc> noRelocs;
+				currentGroup->list_patches.emplace_back(new PatchEntryInstruction(lineNumber, patchedAddress, { rawPatchData.data(), rawPatchData.size() }, noRelocs));
+				continue;
+			}
+			// assemble instruction
 			PPCAssemblerInOut ctx{};
 			ctx.virtualAddress = patchedAddress;
 			if (!ppcAssembler_assembleSingleInstruction(instrText.c_str(), &ctx))
@@ -221,6 +371,176 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 	}
 	if (currentGroup)
 		AddPatchGroup(currentGroup);
+}
+
+bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream)
+{
+	uint32 magic = patchesStream.readBE<uint32>();
+	if (patchesStream.hasError() || magic != CEMU_PATCH_BINARY_MAGIC)
+	{
+		LogPatchesSyntaxError(-1, "Invalid binary patch file header");
+		CancelParsingPatches();
+		return false;
+	}
+
+	uint32 groupCount = patchesStream.readBE<uint32>();
+	if (patchesStream.hasError())
+	{
+		LogPatchesSyntaxError(-1, "Unexpected end of binary patch file");
+		CancelParsingPatches();
+		return false;
+	}
+
+	for (uint32 groupIndex = 0; groupIndex < groupCount; groupIndex++)
+	{
+		std::string groupName;
+		if (!_readBinaryPatchString(patchesStream, groupName) || groupName.empty())
+		{
+			LogPatchesSyntaxError(-1, "Invalid group name in binary patch file");
+			CancelParsingPatches();
+			return false;
+		}
+
+		PatchGroup* currentGroup = new PatchGroup(this, groupName.data(), (sint32)groupName.size());
+
+		uint32 moduleMatchCount = patchesStream.readBE<uint32>();
+		if (patchesStream.hasError())
+		{
+			LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading moduleMatches");
+			CancelParsingPatches();
+			delete currentGroup;
+			return false;
+		}
+		if (moduleMatchCount == 0)
+		{
+			LogPatchesSyntaxError(-1, "Binary patch group has no moduleMatches definition");
+			CancelParsingPatches();
+			delete currentGroup;
+			return false;
+		}
+		for (uint32 moduleMatchIndex = 0; moduleMatchIndex < moduleMatchCount; moduleMatchIndex++)
+		{
+			currentGroup->list_moduleMatches.emplace_back(patchesStream.readBE<uint32>());
+			if (patchesStream.hasError())
+			{
+				LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading moduleMatches");
+				CancelParsingPatches();
+				delete currentGroup;
+				return false;
+			}
+		}
+
+		uint32 entryCount = patchesStream.readBE<uint32>();
+		if (patchesStream.hasError())
+		{
+			LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading entries");
+			CancelParsingPatches();
+			delete currentGroup;
+			return false;
+		}
+
+		for (uint32 entryIndex = 0; entryIndex < entryCount; entryIndex++)
+		{
+			uint8 entryType = patchesStream.readBE<uint8>();
+			if (patchesStream.hasError())
+			{
+				LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading entry type");
+				CancelParsingPatches();
+				delete currentGroup;
+				return false;
+			}
+
+			if (entryType == CEMU_PATCH_BINARY_ENTRY_LABEL)
+			{
+				uint32 labelAddress = patchesStream.readBE<uint32>();
+				std::string labelName;
+				if (!_readBinaryPatchString(patchesStream, labelName) || labelName.empty())
+				{
+					LogPatchesSyntaxError(-1, "Invalid label entry in binary patch file");
+					CancelParsingPatches();
+					delete currentGroup;
+					return false;
+				}
+				PatchEntryLabel* patchLabel = new PatchEntryLabel((sint32)entryIndex + 1, labelName.data(), (sint32)labelName.size());
+				patchLabel->setAssignedVA(labelAddress);
+				currentGroup->list_patches.emplace_back(patchLabel);
+			}
+			else if (entryType == CEMU_PATCH_BINARY_ENTRY_DATA)
+			{
+				uint32 patchAddress = patchesStream.readBE<uint32>();
+				uint32 dataSize = patchesStream.readBE<uint32>();
+				uint32 relocCount = patchesStream.readBE<uint32>();
+				if (patchesStream.hasError())
+				{
+					LogPatchesSyntaxError(-1, "Invalid data entry header in binary patch file");
+					CancelParsingPatches();
+					delete currentGroup;
+					return false;
+				}
+				auto patchData = patchesStream.readDataNoCopy(dataSize);
+				if (patchesStream.hasError())
+				{
+					LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading patch data");
+					CancelParsingPatches();
+					delete currentGroup;
+					return false;
+				}
+				std::vector<PPCAssemblerReloc> relocs;
+				for (uint32 relocIndex = 0; relocIndex < relocCount; relocIndex++)
+				{
+					uint8 relocTypeRaw = patchesStream.readBE<uint8>();
+					uint32 byteOffset = patchesStream.readBE<uint32>();
+					uint8 bitOffset = patchesStream.readBE<uint8>();
+					uint8 bitCount = patchesStream.readBE<uint8>();
+					std::string expression;
+					if (patchesStream.hasError() || !_isValidBinaryRelocType(relocTypeRaw) || !_readBinaryPatchString(patchesStream, expression) || expression.empty())
+					{
+						LogPatchesSyntaxError(-1, "Invalid relocation entry in binary patch file");
+						CancelParsingPatches();
+						delete currentGroup;
+						return false;
+					}
+
+					PPCASM_RELOC relocType = (PPCASM_RELOC)relocTypeRaw;
+					uint32 relocSize = _getBinaryRelocSize(relocType);
+					if (byteOffset > dataSize || relocSize > (dataSize - byteOffset))
+					{
+						LogPatchesSyntaxError(-1, "Relocation range is outside of patch data");
+						CancelParsingPatches();
+						delete currentGroup;
+						return false;
+					}
+					if (relocType == PPCASM_RELOC::U32_MASKED_IMM && (bitCount == 0 || bitCount > 32 || bitOffset >= 32 || ((uint32)bitOffset + bitCount) > 32))
+					{
+						LogPatchesSyntaxError(-1, "Invalid bit range in binary patch relocation");
+						CancelParsingPatches();
+						delete currentGroup;
+						return false;
+					}
+					relocs.emplace_back(relocType, expression, byteOffset, bitOffset, bitCount);
+				}
+				currentGroup->list_patches.emplace_back(new PatchEntryInstruction((sint32)entryIndex + 1, patchAddress, patchData, relocs));
+			}
+			else
+			{
+				LogPatchesSyntaxError(-1, "Unknown entry type in binary patch file");
+				CancelParsingPatches();
+				delete currentGroup;
+				return false;
+			}
+		}
+
+		AddPatchGroup(currentGroup);
+	}
+
+	if (patchesStream.hasError() || !patchesStream.isEndOfStream())
+	{
+		LogPatchesSyntaxError(-1, "Trailing or malformed data in binary patch file");
+		CancelParsingPatches();
+		return false;
+	}
+
+	return true;
 }
 
 static inline uint32 INVALID_ORIGIN = 0xFFFFFFFF;
@@ -378,22 +698,26 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 		uint32 overwriteOrigin = INVALID_ORIGIN;
 		if (parser.compareCharacter(0, '0') && parser.compareCharacterI(1, 'x'))
 		{
+			StringTokenParser addressParserBackup;
+			parser.storeParserState(&addressParserBackup);
 			uint32 patchedAddress;
-			if (!parser.parseU32(patchedAddress))
+			if (parser.parseU32(patchedAddress))
 			{
-				LogPatchesSyntaxError(lineNumber, "Malformed address");
-				CancelParsingPatches();
-				return false;
+				if (parser.matchWordI("="))
+				{
+					parser.skipWhitespaces();
+					parser.trimWhitespaces();
+					overwriteOrigin = patchedAddress;
+				}
+				else
+				{
+					parser.restoreParserState(&addressParserBackup);
+				}
 			}
-			if (parser.matchWordI("=") == false)
+			else
 			{
-				LogPatchesSyntaxError(lineNumber, "Expected '=' after address");
-				CancelParsingPatches();
-				return false;
+				parser.restoreParserState(&addressParserBackup);
 			}
-			parser.skipWhitespaces();
-			parser.trimWhitespaces();
-			overwriteOrigin = patchedAddress;
 		}
 		// check for known directives
 		if (parser.matchWordI(".origin"))
@@ -455,6 +779,50 @@ bool GraphicPack2::ParseCemuPatchesTxtInternal(MemStreamReader& patchesStream)
 				CancelParsingPatches();
 				return false;
 			}
+		}
+
+		std::vector<uint8> rawPatchData;
+		std::string rawPatchError;
+		RAW_HEX_PARSE_RESULT rawPatchResult = _parseRawHexPatchData(std::string_view(parser.getCurrentPtr(), parser.getCurrentLen()), rawPatchData, rawPatchError);
+		if (rawPatchResult == RAW_HEX_PARSE_RESULT::PARSE_ERROR)
+		{
+			LogPatchesSyntaxError(lineNumber, rawPatchError);
+			CancelParsingPatches();
+			return false;
+		}
+		if (rawPatchResult == RAW_HEX_PARSE_RESULT::MATCH)
+		{
+			if (currentGroup == nullptr)
+			{
+				LogPatchesSyntaxError(lineNumber, "Raw binary patch data specified outside of a group");
+				CancelParsingPatches();
+				return false;
+			}
+			uint32 patchAddress;
+			if (overwriteOrigin != INVALID_ORIGIN)
+			{
+				patchAddress = overwriteOrigin;
+			}
+			else if (originInfo.isValidOrigin())
+			{
+				patchAddress = originInfo.currentOrigin;
+				originInfo.incrementOrigin((uint32)rawPatchData.size());
+			}
+			else
+			{
+				LogPatchesSyntaxError(lineNumber, "Trying to emit raw binary patch data but no address specified. (Declare .origin or prefix line with <address> = )");
+				CancelParsingPatches();
+				return false;
+			}
+			for (auto& itr : scheduledLabels)
+			{
+				itr->setAssignedVA(patchAddress);
+				currentGroup->list_patches.emplace_back(itr);
+			}
+			scheduledLabels.clear();
+			std::vector<PPCAssemblerReloc> noRelocs;
+			currentGroup->list_patches.emplace_back(new PatchEntryInstruction(lineNumber, patchAddress, { rawPatchData.data(), rawPatchData.size() }, noRelocs));
+			continue;
 		}
 
 		// next we attempt to parse symbol assignment
