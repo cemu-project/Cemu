@@ -98,7 +98,6 @@ namespace coreinit
 			RPLLoader_UpdateDependencies();
 			RPLLoader_Link();
 			RPLLoader_CallEntrypoints();
-			
 			rplHandle = RPLLoader_GetHandleByModuleName(libName);
 		}
 		if (rplHandle == RPL_INVALID_HANDLE)
