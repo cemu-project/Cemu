@@ -122,5 +122,8 @@ namespace WindowSystem
 
 	bool IsFullScreen();
 
+	void GetClipboardTextAsync(std::function<void(bool, std::string)> callback);
+	void SetClipboardTextAsync(std::string text, std::function<void(bool)> callback);
+
 	void CaptureInput(const ControllerState& currentState, const ControllerState& lastState);
 }; // namespace WindowSystem

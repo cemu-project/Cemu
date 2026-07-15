@@ -7,6 +7,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
 #include "input/InputManager.h"
 #include "WindowSystem.h"
+#include "Cafe/OS/libs/cemuextend/BridgeHost.h"
 
 #ifdef PUBLIC_RELASE
 #define vpadbreak() 
@@ -238,6 +239,13 @@ namespace vpad
 		status->tpProcessed1.validity = VPAD_TP_VALIDITY_INVALID_XY;
 		status->tpProcessed2.validity = VPAD_TP_VALIDITY_INVALID_XY;
 
+		auto finishRead = [&](sint32 sampleCount) {
+			cemuextend_hle::ApplyMappedVpad(channel, *status);
+			const sint32 errorValue = error ? static_cast<sint32>(*error) : status->vpadErr;
+			cemuextend_hle::ObserveVpad(channel, *status, errorValue, sampleCount);
+			return sampleCount;
+		};
+
 		const auto controller = InputManager::instance().get_vpad_controller(channel);
 		if (!controller)
 		{
@@ -248,11 +256,11 @@ namespace vpad
 					*error = VPAD_READ_ERR_NO_CONTROLLER;
 				if (length > 0)
 					status->vpadErr = -1;
-				return 0;
+				return finishRead(0);
 			}
 			if (error)
 				*error = VPAD_READ_ERR_NONE;
-			return 1;
+			return finishRead(1);
 		}
 
 		const bool vpadDelayEnabled = ActiveSettings::VPADDelayEnabled();
@@ -274,7 +282,7 @@ namespace vpad
 					// not ready yet
 					if (error)
 						*error = VPAD_READ_ERR_NONE;
-					return 0;
+					return finishRead(0);
 				}
 				else if (dif <= ESPRESSO_TIMER_CLOCK)
 				{
@@ -288,14 +296,14 @@ namespace vpad
 			controller->VPADRead(*status, vpad::g_vpad.controller_data[channel].btn_repeat);
 			if (error)
 				*error = VPAD_READ_ERR_NONE;
-			return 1;
+			return finishRead(1);
 		}
 		else
 		{
 			if (error)
 				*error = VPAD_READ_ERR_NONE;
 
-			return 1;
+			return finishRead(1);
 		}
 	}
 

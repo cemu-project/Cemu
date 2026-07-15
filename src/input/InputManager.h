@@ -92,7 +92,11 @@ public:
 	std::optional<glm::ivec2> get_left_down_mouse_info(bool* is_pad);
 	std::optional<glm::ivec2> get_right_down_mouse_info(bool* is_pad);
 
-	std::atomic<float> m_mouse_wheel;
+	// m_mouse_wheel is the transient value consumed by VPADController. The
+	// bridge publishes the cumulative counter so a reset to zero cannot create
+	// a synthetic reverse-wheel event or hide a pulse between state samples.
+	std::atomic<float> m_mouse_wheel{};
+	std::atomic<sint32> m_mouse_wheel_cumulative{};
 
 private:
 	void update_thread();

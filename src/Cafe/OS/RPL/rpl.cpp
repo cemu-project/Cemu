@@ -1904,7 +1904,7 @@ uint32 RPLLoader_GetModuleEntrypoint(RPLModule* rplLoaderContext)
 bool RPLLoader_IsKnownCafeOSModule(std::string_view name)
 {
 	static std::unordered_set<std::string> s_systemModules556 = {
-			"avm","camera","coreinit","dc","dmae","drmapp","erreula",
+			"avm","camera","cemuextend","coreinit","dc","dmae","drmapp","erreula",
 			"gx2","h264","lzma920","mic","nfc","nio_prof","nlibcurl",
 			"nlibnss","nlibnss2","nn_ac","nn_acp","nn_act","nn_aoc","nn_boss",
 			"nn_ccr","nn_cmpt","nn_dlp","nn_ec","nn_fp","nn_hai","nn_hpad",

@@ -159,6 +159,7 @@ target_link_libraries(CemuWxGui PRIVATE
   CemuComponents
   pugixml::pugixml
   CemuCafe
+  cemuextend::wire
   PUBLIC
   CURL::libcurl
 )

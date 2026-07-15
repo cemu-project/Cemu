@@ -36,6 +36,7 @@
 #include "OS/libs/nsyskbd/nsyskbd.h"
 #include "OS/libs/swkbd/swkbd.h"
 #include "OS/libs/camera/camera.h"
+#include "OS/libs/cemuextend/cemuextend.h"
 #include "OS/libs/proc_ui/proc_ui.h"
 #include "OS/libs/avm/avm.h"
 #include "OS/libs/drmapp/drmapp.h"
@@ -87,6 +88,7 @@ std::span<COSModule*> GetCOSModules()
 		nsyskbd::GetModule(),
 		swkbd::GetModule(),
 		camera::GetModule(),
+		cemuextend_hle::GetModule(),
 		proc_ui::GetModule(),
 		avm::GetModule(),
 		drmapp::GetModule(),

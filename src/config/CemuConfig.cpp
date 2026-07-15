@@ -3,6 +3,26 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/Account/Account.h"
 
+std::optional<CemuExtendTitleGrant> CemuConfig::GetCemuExtendGrant(uint64 titleId) const
+{
+	std::shared_lock lock(cemuextend_grants_mutex);
+	if (const auto found = cemuextend_grants.find(titleId); found != cemuextend_grants.end())
+		return found->second;
+	return std::nullopt;
+}
+
+void CemuConfig::SetCemuExtendGrant(uint64 titleId, CemuExtendTitleGrant grant)
+{
+	std::unique_lock lock(cemuextend_grants_mutex);
+	cemuextend_grants[titleId] = grant;
+}
+
+void CemuConfig::RemoveCemuExtendGrant(uint64 titleId)
+{
+	std::unique_lock lock(cemuextend_grants_mutex);
+	cemuextend_grants.erase(titleId);
+}
+
 void CemuConfig::SetMLCPath(fs::path path, bool save)
 {
 	mlc_path.SetValue(_pathToUtf8(path));
@@ -46,6 +66,23 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 		catch (const std::exception&)
 		{
 			cemuLog_log(LogType::Force, "config load error: can't load game path: {}", path);
+		}
+	}
+
+	{
+		std::unique_lock grantsLock(cemuextend_grants_mutex);
+		cemuextend_grants.clear();
+		auto bridge = parser.get("CemuExtend");
+		for (auto title = bridge.get("Title"); title.valid(); title = bridge.get("Title", title))
+		{
+			const auto titleId = title.get_attribute<uint64>("id", 0);
+			if (titleId == 0)
+				continue;
+			cemuextend_grants[titleId] = {
+				title.get_attribute<uint32>("read", 0),
+				title.get_attribute<uint32>("write", 0),
+				title.get_attribute<uint32>("inject", 0),
+			};
 		}
 	}
 
@@ -313,6 +350,19 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	for (const auto& entry : game_paths)
 	{
 		game_path_parser.set("Entry", entry.c_str());
+	}
+
+	{
+		auto bridge = config.set("CemuExtend");
+		std::shared_lock grantsLock(cemuextend_grants_mutex);
+		for (const auto& [titleId, grant] : cemuextend_grants)
+		{
+			auto title = bridge.set("Title");
+			title.set_attribute("id", static_cast<sint64>(titleId));
+			title.set_attribute("read", grant.read_mask);
+			title.set_attribute("write", grant.write_mask);
+			title.set_attribute("inject", grant.inject_mask);
+		}
 	}
 
 	// game list cache

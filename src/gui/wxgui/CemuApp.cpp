@@ -35,6 +35,7 @@
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/SaveList.h"
 #include "Cafe/CafeSystem.h"
+#include "Cafe/OS/libs/cemuextend/BridgeHost.h"
 
 wxIMPLEMENT_APP_NO_MAIN(CemuApp);
 
@@ -458,23 +459,101 @@ void CemuApp::OnAssertFailure(const wxChar* file, int line, const wxChar* func, 
 	cemu_assert_debug(false);
 }
 
+static uint16 CemuExtendUsbHidUsage(const wxKeyEvent& event)
+{
+	const auto key = event.GetKeyCode();
+	if (key >= 'A' && key <= 'Z')
+		return static_cast<uint16>(0x04 + key - 'A');
+	if (key >= 'a' && key <= 'z')
+		return static_cast<uint16>(0x04 + key - 'a');
+	if (key >= '1' && key <= '9')
+		return static_cast<uint16>(0x1e + key - '1');
+	if (key == '0')
+		return 0x27;
+	switch (key)
+	{
+	case WXK_RETURN: return 0x28;
+	case WXK_ESCAPE: return 0x29;
+	case WXK_BACK: return 0x2a;
+	case WXK_TAB: return 0x2b;
+	case WXK_SPACE: return 0x2c;
+	case '-': return 0x2d;
+	case '=': return 0x2e;
+	case '[': return 0x2f;
+	case ']': return 0x30;
+	case '\\': return 0x31;
+	case ';': return 0x33;
+	case '\'': return 0x34;
+	case '`': return 0x35;
+	case ',': return 0x36;
+	case '.': return 0x37;
+	case '/': return 0x38;
+	case WXK_CAPITAL: return 0x39;
+	case WXK_F1: return 0x3a;
+	case WXK_F2: return 0x3b;
+	case WXK_F3: return 0x3c;
+	case WXK_F4: return 0x3d;
+	case WXK_F5: return 0x3e;
+	case WXK_F6: return 0x3f;
+	case WXK_F7: return 0x40;
+	case WXK_F8: return 0x41;
+	case WXK_F9: return 0x42;
+	case WXK_F10: return 0x43;
+	case WXK_F11: return 0x44;
+	case WXK_F12: return 0x45;
+	case WXK_PRINT: return 0x46;
+	case WXK_SCROLL: return 0x47;
+	case WXK_PAUSE: return 0x48;
+	case WXK_INSERT: return 0x49;
+	case WXK_HOME: return 0x4a;
+	case WXK_PAGEUP: return 0x4b;
+	case WXK_DELETE: return 0x4c;
+	case WXK_END: return 0x4d;
+	case WXK_PAGEDOWN: return 0x4e;
+	case WXK_RIGHT: return 0x4f;
+	case WXK_LEFT: return 0x50;
+	case WXK_DOWN: return 0x51;
+	case WXK_UP: return 0x52;
+	case WXK_NUMLOCK: return 0x53;
+	case WXK_CONTROL: return 0xe0;
+	case WXK_SHIFT: return 0xe1;
+	case WXK_ALT: return 0xe2;
+	default: return 0;
+	}
+}
+
+static uint8 CemuExtendKeyModifiers(const wxKeyEvent& event)
+{
+	return (event.ControlDown() ? 1U : 0U) |
+		(event.ShiftDown() ? 2U : 0U) |
+		(event.AltDown() ? 4U : 0U) |
+		(event.MetaDown() ? 8U : 0U);
+}
+
 int CemuApp::FilterEvent(wxEvent& event)
 {
 	if(event.GetEventType() == wxEVT_KEY_DOWN)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
+		cemuextend_hle::KeyboardEvent(CemuExtendUsbHidUsage(key_event), true,
+			CemuExtendKeyModifiers(key_event));
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
+		cemuextend_hle::KeyboardEvent(CemuExtendUsbHidUsage(key_event), false,
+			CemuExtendKeyModifiers(key_event));
 	}
 	else if(event.GetEventType() == wxEVT_ACTIVATE_APP)
 	{
 		const auto& activate_event = (wxActivateEvent&)event;
 		if(!activate_event.GetActive())
+		{
 			g_window_info.set_keystatesup();
+			cemuextend_hle::KeyboardFocusLost();
+		}
 	}
 
 	// track if debugger window or its child windows are focused

@@ -51,6 +51,7 @@
 #include "resource/embedded/resources.h"
 
 #include "Cafe/CafeSystem.h"
+#include "Cafe/OS/libs/cemuextend/BridgeHost.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -1000,6 +1001,105 @@ wxPanel* GeneralSettings2::AddAccountPage(wxNotebook* notebook)
 	return online_panel;
 }
 
+wxPanel* GeneralSettings2::AddCemuExtendPage(wxNotebook* notebook)
+{
+	auto* panel = new wxPanel(notebook);
+	auto* root = new wxBoxSizer(wxVERTICAL);
+	auto* titleBox = new wxStaticBoxSizer(wxVERTICAL, panel, _("Title-specific Bridge permissions"));
+	auto* titleRow = new wxBoxSizer(wxHORIZONTAL);
+	titleRow->Add(new wxStaticText(panel, wxID_ANY, _("Title ID (16 hexadecimal digits)")), 0,
+		wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
+	m_cemuextend_title_id = new wxTextCtrl(panel, wxID_ANY);
+	titleRow->Add(m_cemuextend_title_id, 1, wxRIGHT, 8);
+	auto* load = new wxButton(panel, wxID_ANY, _("Load"));
+	titleRow->Add(load, 0);
+	titleBox->Add(titleRow, 0, wxEXPAND | wxALL, 8);
+
+	auto* grid = new wxFlexGridSizer(10, 4, 4, 10);
+	grid->Add(new wxStaticText(panel, wxID_ANY, _("Service")), 0, wxALIGN_CENTER_VERTICAL);
+	grid->Add(new wxStaticText(panel, wxID_ANY, _("Read")), 0, wxALIGN_CENTER);
+	grid->Add(new wxStaticText(panel, wxID_ANY, _("Write")), 0, wxALIGN_CENTER);
+	grid->Add(new wxStaticText(panel, wxID_ANY, _("Mapped injection")), 0, wxALIGN_CENTER);
+	const std::array<const char*, 9> names{
+		"Core", "Input", "Logging", "Configuration", "File", "Clipboard", "Window", "Capture", "Diagnostics"
+	};
+	for (size_t index = 0; index < names.size(); ++index)
+	{
+		grid->Add(new wxStaticText(panel, wxID_ANY, wxString::FromUTF8(names[index])), 0,
+			wxALIGN_CENTER_VERTICAL);
+		m_cemuextend_read[index] = new wxCheckBox(panel, wxID_ANY, wxEmptyString);
+		m_cemuextend_write[index] = new wxCheckBox(panel, wxID_ANY, wxEmptyString);
+		m_cemuextend_inject[index] = new wxCheckBox(panel, wxID_ANY, wxEmptyString);
+		grid->Add(m_cemuextend_read[index], 0, wxALIGN_CENTER);
+		grid->Add(m_cemuextend_write[index], 0, wxALIGN_CENTER);
+		grid->Add(m_cemuextend_inject[index], 0, wxALIGN_CENTER);
+	}
+	titleBox->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	auto* apply = new wxButton(panel, wxID_ANY, _("Save grants"));
+	titleBox->Add(apply, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	root->Add(titleBox, 0, wxEXPAND | wxALL, 8);
+	root->Add(new wxStaticText(panel, wxID_ANY,
+		_("Defaults allow Core, Input read/guest-only injection, Logging, Configuration/File read, Window and Diagnostics. Clipboard, Capture, file/config changes and mapped input injection require an explicit grant.")),
+		0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
+	panel->SetSizer(root);
+
+	if (CafeSystem::IsTitleRunning())
+		m_cemuextend_title_id->SetValue(fmt::format("{:016x}", CafeSystem::GetForegroundTitleId()));
+	load->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { LoadCemuExtendGrant(); });
+	apply->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { StoreCemuExtendGrant(); });
+	LoadCemuExtendGrant();
+	return panel;
+}
+
+void GeneralSettings2::LoadCemuExtendGrant()
+{
+	unsigned long long titleId{};
+	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
+	{
+		for (size_t index = 0; index < m_cemuextend_read.size(); ++index)
+		{
+			m_cemuextend_read[index]->SetValue(false);
+			m_cemuextend_write[index]->SetValue(false);
+			m_cemuextend_inject[index]->SetValue(false);
+		}
+		return;
+	}
+	const auto configured = GetConfig().GetCemuExtendGrant(titleId);
+	const CemuExtendTitleGrant grant = configured.value_or(CemuExtendTitleGrant{
+		cemuextend_hle::kDefaultReadMask, cemuextend_hle::kDefaultWriteMask,
+		cemuextend_hle::kDefaultInjectMask});
+	for (size_t index = 0; index < m_cemuextend_read.size(); ++index)
+	{
+		const auto bit = 1U << index;
+		m_cemuextend_read[index]->SetValue((grant.read_mask & bit) != 0);
+		m_cemuextend_write[index]->SetValue((grant.write_mask & bit) != 0);
+		m_cemuextend_inject[index]->SetValue((grant.inject_mask & bit) != 0);
+	}
+}
+
+void GeneralSettings2::StoreCemuExtendGrant()
+{
+	unsigned long long titleId{};
+	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
+	{
+		wxMessageBox(_("Enter a valid non-zero 16-digit hexadecimal title ID."), _("CemuExtend Bridge"),
+			wxOK | wxICON_WARNING, this);
+		return;
+	}
+	CemuExtendTitleGrant grant{};
+	for (size_t index = 0; index < m_cemuextend_read.size(); ++index)
+	{
+		const auto bit = 1U << index;
+		if (m_cemuextend_read[index]->IsChecked()) grant.read_mask |= bit;
+		if (m_cemuextend_write[index]->IsChecked()) grant.write_mask |= bit;
+		if (m_cemuextend_inject[index]->IsChecked()) grant.inject_mask |= bit;
+	}
+	GetConfig().SetCemuExtendGrant(titleId, grant);
+	GetConfigHandle().Save();
+	if (CafeSystem::IsTitleRunning() && CafeSystem::GetForegroundTitleId() == titleId)
+		cemuextend_hle::PermissionsChanged();
+}
+
 wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
@@ -1089,6 +1189,7 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 	notebook->AddPage(AddAudioPage(notebook), _("Audio"));
 	notebook->AddPage(AddOverlayPage(notebook), _("Overlay"));
 	notebook->AddPage(AddAccountPage(notebook), _("Account"));
+	notebook->AddPage(AddCemuExtendPage(notebook), _("CemuExtend"));
 	notebook->AddPage(AddDebugPage(notebook), _("Debug"));
 
 	Bind(wxEVT_CLOSE_WINDOW, &GeneralSettings2::OnClose, this);

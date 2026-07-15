@@ -27,6 +27,8 @@
 #include "config/CemuConfig.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/CafeSystem.h"
+#include <wx/clipbrd.h>
+#include <wx/dataobj.h>
 
 WindowSystem::WindowInfo g_window_info{};
 
@@ -69,6 +71,47 @@ void WindowSystem::ShowErrorDialog(std::string_view message, std::string_view ti
 WindowSystem::WindowInfo& WindowSystem::GetWindowInfo()
 {
 	return g_window_info;
+}
+
+void WindowSystem::GetClipboardTextAsync(std::function<void(bool, std::string)> callback)
+{
+	if (!wxTheApp)
+	{
+		callback(false, {});
+		return;
+	}
+	wxTheApp->CallAfter([callback = std::move(callback)]() mutable {
+		if (!wxTheClipboard->Open())
+		{
+			callback(false, {});
+			return;
+		}
+		wxTextDataObject data;
+		const bool success = wxTheClipboard->GetData(data);
+		wxTheClipboard->Close();
+		callback(success, success ? data.GetText().utf8_string() : std::string{});
+	});
+}
+
+void WindowSystem::SetClipboardTextAsync(std::string text, std::function<void(bool)> callback)
+{
+	if (!wxTheApp)
+	{
+		callback(false);
+		return;
+	}
+	wxTheApp->CallAfter([text = std::move(text), callback = std::move(callback)]() mutable {
+		if (!wxTheClipboard->Open())
+		{
+			callback(false);
+			return;
+		}
+		const bool success = wxTheClipboard->SetData(new wxTextDataObject(wxString::FromUTF8(text)));
+		if (success)
+			wxTheClipboard->Flush();
+		wxTheClipboard->Close();
+		callback(success);
+	});
 }
 
 void WindowSystem::UpdateWindowTitles(bool isIdle, bool isLoading, double fps)

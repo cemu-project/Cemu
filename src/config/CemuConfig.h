@@ -65,6 +65,13 @@ struct GraphicPackEntry
 	bool enabled = true;
 };
 
+struct CemuExtendTitleGrant
+{
+	uint32 read_mask{};
+	uint32 write_mask{};
+	uint32 inject_mask{};
+};
+
 enum GraphicAPI
 {
 	kOpenGL = 0,
@@ -508,6 +515,13 @@ struct CemuConfig
 		ConfigValue<std::string> host{"127.0.0.1"};
 		ConfigValue<uint16> port{ 26760 };
 	}dsu_client{};
+
+	std::optional<CemuExtendTitleGrant> GetCemuExtendGrant(uint64 titleId) const;
+	void SetCemuExtendGrant(uint64 titleId, CemuExtendTitleGrant grant);
+	void RemoveCemuExtendGrant(uint64 titleId);
+
+	mutable std::shared_mutex cemuextend_grants_mutex;
+	std::unordered_map<uint64, CemuExtendTitleGrant> cemuextend_grants;
 
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };

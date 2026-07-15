@@ -74,6 +74,19 @@ void EmulatedController::controllers_update_states()
 	}
 }
 
+void EmulatedController::copy_unique_controllers(
+	std::span<std::shared_ptr<ControllerBase>> output, std::size_t& count) const
+{
+	std::shared_lock lock(m_mutex);
+	for (const auto& controller : m_controllers)
+	{
+		if (!controller || count == output.size())
+			continue;
+		if (std::find(output.begin(), output.begin() + count, controller) == output.begin() + count)
+			output[count++] = controller;
+	}
+}
+
 void EmulatedController::start_rumble()
 {
 	m_rumble = true;

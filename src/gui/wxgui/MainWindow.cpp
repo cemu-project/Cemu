@@ -1732,6 +1732,8 @@ void MainWindow::OnMouseWheel(wxMouseEvent& event)
 	const float delta = event.GetWheelRotation(); // in 120 steps -> max reached ~480 (?)
 	auto& instance = InputManager::instance();
 	instance.m_mouse_wheel = (delta / 120.0f);
+	instance.m_mouse_wheel_cumulative.fetch_add(static_cast<sint32>(delta / 120.0f),
+		std::memory_order_relaxed);
 
 	event.Skip();
 }

@@ -1,6 +1,8 @@
 #pragma once
 #include <pugixml.hpp>
 
+#include <span>
+
 class ControllerBase;
 
 #include "input/motion/MotionSample.h"
@@ -73,6 +75,8 @@ public:
 	void remove_controller(const std::shared_ptr<ControllerBase>& controller);
 	void clear_controllers();
 	const std::vector<std::shared_ptr<ControllerBase>>& get_controllers() const { return m_controllers; }
+	void copy_unique_controllers(std::span<std::shared_ptr<ControllerBase>> output,
+							 std::size_t& count) const;
 
 	bool is_mapping_down(uint64 mapping) const;
 	std::string get_mapping_name(uint64 mapping) const;

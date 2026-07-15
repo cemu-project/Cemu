@@ -45,6 +45,7 @@ private:
 	wxPanel* AddAudioPage(wxNotebook* notebook);
 	wxPanel* AddOverlayPage(wxNotebook* notebook);
 	wxPanel* AddAccountPage(wxNotebook* notebook);
+	wxPanel* AddCemuExtendPage(wxNotebook* notebook);
 	wxPanel* AddDebugPage(wxNotebook* notebook);
 
 	// General
@@ -97,6 +98,14 @@ private:
 	wxPropertyGrid* m_account_grid;
 	wxBitmapButton* m_validate_online;
 	wxStaticText* m_online_status;
+
+	// CemuExtend Bridge title-specific grants
+	wxTextCtrl* m_cemuextend_title_id{};
+	std::array<wxCheckBox*, 9> m_cemuextend_read{};
+	std::array<wxCheckBox*, 9> m_cemuextend_write{};
+	std::array<wxCheckBox*, 9> m_cemuextend_inject{};
+	void LoadCemuExtendGrant();
+	void StoreCemuExtendGrant();
 
 	// Debug
 	wxChoice* m_crash_dump;

@@ -87,6 +87,16 @@ struct ControllerButtonState
 		return copy;
 	}
 
+	uint64 GetButtonMask64() const
+	{
+		std::lock_guard _l(this->m_spinlock);
+		uint64 mask{};
+		for (const auto button : m_pressedButtons)
+			if (button < 64)
+				mask |= 1ULL << button;
+		return mask;
+	}
+
 	bool operator==(const ControllerButtonState& other) const
 	{
 		std::scoped_lock _l(this->m_spinlock, other.m_spinlock);

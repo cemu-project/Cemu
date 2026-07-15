@@ -220,6 +220,10 @@ add_library(CemuCafe
   OS/libs/avm/avm.h
   OS/libs/camera/camera.cpp
   OS/libs/camera/camera.h
+  OS/libs/cemuextend/BridgeHost.cpp
+  OS/libs/cemuextend/BridgeHost.h
+  OS/libs/cemuextend/cemuextend.cpp
+  OS/libs/cemuextend/cemuextend.h
   OS/libs/coreinit/coreinit_Alarm.cpp
   OS/libs/coreinit/coreinit_Alarm.h
   OS/libs/coreinit/coreinit_Atomic.cpp
@@ -648,6 +652,7 @@ endif()
 target_link_libraries(CemuCafe PRIVATE
 	CemuCommon
   CemuGui
+  cemuextend::wire
   ZArchive::zarchive
   imguiImpl
   pugixml::pugixml
