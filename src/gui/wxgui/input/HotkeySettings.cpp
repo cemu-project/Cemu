@@ -192,7 +192,7 @@ void HotkeySettings::Init(MainWindow* mainWindowFrame)
 		 }},
 		{&s_cfgHotkeys.takeScreenshot, [](void) {
 			 if (g_renderer)
-				 g_renderer->RequestScreenshot(SaveScreenshot);
+				 (void)g_renderer->RequestScreenshot(SaveScreenshot);
 		 }},
 		{&s_cfgHotkeys.toggleFastForward, [](void) {
 			 ActiveSettings::SetTimerShiftFactor((ActiveSettings::GetTimerShiftFactor() < 3) ? 3 : 1);

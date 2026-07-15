@@ -1022,6 +1022,9 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	}
 	else
 		m_screenshot_state = ScreenshotState::None;
+	const auto screenshotRequestId = GetActiveScreenshotRequestId();
+	if (screenshotRequestId == 0)
+		return;
 
 	auto texViewVk = (LatteTextureViewVk*)texView;
 	auto baseImageTex = texViewVk->GetBaseImage();
@@ -1268,7 +1271,7 @@ void VulkanRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 		vkFreeMemory(m_logicalDevice, imageMemory, nullptr);
 
 	if (formatValid)
-		SaveScreenshot(rgb_data, width, height, !padView);
+		SaveScreenshot(screenshotRequestId, rgb_data, width, height, !padView);
 }
 
 static const float kQueuePriority = 1.0f;

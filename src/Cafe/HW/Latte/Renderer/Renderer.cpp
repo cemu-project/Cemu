@@ -109,24 +109,70 @@ uint8 Renderer::RGBComponentToSRGB(uint8 cli)
 	return (uint8)(cs * 255.0f);
 }
 
-void Renderer::RequestScreenshot(ScreenshotSaveFunction onSaveScreenshot)
+std::optional<Renderer::ScreenshotRequestId> Renderer::RequestScreenshot(
+	ScreenshotSaveFunction onSaveScreenshot, std::optional<bool> mainWindow)
 {
+	std::lock_guard lock(m_screenshot_mutex);
+	if (!onSaveScreenshot || m_screenshot_active_request_id != 0 ||
+		m_screenshot_requested.load(std::memory_order_acquire) ||
+		m_screenshot_state.load(std::memory_order_acquire) != ScreenshotState::None)
+		return std::nullopt;
+	auto requestId = m_screenshot_next_request_id++;
+	if (requestId == 0)
+		requestId = m_screenshot_next_request_id++;
+	m_screenshot_active_request_id = requestId;
+	m_on_save_screenshot = std::move(onSaveScreenshot);
+	m_screenshot_main_window = mainWindow;
 	m_screenshot_requested = true;
-	m_on_save_screenshot = onSaveScreenshot;
+	return requestId;
+}
+
+bool Renderer::CancelScreenshotRequest(ScreenshotRequestId requestId)
+{
+	std::lock_guard lock(m_screenshot_mutex);
+	if (requestId == 0 || m_screenshot_active_request_id != requestId)
+		return false;
+	m_screenshot_requested = false;
+	m_on_save_screenshot = {};
+	m_screenshot_main_window.reset();
+	m_screenshot_active_request_id = 0;
+	return true;
 }
 
 void Renderer::CancelScreenshotRequest()
 {
+	std::lock_guard lock(m_screenshot_mutex);
 	m_screenshot_requested = false;
 	m_on_save_screenshot = {};
+	m_screenshot_main_window.reset();
+	m_screenshot_active_request_id = 0;
 }
 
 
-void Renderer::SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow)
+Renderer::ScreenshotRequestId Renderer::GetActiveScreenshotRequestId()
 {
+	std::lock_guard lock(m_screenshot_mutex);
+	return m_screenshot_active_request_id;
+}
+
+void Renderer::SaveScreenshot(ScreenshotRequestId requestId, const std::vector<uint8>& rgb_data,
+	int width, int height, bool mainWindow)
+{
+	ScreenshotSaveFunction onSaveScreenshot;
+	{
+		std::lock_guard lock(m_screenshot_mutex);
+		if (requestId == 0 || requestId != m_screenshot_active_request_id)
+			return;
+		if (m_screenshot_main_window.has_value() && m_screenshot_main_window.value() != mainWindow)
+			return;
+		m_screenshot_main_window.reset();
+		m_screenshot_requested = false;
+		onSaveScreenshot = std::move(m_on_save_screenshot);
+		m_screenshot_active_request_id = 0;
+	}
 	std::thread(
-		[=, screenshotRequested = std::exchange(m_screenshot_requested, false), onSaveScreenshot = std::exchange(m_on_save_screenshot, {})]() {
-			if (screenshotRequested && onSaveScreenshot)
+		[=, onSaveScreenshot = std::move(onSaveScreenshot)]() {
+			if (onSaveScreenshot)
 			{
 				auto notificationMessage = onSaveScreenshot(rgb_data, width, height, mainWindow);
 				if (notificationMessage.has_value())

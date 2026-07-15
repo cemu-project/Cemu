@@ -68,7 +68,10 @@ public:
 	virtual void SwapBuffers(bool swapTV, bool swapDRC) = 0;
 
 	using ScreenshotSaveFunction = std::function<std::optional<std::string>(const std::vector<uint8>&, int, int, bool)>;
-	void RequestScreenshot(ScreenshotSaveFunction onSaveScreenshot);
+	using ScreenshotRequestId = uint64;
+	[[nodiscard]] std::optional<ScreenshotRequestId> RequestScreenshot(
+		ScreenshotSaveFunction onSaveScreenshot, std::optional<bool> mainWindow = {});
+	bool CancelScreenshotRequest(ScreenshotRequestId requestId);
 	void CancelScreenshotRequest();
 
 	virtual void HandleScreenshotRequest(LatteTextureView* texView, bool padView){}
@@ -175,11 +178,17 @@ protected:
 		Main,
 		Pad,
 	};
-	ScreenshotState m_screenshot_state = ScreenshotState::None;
-	bool m_screenshot_requested = false;
+	std::atomic<ScreenshotState> m_screenshot_state{ScreenshotState::None};
+	std::atomic_bool m_screenshot_requested{false};
+	std::mutex m_screenshot_mutex;
+	ScreenshotRequestId m_screenshot_next_request_id{1};
+	ScreenshotRequestId m_screenshot_active_request_id{};
 	ScreenshotSaveFunction m_on_save_screenshot;
+	std::optional<bool> m_screenshot_main_window;
 
-	void SaveScreenshot(const std::vector<uint8>& rgb_data, int width, int height, bool mainWindow);
+	[[nodiscard]] ScreenshotRequestId GetActiveScreenshotRequestId();
+	void SaveScreenshot(ScreenshotRequestId requestId, const std::vector<uint8>& rgb_data,
+		int width, int height, bool mainWindow);
 
 
 	ImFontAtlas* imguiFontAtlas{};

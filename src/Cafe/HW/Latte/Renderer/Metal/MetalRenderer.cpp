@@ -413,6 +413,9 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 	}
 	else
 		m_screenshot_state = ScreenshotState::None;
+	const auto screenshotRequestId = GetActiveScreenshotRequestId();
+	if (screenshotRequestId == 0)
+		return;
 
 	auto texMtl = static_cast<LatteTextureMtl*>(texView->baseTexture);
 
@@ -460,7 +463,7 @@ void MetalRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool padV
 	}
 
 	if (formatValid)
-		SaveScreenshot(rgb_data, width, height, !padView);
+		SaveScreenshot(screenshotRequestId, rgb_data, width, height, !padView);
 }
 
 void MetalRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,

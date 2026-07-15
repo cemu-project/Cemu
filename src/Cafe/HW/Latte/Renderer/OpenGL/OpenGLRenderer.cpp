@@ -536,6 +536,9 @@ void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	}
 	else
 		m_screenshot_state = ScreenshotState::None;
+	const auto screenshotRequestId = GetActiveScreenshotRequestId();
+	if (screenshotRequestId == 0)
+		return;
 
 	int screenshotWidth, screenshotHeight;
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
@@ -577,7 +580,7 @@ void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 		}
 	}
 
-	SaveScreenshot(rgb_data, screenshotWidth, screenshotHeight, !padView);
+	SaveScreenshot(screenshotRequestId, rgb_data, screenshotWidth, screenshotHeight, !padView);
 }
 
 void OpenGLRenderer::DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter, sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight, bool padView, bool clearBackground)
