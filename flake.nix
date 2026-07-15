@@ -11,6 +11,14 @@
       url = "github:ocornut/imgui/v1.91.3";
       flake = false;
     };
+
+    # Git flakes do not copy an initialized submodule worktree into the Nix
+    # source automatically. Fetch the public repository at the same immutable
+    # revision as the submodule so standalone/clean CemuExtend clones work.
+    libcemuextend-src = {
+      url = "git+https://github.com/fooly9858/libcemuextend.git?rev=83729235e892ae93d7780eff2d46cfd55114dbe2";
+      flake = false;
+    };
   };
 
   outputs =
@@ -18,6 +26,7 @@
       self,
       nixpkgs,
       imgui-src,
+      libcemuextend-src,
       ...
     }:
     let
@@ -38,6 +47,7 @@
           ./dependencies/DirectX_2010
           ./dependencies/gamemode
           ./dependencies/ih264d
+          (lib.fileset.maybeMissing ./dependencies/libcemuextend)
           ./dist
           ./src
         ];
@@ -126,9 +136,11 @@
         '';
 
         preConfigure = ''
-          rm -rf dependencies/imgui dependencies/Vulkan-Headers
+          rm -rf dependencies/imgui dependencies/Vulkan-Headers dependencies/libcemuextend
           ln -s ${imgui-src} dependencies/imgui
           ln -s ${pkgs.vulkan-headers} dependencies/Vulkan-Headers
+          cp -r ${libcemuextend-src} dependencies/libcemuextend
+          chmod -R u+w dependencies/libcemuextend
 
           substituteInPlace dependencies/gamemode/lib/gamemode_client.h \
             --replace-fail "libgamemode.so.0" \

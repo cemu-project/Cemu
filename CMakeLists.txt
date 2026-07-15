@@ -268,4 +268,6 @@ if (NOT ZArchive_FOUND)
 	add_subdirectory("dependencies/ZArchive" EXCLUDE_FROM_ALL)
 endif()
 
+add_subdirectory("dependencies/libcemuextend" EXCLUDE_FROM_ALL)
+
 add_subdirectory(src)

@@ -17,6 +17,23 @@
         "type": "github"
       }
     },
+    "libcemuextend-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1784098240,
+        "narHash": "sha256-fvXW5/AQDctX/20x4xDfYzsW5wnzNPlqT8sheP0vORI=",
+        "ref": "refs/heads/main",
+        "rev": "83729235e892ae93d7780eff2d46cfd55114dbe2",
+        "revCount": 6,
+        "type": "git",
+        "url": "https://github.com/fooly9858/libcemuextend.git"
+      },
+      "original": {
+        "rev": "83729235e892ae93d7780eff2d46cfd55114dbe2",
+        "type": "git",
+        "url": "https://github.com/fooly9858/libcemuextend.git"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1783856661,
@@ -36,6 +53,7 @@
     "root": {
       "inputs": {
         "imgui-src": "imgui-src",
+        "libcemuextend-src": "libcemuextend-src",
         "nixpkgs": "nixpkgs"
       }
     }
