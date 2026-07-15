@@ -156,6 +156,7 @@ struct RPLModule
 	MEMPTR<void> regionMappingBase_text; // base destination address for text region
 	MPTR regionMappingBase_data; // base destination address for data region
 	MPTR regionMappingBase_loaderInfo; // base destination address for loaderInfo region
+	MEMPTR<char> ppcName; // name of the module in PPC memory
 	uint8* tempRegionPtr;
 	uint32 tempRegionAllocSize;
 
