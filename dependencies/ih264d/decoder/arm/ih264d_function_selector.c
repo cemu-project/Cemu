@@ -61,7 +61,7 @@ void ih264d_init_function_ptr(dec_struct_t *ps_codec)
     ih264d_init_function_ptr_generic(ps_codec);
     switch(e_proc_arch)
     {
-#if defined(ARMV8)
+#if defined(ARMV8) && !defined(DISABLE_NEON)
         case ARCH_ARMV8_GENERIC:
         default:
             ih264d_init_function_ptr_av8(ps_codec);
