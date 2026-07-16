@@ -59,7 +59,7 @@ cp rules.txt patch_client.cpb dist/GraphicPack/
 `generate_patch.py` is project-specific because hook addresses, module hashes,
 entry labels, and payload layout differ between projects. A complete generator
 should use big-endian integer writes and follow the format below. The
-[mcwiiu-client-template](https://github.com/fooly9858/mcwiiu-client-template)
+[mcwiiu-client-template](https://github.com/PinkDiamondTeam/mcwiiu-client-template)
 project provides a working generator and verifier:
 
 - `tools/generate_patch.py`
@@ -69,7 +69,7 @@ project provides a working generator and verifier:
 For its reproducible Docker build:
 
 ```sh
-git clone --recursive https://github.com/fooly9858/mcwiiu-client-template.git
+git clone --recursive https://github.com/PinkDiamondTeam/mcwiiu-client-template.git
 cd mcwiiu-client-template
 ./docker-build.sh
 ```

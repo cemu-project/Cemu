@@ -16,7 +16,7 @@
     # source automatically. Fetch the public repository at the same immutable
     # revision as the submodule so standalone/clean CemuExtend clones work.
     libcemuextend-src = {
-      url = "git+https://github.com/fooly9858/libcemuextend.git?rev=83729235e892ae93d7780eff2d46cfd55114dbe2";
+      url = "git+https://github.com/PinkDiamondTeam/libcemuextend.git?rev=83729235e892ae93d7780eff2d46cfd55114dbe2";
       flake = false;
     };
   };
@@ -180,7 +180,7 @@
 
         meta = {
           description = "CemuExtend Wii U emulator build for NixOS";
-          homepage = "https://github.com/fooly9858/CemuExtend";
+          homepage = "https://github.com/PinkDiamondTeam/CemuExtend";
           license = lib.licenses.mpl20;
           mainProgram = "cemu";
           platforms = [ system ];

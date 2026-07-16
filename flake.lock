@@ -26,12 +26,12 @@
         "rev": "83729235e892ae93d7780eff2d46cfd55114dbe2",
         "revCount": 6,
         "type": "git",
-        "url": "https://github.com/fooly9858/libcemuextend.git"
+        "url": "https://github.com/PinkDiamondTeam/libcemuextend.git"
       },
       "original": {
         "rev": "83729235e892ae93d7780eff2d46cfd55114dbe2",
         "type": "git",
-        "url": "https://github.com/fooly9858/libcemuextend.git"
+        "url": "https://github.com/PinkDiamondTeam/libcemuextend.git"
       }
     },
     "nixpkgs": {
