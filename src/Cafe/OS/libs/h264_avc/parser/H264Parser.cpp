@@ -401,7 +401,7 @@ void parseNAL_ref_pic_list_modification(const h264State_seq_parameter_set_t& sps
 					cemu_assert_debug(false); // invalid mode
 					break;
 				}
-				sliceHeader->pic_list_modification0Count++;
+				sliceHeader->pic_list_modification1Count++;
 			}
 			if (sliceHeader->pic_list_modification1Count > 0)
 			{
