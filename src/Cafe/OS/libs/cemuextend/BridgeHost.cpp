@@ -1,6 +1,7 @@
 #include "Common/precompiled.h"
 
 #include "Cafe/OS/libs/cemuextend/BridgeHost.h"
+#include "Cafe/OS/libs/cemuextend/BuildId.h"
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
@@ -25,7 +26,6 @@ namespace cemuextend_hle
 
 	namespace
 	{
-		constexpr uint64 kHostBuildId = 0x4345585400010000ULL;
 		constexpr size_t kMaximumResponses = 256;
 		constexpr size_t kMaximumInputEvents = 1024;
 
@@ -93,6 +93,7 @@ namespace cemuextend_hle
 		{
 			wire::MessageHeader header{};
 			std::vector<std::byte> payload;
+			bool useBulk{};
 		};
 
 		struct CaptureState
@@ -102,10 +103,18 @@ namespace cemuextend_hle
 			uint32 pendingCorrelation{};
 			Renderer::ScreenshotRequestId screenshotRequestId{};
 			std::chrono::steady_clock::time_point deadline{};
+			std::chrono::steady_clock::time_point expiresAt{};
 			uint32 handle{};
 			uint32 width{};
 			uint32 height{};
 			std::vector<std::byte> rgb;
+		};
+
+		struct ClipboardState
+		{
+			bool pending{};
+			uint32 correlation{};
+			uint16 operation{};
 		};
 
 		struct Session
@@ -115,6 +124,11 @@ namespace cemuextend_hle
 			MPTR guestAddress{};
 			std::span<std::byte> region;
 			wire::BridgeHeader* header{};
+			wire::ServiceDirectoryHeader* serviceDirectory{};
+			wire::ServiceDescriptor* directoryDescriptors{};
+			uint16 directoryCapacity{};
+			std::vector<wire::ServiceDescriptor> guestServices;
+			std::vector<wire::ServiceDescriptor> publishedServices;
 			wire::RingView guestControl;
 			wire::RingView hostControl;
 			wire::RingView guestEvents;
@@ -140,6 +154,9 @@ namespace cemuextend_hle
 			bool hasPreviousRaw{};
 
 			CaptureState capture;
+			ClipboardState clipboard;
+			double loggingTokens{50.0};
+			std::chrono::steady_clock::time_point loggingLastRefill{std::chrono::steady_clock::now()};
 			std::atomic_bool permissionsDirty{};
 			std::atomic_bool running{true};
 			std::atomic<uint64> droppedEvents{};
@@ -187,31 +204,45 @@ namespace cemuextend_hle
 				static_cast<uint32>(permission)) != 0;
 		}
 
-		void Enqueue(Session& session, Outbound outbound)
+		bool Enqueue(Session& session, Outbound outbound)
 		{
 			std::lock_guard lock(session.responseMutex);
 			if (session.responses.size() >= kMaximumResponses)
 			{
-				session.lastError = static_cast<sint32>(wire::Error::Busy);
-				return;
+				session.lastError = static_cast<sint32>(wire::Error::ProtocolError);
+				++session.protocolErrors;
+				wire::AtomicStore(session.header->connectionState,
+					static_cast<uint32>(wire::ConnectionState::Failed));
+				session.running = false;
+				return false;
 			}
 			session.responses.push_back(std::move(outbound));
+			return true;
 		}
 
 		void EnqueueResponse(Session& session, const wire::MessageHeader& request, wire::Status status,
-			std::span<const std::byte> payload = {}, uint8 flags = 0)
+			std::span<const std::byte> payload = {}, bool forceBulk = false)
 		{
 			Outbound outbound;
 			outbound.header.serviceId = request.serviceId.get();
 			outbound.header.operation = request.operation.get();
 			outbound.header.kind = static_cast<uint8>(wire::MessageKind::Response);
-			outbound.header.flags = flags;
+			outbound.header.flags = 0;
 			outbound.header.status = static_cast<uint16>(status);
 			outbound.header.correlationId = request.correlationId.get();
 			outbound.header.timestampNs = static_cast<uint64>(
 				std::chrono::duration_cast<std::chrono::nanoseconds>(
 					std::chrono::steady_clock::now().time_since_epoch()).count());
-			outbound.payload.assign(payload.begin(), payload.end());
+			if (payload.size() > wire::kBulkPayloadSize)
+			{
+				outbound.header.status = static_cast<uint16>(wire::Status::TooLarge);
+			}
+			else
+			{
+				outbound.payload.assign(payload.begin(), payload.end());
+				outbound.useBulk = forceBulk ||
+					payload.size() > wire::kControlRingCapacity - sizeof(wire::MessageHeader);
+			}
 			Enqueue(session, std::move(outbound));
 		}
 
@@ -233,8 +264,31 @@ namespace cemuextend_hle
 				if (session.responses.empty())
 					return true;
 				auto& response = session.responses.front();
-				if (!session.hostControl.Push(response.header, response.payload))
+				if (!session.hostControl.valid())
+					return false;
+
+				wire::BulkHandle bulkHandle{};
+				std::span<const std::byte> wirePayload(response.payload);
+				std::array<std::byte, sizeof(wire::BulkHandle)> handleBytes{};
+				if (response.useBulk)
+				{
+					if (!session.bulk.TryWrite(wire::BulkOwner::Host, response.payload, bulkHandle))
+						return true;
+					std::memcpy(handleBytes.data(), &bulkHandle, sizeof(bulkHandle));
+					wirePayload = handleBytes;
+					response.header.flags = static_cast<uint8>(wire::MessageFlag::HasBulk);
+				}
+				if (!session.hostControl.Push(response.header, wirePayload))
+				{
+					if (response.useBulk)
+					{
+						std::vector<std::byte> discard;
+						session.bulk.ReadAndRelease(wire::BulkOwner::Host, bulkHandle, discard);
+					}
 					return true;
+				}
+				if (response.useBulk)
+					session.bulkBytes += response.payload.size();
 				session.responses.pop_front();
 				++session.responsesSent;
 			}
@@ -244,6 +298,9 @@ namespace cemuextend_hle
 			std::span<const std::byte> payload, bool force = false)
 		{
 			if (!force && !session.subscriptions.contains(static_cast<uint16>(service)))
+				return;
+			if (service != wire::ServiceId::Core &&
+				!HasPermission(session, service, wire::Permission::Read))
 				return;
 			wire::MessageHeader event{};
 			event.serviceId = static_cast<uint16>(service);
@@ -279,33 +336,60 @@ namespace cemuextend_hle
 			};
 		}
 
+		bool SnapshotGuestServices(Session& session)
+		{
+			const auto hostCount = session.serviceDirectory->hostServiceCount.get();
+			const auto guestCount = session.serviceDirectory->guestServiceCount.get();
+			if (hostCount != 0 || guestCount > session.directoryCapacity)
+				return false;
+
+			std::set<uint16> identifiers;
+			session.guestServices.clear();
+			session.guestServices.reserve(guestCount);
+			constexpr uint8 validFeatures = static_cast<uint8>(wire::ServiceFeature::Requests) |
+				static_cast<uint8>(wire::ServiceFeature::Events) |
+				static_cast<uint8>(wire::ServiceFeature::State);
+			for (uint16 index = 0; index < guestCount; ++index)
+			{
+				auto descriptor = session.directoryDescriptors[index];
+				const auto identifier = descriptor.serviceId.get();
+				const auto isReservedGuest = identifier == static_cast<uint16>(wire::ServiceId::GameState);
+				const auto isCustom = identifier >= static_cast<uint16>(wire::ServiceId::CustomBase);
+				if ((!isReservedGuest && !isCustom) || !identifiers.insert(identifier).second ||
+					descriptor.direction != static_cast<uint8>(wire::ServiceDirection::GuestProvides) ||
+					descriptor.major.get() != wire::kAbiMajor || descriptor.minor.get() > wire::kAbiMinor ||
+					descriptor.features == 0 || (descriptor.features & ~validFeatures) != 0 ||
+					descriptor.requiredPermissions.get() != 0 || descriptor.grantedPermissions.get() != 0)
+					return false;
+				session.guestServices.push_back(descriptor);
+			}
+			return true;
+		}
+
 		bool UpdateServiceDirectory(Session& session, bool emitChanged)
 		{
-			auto* directory = reinterpret_cast<wire::ServiceDirectoryHeader*>(
-				session.region.data() + session.header->serviceDirectoryOffset.get());
-			auto* descriptors = reinterpret_cast<wire::ServiceDescriptor*>(
-				reinterpret_cast<std::byte*>(directory) + directory->descriptorsOffset.get());
-			std::vector<wire::ServiceDescriptor> guest;
-			const auto originalHost = directory->hostServiceCount.get();
-			const auto originalGuest = directory->guestServiceCount.get();
-			for (uint16 index = 0; index < originalGuest; ++index)
-			{
-				auto descriptor = descriptors[originalHost + index];
-				if (descriptor.direction != static_cast<uint8>(wire::ServiceDirection::GuestProvides) ||
-					descriptor.major.get() != wire::kAbiMajor)
-					continue;
-				descriptor.minor = std::min<uint16>(descriptor.minor.get(), wire::kAbiMinor);
-				guest.push_back(descriptor);
-			}
 			const auto host = HostDescriptors(session);
-			if (host.size() + guest.size() > directory->capacity.get())
+			if (host.size() + session.guestServices.size() > session.directoryCapacity)
 				return false;
-			std::memset(descriptors, 0, directory->capacity.get() * sizeof(*descriptors));
-			std::copy(host.begin(), host.end(), descriptors);
-			std::copy(guest.begin(), guest.end(), descriptors + host.size());
-			directory->hostServiceCount = static_cast<uint16>(host.size());
-			directory->guestServiceCount = static_cast<uint16>(guest.size());
-			wire::AtomicFetchAdd(directory->generation, 1);
+
+			session.publishedServices = host;
+			session.publishedServices.insert(session.publishedServices.end(),
+				session.guestServices.begin(), session.guestServices.end());
+
+			// Publish the advisory shared directory as a seqlock.  Host decisions and
+			// GetServices use publishedServices above and never trust these bytes.
+			auto generation = wire::AtomicLoad(session.serviceDirectory->generation,
+				std::memory_order_relaxed);
+			if (generation & 1U)
+				++generation;
+			wire::AtomicStore(session.serviceDirectory->generation, generation + 1U);
+			std::memset(session.directoryDescriptors, 0,
+				session.directoryCapacity * sizeof(*session.directoryDescriptors));
+			std::copy(session.publishedServices.begin(), session.publishedServices.end(),
+				session.directoryDescriptors);
+			session.serviceDirectory->hostServiceCount = static_cast<uint16>(host.size());
+			session.serviceDirectory->guestServiceCount = static_cast<uint16>(session.guestServices.size());
+			wire::AtomicStore(session.serviceDirectory->generation, generation + 2U);
 			wire::AtomicFetchAdd(session.header->generation, 1);
 			if (emitChanged)
 				EmitEvent(session, wire::ServiceId::Core, static_cast<uint16>(wire::CoreEvent::ServicesChanged), {}, true);
@@ -323,7 +407,7 @@ namespace cemuextend_hle
 			if (path.empty() || !IsValidUtf8(path))
 				return std::nullopt;
 			const auto relative = _utf8ToPath(path).lexically_normal();
-			if (relative.is_absolute() || relative.has_root_name())
+			if (relative.empty() || relative == "." || relative.is_absolute() || relative.has_root_name())
 				return std::nullopt;
 			for (const auto& component : relative)
 				if (component == "..")
@@ -354,7 +438,57 @@ namespace cemuextend_hle
 			return current;
 		}
 
+		struct FileNamespaceUsage
+		{
+			uint64 bytes{};
+			uint32 files{};
+		};
+
+		std::optional<FileNamespaceUsage> MeasureFileNamespace(const Session& session)
+		{
+			FileNamespaceUsage usage{};
+			std::error_code error;
+			const auto root = FileRoot(session);
+			for (fs::recursive_directory_iterator iterator(root,
+				fs::directory_options::skip_permission_denied, error), end; !error && iterator != end; ++iterator)
+			{
+				const auto status = iterator->symlink_status(error);
+				if (error)
+					break;
+				if (fs::is_symlink(status))
+				{
+					if (fs::is_directory(status))
+						iterator.disable_recursion_pending();
+					continue;
+				}
+				if (!fs::is_regular_file(status))
+					continue;
+				const auto size = iterator->file_size(error);
+				if (error || size > std::numeric_limits<uint64>::max() - usage.bytes)
+					break;
+				usage.bytes += size;
+				++usage.files;
+			}
+			return error ? std::nullopt : std::optional{usage};
+		}
+
 		using ConfigValues = std::map<std::string, std::pair<wire::ValueType, std::vector<std::byte>>>;
+		constexpr size_t kMaximumConfigEntries = 1024;
+		constexpr size_t kMaximumConfigBytes = 1024 * 1024;
+
+		bool IsValidConfigValue(wire::ValueType type, size_t size)
+		{
+			switch (type)
+			{
+			case wire::ValueType::Boolean: return size == 1;
+			case wire::ValueType::SignedInteger:
+			case wire::ValueType::UnsignedInteger:
+			case wire::ValueType::Float: return size == 8;
+			case wire::ValueType::String:
+			case wire::ValueType::Bytes: return size <= wire::kBulkPayloadSize;
+			default: return false;
+			}
+		}
 
 		fs::path ConfigPath(const Session& session)
 		{
@@ -370,8 +504,9 @@ namespace cemuextend_hle
 			uint32 count{};
 			input.read(reinterpret_cast<char*>(&magic), sizeof(magic));
 			input.read(reinterpret_cast<char*>(&count), sizeof(count));
-			if (!input || magic != 0x43455843U || count > 1024)
+			if (!input || magic != 0x43455843U || count > kMaximumConfigEntries)
 				return false;
+			size_t totalBytes{};
 			for (uint32 index = 0; index < count; ++index)
 			{
 				uint8 type{};
@@ -380,21 +515,30 @@ namespace cemuextend_hle
 				input.read(reinterpret_cast<char*>(&type), sizeof(type));
 				input.read(reinterpret_cast<char*>(&keySize), sizeof(keySize));
 				input.read(reinterpret_cast<char*>(&valueSize), sizeof(valueSize));
-				if (!input || keySize == 0 || keySize > 256 || valueSize > wire::kBulkPayloadSize)
+				const auto valueType = static_cast<wire::ValueType>(type);
+				if (!input || keySize == 0 || keySize > 256 ||
+					!IsValidConfigValue(valueType, valueSize) ||
+					keySize + static_cast<size_t>(valueSize) > kMaximumConfigBytes - totalBytes)
 					return false;
+				totalBytes += keySize + valueSize;
 				std::string key(keySize, '\0');
 				std::vector<std::byte> value(valueSize);
 				input.read(key.data(), key.size());
 				input.read(reinterpret_cast<char*>(value.data()), value.size());
-				if (!input || !IsValidUtf8(key))
+				if (!input || !IsValidUtf8(key) ||
+					(valueType == wire::ValueType::String &&
+					 !IsValidUtf8({reinterpret_cast<const char*>(value.data()), value.size()})))
 					return false;
-				values.emplace(std::move(key), std::pair{static_cast<wire::ValueType>(type), std::move(value)});
+				if (!values.emplace(std::move(key), std::pair{valueType, std::move(value)}).second)
+					return false;
 			}
 			return true;
 		}
 
 		bool SaveConfigValues(const Session& session, const ConfigValues& values)
 		{
+			if (values.size() > kMaximumConfigEntries)
+				return false;
 			const auto path = ConfigPath(session);
 			std::error_code error;
 			fs::create_directories(path.parent_path(), error);
@@ -487,7 +631,7 @@ namespace cemuextend_hle
 		{
 			switch (service)
 			{
-			case wire::ServiceId::Core: return operation >= 1 && operation <= 6;
+			case wire::ServiceId::Core: return operation >= 1 && operation <= 7;
 			case wire::ServiceId::Input: return operation >= 1 && operation <= 2;
 			case wire::ServiceId::Logging: return operation == 1;
 			case wire::ServiceId::Configuration: return operation >= 1 && operation <= 4;
@@ -500,19 +644,22 @@ namespace cemuextend_hle
 			}
 		}
 
+		bool SupportsEvents(wire::ServiceId service)
+		{
+			return service == wire::ServiceId::Core || service == wire::ServiceId::Input ||
+				service == wire::ServiceId::Window;
+		}
+
 		void HandleCore(Session& session, const wire::MessageView& request, std::span<const std::byte> payload)
 		{
 			switch (static_cast<wire::CoreOperation>(request.header.operation.get()))
 			{
 			case wire::CoreOperation::GetServices:
 			{
-				auto* directory = reinterpret_cast<const wire::ServiceDirectoryHeader*>(
-					session.region.data() + session.header->serviceDirectoryOffset.get());
-				const auto count = directory->hostServiceCount.get() + directory->guestServiceCount.get();
-				const auto* descriptors = reinterpret_cast<const std::byte*>(directory) + directory->descriptorsOffset.get();
 				wire::Encoder encoder;
-				encoder.U16(count);
-				encoder.Bytes({descriptors, count * sizeof(wire::ServiceDescriptor)});
+				encoder.U16(static_cast<uint16>(session.publishedServices.size()));
+				encoder.Bytes({reinterpret_cast<const std::byte*>(session.publishedServices.data()),
+					session.publishedServices.size() * sizeof(wire::ServiceDescriptor)});
 				EnqueueResponse(session, request.header, wire::Status::Ok, encoder.data());
 				break;
 			}
@@ -524,7 +671,7 @@ namespace cemuextend_hle
 				wire::Encoder encoder;
 				encoder.U16(wire::kAbiMajor);
 				encoder.U16(wire::kAbiMinor);
-				encoder.U64(kHostBuildId);
+				encoder.U64(kCemuExtendBuildId);
 				EnqueueResponse(session, request.header, wire::Status::Ok, encoder.data());
 				break;
 			}
@@ -536,6 +683,18 @@ namespace cemuextend_hle
 				if (!decoder.U16(service) || decoder.remaining())
 				{
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					break;
+				}
+				const auto serviceId = static_cast<wire::ServiceId>(service);
+				if (!SupportsEvents(serviceId))
+				{
+					EnqueueResponse(session, request.header, wire::Status::NotSupported);
+					break;
+				}
+				if (serviceId != wire::ServiceId::Core &&
+					!HasPermission(session, serviceId, wire::Permission::Read))
+				{
+					EnqueueResponse(session, request.header, wire::Status::PermissionDenied);
 					break;
 				}
 				if (request.header.operation.get() == static_cast<uint16>(wire::CoreOperation::Subscribe))
@@ -551,6 +710,40 @@ namespace cemuextend_hle
 				EnqueueResponse(session, request.header, wire::Status::Ok, BytesOf(diagnostics));
 				break;
 			}
+			case wire::CoreOperation::Cancel:
+			{
+				wire::Decoder decoder(payload);
+				uint32 correlation{};
+				if (!decoder.U32(correlation) || decoder.remaining() || correlation == 0 ||
+					correlation == request.header.correlationId.get())
+				{
+					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					break;
+				}
+				bool cancelled{};
+				if (session.capture.pending && session.capture.pendingCorrelation == correlation)
+				{
+					const auto screenshotRequestId = session.capture.screenshotRequestId;
+					session.capture = {};
+					if (g_renderer && screenshotRequestId)
+						g_renderer->CancelScreenshotRequest(screenshotRequestId);
+					EnqueueCorrelationResponse(session, wire::ServiceId::Capture,
+						static_cast<uint16>(wire::CaptureOperation::Open), correlation,
+						wire::Status::Cancelled);
+					cancelled = true;
+				}
+				else if (session.clipboard.pending && session.clipboard.correlation == correlation)
+				{
+					const auto operation = session.clipboard.operation;
+					session.clipboard = {};
+					EnqueueCorrelationResponse(session, wire::ServiceId::Clipboard, operation,
+						correlation, wire::Status::Cancelled);
+					cancelled = true;
+				}
+				EnqueueResponse(session, request.header,
+					cancelled ? wire::Status::Ok : wire::Status::NotFound);
+				break;
+			}
 			default:
 				EnqueueResponse(session, request.header, wire::Status::NotSupported);
 			}
@@ -561,12 +754,33 @@ namespace cemuextend_hle
 			const auto operation = static_cast<wire::InputOperation>(request.header.operation.get());
 			if (operation == wire::InputOperation::InjectGuest)
 			{
-				if (payload.empty())
+				if (payload.size() != sizeof(wire::ControllerEventPayload))
 				{
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 					return;
 				}
-				EmitEvent(session, wire::ServiceId::Input, static_cast<uint16>(wire::InputEvent::Controller), payload);
+				wire::ControllerEventPayload event{};
+				std::memcpy(&event, payload.data(), sizeof(event));
+				const std::array axes{event.leftX.get(), event.leftY.get(), event.rightX.get(), event.rightY.get(),
+					event.leftTrigger.get(), event.rightTrigger.get()};
+				if (!std::ranges::all_of(axes, [](float value) { return std::isfinite(value); }))
+				{
+					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					return;
+				}
+				event.identity.eventId = session.nextInputEventId.fetch_add(1);
+				event.identity.parentEventId = 0;
+				event.identity.origin = static_cast<uint8>(wire::InputOrigin::ClientInjected);
+				event.identity.channel = static_cast<uint8>(wire::InputChannel::Controller);
+				event.identity.frameNumber = LatteGPUState.frameCounter;
+				event.leftX = std::clamp(event.leftX.get(), -1.0f, 1.0f);
+				event.leftY = std::clamp(event.leftY.get(), -1.0f, 1.0f);
+				event.rightX = std::clamp(event.rightX.get(), -1.0f, 1.0f);
+				event.rightY = std::clamp(event.rightY.get(), -1.0f, 1.0f);
+				event.leftTrigger = std::clamp(event.leftTrigger.get(), 0.0f, 1.0f);
+				event.rightTrigger = std::clamp(event.rightTrigger.get(), 0.0f, 1.0f);
+				EmitEvent(session, wire::ServiceId::Input,
+					static_cast<uint16>(wire::InputEvent::Controller), BytesOf(event));
 				EnqueueResponse(session, request.header, wire::Status::Ok);
 				return;
 			}
@@ -582,9 +796,21 @@ namespace cemuextend_hle
 				EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 				return;
 			}
+			wire::ObservedVpadState injected{};
+			std::memcpy(&injected, payload.data() + 1, sizeof(injected));
+			const std::array sticks{injected.leftX.get(), injected.leftY.get(),
+				injected.rightX.get(), injected.rightY.get()};
+			if (!std::ranges::all_of(sticks, [](float value) { return std::isfinite(value); }))
+			{
+				EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+				return;
+			}
+			injected.leftX = std::clamp(injected.leftX.get(), -1.0f, 1.0f);
+			injected.leftY = std::clamp(injected.leftY.get(), -1.0f, 1.0f);
+			injected.rightX = std::clamp(injected.rightX.get(), -1.0f, 1.0f);
+			injected.rightY = std::clamp(injected.rightY.get(), -1.0f, 1.0f);
 			std::lock_guard lock(session.inputMutex);
-			std::memcpy(&session.mappedInjection[channel], payload.data() + 1,
-				sizeof(wire::ObservedVpadState));
+			session.mappedInjection[channel] = injected;
 			session.hasMappedInjection[channel] = true;
 			session.mappedInjectionTime[channel] = std::chrono::steady_clock::now();
 			EnqueueResponse(session, request.header, wire::Status::Ok);
@@ -595,18 +821,44 @@ namespace cemuextend_hle
 			wire::Decoder decoder(payload);
 			uint8 level{};
 			std::string message;
-			if (!decoder.U8(level) || !decoder.String(message) || decoder.remaining() || !IsValidUtf8(message) ||
+			if (!decoder.U8(level) || !decoder.String(message) || decoder.remaining() || message.size() > 4096 ||
+				!IsValidUtf8(message) ||
 				level > static_cast<uint8>(wire::LogLevel::Critical))
 			{
 				EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 				return;
 			}
-			cemuLog_log(LogType::Force, "[CemuExtend guest/{:016x}/{}] {}", session.titleId, level, message);
+			const auto now = std::chrono::steady_clock::now();
+			const auto elapsed = std::chrono::duration<double>(now - session.loggingLastRefill).count();
+			session.loggingLastRefill = now;
+			session.loggingTokens = std::min(50.0, session.loggingTokens + elapsed * 20.0);
+			if (session.loggingTokens < 1.0)
+			{
+				EnqueueResponse(session, request.header, wire::Status::Busy);
+				return;
+			}
+			session.loggingTokens -= 1.0;
+			std::string escaped;
+			escaped.reserve(message.size());
+			constexpr char hex[] = "0123456789abcdef";
+			for (const auto character : message)
+			{
+				const auto value = static_cast<uint8>(character);
+				if (value < 0x20 || value == 0x7f)
+				{
+					escaped.append("\\x");
+					escaped.push_back(hex[value >> 4]);
+					escaped.push_back(hex[value & 0xf]);
+				}
+				else
+					escaped.push_back(character);
+			}
+			cemuLog_log(LogType::Force, "[CemuExtend guest/{:016x}/{}] {}", session.titleId, level, escaped);
 			EnqueueResponse(session, request.header, wire::Status::Ok);
 		}
 
 		void HandleConfiguration(Session& session, const wire::MessageView& request,
-			std::span<const std::byte> payload)
+			std::span<const std::byte> payload, std::span<const std::byte> bulkData)
 		{
 			wire::Decoder decoder(payload);
 			std::string key;
@@ -646,15 +898,51 @@ namespace cemuextend_hle
 				uint8 type{};
 				uint32 size{};
 				std::span<const std::byte> value;
+				const bool hasBulk = request.header.flags & static_cast<uint8>(wire::MessageFlag::HasBulk);
 				if (!decoder.U8(type) || !decoder.U32(size) || size > wire::kBulkPayloadSize ||
-					!decoder.Bytes(size, value) || decoder.remaining() ||
 					type < static_cast<uint8>(wire::ValueType::Boolean) ||
 					type > static_cast<uint8>(wire::ValueType::Bytes))
 				{
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 					break;
 				}
-				values[key] = {static_cast<wire::ValueType>(type), {value.begin(), value.end()}};
+				if (hasBulk)
+				{
+					if (decoder.remaining() || bulkData.size() != size)
+					{
+						EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+						break;
+					}
+					value = bulkData;
+				}
+				else if (!decoder.Bytes(size, value) || decoder.remaining())
+				{
+					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					break;
+				}
+				const auto valueType = static_cast<wire::ValueType>(type);
+				if (!IsValidConfigValue(valueType, value.size()) ||
+					(valueType == wire::ValueType::String &&
+					 !IsValidUtf8({reinterpret_cast<const char*>(value.data()), value.size()})))
+				{
+					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					break;
+				}
+				if (!values.contains(key) && values.size() >= kMaximumConfigEntries)
+				{
+					EnqueueResponse(session, request.header, wire::Status::TooLarge);
+					break;
+				}
+				size_t totalBytes = key.size() + value.size();
+				for (const auto& [candidate, typed] : values)
+					if (candidate != key)
+						totalBytes += candidate.size() + typed.second.size();
+				if (totalBytes > kMaximumConfigBytes)
+				{
+					EnqueueResponse(session, request.header, wire::Status::TooLarge);
+					break;
+				}
+				values[key] = {valueType, {value.begin(), value.end()}};
 				EnqueueResponse(session, request.header,
 					SaveConfigValues(session, values) ? wire::Status::Ok : wire::Status::IoError);
 				break;
@@ -705,6 +993,8 @@ namespace cemuextend_hle
 				return;
 			}
 			std::error_code error;
+			constexpr uint64 maximumFileSize = 16ULL * 1024ULL * 1024ULL;
+			constexpr auto maximumStreamOffset = static_cast<uint64>(std::numeric_limits<std::streamoff>::max());
 			switch (static_cast<wire::FileOperation>(request.header.operation.get()))
 			{
 			case wire::FileOperation::Stat:
@@ -734,7 +1024,7 @@ namespace cemuextend_hle
 					if (iterator->is_symlink(error))
 						continue;
 					entries.push_back(*iterator);
-					if (entries.size() >= 512)
+					if (entries.size() >= 128)
 						break;
 				}
 				if (error)
@@ -749,15 +1039,20 @@ namespace cemuextend_hle
 					encoder.String(name);
 					encoder.U8(entry.is_directory(error) ? 2 : 1);
 					encoder.U64(entry.is_regular_file(error) ? entry.file_size(error) : 0);
+					if (error)
+						break;
 				}
-				EnqueueResponse(session, request.header, wire::Status::Ok, encoder.data());
+				EnqueueResponse(session, request.header,
+					error ? wire::Status::IoError : wire::Status::Ok,
+					error ? std::span<const std::byte>{} : encoder.data());
 				break;
 			}
 			case wire::FileOperation::Read:
 			{
 				uint64 offset{};
 				uint32 size{};
-				if (!decoder.U64(offset) || !decoder.U32(size) || decoder.remaining() || size > wire::kBulkPayloadSize)
+				if (!decoder.U64(offset) || !decoder.U32(size) || decoder.remaining() ||
+					size > wire::kBulkPayloadSize || offset > maximumStreamOffset || offset > maximumFileSize)
 				{
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 					break;
@@ -768,29 +1063,42 @@ namespace cemuextend_hle
 					EnqueueResponse(session, request.header, wire::Status::NotFound);
 					break;
 				}
+				const auto fileSize = fs::file_size(*path, error);
+				if (error || offset > fileSize)
+				{
+					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					break;
+				}
 				input.seekg(static_cast<std::streamoff>(offset));
 				std::vector<std::byte> bytes(size);
 				input.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
 				bytes.resize(static_cast<size_t>(input.gcount()));
-				wire::BulkHandle handle{};
-				if (!session.bulk.TryWrite(wire::BulkOwner::Host, bytes, handle))
-				{
-					EnqueueResponse(session, request.header, wire::Status::Busy);
-					break;
-				}
-				session.bulkBytes += bytes.size();
-				EnqueueResponse(session, request.header, wire::Status::Ok, BytesOf(handle),
-					static_cast<uint8>(wire::MessageFlag::HasBulk));
+				EnqueueResponse(session, request.header, wire::Status::Ok, bytes, true);
 				break;
 			}
 			case wire::FileOperation::Write:
 			{
 				uint64 offset{};
 				if (!decoder.U64(offset) || decoder.remaining() ||
-					(!(request.header.flags & static_cast<uint8>(wire::MessageFlag::HasBulk)) &&
-					 !bulkData.empty()))
+					!(request.header.flags & static_cast<uint8>(wire::MessageFlag::HasBulk)) ||
+					offset > maximumStreamOffset || offset > maximumFileSize ||
+					bulkData.size() > maximumFileSize - offset)
 				{
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+					break;
+				}
+				const auto usage = MeasureFileNamespace(session);
+				const bool existed = fs::exists(*path, error);
+				const auto existingSize = existed && !error ? fs::file_size(*path, error) : 0;
+				const auto resultingSize = std::max<uint64>(existingSize, offset + bulkData.size());
+				constexpr uint64 maximumNamespaceBytes = 64ULL * 1024ULL * 1024ULL;
+				constexpr uint32 maximumNamespaceFiles = 4096;
+				if (!usage || error || usage->bytes > maximumNamespaceBytes || offset > existingSize ||
+					(!existed && usage->files >= maximumNamespaceFiles) ||
+					existingSize > usage->bytes || resultingSize - existingSize > maximumNamespaceBytes - usage->bytes)
+				{
+					EnqueueResponse(session, request.header,
+						(!usage || error) ? wire::Status::IoError : wire::Status::TooLarge);
 					break;
 				}
 				fs::create_directories(path->parent_path(), error);
@@ -829,6 +1137,12 @@ namespace cemuextend_hle
 					EnqueueResponse(session, request.header, wire::Status::PermissionDenied);
 					break;
 				}
+				if (fs::exists(*destination, error) || error)
+				{
+					EnqueueResponse(session, request.header,
+						error ? wire::Status::IoError : wire::Status::Busy);
+					break;
+				}
 				fs::create_directories(destination->parent_path(), error);
 				if (!error)
 					fs::rename(*path, *destination, error);
@@ -845,8 +1159,14 @@ namespace cemuextend_hle
 			const auto operation = static_cast<wire::ClipboardOperation>(request.header.operation.get());
 			const auto sessionId = session.id;
 			const auto correlation = request.header.correlationId.get();
+			if (session.clipboard.pending)
+			{
+				EnqueueResponse(session, request.header, wire::Status::Busy);
+				return;
+			}
 			if (operation == wire::ClipboardOperation::Get)
 			{
+				session.clipboard = {true, correlation, static_cast<uint16>(operation)};
 				WindowSystem::GetClipboardTextAsync([sessionId, correlation](bool success, std::string text) {
 					BridgeHost::Instance().CompleteClipboard(sessionId, correlation,
 						static_cast<uint16>(wire::ClipboardOperation::Get), success, std::move(text));
@@ -857,11 +1177,13 @@ namespace cemuextend_hle
 			{
 				wire::Decoder decoder(payload);
 				std::string text;
-				if (!decoder.String(text) || decoder.remaining() || !IsValidUtf8(text))
+				if (!decoder.String(text) || decoder.remaining() || text.size() > wire::kBulkPayloadSize ||
+					!IsValidUtf8(text))
 				{
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 					return;
 				}
+				session.clipboard = {true, correlation, static_cast<uint16>(operation)};
 				WindowSystem::SetClipboardTextAsync(std::move(text), [sessionId, correlation](bool success) {
 					BridgeHost::Instance().CompleteClipboard(sessionId, correlation,
 						static_cast<uint16>(wire::ClipboardOperation::Set), success, {});
@@ -904,6 +1226,8 @@ namespace cemuextend_hle
 					EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
 					break;
 				}
+				if (session.capture.handle && std::chrono::steady_clock::now() >= session.capture.expiresAt)
+					session.capture = {};
 				if (session.capture.pending || session.capture.handle || !g_renderer)
 				{
 					EnqueueResponse(session, request.header, g_renderer ? wire::Status::Busy : wire::Status::NotSupported);
@@ -934,6 +1258,8 @@ namespace cemuextend_hle
 				wire::Decoder decoder(payload);
 				uint32 handle{};
 				uint32 offset{};
+				if (session.capture.handle && std::chrono::steady_clock::now() >= session.capture.expiresAt)
+					session.capture = {};
 				if (!decoder.U32(handle) || !decoder.U32(offset) || decoder.remaining() ||
 					handle == 0 || handle != session.capture.handle || offset > session.capture.rgb.size())
 				{
@@ -941,16 +1267,8 @@ namespace cemuextend_hle
 					break;
 				}
 				const auto size = std::min<size_t>(wire::kBulkPayloadSize, session.capture.rgb.size() - offset);
-				wire::BulkHandle bulkHandle{};
-				if (!session.bulk.TryWrite(wire::BulkOwner::Host,
-					std::span<const std::byte>(session.capture.rgb).subspan(offset, size), bulkHandle))
-				{
-					EnqueueResponse(session, request.header, wire::Status::Busy);
-					break;
-				}
-				session.bulkBytes += size;
-				EnqueueResponse(session, request.header, wire::Status::Ok, BytesOf(bulkHandle),
-					static_cast<uint8>(wire::MessageFlag::HasBulk));
+				EnqueueResponse(session, request.header, wire::Status::Ok,
+					std::span<const std::byte>(session.capture.rgb).subspan(offset, size), true);
 				break;
 			}
 			case wire::CaptureOperation::Close:
@@ -975,6 +1293,11 @@ namespace cemuextend_hle
 		{
 			for (;;)
 			{
+				{
+					std::lock_guard lock(session.responseMutex);
+					if (session.responses.size() >= kMaximumResponses)
+						return true;
+				}
 				wire::MessageView request;
 				const auto result = session.guestControl.Pop(request);
 				if (result == wire::RingReadResult::Empty)
@@ -983,16 +1306,28 @@ namespace cemuextend_hle
 					request.header.kind != static_cast<uint8>(wire::MessageKind::Request))
 					return false;
 				++session.requests;
+				constexpr uint8 validFlags = static_cast<uint8>(wire::MessageFlag::HasBulk);
+				if (request.header.flags & ~validFlags)
+				{
+					EnqueueResponse(session, request.header, wire::Status::ProtocolError);
+					continue;
+				}
 				std::span<const std::byte> payload(request.payload);
 				std::vector<std::byte> bulkData;
 				if (request.header.flags & static_cast<uint8>(wire::MessageFlag::HasBulk))
 				{
 					if (payload.size() < sizeof(wire::BulkHandle))
-						return false;
+					{
+						EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+						continue;
+					}
 					wire::BulkHandle handle{};
 					std::memcpy(&handle, payload.data(), sizeof(handle));
 					if (!session.bulk.ReadAndRelease(wire::BulkOwner::Guest, handle, bulkData))
-						return false;
+					{
+						EnqueueResponse(session, request.header, wire::Status::InvalidArgument);
+						continue;
+					}
 					session.bulkBytes += bulkData.size();
 					payload = payload.subspan(sizeof(handle));
 				}
@@ -1013,7 +1348,7 @@ namespace cemuextend_hle
 				case wire::ServiceId::Core: HandleCore(session, request, payload); break;
 				case wire::ServiceId::Input: HandleInput(session, request, payload); break;
 				case wire::ServiceId::Logging: HandleLogging(session, request, payload); break;
-				case wire::ServiceId::Configuration: HandleConfiguration(session, request, payload); break;
+				case wire::ServiceId::Configuration: HandleConfiguration(session, request, payload, bulkData); break;
 				case wire::ServiceId::File: HandleFile(session, request, payload, bulkData); break;
 				case wire::ServiceId::Clipboard: HandleClipboard(session, request, payload); break;
 				case wire::ServiceId::Window: HandleWindow(session, request); break;
@@ -1144,7 +1479,8 @@ namespace cemuextend_hle
 					event.identity.channel = static_cast<uint8>(wire::InputChannel::Controller);
 					event.identity.deviceId = static_cast<uint16>(index);
 					event.identity.frameNumber = LatteGPUState.frameCounter;
-					event.buttons = controllers[index].buttonsLow.get();
+					event.buttonsLow = controllers[index].buttonsLow.get();
+					event.buttonsHigh = controllers[index].buttonsHigh.get();
 					event.leftX = controllers[index].leftX.get();
 					event.leftY = controllers[index].leftY.get();
 					event.rightX = controllers[index].rightX.get();
@@ -1164,24 +1500,31 @@ namespace cemuextend_hle
 		bool PublishState(Session& session)
 		{
 			std::vector<wire::StateValue> values;
-			auto raw = BuildRawInput(session);
-			values.push_back({static_cast<uint16>(wire::ServiceId::Input),
-				static_cast<uint16>(wire::InputState::RawSnapshot), 1, std::move(raw)});
+			if (HasPermission(session, wire::ServiceId::Input, wire::Permission::Read))
+			{
+				auto raw = BuildRawInput(session);
+				values.push_back({static_cast<uint16>(wire::ServiceId::Input),
+					static_cast<uint16>(wire::InputState::RawSnapshot), 1, std::move(raw)});
+			}
 
-			wire::WindowStatePayload windowState{};
-			const auto& window = WindowSystem::GetWindowInfo();
-			windowState.frameNumber = LatteGPUState.frameCounter;
-			windowState.tvWidth = std::max(0, window.phys_width.load());
-			windowState.tvHeight = std::max(0, window.phys_height.load());
-			windowState.drcWidth = std::max(0, window.phys_pad_width.load());
-			windowState.drcHeight = std::max(0, window.phys_pad_height.load());
-			windowState.dpiScale = static_cast<float>(window.dpi_scale.load());
-			windowState.focused = window.app_active.load();
-			windowState.fullscreen = window.is_fullscreen.load();
-			values.push_back({static_cast<uint16>(wire::ServiceId::Window),
-				static_cast<uint16>(wire::WindowState::Snapshot), 1,
-				{BytesOf(windowState).begin(), BytesOf(windowState).end()}});
+			if (HasPermission(session, wire::ServiceId::Window, wire::Permission::Read))
+			{
+				wire::WindowStatePayload windowState{};
+				const auto& window = WindowSystem::GetWindowInfo();
+				windowState.frameNumber = LatteGPUState.frameCounter;
+				windowState.tvWidth = std::max(0, window.phys_width.load());
+				windowState.tvHeight = std::max(0, window.phys_height.load());
+				windowState.drcWidth = std::max(0, window.phys_pad_width.load());
+				windowState.drcHeight = std::max(0, window.phys_pad_height.load());
+				windowState.dpiScale = static_cast<float>(window.dpi_scale.load());
+				windowState.focused = window.app_active.load();
+				windowState.fullscreen = window.is_fullscreen.load();
+				values.push_back({static_cast<uint16>(wire::ServiceId::Window),
+					static_cast<uint16>(wire::WindowState::Snapshot), 1,
+					{BytesOf(windowState).begin(), BytesOf(windowState).end()}});
+			}
 
+			if (HasPermission(session, wire::ServiceId::Input, wire::Permission::Read))
 			{
 				std::lock_guard lock(session.inputMutex);
 				for (size_t channel = 0; channel < session.observedVpad.size(); ++channel)
@@ -1195,10 +1538,13 @@ namespace cemuextend_hle
 						{BytesOf(observed).begin(), BytesOf(observed).end()}});
 				}
 			}
-			const auto diagnostics = Diagnostics(session);
-			values.push_back({static_cast<uint16>(wire::ServiceId::Diagnostics),
-				static_cast<uint16>(wire::DiagnosticsState::Snapshot), 1,
-				{BytesOf(diagnostics).begin(), BytesOf(diagnostics).end()}});
+			if (HasPermission(session, wire::ServiceId::Diagnostics, wire::Permission::Read))
+			{
+				const auto diagnostics = Diagnostics(session);
+				values.push_back({static_cast<uint16>(wire::ServiceId::Diagnostics),
+					static_cast<uint16>(wire::DiagnosticsState::Snapshot), 1,
+					{BytesOf(diagnostics).begin(), BytesOf(diagnostics).end()}});
+			}
 			return session.hostState.Publish(values);
 		}
 	}
@@ -1244,12 +1590,6 @@ namespace cemuextend_hle
 					Fail(current, wire::Error::InvalidLayout);
 					break;
 				}
-				if (const auto validation = wire::ValidateLayout(current.region); !validation)
-				{
-					Fail(current, wire::Error::ProtocolError);
-					break;
-				}
-
 				const auto now = std::chrono::steady_clock::now();
 				const auto guestHeartbeat = wire::AtomicLoad(current.header->guestHeartbeat);
 				if (guestHeartbeat != current.lastGuestHeartbeat)
@@ -1271,6 +1611,48 @@ namespace cemuextend_hle
 				if (current.permissionsDirty.exchange(false))
 				{
 					current.permissions = LoadPermissions(current.titleId);
+					std::erase_if(current.subscriptions, [&](uint16 service) {
+						return service != static_cast<uint16>(wire::ServiceId::Core) &&
+							!HasPermission(current, static_cast<wire::ServiceId>(service), wire::Permission::Read);
+					});
+					if (!HasPermission(current, wire::ServiceId::Input, wire::Permission::Read))
+					{
+						std::lock_guard inputLock(current.inputMutex);
+						current.inputEvents.clear();
+						current.hasPreviousRaw = false;
+					}
+					if (current.clipboard.pending)
+					{
+						const auto operation = current.clipboard.operation;
+						const auto permission = operation == static_cast<uint16>(wire::ClipboardOperation::Get) ?
+							wire::Permission::Read : wire::Permission::Write;
+						if (!HasPermission(current, wire::ServiceId::Clipboard, permission))
+						{
+							const auto correlation = current.clipboard.correlation;
+							current.clipboard = {};
+							EnqueueCorrelationResponse(current, wire::ServiceId::Clipboard, operation,
+								correlation, wire::Status::PermissionDenied);
+						}
+					}
+					if (!HasPermission(current, wire::ServiceId::Capture, wire::Permission::Read) &&
+						(current.capture.pending || current.capture.handle))
+					{
+						const auto correlation = current.capture.pendingCorrelation;
+						const auto screenshotRequestId = current.capture.screenshotRequestId;
+						const bool wasPending = current.capture.pending;
+						current.capture = {};
+						if (g_renderer && screenshotRequestId)
+							g_renderer->CancelScreenshotRequest(screenshotRequestId);
+						if (wasPending)
+							EnqueueCorrelationResponse(current, wire::ServiceId::Capture,
+								static_cast<uint16>(wire::CaptureOperation::Open), correlation,
+								wire::Status::PermissionDenied);
+					}
+					if (!current.hostState.Clear())
+					{
+						Fail(current, wire::Error::ProtocolError);
+						break;
+					}
 					if (!UpdateServiceDirectory(current, true))
 					{
 						Fail(current, wire::Error::ProtocolError);
@@ -1288,7 +1670,11 @@ namespace cemuextend_hle
 						static_cast<uint16>(wire::CaptureOperation::Open), correlation, wire::Status::TimedOut);
 				}
 
-				FlushResponses(current);
+				if (!FlushResponses(current))
+				{
+					Fail(current, wire::Error::ProtocolError);
+					break;
+				}
 				if (!ProcessRequests(current))
 				{
 					Fail(current, wire::Error::ProtocolError);
@@ -1317,7 +1703,11 @@ namespace cemuextend_hle
 					Fail(current, wire::Error::ProtocolError);
 					break;
 				}
-				FlushResponses(current);
+				if (!FlushResponses(current))
+				{
+					Fail(current, wire::Error::ProtocolError);
+					break;
+				}
 			}
 		}
 	};
@@ -1334,6 +1724,17 @@ namespace cemuextend_hle
 	sint32 BridgeHost::Register(uint32 abiVersion, void* region, uint32 regionSize, uint32& sessionId)
 	{
 		std::lock_guard lifecycleLock(m_impl->lifecycleMutex);
+		if (m_impl->session && !m_impl->session->running.load())
+		{
+			const auto staleSessionId = m_impl->session->id;
+			m_impl->worker.request_stop();
+			m_impl->wakeCondition.notify_all();
+			if (m_impl->worker.joinable())
+				m_impl->worker.join();
+			m_impl->session.reset();
+			cemuLog_log(LogType::Force,
+				"CemuExtend Bridge reaped failed session {} before reconnect", staleSessionId);
+		}
 		if (m_impl->session)
 			return static_cast<sint32>(wire::Error::Busy);
 		if ((abiVersion >> 16U) != wire::kAbiMajor || (abiVersion & 0xffffU) > wire::kAbiMinor)
@@ -1344,6 +1745,21 @@ namespace cemuextend_hle
 		std::span<std::byte> memory(static_cast<std::byte*>(region), regionSize);
 		if (const auto validation = wire::ValidateLayout(memory); !validation)
 			return static_cast<sint32>(wire::Error::InvalidLayout);
+		wire::BridgeHeader layout{};
+		std::memcpy(&layout, memory.data(), sizeof(layout));
+		const auto validSlice = [&](uint32 offset, uint32 size) {
+			return offset % wire::kAlignment == 0 && offset <= memory.size() &&
+				size <= memory.size() - offset;
+		};
+		if (!validSlice(layout.serviceDirectoryOffset.get(), layout.serviceDirectorySize.get()) ||
+			!validSlice(layout.hostStateOffset.get(), layout.hostStateSize.get()) ||
+			!validSlice(layout.guestStateOffset.get(), layout.guestStateSize.get()) ||
+			!validSlice(layout.guestToHostControlOffset.get(), layout.guestToHostControlSize.get()) ||
+			!validSlice(layout.hostToGuestControlOffset.get(), layout.hostToGuestControlSize.get()) ||
+			!validSlice(layout.guestToHostEventOffset.get(), layout.guestToHostEventSize.get()) ||
+			!validSlice(layout.hostToGuestEventOffset.get(), layout.hostToGuestEventSize.get()) ||
+			!validSlice(layout.bulkOffset.get(), layout.bulkSize.get()))
+			return static_cast<sint32>(wire::Error::InvalidLayout);
 
 		auto current = std::make_unique<Session>();
 		current->id = m_impl->nextSessionId.fetch_add(1);
@@ -1353,26 +1769,37 @@ namespace cemuextend_hle
 		current->guestAddress = memory_getVirtualOffsetFromPointer(region);
 		current->region = memory;
 		current->header = reinterpret_cast<wire::BridgeHeader*>(memory.data());
-		current->header->hostBuildId = kHostBuildId;
+		current->serviceDirectory = reinterpret_cast<wire::ServiceDirectoryHeader*>(
+			memory.data() + layout.serviceDirectoryOffset.get());
+		wire::ServiceDirectoryHeader directoryLayout{};
+		std::memcpy(&directoryLayout, current->serviceDirectory, sizeof(directoryLayout));
+		const auto descriptorBytes = static_cast<uint64>(directoryLayout.capacity.get()) *
+			sizeof(wire::ServiceDescriptor);
+		if (directoryLayout.descriptorsOffset.get() < sizeof(wire::ServiceDirectoryHeader) ||
+			directoryLayout.descriptorsOffset.get() > layout.serviceDirectorySize.get() ||
+			descriptorBytes > layout.serviceDirectorySize.get() - directoryLayout.descriptorsOffset.get())
+			return static_cast<sint32>(wire::Error::InvalidLayout);
+		current->directoryCapacity = directoryLayout.capacity.get();
+		current->directoryDescriptors = reinterpret_cast<wire::ServiceDescriptor*>(
+			reinterpret_cast<std::byte*>(current->serviceDirectory) + directoryLayout.descriptorsOffset.get());
+		current->header->hostBuildId = kCemuExtendBuildId;
 		current->header->sessionId = current->id;
 		current->permissions = LoadPermissions(current->titleId);
-		current->guestControl = {memory.data() + current->header->guestToHostControlOffset.get(),
-			current->header->guestToHostControlSize.get()};
-		current->hostControl = {memory.data() + current->header->hostToGuestControlOffset.get(),
-			current->header->hostToGuestControlSize.get()};
-		current->guestEvents = {memory.data() + current->header->guestToHostEventOffset.get(),
-			current->header->guestToHostEventSize.get()};
-		current->hostEvents = {memory.data() + current->header->hostToGuestEventOffset.get(),
-			current->header->hostToGuestEventSize.get()};
-		current->hostState = {memory.data() + current->header->hostStateOffset.get(),
-			current->header->hostStateSize.get()};
-		current->guestState = {memory.data() + current->header->guestStateOffset.get(),
-			current->header->guestStateSize.get()};
-		current->bulk = {memory.data() + current->header->bulkOffset.get(), current->header->bulkSize.get()};
+		current->guestControl = {memory.data() + layout.guestToHostControlOffset.get(),
+			layout.guestToHostControlSize.get()};
+		current->hostControl = {memory.data() + layout.hostToGuestControlOffset.get(),
+			layout.hostToGuestControlSize.get()};
+		current->guestEvents = {memory.data() + layout.guestToHostEventOffset.get(),
+			layout.guestToHostEventSize.get()};
+		current->hostEvents = {memory.data() + layout.hostToGuestEventOffset.get(),
+			layout.hostToGuestEventSize.get()};
+		current->hostState = {memory.data() + layout.hostStateOffset.get(), layout.hostStateSize.get()};
+		current->guestState = {memory.data() + layout.guestStateOffset.get(), layout.guestStateSize.get()};
+		current->bulk = {memory.data() + layout.bulkOffset.get(), layout.bulkSize.get()};
 		current->lastGuestHeartbeat = wire::AtomicLoad(current->header->guestHeartbeat);
 		current->lastGuestHeartbeatTime = std::chrono::steady_clock::now();
 		current->lastFrameCounter = LatteGPUState.frameCounter;
-		if (!UpdateServiceDirectory(*current, false))
+		if (!SnapshotGuestServices(*current) || !UpdateServiceDirectory(*current, false))
 			return static_cast<sint32>(wire::Error::InvalidLayout);
 		wire::AtomicStore(current->header->connectionState,
 			static_cast<uint32>(wire::ConnectionState::Connected));
@@ -1564,10 +1991,28 @@ namespace cemuextend_hle
 		std::lock_guard lifecycleLock(m_impl->lifecycleMutex);
 		if (!m_impl->session || m_impl->session->id != sessionId)
 			return;
+		auto& session = *m_impl->session;
+		if (!session.clipboard.pending || session.clipboard.correlation != correlationId ||
+			session.clipboard.operation != operation)
+			return;
+		session.clipboard = {};
+		const auto permission = operation == static_cast<uint16>(wire::ClipboardOperation::Get) ?
+			wire::Permission::Read : wire::Permission::Write;
+		if (!HasPermission(session, wire::ServiceId::Clipboard, permission))
+		{
+			EnqueueCorrelationResponse(session, wire::ServiceId::Clipboard, operation,
+				correlationId, wire::Status::PermissionDenied);
+			m_impl->notified = true;
+			m_impl->wakeCondition.notify_one();
+			return;
+		}
 		wire::Encoder encoder;
 		if (success && operation == static_cast<uint16>(wire::ClipboardOperation::Get))
-			encoder.String(text);
-		EnqueueCorrelationResponse(*m_impl->session, wire::ServiceId::Clipboard,
+		{
+			if (text.size() > wire::kBulkPayloadSize || !IsValidUtf8(text) || !encoder.String(text))
+				success = false;
+		}
+		EnqueueCorrelationResponse(session, wire::ServiceId::Clipboard,
 			operation, correlationId,
 			success ? wire::Status::Ok : wire::Status::IoError, encoder.data());
 		m_impl->notified = true;
@@ -1584,9 +2029,33 @@ namespace cemuextend_hle
 		if (!session.capture.pending || session.capture.pendingCorrelation != correlationId ||
 			session.capture.targetMainWindow != mainWindow)
 			return;
+		if (!HasPermission(session, wire::ServiceId::Capture, wire::Permission::Read))
+		{
+			session.capture = {};
+			EnqueueCorrelationResponse(session, wire::ServiceId::Capture,
+				static_cast<uint16>(wire::CaptureOperation::Open), correlationId,
+				wire::Status::PermissionDenied);
+			m_impl->notified = true;
+			m_impl->wakeCondition.notify_one();
+			return;
+		}
+		const auto widthValue = width > 0 ? static_cast<uint64>(width) : 0;
+		const auto heightValue = height > 0 ? static_cast<uint64>(height) : 0;
+		const auto expectedBytes = widthValue * heightValue * 3ULL;
+		if (widthValue == 0 || heightValue == 0 || expectedBytes > 64ULL * 1024ULL * 1024ULL ||
+			rgb.size() != expectedBytes)
+		{
+			session.capture = {};
+			EnqueueCorrelationResponse(session, wire::ServiceId::Capture,
+				static_cast<uint16>(wire::CaptureOperation::Open), correlationId, wire::Status::ProtocolError);
+			m_impl->notified = true;
+			m_impl->wakeCondition.notify_one();
+			return;
+		}
 		session.capture.pending = false;
 		session.capture.screenshotRequestId = 0;
 		session.capture.handle = correlationId ? correlationId : 1;
+		session.capture.expiresAt = std::chrono::steady_clock::now() + std::chrono::seconds(30);
 		session.capture.width = static_cast<uint32>(width);
 		session.capture.height = static_cast<uint32>(height);
 		session.capture.rgb.resize(rgb.size());

@@ -1,8 +1,11 @@
 #include "Cafe/GraphicPack/GraphicPack2.h"
+#include "Cafe/GraphicPack/CemuPatchBinaryV2.h"
 #include "Common/FileStream.h"
 #include "util/helpers/StringParser.h"
 #include "Cemu/PPCAssembler/ppcAssembler.h"
 #include "Cafe/OS/RPL/rpl_structs.h"
+
+#include <openssl/sha.h>
 
 sint32 GraphicPack2::GetLengthWithoutComment(const char* str, size_t length)
 {
@@ -41,8 +44,55 @@ enum class RAW_HEX_PARSE_RESULT
 };
 
 static constexpr uint32 CEMU_PATCH_BINARY_MAGIC = 0x43504231; // CPB1
+static constexpr uint32 CEMU_PATCH_BINARY_V2_MAGIC = CemuPatchBinaryV2::kMagic;
+static constexpr uint16 CEMU_PATCH_BINARY_V2_VERSION = CemuPatchBinaryV2::kVersion;
+static constexpr uint16 CEMU_PATCH_BINARY_V2_HEADER_SIZE = CemuPatchBinaryV2::kHeaderSize;
 static constexpr uint8 CEMU_PATCH_BINARY_ENTRY_LABEL = 1;
 static constexpr uint8 CEMU_PATCH_BINARY_ENTRY_DATA = 2;
+static constexpr uint32 CEMU_PATCH_BINARY_MAX_GROUPS = 1024;
+static constexpr uint32 CEMU_PATCH_BINARY_MAX_ENTRIES = 65536;
+static constexpr uint32 CEMU_PATCH_BINARY_MAX_RELOCS = 1000000;
+static constexpr uint32 CEMU_PATCH_BINARY_MAX_NAME_SIZE = 255;
+static constexpr uint32 CEMU_PATCH_BINARY_MAX_EXPRESSION_SIZE = 4096;
+
+static bool _isValidBinaryPatchText(std::string_view text, size_t maximumSize)
+{
+	if (text.empty() || text.size() > maximumSize)
+		return false;
+	for (size_t index = 0; index < text.size();)
+	{
+		const auto lead = static_cast<uint8>(text[index]);
+		if (lead < 0x80)
+		{
+			if (lead < 0x20 || lead == 0x7f)
+				return false;
+			++index;
+			continue;
+		}
+		size_t continuation{};
+		uint32 codepoint{};
+		if ((lead & 0xe0) == 0xc0) { continuation = 1; codepoint = lead & 0x1f; }
+		else if ((lead & 0xf0) == 0xe0) { continuation = 2; codepoint = lead & 0x0f; }
+		else if ((lead & 0xf8) == 0xf0) { continuation = 3; codepoint = lead & 0x07; }
+		else return false;
+		if (index + continuation >= text.size())
+			return false;
+		for (size_t offset = 1; offset <= continuation; ++offset)
+		{
+			const auto next = static_cast<uint8>(text[index + offset]);
+			if ((next & 0xc0) != 0x80)
+				return false;
+			codepoint = (codepoint << 6U) | (next & 0x3fU);
+		}
+		if ((continuation == 1 && codepoint < 0x80) ||
+			(continuation == 2 && codepoint < 0x800) ||
+			(continuation == 3 && codepoint < 0x10000) ||
+			codepoint > 0x10ffff || (codepoint >= 0xd800 && codepoint <= 0xdfff))
+			return false;
+		index += continuation + 1;
+	}
+	return true;
+}
 
 static bool _isHexDigit(char c)
 {
@@ -148,16 +198,17 @@ static uint32 _getBinaryRelocSize(PPCASM_RELOC relocType)
 	}
 }
 
-static bool _readBinaryPatchString(MemStreamReader& patchesStream, std::string& str)
+static bool _readBinaryPatchString(MemStreamReader& patchesStream, std::string& str,
+	size_t maximumSize)
 {
 	uint16 strLength = patchesStream.readBE<uint16>();
-	if (patchesStream.hasError())
+	if (patchesStream.hasError() || strLength == 0 || strLength > maximumSize)
 		return false;
 	auto strData = patchesStream.readDataNoCopy(strLength);
 	if (patchesStream.hasError())
 		return false;
 	str.assign((const char*)strData.data(), strData.size());
-	return true;
+	return _isValidBinaryPatchText(str, maximumSize);
 }
 
 void GraphicPack2::CancelParsingPatches()
@@ -376,6 +427,38 @@ void GraphicPack2::ParseCemuhookPatchesTxtInternal(MemStreamReader& patchesStrea
 bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream)
 {
 	uint32 magic = patchesStream.readBE<uint32>();
+	if (!patchesStream.hasError() && magic == CEMU_PATCH_BINARY_V2_MAGIC)
+	{
+		const auto version = patchesStream.readBE<uint16>();
+		const auto headerSize = patchesStream.readBE<uint16>();
+		const auto featureFlags = patchesStream.readBE<uint32>();
+		const auto payloadSize = patchesStream.readBE<uint32>();
+		const auto expectedDigest = patchesStream.readDataNoCopy(SHA256_DIGEST_LENGTH);
+		if (patchesStream.hasError() || version != CEMU_PATCH_BINARY_V2_VERSION ||
+			headerSize != CEMU_PATCH_BINARY_V2_HEADER_SIZE || featureFlags != 0 || payloadSize == 0)
+		{
+			LogPatchesSyntaxError(-1, "Invalid CPB2 header or unsupported feature flags");
+			CancelParsingPatches();
+			return false;
+		}
+		auto payload = patchesStream.readDataNoCopy(payloadSize);
+		if (patchesStream.hasError() || !patchesStream.isEndOfStream())
+		{
+			LogPatchesSyntaxError(-1, "CPB2 payload length does not match the file");
+			CancelParsingPatches();
+			return false;
+		}
+		std::array<unsigned char, SHA256_DIGEST_LENGTH> actualDigest{};
+		SHA256(payload.data(), payload.size(), actualDigest.data());
+		if (!std::equal(actualDigest.begin(), actualDigest.end(), expectedDigest.begin(), expectedDigest.end()))
+		{
+			LogPatchesSyntaxError(-1, "CPB2 payload SHA-256 mismatch");
+			CancelParsingPatches();
+			return false;
+		}
+		MemStreamReader payloadStream(payload.data(), static_cast<sint32>(payload.size()));
+		return ParseCemuBinaryPatchesInternal(payloadStream);
+	}
 	if (patchesStream.hasError() || magic != CEMU_PATCH_BINARY_MAGIC)
 	{
 		LogPatchesSyntaxError(-1, "Invalid binary patch file header");
@@ -384,60 +467,64 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 	}
 
 	uint32 groupCount = patchesStream.readBE<uint32>();
-	if (patchesStream.hasError())
+	if (patchesStream.hasError() || groupCount == 0 || groupCount > CEMU_PATCH_BINARY_MAX_GROUPS)
 	{
-		LogPatchesSyntaxError(-1, "Unexpected end of binary patch file");
+		LogPatchesSyntaxError(-1, "Invalid group count in binary patch file");
 		CancelParsingPatches();
 		return false;
 	}
 
+	uint32 totalEntryCount{};
+	uint32 totalRelocCount{};
+	std::unordered_set<std::string> groupNames;
 	for (uint32 groupIndex = 0; groupIndex < groupCount; groupIndex++)
 	{
 		std::string groupName;
-		if (!_readBinaryPatchString(patchesStream, groupName) || groupName.empty())
+		if (!_readBinaryPatchString(patchesStream, groupName, CEMU_PATCH_BINARY_MAX_NAME_SIZE) ||
+			!groupNames.emplace(groupName).second)
 		{
-			LogPatchesSyntaxError(-1, "Invalid group name in binary patch file");
+			LogPatchesSyntaxError(-1, "Invalid or duplicate group name in binary patch file");
 			CancelParsingPatches();
 			return false;
 		}
 
-		PatchGroup* currentGroup = new PatchGroup(this, groupName.data(), (sint32)groupName.size());
+		auto currentGroup = std::make_unique<PatchGroup>(this, groupName.data(), (sint32)groupName.size());
 
 		uint32 moduleMatchCount = patchesStream.readBE<uint32>();
 		if (patchesStream.hasError())
 		{
 			LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading moduleMatches");
 			CancelParsingPatches();
-			delete currentGroup;
 			return false;
 		}
-		if (moduleMatchCount == 0)
+		if (moduleMatchCount == 0 || moduleMatchCount > CEMU_PATCH_BINARY_MAX_ENTRIES)
 		{
-			LogPatchesSyntaxError(-1, "Binary patch group has no moduleMatches definition");
+			LogPatchesSyntaxError(-1, "Invalid moduleMatches count in binary patch group");
 			CancelParsingPatches();
-			delete currentGroup;
 			return false;
 		}
+		std::unordered_set<uint32> moduleMatches;
 		for (uint32 moduleMatchIndex = 0; moduleMatchIndex < moduleMatchCount; moduleMatchIndex++)
 		{
-			currentGroup->list_moduleMatches.emplace_back(patchesStream.readBE<uint32>());
-			if (patchesStream.hasError())
+			const auto moduleMatch = patchesStream.readBE<uint32>();
+			if (patchesStream.hasError() || !moduleMatches.emplace(moduleMatch).second)
 			{
-				LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading moduleMatches");
+				LogPatchesSyntaxError(-1, "Invalid or duplicate moduleMatch in binary patch file");
 				CancelParsingPatches();
-				delete currentGroup;
 				return false;
 			}
+			currentGroup->list_moduleMatches.emplace_back(moduleMatch);
 		}
 
 		uint32 entryCount = patchesStream.readBE<uint32>();
-		if (patchesStream.hasError())
+		if (patchesStream.hasError() || entryCount > CEMU_PATCH_BINARY_MAX_ENTRIES - totalEntryCount)
 		{
-			LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading entries");
+			LogPatchesSyntaxError(-1, "Invalid or excessive entry count in binary patch file");
 			CancelParsingPatches();
-			delete currentGroup;
 			return false;
 		}
+		totalEntryCount += entryCount;
+		std::unordered_set<std::string> labelNames;
 
 		for (uint32 entryIndex = 0; entryIndex < entryCount; entryIndex++)
 		{
@@ -446,7 +533,6 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 			{
 				LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading entry type");
 				CancelParsingPatches();
-				delete currentGroup;
 				return false;
 			}
 
@@ -454,11 +540,11 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 			{
 				uint32 labelAddress = patchesStream.readBE<uint32>();
 				std::string labelName;
-				if (!_readBinaryPatchString(patchesStream, labelName) || labelName.empty())
+				if (!_readBinaryPatchString(patchesStream, labelName, CEMU_PATCH_BINARY_MAX_NAME_SIZE) ||
+					!labelNames.emplace(labelName).second)
 				{
-					LogPatchesSyntaxError(-1, "Invalid label entry in binary patch file");
+					LogPatchesSyntaxError(-1, "Invalid or duplicate label entry in binary patch file");
 					CancelParsingPatches();
-					delete currentGroup;
 					return false;
 				}
 				PatchEntryLabel* patchLabel = new PatchEntryLabel((sint32)entryIndex + 1, labelName.data(), (sint32)labelName.size());
@@ -474,15 +560,20 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 				{
 					LogPatchesSyntaxError(-1, "Invalid data entry header in binary patch file");
 					CancelParsingPatches();
-					delete currentGroup;
 					return false;
 				}
+				if (relocCount > CEMU_PATCH_BINARY_MAX_RELOCS - totalRelocCount)
+				{
+					LogPatchesSyntaxError(-1, "Excessive relocation count in binary patch file");
+					CancelParsingPatches();
+					return false;
+				}
+				totalRelocCount += relocCount;
 				auto patchData = patchesStream.readDataNoCopy(dataSize);
 				if (patchesStream.hasError())
 				{
 					LogPatchesSyntaxError(-1, "Unexpected end of binary patch file while reading patch data");
 					CancelParsingPatches();
-					delete currentGroup;
 					return false;
 				}
 				std::vector<PPCAssemblerReloc> relocs;
@@ -493,11 +584,11 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 					uint8 bitOffset = patchesStream.readBE<uint8>();
 					uint8 bitCount = patchesStream.readBE<uint8>();
 					std::string expression;
-					if (patchesStream.hasError() || !_isValidBinaryRelocType(relocTypeRaw) || !_readBinaryPatchString(patchesStream, expression) || expression.empty())
+					if (patchesStream.hasError() || !_isValidBinaryRelocType(relocTypeRaw) ||
+						!_readBinaryPatchString(patchesStream, expression, CEMU_PATCH_BINARY_MAX_EXPRESSION_SIZE))
 					{
 						LogPatchesSyntaxError(-1, "Invalid relocation entry in binary patch file");
 						CancelParsingPatches();
-						delete currentGroup;
 						return false;
 					}
 
@@ -507,14 +598,14 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 					{
 						LogPatchesSyntaxError(-1, "Relocation range is outside of patch data");
 						CancelParsingPatches();
-						delete currentGroup;
 						return false;
 					}
-					if (relocType == PPCASM_RELOC::U32_MASKED_IMM && (bitCount == 0 || bitCount > 32 || bitOffset >= 32 || ((uint32)bitOffset + bitCount) > 32))
+					if ((relocType == PPCASM_RELOC::U32_MASKED_IMM &&
+						(bitCount == 0 || bitCount > 32 || bitOffset >= 32 || ((uint32)bitOffset + bitCount) > 32)) ||
+						(relocType != PPCASM_RELOC::U32_MASKED_IMM && (bitOffset != 0 || bitCount != 0)))
 					{
 						LogPatchesSyntaxError(-1, "Invalid bit range in binary patch relocation");
 						CancelParsingPatches();
-						delete currentGroup;
 						return false;
 					}
 					relocs.emplace_back(relocType, expression, byteOffset, bitOffset, bitCount);
@@ -525,12 +616,11 @@ bool GraphicPack2::ParseCemuBinaryPatchesInternal(MemStreamReader& patchesStream
 			{
 				LogPatchesSyntaxError(-1, "Unknown entry type in binary patch file");
 				CancelParsingPatches();
-				delete currentGroup;
 				return false;
 			}
 		}
 
-		AddPatchGroup(currentGroup);
+		AddPatchGroup(currentGroup.release());
 	}
 
 	if (patchesStream.hasError() || !patchesStream.isEndOfStream())

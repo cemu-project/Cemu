@@ -32,6 +32,7 @@ add_library(CemuCafe
   GraphicPack/GraphicPack2Patches.cpp
   GraphicPack/GraphicPack2Patches.h
   GraphicPack/GraphicPack2PatchesParser.cpp
+  GraphicPack/CemuPatchBinaryV2.cpp
   GraphicPack/GraphicPackError.h
   HW/ACR/ACR.cpp
   HW/AI/AI.cpp
@@ -63,6 +64,12 @@ add_library(CemuCafe
   HW/Espresso/PPCScheduler.cpp
   HW/Espresso/PPCSchedulerLLE.cpp
   HW/Espresso/PPCState.h
+  HW/Espresso/CemodPackage.cpp
+  HW/Espresso/CemodPackage.h
+  HW/Espresso/CemodRuntime.cpp
+  HW/Espresso/CemodRuntime.h
+  HW/Espresso/ModExecutionContext.cpp
+  HW/Espresso/ModExecutionContext.h
   HW/Espresso/PPCTimer.cpp
   HW/Espresso/Recompiler/PPCFunctionBoundaryTracker.h
   HW/Espresso/Recompiler/PPCRecompiler.cpp
@@ -221,7 +228,10 @@ add_library(CemuCafe
   OS/libs/camera/camera.cpp
   OS/libs/camera/camera.h
   OS/libs/cemuextend/BridgeHost.cpp
+  OS/libs/cemuextend/Cex2Host.cpp
+  OS/libs/cemuextend/Cex2Storage.cpp
   OS/libs/cemuextend/BridgeHost.h
+  OS/libs/cemuextend/BuildId.h
   OS/libs/cemuextend/cemuextend.cpp
   OS/libs/cemuextend/cemuextend.h
   OS/libs/coreinit/coreinit_Alarm.cpp
@@ -663,6 +673,8 @@ target_link_libraries(CemuCafe PRIVATE
   ${glslang_target}
   PUBLIC
   OpenSSL::SSL
+  OpenSSL::Crypto
+  libzip::zip
 )
 
 if (ENABLE_WAYLAND)
@@ -686,4 +698,89 @@ endif()
 
 if(WIN32)
 	target_link_libraries(CemuCafe PRIVATE iphlpapi)
+endif()
+
+if(BUILD_TESTING)
+	add_executable(cemod_execution_context_tests
+		HW/Espresso/ModExecutionContext.cpp
+		tests/ModExecutionContextTests.cpp
+	)
+	target_include_directories(cemod_execution_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	add_test(NAME cemod_execution_context_tests COMMAND cemod_execution_context_tests)
+
+	add_executable(cex2_host_tests
+		HW/Espresso/ModExecutionContext.cpp
+		OS/libs/cemuextend/Cex2Host.cpp
+		OS/libs/cemuextend/Cex2Storage.cpp
+		tests/Cex2HostTests.cpp
+	)
+	target_include_directories(cex2_host_tests PRIVATE
+		${CMAKE_SOURCE_DIR}/src
+		${CMAKE_SOURCE_DIR}/dependencies/libcemuextend/include
+	)
+	target_compile_definitions(cex2_host_tests PRIVATE CEMU_CEX2_TESTING)
+	target_link_libraries(cex2_host_tests PRIVATE OpenSSL::Crypto)
+	add_test(NAME cex2_host_tests COMMAND cex2_host_tests)
+
+	add_executable(cemod_package_tests
+		HW/Espresso/CemodPackage.cpp
+		tests/CemodPackageTests.cpp
+	)
+	target_include_directories(cemod_package_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	target_link_libraries(cemod_package_tests PRIVATE OpenSSL::Crypto libzip::zip)
+	add_test(NAME cemod_package_tests COMMAND cemod_package_tests)
+
+	add_executable(cemod_runtime_tests
+		HW/Espresso/ModExecutionContext.cpp
+		HW/Espresso/CemodRuntime.cpp
+		OS/libs/cemuextend/Cex2Host.cpp
+		OS/libs/cemuextend/Cex2Storage.cpp
+		tests/CemodRuntimeTests.cpp
+	)
+	target_compile_definitions(cemod_runtime_tests PRIVATE CEMU_CEX2_TESTING)
+	target_link_libraries(cemod_runtime_tests PRIVATE OpenSSL::Crypto)
+	target_include_directories(cemod_runtime_tests PRIVATE
+		${CMAKE_SOURCE_DIR}/src
+		${CMAKE_SOURCE_DIR}/dependencies/libcemuextend/include
+	)
+	add_test(NAME cemod_runtime_tests COMMAND cemod_runtime_tests)
+
+	add_executable(cpb2_format_tests
+		GraphicPack/CemuPatchBinaryV2.cpp
+		tests/CemuPatchBinaryV2Tests.cpp
+	)
+	target_include_directories(cpb2_format_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	target_link_libraries(cpb2_format_tests PRIVATE OpenSSL::Crypto)
+	add_test(NAME cpb2_format_tests COMMAND cpb2_format_tests)
+
+	if(CEMU_ENABLE_FUZZING)
+		add_executable(cex2_decoder_fuzzer tests/Cex2DecoderFuzzer.cpp)
+		target_include_directories(cex2_decoder_fuzzer PRIVATE
+			${CMAKE_SOURCE_DIR}/dependencies/libcemuextend/include)
+		target_compile_options(cex2_decoder_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+		target_link_options(cex2_decoder_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+
+		add_executable(cemod_package_fuzzer
+			HW/Espresso/CemodPackage.cpp tests/CemodPackageFuzzer.cpp)
+		target_include_directories(cemod_package_fuzzer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+		target_link_libraries(cemod_package_fuzzer PRIVATE OpenSSL::Crypto libzip::zip)
+		target_compile_options(cemod_package_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+		target_link_options(cemod_package_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+
+		add_executable(cpb2_format_fuzzer
+			GraphicPack/CemuPatchBinaryV2.cpp tests/Cpb2FormatFuzzer.cpp)
+		target_include_directories(cpb2_format_fuzzer PRIVATE ${CMAKE_SOURCE_DIR}/src)
+		target_link_libraries(cpb2_format_fuzzer PRIVATE OpenSSL::Crypto)
+		target_compile_options(cpb2_format_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+		target_link_options(cpb2_format_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+
+		add_executable(configuration_format_fuzzer
+			OS/libs/cemuextend/Cex2Storage.cpp tests/ConfigurationFormatFuzzer.cpp)
+		target_include_directories(configuration_format_fuzzer PRIVATE
+			${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/dependencies/libcemuextend/include)
+		target_compile_definitions(configuration_format_fuzzer PRIVATE CEMU_CEX2_TESTING)
+		target_link_libraries(configuration_format_fuzzer PRIVATE OpenSSL::Crypto)
+		target_compile_options(configuration_format_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+		target_link_options(configuration_format_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
+	endif()
 endif()

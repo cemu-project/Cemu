@@ -1,0 +1,64 @@
+name: CemuExtend security
+
+on:
+  push:
+    paths:
+      - 'src/Cafe/HW/Espresso/Cemod*'
+      - 'src/Cafe/HW/Espresso/ModExecutionContext*'
+      - 'src/Cafe/OS/libs/cemuextend/**'
+      - 'dependencies/libcemuextend/**'
+      - '.github/workflows/cemuextend-security.yml'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  sanitizers:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: ubuntu-22.04
+            sanitizer: address-undefined
+          - runner: ubuntu-22.04
+            sanitizer: thread
+          - runner: ubuntu-22.04-arm
+            sanitizer: address-undefined
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: recursive
+      - name: Install dependencies
+        run: >-
+          sudo apt-get update && sudo apt-get install -y
+          clang-15 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev
+          libpulse-dev libsecret-1-dev libsystemd-dev libudev-dev nasm ninja-build
+          libbluetooth-dev
+      - name: Bootstrap vcpkg
+        run: bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+      - name: Configure focused tests
+        run: >-
+          cmake -S . -B build/security -G Ninja
+          -DCMAKE_BUILD_TYPE=Debug
+          -DCMAKE_C_COMPILER=/usr/bin/clang-15
+          -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15
+          -DCEMU_SANITIZER=${{ matrix.sanitizer }}
+          ${{ matrix.sanitizer == 'address-undefined' && '-DCEMU_ENABLE_FUZZING=ON' || '' }}
+      - name: Build isolation tests
+        run: >-
+          cmake --build build/security --target
+          cemod_execution_context_tests cex2_host_tests cemod_package_tests cemod_runtime_tests
+      - name: Run isolation tests
+        run: ctest --test-dir build/security --output-on-failure -R 'cemod_|cex2_'
+      - name: Build fuzz targets
+        if: matrix.sanitizer == 'address-undefined'
+        run: >-
+          cmake --build build/security --target
+          cex2_decoder_fuzzer cemod_package_fuzzer cpb2_format_fuzzer configuration_format_fuzzer
+      - name: Fuzzer smoke tests
+        if: matrix.sanitizer == 'address-undefined'
+        run: |
+          build/security/src/Cafe/cex2_decoder_fuzzer -runs=100
+          build/security/src/Cafe/cemod_package_fuzzer -runs=100
+          build/security/src/Cafe/cpb2_format_fuzzer -runs=100
+          build/security/src/Cafe/configuration_format_fuzzer -runs=100

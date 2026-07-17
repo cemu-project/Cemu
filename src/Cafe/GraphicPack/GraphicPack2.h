@@ -273,6 +273,8 @@ private:
 	std::vector<std::pair<CosCapabilityGroup, uint64>> m_permissions;
 
 	// patches
+	enum class PatchFormat : uint8 { Unspecified, Cpb1, Cpb2, Asm, Cemuhook };
+	PatchFormat m_patchFormat{PatchFormat::Unspecified};
 	void LoadPatchFiles(); // loads Cemuhook or Cemu patches
 	bool LoadCemuPatches();
 

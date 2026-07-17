@@ -321,6 +321,16 @@ GraphicPack2::GraphicPack2(fs::path rulesPath, IniParser& rules)
 	if (option_allowRendertargetSizeOptimization)
 		m_allowRendertargetSizeOptimization = boost::iequals(*option_allowRendertargetSizeOptimization, "true") || boost::iequals(*option_allowRendertargetSizeOptimization, "1");
 
+	if (const auto patchFormat = rules.FindOption("patchFormat"))
+	{
+		if (boost::iequals(*patchFormat, "cpb1")) m_patchFormat = PatchFormat::Cpb1;
+		else if (boost::iequals(*patchFormat, "cpb2")) m_patchFormat = PatchFormat::Cpb2;
+		else if (boost::iequals(*patchFormat, "asm")) m_patchFormat = PatchFormat::Asm;
+		else if (boost::iequals(*patchFormat, "cemuhook")) m_patchFormat = PatchFormat::Cemuhook;
+		else throw std::runtime_error(fmt::format("Graphic pack '{}': unsupported patchFormat '{}'",
+			GetNormalizedPathString(), *patchFormat));
+	}
+
 	auto option_vendorFilter = rules.FindOption("vendorFilter");
 	if (option_vendorFilter)
 	{

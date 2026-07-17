@@ -1,6 +1,7 @@
 #include "../PPCState.h"
 #include "PPCInterpreterInternal.h"
 #include "PPCInterpreterHelper.h"
+#include "Cafe/HW/Espresso/ModExecutionContext.h"
 
 std::unordered_set<std::string> s_unsupportedHLECalls;
 
@@ -56,6 +57,14 @@ std::mutex s_hleLogMutex;
 void PPCInterpreter_virtualHLE(PPCInterpreter_t* hCPU, unsigned int opcode)
 {
 	uint32 hleFuncId = opcode & 0xFFFF;
+	if (hCPU->modExecutionContext && !hCPU->modExecutionContext->IsHleAllowed(hleFuncId))
+	{
+		hCPU->modExecutionContext->Stop(ModFaultReason::DisallowedHle,
+			hCPU->instructionPointer, ModMemoryPermission::Execute);
+		hCPU->memoryException = true;
+		hCPU->remainingCycles = 0;
+		return;
+	}
 	if (hleFuncId == 0xFFD0) [[unlikely]]
 	{
 		s_hleLogMutex.lock();

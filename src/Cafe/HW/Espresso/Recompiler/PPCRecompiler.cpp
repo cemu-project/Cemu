@@ -1,4 +1,5 @@
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
+#include "Cafe/HW/Espresso/ModExecutionContext.h"
 #include "PPCFunctionBoundaryTracker.h"
 #include "PPCRecompiler.h"
 #include "PPCRecompilerIml.h"
@@ -143,6 +144,10 @@ void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 void PPCRecompiler_attemptEnterWithoutRecompile(PPCInterpreter_t* hCPU, uint32 enterAddress)
 {
 	cemu_assert_debug(hCPU->instructionPointer == enterAddress);
+	// Sandbox code is fail-closed on the checked interpreter until both native
+	// backends emit equivalent address-space and permission guards.
+	if (hCPU->modExecutionContext)
+		return;
 	if (s_ppcRecompilerState.recompilerEnableCount <= 0)
 		return;
 	auto funcPtr = ppcRecompilerInstanceData->ppcRecompilerDirectJumpTable[enterAddress / 4];
@@ -156,6 +161,8 @@ void PPCRecompiler_attemptEnterWithoutRecompile(PPCInterpreter_t* hCPU, uint32 e
 void PPCRecompiler_attemptEnter(PPCInterpreter_t* hCPU, uint32 enterAddress)
 {
 	cemu_assert_debug(hCPU->instructionPointer == enterAddress);
+	if (hCPU->modExecutionContext)
+		return;
 	if (s_ppcRecompilerState.recompilerEnableCount <= 0)
 		return;
 	if (hCPU->remainingCycles <= 0)

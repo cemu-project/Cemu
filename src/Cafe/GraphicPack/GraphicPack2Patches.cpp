@@ -70,6 +70,7 @@ void PatchErrorHandler::showStageErrorMessageBox()
 // returns true if at least one file was found even if it could not be successfully parsed
 bool GraphicPack2::LoadCemuPatches()
 {
+	static constexpr size_t kMaximumPatchFileSize = 64ULL * 1024ULL * 1024ULL;
 	fs::path path(m_rulesPath);
 	path.remove_filename();
 
@@ -92,7 +93,29 @@ bool GraphicPack2::LoadCemuPatches()
 						std::vector<uint8> fileData;
 						patchFile->extract(fileData);
 						delete patchFile;
+						if (fileData.empty() || fileData.size() > kMaximumPatchFileSize)
+						{
+							cemuLog_log(LogType::Force,
+								"Patch file \"{}\" is empty or exceeds the 64 MiB limit. No patches for this graphic pack will be applied.",
+								_pathToUtf8(patchPath));
+							list_patchGroups.clear();
+							return true;
+						}
 						MemStreamReader patchesStream(fileData.data(), (sint32)fileData.size());
+						if (isBinaryPatch && fileData.size() >= sizeof(uint32))
+						{
+							uint32 encodedMagic{};
+							std::memcpy(&encodedMagic, fileData.data(), sizeof(encodedMagic));
+							const auto magic = _swapEndianU32(encodedMagic);
+							const auto expected = m_patchFormat == PatchFormat::Cpb2 ? 0x43504232U : 0x43504231U;
+							if (magic != expected)
+							{
+								cemuLog_log(LogType::Force, "Patch file '{}' does not match rules.txt patchFormat",
+									_pathToUtf8(patchPath));
+								list_patchGroups.clear();
+								return true;
+							}
+						}
 						// load Cemu style patch file
 						const bool parseResult = isBinaryPatch ? ParseCemuBinaryPatchesInternal(patchesStream) : ParseCemuPatchesTxtInternal(patchesStream);
 						if (!parseResult)
@@ -113,20 +136,58 @@ bool GraphicPack2::LoadCemuPatches()
 		return foundPatches;
 	};
 
-	if (loadPatchFilesByExtension(".cpb", true))
-		return true;
-	return loadPatchFilesByExtension(".asm", false);
+	if (m_patchFormat == PatchFormat::Cpb1 || m_patchFormat == PatchFormat::Cpb2)
+		return loadPatchFilesByExtension(".cpb", true);
+	if (m_patchFormat == PatchFormat::Asm)
+		return loadPatchFilesByExtension(".asm", false);
+	return false;
 }
 
 void GraphicPack2::LoadPatchFiles()
 {
+	fs::path directory(m_rulesPath); directory.remove_filename();
+	if (m_patchFormat == PatchFormat::Unspecified)
+	{
+		bool hasPatch = fs::exists(directory / "patches.txt");
+		for (std::error_code error; !hasPatch && !error;)
+		{
+			for (fs::directory_iterator iterator(directory, error), end; !error && iterator != end; ++iterator)
+			{
+				const auto name = _pathToUtf8(iterator->path().filename());
+				if (boost::istarts_with(name, "patch_") &&
+					(boost::iends_with(name, ".cpb") || boost::iends_with(name, ".asm"))) { hasPatch = true; break; }
+			}
+			break;
+		}
+		if (hasPatch)
+		{
+			const auto message = fmt::format("Graphic pack '{}' contains native patches but rules.txt has no patchFormat. The pack was disabled fail-closed.", GetName());
+			cemuLog_log(LogType::Force, message);
+			WindowSystem::ShowErrorDialog(message, _tr("Graphic pack error"), WindowSystem::ErrorCategory::GRAPHIC_PACKS);
+			list_patchGroups.clear();
+		}
+		return;
+	}
+	if (m_patchFormat == PatchFormat::Cpb1 || m_patchFormat == PatchFormat::Cpb2 ||
+		m_patchFormat == PatchFormat::Asm)
+	{
+		static std::unordered_set<std::string> warned;
+		if (warned.emplace(GetNormalizedPathString()).second)
+		{
+			const auto warning = fmt::format("Graphic pack '{}' contains trusted native PPC patches. It is not isolated and cannot open a CemuExtend ABI 2 session.", GetName());
+			cemuLog_log(LogType::Force, warning);
+			WindowSystem::ShowErrorDialog(warning, _tr("Trusted native graphic pack"), WindowSystem::ErrorCategory::GRAPHIC_PACKS);
+		}
+	}
 	// order of loading patches:
 	// 1) Load Cemu binary patches (patch_<name>.cpb), stop here if at least one patch file exists
 	// 2) Load Cemu-style patches (patch_<name>.asm), stop here if at least one patch file exists
 	// 3) Load Cemuhook patches.txt
-	if (LoadCemuPatches())
+	if (m_patchFormat != PatchFormat::Cemuhook && LoadCemuPatches())
 		return; // exit if at least one Cemu patch file was found
 	// fall back to Cemuhook patches.txt to guarantee backward compatibility
+	if (m_patchFormat != PatchFormat::Cemuhook)
+		return;
 	fs::path path(m_rulesPath);
 	path.remove_filename();
 	path.append("patches.txt");

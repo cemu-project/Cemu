@@ -2,75 +2,128 @@
 
 #include "Cafe/OS/libs/cemuextend/cemuextend.h"
 #include "Cafe/OS/libs/cemuextend/BridgeHost.h"
+#include "Cafe/OS/libs/cemuextend/BuildId.h"
+#include "Cafe/OS/libs/cemuextend/Cex2Host.h"
 
-#include "Cafe/HW/MMU/MMU.h"
+#include "Cafe/HW/Espresso/ModExecutionContext.h"
+#include "Cafe/HW/Espresso/CemodRuntime.h"
+#include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/OS/RPL/rpl.h"
+#include "cemuextend/transport.hpp"
 
 namespace cemuextend_hle
 {
 	namespace
 	{
-		constexpr uint64 kBuildId = 0x4345585400010000ULL;
+		constexpr const char* kLibraryName = "cemuextend";
 
-		bool ValidateGuestRange(void* pointer, uint32 size)
+		template<ModMemoryPermission Permission>
+		std::byte* ResolveSandbox(PPCInterpreter_t* hCPU, uint32 address, uint32 size)
 		{
-			if (!pointer || size == 0)
-				return false;
-			const auto address = memory_getVirtualOffsetFromPointer(pointer);
-			if (address > std::numeric_limits<uint32>::max() - size)
-				return false;
-			return memory_isAddressRangeAccessible(address, size);
+			if (!hCPU->modExecutionContext || !address || !size)
+				return nullptr;
+			return hCPU->modExecutionContext->Resolve(address, size, Permission);
 		}
 
-		sint32 CEXQuery(uint32 query, void* output, uint32 outputSize)
+		void Return(PPCInterpreter_t* hCPU, cemuextend::wire::Error result)
 		{
-			using namespace cemuextend::wire;
-			if (query != static_cast<uint32>(Query::BridgeInfo) || outputSize < sizeof(BridgeInfo) ||
-				!ValidateGuestRange(output, sizeof(BridgeInfo)))
-				return static_cast<sint32>(Error::InvalidArgument);
-			auto& info = *static_cast<BridgeInfo*>(output);
-			std::memset(&info, 0, sizeof(info));
-			info.available = 1;
-			info.minimumAbiMajor = kAbiMajor;
-			info.minimumAbiMinor = 0;
-			info.maximumAbiMajor = kAbiMajor;
-			info.maximumAbiMinor = kAbiMinor;
-			info.maximumRegionSize = kMaximumRegionSize;
-			info.hostBuildId = kBuildId;
-			info.features = static_cast<uint64>(Feature::SharedMemory) |
-				static_cast<uint64>(Feature::ServiceDirectory) |
-				static_cast<uint64>(Feature::StatePages) |
-				static_cast<uint64>(Feature::Bulk) |
-				static_cast<uint64>(Feature::Permissions) |
-				static_cast<uint64>(Feature::RawInput) |
-				static_cast<uint64>(Feature::ObservedVpad);
-			info.maximumServices = (kServiceDirectorySize - sizeof(ServiceDirectoryHeader)) /
-				sizeof(ServiceDescriptor);
-			return 0;
+			osLib_returnFromFunction(hCPU, static_cast<uint32>(static_cast<sint32>(result)));
 		}
 
-		sint32 CEXRegister(uint32 abiVersion, void* region, uint32 regionSize, uint32be* outputSessionId)
+		void CEX2Query(PPCInterpreter_t* hCPU)
 		{
-			using namespace cemuextend::wire;
-			if (!ValidateGuestRange(outputSessionId, sizeof(*outputSessionId)) ||
-				!ValidateGuestRange(region, regionSize))
-				return static_cast<sint32>(Error::InvalidArgument);
-			uint32 sessionId{};
-			const auto result = BridgeHost::Instance().Register(abiVersion, region, regionSize, sessionId);
-			if (result == 0)
-				*outputSessionId = sessionId;
-			return result;
+			using namespace cemuextend;
+			if (!hCPU->modExecutionContext || hCPU->gpr[5] < sizeof(transport::Info))
+				return Return(hCPU, wire::Error::PermissionDenied);
+			auto* output = ResolveSandbox<ModMemoryPermission::Write>(hCPU, hCPU->gpr[4], sizeof(transport::Info));
+			if (!output)
+				return Return(hCPU, wire::Error::InvalidArgument);
+			Return(hCPU, static_cast<wire::Error>(Cex2Host::Instance().Query(
+				*hCPU->modExecutionContext, hCPU->gpr[3], {output, sizeof(transport::Info)})));
 		}
 
-		sint32 CEXNotify(uint32 sessionId, uint32 flags)
+		void CEX2Open(PPCInterpreter_t* hCPU)
 		{
-			return BridgeHost::Instance().Notify(sessionId, flags);
+			using namespace cemuextend;
+			if (!hCPU->modExecutionContext || hCPU->gpr[4] != sizeof(transport::OpenOptions))
+				return Return(hCPU, wire::Error::PermissionDenied);
+			auto* options = ResolveSandbox<ModMemoryPermission::Read>(hCPU, hCPU->gpr[3], hCPU->gpr[4]);
+			auto* output = ResolveSandbox<ModMemoryPermission::Write>(hCPU, hCPU->gpr[5], sizeof(wire::Be32));
+			if (!options || !output)
+				return Return(hCPU, wire::Error::InvalidArgument);
+			uint32 session{};
+			const auto result = static_cast<wire::Error>(Cex2Host::Instance().Open(
+				*hCPU->modExecutionContext, {options, hCPU->gpr[4]}, session));
+			if (result == wire::Error::Ok)
+				*reinterpret_cast<wire::Be32*>(output) = session;
+			Return(hCPU, result);
 		}
 
-		sint32 CEXUnregister(uint32 sessionId)
+		void CEX2Submit(PPCInterpreter_t* hCPU)
 		{
-			return BridgeHost::Instance().Unregister(sessionId);
+			using namespace cemuextend;
+			if (!hCPU->modExecutionContext || hCPU->gpr[5] > transport::kMaximumMessageSize)
+				return Return(hCPU, wire::Error::PermissionDenied);
+			auto* request = ResolveSandbox<ModMemoryPermission::Read>(hCPU, hCPU->gpr[4], hCPU->gpr[5]);
+			if (!request)
+				return Return(hCPU, wire::Error::InvalidArgument);
+			Return(hCPU, static_cast<wire::Error>(Cex2Host::Instance().Submit(
+				*hCPU->modExecutionContext, hCPU->gpr[3], {request, hCPU->gpr[5]})));
+		}
+
+		void CEX2Poll(PPCInterpreter_t* hCPU)
+		{
+			using namespace cemuextend;
+			if (!hCPU->modExecutionContext || hCPU->gpr[5] > transport::kMaximumMessageSize)
+				return Return(hCPU, wire::Error::PermissionDenied);
+			auto* output = ResolveSandbox<ModMemoryPermission::Write>(hCPU, hCPU->gpr[4], hCPU->gpr[5]);
+			auto* sizeOutput = ResolveSandbox<ModMemoryPermission::Write>(hCPU, hCPU->gpr[6], sizeof(wire::Be32));
+			if (!output || !sizeOutput)
+				return Return(hCPU, wire::Error::InvalidArgument);
+			uint32 outputSize{};
+			const auto result = static_cast<wire::Error>(Cex2Host::Instance().Poll(
+				*hCPU->modExecutionContext, hCPU->gpr[3], {output, hCPU->gpr[5]}, outputSize));
+			*reinterpret_cast<wire::Be32*>(sizeOutput) = outputSize;
+			Return(hCPU, result);
+		}
+
+		void CEX2Cancel(PPCInterpreter_t* hCPU)
+		{
+			using namespace cemuextend;
+			if (!hCPU->modExecutionContext)
+				return Return(hCPU, wire::Error::PermissionDenied);
+			Return(hCPU, static_cast<wire::Error>(Cex2Host::Instance().Cancel(
+				*hCPU->modExecutionContext, hCPU->gpr[3], hCPU->gpr[4])));
+		}
+
+		void CEX2Close(PPCInterpreter_t* hCPU)
+		{
+			using namespace cemuextend;
+			if (!hCPU->modExecutionContext)
+				return Return(hCPU, wire::Error::PermissionDenied);
+			Return(hCPU, static_cast<wire::Error>(Cex2Host::Instance().Close(
+				*hCPU->modExecutionContext, hCPU->gpr[3])));
+		}
+
+		sint32 CEXQuery(uint32, void*, uint32)
+		{
+			return static_cast<sint32>(cemuextend::wire::Error::AbiMismatch);
+		}
+
+		sint32 CEXRegister(uint32, void*, uint32, uint32be*)
+		{
+			return static_cast<sint32>(cemuextend::wire::Error::AbiMismatch);
+		}
+
+		sint32 CEXNotify(uint32, uint32)
+		{
+			return static_cast<sint32>(cemuextend::wire::Error::AbiMismatch);
+		}
+
+		sint32 CEXUnregister(uint32)
+		{
+			return static_cast<sint32>(cemuextend::wire::Error::AbiMismatch);
 		}
 	}
 
@@ -85,14 +138,29 @@ namespace cemuextend_hle
 			cafeExportRegister("cemuextend", CEXRegister, LogType::Placeholder);
 			cafeExportRegister("cemuextend", CEXNotify, LogType::Placeholder);
 			cafeExportRegister("cemuextend", CEXUnregister, LogType::Placeholder);
+			osLib_addFunctionInternal(kLibraryName, "CEX2Query", CEX2Query);
+			osLib_addFunctionInternal(kLibraryName, "CEX2Open", CEX2Open);
+			osLib_addFunctionInternal(kLibraryName, "CEX2Submit", CEX2Submit);
+			osLib_addFunctionInternal(kLibraryName, "CEX2Poll", CEX2Poll);
+			osLib_addFunctionInternal(kLibraryName, "CEX2Cancel", CEX2Cancel);
+			osLib_addFunctionInternal(kLibraryName, "CEX2Close", CEX2Close);
 		}
 
-		void RPLUnmapped() override { BridgeHost::Instance().Stop(); }
+		void RPLUnmapped() override
+		{
+			GetCemodRuntime().UnloadAll();
+			Cex2Host::Instance().CloseAll();
+			BridgeHost::Instance().Stop();
+		}
 
 		void rpl_entry(uint32, coreinit::RplEntryReason reason) override
 		{
 			if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				GetCemodRuntime().UnloadAll();
+				Cex2Host::Instance().CloseAll();
 				BridgeHost::Instance().Stop();
+			}
 		}
 	};
 
@@ -100,5 +168,24 @@ namespace cemuextend_hle
 	{
 		static CemuExtendModule module;
 		return &module;
+	}
+
+	void ConfigureCex2HleAccess(ModExecutionContext& context)
+	{
+		constexpr std::array names{"CEX2Query", "CEX2Open", "CEX2Submit", "CEX2Poll", "CEX2Cancel", "CEX2Close"};
+		for (const auto* name : names)
+		{
+			const auto index = osLib_getFunctionIndex("cemuextend", name);
+			if (index >= 0)
+				context.AllowHle(static_cast<std::uint16_t>(index));
+		}
+	}
+
+	CemodRuntime& GetCemodRuntime()
+	{
+		// Construct the session host first so the runtime is destroyed before it.
+		(void)Cex2Host::Instance();
+		static CemodRuntime runtime;
+		return runtime;
 	}
 }

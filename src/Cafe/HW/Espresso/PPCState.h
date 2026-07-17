@@ -1,6 +1,8 @@
 #pragma once
 #include "Cafe/HW/MMU/MMU.h"
 
+class ModExecutionContext;
+
 enum
 {
 	CPUException_NOTHING,
@@ -104,6 +106,8 @@ struct PPCInterpreter_t
 
 	// extra variables for recompiler
 	void* rspTemp;
+	// Non-null only for an isolated .cemod CPU. Kept last so title/JIT state offsets stay unchanged.
+	ModExecutionContext* modExecutionContext;
 };
 
 // parameter access (legacy C style)

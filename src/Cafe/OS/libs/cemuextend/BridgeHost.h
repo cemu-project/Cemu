@@ -8,6 +8,8 @@
 #include <string>
 #include <vector>
 
+#include "Cafe/OS/libs/cemuextend/Cex2Host.h"
+
 struct VPADStatus;
 
 namespace cemuextend_hle
@@ -58,21 +60,25 @@ namespace cemuextend_hle
 	inline void ObserveVpad(sint32 channel, const VPADStatus& status, sint32 error, sint32 sampleCount)
 	{
 		BridgeHost::Instance().ObserveVpad(channel, status, error, sampleCount);
+		Cex2Host::Instance().ObserveVpad(channel, status, error, sampleCount);
 	}
 
 	inline void ApplyMappedVpad(sint32 channel, VPADStatus& status)
 	{
 		BridgeHost::Instance().ApplyMappedVpad(channel, status);
+		Cex2Host::Instance().ApplyMappedVpad(channel, status);
 	}
 
 	inline void KeyboardEvent(uint16 usbHidUsage, bool pressed, uint8 modifiers)
 	{
 		BridgeHost::Instance().KeyboardEvent(usbHidUsage, pressed, modifiers);
+		Cex2Host::Instance().KeyboardEvent(usbHidUsage, pressed, modifiers);
 	}
 
 	inline void KeyboardFocusLost()
 	{
 		BridgeHost::Instance().KeyboardFocusLost();
+		Cex2Host::Instance().KeyboardFocusLost();
 	}
 
 	inline void PermissionsChanged()

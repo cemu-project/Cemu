@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 3.21.1)
 option(ENABLE_VCPKG "Enable the vcpkg package manager" ON)
 option(MACOS_BUNDLE "The executable when built on macOS will be created as an application bundle" OFF)
 option(ALLOW_PORTABLE "Allow Cemu to be run in portable mode" ON)
+set(CEMU_SANITIZER "" CACHE STRING "Enable sanitizer instrumentation: address-undefined or thread")
+option(CEMU_ENABLE_FUZZING "Build CemuExtend libFuzzer targets (Clang only)" OFF)
 
 # used by CI script to set version:
 set(EMULATOR_VERSION_MAJOR "0" CACHE STRING "")
@@ -18,6 +20,17 @@ execute_process(
 		OUTPUT_STRIP_TRAILING_WHITESPACE
 )
 add_definitions(-DEMULATOR_HASH=${GIT_HASH})
+
+execute_process(
+	COMMAND git rev-parse HEAD
+	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+	OUTPUT_VARIABLE CEMU_EXTEND_COMMIT_HASH
+	OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+if (NOT CEMU_EXTEND_COMMIT_HASH)
+	set(CEMU_EXTEND_COMMIT_HASH ${GIT_HASH})
+endif()
+add_compile_definitions(CEMU_EXTEND_COMMIT_HASH="${CEMU_EXTEND_COMMIT_HASH}")
 
 if (ENABLE_VCPKG)
 	# check if vcpkg is shallow and unshallow it if necessary
@@ -57,10 +70,26 @@ endif()
 
 project(Cemu VERSION 2.0.0)
 
+include(CTest)
+
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+if (CEMU_SANITIZER STREQUAL "address-undefined")
+	add_compile_options(-fno-omit-frame-pointer -fsanitize=address,undefined)
+	add_link_options(-fno-omit-frame-pointer -fsanitize=address,undefined)
+elseif (CEMU_SANITIZER STREQUAL "thread")
+	add_compile_options(-fno-omit-frame-pointer -fsanitize=thread)
+	add_link_options(-fno-omit-frame-pointer -fsanitize=thread)
+elseif (NOT CEMU_SANITIZER STREQUAL "")
+	message(FATAL_ERROR "Unsupported CEMU_SANITIZER='${CEMU_SANITIZER}'")
+endif()
+
+if (CEMU_ENABLE_FUZZING AND NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+	message(FATAL_ERROR "CEMU_ENABLE_FUZZING requires Clang")
+endif()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
