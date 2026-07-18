@@ -1,6 +1,7 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/RPL/rpl.h"
+#include "Cafe/OS/RPL/rpl_structs.h"
 #include "Cafe/OS/libs/coreinit/coreinit_DynLoad.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM.h"
 
@@ -146,6 +147,54 @@ namespace coreinit
 		return 0;
 	}
 
+	uint32 OSDynLoad_GetModuleName(uint32 moduleHandle, char* nameBuf, sint32be* nameBufSize) 
+	{
+		if (moduleHandle == 0xFFFFFFFF)
+		{
+			// main module
+			// Assassins Creed 4 has this handle hardcoded
+			moduleHandle = RPLLoader_GetMainModuleHandle();
+		}
+
+		const std::string moduleName = RPLLoader_GetModuleNameByHandle(moduleHandle);
+		std::strncpy(nameBuf, moduleName.c_str(), *nameBufSize);
+
+		return 0;
+
+	}
+
+	sint32 OSDynLoad_GetNumberOfRPLs()
+	{
+		return RPLLoader_GetModuleCount();
+	}
+
+	uint32 OSDynLoad_GetRPLInfo(uint32 first, uint32 count, OSDynLoad_NotifyData* outInfos) 
+	{
+		if (count == 0)
+			return 1;
+		RPLModule** modules = RPLLoader_GetModuleList();
+
+		for (uint32 i = first; i < count; i++)
+		{	
+			outInfos[i].name = modules[i]->ppcName.GetMPTR();
+
+			outInfos[i].textAddr = modules[i]->regionMappingBase_text.GetBEValue();
+			outInfos[i].textOffset = modules[i]->regionMappingBase_text.GetMPTR() - modules[i]->regionOrigAddr_text;
+			outInfos[i].textSize = modules[i]->regionSize_text;
+
+			outInfos[i].dataAddr = modules[i]->regionMappingBase_data;
+			outInfos[i].dataOffset = modules[i]->regionMappingBase_data - modules[i]->regionOrigAddr_data;
+			outInfos[i].dataSize = modules[i]->regionSize_data;
+
+			outInfos[i].readAddr = modules[i]->regionMappingBase_data;
+			outInfos[i].readOffset = modules[i]->regionMappingBase_data - modules[i]->regionOrigAddr_data;
+			outInfos[i].readSize = modules[i]->regionSize_data;
+
+		}
+
+		return 1;
+	}
+
 	void InitializeDynLoad()
 	{
 		cafeExportRegister("coreinit", OSDynLoad_SetAllocator, LogType::Placeholder);
@@ -157,5 +206,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSDynLoad_Release, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDynLoad_IsModuleLoaded, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDynLoad_FindExport, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSDynLoad_GetModuleName, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSDynLoad_GetNumberOfRPLs, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSDynLoad_GetRPLInfo, LogType::Placeholder);
 	}
 }
