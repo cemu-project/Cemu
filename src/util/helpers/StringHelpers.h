@@ -110,6 +110,20 @@ namespace StringHelpers
 		return ToUtf8(input.data(), input.size());
 	}
 
+	// convert little-endian wide string to utf8 string
+	static std::string ToUtf8FromLE(const uint16* ptr, size_t maxLength)
+	{
+		std::wstringstream result;
+		while (*ptr != 0 && maxLength > 0)
+		{
+			auto c = (uint16)*ptr;
+			result << static_cast<wchar_t>(c);
+			ptr++;
+			maxLength--;
+		}
+		return boost::nowide::narrow(result.str());
+	}
+
 	// convert utf8 string to Wii U big-endian wchar_t string
 	static std::vector<uint16be> FromUtf8(std::string_view str)
 	{
@@ -285,4 +299,3 @@ namespace StringHelpers
 		std::string_view m_str;
 	};
 };
-
