@@ -171,3 +171,9 @@ extern void ATTR_MS_ABI (*PPCRecompiler_leaveRecompilerCode_unvisited)();
 void PPCRecompiler_recompileIfUnvisited(uint32 enterAddress);
 void PPCRecompiler_attemptEnter(struct PPCInterpreter_t* hCPU, uint32 enterAddress);
 void PPCRecompiler_attemptEnterWithoutRecompile(struct PPCInterpreter_t* hCPU, uint32 enterAddress);
+
+// Isolated Mods use a separate address-space/generation keyed native dispatch
+// cache. Every dispatched instruction still executes through the checked Mod
+// interpreter so native code can never use the title's direct memory fast path.
+bool PPCRecompiler_executeSandboxInstruction(struct PPCInterpreter_t* hCPU);
+void PPCRecompiler_invalidateSandboxContext(uint64 addressSpaceId, uint32 generation);

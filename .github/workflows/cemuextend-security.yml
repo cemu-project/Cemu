@@ -5,8 +5,22 @@ on:
     paths:
       - 'src/Cafe/HW/Espresso/Cemod*'
       - 'src/Cafe/HW/Espresso/ModExecutionContext*'
+      - 'src/Cafe/HW/Espresso/Interpreter/**'
+      - 'src/Cafe/HW/Espresso/PPCState.h'
+      - 'src/Cafe/HW/Espresso/Recompiler/PPCRecompiler*'
+      - 'src/Cafe/HW/Latte/Core/LatteRenderTarget.cpp'
+      - 'src/Cafe/GraphicPack/GraphicPack2*'
+      - 'src/Cafe/CafeSystem.cpp'
       - 'src/Cafe/OS/libs/cemuextend/**'
+      - 'src/Cafe/tests/Cemod*'
+      - 'src/Cafe/tests/Cex2*'
+      - 'src/Cafe/tests/PPCSandbox*'
+      - 'src/Cafe/CMakeLists.txt'
+      - 'src/config/CemuConfig*'
+      - 'src/gui/wxgui/GeneralSettings2*'
+      - 'src/util/MemMapper/MemMapper*'
       - 'dependencies/libcemuextend/**'
+      - 'README.md'
       - '.github/workflows/cemuextend-security.yml'
   pull_request:
   workflow_dispatch:
@@ -47,18 +61,18 @@ jobs:
       - name: Build isolation tests
         run: >-
           cmake --build build/security --target
-          cemod_execution_context_tests cex2_host_tests cemod_package_tests cemod_runtime_tests
+          cemod_execution_context_tests cemod_instruction_policy_tests
+          cex2_host_tests cemod_package_tests cemod_runtime_tests CemuCafe
       - name: Run isolation tests
         run: ctest --test-dir build/security --output-on-failure -R 'cemod_|cex2_'
       - name: Build fuzz targets
         if: matrix.sanitizer == 'address-undefined'
         run: >-
           cmake --build build/security --target
-          cex2_decoder_fuzzer cemod_package_fuzzer cpb2_format_fuzzer configuration_format_fuzzer
+          cex2_decoder_fuzzer cemod_package_fuzzer configuration_format_fuzzer
       - name: Fuzzer smoke tests
         if: matrix.sanitizer == 'address-undefined'
         run: |
           build/security/src/Cafe/cex2_decoder_fuzzer -runs=100
           build/security/src/Cafe/cemod_package_fuzzer -runs=100
-          build/security/src/Cafe/cpb2_format_fuzzer -runs=100
           build/security/src/Cafe/configuration_format_fuzzer -runs=100

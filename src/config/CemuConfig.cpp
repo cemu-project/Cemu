@@ -23,6 +23,33 @@ void CemuConfig::RemoveCemuExtendGrant(uint64 titleId)
 	cemuextend_grants.erase(titleId);
 }
 
+std::optional<CemuExtendModGrant> CemuConfig::GetCemuExtendModGrant(uint64 titleId,
+	std::string_view principal) const
+{
+	std::shared_lock lock(cemuextend_grants_mutex);
+	const auto title = cemuextend_mod_grants.find(titleId);
+	if (title == cemuextend_mod_grants.end()) return std::nullopt;
+	const auto mod = title->second.find(std::string(principal));
+	return mod == title->second.end() ? std::nullopt : std::optional{mod->second};
+}
+
+void CemuConfig::SetCemuExtendModGrant(uint64 titleId, std::string principal,
+	CemuExtendModGrant grant)
+{
+	if (titleId == 0 || principal.empty()) return;
+	std::unique_lock lock(cemuextend_grants_mutex);
+	cemuextend_mod_grants[titleId][std::move(principal)] = grant;
+}
+
+void CemuConfig::RemoveCemuExtendModGrant(uint64 titleId, std::string_view principal)
+{
+	std::unique_lock lock(cemuextend_grants_mutex);
+	const auto title = cemuextend_mod_grants.find(titleId);
+	if (title == cemuextend_mod_grants.end()) return;
+	title->second.erase(std::string(principal));
+	if (title->second.empty()) cemuextend_mod_grants.erase(title);
+}
+
 void CemuConfig::SetMLCPath(fs::path path, bool save)
 {
 	mlc_path.SetValue(_pathToUtf8(path));
@@ -72,6 +99,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	{
 		std::unique_lock grantsLock(cemuextend_grants_mutex);
 		cemuextend_grants.clear();
+		cemuextend_mod_grants.clear();
 		auto bridge = parser.get("CemuExtend");
 		for (auto title = bridge.get("Title"); title.valid(); title = bridge.get("Title", title))
 		{
@@ -83,6 +111,17 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 				title.get_attribute<uint32>("write", 0),
 				title.get_attribute<uint32>("inject", 0),
 			};
+		}
+		for (auto mod = bridge.get("Mod"); mod.valid(); mod = bridge.get("Mod", mod))
+		{
+			const auto titleId = mod.get_attribute<uint64>("title", 0);
+			const std::string principal = mod.get_attribute("principal", "");
+			if (titleId == 0 || principal.empty() || principal.size() > 256)
+				continue;
+			cemuextend_mod_grants[titleId][principal] = {
+				mod.get_attribute<uint32>("permissions", 0) & 0x1fU,
+				mod.get_attribute<uint32>("approved_requests", 0) & 0x1fU,
+				mod.get_attribute<bool>("approved", false)};
 		}
 	}
 
@@ -363,6 +402,16 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 			title.set_attribute("write", grant.write_mask);
 			title.set_attribute("inject", grant.inject_mask);
 		}
+		for (const auto& [titleId, mods] : cemuextend_mod_grants)
+			for (const auto& [principal, grant] : mods)
+			{
+				auto mod = bridge.set("Mod");
+				mod.set_attribute("title", static_cast<sint64>(titleId));
+				mod.set_attribute("principal", principal.c_str());
+				mod.set_attribute("permissions", grant.permissions & 0x1fU);
+				mod.set_attribute("approved_requests", grant.approved_request_mask & 0x1fU);
+				mod.set_attribute("approved", grant.approved);
+			}
 	}
 
 	// game list cache

@@ -1,22 +1,28 @@
 #include "Common/precompiled.h"
 
 #include "Cafe/OS/libs/cemuextend/Cex2Host.h"
+#include "Cafe/OS/libs/cemuextend/Cex2Owner.h"
 #include "Cafe/OS/libs/cemuextend/Cex2Storage.h"
 
 #include "Cafe/HW/Espresso/ModExecutionContext.h"
+#ifndef CEMU_CEX2_TESTING
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/OS/libs/cemuextend/BuildId.h"
-#include "Cafe/OS/libs/vpad/vpad.h"
 #include "Cemu/Logging/CemuLogging.h"
 #include "gui/interface/WindowSystem.h"
+#endif
+#include "Cafe/OS/libs/cemuextend/BuildId.h"
+#include "Cafe/OS/libs/vpad/vpad.h"
 #include "cemuextend/services.hpp"
 #include "cemuextend/transport.hpp"
+
+#include <openssl/crypto.h>
 
 #include <deque>
 #include <condition_variable>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <set>
 #include <unordered_map>
@@ -101,6 +107,7 @@ constexpr std::array kOperations{
 	OperationDefinition{1,6,1,0,0,128,0,0,Handler::Core},
 	OperationDefinition{2,1,1,4,sizeof(cemuextend::wire::ControllerEventPayload),0,0,0,Handler::Input},
 	OperationDefinition{2,2,1,4,1+sizeof(cemuextend::wire::ObservedVpadState),0,0,0,Handler::Input},
+	OperationDefinition{2,3,1,1,1,sizeof(cemuextend::wire::ObservedVpadState),0,0,Handler::Input},
 	OperationDefinition{3,1,1,2,4096+5,0,20,50,Handler::Logging},
 	OperationDefinition{4,1,1,1,260,65520,0,0,Handler::Configuration},
 	OperationDefinition{4,2,1,2,65520,0,0,0,Handler::Configuration},
@@ -132,13 +139,13 @@ const OperationDefinition* FindOperation(std::uint16_t service, std::uint16_t op
 
 constexpr std::array kServices{
 	ServiceDefinition{1, 1, 0, 64U * 1024U, 64U * 1024U},
-	ServiceDefinition{2, 1, 4, 64U * 1024U, 64U * 1024U},
+	ServiceDefinition{2, 1, 5, 64U * 1024U, 64U * 1024U},
 	ServiceDefinition{3, 1, 2, 4U * 1024U, 64},
 	ServiceDefinition{4, 1, 3, 64U * 1024U, 64U * 1024U},
 	ServiceDefinition{5, 1, 3, 64U * 1024U, 64U * 1024U},
-	ServiceDefinition{6, 1, 3, 64U * 1024U, 64U * 1024U},
+	ServiceDefinition{6, 1, 8, 64U * 1024U, 64U * 1024U},
 	ServiceDefinition{7, 1, 1, 64, 256},
-	ServiceDefinition{8, 1, 1, 64, 64U * 1024U},
+	ServiceDefinition{8, 1, 16, 64, 64U * 1024U},
 	ServiceDefinition{9, 1, 1, 64, 4U * 1024U},
 };
 
@@ -156,15 +163,16 @@ std::vector<std::byte> MakeResponse(const RequestHeader& request, Status status,
 	std::span<const std::byte> payload = {})
 {
 	std::vector<std::byte> result(sizeof(ResponseHeader) + payload.size());
-	auto& header = *reinterpret_cast<ResponseHeader*>(result.data());
+	ResponseHeader header{};
 	header.totalSize = static_cast<std::uint32_t>(result.size());
 	header.correlationId = request.correlationId.get();
 	header.serviceId = request.serviceId.get();
 	header.operation = request.operation.get();
 	header.status = static_cast<std::uint16_t>(status);
 	header.flags = 0;
+	std::memcpy(result.data(), &header, sizeof(header));
 	if (!payload.empty())
-		std::memcpy(result.data() + sizeof(header), payload.data(), payload.size());
+		std::memcpy(result.data() + sizeof(ResponseHeader), payload.data(), payload.size());
 	return result;
 }
 
@@ -180,7 +188,7 @@ struct Cex2Host::Impl
 			RequestHeader header{};
 			std::chrono::steady_clock::time_point deadline{};
 		};
-		ModExecutionContext* owner{};
+		Cex2Owner* owner{};
 		std::uint64_t addressSpaceId{};
 		std::uint32_t generation{};
 		std::deque<std::vector<std::byte>> responses;
@@ -193,6 +201,9 @@ struct Cex2Host::Impl
 		std::uint64_t nextInputEventId{1};
 		std::size_t reservedResponses{};
 		std::unordered_map<std::uint32_t, Pending> pending;
+		// Compact exact-once admission history. Sequential IDs occupy one range;
+		// pathological sparse IDs are bounded and reap the session.
+		std::map<std::uint32_t, std::uint32_t> admittedRanges;
 		double loggingTokens{50.0};
 		std::chrono::steady_clock::time_point loggingLastRefill{std::chrono::steady_clock::now()};
 		std::set<std::uint16_t> pressedKeyboardUsages;
@@ -233,11 +244,14 @@ struct Cex2Host::Impl
 					{
 						std::unique_lock lock(workMutex);
 						workReady.wait(lock, [this] { return stopping || !work.empty(); });
-						if (stopping && work.empty()) return;
+						if (stopping && work.empty()) break;
 						task = std::move(work.front()); work.pop_front();
 					}
 					task();
 				}
+				// Storage hashing initializes OpenSSL's per-thread RCU state. Release
+				// it while the worker still owns the thread-local allocation.
+				OPENSSL_thread_stop();
 			});
 	}
 
@@ -264,7 +278,9 @@ struct Cex2Host::Impl
 		auto& session = found->second;
 		const auto pending = session.pending.find(correlationId);
 		if (pending == session.pending.end()) return;
-		if (!HasPermission(session, pending->second.permission)) status = Status::PermissionDenied;
+		if (!HasPermission(session, pending->second.permission,
+			pending->second.header.serviceId.get(), pending->second.header.operation.get()))
+			status = Status::PermissionDenied;
 		const auto service = pending->second.header.serviceId.get();
 		if (service == static_cast<std::uint16_t>(ServiceId::Clipboard)) session.clipboardPending = false;
 		if (service == static_cast<std::uint16_t>(ServiceId::Capture) && status != Status::Ok)
@@ -276,15 +292,49 @@ struct Cex2Host::Impl
 		--session.reservedResponses;
 	}
 
-	static bool Owns(const Session& session, ModExecutionContext& owner)
+	static bool Owns(const Session& session, Cex2Owner& owner)
 	{
 		return session.owner == &owner && session.addressSpaceId == owner.AddressSpaceId() &&
 			session.generation == owner.Generation() && !owner.IsStopped();
 	}
 
-	static bool HasPermission(const Session& session, std::uint32_t permission)
+	static bool HasPermission(const Session& session, std::uint32_t permission,
+		std::uint16_t service = 0, std::uint16_t operation = 0)
 	{
-		return permission == 0 || (session.owner->GrantedPermissions() & permission) == permission;
+		return (permission == 0 ||
+			(session.owner->GrantedPermissions() & permission) == permission) &&
+			(service == 0 || session.owner->IsServiceAllowed(service, permission, operation));
+	}
+
+	static bool AdmitCorrelation(Session& session, std::uint32_t correlation)
+	{
+		auto next = session.admittedRanges.upper_bound(correlation);
+		auto previous = next == session.admittedRanges.begin() ? session.admittedRanges.end() : std::prev(next);
+		if (previous != session.admittedRanges.end() && previous->second >= correlation)
+			return false;
+		const bool joinsPrevious = previous != session.admittedRanges.end() &&
+			previous->second != std::numeric_limits<std::uint32_t>::max() &&
+			previous->second + 1 == correlation;
+		const bool joinsNext = next != session.admittedRanges.end() &&
+			correlation != std::numeric_limits<std::uint32_t>::max() &&
+			correlation + 1 == next->first;
+		if (joinsPrevious)
+		{
+			previous->second = joinsNext ? next->second : correlation;
+			if (joinsNext) session.admittedRanges.erase(next);
+			return true;
+		}
+		if (joinsNext)
+		{
+			const auto end = next->second;
+			session.admittedRanges.erase(next);
+			session.admittedRanges.emplace(correlation, end);
+			return true;
+		}
+		if (session.admittedRanges.size() >= 4096)
+			return false;
+		session.admittedRanges.emplace(correlation, correlation);
+		return true;
 	}
 
 	static bool IsValidUtf8(std::string_view text)
@@ -314,7 +364,9 @@ struct Cex2Host::Impl
 	void EmitEvent(Session& session, ServiceId service, std::uint16_t operation,
 		std::span<const std::byte> payload)
 	{
-		if (!session.subscriptions.contains(static_cast<std::uint16_t>(service)) ||
+		const auto serviceId = static_cast<std::uint16_t>(service);
+		if ((service != ServiceId::Core && !HasPermission(session, 1, serviceId, operation)) ||
+			!session.subscriptions.contains(serviceId) ||
 			session.responses.size() + session.reservedResponses >=
 				cemuextend::transport::kMaximumResponseQueue)
 		{
@@ -322,14 +374,15 @@ struct Cex2Host::Impl
 			return;
 		}
 		std::vector<std::byte> result(sizeof(ResponseHeader) + payload.size());
-		auto& header = *reinterpret_cast<ResponseHeader*>(result.data());
+		ResponseHeader header{};
 		header.totalSize = static_cast<std::uint32_t>(result.size());
 		header.correlationId = 0;
 		header.serviceId = static_cast<std::uint16_t>(service);
 		header.operation = operation;
 		header.status = static_cast<std::uint16_t>(Status::Ok);
 		header.flags = static_cast<std::uint16_t>(cemuextend::transport::ResponseFlag::Event);
-		if (!payload.empty()) std::memcpy(result.data() + sizeof(header), payload.data(), payload.size());
+		std::memcpy(result.data(), &header, sizeof(header));
+		if (!payload.empty()) std::memcpy(result.data() + sizeof(ResponseHeader), payload.data(), payload.size());
 		session.responses.push_back(std::move(result));
 	}
 
@@ -342,13 +395,26 @@ struct Cex2Host::Impl
 			return MakeResponse(request, Status::NotSupported);
 		if (request.operationVersion.get() != definition->version)
 			return MakeResponse(request, Status::NotSupported);
-		if (!HasPermission(session, definition->permission))
+		if (!HasPermission(session, definition->permission,
+			request.serviceId.get(), request.operation.get()))
 			return MakeResponse(request, Status::PermissionDenied);
 		if (payload.size() > definition->maximumRequest)
 			return MakeResponse(request, Status::TooLarge);
 
 		if (definition->handler == Handler::Input)
 		{
+			if (request.operation.get() == static_cast<std::uint16_t>(InputOperation::GetObserved))
+			{
+				Decoder decoder(payload);
+				std::uint8_t channel{};
+				if (!decoder.U8(channel) || decoder.remaining() || channel >= session.observedVpad.size())
+					return MakeResponse(request, Status::InvalidArgument);
+				if (!session.hasObservedVpad[channel])
+					return MakeResponse(request, Status::NotFound);
+				return MakeResponse(request, Status::Ok,
+					{reinterpret_cast<const std::byte*>(&session.observedVpad[channel]),
+						sizeof(session.observedVpad[channel])});
+			}
 			if (request.operation.get() == static_cast<std::uint16_t>(InputOperation::InjectGuest))
 			{
 				if (payload.size() != sizeof(ControllerEventPayload))
@@ -363,6 +429,7 @@ struct Cex2Host::Impl
 				event.identity.parentEventId = 0;
 				event.identity.origin = static_cast<std::uint8_t>(InputOrigin::ClientInjected);
 				event.identity.channel = static_cast<std::uint8_t>(InputChannel::Controller);
+				event.identity.deviceId = 0;
 				event.identity.frameNumber = CurrentFrameNumber();
 				event.leftX = std::clamp(event.leftX.get(), -1.0f, 1.0f);
 				event.leftY = std::clamp(event.leftY.get(), -1.0f, 1.0f);
@@ -412,11 +479,20 @@ struct Cex2Host::Impl
 			--session.loggingTokens;
 			std::string escaped;
 			constexpr char hex[] = "0123456789abcdef";
-			for (const unsigned char character : message)
+			for (std::size_t index = 0; index < message.size(); ++index)
 			{
+				const auto character = static_cast<unsigned char>(message[index]);
 				if (character < 0x20 || character == 0x7f)
 				{
 					escaped.append("\\x"); escaped.push_back(hex[character >> 4]); escaped.push_back(hex[character & 15]);
+				}
+				else if (character == 0xc2 && index + 1 < message.size() &&
+					static_cast<unsigned char>(message[index + 1]) >= 0x80 &&
+					static_cast<unsigned char>(message[index + 1]) <= 0x9f)
+				{
+					const auto control = static_cast<unsigned char>(message[++index]);
+					escaped.append("\\u00");
+					escaped.push_back(hex[control >> 4]); escaped.push_back(hex[control & 15]);
 				}
 				else escaped.push_back(static_cast<char>(character));
 			}
@@ -445,11 +521,17 @@ struct Cex2Host::Impl
 		{
 			if (!payload.empty()) return MakeResponse(request, Status::InvalidArgument);
 			DiagnosticsPayload diagnostics{};
+			diagnostics.hostHeartbeat = static_cast<std::uint32_t>(CurrentFrameNumber());
+			diagnostics.sessionState = 1;
+			diagnostics.queuedResponses = static_cast<std::uint32_t>(session.responses.size());
+			diagnostics.reservedResponses = static_cast<std::uint32_t>(session.reservedResponses);
+			diagnostics.pendingRequests = static_cast<std::uint32_t>(session.pending.size());
+			diagnostics.activeSubscriptions = static_cast<std::uint32_t>(session.subscriptions.size());
 			diagnostics.droppedEvents = session.droppedEvents;
 			diagnostics.protocolErrors = session.protocolErrors;
 			diagnostics.requests = session.acceptedRequests;
 			diagnostics.responses = session.completedResponses;
-			diagnostics.bulkBytes = session.bytesCopied;
+			diagnostics.bytesCopied = session.bytesCopied;
 			return MakeResponse(request, Status::Ok,
 				{reinterpret_cast<const std::byte*>(&diagnostics), sizeof(diagnostics)});
 		}
@@ -535,7 +617,7 @@ struct Cex2Host::Impl
 			if (!exists || !supportsEvents)
 				return MakeResponse(request, Status::NotSupported);
 			if (service != static_cast<std::uint16_t>(ServiceId::Core) &&
-				!HasPermission(session, 1))
+				!HasPermission(session, 1, service))
 				return MakeResponse(request, Status::PermissionDenied);
 			if (static_cast<CoreOperation>(request.operation.get()) == CoreOperation::Subscribe)
 				session.subscriptions.insert(service);
@@ -567,7 +649,7 @@ Cex2Host& Cex2Host::Instance()
 Cex2Host::Cex2Host() : m_impl(std::make_unique<Impl>()) {}
 Cex2Host::~Cex2Host() = default;
 
-std::int32_t Cex2Host::Query(ModExecutionContext& owner, std::uint32_t query,
+std::int32_t Cex2Host::Query(Cex2Owner& owner, std::uint32_t query,
 	std::span<std::byte> output)
 {
 	if (owner.IsStopped() || query != static_cast<std::uint32_t>(cemuextend::transport::Query::Info) ||
@@ -589,12 +671,13 @@ std::int32_t Cex2Host::Query(ModExecutionContext& owner, std::uint32_t query,
 	return static_cast<std::int32_t>(Error::Ok);
 }
 
-std::int32_t Cex2Host::Open(ModExecutionContext& owner, std::span<const std::byte> options,
+std::int32_t Cex2Host::Open(Cex2Owner& owner, std::span<const std::byte> options,
 	std::uint32_t& sessionId)
 {
 	if (owner.IsStopped() || options.size() != sizeof(cemuextend::transport::OpenOptions))
 		return static_cast<std::int32_t>(Error::InvalidArgument);
-	const auto& requested = *reinterpret_cast<const cemuextend::transport::OpenOptions*>(options.data());
+	cemuextend::transport::OpenOptions requested{};
+	std::memcpy(&requested, options.data(), sizeof(requested));
 	if (requested.abiMajor.get() != cemuextend::transport::kAbiMajor ||
 		requested.abiMinor.get() > cemuextend::transport::kAbiMinor)
 		return static_cast<std::int32_t>(Error::AbiMismatch);
@@ -622,7 +705,7 @@ std::int32_t Cex2Host::Open(ModExecutionContext& owner, std::span<const std::byt
 	return static_cast<std::int32_t>(Error::Ok);
 }
 
-std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionId,
+std::int32_t Cex2Host::Submit(Cex2Owner& owner, std::uint32_t sessionId,
 	std::span<const std::byte> requestBytes)
 {
 	std::unique_lock lock(m_impl->mutex);
@@ -639,7 +722,8 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 		m_impl->sessions.erase(found);
 		return static_cast<std::int32_t>(Error::ProtocolError);
 	}
-	const auto& request = *reinterpret_cast<const RequestHeader*>(requestBytes.data());
+	RequestHeader request{};
+	std::memcpy(&request, requestBytes.data(), sizeof(request));
 	if (request.totalSize.get() != requestBytes.size() || request.correlationId.get() == 0 ||
 		request.flags.get() != 0)
 	{
@@ -647,11 +731,11 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 		return static_cast<std::int32_t>(Error::ProtocolError);
 	}
 	const auto correlationId = request.correlationId.get();
-	if (session.pending.contains(correlationId) || std::ranges::any_of(session.responses,
-		[correlationId](const auto& bytes) {
-			return reinterpret_cast<const ResponseHeader*>(bytes.data())->correlationId.get() == correlationId;
-		}))
-		return static_cast<std::int32_t>(Error::Busy);
+	if (!Impl::AdmitCorrelation(session, correlationId))
+	{
+		m_impl->sessions.erase(found);
+		return static_cast<std::int32_t>(Error::ProtocolError);
+	}
 	const auto payload = requestBytes.subspan(sizeof(RequestHeader));
 	const auto* definition = FindOperation(request.serviceId.get(), request.operation.get());
 	const bool asynchronous = definition && request.operationVersion.get() == definition->version &&
@@ -659,12 +743,18 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 	if (definition && request.operationVersion.get() == definition->version &&
 		definition->handler == Handler::Clipboard)
 	{
-		if (!Impl::HasPermission(session, definition->permission))
+		if (!Impl::HasPermission(session, definition->permission,
+			request.serviceId.get(), request.operation.get()))
 		{
 			session.responses.push_back(MakeResponse(request, Status::PermissionDenied));
 			++session.acceptedRequests; return static_cast<std::int32_t>(Error::Ok);
 		}
-		if (session.clipboardPending) return static_cast<std::int32_t>(Error::Busy);
+		if (session.clipboardPending)
+		{
+			session.responses.push_back(MakeResponse(request, Status::Busy));
+			++session.acceptedRequests;
+			return static_cast<std::int32_t>(Error::Ok);
+		}
 		std::string text;
 		if (request.operation.get() == static_cast<std::uint16_t>(cemuextend::wire::ClipboardOperation::Get))
 		{
@@ -706,13 +796,19 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 		definition->handler == Handler::Capture &&
 		request.operation.get() == static_cast<std::uint16_t>(cemuextend::wire::CaptureOperation::Open))
 	{
-		if (!Impl::HasPermission(session, definition->permission))
+		if (!Impl::HasPermission(session, definition->permission,
+			request.serviceId.get(), request.operation.get()))
 		{ session.responses.push_back(MakeResponse(request, Status::PermissionDenied)); ++session.acceptedRequests; return static_cast<std::int32_t>(Error::Ok); }
 		cemuextend::wire::Decoder decoder(payload); std::uint8_t drc{};
 		if (!decoder.U8(drc) || decoder.remaining() || drc > 1)
 		{ session.responses.push_back(MakeResponse(request, Status::InvalidArgument)); ++session.acceptedRequests; return static_cast<std::int32_t>(Error::Ok); }
 		if (session.capture.handle && std::chrono::steady_clock::now() >= session.capture.expires) session.capture = {};
-		if (session.capture.pending || session.capture.handle) return static_cast<std::int32_t>(Error::Busy);
+		if (session.capture.pending || session.capture.handle)
+		{
+			session.responses.push_back(MakeResponse(request, Status::Busy));
+			++session.acceptedRequests;
+			return static_cast<std::int32_t>(Error::Ok);
+		}
 		const auto copiedHeader = request; const auto addressSpaceId = owner.AddressSpaceId();
 		const auto generation = owner.Generation(); const auto principal = owner.Principal();
 		session.capture.pending = true; session.capture.mainWindow = drc == 0;
@@ -753,7 +849,8 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 	}
 	if (asynchronous)
 	{
-		if (!Impl::HasPermission(session, definition->permission))
+		if (!Impl::HasPermission(session, definition->permission,
+			request.serviceId.get(), request.operation.get()))
 		{
 			session.responses.push_back(MakeResponse(request, Status::PermissionDenied));
 			++session.acceptedRequests;
@@ -783,6 +880,28 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 		m_impl->Enqueue([impl = m_impl.get(), sessionId, addressSpaceId, generation,
 			copiedHeader, copiedPayload = std::move(copiedPayload), titleId, principal,
 			permission, maximumResponse, service, operation, correlationId]() mutable {
+			{
+				std::lock_guard lock(impl->mutex);
+				const auto found = impl->sessions.find(sessionId);
+				if (found == impl->sessions.end() || found->second.addressSpaceId != addressSpaceId ||
+					found->second.generation != generation) return;
+				auto& current = found->second;
+				const auto pending = current.pending.find(correlationId);
+				if (pending == current.pending.end()) return;
+				Status rejected = Status::Ok;
+				if (std::chrono::steady_clock::now() >= pending->second.deadline)
+					rejected = Status::TimedOut;
+				else if (!Impl::HasPermission(current, permission, copiedHeader.serviceId.get(),
+					copiedHeader.operation.get()))
+					rejected = Status::PermissionDenied;
+				if (rejected != Status::Ok)
+				{
+					current.responses.push_back(MakeResponse(copiedHeader, rejected));
+					current.pending.erase(pending);
+					--current.reservedResponses;
+					return;
+				}
+			}
 			auto result = Cex2Storage::Dispatch(titleId, principal, service, operation, copiedPayload);
 			std::lock_guard lock(impl->mutex);
 			const auto found = impl->sessions.find(sessionId);
@@ -791,7 +910,8 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 			auto& current = found->second;
 			const auto pending = current.pending.find(correlationId);
 			if (pending == current.pending.end()) return;
-			if (!Impl::HasPermission(current, permission)) result = {Status::PermissionDenied};
+			if (!Impl::HasPermission(current, permission, copiedHeader.serviceId.get(),
+				copiedHeader.operation.get())) result = {Status::PermissionDenied};
 			if (result.payload.size() > maximumResponse) result = {Status::TooLarge};
 			auto response = MakeResponse(copiedHeader, result.status, result.payload);
 			current.bytesCopied += response.size();
@@ -812,7 +932,7 @@ std::int32_t Cex2Host::Submit(ModExecutionContext& owner, std::uint32_t sessionI
 	return static_cast<std::int32_t>(Error::Ok);
 }
 
-std::int32_t Cex2Host::Poll(ModExecutionContext& owner, std::uint32_t sessionId,
+std::int32_t Cex2Host::Poll(Cex2Owner& owner, std::uint32_t sessionId,
 	std::span<std::byte> output, std::uint32_t& outputSize)
 {
 	outputSize = 0;
@@ -841,7 +961,7 @@ std::int32_t Cex2Host::Poll(ModExecutionContext& owner, std::uint32_t sessionId,
 	return static_cast<std::int32_t>(Error::Ok);
 }
 
-std::int32_t Cex2Host::Cancel(ModExecutionContext& owner, std::uint32_t sessionId,
+std::int32_t Cex2Host::Cancel(Cex2Owner& owner, std::uint32_t sessionId,
 	std::uint32_t correlationId)
 {
 	if (!correlationId)
@@ -853,6 +973,11 @@ std::int32_t Cex2Host::Cancel(ModExecutionContext& owner, std::uint32_t sessionI
 	if (const auto pending = found->second.pending.find(correlationId);
 		pending != found->second.pending.end())
 	{
+		const auto service = pending->second.header.serviceId.get();
+		if (service == static_cast<std::uint16_t>(ServiceId::Clipboard))
+			found->second.clipboardPending = false;
+		if (service == static_cast<std::uint16_t>(ServiceId::Capture))
+			found->second.capture = {};
 		found->second.responses.push_back(MakeResponse(pending->second.header, Status::Cancelled));
 		found->second.pending.erase(pending);
 		--found->second.reservedResponses;
@@ -860,18 +985,20 @@ std::int32_t Cex2Host::Cancel(ModExecutionContext& owner, std::uint32_t sessionI
 	}
 	for (auto& response : found->second.responses)
 	{
-		auto& header = *reinterpret_cast<ResponseHeader*>(response.data());
+		ResponseHeader header{};
+		std::memcpy(&header, response.data(), sizeof(header));
 		if (header.correlationId.get() != correlationId)
 			continue;
 		header.status = static_cast<std::uint16_t>(Status::Cancelled);
 		header.totalSize = sizeof(ResponseHeader);
 		response.resize(sizeof(ResponseHeader));
+		std::memcpy(response.data(), &header, sizeof(header));
 		return static_cast<std::int32_t>(Error::Ok);
 	}
 	return static_cast<std::int32_t>(Error::NotFound);
 }
 
-std::int32_t Cex2Host::Close(ModExecutionContext& owner, std::uint32_t sessionId)
+std::int32_t Cex2Host::Close(Cex2Owner& owner, std::uint32_t sessionId)
 {
 	std::lock_guard lock(m_impl->mutex);
 	const auto found = m_impl->sessions.find(sessionId);
@@ -883,7 +1010,7 @@ std::int32_t Cex2Host::Close(ModExecutionContext& owner, std::uint32_t sessionId
 	return static_cast<std::int32_t>(Error::Ok);
 }
 
-void Cex2Host::CloseOwner(ModExecutionContext& owner)
+void Cex2Host::CloseOwner(Cex2Owner& owner)
 {
 	std::lock_guard lock(m_impl->mutex);
 	std::erase_if(m_impl->sessions, [&owner](const auto& entry) {
@@ -899,6 +1026,15 @@ void Cex2Host::CloseAll()
 	m_impl->sessions.clear();
 }
 
+#ifdef CEMU_CEX2_TESTING
+void Cex2Host::ShutdownForTesting()
+{
+	// Joining the workers also releases OpenSSL's per-thread state before the
+	// short-lived sanitizer test shuts the crypto library down.
+	m_impl.reset();
+}
+#endif
+
 void Cex2Host::ObserveVpad(std::int32_t channel, const VPADStatus& status,
 	std::int32_t error, std::int32_t sampleCount)
 {
@@ -906,12 +1042,17 @@ void Cex2Host::ObserveVpad(std::int32_t channel, const VPADStatus& status,
 	std::lock_guard lock(m_impl->mutex);
 	for (auto& [id, session] : m_impl->sessions)
 	{
+		if (!Impl::HasPermission(session, 1, static_cast<std::uint16_t>(ServiceId::Input)))
+			continue;
 		cemuextend::wire::ObservedVpadState observed{};
 		observed.frameNumber = CurrentFrameNumber();
 		observed.sampleError = static_cast<std::uint32_t>(error);
 		observed.hold = status.hold; observed.trigger = status.trig; observed.release = status.release;
-		observed.leftX = status.leftStick.x; observed.leftY = status.leftStick.y;
-		observed.rightX = status.rightStick.x; observed.rightY = status.rightStick.y;
+		auto stick = [](float value) {
+			return std::isfinite(value) ? std::clamp(value, -1.0f, 1.0f) : 0.0f;
+		};
+		observed.leftX = stick(status.leftStick.x); observed.leftY = stick(status.leftStick.y);
+		observed.rightX = stick(status.rightStick.x); observed.rightY = stick(status.rightStick.y);
 		observed.gyroX = status.gyroChange.x; observed.gyroY = status.gyroChange.y;
 		observed.gyroZ = status.gyroChange.z;
 		observed.touchX = static_cast<float>(status.tpData.x);
@@ -919,6 +1060,23 @@ void Cex2Host::ObserveVpad(std::int32_t channel, const VPADStatus& status,
 		observed.touched = status.tpData.touch != 0;
 		session.observedVpad[channel] = observed;
 		session.hasObservedVpad[channel] = sampleCount > 0;
+		if (sampleCount > 0)
+		{
+			cemuextend::wire::ControllerEventPayload event{};
+			event.identity.eventId = session.nextInputEventId++;
+			event.identity.origin = static_cast<std::uint8_t>(cemuextend::wire::InputOrigin::ObservedVpad);
+			event.identity.channel = static_cast<std::uint8_t>(channel == 0 ?
+				cemuextend::wire::InputChannel::Vpad0 : cemuextend::wire::InputChannel::Vpad1);
+			event.identity.deviceId = static_cast<std::uint16_t>(channel);
+			event.identity.frameNumber = static_cast<std::uint32_t>(CurrentFrameNumber());
+			event.buttonsLow = status.hold;
+			event.buttonsHigh = 0;
+			event.leftX = observed.leftX.get(); event.leftY = observed.leftY.get();
+			event.rightX = observed.rightX.get(); event.rightY = observed.rightY.get();
+			m_impl->EmitEvent(session, ServiceId::Input,
+				static_cast<std::uint16_t>(cemuextend::wire::InputEvent::Controller),
+				{reinterpret_cast<const std::byte*>(&event), sizeof(event)});
+		}
 	}
 }
 
@@ -928,7 +1086,9 @@ void Cex2Host::ApplyMappedVpad(std::int32_t channel, VPADStatus& status)
 	std::lock_guard lock(m_impl->mutex);
 	for (auto& [id, session] : m_impl->sessions)
 	{
-		if (!Impl::HasPermission(session, 4) || !session.hasMappedInjection[channel] ||
+		if (!Impl::HasPermission(session, 4, static_cast<std::uint16_t>(ServiceId::Input),
+			static_cast<std::uint16_t>(cemuextend::wire::InputOperation::InjectMapped)) ||
+			!session.hasMappedInjection[channel] ||
 			std::chrono::steady_clock::now() - session.mappedInjectionTime[channel] >
 				std::chrono::milliseconds(250))
 		{
@@ -950,7 +1110,7 @@ void Cex2Host::KeyboardEvent(std::uint16_t usage, bool pressed, std::uint8_t mod
 	std::lock_guard lock(m_impl->mutex);
 	for (auto& [id, session] : m_impl->sessions)
 	{
-		if (!Impl::HasPermission(session, 1)) continue;
+		if (!Impl::HasPermission(session, 1, static_cast<std::uint16_t>(ServiceId::Input))) continue;
 		if (pressed) session.pressedKeyboardUsages.insert(usage);
 		else session.pressedKeyboardUsages.erase(usage);
 		cemuextend::wire::KeyboardEventPayload event{};
@@ -986,28 +1146,56 @@ void Cex2Host::KeyboardFocusLost()
 	}
 }
 
-void Cex2Host::PermissionsChanged(ModExecutionContext& owner, std::uint32_t permissions)
+void Cex2Host::PermissionsChanged(Cex2Owner& owner, std::uint32_t permissions)
 {
 	std::lock_guard lock(m_impl->mutex);
 	owner.SetGrantedPermissions(permissions);
 	for (auto& [id, session] : m_impl->sessions)
 	{
 		if (session.owner != &owner) continue;
-		if ((permissions & 1) == 0)
+		std::erase_if(session.subscriptions, [&session](std::uint16_t service) {
+			return service != static_cast<std::uint16_t>(ServiceId::Core) &&
+				!Impl::HasPermission(session, 1, service);
+		});
+		for (auto response = session.responses.begin(); response != session.responses.end();)
 		{
-			session.subscriptions.erase(static_cast<std::uint16_t>(ServiceId::Input));
-			session.subscriptions.erase(static_cast<std::uint16_t>(ServiceId::Window));
-			std::erase_if(session.responses, [](const std::vector<std::byte>& response) {
-				const auto& header = *reinterpret_cast<const ResponseHeader*>(response.data());
-				return header.flags.get() == static_cast<std::uint16_t>(
-					cemuextend::transport::ResponseFlag::Event);
-			});
+			ResponseHeader header{};
+			std::memcpy(&header, response->data(), sizeof(header));
+			const bool event = header.flags.get() == static_cast<std::uint16_t>(
+				cemuextend::transport::ResponseFlag::Event);
+			const auto* definition = FindOperation(header.serviceId.get(), header.operation.get());
+			const auto required = event ? 1U : definition ? definition->permission : 0U;
+			if (Impl::HasPermission(session, required, header.serviceId.get(), header.operation.get()))
+			{
+				++response;
+				continue;
+			}
+			if (event)
+			{
+				response = session.responses.erase(response);
+				continue;
+			}
+			RequestHeader request{};
+			request.correlationId = header.correlationId;
+			request.serviceId = header.serviceId;
+			request.operation = header.operation;
+			*response = MakeResponse(request, Status::PermissionDenied);
+			++response;
 		}
-		if ((permissions & 4) == 0) session.hasMappedInjection.fill(false);
+		if (!Impl::HasPermission(session, 1, static_cast<std::uint16_t>(ServiceId::Input)))
+		{
+			session.observedVpad = {};
+			session.hasObservedVpad.fill(false);
+			session.pressedKeyboardUsages.clear();
+		}
+		if (!Impl::HasPermission(session, 4, static_cast<std::uint16_t>(ServiceId::Input)))
+			session.hasMappedInjection.fill(false);
+		if (!Impl::HasPermission(session, 16, static_cast<std::uint16_t>(ServiceId::Capture)))
+			session.capture = {};
 		for (auto pending = session.pending.begin(); pending != session.pending.end();)
 		{
-			if (pending->second.permission == 0 ||
-				(permissions & pending->second.permission) == pending->second.permission)
+			if (Impl::HasPermission(session, pending->second.permission,
+				pending->second.header.serviceId.get(), pending->second.header.operation.get()))
 			{ ++pending; continue; }
 			session.responses.push_back(MakeResponse(pending->second.header, Status::PermissionDenied));
 			const auto service = pending->second.header.serviceId.get();

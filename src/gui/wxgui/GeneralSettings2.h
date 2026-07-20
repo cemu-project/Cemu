@@ -104,8 +104,20 @@ private:
 	std::array<wxCheckBox*, 9> m_cemuextend_read{};
 	std::array<wxCheckBox*, 9> m_cemuextend_write{};
 	std::array<wxCheckBox*, 9> m_cemuextend_inject{};
+	wxChoice* m_cemod_choice{};
+	wxStaticText* m_cemod_status{};
+	wxCheckBox* m_cemod_approved{};
+	std::array<wxCheckBox*, 5> m_cemod_permissions{};
+	std::vector<std::string> m_cemod_principals;
+	std::vector<uint32> m_cemod_requested;
+	std::vector<bool> m_cemod_trusted;
+	std::vector<bool> m_cemod_signed;
 	void LoadCemuExtendGrant();
 	void StoreCemuExtendGrant();
+	void RefreshCemodList();
+	void LoadCemodGrant();
+	void StoreCemodGrant();
+	void ImportLegacyCemodData();
 
 	// Debug
 	wxChoice* m_crash_dump;

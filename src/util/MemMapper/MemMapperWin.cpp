@@ -24,8 +24,8 @@ namespace MemMapper
 			p = PAGE_EXECUTE_READWRITE;
 		else if (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_READ) && HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_WRITE) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_EXECUTE))
 			p = PAGE_READWRITE;
-		else if (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_READ) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_WRITE) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_EXECUTE))
-			p = PAGE_READONLY;
+		else if (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_READ) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_WRITE))
+			p = HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_EXECUTE) ? PAGE_EXECUTE_READ : PAGE_READONLY;
 		else
 			cemu_assert_unimplemented();
 		return p;
@@ -39,7 +39,7 @@ namespace MemMapper
 
 	void FreeReservation(void* baseAddr, size_t size)
 	{
-		VirtualFree(baseAddr, size, MEM_RELEASE);
+		VirtualFree(baseAddr, 0, MEM_RELEASE);
 	}
 
 	void* AllocateMemory(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags, bool fromReservation)
@@ -57,7 +57,15 @@ namespace MemMapper
 		if(fromReservation)
 			VirtualFree(baseAddr, size, MEM_DECOMMIT);
 		else
-			VirtualFree(baseAddr, size, MEM_RELEASE);
+			VirtualFree(baseAddr, 0, MEM_RELEASE);
+	}
+
+	bool SetMemoryPermission(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags)
+	{
+		if (!baseAddr || size == 0)
+			return false;
+		DWORD previous{};
+		return VirtualProtect(baseAddr, size, GetPageProtection(permissionFlags), &previous) != FALSE;
 	}
 
 };

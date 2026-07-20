@@ -4,6 +4,7 @@
 #include "Cafe/GameProfile/GameProfile.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
+#include "Cafe/HW/Espresso/CemodRuntime.h"
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "Cafe/OS/RPL/rpl_symbol_storage.h"
 #include "audio/IAudioAPI.h"
@@ -21,6 +22,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/RPL/rpl.h"
+#include "Cafe/OS/libs/cemuextend/cemuextend.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/Filesystem/FST/FST.h"
 #include "Common/FileStream.h"
@@ -387,6 +389,9 @@ void cemu_initForGame()
 	// coreinit is bootstrapped first and then the main game executable is loaded
 	RPLLoader_LoadCoreinit();
 	LoadMainExecutable();
+	// The .cemod runtime is a Cemu-owned title service and must be loaded
+	// even when the game itself has no cemuextend.rpl import.
+	RPLLoader_AddDependency("cemuextend");
 	// log info for launched title
 	InfoLog_TitleLoaded();
 	// link all modules
@@ -420,6 +425,10 @@ void cemu_initForGame()
 	// load graphic packs
 	cemuLog_log(LogType::Force, "------- Activate graphic packs -------");
 	GraphicPack2::ActivateForCurrentTitle();
+	// Trusted native .cemod images allocate from the same codecave after ASM
+	// packs and install their single validated bootstrap branch before title code
+	// starts executing.
+	cemuextend_hle::LoadCemodsForTitle(CafeSystem::GetForegroundTitleId());
 	// print audio log
 	IAudioAPI::PrintLogging();
 	IAudioInputAPI::PrintLogging();
@@ -1075,6 +1084,9 @@ namespace CafeSystem
 		GX2::_GX2DriverReset();
 		nn::save::ResetToDefaultState();
 		coreinit::__OSDeleteAllActivePPCThreads();
+		// Restore trusted native bootstrap instructions while RPL mappings still
+		// exist, then close all isolated/trusted sessions.
+		cemuextend_hle::GetCemodRuntime().UnloadAll();
 		RPLLoader_UnloadAll();
 		for(auto it = s_iosuModules.rbegin(); it != s_iosuModules.rend(); ++it)
 			(*it)->TitleStop();

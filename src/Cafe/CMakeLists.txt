@@ -32,7 +32,6 @@ add_library(CemuCafe
   GraphicPack/GraphicPack2Patches.cpp
   GraphicPack/GraphicPack2Patches.h
   GraphicPack/GraphicPack2PatchesParser.cpp
-  GraphicPack/CemuPatchBinaryV2.cpp
   GraphicPack/GraphicPackError.h
   HW/ACR/ACR.cpp
   HW/AI/AI.cpp
@@ -68,6 +67,8 @@ add_library(CemuCafe
   HW/Espresso/CemodPackage.h
   HW/Espresso/CemodRuntime.cpp
   HW/Espresso/CemodRuntime.h
+  HW/Espresso/TrustedCemodRuntime.cpp
+  HW/Espresso/TrustedCemodRuntime.h
   HW/Espresso/ModExecutionContext.cpp
   HW/Espresso/ModExecutionContext.h
   HW/Espresso/PPCTimer.cpp
@@ -227,8 +228,8 @@ add_library(CemuCafe
   OS/libs/avm/avm.h
   OS/libs/camera/camera.cpp
   OS/libs/camera/camera.h
-  OS/libs/cemuextend/BridgeHost.cpp
   OS/libs/cemuextend/Cex2Host.cpp
+  OS/libs/cemuextend/Cex2Owner.h
   OS/libs/cemuextend/Cex2Storage.cpp
   OS/libs/cemuextend/BridgeHost.h
   OS/libs/cemuextend/BuildId.h
@@ -708,6 +709,12 @@ if(BUILD_TESTING)
 	target_include_directories(cemod_execution_context_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 	add_test(NAME cemod_execution_context_tests COMMAND cemod_execution_context_tests)
 
+	add_executable(cemod_instruction_policy_tests
+		tests/PPCSandboxInstructionPolicyTests.cpp
+	)
+	target_include_directories(cemod_instruction_policy_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	add_test(NAME cemod_instruction_policy_tests COMMAND cemod_instruction_policy_tests)
+
 	add_executable(cex2_host_tests
 		HW/Espresso/ModExecutionContext.cpp
 		OS/libs/cemuextend/Cex2Host.cpp
@@ -735,6 +742,7 @@ if(BUILD_TESTING)
 		HW/Espresso/CemodRuntime.cpp
 		OS/libs/cemuextend/Cex2Host.cpp
 		OS/libs/cemuextend/Cex2Storage.cpp
+		tests/TrustedCemodRuntimeStub.cpp
 		tests/CemodRuntimeTests.cpp
 	)
 	target_compile_definitions(cemod_runtime_tests PRIVATE CEMU_CEX2_TESTING)
@@ -744,14 +752,6 @@ if(BUILD_TESTING)
 		${CMAKE_SOURCE_DIR}/dependencies/libcemuextend/include
 	)
 	add_test(NAME cemod_runtime_tests COMMAND cemod_runtime_tests)
-
-	add_executable(cpb2_format_tests
-		GraphicPack/CemuPatchBinaryV2.cpp
-		tests/CemuPatchBinaryV2Tests.cpp
-	)
-	target_include_directories(cpb2_format_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-	target_link_libraries(cpb2_format_tests PRIVATE OpenSSL::Crypto)
-	add_test(NAME cpb2_format_tests COMMAND cpb2_format_tests)
 
 	if(CEMU_ENABLE_FUZZING)
 		add_executable(cex2_decoder_fuzzer tests/Cex2DecoderFuzzer.cpp)
@@ -766,13 +766,6 @@ if(BUILD_TESTING)
 		target_link_libraries(cemod_package_fuzzer PRIVATE OpenSSL::Crypto libzip::zip)
 		target_compile_options(cemod_package_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
 		target_link_options(cemod_package_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
-
-		add_executable(cpb2_format_fuzzer
-			GraphicPack/CemuPatchBinaryV2.cpp tests/Cpb2FormatFuzzer.cpp)
-		target_include_directories(cpb2_format_fuzzer PRIVATE ${CMAKE_SOURCE_DIR}/src)
-		target_link_libraries(cpb2_format_fuzzer PRIVATE OpenSSL::Crypto)
-		target_compile_options(cpb2_format_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
-		target_link_options(cpb2_format_fuzzer PRIVATE -fsanitize=fuzzer,address,undefined)
 
 		add_executable(configuration_format_fuzzer
 			OS/libs/cemuextend/Cex2Storage.cpp tests/ConfigurationFormatFuzzer.cpp)

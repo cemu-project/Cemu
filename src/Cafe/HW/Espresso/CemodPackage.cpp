@@ -8,9 +8,12 @@
 #include <zip.h>
 
 #include <charconv>
+#include <array>
 #include <fstream>
 #include <map>
 #include <memory>
+#include <optional>
+#include <vector>
 
 namespace {
 
@@ -124,16 +127,29 @@ bool ParseManifest(std::span<const std::byte> bytes, CemodManifest& manifest, st
 	}
 	rapidjson::Document document;
 	document.Parse(reinterpret_cast<const char*>(bytes.data()), bytes.size());
-	if (document.HasParseError() || !document.IsObject() || !document.HasMember("api_version") ||
+	if (document.HasParseError() || !document.IsObject() ||
+		!document.HasMember("package_version") || !document["package_version"].IsUint() ||
+		document["package_version"].GetUint() != 1 || !document.HasMember("api_version") ||
 		!document["api_version"].IsUint() || document["api_version"].GetUint() != 2 ||
+		!document.HasMember("execution_mode") || !document["execution_mode"].IsString() ||
 		!document.HasMember("mod_id") || !document["mod_id"].IsString() ||
 		!document.HasMember("title_ids") || !document["title_ids"].IsArray() ||
-		!document.HasMember("requested_permissions") || !document["requested_permissions"].IsArray() ||
-		!document.HasMember("memory") || !document["memory"].IsObject() ||
-		!document.HasMember("cpu") || !document["cpu"].IsObject() ||
-		!document.HasMember("entrypoint") || !document["entrypoint"].IsString())
+		!document.HasMember("requested_permissions") || !document["requested_permissions"].IsArray())
 	{
 		error = "manifest.json does not match the CEX2 schema";
+		return false;
+	}
+	manifest.packageVersion = document["package_version"].GetUint();
+	manifest.apiVersion = document["api_version"].GetUint();
+	const std::string_view executionMode(document["execution_mode"].GetString(),
+		document["execution_mode"].GetStringLength());
+	if (executionMode == "isolated")
+		manifest.executionMode = CemodExecutionMode::Isolated;
+	else if (executionMode == "trusted_native")
+		manifest.executionMode = CemodExecutionMode::TrustedNative;
+	else
+	{
+		error = "execution_mode must be isolated or trusted_native";
 		return false;
 	}
 	manifest.modId.assign(document["mod_id"].GetString(), document["mod_id"].GetStringLength());
@@ -179,6 +195,23 @@ bool ParseManifest(std::span<const std::byte> bytes, CemodManifest& manifest, st
 		}
 		manifest.requestedPermissions |= found->second;
 	}
+	if (manifest.executionMode == CemodExecutionMode::TrustedNative)
+	{
+		if (document.HasMember("memory") || document.HasMember("cpu") || document.HasMember("entrypoint"))
+		{
+			error = "trusted_native manifests must not contain isolated resource or lifecycle fields";
+			return false;
+		}
+		manifest.codeBytes = 4U * 1024U * 1024U;
+		return true;
+	}
+	if (!document.HasMember("memory") || !document["memory"].IsObject() ||
+		!document.HasMember("cpu") || !document["cpu"].IsObject() ||
+		!document.HasMember("entrypoint") || !document["entrypoint"].IsString())
+	{
+		error = "isolated manifests require memory, cpu, and entrypoint";
+		return false;
+	}
 	const auto& memory = document["memory"];
 	const auto& cpu = document["cpu"];
 	if (!memory.HasMember("code_bytes") || !memory["code_bytes"].IsUint() ||
@@ -203,7 +236,7 @@ bool ParseManifest(std::span<const std::byte> bytes, CemodManifest& manifest, st
 		manifest.instructionsPerFrame == 0 ||
 		manifest.instructionsPerFrame > ModExecutionContext::kMaximumInstructionsPerFrame ||
 		manifest.timeMicrosecondsPerFrame == 0 || manifest.timeMicrosecondsPerFrame > 1000 ||
-		(manifest.entrypoint != "cemod_init" && manifest.entrypoint != "_cemod_start"))
+		manifest.entrypoint != "cemod_init")
 	{
 		error = "manifest resource limits or entrypoint are invalid";
 		return false;
@@ -213,7 +246,10 @@ bool ParseManifest(std::span<const std::byte> bytes, CemodManifest& manifest, st
 
 bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, std::string& error)
 {
-	if (elf.size() < 52 || elf.size() > manifest.codeBytes + manifest.privateBytes)
+	const auto maximumElfBytes = manifest.executionMode == CemodExecutionMode::TrustedNative ?
+		CemodPackage::kMaximumExpandedBytes :
+		static_cast<std::uint64_t>(manifest.codeBytes) + manifest.privateBytes;
+	if (elf.size() < 52 || elf.size() > maximumElfBytes)
 	{
 		error = "PPC ELF has an invalid size";
 		return false;
@@ -224,7 +260,8 @@ bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, 
 		(static_cast<std::uint32_t>(data[offset + 1]) << 16) |
 		(static_cast<std::uint32_t>(data[offset + 2]) << 8) | data[offset + 3]; };
 	if (data[0] != 0x7f || data[1] != 'E' || data[2] != 'L' || data[3] != 'F' ||
-		data[4] != 1 || data[5] != 2 || data[6] != 1 || u16(18) != 20 || u32(20) != 1)
+		data[4] != 1 || data[5] != 2 || data[6] != 1 || u16(18) != 20 || u32(20) != 1 ||
+		(manifest.executionMode == CemodExecutionMode::TrustedNative && u16(16) != 3))
 	{
 		error = "package executable is not a 32-bit big-endian PPC ELF";
 		return false;
@@ -240,6 +277,8 @@ bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, 
 	}
 	std::uint64_t codeBytes{};
 	std::uint64_t dataBytes{};
+	struct LoadRange { std::uint32_t address; std::uint32_t size; std::uint32_t flags; };
+	std::vector<LoadRange> loadRanges;
 	for (std::uint16_t index = 0; index < programCount; ++index)
 	{
 		const auto offset = programOffset + static_cast<std::uint32_t>(index) * programEntrySize;
@@ -259,11 +298,167 @@ bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, 
 			codeBytes += memorySize;
 		else
 			dataBytes += memorySize;
+		loadRanges.push_back({u32(offset + 8), memorySize, flags});
 	}
-	if (codeBytes == 0 || codeBytes > manifest.codeBytes || dataBytes > manifest.privateBytes)
+	if (codeBytes == 0 ||
+		(manifest.executionMode == CemodExecutionMode::Isolated &&
+			(codeBytes > manifest.codeBytes || dataBytes > manifest.privateBytes)) ||
+		(manifest.executionMode == CemodExecutionMode::TrustedNative &&
+			codeBytes + dataBytes > 4U * 1024U * 1024U))
 	{
 		error = "PPC ELF exceeds the manifest memory limits";
 		return false;
+	}
+	if (manifest.executionMode == CemodExecutionMode::TrustedNative)
+	{
+		struct Section
+		{
+			std::uint32_t name{}, type{}, flags{}, address{}, offset{}, size{}, link{}, entrySize{};
+		};
+		const auto sectionOffset = u32(32);
+		const auto sectionEntrySize = u16(46);
+		const auto sectionCount = u16(48);
+		const auto sectionNames = u16(50);
+		if (sectionEntrySize < 40 || sectionCount == 0 || sectionCount > 1024 ||
+			sectionNames >= sectionCount || sectionOffset > elf.size() ||
+			static_cast<std::uint64_t>(sectionCount) * sectionEntrySize > elf.size() - sectionOffset)
+		{
+			error = "trusted ELF section table is invalid";
+			return false;
+		}
+		std::vector<Section> sections;
+		sections.reserve(sectionCount);
+		for (std::uint16_t index = 0; index < sectionCount; ++index)
+		{
+			const auto offset = sectionOffset + static_cast<std::uint32_t>(index) * sectionEntrySize;
+			Section section{u32(offset), u32(offset + 4), u32(offset + 8), u32(offset + 12),
+				u32(offset + 16), u32(offset + 20), u32(offset + 24), u32(offset + 36)};
+			if (section.type != 8 && (section.offset > elf.size() || section.size > elf.size() - section.offset))
+			{
+				error = "trusted ELF section is out of bounds";
+				return false;
+			}
+			sections.push_back(section);
+		}
+		const auto& names = sections[sectionNames];
+		if (names.type != 3 || names.offset > elf.size() || names.size > elf.size() - names.offset)
+		{
+			error = "trusted ELF section-name table is invalid";
+			return false;
+		}
+		auto sectionName = [&](const Section& section) -> std::optional<std::string_view> {
+			if (section.name >= names.size) return std::nullopt;
+			const auto* value = reinterpret_cast<const char*>(elf.data() + names.offset + section.name);
+			const auto maximum = names.size - section.name;
+			const auto length = strnlen(value, maximum);
+			if (length == maximum) return std::nullopt;
+			return std::string_view(value, length);
+		};
+		auto imageContains = [&](std::uint32_t address, std::uint32_t size, bool executable) {
+			return std::ranges::any_of(loadRanges, [&](const LoadRange& range) {
+				return (!executable || (range.flags & 1U) != 0) && address >= range.address &&
+				address - range.address <= range.size && size <= range.size - (address - range.address);
+			});
+		};
+		std::optional<std::size_t> bootstrap;
+		static constexpr std::array<std::uint8_t, 7> allowedRelocations{1, 4, 5, 6, 10, 22, 26};
+		for (std::size_t index = 0; index < sections.size(); ++index)
+		{
+			const auto& section = sections[index];
+			const auto name = sectionName(section);
+			if (!name)
+			{
+				error = "trusted ELF contains an invalid section name";
+				return false;
+			}
+			if (*name == ".cemod.bootstrap")
+			{
+				if (bootstrap) { error = "trusted ELF contains duplicate bootstrap sections"; return false; }
+				bootstrap = index;
+			}
+			if (section.type == 9)
+			{
+				error = "trusted ELF must use RELA relocations";
+				return false;
+			}
+			if (section.type == 4)
+			{
+				if (section.entrySize < 12 || section.size % section.entrySize != 0 ||
+					section.link >= sections.size() ||
+					(sections[section.link].type != 2 && sections[section.link].type != 11))
+				{
+					error = "trusted ELF relocation table is invalid";
+					return false;
+				}
+				const auto& symbols = sections[section.link];
+				if (symbols.entrySize < 16 || symbols.size % symbols.entrySize != 0)
+				{
+					error = "trusted ELF relocation symbol table is invalid";
+					return false;
+				}
+				for (std::uint32_t entry = 0; entry < section.size / section.entrySize; ++entry)
+				{
+					const auto relocation = section.offset + entry * section.entrySize;
+					const auto info = u32(relocation + 4);
+					const auto type = static_cast<std::uint8_t>(info);
+					if (std::ranges::find(allowedRelocations, type) == allowedRelocations.end() ||
+						(info >> 8) >= symbols.size / symbols.entrySize)
+					{
+						error = "trusted ELF contains an unsupported relocation";
+						return false;
+					}
+					const auto width = (type == 4 || type == 5 || type == 6) ? 2U : 4U;
+					if (type != 0 && !imageContains(u32(relocation), width, false))
+					{
+						error = "trusted ELF relocation target is outside the image";
+						return false;
+					}
+				}
+			}
+			if (section.type == 2 || section.type == 11)
+			{
+				if (section.entrySize < 16 || section.size % section.entrySize != 0)
+				{
+					error = "trusted ELF symbol table is invalid";
+					return false;
+				}
+				for (std::uint32_t symbol = 1; symbol < section.size / section.entrySize; ++symbol)
+					if (u16(section.offset + symbol * section.entrySize + 14) == 0)
+					{
+						error = "trusted ELF contains an undefined symbol";
+						return false;
+					}
+			}
+		}
+		if (!bootstrap)
+		{
+			error = "trusted ELF is missing .cemod.bootstrap";
+			return false;
+		}
+		const auto& table = sections[*bootstrap];
+		if (table.type != 1 || (table.flags & 2U) == 0 || table.size < 12 ||
+			!imageContains(table.address, table.size, false) || u32(table.offset) != 0x434d4231U ||
+			u16(table.offset + 4) != 1 || u16(table.offset + 6) != 24)
+		{
+			error = "trusted ELF contains an invalid CMB1 bootstrap section";
+			return false;
+		}
+		const auto recordCount = u32(table.offset + 8);
+		if (recordCount == 0 || recordCount > 64 || table.size != 12U + recordCount * 24U)
+		{
+			error = "trusted ELF contains an invalid CMB1 record count";
+			return false;
+		}
+		for (std::uint32_t record = 0; record < recordCount; ++record)
+		{
+			const auto offset = table.offset + 12 + record * 24;
+			if (u32(offset) == 0 || (u32(offset + 4) & 3U) != 0 || u32(offset + 12) == 0 ||
+				u32(offset + 20) != 0 || !imageContains(u32(offset + 16), 4, true))
+			{
+				error = "trusted ELF contains an invalid CMB1 record";
+				return false;
+			}
+		}
 	}
 	return true;
 }

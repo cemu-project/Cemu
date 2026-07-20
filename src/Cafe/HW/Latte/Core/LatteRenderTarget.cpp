@@ -16,6 +16,7 @@
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "Cafe/OS/libs/cemuextend/cemuextend.h"
 
 uint32 prevScissorX = 0;
 uint32 prevScissorY = 0;
@@ -678,6 +679,7 @@ void LatteRenderTarget_trackUpdates()
 
 void LatteRenderTarget_itHLESwapScanBuffer()
 {
+	cemuextend_hle::TickCemods();
 	performanceMonitor.cycle[performanceMonitor.cycleIndex].frameCounter++;
 	if(LatteGPUState.frameCounter > 5)
 		performanceMonitor.gpuTime_frameTime.endMeasuring();

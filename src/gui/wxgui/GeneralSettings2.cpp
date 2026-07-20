@@ -52,6 +52,7 @@
 
 #include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/cemuextend/BridgeHost.h"
+#include "Cafe/OS/libs/cemuextend/cemuextend.h"
 #include "Cemu/ncrypto/ncrypto.h"
 #include "Cafe/TitleList/TitleList.h"
 #include "wxHelper.h"
@@ -1005,41 +1006,72 @@ wxPanel* GeneralSettings2::AddCemuExtendPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook);
 	auto* root = new wxBoxSizer(wxVERTICAL);
-	auto* titleBox = new wxStaticBoxSizer(wxVERTICAL, panel, _("Title-specific Bridge permissions"));
+	auto* titleBox = new wxStaticBoxSizer(wxVERTICAL, panel, _("Title-specific CEX2 service permissions"));
+	auto* titleParent = titleBox->GetStaticBox();
 	auto* titleRow = new wxBoxSizer(wxHORIZONTAL);
-	titleRow->Add(new wxStaticText(panel, wxID_ANY, _("Title ID (16 hexadecimal digits)")), 0,
+	titleRow->Add(new wxStaticText(titleParent, wxID_ANY, _("Title ID (16 hexadecimal digits)")), 0,
 		wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-	m_cemuextend_title_id = new wxTextCtrl(panel, wxID_ANY);
+	m_cemuextend_title_id = new wxTextCtrl(titleParent, wxID_ANY);
 	titleRow->Add(m_cemuextend_title_id, 1, wxRIGHT, 8);
-	auto* load = new wxButton(panel, wxID_ANY, _("Load"));
+	auto* load = new wxButton(titleParent, wxID_ANY, _("Load"));
 	titleRow->Add(load, 0);
 	titleBox->Add(titleRow, 0, wxEXPAND | wxALL, 8);
 
 	auto* grid = new wxFlexGridSizer(10, 4, 4, 10);
-	grid->Add(new wxStaticText(panel, wxID_ANY, _("Service")), 0, wxALIGN_CENTER_VERTICAL);
-	grid->Add(new wxStaticText(panel, wxID_ANY, _("Read")), 0, wxALIGN_CENTER);
-	grid->Add(new wxStaticText(panel, wxID_ANY, _("Write")), 0, wxALIGN_CENTER);
-	grid->Add(new wxStaticText(panel, wxID_ANY, _("Mapped injection")), 0, wxALIGN_CENTER);
+	grid->Add(new wxStaticText(titleParent, wxID_ANY, _("Service")), 0, wxALIGN_CENTER_VERTICAL);
+	grid->Add(new wxStaticText(titleParent, wxID_ANY, _("Read")), 0, wxALIGN_CENTER);
+	grid->Add(new wxStaticText(titleParent, wxID_ANY, _("Write")), 0, wxALIGN_CENTER);
+	grid->Add(new wxStaticText(titleParent, wxID_ANY, _("Mapped injection")), 0, wxALIGN_CENTER);
 	const std::array<const char*, 9> names{
 		"Core", "Input", "Logging", "Configuration", "File", "Clipboard", "Window", "Capture", "Diagnostics"
 	};
 	for (size_t index = 0; index < names.size(); ++index)
 	{
-		grid->Add(new wxStaticText(panel, wxID_ANY, wxString::FromUTF8(names[index])), 0,
+		grid->Add(new wxStaticText(titleParent, wxID_ANY, wxString::FromUTF8(names[index])), 0,
 			wxALIGN_CENTER_VERTICAL);
-		m_cemuextend_read[index] = new wxCheckBox(panel, wxID_ANY, wxEmptyString);
-		m_cemuextend_write[index] = new wxCheckBox(panel, wxID_ANY, wxEmptyString);
-		m_cemuextend_inject[index] = new wxCheckBox(panel, wxID_ANY, wxEmptyString);
+		m_cemuextend_read[index] = new wxCheckBox(titleParent, wxID_ANY, wxEmptyString);
+		m_cemuextend_write[index] = new wxCheckBox(titleParent, wxID_ANY, wxEmptyString);
+		m_cemuextend_inject[index] = new wxCheckBox(titleParent, wxID_ANY, wxEmptyString);
 		grid->Add(m_cemuextend_read[index], 0, wxALIGN_CENTER);
 		grid->Add(m_cemuextend_write[index], 0, wxALIGN_CENTER);
 		grid->Add(m_cemuextend_inject[index], 0, wxALIGN_CENTER);
 	}
 	titleBox->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	auto* apply = new wxButton(panel, wxID_ANY, _("Save grants"));
+	auto* apply = new wxButton(titleParent, wxID_ANY, _("Save grants"));
 	titleBox->Add(apply, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 	root->Add(titleBox, 0, wxEXPAND | wxALL, 8);
+
+	auto* modBox = new wxStaticBoxSizer(wxVERTICAL, panel, _(".cemod packages and permissions"));
+	auto* modParent = modBox->GetStaticBox();
+	auto* modRow = new wxBoxSizer(wxHORIZONTAL);
+	m_cemod_choice = new wxChoice(modParent, wxID_ANY);
+	modRow->Add(m_cemod_choice, 1, wxRIGHT, 8);
+	auto* refreshMods = new wxButton(modParent, wxID_ANY, _("Refresh packages"));
+	modRow->Add(refreshMods, 0);
+	modBox->Add(modRow, 0, wxEXPAND | wxALL, 8);
+	m_cemod_status = new wxStaticText(modParent, wxID_ANY, wxEmptyString);
+	modBox->Add(m_cemod_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	m_cemod_approved = new wxCheckBox(modParent, wxID_ANY, _("Enable and approve on the next title launch"));
+	modBox->Add(m_cemod_approved, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	const std::array<const char*, 5> permissionNames{
+		"Read host state", "Write Mod storage/logging", "Input injection", "Clipboard", "Capture"
+	};
+	for (std::size_t index = 0; index < permissionNames.size(); ++index)
+	{
+		m_cemod_permissions[index] = new wxCheckBox(modParent, wxID_ANY,
+			wxString::FromUTF8(permissionNames[index]));
+		modBox->Add(m_cemod_permissions[index], 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	}
+	auto* modButtons = new wxBoxSizer(wxHORIZONTAL);
+	auto* import = new wxButton(modParent, wxID_ANY, _("Import legacy title data…"));
+	auto* saveMod = new wxButton(modParent, wxID_ANY, _("Save Mod grant"));
+	modButtons->Add(import, 0, wxRIGHT, 8);
+	modButtons->AddStretchSpacer();
+	modButtons->Add(saveMod, 0);
+	modBox->Add(modButtons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	root->Add(modBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 	root->Add(new wxStaticText(panel, wxID_ANY,
-		_("Defaults allow Core, Input read/guest-only injection, Logging, Configuration/File read, Window and Diagnostics. Clipboard, Capture, file/config changes and mapped input injection require an explicit grant.")),
+		_("Defaults allow Core, Input read, Logging, Configuration/File read, Window and Diagnostics. Clipboard, Capture, file/config changes and all input injection require an explicit grant.")),
 		0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
 	panel->SetSizer(root);
 
@@ -1047,6 +1079,10 @@ wxPanel* GeneralSettings2::AddCemuExtendPage(wxNotebook* notebook)
 		m_cemuextend_title_id->SetValue(fmt::format("{:016x}", CafeSystem::GetForegroundTitleId()));
 	load->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { LoadCemuExtendGrant(); });
 	apply->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { StoreCemuExtendGrant(); });
+	refreshMods->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RefreshCemodList(); });
+	m_cemod_choice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { LoadCemodGrant(); });
+	saveMod->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { StoreCemodGrant(); });
+	import->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ImportLegacyCemodData(); });
 	LoadCemuExtendGrant();
 	return panel;
 }
@@ -1062,6 +1098,7 @@ void GeneralSettings2::LoadCemuExtendGrant()
 			m_cemuextend_write[index]->SetValue(false);
 			m_cemuextend_inject[index]->SetValue(false);
 		}
+		RefreshCemodList();
 		return;
 	}
 	const auto configured = GetConfig().GetCemuExtendGrant(titleId);
@@ -1075,6 +1112,7 @@ void GeneralSettings2::LoadCemuExtendGrant()
 		m_cemuextend_write[index]->SetValue((grant.write_mask & bit) != 0);
 		m_cemuextend_inject[index]->SetValue((grant.inject_mask & bit) != 0);
 	}
+	RefreshCemodList();
 }
 
 void GeneralSettings2::StoreCemuExtendGrant()
@@ -1082,7 +1120,7 @@ void GeneralSettings2::StoreCemuExtendGrant()
 	unsigned long long titleId{};
 	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
 	{
-		wxMessageBox(_("Enter a valid non-zero 16-digit hexadecimal title ID."), _("CemuExtend Bridge"),
+		wxMessageBox(_("Enter a valid non-zero 16-digit hexadecimal title ID."), _("CemuExtend"),
 			wxOK | wxICON_WARNING, this);
 		return;
 	}
@@ -1096,8 +1134,107 @@ void GeneralSettings2::StoreCemuExtendGrant()
 	}
 	GetConfig().SetCemuExtendGrant(titleId, grant);
 	GetConfigHandle().Save();
-	if (CafeSystem::IsTitleRunning() && CafeSystem::GetForegroundTitleId() == titleId)
-		cemuextend_hle::PermissionsChanged();
+	// Grants intentionally take effect on the next title launch.
+}
+
+void GeneralSettings2::RefreshCemodList()
+{
+	if (!m_cemod_choice) return;
+	m_cemod_choice->Clear();
+	m_cemod_principals.clear();
+	m_cemod_requested.clear();
+	m_cemod_trusted.clear();
+	m_cemod_signed.clear();
+	unsigned long long titleId{};
+	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
+	{
+		m_cemod_status->SetLabel(_("Enter a title ID to discover compatible .cemod packages."));
+		LoadCemodGrant();
+		return;
+	}
+	std::size_t rejected{};
+	for (const auto& package : cemuextend_hle::DiscoverCemods(titleId))
+	{
+		if (!package.error.empty()) { ++rejected; continue; }
+		m_cemod_choice->Append(wxString::FromUTF8(fmt::format("{} [{}; {}]", package.modId,
+			package.executionMode == CemodExecutionMode::TrustedNative ? "trusted native" : "isolated",
+			package.signedPackage ? "signed" : "unsigned")));
+		m_cemod_principals.push_back(package.principal);
+		m_cemod_requested.push_back(package.requestedPermissions);
+		m_cemod_trusted.push_back(package.executionMode == CemodExecutionMode::TrustedNative);
+		m_cemod_signed.push_back(package.signedPackage);
+	}
+	if (!m_cemod_principals.empty()) m_cemod_choice->SetSelection(0);
+	m_cemod_status->SetLabel(wxString::FromUTF8(fmt::format(
+		"{} compatible package(s), {} rejected. Packages folder: {}",
+		m_cemod_principals.size(), rejected,
+		_pathToUtf8(ActiveSettings::GetUserDataPath("cemuextend/mods")))));
+	LoadCemodGrant();
+}
+
+void GeneralSettings2::LoadCemodGrant()
+{
+	const auto selection = m_cemod_choice ? m_cemod_choice->GetSelection() : wxNOT_FOUND;
+	unsigned long long titleId{};
+	const bool valid = selection != wxNOT_FOUND && static_cast<std::size_t>(selection) < m_cemod_principals.size() &&
+		m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) && titleId != 0;
+	const auto grant = valid ? GetConfig().GetCemuExtendModGrant(titleId,
+		m_cemod_principals[selection]).value_or(CemuExtendModGrant{}) : CemuExtendModGrant{};
+	const auto granted = grant.permissions;
+	const auto requested = valid ? m_cemod_requested[selection] : 0;
+	m_cemod_approved->Enable(valid);
+	m_cemod_approved->SetValue(valid && grant.approved &&
+		(requested & ~grant.approved_request_mask) == 0);
+	if (valid && m_cemod_trusted[selection])
+		m_cemod_status->SetLabel(_("TRUSTED NATIVE: can access all game memory, Cafe/GX2 APIs, and other native Mods. CEX2 permissions and storage are shared by this title."));
+	for (std::size_t index = 0; index < m_cemod_permissions.size(); ++index)
+	{
+		const auto bit = 1U << index;
+		m_cemod_permissions[index]->Enable(valid && (requested & bit));
+		m_cemod_permissions[index]->SetValue(valid && (granted & bit));
+	}
+}
+
+void GeneralSettings2::StoreCemodGrant()
+{
+	const auto selection = m_cemod_choice->GetSelection();
+	unsigned long long titleId{};
+	if (selection == wxNOT_FOUND || static_cast<std::size_t>(selection) >= m_cemod_principals.size() ||
+		!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0) return;
+	uint32 permissions{};
+	for (std::size_t index = 0; index < m_cemod_permissions.size(); ++index)
+		if (m_cemod_permissions[index]->IsEnabled() && m_cemod_permissions[index]->IsChecked())
+			permissions |= 1U << index;
+	permissions &= m_cemod_requested[selection];
+	const bool approved = m_cemod_approved->IsChecked();
+	if (approved && m_cemod_trusted[selection])
+	{
+		const auto answer = wxMessageBox(
+			_("This trusted native package can execute inside the game address space, read or modify any game memory, call Cafe/GX2 APIs, and interfere with other native Mods. CEX2 permissions are shared by every trusted Mod in this title. Approve it for the next title launch?"),
+			_("Approve trusted native .cemod"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+		if (answer != wxYES) return;
+	}
+	GetConfig().SetCemuExtendModGrant(titleId, m_cemod_principals[selection],
+		{permissions, approved ? m_cemod_requested[selection] : 0U, approved});
+	GetConfigHandle().Save();
+	m_cemod_status->SetLabel(_("Saved. The change will apply on the next title launch."));
+}
+
+void GeneralSettings2::ImportLegacyCemodData()
+{
+	const auto selection = m_cemod_choice->GetSelection();
+	unsigned long long titleId{};
+	if (selection == wxNOT_FOUND || static_cast<std::size_t>(selection) >= m_cemod_principals.size() ||
+		!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0) return;
+	if (wxMessageBox(_("Copy this title's legacy shared File and Configuration data into only the selected Mod? Existing ABI 2 data will not be overwritten."),
+		_("Import CemuExtend data"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this) != wxYES) return;
+	std::string error;
+	if (cemuextend_hle::ImportLegacyData(titleId, m_cemod_principals[selection], error))
+		wxMessageBox(_("Legacy data was imported for the selected Mod."), _("Import CemuExtend data"),
+			wxOK | wxICON_INFORMATION, this);
+	else
+		wxMessageBox(wxString::FromUTF8(error), _("Import CemuExtend data"),
+			wxOK | wxICON_ERROR, this);
 }
 
 wxPanel* GeneralSettings2::AddDebugPage(wxNotebook* notebook)
@@ -1330,40 +1467,46 @@ void GeneralSettings2::StoreConfig()
 			config.portal_device = device_description->GetDescription()->GetIdentifier();
 	}
 
-	// graphics
-	config.graphic_api = m_api_map[m_graphic_api->GetSelection()];
-
-	selection = m_graphic_device->GetSelection();
-#ifdef ENABLE_VULKAN
-	if (config.graphic_api == GraphicAPI::kVulkan)
+	// Graphics API and device changes only take effect when no title is running.
+	// In particular, the Vulkan device list must not be re-enumerated while the
+	// active renderer owns an instance, and the placeholder shown in that state
+	// must never overwrite the configured device UUID.
+	if (!CafeSystem::IsTitleRunning())
 	{
-    	if (selection != wxNOT_FOUND)
-    	{
-    		const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
-    		if (info)
-    			config.vk_graphic_device_uuid = info->GetDeviceInfo().uuid;
-    		else
-    			config.vk_graphic_device_uuid = {};
-    	}
-    	else
-    		config.vk_graphic_device_uuid = {};
-	}
+		config.graphic_api = m_api_map[m_graphic_api->GetSelection()];
+
+		selection = m_graphic_device->GetSelection();
+#ifdef ENABLE_VULKAN
+		if (config.graphic_api == GraphicAPI::kVulkan)
+		{
+			if (selection != wxNOT_FOUND)
+			{
+				const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
+				if (info)
+					config.vk_graphic_device_uuid = info->GetDeviceInfo().uuid;
+				else
+					config.vk_graphic_device_uuid = {};
+			}
+			else
+				config.vk_graphic_device_uuid = {};
+		}
 #endif
 #ifdef ENABLE_METAL
-	if (config.graphic_api == GraphicAPI::kMetal)
-	{
-		if (selection != wxNOT_FOUND)
+		if (config.graphic_api == GraphicAPI::kMetal)
 		{
-			const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
-			if (info)
-				config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+			if (selection != wxNOT_FOUND)
+			{
+				const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
+				if (info)
+					config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+				else
+					config.mtl_graphic_device_uuid = {};
+			}
 			else
 				config.mtl_graphic_device_uuid = {};
 		}
-		else
-			config.mtl_graphic_device_uuid = {};
-	}
 #endif
+	}
 
 
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
@@ -1883,9 +2026,17 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 
 		m_vsync->Select(selection);
 
+		m_graphic_device->Clear();
+		if (CafeSystem::IsTitleRunning())
+		{
+			m_graphic_device->AppendString(_("Current device (restart title to change)"));
+			m_graphic_device->SetSelection(0);
+			m_graphic_device->Disable();
+			break;
+		}
+
 		m_graphic_device->Enable();
 		auto devices = VulkanRenderer::GetDevices();
-		m_graphic_device->Clear();
 		if(!devices.empty())
 		{
 			for(const auto& device : devices)

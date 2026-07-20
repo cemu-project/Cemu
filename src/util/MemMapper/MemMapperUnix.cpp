@@ -23,8 +23,8 @@ namespace MemMapper
 			p = PROT_READ | PROT_WRITE | PROT_EXEC;
 		else if (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_READ) && HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_WRITE) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_EXECUTE))
 			p = PROT_READ | PROT_WRITE;
-		else if (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_READ) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_WRITE) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_EXECUTE))
-			p = PROT_READ;
+		else if (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_READ) && !HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_WRITE))
+			p = PROT_READ | (HAS_FLAG(permissionFlags, PAGE_PERMISSION::P_EXECUTE) ? PROT_EXEC : 0);
 		else
 			cemu_assert_unimplemented();
 		return p;
@@ -65,6 +65,17 @@ namespace MemMapper
 			mprotect(baseAddr, size, PROT_NONE);
 		else
 			munmap(baseAddr, size);
+	}
+
+	bool SetMemoryPermission(void* baseAddr, size_t size, PAGE_PERMISSION permissionFlags)
+	{
+		if (!baseAddr || size == 0)
+			return false;
+		const auto pageSize = GetPageSize();
+		auto address = reinterpret_cast<uintptr_t>(baseAddr);
+		auto page = address & ~(pageSize - 1);
+		auto end = (address + size + pageSize - 1) & ~(pageSize - 1);
+		return mprotect(reinterpret_cast<void*>(page), end - page, GetProt(permissionFlags)) == 0;
 	}
 
 };

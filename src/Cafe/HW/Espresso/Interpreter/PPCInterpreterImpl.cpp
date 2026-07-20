@@ -3,6 +3,7 @@
 #include "Cafe/HW/Espresso/Debugger/Debugger.h"
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 #include "Cafe/HW/Espresso/ModExecutionContext.h"
+#include "Cafe/HW/Espresso/Interpreter/PPCSandboxInstructionPolicy.h"
 
 namespace
 {
@@ -31,24 +32,43 @@ public:
 	{
 		if (hCPU->modExecutionContext)
 		{
+			if ((address & 3U) != 0)
+			{
+				hCPU->modExecutionContext->Stop(ModFaultReason::InvalidMapping, address,
+					ModMemoryPermission::Execute);
+				hCPU->memoryException = true;
+				hCPU->remainingCycles = 0;
+				return 0;
+			}
 			auto* pointer = ResolveModMemory(hCPU, address, sizeof(uint32), ModMemoryPermission::Execute);
-			return pointer ? _swapEndianU32(*(uint32*)pointer) : 0;
+			uint32 value{};
+			if (pointer) std::memcpy(&value, pointer, sizeof(value));
+			return _swapEndianU32(value);
 		}
 		return _swapEndianU32(*(uint32*)(memory_base + address));
 	}
 
 	inline static void ppcMem_writeDataDouble(PPCInterpreter_t* hCPU, uint32 address, double vf)
 	{
-		uint64 v = *(uint64*)&vf;
+		uint64 v = std::bit_cast<uint64>(vf);
 		uint32 v1 = v & 0xFFFFFFFF;
 		uint32 v2 = v >> 32;
-		uint8* ptr = hCPU->modExecutionContext ?
-			ResolveModMemory(hCPU, address, sizeof(uint64), ModMemoryPermission::Write) :
-			memory_getPointerFromVirtualOffset(address);
+		uint8* ptr = hCPU->modExecutionContext ? ResolveModMemory(hCPU, address, sizeof(uint64),
+			ModMemoryPermission::Write) : memory_getPointerFromVirtualOffset(address);
 		if (!ptr)
 			return;
-		*(uint32*)(ptr + 4) = CPU_swapEndianU32(v1);
-		*(uint32*)(ptr + 0) = CPU_swapEndianU32(v2);
+		v1 = CPU_swapEndianU32(v1);
+		v2 = CPU_swapEndianU32(v2);
+		if (hCPU->modExecutionContext)
+		{
+			std::memcpy(ptr + 4, &v1, sizeof(v1));
+			std::memcpy(ptr, &v2, sizeof(v2));
+		}
+		else
+		{
+			*(uint32*)(ptr + 4) = v1;
+			*(uint32*)ptr = v2;
+		}
 	}
 
 	inline static void ppcMem_writeDataU64(PPCInterpreter_t* hCPU, uint32 address, uint64 v)
@@ -57,7 +77,11 @@ public:
 			ResolveModMemory(hCPU, address, sizeof(v), ModMemoryPermission::Write) :
 			memory_getPointerFromVirtualOffset(address);
 		if (pointer)
-			*(uint64*)pointer = CPU_swapEndianU64(v);
+		{
+			v = CPU_swapEndianU64(v);
+			if (hCPU->modExecutionContext) std::memcpy(pointer, &v, sizeof(v));
+			else *(uint64*)pointer = v;
+		}
 	}
 
 	inline static void ppcMem_writeDataU32(PPCInterpreter_t* hCPU, uint32 address, uint32 v)
@@ -66,7 +90,11 @@ public:
 			ResolveModMemory(hCPU, address, sizeof(v), ModMemoryPermission::Write) :
 			memory_getPointerFromVirtualOffset(address);
 		if (pointer)
-			*(uint32*)pointer = CPU_swapEndianU32(v);
+		{
+			v = CPU_swapEndianU32(v);
+			if (hCPU->modExecutionContext) std::memcpy(pointer, &v, sizeof(v));
+			else *(uint32*)pointer = v;
+		}
 	}
 
 	inline static void ppcMem_writeDataU16(PPCInterpreter_t* hCPU, uint32 address, uint16 v)
@@ -75,7 +103,11 @@ public:
 			ResolveModMemory(hCPU, address, sizeof(v), ModMemoryPermission::Write) :
 			memory_getPointerFromVirtualOffset(address);
 		if (pointer)
-			*(uint16*)pointer = CPU_swapEndianU16(v);
+		{
+			v = CPU_swapEndianU16(v);
+			if (hCPU->modExecutionContext) std::memcpy(pointer, &v, sizeof(v));
+			else *(uint16*)pointer = v;
+		}
 	}
 
 	inline static void ppcMem_writeDataU8(PPCInterpreter_t* hCPU, uint32 address, uint8 v)
@@ -95,11 +127,19 @@ public:
 		if (!pointer)
 			return 0.0;
 		uint32 v[2];
-		v[1] = *(uint32*)pointer;
-		v[0] = *(uint32*)(pointer + 4);
+		if (hCPU->modExecutionContext)
+		{
+			std::memcpy(&v[1], pointer, sizeof(uint32));
+			std::memcpy(&v[0], pointer + 4, sizeof(uint32));
+		}
+		else
+		{
+			v[1] = *(uint32*)pointer;
+			v[0] = *(uint32*)(pointer + 4);
+		}
 		v[0] = CPU_swapEndianU32(v[0]);
 		v[1] = CPU_swapEndianU32(v[1]);
-		return *(double*)v;
+		return std::bit_cast<double>((static_cast<uint64>(v[1]) << 32U) | v[0]);
 	}
 
 	inline static float ppcMem_readDataFloat(PPCInterpreter_t* hCPU, uint32 address)
@@ -109,9 +149,11 @@ public:
 			memory_getPointerFromVirtualOffset(address);
 		if (!pointer)
 			return 0.0f;
-		uint32 v = *(uint32*)pointer;
+		uint32 v{};
+		if (hCPU->modExecutionContext) std::memcpy(&v, pointer, sizeof(v));
+		else v = *(uint32*)pointer;
 		v = CPU_swapEndianU32(v);
-		return *(float*)&v;
+		return std::bit_cast<float>(v);
 	}
 
 	inline static uint64 ppcMem_readDataU64(PPCInterpreter_t* hCPU, uint32 address)
@@ -121,7 +163,9 @@ public:
 			memory_getPointerFromVirtualOffset(address);
 		if (!pointer)
 			return 0;
-		uint64 v = *(uint64*)pointer;
+		uint64 v{};
+		if (hCPU->modExecutionContext) std::memcpy(&v, pointer, sizeof(v));
+		else v = *(uint64*)pointer;
 		return CPU_swapEndianU64(v);
 	}
 
@@ -132,7 +176,9 @@ public:
 			memory_getPointerFromVirtualOffset(address);
 		if (!pointer)
 			return 0;
-		uint32 v = *(uint32*)pointer;
+		uint32 v{};
+		if (hCPU->modExecutionContext) std::memcpy(&v, pointer, sizeof(v));
+		else v = *(uint32*)pointer;
 		return CPU_swapEndianU32(v);
 	}
 
@@ -143,7 +189,9 @@ public:
 			memory_getPointerFromVirtualOffset(address);
 		if (!pointer)
 			return 0;
-		uint16 v = *(uint16*)pointer;
+		uint16 v{};
+		if (hCPU->modExecutionContext) std::memcpy(&v, pointer, sizeof(v));
+		else v = *(uint16*)pointer;
 		return CPU_swapEndianU16(v);
 	}
 
@@ -159,7 +207,11 @@ public:
 	{
 		auto* pointer = hCPU->modExecutionContext ?
 			ResolveModMemory(hCPU, addr, sizeof(uint32), ModMemoryPermission::Read) : memory_base + addr;
-		return pointer ? ConvertToDoubleNoFTZ(_swapEndianU32(*(uint32*)pointer)) : 0;
+		if (!pointer) return 0;
+		uint32 value{};
+		if (hCPU->modExecutionContext) std::memcpy(&value, pointer, sizeof(value));
+		else value = *(uint32*)pointer;
+		return ConvertToDoubleNoFTZ(_swapEndianU32(value));
 	}
 
 	inline static void ppcMem_writeDataFloatEx(PPCInterpreter_t* hCPU, uint32 addr, uint64 value)
@@ -167,11 +219,17 @@ public:
 		auto* pointer = hCPU->modExecutionContext ?
 			ResolveModMemory(hCPU, addr, sizeof(uint32), ModMemoryPermission::Write) : memory_base + addr;
 		if (pointer)
-			*(uint32*)pointer = _swapEndianU32(ConvertToSingleNoFTZ(value));
+		{
+			auto encoded = _swapEndianU32(ConvertToSingleNoFTZ(value));
+			if (hCPU->modExecutionContext) std::memcpy(pointer, &encoded, sizeof(encoded));
+			else *(uint32*)pointer = encoded;
+		}
 	}
 
 	inline static uint64 getTB(PPCInterpreter_t* hCPU)
 	{
+		if (hCPU->modExecutionContext)
+			return hCPU->global->tb / 20ULL;
 		return PPCInterpreter_getMainCoreCycleCounter();
 	}
 };
@@ -526,12 +584,23 @@ public:
 		{
 			hCPU->global->tb++;
 		}
+		else if (hCPU->modExecutionContext)
+		{
+			hCPU->global->tb++;
+		}
 
 #ifdef __DEBUG_OUTPUT_INSTRUCTION
 		debug_printf("%08x: ", hCPU->instructionPointer);
 #endif
 
 		uint32 opcode = ppcItpCtrl::memory_readCodeU32(hCPU, hCPU->instructionPointer);
+		if (hCPU->modExecutionContext && !cemod_sandbox::IsInstructionAllowed(opcode))
+		{
+			hCPU->modExecutionContext->Stop(ModFaultReason::PrivilegedInstruction,
+				hCPU->instructionPointer, ModMemoryPermission::Execute);
+			hCPU->remainingCycles = 0;
+			return;
+		}
 
 		switch ((opcode >> 26))
 		{

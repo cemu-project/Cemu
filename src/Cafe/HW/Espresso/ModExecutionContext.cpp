@@ -22,8 +22,8 @@ ModExecutionContext::ModExecutionContext(std::uint64_t addressSpaceId, std::uint
 		size > kMaximumAddressSpaceBytes || virtualBase % kPageSize != 0 || size % kPageSize != 0 ||
 		virtualBase > std::numeric_limits<std::uint32_t>::max() - size)
 	{
-		m_stopped = true;
 		m_fault.reason = ModFaultReason::InvalidMapping;
+		m_stopped.store(true, std::memory_order_release);
 		return;
 	}
 	m_memory.resize(size);
@@ -137,6 +137,41 @@ bool ModExecutionContext::IsHleAllowed(std::uint16_t hleId) const
 	return !IsStopped() && m_allowedHles.contains(hleId);
 }
 
+bool ModExecutionContext::IsServiceAllowed(std::uint16_t service, std::uint32_t permission,
+	std::uint16_t operation) const
+{
+	if (service == 1 || permission == 0)
+		return true;
+	if (service < 2 || service > 9)
+		return false;
+	const auto serviceBit = 1U << (service - 1U);
+	if (permission == 1)
+		return (m_serviceReadMask.load(std::memory_order_acquire) & serviceBit) != 0;
+	if (permission == 2)
+		return (m_serviceWriteMask.load(std::memory_order_acquire) & serviceBit) != 0;
+	if (permission == 4)
+		return (m_serviceInjectMask.load(std::memory_order_acquire) & serviceBit) != 0;
+	if (permission == 8) // Clipboard Get/Set
+		return (((operation == 1 ? m_serviceReadMask : m_serviceWriteMask)
+			.load(std::memory_order_acquire)) & serviceBit) != 0;
+	if (permission == 16) // Capture is host-state read access.
+		return (m_serviceReadMask.load(std::memory_order_acquire) & serviceBit) != 0;
+	return false;
+}
+
+void ModExecutionContext::SetServicePermissions(ModServicePermissions permissions)
+{
+	m_serviceReadMask.store(permissions.readMask, std::memory_order_release);
+	m_serviceWriteMask.store(permissions.writeMask, std::memory_order_release);
+	m_serviceInjectMask.store(permissions.injectMask, std::memory_order_release);
+}
+
+ModFault ModExecutionContext::Fault() const
+{
+	std::lock_guard lock(m_faultMutex);
+	return m_fault;
+}
+
 void ModExecutionContext::BeginFrame()
 {
 	if (m_frameQuotaExceeded)
@@ -183,7 +218,9 @@ void ModExecutionContext::MarkQuotaExceeded(ModFaultReason reason)
 void ModExecutionContext::Stop(ModFaultReason reason, std::uint32_t address,
 	ModMemoryPermission access)
 {
-	bool expected = false;
-	if (m_stopped.compare_exchange_strong(expected, true, std::memory_order_acq_rel))
-		m_fault = {reason, address, access};
+	std::lock_guard lock(m_faultMutex);
+	if (m_stopped.load(std::memory_order_relaxed))
+		return;
+	m_fault = {reason, address, access};
+	m_stopped.store(true, std::memory_order_release);
 }

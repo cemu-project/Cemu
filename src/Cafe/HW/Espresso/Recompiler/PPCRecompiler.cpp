@@ -21,6 +21,11 @@
 #endif
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 
+#include <cstring>
+#include <memory>
+#include <mutex>
+#include <unordered_map>
+
 #define PPCREC_FORCE_SYNCHRONOUS_COMPILATION	0 // if 1, then function recompilation will block and execute on the thread that called PPCRecompiler_visitAddressNoBlock
 #define PPCREC_LOG_RECOMPILATION_RESULTS		0
 
@@ -65,6 +70,168 @@ static std::mutex s_singleRecompilationMutex;
 #endif
 
 void PPCRecompiler_recompileAtAddress(uint32 address);
+
+namespace
+{
+	struct SandboxJitKey
+	{
+		uint64 addressSpaceId{};
+		uint32 generation{};
+		uint32 address{};
+
+		bool operator==(const SandboxJitKey&) const = default;
+	};
+
+	struct SandboxJitKeyHash
+	{
+		size_t operator()(const SandboxJitKey& key) const
+		{
+			auto value = std::hash<uint64>{}(key.addressSpaceId);
+			value ^= std::hash<uint32>{}(key.generation) + 0x9e3779b9U + (value << 6) + (value >> 2);
+			value ^= std::hash<uint32>{}(key.address) + 0x9e3779b9U + (value << 6) + (value >> 2);
+			return value;
+		}
+	};
+
+	struct SandboxJitBlock
+	{
+		SandboxJitKey key;
+		void* code{};
+		size_t allocationSize{};
+
+		~SandboxJitBlock()
+		{
+			if (code)
+				MemMapper::FreeMemory(code, allocationSize);
+		}
+	};
+
+	using SandboxJitEntry = void (*)(PPCInterpreter_t*);
+	std::mutex s_sandboxJitMutex;
+	std::unordered_map<SandboxJitKey, std::shared_ptr<SandboxJitBlock>, SandboxJitKeyHash> s_sandboxJitCache;
+
+	void SandboxJitCheckedInstruction(PPCInterpreter_t* hCPU, const SandboxJitBlock* block)
+	{
+		if (!hCPU || !block || !hCPU->modExecutionContext)
+			return;
+		auto& context = *hCPU->modExecutionContext;
+		if (context.IsStopped() || context.AddressSpaceId() != block->key.addressSpaceId ||
+			context.Generation() != block->key.generation || hCPU->instructionPointer != block->key.address)
+		{
+			context.Stop(ModFaultReason::InvalidMapping, hCPU->instructionPointer,
+				ModMemoryPermission::Execute);
+			hCPU->remainingCycles = 0;
+			return;
+		}
+		// Resolve here as the native-entry instruction-fetch guard. The checked
+		// interpreter repeats this guard and handles every data access and HLE.
+		if (!context.Resolve(block->key.address, sizeof(uint32), ModMemoryPermission::Execute))
+		{
+			hCPU->remainingCycles = 0;
+			return;
+		}
+		PPCInterpreterSlim_executeInstruction(hCPU);
+	}
+
+	template<typename T>
+	void AppendImmediate(std::vector<uint8>& code, T value)
+	{
+		const auto* bytes = reinterpret_cast<const uint8*>(&value);
+		code.insert(code.end(), bytes, bytes + sizeof(value));
+	}
+
+#if defined(__aarch64__)
+	uint32 A64MoveWide(uint32 base, uint32 reg, uint16 immediate, uint32 shift)
+	{
+		return base | ((shift / 16U) << 21U) | (static_cast<uint32>(immediate) << 5U) | reg;
+	}
+
+	void EmitA64Pointer(std::vector<uint8>& code, uint32 reg, uintptr_t value)
+	{
+		for (uint32 shift = 0; shift < 64; shift += 16)
+		{
+			const auto instruction = A64MoveWide(shift == 0 ? 0xD2800000U : 0xF2800000U,
+				reg, static_cast<uint16>(value >> shift), shift);
+			AppendImmediate(code, instruction);
+		}
+	}
+#endif
+
+	bool BuildSandboxJitStub(SandboxJitBlock& block)
+	{
+		std::vector<uint8> code;
+#if defined(ARCH_X86_64)
+#if BOOST_OS_WINDOWS
+		// Windows x64: hCPU is RCX, block is RDX.
+		code.insert(code.end(), {0x48, 0xBA});
+#else
+		// System V x64: hCPU is RDI, block is RSI.
+		code.insert(code.end(), {0x48, 0xBE});
+#endif
+		AppendImmediate(code, reinterpret_cast<uintptr_t>(&block));
+		code.insert(code.end(), {0x48, 0xB8});
+		AppendImmediate(code, reinterpret_cast<uintptr_t>(&SandboxJitCheckedInstruction));
+		code.insert(code.end(), {0xFF, 0xE0});
+#elif defined(__aarch64__)
+		// AAPCS64: hCPU is X0, block is X1, X16 is the call target.
+		EmitA64Pointer(code, 1, reinterpret_cast<uintptr_t>(&block));
+		EmitA64Pointer(code, 16, reinterpret_cast<uintptr_t>(&SandboxJitCheckedInstruction));
+		AppendImmediate(code, uint32{0xD61F0200U}); // br x16
+#else
+		return false;
+#endif
+		block.allocationSize = MemMapper::GetPageSize();
+		block.code = MemMapper::AllocateMemory(nullptr, block.allocationSize,
+			MemMapper::PAGE_PERMISSION::P_RW);
+		if (!block.code || code.size() > block.allocationSize)
+			return false;
+		std::memcpy(block.code, code.data(), code.size());
+		if (!MemMapper::SetMemoryPermission(block.code, block.allocationSize,
+			MemMapper::PAGE_PERMISSION::P_READ | MemMapper::PAGE_PERMISSION::P_EXECUTE))
+			return false;
+#if defined(__GNUC__) || defined(__clang__)
+		__builtin___clear_cache(reinterpret_cast<char*>(block.code),
+			reinterpret_cast<char*>(block.code) + code.size());
+#elif BOOST_OS_WINDOWS
+		FlushInstructionCache(GetCurrentProcess(), block.code, code.size());
+#endif
+		return true;
+	}
+}
+
+bool PPCRecompiler_executeSandboxInstruction(PPCInterpreter_t* hCPU)
+{
+	if (!hCPU || !hCPU->modExecutionContext || hCPU->modExecutionContext->IsStopped() ||
+		hCPU->remainingCycles <= 0)
+		return false;
+	const SandboxJitKey key{hCPU->modExecutionContext->AddressSpaceId(),
+		hCPU->modExecutionContext->Generation(), hCPU->instructionPointer};
+	std::shared_ptr<SandboxJitBlock> block;
+	{
+		std::lock_guard lock(s_sandboxJitMutex);
+		auto found = s_sandboxJitCache.find(key);
+		if (found == s_sandboxJitCache.end())
+		{
+			auto created = std::make_shared<SandboxJitBlock>();
+			created->key = key;
+			if (!BuildSandboxJitStub(*created))
+				return false;
+			found = s_sandboxJitCache.emplace(key, std::move(created)).first;
+		}
+		block = found->second;
+	}
+	const auto entry = reinterpret_cast<SandboxJitEntry>(block->code);
+	entry(hCPU);
+	return true;
+}
+
+void PPCRecompiler_invalidateSandboxContext(uint64 addressSpaceId, uint32 generation)
+{
+	std::lock_guard lock(s_sandboxJitMutex);
+	std::erase_if(s_sandboxJitCache, [addressSpaceId, generation](const auto& item) {
+		return item.first.addressSpaceId == addressSpaceId && item.first.generation == generation;
+	});
+}
 
 // this function does never block and can fail if the recompiler lock cannot be acquired immediately
 void PPCRecompiler_visitAddressNoBlock(uint32 enterAddress)

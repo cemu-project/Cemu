@@ -24,6 +24,8 @@ public:
 	static Cex2StorageResult Dispatch(std::uint64_t titleId, std::string_view principal,
 		cemuextend::wire::ServiceId service, std::uint16_t operation,
 		std::span<const std::byte> payload);
+	static cemuextend::wire::Status ImportLegacy(std::uint64_t titleId,
+		std::string_view principal);
 };
 
 } // namespace cemuextend_hle

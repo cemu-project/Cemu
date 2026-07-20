@@ -68,6 +68,29 @@ static void PPCInterpreter_STWCX(PPCInterpreter_t* hCPU, uint32 Opcode)
 		}
 		else
 		{
+			if (hCPU->modExecutionContext)
+			{
+				const auto currentValue = ppcItpCtrl::ppcMem_readDataU32(hCPU, ea);
+				if (!hCPU->memoryException && currentValue == hCPU->reservedMemValue)
+				{
+					ppcItpCtrl::ppcMem_writeDataU32(hCPU, ea, hCPU->gpr[rS]);
+					ppc_setCRBit(hCPU, CR_BIT_LT, 0);
+					ppc_setCRBit(hCPU, CR_BIT_GT, 0);
+					ppc_setCRBit(hCPU, CR_BIT_EQ, hCPU->memoryException ? 0 : 1);
+				}
+				else
+				{
+					ppc_setCRBit(hCPU, CR_BIT_LT, 0);
+					ppc_setCRBit(hCPU, CR_BIT_GT, 0);
+					ppc_setCRBit(hCPU, CR_BIT_EQ, 0);
+				}
+				cemu_assert_debug(hCPU->xer_so <= 1);
+				ppc_setCRBit(hCPU, CR_BIT_SO, hCPU->xer_so);
+				hCPU->reservedMemAddr = 0;
+				hCPU->reservedMemValue = 0;
+				PPCInterpreter_nextInstruction(hCPU);
+				return;
+			}
 			wordPtr = _rawPtrToAtomic((uint32be*)memory_getPointerFromVirtualOffset(ea));
 		}
 		uint32be newValue = hCPU->gpr[rS];
@@ -1163,7 +1186,8 @@ static void PPCInterpreter_DCBZ(PPCInterpreter_t* hCPU, uint32 Opcode)
 	}
 	else
 	{
-		memset((void*)memory_getPointerFromVirtualOffset(ea), 0x00, 0x20);
+		for (uint32 offset = 0; offset < 32; offset += sizeof(uint32))
+			ppcItpCtrl::ppcMem_writeDataU32(hCPU, ea + offset, 0);
 	}
 
 	// debug output

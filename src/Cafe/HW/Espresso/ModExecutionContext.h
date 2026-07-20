@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Cafe/OS/libs/cemuextend/Cex2Owner.h"
+
 #include <array>
 #include <atomic>
 #include <chrono>
@@ -7,6 +9,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <mutex>
 #include <unordered_set>
 #include <vector>
 
@@ -31,6 +34,7 @@ enum class ModFaultReason : std::uint8_t
 	PermissionDenied,
 	InvalidMapping,
 	DisallowedHle,
+	PrivilegedInstruction,
 	InstructionQuota,
 	WallClockQuota,
 };
@@ -42,9 +46,16 @@ struct ModFault
 	ModMemoryPermission access{};
 };
 
+struct ModServicePermissions
+{
+	std::uint32_t readMask{0x1ffU};
+	std::uint32_t writeMask{0x1ffU};
+	std::uint32_t injectMask{0x1ffU};
+};
+
 // Host-owned execution state for one isolated PPC Mod. The title CPU always has
 // a null context and retains its existing fast path.
-class ModExecutionContext
+class ModExecutionContext final : public cemuextend_hle::Cex2Owner
 {
 public:
 	static constexpr std::uint32_t kPageSize = 4096;
@@ -76,17 +87,24 @@ public:
 	void Stop(ModFaultReason reason, std::uint32_t address = 0,
 		ModMemoryPermission access = ModMemoryPermission::None);
 
-	[[nodiscard]] bool IsStopped() const { return m_stopped.load(std::memory_order_acquire); }
-	[[nodiscard]] ModFault Fault() const { return m_fault; }
-	[[nodiscard]] std::uint64_t AddressSpaceId() const { return m_addressSpaceId; }
-	[[nodiscard]] std::uint32_t Generation() const { return m_generation; }
-	[[nodiscard]] const std::string& Principal() const { return m_principal; }
+	[[nodiscard]] bool IsStopped() const override { return m_stopped.load(std::memory_order_acquire); }
+	[[nodiscard]] ModFault Fault() const;
+	[[nodiscard]] std::uint64_t AddressSpaceId() const override { return m_addressSpaceId; }
+	[[nodiscard]] std::uint32_t Generation() const override { return m_generation; }
+	[[nodiscard]] const std::string& Principal() const override { return m_principal; }
 	[[nodiscard]] std::uint32_t VirtualBase() const { return m_virtualBase; }
 	[[nodiscard]] std::uint32_t AddressSpaceSize() const { return static_cast<std::uint32_t>(m_memory.size()); }
-	void SetGrantedPermissions(std::uint32_t permissions) { m_grantedPermissions = permissions; }
-	[[nodiscard]] std::uint32_t GrantedPermissions() const { return m_grantedPermissions; }
+	void SetGrantedPermissions(std::uint32_t permissions) override {
+		m_grantedPermissions.store(permissions, std::memory_order_release);
+	}
+	[[nodiscard]] std::uint32_t GrantedPermissions() const override {
+		return m_grantedPermissions.load(std::memory_order_acquire);
+	}
 	void SetTitleId(std::uint64_t titleId) { m_titleId = titleId; }
-	[[nodiscard]] std::uint64_t TitleId() const { return m_titleId; }
+	[[nodiscard]] std::uint64_t TitleId() const override { return m_titleId; }
+	void SetServicePermissions(ModServicePermissions permissions);
+	[[nodiscard]] bool IsServiceAllowed(std::uint16_t service, std::uint32_t permission,
+		std::uint16_t operation = 0) const override;
 
 private:
 	[[nodiscard]] bool ValidateRange(std::uint32_t address, std::size_t size,
@@ -98,13 +116,17 @@ private:
 	std::uint64_t m_addressSpaceId{};
 	std::uint32_t m_generation{};
 	std::string m_principal;
-	std::uint32_t m_grantedPermissions{};
+	std::atomic<std::uint32_t> m_grantedPermissions{};
 	std::uint64_t m_titleId{};
+	std::atomic<std::uint32_t> m_serviceReadMask{0x1ffU};
+	std::atomic<std::uint32_t> m_serviceWriteMask{0x1ffU};
+	std::atomic<std::uint32_t> m_serviceInjectMask{0x1ffU};
 	std::uint32_t m_virtualBase{};
 	std::vector<std::byte> m_memory;
 	std::vector<ModMemoryPermission> m_pages;
 	std::unordered_set<std::uint16_t> m_allowedHles;
 	std::atomic_bool m_stopped{};
+	mutable std::mutex m_faultMutex;
 	ModFault m_fault{};
 	std::uint64_t m_frameInstructions{};
 	std::chrono::steady_clock::time_point m_frameStart{};

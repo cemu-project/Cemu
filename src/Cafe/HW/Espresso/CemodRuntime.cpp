@@ -3,13 +3,17 @@
 #include "Cafe/HW/Espresso/CemodRuntime.h"
 
 #include "Cafe/HW/Espresso/ModExecutionContext.h"
+#include "Cafe/HW/Espresso/TrustedCemodRuntime.h"
 #include "Cafe/HW/Espresso/PPCState.h"
+#include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cafe/OS/libs/cemuextend/Cex2Host.h"
 #include "Cafe/OS/libs/cemuextend/cemuextend.h"
+#include "Cafe/OS/common/OSCommon.h"
 
 #include <chrono>
 #include <map>
 #include <mutex>
+#include <set>
 
 namespace {
 
@@ -59,8 +63,15 @@ struct Entrypoints
 	std::uint32_t shutdown{};
 };
 
+struct HleImport
+{
+	std::string name;
+	std::uint32_t address{};
+};
+
 bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
-	Entrypoints& entrypoints, std::uint32_t& virtualBase, std::uint32_t& stackBase,
+	Entrypoints& entrypoints, std::vector<HleImport>& imports,
+	std::uint32_t& virtualBase, std::uint32_t& stackBase,
 	std::uint32_t& addressSpaceSize, std::string& error)
 {
 	const std::span<const std::byte> elf(package.elf);
@@ -72,8 +83,17 @@ bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
 	const auto programCount = U16(elf, 44);
 	const auto sectionSize = U16(elf, 46);
 	const auto sectionCount = U16(elf, 48);
+	if (programSize < 32 || programCount == 0 || programCount > 128 ||
+		programOffset > elf.size() ||
+		static_cast<std::uint64_t>(programCount) * programSize > elf.size() - programOffset)
+	{
+		error = "PPC ELF program table is out of bounds";
+		return false;
+	}
 	std::uint32_t lowest = std::numeric_limits<std::uint32_t>::max();
 	std::uint32_t highest{};
+	std::uint64_t codeBytes{};
+	std::uint64_t privateBytes{};
 	for (std::uint16_t index = 0; index < programCount; ++index)
 	{
 		const auto offset = programOffset + static_cast<std::uint32_t>(index) * programSize;
@@ -87,7 +107,8 @@ bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
 		std::uint32_t mappedSize{};
 		if (address % ModExecutionContext::kPageSize != 0 ||
 			!AlignUp(memorySize, mappedSize) || mappedSize == 0 ||
-			fileOffset > elf.size() || fileSize > elf.size() - fileOffset ||
+			fileSize > memorySize || fileOffset > elf.size() || fileSize > elf.size() - fileOffset ||
+			((flags & 1U) != 0 && (flags & 2U) != 0) ||
 			address > std::numeric_limits<std::uint32_t>::max() - mappedSize)
 		{
 			error = "PPC ELF load segments must be page-aligned and in range";
@@ -97,8 +118,21 @@ bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
 		if ((flags & 1U) != 0) permission = permission | ModMemoryPermission::Execute;
 		if ((flags & 2U) != 0) permission = permission | ModMemoryPermission::Write;
 		segments.push_back({address, fileOffset, fileSize, mappedSize, permission});
+		if ((flags & 1U) != 0)
+			codeBytes += mappedSize;
+		else
+			privateBytes += mappedSize;
 		lowest = std::min(lowest, address);
 		highest = std::max(highest, address + mappedSize);
+	}
+	const auto declaredCodeBytes = (static_cast<std::uint64_t>(package.manifest.codeBytes) +
+		ModExecutionContext::kPageSize - 1) & ~(static_cast<std::uint64_t>(ModExecutionContext::kPageSize) - 1);
+	const auto declaredPrivateBytes = (static_cast<std::uint64_t>(package.manifest.privateBytes) +
+		ModExecutionContext::kPageSize - 1) & ~(static_cast<std::uint64_t>(ModExecutionContext::kPageSize) - 1);
+	if (codeBytes == 0 || codeBytes > declaredCodeBytes || privateBytes > declaredPrivateBytes)
+	{
+		error = "PPC ELF mappings exceed the manifest memory limits";
+		return false;
 	}
 	if (segments.empty() || sectionCount == 0 || sectionSize < 40 ||
 		sectionOffset > elf.size() || static_cast<std::uint64_t>(sectionCount) * sectionSize > elf.size() - sectionOffset)
@@ -111,6 +145,10 @@ bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
 		{"cemod_init", &entrypoints.init}, {"cemod_tick", &entrypoints.tick},
 		{"cemod_event", &entrypoints.event}, {"cemod_shutdown", &entrypoints.shutdown},
 	};
+	const std::set<std::string_view> hleNames{
+		"CEX2Query", "CEX2Open", "CEX2Submit", "CEX2Poll", "CEX2Cancel", "CEX2Close"};
+	std::set<std::string> foundEntrypoints;
+	std::set<std::string> foundImports;
 	for (std::uint16_t section = 0; section < sectionCount; ++section)
 	{
 		const auto offset = sectionOffset + static_cast<std::uint32_t>(section) * sectionSize;
@@ -140,8 +178,20 @@ bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
 			const auto length = strnlen(name, maximum);
 			if (length == maximum)
 				continue;
-			if (const auto found = wanted.find(std::string_view(name, length)); found != wanted.end())
-				*found->second = U32(elf, symbolOffset + 4);
+			const std::string_view symbolName(name, length);
+			const auto symbolAddress = U32(elf, symbolOffset + 4);
+			if (const auto found = wanted.find(symbolName); found != wanted.end())
+			{
+				if (!foundEntrypoints.emplace(symbolName).second)
+				{ error = "PPC ELF contains a duplicate lifecycle entrypoint"; return false; }
+				*found->second = symbolAddress;
+			}
+			if (hleNames.contains(symbolName) && symbolAddress != 0)
+			{
+				if (!foundImports.emplace(symbolName).second)
+				{ error = "PPC ELF contains a duplicate CEX2 import stub"; return false; }
+				imports.push_back({std::string(symbolName), symbolAddress});
+			}
 		}
 	}
 	if (!entrypoints.init || !entrypoints.tick || !entrypoints.event || !entrypoints.shutdown)
@@ -172,14 +222,45 @@ bool ParseElf(const CemodPackage& package, std::vector<Segment>& segments,
 	return true;
 }
 
+bool BindHleImports(CemodPackage& package, const std::vector<Segment>& segments,
+	const std::vector<HleImport>& imports, std::string& error)
+{
+	for (const auto& import : imports)
+	{
+		const auto segment = std::ranges::find_if(segments, [&import](const Segment& candidate) {
+			return (static_cast<std::uint8_t>(candidate.permissions) &
+				static_cast<std::uint8_t>(ModMemoryPermission::Execute)) != 0 &&
+				import.address >= candidate.address &&
+				import.address - candidate.address <= candidate.fileSize &&
+				candidate.fileSize - (import.address - candidate.address) >= sizeof(std::uint32_t);
+		});
+		if (segment == segments.end() || import.address % 4 != 0)
+		{ error = "a CEX2 import stub is outside file-backed executable memory"; return false; }
+		const auto offset = segment->fileOffset + import.address - segment->address;
+		if (U32(package.elf, offset) != 0x0400ffffU)
+		{ error = "a CEX2 import stub does not contain the required placeholder"; return false; }
+		const auto index = osLib_getFunctionIndex("cemuextend", import.name.c_str());
+		if (index < 0 || index > std::numeric_limits<std::uint16_t>::max())
+		{ error = "a CEX2 HLE import is unavailable"; return false; }
+		const auto opcode = 0x04000000U | static_cast<std::uint16_t>(index);
+		package.elf[offset] = static_cast<std::byte>(opcode >> 24);
+		package.elf[offset + 1] = static_cast<std::byte>(opcode >> 16);
+		package.elf[offset + 2] = static_cast<std::byte>(opcode >> 8);
+		package.elf[offset + 3] = static_cast<std::byte>(opcode);
+	}
+	return true;
+}
+
 } // namespace
 
 struct CemodRuntime::Impl
 {
+	static constexpr std::uint64_t kTrustedHandleMask = 1ULL << 63;
 	struct Instance
 	{
 		CemodPackage package;
 		std::unique_ptr<ModExecutionContext> context;
+		std::unique_ptr<PPCInterpreterGlobal_t> global;
 		std::unique_ptr<PPCInterpreter_t> cpu;
 		Entrypoints entrypoints;
 		std::uint32_t stackTop{};
@@ -188,6 +269,7 @@ struct CemodRuntime::Impl
 	std::map<std::uint64_t, Instance> mods;
 	std::uint64_t nextHandle{1};
 	std::uint32_t generation{1};
+	TrustedCemodRuntime trusted;
 	std::chrono::microseconds titleTime{};
 };
 
@@ -195,10 +277,20 @@ CemodRuntime::CemodRuntime() : m_impl(std::make_unique<Impl>()) {}
 CemodRuntime::~CemodRuntime() { UnloadAll(); }
 
 std::optional<std::uint64_t> CemodRuntime::Load(CemodPackage package,
-	std::uint32_t userPermissions, std::uint32_t titlePermissions, std::string& error)
+	std::uint32_t userPermissions, std::uint32_t titlePermissions, std::string& error,
+	const ModServicePermissions* servicePermissions)
 {
+	if (package.IsTrustedNative())
+	{
+		const ModServicePermissions services = servicePermissions ? *servicePermissions : ModServicePermissions{};
+		if (Size() >= kMaximumModsPerTitle)
+			{ error = "the title already has 16 loaded Mods"; return std::nullopt; }
+		auto handle = m_impl->trusted.Load(std::move(package), userPermissions & titlePermissions,
+			services, error);
+		return handle ? std::optional{*handle | Impl::kTrustedHandleMask} : std::nullopt;
+	}
 	std::unique_lock lock(m_impl->mutex);
-	if (m_impl->mods.size() >= kMaximumModsPerTitle) { error = "the title already has 16 loaded Mods"; return std::nullopt; }
+	if (m_impl->mods.size() + m_impl->trusted.Size() >= kMaximumModsPerTitle) { error = "the title already has 16 loaded Mods"; return std::nullopt; }
 	if (package.principal.empty() || package.elf.empty() || package.manifest.codeBytes == 0 ||
 		package.manifest.codeBytes > ModExecutionContext::kMaximumCodeBytes ||
 		package.manifest.privateBytes == 0 ||
@@ -218,13 +310,16 @@ std::optional<std::uint64_t> CemodRuntime::Load(CemodPackage package,
 		if (mod.package.principal == package.principal) { error = "this Mod principal is already loaded"; return std::nullopt; }
 	std::vector<Segment> segments;
 	Entrypoints entrypoints{};
+	std::vector<HleImport> imports;
 	std::uint32_t base{}, stackBase{}, size{};
-	if (!ParseElf(package, segments, entrypoints, base, stackBase, size, error))
+	if (!ParseElf(package, segments, entrypoints, imports, base, stackBase, size, error) ||
+		!BindHleImports(package, segments, imports, error))
 		return std::nullopt;
 	const auto handle = m_impl->nextHandle++;
 	auto context = std::make_unique<ModExecutionContext>(handle, m_impl->generation++, package.principal, base, size);
 	context->SetTitleId(package.targetTitleId);
 	context->SetGrantedPermissions(package.manifest.requestedPermissions & userPermissions & titlePermissions);
+	if (servicePermissions) context->SetServicePermissions(*servicePermissions);
 	for (const auto& segment : segments)
 	{
 		if (!context->Map(segment.address,
@@ -242,11 +337,13 @@ std::optional<std::uint64_t> CemodRuntime::Load(CemodPackage package,
 		return std::nullopt;
 	}
 	cemuextend_hle::ConfigureCex2HleAccess(*context);
+	auto global = std::make_unique<PPCInterpreterGlobal_t>();
 	auto cpu = std::make_unique<PPCInterpreter_t>();
 	cpu->modExecutionContext = context.get();
+	cpu->global = global.get();
 	cpu->gpr[1] = stackBase + package.manifest.stackBytes - 16;
 	m_impl->mods.emplace(handle, Impl::Instance{std::move(package), std::move(context),
-		std::move(cpu), entrypoints, stackBase + package.manifest.stackBytes - 16});
+		std::move(global), std::move(cpu), entrypoints, stackBase + package.manifest.stackBytes - 16});
 	lock.unlock();
 	if (!Invoke(handle, CemodLifecycle::Init))
 	{
@@ -255,6 +352,8 @@ std::optional<std::uint64_t> CemodRuntime::Load(CemodPackage package,
 		if (failed != m_impl->mods.end())
 		{
 			cemuextend_hle::Cex2Host::Instance().CloseOwner(*failed->second.context);
+			PPCRecompiler_invalidateSandboxContext(failed->second.context->AddressSpaceId(),
+				failed->second.context->Generation());
 			m_impl->mods.erase(failed);
 		}
 		error = "cemod_init faulted or exceeded its CPU budget";
@@ -282,6 +381,7 @@ bool CemodRuntime::Invoke(std::uint64_t handle, CemodLifecycle lifecycle,
 	mod.cpu->gpr[1] = mod.stackTop;
 	mod.cpu->gpr[3] = argument;
 	mod.cpu->gpr[4] = argumentSize;
+	mod.cpu->gpr[5] = 0;
 	mod.cpu->memoryException = false;
 	const auto started = std::chrono::steady_clock::now();
 	std::uint64_t instructions{};
@@ -300,10 +400,13 @@ bool CemodRuntime::Invoke(std::uint64_t handle, CemodLifecycle lifecycle,
 			break;
 		}
 		mod.cpu->remainingCycles = 1;
-		PPCInterpreterSlim_executeInstruction(mod.cpu.get());
-		++instructions;
-		if (!mod.context->ConsumeInstructions())
+		if (!PPCRecompiler_executeSandboxInstruction(mod.cpu.get()))
+		{
+			mod.context->Stop(ModFaultReason::InvalidMapping,
+				mod.cpu->instructionPointer, ModMemoryPermission::Execute);
 			break;
+		}
+		++instructions;
 	}
 	PPCInterpreter_setCurrentInstance(previous);
 	const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(
@@ -317,12 +420,15 @@ bool CemodRuntime::Invoke(std::uint64_t handle, CemodLifecycle lifecycle,
 
 bool CemodRuntime::Unload(std::uint64_t handle)
 {
-	if (Context(handle) && !Context(handle)->IsStopped())
-		(void)Invoke(handle, CemodLifecycle::Shutdown);
+	if ((handle & Impl::kTrustedHandleMask) != 0)
+		return m_impl->trusted.Unload(handle & ~Impl::kTrustedHandleMask);
+	(void)Invoke(handle, CemodLifecycle::Shutdown);
 	std::lock_guard lock(m_impl->mutex);
 	const auto found = m_impl->mods.find(handle);
 	if (found == m_impl->mods.end()) return false;
 	cemuextend_hle::Cex2Host::Instance().CloseOwner(*found->second.context);
+	PPCRecompiler_invalidateSandboxContext(found->second.context->AddressSpaceId(),
+		found->second.context->Generation());
 	m_impl->mods.erase(found);
 	return true;
 }
@@ -334,9 +440,64 @@ void CemodRuntime::BeginFrame()
 	for (auto& [handle, mod] : m_impl->mods) mod.context->BeginFrame();
 }
 
+void CemodRuntime::TickAll()
+{
+	std::vector<std::uint64_t> handles;
+	{
+		std::lock_guard lock(m_impl->mutex);
+		handles.reserve(m_impl->mods.size());
+		for (const auto& [handle, mod] : m_impl->mods)
+			if (!mod.context->IsStopped()) handles.push_back(handle);
+	}
+	BeginFrame();
+	for (const auto handle : handles)
+		(void)Invoke(handle, CemodLifecycle::Tick);
+}
+
+void CemodRuntime::EventAll(std::uint32_t event)
+{
+	std::vector<std::uint64_t> handles;
+	{
+		std::lock_guard lock(m_impl->mutex);
+		for (const auto& [handle, mod] : m_impl->mods)
+			if (!mod.context->IsStopped()) handles.push_back(handle);
+	}
+	for (const auto handle : handles)
+		(void)Invoke(handle, CemodLifecycle::Event, event, 0);
+}
+
+void CemodRuntime::UpdatePermissions(std::string_view principal, std::uint32_t permissions,
+	const ModServicePermissions& services)
+{
+	std::lock_guard lock(m_impl->mutex);
+	for (auto& [handle, mod] : m_impl->mods)
+	{
+		if (mod.package.principal != principal) continue;
+		mod.context->SetServicePermissions(services);
+		cemuextend_hle::Cex2Host::Instance().PermissionsChanged(*mod.context,
+			mod.package.manifest.requestedPermissions & permissions);
+		break;
+	}
+}
+
+void CemodRuntime::UpdateTitlePermissions(const ModServicePermissions& services)
+{
+	std::uint32_t trustedPermissions{};
+	std::lock_guard lock(m_impl->mutex);
+	for (auto& [handle, mod] : m_impl->mods)
+	{
+		mod.context->SetServicePermissions(services);
+		cemuextend_hle::Cex2Host::Instance().PermissionsChanged(*mod.context,
+			mod.context->GrantedPermissions());
+	}
+	if (auto* owner = m_impl->trusted.Owner()) trustedPermissions = owner->GrantedPermissions();
+	m_impl->trusted.UpdatePermissions(trustedPermissions, services);
+}
+
 void CemodRuntime::UnloadAll()
 {
 	for (;;) { std::uint64_t handle{}; { std::lock_guard lock(m_impl->mutex); if (m_impl->mods.empty()) break; handle = m_impl->mods.begin()->first; } (void)Unload(handle); }
+	m_impl->trusted.UnloadAll();
 }
 
 ModExecutionContext* CemodRuntime::Context(std::uint64_t handle)
@@ -356,5 +517,10 @@ PPCInterpreter_t* CemodRuntime::Cpu(std::uint64_t handle)
 std::size_t CemodRuntime::Size() const
 {
 	std::lock_guard lock(m_impl->mutex);
-	return m_impl->mods.size();
+	return m_impl->mods.size() + m_impl->trusted.Size();
+}
+
+cemuextend_hle::Cex2Owner* CemodRuntime::TrustedOwner()
+{
+	return m_impl->trusted.Owner();
 }

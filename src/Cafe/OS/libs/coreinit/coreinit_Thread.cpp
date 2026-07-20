@@ -80,7 +80,8 @@ namespace coreinit
 
 	struct OSHostThread
 	{
-		OSHostThread(OSThread_t* thread) : m_thread(thread), m_fiber((void(*)(void*))__OSFiberThreadEntry, this, this)
+		OSHostThread(OSThread_t* thread) : m_thread(thread), m_fiber((void(*)(void*))__OSFiberThreadEntry, this, this),
+			ppcInstance{}
 		{
 		}
 
@@ -1163,6 +1164,9 @@ namespace coreinit
 
 	void __OSLoadThread(OSThread_t* thread, PPCInterpreter_t* hCPU, uint32 coreIndex)
 	{
+		// Cafe OS title threads always use the normal title address space. The
+		// separately allocated .cemod CPUs are never scheduled through this path.
+		hCPU->modExecutionContext = nullptr;
 		hCPU->LSQE = 1;
 		hCPU->PSE = 1;
 		hCPU->reservedMemAddr = MPTR_NULL;

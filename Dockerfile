@@ -21,6 +21,7 @@ RUN apt-get update \
         git \
         libasound2-dev \
         libbluetooth-dev \
+        libclang-rt-dev \
         libdbus-1-dev \
         libdrm-dev \
         libegl1-mesa-dev \
