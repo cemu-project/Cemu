@@ -163,6 +163,10 @@ void TestUnsignedPrincipalAndValidation()
 	CHECK(package->manifest.modId == "org.example.safe");
 	CHECK(package->principal.starts_with("sha256:"));
 	CHECK(!package->signedPackage);
+	auto inspected = CemodPackage::Inspect(path, error);
+	CHECK(inspected.has_value());
+	CHECK(inspected->targetTitleId == 0);
+	CHECK(inspected->manifest.titleIds == std::vector<std::uint64_t>{0x0005000012345678ULL});
 	CHECK(!CemodPackage::Load(path, 0x0005000099999999ULL, error).has_value());
 	CHECK(error == "package does not target the active title");
 	std::filesystem::remove(path);
@@ -196,6 +200,11 @@ void TestTrustedValidation()
 	WritePackage(path, false, kTrustedManifest, TrustedElf());
 	auto package = CemodPackage::Load(path, 0x0005000012345678ULL, error);
 	CHECK(package && package->IsTrustedNative());
+	std::filesystem::remove(path);
+
+	path = PackagePath("trusted-none-relocation");
+	WritePackage(path, false, kTrustedManifest, TrustedElf(false, false, 0));
+	CHECK(CemodPackage::Load(path, 0x0005000012345678ULL, error));
 	std::filesystem::remove(path);
 
 	path = PackagePath("trusted-wx");

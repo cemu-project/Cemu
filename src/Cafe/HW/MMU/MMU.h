@@ -146,7 +146,7 @@ bool memory_isAddressRangeAccessible(MPTR virtualAddress, uint32 size);
 #define MEMORY_CODE_TRAMPOLINE_AREA_SIZE	(0x00200000) // 2MB
 
 #define MEMORY_CODECAVEAREA_ADDR			(0x01800000)
-#define MEMORY_CODECAVEAREA_SIZE			(0x00400000) // 4MB
+#define MEMORY_CODECAVEAREA_SIZE			(0x00800000) // 8MB, up to the code-area boundary
 
 #define MEMORY_CODEAREA_ADDR				(0x02000000)
 #define MEMORY_CODEAREA_SIZE				(0x0E000000) // 224MB

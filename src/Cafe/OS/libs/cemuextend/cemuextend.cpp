@@ -1,6 +1,7 @@
 #include "Common/precompiled.h"
 
 #include "Cafe/OS/libs/cemuextend/cemuextend.h"
+#include "Cafe/OS/libs/cemuextend/CemodPermission.h"
 #include "Cafe/OS/libs/cemuextend/BridgeHost.h"
 #include "Cafe/OS/libs/cemuextend/BuildId.h"
 #include "Cafe/OS/libs/cemuextend/Cex2Host.h"
@@ -21,6 +22,7 @@
 #include <array>
 #include <cstring>
 #include <filesystem>
+#include <map>
 #include <vector>
 
 namespace cemuextend_hle
@@ -241,11 +243,10 @@ namespace cemuextend_hle
 		return runtime;
 	}
 
-	std::vector<CemodPackageInfo> DiscoverCemods(std::uint64_t titleId)
+	std::vector<CemodPackageInfo> DiscoverCemodCatalog()
 	{
 		namespace fs = std::filesystem;
 		std::vector<CemodPackageInfo> result;
-		if (titleId == 0) return result;
 		const auto root = ActiveSettings::GetUserDataPath("cemuextend/mods");
 		std::error_code error;
 		fs::create_directories(root, error);
@@ -262,17 +263,65 @@ namespace cemuextend_hle
 		for (const auto& path : paths)
 		{
 			std::string packageError;
-			auto package = CemodPackage::Load(path, titleId, packageError);
+			auto package = CemodPackage::Inspect(path, packageError);
 			if (!package)
 			{
-				result.push_back({path, {}, {}, 0, CemodExecutionMode::Isolated, false,
+				result.push_back({path, {}, {}, 0, CemodExecutionMode::Isolated, false, {},
 					std::move(packageError)});
 				continue;
 			}
 			result.push_back({path, package->manifest.modId, package->principal,
 				package->manifest.requestedPermissions, package->manifest.executionMode,
-				package->signedPackage, {}});
+				package->signedPackage, package->manifest.titleIds, {}});
 		}
+		return result;
+	}
+
+	std::vector<CemodPackageInfo> DiscoverCemods(std::uint64_t titleId)
+	{
+		std::vector<CemodPackageInfo> result;
+		if (titleId == 0) return result;
+		for (auto& package : DiscoverCemodCatalog())
+		{
+			if (!package.error.empty() || std::ranges::find(package.titleIds, titleId) != package.titleIds.end())
+				result.push_back(std::move(package));
+		}
+		return result;
+	}
+
+	std::vector<CemodPermissionRequest> PendingCemodPermissionRequests(std::uint64_t titleId)
+	{
+		std::map<std::string, CemodPermissionRequest> grouped;
+		for (const auto& package : DiscoverCemods(titleId))
+		{
+			if (!package.error.empty()) continue;
+			const auto grant = GetConfig().GetCemuExtendModGrant(titleId, package.principal)
+				.value_or(CemuExtendModGrant{});
+			if (!grant.approved) continue;
+			auto found = grouped.try_emplace(package.principal,
+				CemodPermissionRequest{package.modId, package.principal, 0,
+					grant.permissions & kCemodPermissionMask, package.executionMode,
+					package.signedPackage}).first;
+			auto& request = found->second;
+			request.requestedPermissions |= package.requestedPermissions & kCemodPermissionMask;
+			if (package.executionMode == CemodExecutionMode::TrustedNative)
+				request.executionMode = CemodExecutionMode::TrustedNative;
+			request.signedPackage = request.signedPackage && package.signedPackage;
+		}
+
+		std::vector<CemodPermissionRequest> result;
+		for (auto& [principal, request] : grouped)
+		{
+			const auto grant = GetConfig().GetCemuExtendModGrant(titleId, principal)
+				.value_or(CemuExtendModGrant{});
+			if (NeedsCemodPermissionPrompt(request.requestedPermissions, grant.permissions,
+				grant.approved_request_mask, grant.approved))
+				result.push_back(std::move(request));
+		}
+		std::ranges::sort(result, [](const auto& left, const auto& right) {
+			if (left.modId != right.modId) return left.modId < right.modId;
+			return left.principal < right.principal;
+		});
 		return result;
 	}
 

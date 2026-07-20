@@ -702,6 +702,12 @@ if(WIN32)
 endif()
 
 if(BUILD_TESTING)
+	add_executable(cemod_permission_tests
+		tests/CemodPermissionTests.cpp
+	)
+	target_include_directories(cemod_permission_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
+	add_test(NAME cemod_permission_tests COMMAND cemod_permission_tests)
+
 	add_executable(cemod_execution_context_tests
 		HW/Espresso/ModExecutionContext.cpp
 		tests/ModExecutionContextTests.cpp

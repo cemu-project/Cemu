@@ -5,6 +5,7 @@
 #include <Cafe/Account/Account.h>
 
 class wxCheckBox;
+class wxCheckListBox;
 class wxChoice;
 class wxColourPickerCtrl;
 class wxListBox;
@@ -99,23 +100,27 @@ private:
 	wxBitmapButton* m_validate_online;
 	wxStaticText* m_online_status;
 
-	// CemuExtend Bridge title-specific grants
-	wxTextCtrl* m_cemuextend_title_id{};
+	// CemuExtend Mod manager and title-specific grants
+	wxChoice* m_cemuextend_title_choice{};
+	std::vector<uint64> m_cemuextend_title_ids;
 	std::array<wxCheckBox*, 9> m_cemuextend_read{};
 	std::array<wxCheckBox*, 9> m_cemuextend_write{};
 	std::array<wxCheckBox*, 9> m_cemuextend_inject{};
-	wxChoice* m_cemod_choice{};
+	wxCheckListBox* m_cemod_list{};
 	wxStaticText* m_cemod_status{};
-	wxCheckBox* m_cemod_approved{};
+	wxStaticText* m_cemod_details{};
 	std::array<wxCheckBox*, 5> m_cemod_permissions{};
 	std::vector<std::string> m_cemod_principals;
 	std::vector<uint32> m_cemod_requested;
 	std::vector<bool> m_cemod_trusted;
 	std::vector<bool> m_cemod_signed;
+	void RefreshCemuExtendTitles();
+	std::optional<uint64> SelectedCemuExtendTitle() const;
 	void LoadCemuExtendGrant();
 	void StoreCemuExtendGrant();
 	void RefreshCemodList();
 	void LoadCemodGrant();
+	void ToggleCemod(std::size_t selection, bool enabled);
 	void StoreCemodGrant();
 	void ImportLegacyCemodData();
 

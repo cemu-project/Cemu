@@ -3,6 +3,7 @@
 // subwindows
 #include "TitleManager.h"
 #include "GeneralSettings2.h"
+#include "CemodPermissionDialog.h"
 #include "GameUpdateWindow.h"
 #include "CemuUpdateWindow.h"
 #include "GraphicPacksWindow2.h"
@@ -60,6 +61,10 @@
 //Cafe libs
 #include "Cafe/OS/libs/nfc/nfc.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "Cafe/OS/libs/cemuextend/cemuextend.h"
+
+#include <wx/app.h>
+#include <wx/thread.h>
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h" // For renderer API checks
 
@@ -506,6 +511,8 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 			return false;
 		}
 		CafeSystem::PREPARE_STATUS_CODE r = CafeSystem::PrepareForegroundTitle(baseTitleId);
+		if (r == CafeSystem::PREPARE_STATUS_CODE::CANCELLED)
+			return false;
 		if (r == CafeSystem::PREPARE_STATUS_CODE::INVALID_RPX)
 		{
 			cemu_assert_debug(false);
@@ -534,6 +541,8 @@ bool MainWindow::FileLoad(const fs::path launchPath, wxLaunchGameEvent::INITIATE
 		if (fileType == CafeTitleFileType::RPX || fileType == CafeTitleFileType::ELF)
 		{
 			CafeSystem::PREPARE_STATUS_CODE r = CafeSystem::PrepareForegroundTitleFromStandaloneRPX(launchPath);
+			if (r == CafeSystem::PREPARE_STATUS_CODE::CANCELLED)
+				return false;
 			if (r != CafeSystem::PREPARE_STATUS_CODE::SUCCESS)
 			{
 				cemu_assert_debug(false); // todo
@@ -2478,6 +2487,38 @@ void MainWindow::CafePPCProcessExit()
 {
 	// this is called from the emulated PPC thread, so queue an event instead of handling it directly
 	wxQueueEvent(g_mainFrame, new wxCommandEvent(wxEVT_REQUEST_GAME_EXIT));
+}
+
+bool MainWindow::CafeConfirmCemodPermissions(TitleId titleId)
+{
+	if (!wxIsMainThread())
+	{
+		auto result = std::make_shared<std::promise<bool>>();
+		auto future = result->get_future();
+		wxTheApp->CallAfter([this, titleId, result]() {
+			result->set_value(CafeConfirmCemodPermissions(titleId));
+		});
+		return future.get();
+	}
+
+	auto requests = cemuextend_hle::PendingCemodPermissionRequests(titleId);
+	if (requests.empty()) return true;
+
+	TitleInfo titleInfo;
+	std::string gameName;
+	if (CafeTitleList::GetFirstByTitleId(titleId, titleInfo))
+		gameName = titleInfo.GetMetaTitleName();
+	if (gameName.empty()) gameName = fmt::format("Title {:016x}", static_cast<uint64>(titleId));
+
+	CemodPermissionDialog dialog(this, wxString::FromUTF8(gameName), std::move(requests));
+	if (dialog.ShowModal() != wxID_OK) return false;
+	for (const auto& selection : dialog.GetSelections())
+	{
+		GetConfig().SetCemuExtendModGrant(titleId, selection.principal,
+			{selection.grantedPermissions, selection.requestedPermissions, true});
+	}
+	GetConfigHandle().Save();
+	return true;
 }
 
 void MainWindow::OnRequestGameExit(wxCommandEvent& event)

@@ -19,7 +19,7 @@ namespace
 	constexpr std::uint32_t kBootstrapMagic = 0x434d4231U; // CMB1
 	constexpr std::uint16_t kBootstrapVersion = 1;
 	constexpr std::uint16_t kBootstrapRecordSize = 24;
-	constexpr std::uint32_t kMaximumImageSize = 4U * 1024U * 1024U;
+	constexpr std::uint32_t kMaximumImageSize = 8U * 1024U * 1024U;
 
 	std::uint16_t U16(std::span<const std::byte> bytes, std::size_t offset)
 	{
@@ -284,6 +284,7 @@ namespace
 				const auto target = static_cast<std::uint32_t>(place);
 				switch (type)
 				{
+				case 0: break; // R_PPC_NONE: padding/no-op relocation
 				case 1:
 					if (absoluteSigned < 0 || absoluteSigned > std::numeric_limits<std::uint32_t>::max())
 						{ error = "R_PPC_ADDR32 overflow"; return false; }

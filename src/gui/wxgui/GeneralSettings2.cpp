@@ -9,6 +9,7 @@
 #include "Cafe/OS/libs/snd_core/ax.h"
 
 #include <wx/collpane.h>
+#include <wx/checklst.h>
 #include <wx/clrpicker.h>
 #include <wx/cshelp.h>
 #include <wx/textctrl.h>
@@ -1006,16 +1007,52 @@ wxPanel* GeneralSettings2::AddCemuExtendPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook);
 	auto* root = new wxBoxSizer(wxVERTICAL);
-	auto* titleBox = new wxStaticBoxSizer(wxVERTICAL, panel, _("Title-specific CEX2 service permissions"));
-	auto* titleParent = titleBox->GetStaticBox();
-	auto* titleRow = new wxBoxSizer(wxHORIZONTAL);
-	titleRow->Add(new wxStaticText(titleParent, wxID_ANY, _("Title ID (16 hexadecimal digits)")), 0,
+
+	auto* modBox = new wxStaticBoxSizer(wxVERTICAL, panel, _("Installed .cemod packages"));
+	auto* modParent = modBox->GetStaticBox();
+	auto* gameRow = new wxBoxSizer(wxHORIZONTAL);
+	gameRow->Add(new wxStaticText(modParent, wxID_ANY, _("Game")), 0,
 		wxALIGN_CENTER_VERTICAL | wxRIGHT, 8);
-	m_cemuextend_title_id = new wxTextCtrl(titleParent, wxID_ANY);
-	titleRow->Add(m_cemuextend_title_id, 1, wxRIGHT, 8);
-	auto* load = new wxButton(titleParent, wxID_ANY, _("Load"));
-	titleRow->Add(load, 0);
-	titleBox->Add(titleRow, 0, wxEXPAND | wxALL, 8);
+	m_cemuextend_title_choice = new wxChoice(modParent, wxID_ANY);
+	gameRow->Add(m_cemuextend_title_choice, 1, wxRIGHT, 8);
+	auto* refreshMods = new wxButton(modParent, wxID_ANY, _("Refresh"));
+	gameRow->Add(refreshMods, 0);
+	modBox->Add(gameRow, 0, wxEXPAND | wxALL, 8);
+
+	m_cemod_list = new wxCheckListBox(modParent, wxID_ANY, wxDefaultPosition, wxSize(-1, 110));
+	modBox->Add(m_cemod_list, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	modBox->Add(new wxStaticText(modParent, wxID_ANY,
+		_("Check a Mod to enable it for this game. Uncheck it to disable it. Changes apply on the next game launch.")),
+		0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	m_cemod_status = new wxStaticText(modParent, wxID_ANY, wxEmptyString);
+	modBox->Add(m_cemod_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	m_cemod_details = new wxStaticText(modParent, wxID_ANY, wxEmptyString);
+	modBox->Add(m_cemod_details, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
+	auto* permissionBox = new wxStaticBoxSizer(wxVERTICAL, modParent, _("Selected Mod permissions"));
+	auto* permissionParent = permissionBox->GetStaticBox();
+	const std::array<const char*, 5> permissionNames{
+		"Read host state", "Write Mod storage/logging", "Input injection", "Clipboard", "Capture"
+	};
+	for (std::size_t index = 0; index < permissionNames.size(); ++index)
+	{
+		m_cemod_permissions[index] = new wxCheckBox(permissionParent, wxID_ANY,
+			wxString::FromUTF8(permissionNames[index]));
+		permissionBox->Add(m_cemod_permissions[index], 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
+	}
+	auto* modButtons = new wxBoxSizer(wxHORIZONTAL);
+	auto* import = new wxButton(permissionParent, wxID_ANY, _("Import legacy data…"));
+	auto* saveMod = new wxButton(permissionParent, wxID_ANY, _("Save permissions"));
+	modButtons->Add(import, 0, wxRIGHT, 8);
+	modButtons->AddStretchSpacer();
+	modButtons->Add(saveMod, 0);
+	permissionBox->Add(modButtons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	modBox->Add(permissionBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	root->Add(modBox, 0, wxEXPAND | wxALL, 8);
+
+	auto* advanced = new wxCollapsiblePane(panel, wxID_ANY, _("Advanced: title-wide CEX2 service permissions"));
+	auto* titleParent = advanced->GetPane();
+	auto* titleBox = new wxBoxSizer(wxVERTICAL);
 
 	auto* grid = new wxFlexGridSizer(10, 4, 4, 10);
 	grid->Add(new wxStaticText(titleParent, wxID_ANY, _("Service")), 0, wxALIGN_CENTER_VERTICAL);
@@ -1037,60 +1074,84 @@ wxPanel* GeneralSettings2::AddCemuExtendPage(wxNotebook* notebook)
 		grid->Add(m_cemuextend_inject[index], 0, wxALIGN_CENTER);
 	}
 	titleBox->Add(grid, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	auto* apply = new wxButton(titleParent, wxID_ANY, _("Save grants"));
+	auto* apply = new wxButton(titleParent, wxID_ANY, _("Save service permissions"));
 	titleBox->Add(apply, 0, wxALIGN_RIGHT | wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	root->Add(titleBox, 0, wxEXPAND | wxALL, 8);
-
-	auto* modBox = new wxStaticBoxSizer(wxVERTICAL, panel, _(".cemod packages and permissions"));
-	auto* modParent = modBox->GetStaticBox();
-	auto* modRow = new wxBoxSizer(wxHORIZONTAL);
-	m_cemod_choice = new wxChoice(modParent, wxID_ANY);
-	modRow->Add(m_cemod_choice, 1, wxRIGHT, 8);
-	auto* refreshMods = new wxButton(modParent, wxID_ANY, _("Refresh packages"));
-	modRow->Add(refreshMods, 0);
-	modBox->Add(modRow, 0, wxEXPAND | wxALL, 8);
-	m_cemod_status = new wxStaticText(modParent, wxID_ANY, wxEmptyString);
-	modBox->Add(m_cemod_status, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	m_cemod_approved = new wxCheckBox(modParent, wxID_ANY, _("Enable and approve on the next title launch"));
-	modBox->Add(m_cemod_approved, 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	const std::array<const char*, 5> permissionNames{
-		"Read host state", "Write Mod storage/logging", "Input injection", "Clipboard", "Capture"
-	};
-	for (std::size_t index = 0; index < permissionNames.size(); ++index)
-	{
-		m_cemod_permissions[index] = new wxCheckBox(modParent, wxID_ANY,
-			wxString::FromUTF8(permissionNames[index]));
-		modBox->Add(m_cemod_permissions[index], 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	}
-	auto* modButtons = new wxBoxSizer(wxHORIZONTAL);
-	auto* import = new wxButton(modParent, wxID_ANY, _("Import legacy title data…"));
-	auto* saveMod = new wxButton(modParent, wxID_ANY, _("Save Mod grant"));
-	modButtons->Add(import, 0, wxRIGHT, 8);
-	modButtons->AddStretchSpacer();
-	modButtons->Add(saveMod, 0);
-	modBox->Add(modButtons, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	root->Add(modBox, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	titleParent->SetSizer(titleBox);
+	root->Add(advanced, 0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 8);
 	root->Add(new wxStaticText(panel, wxID_ANY,
 		_("Defaults allow Core, Input read, Logging, Configuration/File read, Window and Diagnostics. Clipboard, Capture, file/config changes and all input injection require an explicit grant.")),
 		0, wxEXPAND | wxLEFT | wxRIGHT | wxBOTTOM, 12);
 	panel->SetSizer(root);
 
-	if (CafeSystem::IsTitleRunning())
-		m_cemuextend_title_id->SetValue(fmt::format("{:016x}", CafeSystem::GetForegroundTitleId()));
-	load->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { LoadCemuExtendGrant(); });
+	m_cemuextend_title_choice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { LoadCemuExtendGrant(); });
 	apply->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { StoreCemuExtendGrant(); });
-	refreshMods->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RefreshCemodList(); });
-	m_cemod_choice->Bind(wxEVT_CHOICE, [this](wxCommandEvent&) { LoadCemodGrant(); });
+	refreshMods->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RefreshCemuExtendTitles(); });
+	m_cemod_list->Bind(wxEVT_LISTBOX, [this](wxCommandEvent&) { LoadCemodGrant(); });
+	m_cemod_list->Bind(wxEVT_CHECKLISTBOX, [this](wxCommandEvent& event) {
+		const auto selection = static_cast<std::size_t>(event.GetInt());
+		m_cemod_list->SetSelection(static_cast<int>(selection));
+		LoadCemodGrant();
+		ToggleCemod(selection, m_cemod_list->IsChecked(static_cast<unsigned int>(selection)));
+	});
 	saveMod->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { StoreCemodGrant(); });
 	import->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { ImportLegacyCemodData(); });
-	LoadCemuExtendGrant();
+	RefreshCemuExtendTitles();
 	return panel;
+}
+
+std::optional<uint64> GeneralSettings2::SelectedCemuExtendTitle() const
+{
+	if (!m_cemuextend_title_choice) return std::nullopt;
+	const auto selection = m_cemuextend_title_choice->GetSelection();
+	if (selection == wxNOT_FOUND || static_cast<std::size_t>(selection) >= m_cemuextend_title_ids.size())
+		return std::nullopt;
+	return m_cemuextend_title_ids[selection];
+}
+
+void GeneralSettings2::RefreshCemuExtendTitles()
+{
+	const auto previous = SelectedCemuExtendTitle();
+	const auto running = CafeSystem::IsTitleRunning() ? CafeSystem::GetForegroundTitleId() : 0;
+	std::set<uint64> packageIds;
+	std::size_t rejected{};
+	for (const auto& package : cemuextend_hle::DiscoverCemodCatalog())
+	{
+		if (!package.error.empty()) { ++rejected; continue; }
+		packageIds.insert(package.titleIds.begin(), package.titleIds.end());
+	}
+	std::set<uint64> ids;
+	for (const auto titleId : CafeTitleList::GetAllTitleIds())
+		if (packageIds.contains(titleId)) ids.insert(titleId);
+	if (running != 0 && packageIds.contains(running)) ids.insert(running);
+	// Keep packages manageable before their game has been added to Cemu.
+	if (ids.empty()) ids = packageIds;
+	m_cemuextend_title_choice->Clear();
+	m_cemuextend_title_ids.clear();
+	for (const auto titleId : ids)
+	{
+		TitleInfo titleInfo;
+		std::string name;
+		if (CafeTitleList::GetFirstByTitleId(titleId, titleInfo)) name = titleInfo.GetMetaTitleName();
+		const auto label = name.empty() ? fmt::format("Unknown game ({:016x})", titleId) : name;
+		m_cemuextend_title_choice->Append(wxString::FromUTF8(label));
+		m_cemuextend_title_ids.push_back(titleId);
+	}
+	if (!m_cemuextend_title_ids.empty())
+	{
+		auto selected = std::ranges::find(m_cemuextend_title_ids, running != 0 ? running : previous.value_or(0));
+		m_cemuextend_title_choice->SetSelection(selected == m_cemuextend_title_ids.end() ? 0 :
+			static_cast<int>(std::distance(m_cemuextend_title_ids.begin(), selected)));
+	}
+	if (m_cemuextend_title_ids.empty())
+		m_cemod_status->SetLabel(rejected == 0 ? _("No .cemod packages are installed.") :
+			_("No valid .cemod packages were found."));
+	LoadCemuExtendGrant();
 }
 
 void GeneralSettings2::LoadCemuExtendGrant()
 {
-	unsigned long long titleId{};
-	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
+	const auto titleId = SelectedCemuExtendTitle();
+	if (!titleId)
 	{
 		for (size_t index = 0; index < m_cemuextend_read.size(); ++index)
 		{
@@ -1101,7 +1162,7 @@ void GeneralSettings2::LoadCemuExtendGrant()
 		RefreshCemodList();
 		return;
 	}
-	const auto configured = GetConfig().GetCemuExtendGrant(titleId);
+	const auto configured = GetConfig().GetCemuExtendGrant(*titleId);
 	const CemuExtendTitleGrant grant = configured.value_or(CemuExtendTitleGrant{
 		cemuextend_hle::kDefaultReadMask, cemuextend_hle::kDefaultWriteMask,
 		cemuextend_hle::kDefaultInjectMask});
@@ -1117,10 +1178,10 @@ void GeneralSettings2::LoadCemuExtendGrant()
 
 void GeneralSettings2::StoreCemuExtendGrant()
 {
-	unsigned long long titleId{};
-	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
+	const auto titleId = SelectedCemuExtendTitle();
+	if (!titleId)
 	{
-		wxMessageBox(_("Enter a valid non-zero 16-digit hexadecimal title ID."), _("CemuExtend"),
+		wxMessageBox(_("Select a game with an installed .cemod package."), _("CemuExtend"),
 			wxOK | wxICON_WARNING, this);
 		return;
 	}
@@ -1132,41 +1193,45 @@ void GeneralSettings2::StoreCemuExtendGrant()
 		if (m_cemuextend_write[index]->IsChecked()) grant.write_mask |= bit;
 		if (m_cemuextend_inject[index]->IsChecked()) grant.inject_mask |= bit;
 	}
-	GetConfig().SetCemuExtendGrant(titleId, grant);
+	GetConfig().SetCemuExtendGrant(*titleId, grant);
 	GetConfigHandle().Save();
-	// Grants intentionally take effect on the next title launch.
+	m_cemod_details->SetLabel(_("Service permissions saved. Changes apply on the next game launch."));
 }
 
 void GeneralSettings2::RefreshCemodList()
 {
-	if (!m_cemod_choice) return;
-	m_cemod_choice->Clear();
+	if (!m_cemod_list) return;
+	m_cemod_list->Clear();
 	m_cemod_principals.clear();
 	m_cemod_requested.clear();
 	m_cemod_trusted.clear();
 	m_cemod_signed.clear();
-	unsigned long long titleId{};
-	if (!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0)
+	const auto titleId = SelectedCemuExtendTitle();
+	if (!titleId)
 	{
-		m_cemod_status->SetLabel(_("Enter a title ID to discover compatible .cemod packages."));
+		m_cemod_status->SetLabel(_("Install a .cemod package to manage it here."));
 		LoadCemodGrant();
 		return;
 	}
 	std::size_t rejected{};
-	for (const auto& package : cemuextend_hle::DiscoverCemods(titleId))
+	for (const auto& package : cemuextend_hle::DiscoverCemods(*titleId))
 	{
 		if (!package.error.empty()) { ++rejected; continue; }
-		m_cemod_choice->Append(wxString::FromUTF8(fmt::format("{} [{}; {}]", package.modId,
+		m_cemod_list->Append(wxString::FromUTF8(fmt::format("{}  —  {} / {}", package.modId,
 			package.executionMode == CemodExecutionMode::TrustedNative ? "trusted native" : "isolated",
 			package.signedPackage ? "signed" : "unsigned")));
 		m_cemod_principals.push_back(package.principal);
 		m_cemod_requested.push_back(package.requestedPermissions);
 		m_cemod_trusted.push_back(package.executionMode == CemodExecutionMode::TrustedNative);
 		m_cemod_signed.push_back(package.signedPackage);
+		const auto grant = GetConfig().GetCemuExtendModGrant(*titleId, package.principal)
+			.value_or(CemuExtendModGrant{});
+		m_cemod_list->Check(m_cemod_principals.size() - 1,
+			grant.approved && (package.requestedPermissions & ~grant.approved_request_mask) == 0);
 	}
-	if (!m_cemod_principals.empty()) m_cemod_choice->SetSelection(0);
+	if (!m_cemod_principals.empty()) m_cemod_list->SetSelection(0);
 	m_cemod_status->SetLabel(wxString::FromUTF8(fmt::format(
-		"{} compatible package(s), {} rejected. Packages folder: {}",
+		"{} compatible package(s), {} rejected — {}",
 		m_cemod_principals.size(), rejected,
 		_pathToUtf8(ActiveSettings::GetUserDataPath("cemuextend/mods")))));
 	LoadCemodGrant();
@@ -1174,19 +1239,20 @@ void GeneralSettings2::RefreshCemodList()
 
 void GeneralSettings2::LoadCemodGrant()
 {
-	const auto selection = m_cemod_choice ? m_cemod_choice->GetSelection() : wxNOT_FOUND;
-	unsigned long long titleId{};
+	const auto selection = m_cemod_list ? m_cemod_list->GetSelection() : wxNOT_FOUND;
+	const auto titleId = SelectedCemuExtendTitle();
 	const bool valid = selection != wxNOT_FOUND && static_cast<std::size_t>(selection) < m_cemod_principals.size() &&
-		m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) && titleId != 0;
-	const auto grant = valid ? GetConfig().GetCemuExtendModGrant(titleId,
+		titleId.has_value();
+	const auto grant = valid ? GetConfig().GetCemuExtendModGrant(*titleId,
 		m_cemod_principals[selection]).value_or(CemuExtendModGrant{}) : CemuExtendModGrant{};
 	const auto granted = grant.permissions;
 	const auto requested = valid ? m_cemod_requested[selection] : 0;
-	m_cemod_approved->Enable(valid);
-	m_cemod_approved->SetValue(valid && grant.approved &&
-		(requested & ~grant.approved_request_mask) == 0);
 	if (valid && m_cemod_trusted[selection])
-		m_cemod_status->SetLabel(_("TRUSTED NATIVE: can access all game memory, Cafe/GX2 APIs, and other native Mods. CEX2 permissions and storage are shared by this title."));
+		m_cemod_details->SetLabel(_("Trusted native Mod: can access all game memory and Cafe/GX2 APIs. Enable only packages you trust."));
+	else if (valid)
+		m_cemod_details->SetLabel(_("Isolated Mod: runs with the permissions selected below."));
+	else
+		m_cemod_details->SetLabel(_("Select a Mod to view its details."));
 	for (std::size_t index = 0; index < m_cemod_permissions.size(); ++index)
 	{
 		const auto bit = 1U << index;
@@ -1195,41 +1261,61 @@ void GeneralSettings2::LoadCemodGrant()
 	}
 }
 
+void GeneralSettings2::ToggleCemod(std::size_t selection, bool enabled)
+{
+	const auto titleId = SelectedCemuExtendTitle();
+	if (!titleId || selection >= m_cemod_principals.size()) return;
+	if (enabled && m_cemod_trusted[selection])
+	{
+		const auto answer = wxMessageBox(
+			_("This trusted native Mod can execute inside the game address space, access all game memory, and call Cafe/GX2 APIs. Enable it for this game?"),
+			_("Enable trusted native .cemod"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
+		if (answer != wxYES)
+		{
+			m_cemod_list->Check(selection, false);
+			return;
+		}
+	}
+	auto grant = GetConfig().GetCemuExtendModGrant(*titleId, m_cemod_principals[selection])
+		.value_or(CemuExtendModGrant{});
+	grant.permissions &= m_cemod_requested[selection];
+	grant.approved_request_mask = enabled ? m_cemod_requested[selection] : 0U;
+	grant.approved = enabled;
+	GetConfig().SetCemuExtendModGrant(*titleId, m_cemod_principals[selection], grant);
+	GetConfigHandle().Save();
+	m_cemod_details->SetLabel(enabled ?
+		_("Enabled. The Mod will load on the next game launch.") :
+		_("Disabled. The Mod will not load on the next game launch."));
+}
+
 void GeneralSettings2::StoreCemodGrant()
 {
-	const auto selection = m_cemod_choice->GetSelection();
-	unsigned long long titleId{};
+	const auto selection = m_cemod_list->GetSelection();
+	const auto titleId = SelectedCemuExtendTitle();
 	if (selection == wxNOT_FOUND || static_cast<std::size_t>(selection) >= m_cemod_principals.size() ||
-		!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0) return;
+		!titleId) return;
 	uint32 permissions{};
 	for (std::size_t index = 0; index < m_cemod_permissions.size(); ++index)
 		if (m_cemod_permissions[index]->IsEnabled() && m_cemod_permissions[index]->IsChecked())
 			permissions |= 1U << index;
 	permissions &= m_cemod_requested[selection];
-	const bool approved = m_cemod_approved->IsChecked();
-	if (approved && m_cemod_trusted[selection])
-	{
-		const auto answer = wxMessageBox(
-			_("This trusted native package can execute inside the game address space, read or modify any game memory, call Cafe/GX2 APIs, and interfere with other native Mods. CEX2 permissions are shared by every trusted Mod in this title. Approve it for the next title launch?"),
-			_("Approve trusted native .cemod"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this);
-		if (answer != wxYES) return;
-	}
-	GetConfig().SetCemuExtendModGrant(titleId, m_cemod_principals[selection],
-		{permissions, approved ? m_cemod_requested[selection] : 0U, approved});
+	const bool enabled = m_cemod_list->IsChecked(static_cast<unsigned int>(selection));
+	GetConfig().SetCemuExtendModGrant(*titleId, m_cemod_principals[selection],
+		{permissions, enabled ? m_cemod_requested[selection] : 0U, enabled});
 	GetConfigHandle().Save();
-	m_cemod_status->SetLabel(_("Saved. The change will apply on the next title launch."));
+	m_cemod_details->SetLabel(_("Permissions saved. Changes apply on the next game launch."));
 }
 
 void GeneralSettings2::ImportLegacyCemodData()
 {
-	const auto selection = m_cemod_choice->GetSelection();
-	unsigned long long titleId{};
+	const auto selection = m_cemod_list->GetSelection();
+	const auto titleId = SelectedCemuExtendTitle();
 	if (selection == wxNOT_FOUND || static_cast<std::size_t>(selection) >= m_cemod_principals.size() ||
-		!m_cemuextend_title_id->GetValue().ToULongLong(&titleId, 16) || titleId == 0) return;
+		!titleId) return;
 	if (wxMessageBox(_("Copy this title's legacy shared File and Configuration data into only the selected Mod? Existing ABI 2 data will not be overwritten."),
 		_("Import CemuExtend data"), wxYES_NO | wxNO_DEFAULT | wxICON_WARNING, this) != wxYES) return;
 	std::string error;
-	if (cemuextend_hle::ImportLegacyData(titleId, m_cemod_principals[selection], error))
+	if (cemuextend_hle::ImportLegacyData(*titleId, m_cemod_principals[selection], error))
 		wxMessageBox(_("Legacy data was imported for the selected Mod."), _("Import CemuExtend data"),
 			wxOK | wxICON_INFORMATION, this);
 	else

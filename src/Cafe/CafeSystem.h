@@ -13,11 +13,13 @@ namespace CafeSystem
 	public:
 		virtual void CafeRecreateCanvas() = 0;
 		virtual void CafePPCProcessExit() = 0; // emulated process exited
+		virtual bool CafeConfirmCemodPermissions(TitleId titleId) = 0;
 	};
 
 	enum class PREPARE_STATUS_CODE
 	{
 		SUCCESS,
+		CANCELLED,
 		INVALID_RPX,
 		UNABLE_TO_MOUNT, // failed to mount through TitleInfo (most likely caused by an invalid or outdated path)
 	};

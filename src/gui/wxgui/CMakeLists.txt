@@ -4,6 +4,8 @@ add_library(CemuWxGui STATIC
   CemuApp.h
   CemuUpdateWindow.cpp
   CemuUpdateWindow.h
+  CemodPermissionDialog.cpp
+  CemodPermissionDialog.h
   ChecksumTool.cpp
   ChecksumTool.h
   components/TextList.cpp

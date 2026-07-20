@@ -202,7 +202,7 @@ bool ParseManifest(std::span<const std::byte> bytes, CemodManifest& manifest, st
 			error = "trusted_native manifests must not contain isolated resource or lifecycle fields";
 			return false;
 		}
-		manifest.codeBytes = 4U * 1024U * 1024U;
+		manifest.codeBytes = 8U * 1024U * 1024U;
 		return true;
 	}
 	if (!document.HasMember("memory") || !document["memory"].IsObject() ||
@@ -304,7 +304,7 @@ bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, 
 		(manifest.executionMode == CemodExecutionMode::Isolated &&
 			(codeBytes > manifest.codeBytes || dataBytes > manifest.privateBytes)) ||
 		(manifest.executionMode == CemodExecutionMode::TrustedNative &&
-			codeBytes + dataBytes > 4U * 1024U * 1024U))
+			codeBytes + dataBytes > 8U * 1024U * 1024U))
 	{
 		error = "PPC ELF exceeds the manifest memory limits";
 		return false;
@@ -361,7 +361,7 @@ bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, 
 			});
 		};
 		std::optional<std::size_t> bootstrap;
-		static constexpr std::array<std::uint8_t, 7> allowedRelocations{1, 4, 5, 6, 10, 22, 26};
+		static constexpr std::array<std::uint8_t, 8> allowedRelocations{0, 1, 4, 5, 6, 10, 22, 26};
 		for (std::size_t index = 0; index < sections.size(); ++index)
 		{
 			const auto& section = sections[index];
@@ -465,8 +465,8 @@ bool ValidateElf(std::span<const std::byte> elf, const CemodManifest& manifest, 
 
 } // namespace
 
-std::optional<CemodPackage> CemodPackage::Load(const std::filesystem::path& path,
-	std::uint64_t titleId, std::string& error)
+std::optional<CemodPackage> CemodPackage::Inspect(const std::filesystem::path& path,
+	std::string& error)
 {
 	error.clear();
 	if (path.extension() != ".cemod")
@@ -525,12 +525,9 @@ std::optional<CemodPackage> CemodPackage::Load(const std::filesystem::path& path
 		return std::nullopt;
 	}
 	CemodPackage result;
-	result.targetTitleId = titleId;
 	if (!ParseManifest(manifestEntry->second, result.manifest, error) ||
-		std::ranges::find(result.manifest.titleIds, titleId) == result.manifest.titleIds.end() ||
 		!ValidateElf(elfEntry->second, result.manifest, error))
 	{
-		if (error.empty()) error = "package does not target the active title";
 		return std::nullopt;
 	}
 	result.elf = elfEntry->second;
@@ -589,5 +586,19 @@ std::optional<CemodPackage> CemodPackage::Load(const std::filesystem::path& path
 		const auto digest = Hash(packageBytes);
 		result.principal = "sha256:" + Hex(digest);
 	}
+	return result;
+}
+
+std::optional<CemodPackage> CemodPackage::Load(const std::filesystem::path& path,
+	std::uint64_t titleId, std::string& error)
+{
+	auto result = Inspect(path, error);
+	if (!result) return std::nullopt;
+	if (titleId == 0 || std::ranges::find(result->manifest.titleIds, titleId) == result->manifest.titleIds.end())
+	{
+		error = "package does not target the active title";
+		return std::nullopt;
+	}
+	result->targetTitleId = titleId;
 	return result;
 }

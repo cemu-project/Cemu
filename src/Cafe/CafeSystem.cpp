@@ -68,6 +68,7 @@
 #include "Cafe/HW/SI/si.h"
 
 #include <time.h>
+#include <limits>
 
 #if BOOST_OS_LINUX
 #include <sys/sysinfo.h>
@@ -97,6 +98,15 @@ uint32 generateHashFromRawRPXData(uint8* rpxData, sint32 size)
 		h += c;
 	}
 	return h;
+}
+
+std::optional<TitleId> GetStandaloneTitleId(const fs::path& path)
+{
+	auto data = FileStream::LoadIntoMemory(path);
+	if (!data || data->empty() || data->size() > static_cast<std::size_t>(std::numeric_limits<sint32>::max()))
+		return std::nullopt;
+	return 0xFFFFFFFF00000000ULL |
+		static_cast<TitleId>(generateHashFromRawRPXData(data->data(), static_cast<sint32>(data->size())));
 }
 
 bool ScanForRPX()
@@ -456,6 +466,11 @@ namespace CafeSystem
 
 	bool sSystemRunning = false;
 	TitleId sForegroundTitleId = 0;
+
+	bool ConfirmCemodPermissions(TitleId titleId)
+	{
+		return !s_implementation || s_implementation->CafeConfirmCemodPermissions(titleId);
+	}
 
 	GameInfo2 sGameInfo_ForegroundTitle;
 
@@ -845,6 +860,8 @@ namespace CafeSystem
 	PREPARE_STATUS_CODE PrepareForegroundTitle(TitleId titleId)
 	{
 		CafeTitleList::WaitForMandatoryScan();
+		if (!ConfirmCemodPermissions(titleId))
+			return PREPARE_STATUS_CODE::CANCELLED;
 		sLaunchModeIsStandalone = false;
 		s_foregroundReturnStatus = std::nullopt;
         _pathToExecutable.clear();
@@ -871,6 +888,11 @@ namespace CafeSystem
 
 	PREPARE_STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path)
 	{
+		const auto standaloneTitleId = GetStandaloneTitleId(path);
+		if (!standaloneTitleId)
+			return PREPARE_STATUS_CODE::INVALID_RPX;
+		if (!ConfirmCemodPermissions(*standaloneTitleId))
+			return PREPARE_STATUS_CODE::CANCELLED;
 		sLaunchModeIsStandalone = true;
 		cemuLog_log(LogType::Force, "Launching executable in standalone mode due to incorrect layout or missing meta files");
 		fs::path executablePath = path;
@@ -900,8 +922,7 @@ namespace CafeSystem
 		auto execData = fsc_extractFile(_pathToExecutable.c_str());
 		if (!execData)
 			return PREPARE_STATUS_CODE::INVALID_RPX;
-		uint32 h = generateHashFromRawRPXData(execData->data(), execData->size());
-		sForegroundTitleId = 0xFFFFFFFF00000000ULL | (uint64)h;
+		sForegroundTitleId = *standaloneTitleId;
 		cemuLog_log(LogType::Force, "Generated placeholder TitleId: {:016x}", sForegroundTitleId);
 		// setup memory space and ppc recompiler
         SetupMemorySpace();

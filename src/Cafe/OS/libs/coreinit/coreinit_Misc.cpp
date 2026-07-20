@@ -697,7 +697,11 @@ namespace coreinit
 	void OSLauncherThread(uint64 titleId)
 	{
 		CafeSystem::ShutdownTitle();
-		CafeSystem::PrepareForegroundTitle(titleId);
+		if (CafeSystem::PrepareForegroundTitle(titleId) != CafeSystem::PREPARE_STATUS_CODE::SUCCESS)
+		{
+			CafeSystem::NotifyPPCProcessExit(0);
+			return;
+		}
 		CafeSystem::RequestRecreateCanvas();
 		CafeSystem::LaunchForegroundTitle();
 	}

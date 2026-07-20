@@ -158,6 +158,7 @@ private:
 	// CafeSystem implementation
 	void CafeRecreateCanvas() override;
 	void CafePPCProcessExit() override;
+	bool CafeConfirmCemodPermissions(TitleId titleId) override;
 
 	void OnRequestRecreateCanvas(wxCommandEvent& event);
 	void OnRequestGameExit(wxCommandEvent& event);
