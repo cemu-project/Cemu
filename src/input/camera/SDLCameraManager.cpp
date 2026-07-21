@@ -38,6 +38,10 @@ namespace CameraManager
         auto nv12Buffer =  std::unique_ptr<uint8[]>(new uint8[CAMERA_NV12_BUFFER_SIZE]);
         while (s_running)
         {
+            if (s_capturing)
+            {
+
+            }
             while (s_capturing)
             {
                 if (auto deviceLock = std::unique_lock(s_deviceMutex, std::try_to_lock); deviceLock && s_camera)
@@ -82,10 +86,20 @@ namespace CameraManager
         const auto camera = SDL_OpenCamera(*s_deviceId, &cameraSpec);
         if (camera == nullptr)
             return;
-
-        if (SDL_GetCameraFormat(camera, &cameraSpec) && cameraSpec.format != SDL_PIXELFORMAT_NV12)
+        const auto permission = SDL_GetCameraPermissionState(camera);
+        if (permission == SDL_CAMERA_PERMISSION_STATE_PENDING)
         {
-            cemuLog_log(LogType::Force, "Camera output format is NV12");
+            cemuLog_log(LogType::Force, "Cemu is waiting for permission to access camera");
+        }
+        else if (permission == SDL_CAMERA_PERMISSION_STATE_DENIED)
+        {
+            cemuLog_log(LogType::Force, "Cemu was denied permission to access camera");
+            SDL_CloseCamera(camera);
+            return;
+        }
+        else if (SDL_GetCameraFormat(camera, &cameraSpec) && cameraSpec.format != SDL_PIXELFORMAT_NV12)
+        {
+            cemuLog_log(LogType::Force, "Camera output format is not NV12, device will be closed");
             SDL_CloseCamera(camera);
             return;
         }
@@ -114,19 +128,23 @@ namespace CameraManager
 
     static std::vector<InternalDeviceInfo> InternalEnumerateDevices()
     {
-        std::vector<InternalDeviceInfo> infos;
         int deviceCount = 0;
-        auto devices = SDL_GetCameras(&deviceCount);
+        const auto devices = SDL_GetCameras(&deviceCount);
         if (devices == nullptr)
         {
-            cemuLog_log(LogType::Force, "{}", SDL_GetError());
+            cemuLog_log(LogType::Force, "Failed to list cameras: {}", SDL_GetError());
             return {};
         }
-        cemuLog_log(LogType::InputAPI, "Available video capture devices:");
+        if (deviceCount == 0)
+            return {};
+        std::vector<InternalDeviceInfo> infos;
+        cemuLog_log(LogType::Force, "Available video capture devices:");
         for (auto cameraId : std::span(devices, deviceCount))
         {
             const auto name = SDL_GetCameraName(cameraId);
-            infos.push_back(InternalDeviceInfo{.id = cameraId, .name = name ? name : ""});
+            std::string strName = name ? name : "";
+            cemuLog_log(LogType::Force, "\t{}", strName);
+            infos.push_back(InternalDeviceInfo{.id = cameraId, .name = std::move(strName)});
         }
         SDL_free(devices);
         return infos;
