@@ -6,11 +6,15 @@
 #include <wx/sizer.h>
 #include <wx/dcbuffer.h>
 #include <wx/rawbmp.h>
+#include <wx/stattext.h>
 
 struct wxCameraDeviceUniqueId : public wxClientData
 {
     std::string id;
-    explicit wxCameraDeviceUniqueId(std::string id) : id(std::move(id)) {}
+
+    explicit wxCameraDeviceUniqueId(std::string id) : id(std::move(id))
+    {
+    }
 };
 
 CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
@@ -39,11 +43,15 @@ CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
                                      {CameraManager::CAMERA_WIDTH, CameraManager::CAMERA_HEIGHT});
         m_imageWindow->SetBackgroundStyle(wxBG_STYLE_PAINT);
 
+        m_statusInfoText = new wxStaticText(this, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize,
+                                            wxTE_READONLY);
+
         rootSizer->Add(topSizer);
         rootSizer->Add(m_imageWindow, wxEXPAND);
+        rootSizer->Add(m_statusInfoText);
     }
     SetSizerAndFit(rootSizer);
-    m_imageUpdateTimer.Bind(wxEVT_TIMER, &CameraSettingsWindow::UpdateImage, this);
+    m_imageUpdateTimer.Bind(wxEVT_TIMER, &CameraSettingsWindow::Update, this);
     m_imageWindow->Bind(wxEVT_PAINT, &CameraSettingsWindow::DrawImage, this);
     this->Bind(wxEVT_CLOSE_WINDOW, &CameraSettingsWindow::OnClose, this);
 
@@ -92,8 +100,48 @@ void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
     }
 }
 
-void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)
+void CameraSettingsWindow::Update(const wxTimerEvent&)
 {
+    switch (CameraManager::GetState())
+    {
+        using enum CameraManager::State;
+    case NoSupport:
+        {
+            m_statusInfoText->SetLabel(_("This build does not support camera capture"));
+            return;
+        }
+    case NoDevice:
+        {
+            m_statusInfoText->SetLabel(_("No camera selected"));
+            return;
+        }
+    case UnsupportedFormat:
+        {
+            m_statusInfoText->SetLabel(_("Camera does not support the required format"));
+        }
+    case NotOpen:
+        {
+            m_statusInfoText->SetLabel(_("Camera is unavailable, or was closed due to an error"));
+            return;
+        }
+    case NeedsPermission:
+        {
+            m_statusInfoText->SetLabel(_("Waiting for permission to access camea"));
+            return;
+        }
+    case NoPermission:
+        {
+            m_statusInfoText->SetLabel(_("Cemu was denied permission to access camera"));
+            return;
+        }
+    case Capturing:
+        {
+            m_statusInfoText->SetLabel(_("Capturing"));
+            break;
+        }
+    default:
+        cemu_assert(false);
+    }
     CameraManager::FillRGBBuffer(std::span<uint8, CameraManager::CAMERA_RGB_BUFFER_SIZE>(m_imageBuffer));
     wxNativePixelData data{m_imageBitmap};
     if (!data)

@@ -20,62 +20,24 @@ namespace CameraManager
             SDL_CameraID id;
             std::string name;
         };
+
         std::mutex s_deviceMutex;
         std::mutex s_bufferMutex;
         std::optional<SDL_CameraID> s_deviceId;
-        SDL_Camera* s_camera;
+        std::atomic<SDL_Camera*> s_camera;
         std::unique_ptr<uint8[]> s_rgbBufferOut;
         std::unique_ptr<uint8[]> s_nv12BufferOut;
         int s_refCount = 0;
         std::thread s_captureThread;
-        std::atomic_bool s_capturing = false;
         std::atomic_bool s_running = false;
-    }
-
-    static void CaptureWorkerFunc()
-    {
-        SetThreadName("CameraManager");
-        auto nv12Buffer =  std::unique_ptr<uint8[]>(new uint8[CAMERA_NV12_BUFFER_SIZE]);
-        while (s_running)
-        {
-            if (s_capturing)
-            {
-
-            }
-            while (s_capturing)
-            {
-                if (auto deviceLock = std::unique_lock(s_deviceMutex, std::try_to_lock); deviceLock && s_camera)
-                {
-                    if (auto frame = SDL_AcquireCameraFrame(s_camera, nullptr))
-                    {
-                        if (frame->format != SDL_PIXELFORMAT_NV12)
-                            return;
-                        if (SDL_MUSTLOCK(frame))
-                            SDL_LockSurface(frame);
-                        const auto byteRowCount = (frame->h * 3) >> 1;
-                        for (auto row = 0; row < byteRowCount; ++row)
-                        {
-                            const auto lineIn = static_cast<const uint8*>(frame->pixels) + frame->pitch * row;
-                            const auto lineOut = nv12Buffer.get() + CAMERA_PITCH * row;
-                            std::memcpy(lineOut, lineIn, frame->w);
-                        }
-                        if (SDL_MUSTLOCK(frame))
-                            SDL_UnlockSurface(frame);
-                        std::scoped_lock lock(s_bufferMutex);
-                        std::swap(s_nv12BufferOut, nv12Buffer);
-                        SDL_ReleaseCameraFrame(s_camera, frame);
-                    }
-                }
-
-                std::this_thread::sleep_for(std::chrono::milliseconds(30));
-            }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
-            std::this_thread::yield();
-        }
+        std::atomic_bool s_permissionWasDenied = false;
+        std::atomic_bool s_unsupportedFormat = false;
     }
 
     static void OpenStream()
     {
+        s_unsupportedFormat = false;
+        s_permissionWasDenied = false;
         SDL_CameraSpec cameraSpec;
         cameraSpec.format = SDL_PIXELFORMAT_NV12;
         cameraSpec.colorspace = SDL_COLORSPACE_BT601_LIMITED;
@@ -85,35 +47,76 @@ namespace CameraManager
         cameraSpec.height = CAMERA_HEIGHT;
         const auto camera = SDL_OpenCamera(*s_deviceId, &cameraSpec);
         if (camera == nullptr)
+        {
+            cemuLog_log(LogType::Force, "Failed to open camera: {}", SDL_GetError());
             return;
+        }
         const auto permission = SDL_GetCameraPermissionState(camera);
         if (permission == SDL_CAMERA_PERMISSION_STATE_PENDING)
-        {
             cemuLog_log(LogType::Force, "Cemu is waiting for permission to access camera");
-        }
-        else if (permission == SDL_CAMERA_PERMISSION_STATE_DENIED)
-        {
-            cemuLog_log(LogType::Force, "Cemu was denied permission to access camera");
-            SDL_CloseCamera(camera);
-            return;
-        }
-        else if (SDL_GetCameraFormat(camera, &cameraSpec) && cameraSpec.format != SDL_PIXELFORMAT_NV12)
-        {
-            cemuLog_log(LogType::Force, "Camera output format is not NV12, device will be closed");
-            SDL_CloseCamera(camera);
-            return;
-        }
-        s_capturing = true;
         s_camera = camera;
     }
 
     static void CloseStream()
     {
-        s_capturing = false;
         if (s_camera)
         {
             SDL_CloseCamera(s_camera);
             s_camera = nullptr;
+        }
+    }
+
+    static void CaptureWorkerFunc()
+    {
+        SetThreadName("CameraManager");
+        auto nv12Buffer = std::unique_ptr<uint8[]>(new uint8[CAMERA_NV12_BUFFER_SIZE]);
+        while (s_running)
+        {
+            if (!s_camera)
+            {
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+                std::this_thread::yield();
+                continue;
+            }
+            if (auto deviceLock = std::unique_lock(s_deviceMutex, std::try_to_lock))
+            {
+                const auto camera = s_camera.load();
+                if (!camera)
+                    continue;
+                if (auto frame = SDL_AcquireCameraFrame(camera, nullptr))
+                {
+                    if (frame->format != SDL_PIXELFORMAT_NV12 || frame->w != CAMERA_WIDTH || frame->h != CAMERA_HEIGHT)
+                    {
+                        cemuLog_log(LogType::Force, "Camera format is not NV12 {}x{}", CAMERA_WIDTH, CAMERA_HEIGHT);
+                        s_unsupportedFormat = true;
+                        CloseStream();
+                        continue;
+                    }
+                    if (SDL_MUSTLOCK(frame))
+                        SDL_LockSurface(frame);
+                    const auto byteRowCount = (frame->h * 3) >> 1;
+                    for (auto row = 0; row < byteRowCount; ++row)
+                    {
+                        const auto lineIn = static_cast<const uint8*>(frame->pixels) + frame->pitch * row;
+                        const auto lineOut = nv12Buffer.get() + CAMERA_PITCH * row;
+                        std::memcpy(lineOut, lineIn, frame->w);
+                    }
+                    if (SDL_MUSTLOCK(frame))
+                        SDL_UnlockSurface(frame);
+                    SDL_ReleaseCameraFrame(s_camera, frame);
+                    std::scoped_lock lock(s_bufferMutex);
+                    std::swap(s_nv12BufferOut, nv12Buffer);
+                }
+                else if (auto permission = SDL_GetCameraPermissionState(s_camera); permission == SDL_CAMERA_PERMISSION_STATE_DENIED)
+                {
+                    s_permissionWasDenied = true;
+                    CloseStream();
+                }
+            }
+            else
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(30));
+            }
         }
     }
 
@@ -191,8 +194,8 @@ namespace CameraManager
 
     static uint8 ClampU8(int v)
     {
-        v =  (v > 255) ? 255 : v;
-        v =  (v < 0) ? 0 : v;
+        v = (v > 255) ? 255 : v;
+        v = (v < 0) ? 0 : v;
         return v;
     }
 
@@ -292,5 +295,21 @@ namespace CameraManager
         if (s_deviceId)
             return std::to_string(*s_deviceId);
         return std::nullopt;
+    }
+
+    State GetState()
+    {
+        if (!s_deviceId)
+            return State::NoDevice;
+        if (s_permissionWasDenied)
+            return State::NoPermission;
+        if (s_unsupportedFormat)
+            return State::UnsupportedFormat;
+        if (!s_camera)
+            return State::NotOpen;
+        const auto permission = SDL_GetCameraPermissionState(s_camera);
+        if (permission == SDL_CAMERA_PERMISSION_STATE_PENDING)
+            return State::NeedsPermission;
+        return State::Capturing;
     }
 } // namespace CameraManager
