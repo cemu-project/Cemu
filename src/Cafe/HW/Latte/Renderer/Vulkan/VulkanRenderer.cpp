@@ -2163,8 +2163,7 @@ void VulkanRenderer::ProcessFinishedCommandBuffers()
 			// not signaled
 			break;
 		}
-		cemuLog_log(LogType::Force, "vkGetFenceStatus returned unexpected error {}", (sint32)fenceStatus);
-		cemu_assert_debug(false);
+		UnrecoverableError(fmt::format("vkGetFenceStatus returned unexpected error {}", (sint32)fenceStatus).c_str());
 	}
 	if (finishedCmdBuffers)
 	{
@@ -2183,7 +2182,7 @@ void VulkanRenderer::WaitForNextFinishedCommandBuffer()
 	}
 	else if (result != VK_SUCCESS)
 	{
-		cemuLog_log(LogType::Force, "vkWaitForFences: Returned unhandled error {}", (sint32)result);
+		UnrecoverableError(fmt::format("vkWaitForFences: Returned unhandled error {}", (sint32)result).c_str());
 	}
 	// process
 	ProcessFinishedCommandBuffers();
