@@ -207,7 +207,7 @@ namespace CameraManager
         std::scoped_lock lock(s_deviceMutex);
         CloseStream();
         SDL_CameraID id;
-        auto [it, ec] = std::from_chars(deviceId.begin(), deviceId.end(), id);
+        auto [it, ec] = std::from_chars(deviceId.data(), deviceId.data() + deviceId.size(), id);
         if (ec != std::errc{})
             return;
         s_deviceId = id;
