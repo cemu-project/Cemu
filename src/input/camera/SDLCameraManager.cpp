@@ -126,7 +126,7 @@ namespace CameraManager
         for (auto cameraId : std::span(devices, deviceCount))
         {
             const auto name = SDL_GetCameraName(cameraId);
-            infos.emplace_back(cameraId, name ? name : "");
+            infos.push_back(InternalDeviceInfo{.id = cameraId, .name = name ? name : ""});
         }
         SDL_free(devices);
         return infos;
@@ -256,7 +256,7 @@ namespace CameraManager
         std::vector<DeviceInfo> deviceInfos;
         for (const auto& [id, name] : InternalEnumerateDevices())
         {
-            deviceInfos.emplace_back(fmt::to_string(id), name);
+            deviceInfos.push_back(DeviceInfo{.uniqueId = fmt::to_string(id), .name = name});
         }
         return deviceInfos;
     }
