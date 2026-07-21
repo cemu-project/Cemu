@@ -43,4 +43,9 @@ namespace CameraManager
     {
         return std::nullopt;
     }
+
+    State GetState()
+    {
+        return State::NoSupport;
+    }
 } // namespace CameraManager

@@ -2,6 +2,16 @@
 
 namespace CameraManager
 {
+    enum class State
+    {
+        Capturing,
+        NoSupport,
+        NoDevice,
+        UnsupportedFormat,
+        NotOpen,
+        NeedsPermission,
+        NoPermission
+    };
     constexpr uint32 CAMERA_WIDTH = 640;
     constexpr uint32 CAMERA_HEIGHT = 480;
     constexpr uint32 CAMERA_PITCH = 768;
@@ -26,4 +36,5 @@ namespace CameraManager
     std::vector<DeviceInfo> EnumerateDevices();
     void SaveDevice();
     std::optional<std::string> GetCurrentDevice();
+    State GetState();
 } // namespace CameraManager

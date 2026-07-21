@@ -5,6 +5,7 @@
 
 class wxButton;
 class wxComboBox;
+class wxStaticText;
 
 class CameraSettingsWindow : public wxDialog
 {
@@ -12,6 +13,7 @@ class CameraSettingsWindow : public wxDialog
     wxButton* m_refreshButton;
     wxWindow* m_imageWindow;
     wxBitmap m_imageBitmap;
+    wxStaticText* m_statusInfoText;
     wxTimer m_imageUpdateTimer;
     std::vector<uint8> m_imageBuffer;
 
@@ -19,7 +21,7 @@ public:
     explicit CameraSettingsWindow(wxWindow* parent);
     void OnSelectCameraChoice(wxCommandEvent&);
     void OnRefreshPressed(wxCommandEvent&);
-    void UpdateImage(const wxTimerEvent&);
+    void Update(const wxTimerEvent&);
     void DrawImage(const wxPaintEvent&);
     void OnClose(wxCloseEvent& event);
 };
