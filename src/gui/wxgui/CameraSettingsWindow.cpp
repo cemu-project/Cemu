@@ -7,6 +7,12 @@
 #include <wx/dcbuffer.h>
 #include <wx/rawbmp.h>
 
+struct wxCameraDeviceUniqueId : public wxClientData
+{
+    std::string id;
+    explicit wxCameraDeviceUniqueId(std::string id) : id(std::move(id)) {}
+};
+
 CameraSettingsWindow::CameraSettingsWindow(wxWindow* parent)
     : wxDialog(parent, wxID_ANY, _("Camera settings"), wxDefaultPosition),
       m_imageBitmap(CameraManager::CAMERA_WIDTH, CameraManager::CAMERA_HEIGHT, 24),
@@ -55,21 +61,35 @@ void CameraSettingsWindow::OnSelectCameraChoice(wxCommandEvent&)
     if (selection == 0)
         CameraManager::ResetDevice();
     else
-        CameraManager::SetDevice(selection - 1);
+    {
+        auto id = static_cast<wxCameraDeviceUniqueId*>(m_cameraComboBox->GetClientData(selection))->id;
+        CameraManager::SetDevice(id);
+    }
 }
 
 void CameraSettingsWindow::OnRefreshPressed(wxCommandEvent&)
 {
     wxArrayString choices = {_("None")};
-    for (const auto& entry : CameraManager::EnumerateDevices())
+    const auto devices = CameraManager::EnumerateDevices();
+    const auto currentDevice = CameraManager::GetCurrentDevice();
+    auto currentIndex = 0;
+    for (auto i = 0; i < devices.size(); ++i)
     {
-        choices.push_back(fmt::format("{} ({})", entry.name, entry.uniqueId));
+        auto& device = devices[i];
+        choices.push_back(fmt::format("{} ({})", device.name, device.uniqueId));
+        if (currentDevice && device.uniqueId == *currentDevice)
+            currentIndex = i + 1;
     }
+
     m_cameraComboBox->Set(choices);
-    if (auto currentDevice = CameraManager::GetCurrentDevice())
-        m_cameraComboBox->SetSelection(static_cast<int>(*currentDevice) + 1);
-    else
-        m_cameraComboBox->SetSelection(0);
+    m_cameraComboBox->SetSelection(currentIndex);
+    // Client data can only be set when there are entries
+    for (auto i = 0; i < devices.size(); ++i)
+    {
+        auto& device = devices[i];
+        const auto choiceIndex = i + 1;
+        m_cameraComboBox->SetClientData(choiceIndex, new wxCameraDeviceUniqueId{device.uniqueId});
+    }
 }
 
 void CameraSettingsWindow::UpdateImage(const wxTimerEvent&)

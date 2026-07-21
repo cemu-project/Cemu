@@ -19,10 +19,7 @@ add_library(CemuInput
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp
 	api/Keyboard/KeyboardController.h
-	camera/CameraManager.cpp
 	camera/CameraManager.h
-	camera/Rgb2Nv12.cpp
-	camera/Rgb2Nv12.h
 	emulated/ProController.cpp
 	emulated/EmulatedController.h
 	emulated/EmulatedController.cpp
@@ -102,12 +99,21 @@ if(ENABLE_SDL)
 	target_link_libraries(CemuInput PRIVATE	SDL3::SDL3)
 endif()
 
+if (NOT ENABLE_CAMERA)
+	target_sources(CemuInput PRIVATE
+		camera/DummyCameraManager.cpp
+	)
+elseif (ENABLE_SDL)
+	target_sources(CemuInput PRIVATE
+		camera/SDLCameraManager.cpp
+	)
+endif ()
+
 target_include_directories(CemuInput PUBLIC "../")
 
 target_link_libraries(CemuInput PRIVATE
 	CemuCommon
 	CemuGui
-	openpnp-capture
 )
 
 if (ENABLE_BLUEZ)
