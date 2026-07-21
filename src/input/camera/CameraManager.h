@@ -21,9 +21,9 @@ namespace CameraManager
     void FillNV12Buffer(std::span<uint8, CAMERA_NV12_BUFFER_SIZE> nv12Buffer);
     void FillRGBBuffer(std::span<uint8, CAMERA_RGB_BUFFER_SIZE> rgbBuffer);
 
-    void SetDevice(uint32 deviceNo);
+    void SetDevice(std::string_view deviceId);
     void ResetDevice();
     std::vector<DeviceInfo> EnumerateDevices();
     void SaveDevice();
-    std::optional<uint32> GetCurrentDevice();
+    std::optional<std::string> GetCurrentDevice();
 } // namespace CameraManager
