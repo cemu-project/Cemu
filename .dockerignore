@@ -2,7 +2,16 @@ build/
 cmake-build-*/
 out/
 .cache/
-result
+result/
+.git
+!.git/
+.git/*
+!.git/modules/
+.git/modules/*
+!.git/modules/dependencies/
+.git/modules/dependencies/*
+!.git/modules/dependencies/vcpkg/
+!.git/modules/dependencies/vcpkg/**
 bin/Cemu_*
 bin/*.pdb
 bin/*.ilk

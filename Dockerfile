@@ -68,31 +68,40 @@ RUN apt-get update \
         libglm-dev \
     && rm -rf /var/lib/apt/lists/*
 
+FROM cemu-extend-base AS dev
+
 WORKDIR /workspace/CemuExtend
 COPY . .
-
-# CemuExtend keeps most third-party sources in git submodules.  Initializing
-# them here also makes a checkout with empty submodule directories usable as a
-# Docker build context.
-RUN test -e .git \
-    && git submodule update --init --recursive \
+RUN test -f dependencies/vcpkg/bootstrap-vcpkg.sh \
     && bash ./dependencies/vcpkg/bootstrap-vcpkg.sh -disableMetrics
-
-FROM cemu-extend-base AS dev
 
 CMD ["bash"]
 
-FROM dev AS build
+FROM cemu-extend-base AS build
 
 ARG BUILD_TYPE=Release
+ARG GIT_HASH=unknown
+ARG CEMU_EXTEND_COMMIT_HASH=unknown
 
-RUN --mount=type=cache,target=/root/.cache/vcpkg/archives \
-    cmake -S . -B build/docker \
+WORKDIR /workspace/CemuExtend
+
+# The source is a bind mount, so source changes do not create a multi-gigabyte
+# image layer. The writable mount is discarded after the artifact is copied
+# out, while CMake/Ninja state is retained in the cache mount.
+RUN --mount=type=bind,source=.,target=/workspace/CemuExtend,rw \
+    --mount=type=cache,id=cemu-extend-vcpkg,target=/root/.cache/vcpkg/archives,sharing=locked \
+    --mount=type=cache,id=cemu-extend-cmake,target=/workspace/CemuExtend/build/docker,sharing=locked \
+    bash ./dependencies/vcpkg/bootstrap-vcpkg.sh -disableMetrics \
+    && cmake -S . -B build/docker \
         -G Ninja \
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
+        -DGIT_HASH=${GIT_HASH} \
+        -DCEMU_EXTEND_COMMIT_HASH=${CEMU_EXTEND_COMMIT_HASH} \
         -DENABLE_VCPKG=ON \
         -DALLOW_PORTABLE=OFF \
         -DVCPKG_INSTALL_OPTIONS=--clean-after-build \
-    && cmake --build build/docker --parallel
+    && cmake --build build/docker --parallel \
+    && ctest --test-dir build/docker --output-on-failure \
+    && cp bin/Cemu_release /Cemu_release
 
 CMD ["bash"]

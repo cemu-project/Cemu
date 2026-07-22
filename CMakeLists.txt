@@ -13,20 +13,26 @@ set(EMULATOR_VERSION_PATCH "0" CACHE STRING "")
 
 set(THREADS_PREFER_PTHREAD_FLAG true) # needs to be set before vcpkg
 
-execute_process(
-		COMMAND git log --format=%h -1
-		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-		OUTPUT_VARIABLE GIT_HASH
-		OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+set(GIT_HASH "" CACHE STRING "Git revision used in the build")
+if (NOT GIT_HASH)
+	execute_process(
+			COMMAND git log --format=%h -1
+			WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+			OUTPUT_VARIABLE GIT_HASH
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+endif()
 add_definitions(-DEMULATOR_HASH=${GIT_HASH})
 
-execute_process(
-	COMMAND git rev-parse HEAD
-	WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-	OUTPUT_VARIABLE CEMU_EXTEND_COMMIT_HASH
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-)
+set(CEMU_EXTEND_COMMIT_HASH "" CACHE STRING "Full Git revision used in the build")
+if (NOT CEMU_EXTEND_COMMIT_HASH)
+	execute_process(
+		COMMAND git rev-parse HEAD
+		WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+		OUTPUT_VARIABLE CEMU_EXTEND_COMMIT_HASH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+	)
+endif()
 if (NOT CEMU_EXTEND_COMMIT_HASH)
 	set(CEMU_EXTEND_COMMIT_HASH ${GIT_HASH})
 endif()
@@ -34,12 +40,14 @@ add_compile_definitions(CEMU_EXTEND_COMMIT_HASH="${CEMU_EXTEND_COMMIT_HASH}")
 
 if (ENABLE_VCPKG)
 	# check if vcpkg is shallow and unshallow it if necessary
-	execute_process(
-	COMMAND git rev-parse --is-shallow-repository
-	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/vcpkg
-	OUTPUT_VARIABLE is_vcpkg_shallow
-	OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
+	if (EXISTS "${CMAKE_SOURCE_DIR}/dependencies/vcpkg/.git")
+		execute_process(
+			COMMAND git rev-parse --is-shallow-repository
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/dependencies/vcpkg
+			OUTPUT_VARIABLE is_vcpkg_shallow
+			OUTPUT_STRIP_TRAILING_WHITESPACE
+		)
+	endif()
 
 	if(is_vcpkg_shallow STREQUAL "true")
 		message(STATUS "vcpkg is shallow. Unshallowing it now...")
