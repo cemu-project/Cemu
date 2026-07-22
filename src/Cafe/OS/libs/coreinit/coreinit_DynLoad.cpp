@@ -12,6 +12,8 @@ namespace coreinit
 	MPTR _osDynLoadTLSFuncAlloc = MPTR_NULL;
 	MPTR _osDynLoadTLSFuncFree = MPTR_NULL;
 
+	static std::vector<NotifyCallbackEntry> notifyCallbacks;
+
 	uint32 OSDynLoad_SetAllocator(MPTR allocFunc, MPTR freeFunc)
 	{
 		_osDynLoadFuncAlloc = allocFunc;
@@ -109,6 +111,34 @@ namespace coreinit
 			cemuLog_logDebug(LogType::Force, "OSDynLoad_Acquire() failed to load module '{}'", libName);
 			return 0xFFFCFFE9; // module not found
 		}
+
+		for (const auto& cb : notifyCallbacks) 
+		{
+			MEMPTR<OSDynLoad_NotifyData> notifyData;
+			notifyData = (OSDynLoad_NotifyData*)OSDynLoad_AllocatorAlloc(sizeof(OSDynLoad_NotifyData), 4);
+			RPLModule* module = RPLLoader_GetModuleByName(tempLibName);
+
+			if (!module) 
+				break;
+
+			notifyData->name = module->ppcName.GetMPTR();
+
+			notifyData->textAddr = module->regionMappingBase_text.GetBEValue();
+			notifyData->textOffset = module->regionMappingBase_text.GetMPTR() - module->regionOrigAddr_text;
+			notifyData->textSize = module->regionSize_text;
+
+			notifyData->dataAddr = module->regionMappingBase_data;
+			notifyData->dataOffset = module->regionMappingBase_data - module->regionOrigAddr_data;
+			notifyData->dataSize = module->regionSize_data;
+
+			notifyData->readAddr = module->regionMappingBase_data;
+			notifyData->readOffset = module->regionMappingBase_data - module->regionOrigAddr_data;
+			notifyData->readSize = module->regionSize_data;
+
+			PPCCoreCallback(cb.callback, moduleHandleOut, cb.userContext.GetMPTR(), 1, notifyData.GetMPTR());
+			OSDynLoad_AllocatorFree(notifyData);
+
+		}
 		return 0;
 	}
 
@@ -121,6 +151,35 @@ namespace coreinit
 	{
 		if (moduleHandle == RPL_INVALID_HANDLE)
 			return;
+
+		for (const auto& cb : notifyCallbacks) 
+		{
+			MEMPTR<OSDynLoad_NotifyData> notifyData;
+			notifyData = (OSDynLoad_NotifyData*)OSDynLoad_AllocatorAlloc(sizeof(OSDynLoad_NotifyData), 4);
+			RPLModule* module = RPLLoader_GetModuleByName(RPLLoader_GetModuleNameByHandle(moduleHandle));
+
+			if (!module) 
+				break;
+
+			notifyData->name = module->ppcName.GetMPTR();
+
+			notifyData->textAddr = module->regionMappingBase_text.GetBEValue();
+			notifyData->textOffset = module->regionMappingBase_text.GetMPTR() - module->regionOrigAddr_text;
+			notifyData->textSize = module->regionSize_text;
+
+			notifyData->dataAddr = module->regionMappingBase_data;
+			notifyData->dataOffset = module->regionMappingBase_data - module->regionOrigAddr_data;
+			notifyData->dataSize = module->regionSize_data;
+
+			notifyData->readAddr = module->regionMappingBase_data;
+			notifyData->readOffset = module->regionMappingBase_data - module->regionOrigAddr_data;
+			notifyData->readSize = module->regionSize_data;
+
+			PPCCoreCallback(cb.callback, moduleHandle, cb.userContext.GetMPTR(), 2, notifyData.GetMPTR());
+			OSDynLoad_AllocatorFree(notifyData);
+
+		}
+
 		RPLLoader_RemoveDependency(moduleHandle);
 		RPLLoader_UpdateDependencies();
 	}
@@ -195,6 +254,25 @@ namespace coreinit
 		return 1;
 	}
 
+	uint32 OSDynLoad_AddNotifyCallback(MEMPTR<OSDynLoadNotifyFunc> notifyFn, MEMPTR<void> userContext)
+	{
+		if (!notifyFn)
+			return 0xBAD1000E; // notify function pointer is null
+
+		notifyCallbacks.emplace_back(notifyFn, userContext);
+		return 0;
+	}
+
+	uint32 OSDynLoad_DelNotifyCallback(MEMPTR<OSDynLoadNotifyFunc> notifyFn, MEMPTR<void> userContext) 
+	{
+		std::erase_if(notifyCallbacks, [&](const NotifyCallbackEntry& entry) 
+		{
+			return entry.callback.GetMPTR() == notifyFn.GetMPTR() && entry.userContext == userContext;
+		});
+
+		return 0;
+	}
+
 	void InitializeDynLoad()
 	{
 		cafeExportRegister("coreinit", OSDynLoad_SetAllocator, LogType::Placeholder);
@@ -209,5 +287,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSDynLoad_GetModuleName, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDynLoad_GetNumberOfRPLs, LogType::Placeholder);
 		cafeExportRegister("coreinit", OSDynLoad_GetRPLInfo, LogType::Placeholder);
+
+		cafeExportRegister("coreinit", OSDynLoad_AddNotifyCallback, LogType::Placeholder);
+		cafeExportRegister("coreinit", OSDynLoad_DelNotifyCallback, LogType::Placeholder);
 	}
 }

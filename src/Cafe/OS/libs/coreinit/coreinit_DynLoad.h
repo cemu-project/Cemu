@@ -19,6 +19,14 @@ namespace coreinit
 		uint32be readSize;
 	};
 
+	using OSDynLoadNotifyFunc = void (*)(uint32be* module, void *userContext, sint32 notifyReason, OSDynLoad_NotifyData *infos);
+
+	struct NotifyCallbackEntry
+	{
+		MEMPTR<OSDynLoadNotifyFunc> callback;
+		MEMPTR<void> userContext;
+	};
+
 	uint32 OSDynLoad_SetAllocator(MPTR allocFunc, MPTR freeFunc);
 	void OSDynLoad_SetTLSAllocator(MPTR allocFunc, MPTR freeFunc);
 	uint32 OSDynLoad_GetAllocator(betype<MPTR>* funcAlloc, betype<MPTR>* funcFree);
@@ -34,6 +42,9 @@ namespace coreinit
 	uint32 OSDynLoad_GetModuleName(uint32 moduleHandle, char* nameBuf, sint32be* nameBufSize);
 	sint32 OSDynLoad_GetNumberOfRPLs();
 	uint32 OSDynLoad_GetRPLInfo(uint32 first, uint32 count, OSDynLoad_NotifyData* outInfos);
+
+	uint32 OSDynLoad_AddNotifyCallback(MEMPTR<OSDynLoadNotifyFunc> notifyFn, MEMPTR<void> userContext);
+	uint32 OSDynLoad_DelNotifyCallback(MEMPTR<OSDynLoadNotifyFunc> notifyFn, MEMPTR<void> userContext);
 
 	void InitializeDynLoad();
 }

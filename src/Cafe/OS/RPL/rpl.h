@@ -47,6 +47,7 @@ uint32 RPLLoader_GetSDA2Base();
 
 sint32 RPLLoader_GetModuleCount();
 RPLModule** RPLLoader_GetModuleList();
+RPLModule* RPLLoader_GetModuleByName(std::string_view name);
 
 MEMPTR<void> RPLLoader_AllocateCodeCaveMem(uint32 alignment, uint32 size);
 void RPLLoader_ReleaseCodeCaveMem(MEMPTR<void> addr);
