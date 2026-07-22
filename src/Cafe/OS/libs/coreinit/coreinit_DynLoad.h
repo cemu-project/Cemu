@@ -25,6 +25,8 @@ namespace coreinit
 	{
 		MEMPTR<OSDynLoadNotifyFunc> callback;
 		MEMPTR<void> userContext;
+
+		NotifyCallbackEntry(MEMPTR<OSDynLoadNotifyFunc> func, MEMPTR<void> context) : callback(func), userContext(context) {}
 	};
 
 	uint32 OSDynLoad_SetAllocator(MPTR allocFunc, MPTR freeFunc);
