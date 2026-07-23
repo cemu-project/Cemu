@@ -2400,6 +2400,20 @@ RPLModule** RPLLoader_GetModuleList()
 	return rplModuleList;
 }
 
+RPLModule* RPLLoader_GetModuleByName(std::string_view name) 
+{
+	std::string normalizedName = _RPLLoader_ExtractModuleNameFromPath(name);
+	RPLModule** modules = RPLLoader_GetModuleList();
+
+	for (uint32 i = 0; i < RPLLoader_GetModuleCount(); i++)
+	{
+		if (modules[i]->moduleName == normalizedName)
+			return modules[i];
+	}
+
+	return nullptr;
+}
+
 sint32 RPLLoader_GetModuleCount()
 {
 	return rplModuleCount;
