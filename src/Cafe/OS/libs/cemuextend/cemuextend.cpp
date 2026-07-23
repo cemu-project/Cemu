@@ -243,6 +243,20 @@ namespace cemuextend_hle
 		return runtime;
 	}
 
+	CemuExtendModGrant ResolveCemodGrant(std::uint64_t titleId, const std::string& modId,
+		const std::string& principal, std::uint32_t requestedPermissions)
+	{
+		if (const auto exact = GetConfig().GetCemuExtendModGrant(titleId, principal))
+			return *exact;
+		const auto anchor = GetConfig().GetCemuExtendModTrustAnchor(titleId, modId);
+		if (!anchor || !CemodTrustAnchorCoversRequest(requestedPermissions, anchor->approved_request_mask))
+			return {};
+		const CemuExtendModGrant grant{anchor->permissions & requestedPermissions & kCemodPermissionMask,
+			anchor->approved_request_mask, true};
+		GetConfig().SetCemuExtendModGrant(titleId, principal, grant);
+		return grant;
+	}
+
 	std::vector<CemodPackageInfo> DiscoverCemodCatalog()
 	{
 		namespace fs = std::filesystem;
@@ -295,8 +309,8 @@ namespace cemuextend_hle
 		for (const auto& package : DiscoverCemods(titleId))
 		{
 			if (!package.error.empty()) continue;
-			const auto grant = GetConfig().GetCemuExtendModGrant(titleId, package.principal)
-				.value_or(CemuExtendModGrant{});
+			const auto grant = ResolveCemodGrant(titleId, package.modId, package.principal,
+				package.requestedPermissions & kCemodPermissionMask);
 			if (!grant.approved) continue;
 			auto found = grouped.try_emplace(package.principal,
 				CemodPermissionRequest{package.modId, package.principal, 0,
@@ -353,8 +367,8 @@ namespace cemuextend_hle
 			std::string error;
 			auto package = CemodPackage::Load(info.path, titleId, error);
 			if (!package) continue;
-			const auto grant = GetConfig().GetCemuExtendModGrant(titleId, package->principal)
-				.value_or(CemuExtendModGrant{});
+			const auto grant = ResolveCemodGrant(titleId, package->manifest.modId, package->principal,
+				package->manifest.requestedPermissions & kCemodPermissionMask);
 			if (!grant.approved || (package->manifest.requestedPermissions & ~grant.approved_request_mask) != 0)
 			{
 				cemuLog_log(LogType::Force,

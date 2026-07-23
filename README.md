@@ -27,6 +27,8 @@ CEX2は`CEX2Query`、`CEX2Open`、`CEX2Submit`、`CEX2Poll`、`CEX2Cancel`、`CE
 
 packageはユーザーデータの`cemuextend/mods/`へ配置します。`Options` → `General settings` → `CemuExtend`を開くと、manifestに含まれる対象ゲームが自動で一覧化されます。Mod名のチェックを付けると有効、外すと無効になり、変更は次回タイトル起動時に反映されます。Title IDの手入力は不要です。
 
+Mod単位の権限パネルにある「Trust future updates to this Mod」はopt-inの例外です。有効にすると、その時点で承認した権限をMod ID単位で記録し、以後principalが変わっても要求権限が承認範囲を超えない限り再承認なしで自動的に引き継がれます。要求権限が増えた場合は従来どおり再承認が必要です。デフォルトは無効(未チェック)で、principalごとの再承認という既定の挙動は変わりません。
+
 有効なModに未許可または新規要求の権限がある場合、CemuExtendはタイトルのマウント前に権限確認画面を表示します。複数Modは1画面にまとめられ、選択した権限を保存してからゲームを起動します。権限を一部拒否したまま起動することもできますが、不足が残る間は次回起動時にも確認されます。キャンセルした場合、ゲームは準備・起動されません。
 
 ### `isolated`

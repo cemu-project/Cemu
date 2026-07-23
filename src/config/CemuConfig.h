@@ -79,6 +79,12 @@ struct CemuExtendModGrant
 	bool approved{};
 };
 
+struct CemuExtendModTrustAnchor
+{
+	uint32 permissions{};
+	uint32 approved_request_mask{};
+};
+
 enum GraphicAPI
 {
 	kOpenGL = 0,
@@ -530,10 +536,15 @@ struct CemuConfig
 		std::string_view principal) const;
 	void SetCemuExtendModGrant(uint64 titleId, std::string principal, CemuExtendModGrant grant);
 	void RemoveCemuExtendModGrant(uint64 titleId, std::string_view principal);
+	std::optional<CemuExtendModTrustAnchor> GetCemuExtendModTrustAnchor(uint64 titleId,
+		std::string_view modId) const;
+	void SetCemuExtendModTrustAnchor(uint64 titleId, std::string modId, CemuExtendModTrustAnchor anchor);
+	void RemoveCemuExtendModTrustAnchor(uint64 titleId, std::string_view modId);
 
 	mutable std::shared_mutex cemuextend_grants_mutex;
 	std::unordered_map<uint64, CemuExtendTitleGrant> cemuextend_grants;
 	std::unordered_map<uint64, std::unordered_map<std::string, CemuExtendModGrant>> cemuextend_mod_grants;
+	std::unordered_map<uint64, std::unordered_map<std::string, CemuExtendModTrustAnchor>> cemuextend_mod_trust;
 
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };

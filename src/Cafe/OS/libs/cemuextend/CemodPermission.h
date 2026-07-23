@@ -13,4 +13,11 @@ namespace cemuextend_hle
 		return enabled && ((requested & ~granted) != 0 ||
 			(requested & ~approvedRequests) != 0);
 	}
+
+	[[nodiscard]] constexpr bool CemodTrustAnchorCoversRequest(std::uint32_t requested,
+		std::uint32_t anchorApprovedRequests)
+	{
+		requested &= kCemodPermissionMask;
+		return (requested & ~anchorApprovedRequests) == 0;
+	}
 }

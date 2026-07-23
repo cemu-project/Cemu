@@ -11,6 +11,7 @@
 
 class ModExecutionContext;
 class CemodRuntime;
+struct CemuExtendModGrant;
 
 struct CemodPackageInfo
 {
@@ -39,6 +40,8 @@ namespace cemuextend_hle
 	COSModule* GetModule();
 	void ConfigureCex2HleAccess(ModExecutionContext& context);
 	CemodRuntime& GetCemodRuntime();
+	::CemuExtendModGrant ResolveCemodGrant(std::uint64_t titleId, const std::string& modId,
+		const std::string& principal, std::uint32_t requestedPermissions);
 	std::vector<CemodPackageInfo> DiscoverCemodCatalog();
 	std::vector<CemodPackageInfo> DiscoverCemods(std::uint64_t titleId);
 	std::vector<CemodPermissionRequest> PendingCemodPermissionRequests(std::uint64_t titleId);

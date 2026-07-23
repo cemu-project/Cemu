@@ -110,7 +110,9 @@ private:
 	wxStaticText* m_cemod_status{};
 	wxStaticText* m_cemod_details{};
 	std::array<wxCheckBox*, 5> m_cemod_permissions{};
+	wxCheckBox* m_cemod_trust_updates{};
 	std::vector<std::string> m_cemod_principals;
+	std::vector<std::string> m_cemod_mod_ids;
 	std::vector<uint32> m_cemod_requested;
 	std::vector<bool> m_cemod_trusted;
 	std::vector<bool> m_cemod_signed;

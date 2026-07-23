@@ -50,6 +50,33 @@ void CemuConfig::RemoveCemuExtendModGrant(uint64 titleId, std::string_view princ
 	if (title->second.empty()) cemuextend_mod_grants.erase(title);
 }
 
+std::optional<CemuExtendModTrustAnchor> CemuConfig::GetCemuExtendModTrustAnchor(uint64 titleId,
+	std::string_view modId) const
+{
+	std::shared_lock lock(cemuextend_grants_mutex);
+	const auto title = cemuextend_mod_trust.find(titleId);
+	if (title == cemuextend_mod_trust.end()) return std::nullopt;
+	const auto mod = title->second.find(std::string(modId));
+	return mod == title->second.end() ? std::nullopt : std::optional{mod->second};
+}
+
+void CemuConfig::SetCemuExtendModTrustAnchor(uint64 titleId, std::string modId,
+	CemuExtendModTrustAnchor anchor)
+{
+	if (titleId == 0 || modId.empty()) return;
+	std::unique_lock lock(cemuextend_grants_mutex);
+	cemuextend_mod_trust[titleId][std::move(modId)] = anchor;
+}
+
+void CemuConfig::RemoveCemuExtendModTrustAnchor(uint64 titleId, std::string_view modId)
+{
+	std::unique_lock lock(cemuextend_grants_mutex);
+	const auto title = cemuextend_mod_trust.find(titleId);
+	if (title == cemuextend_mod_trust.end()) return;
+	title->second.erase(std::string(modId));
+	if (title->second.empty()) cemuextend_mod_trust.erase(title);
+}
+
 void CemuConfig::SetMLCPath(fs::path path, bool save)
 {
 	mlc_path.SetValue(_pathToUtf8(path));
@@ -100,6 +127,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 		std::unique_lock grantsLock(cemuextend_grants_mutex);
 		cemuextend_grants.clear();
 		cemuextend_mod_grants.clear();
+		cemuextend_mod_trust.clear();
 		auto bridge = parser.get("CemuExtend");
 		for (auto title = bridge.get("Title"); title.valid(); title = bridge.get("Title", title))
 		{
@@ -122,6 +150,16 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 				mod.get_attribute<uint32>("permissions", 0) & 0x1fU,
 				mod.get_attribute<uint32>("approved_requests", 0) & 0x1fU,
 				mod.get_attribute<bool>("approved", false)};
+		}
+		for (auto trust = bridge.get("ModTrust"); trust.valid(); trust = bridge.get("ModTrust", trust))
+		{
+			const auto titleId = trust.get_attribute<uint64>("title", 0);
+			const std::string modId = trust.get_attribute("mod_id", "");
+			if (titleId == 0 || modId.empty() || modId.size() > 128)
+				continue;
+			cemuextend_mod_trust[titleId][modId] = {
+				trust.get_attribute<uint32>("permissions", 0) & 0x1fU,
+				trust.get_attribute<uint32>("approved_requests", 0) & 0x1fU};
 		}
 	}
 
@@ -411,6 +449,15 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 				mod.set_attribute("permissions", grant.permissions & 0x1fU);
 				mod.set_attribute("approved_requests", grant.approved_request_mask & 0x1fU);
 				mod.set_attribute("approved", grant.approved);
+			}
+		for (const auto& [titleId, mods] : cemuextend_mod_trust)
+			for (const auto& [modId, anchor] : mods)
+			{
+				auto trust = bridge.set("ModTrust");
+				trust.set_attribute("title", static_cast<sint64>(titleId));
+				trust.set_attribute("mod_id", modId.c_str());
+				trust.set_attribute("permissions", anchor.permissions & 0x1fU);
+				trust.set_attribute("approved_requests", anchor.approved_request_mask & 0x1fU);
 			}
 	}
 

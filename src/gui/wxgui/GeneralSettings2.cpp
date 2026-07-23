@@ -1040,6 +1040,9 @@ wxPanel* GeneralSettings2::AddCemuExtendPage(wxNotebook* notebook)
 			wxString::FromUTF8(permissionNames[index]));
 		permissionBox->Add(m_cemod_permissions[index], 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	}
+	m_cemod_trust_updates = new wxCheckBox(permissionParent, wxID_ANY,
+		_("Trust future updates to this Mod (keep it enabled after the .cemod file is replaced with a newer version)"));
+	permissionBox->Add(m_cemod_trust_updates, 0, wxLEFT | wxRIGHT | wxBOTTOM, 6);
 	auto* modButtons = new wxBoxSizer(wxHORIZONTAL);
 	auto* import = new wxButton(permissionParent, wxID_ANY, _("Import legacy data…"));
 	auto* saveMod = new wxButton(permissionParent, wxID_ANY, _("Save permissions"));
@@ -1203,6 +1206,7 @@ void GeneralSettings2::RefreshCemodList()
 	if (!m_cemod_list) return;
 	m_cemod_list->Clear();
 	m_cemod_principals.clear();
+	m_cemod_mod_ids.clear();
 	m_cemod_requested.clear();
 	m_cemod_trusted.clear();
 	m_cemod_signed.clear();
@@ -1221,11 +1225,12 @@ void GeneralSettings2::RefreshCemodList()
 			package.executionMode == CemodExecutionMode::TrustedNative ? "trusted native" : "isolated",
 			package.signedPackage ? "signed" : "unsigned")));
 		m_cemod_principals.push_back(package.principal);
+		m_cemod_mod_ids.push_back(package.modId);
 		m_cemod_requested.push_back(package.requestedPermissions);
 		m_cemod_trusted.push_back(package.executionMode == CemodExecutionMode::TrustedNative);
 		m_cemod_signed.push_back(package.signedPackage);
-		const auto grant = GetConfig().GetCemuExtendModGrant(*titleId, package.principal)
-			.value_or(CemuExtendModGrant{});
+		const auto grant = cemuextend_hle::ResolveCemodGrant(*titleId, package.modId, package.principal,
+			package.requestedPermissions);
 		m_cemod_list->Check(m_cemod_principals.size() - 1,
 			grant.approved && (package.requestedPermissions & ~grant.approved_request_mask) == 0);
 	}
@@ -1243,8 +1248,8 @@ void GeneralSettings2::LoadCemodGrant()
 	const auto titleId = SelectedCemuExtendTitle();
 	const bool valid = selection != wxNOT_FOUND && static_cast<std::size_t>(selection) < m_cemod_principals.size() &&
 		titleId.has_value();
-	const auto grant = valid ? GetConfig().GetCemuExtendModGrant(*titleId,
-		m_cemod_principals[selection]).value_or(CemuExtendModGrant{}) : CemuExtendModGrant{};
+	const auto grant = valid ? cemuextend_hle::ResolveCemodGrant(*titleId, m_cemod_mod_ids[selection],
+		m_cemod_principals[selection], m_cemod_requested[selection]) : CemuExtendModGrant{};
 	const auto granted = grant.permissions;
 	const auto requested = valid ? m_cemod_requested[selection] : 0;
 	if (valid && m_cemod_trusted[selection])
@@ -1259,6 +1264,9 @@ void GeneralSettings2::LoadCemodGrant()
 		m_cemod_permissions[index]->Enable(valid && (requested & bit));
 		m_cemod_permissions[index]->SetValue(valid && (granted & bit));
 	}
+	m_cemod_trust_updates->Enable(valid);
+	m_cemod_trust_updates->SetValue(valid && GetConfig().GetCemuExtendModTrustAnchor(*titleId,
+		m_cemod_mod_ids[selection]).has_value());
 }
 
 void GeneralSettings2::ToggleCemod(std::size_t selection, bool enabled)
@@ -1276,16 +1284,19 @@ void GeneralSettings2::ToggleCemod(std::size_t selection, bool enabled)
 			return;
 		}
 	}
-	auto grant = GetConfig().GetCemuExtendModGrant(*titleId, m_cemod_principals[selection])
-		.value_or(CemuExtendModGrant{});
+	auto grant = cemuextend_hle::ResolveCemodGrant(*titleId, m_cemod_mod_ids[selection],
+		m_cemod_principals[selection], m_cemod_requested[selection]);
 	grant.permissions &= m_cemod_requested[selection];
 	grant.approved_request_mask = enabled ? m_cemod_requested[selection] : 0U;
 	grant.approved = enabled;
 	GetConfig().SetCemuExtendModGrant(*titleId, m_cemod_principals[selection], grant);
+	if (!enabled)
+		GetConfig().RemoveCemuExtendModTrustAnchor(*titleId, m_cemod_mod_ids[selection]);
 	GetConfigHandle().Save();
 	m_cemod_details->SetLabel(enabled ?
 		_("Enabled. The Mod will load on the next game launch.") :
 		_("Disabled. The Mod will not load on the next game launch."));
+	LoadCemodGrant();
 }
 
 void GeneralSettings2::StoreCemodGrant()
@@ -1302,6 +1313,11 @@ void GeneralSettings2::StoreCemodGrant()
 	const bool enabled = m_cemod_list->IsChecked(static_cast<unsigned int>(selection));
 	GetConfig().SetCemuExtendModGrant(*titleId, m_cemod_principals[selection],
 		{permissions, enabled ? m_cemod_requested[selection] : 0U, enabled});
+	if (enabled && m_cemod_trust_updates->IsChecked())
+		GetConfig().SetCemuExtendModTrustAnchor(*titleId, m_cemod_mod_ids[selection],
+			{permissions, m_cemod_requested[selection]});
+	else
+		GetConfig().RemoveCemuExtendModTrustAnchor(*titleId, m_cemod_mod_ids[selection]);
 	GetConfigHandle().Save();
 	m_cemod_details->SetLabel(_("Permissions saved. Changes apply on the next game launch."));
 }
