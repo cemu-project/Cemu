@@ -205,6 +205,8 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	case PPCASM_OP_STBX: return "STBX";
 	case PPCASM_OP_STBUX: return "STBUX";
 	case PPCASM_OP_STSWI: return "STSWI";
+	case PPCASM_OP_LWBRX: return "LWBRX";
+	case PPCASM_OP_LHBRX: return "LHBRX";
 	case PPCASM_OP_STWBRX: return "STWBRX";
 	case PPCASM_OP_STHBRX: return "STHBRX";
 
@@ -1288,6 +1290,8 @@ PPCInstructionDef ppcInstructionTable[] =
 	{PPCASM_OP_STHUX, 0, 31, 439, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
 	{PPCASM_OP_STBX, 0, 31, 215, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
 	{PPCASM_OP_STBUX, 0, 31, 247, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_LWBRX, 0, 31, 534, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
+	{PPCASM_OP_LHBRX, 0, 31, 790, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
 	{PPCASM_OP_STWBRX, 0, 31, 662, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
 	{PPCASM_OP_STHBRX, 0, 31, 918, OPC_NONE, OP_FORM_DYNAMIC, FLG_DEFAULT, 0, 0, nullptr, {EncodedOperand_GPR(21), EncodedOperand_GPR<true>(16), EncodedOperand_GPR(11)} },
 
@@ -3416,6 +3420,24 @@ void ppcAsmTestDisassembler()
 	checkOpFPR(0, 6);
 	checkOpFPR(1, 12);
 	checkOpFPR(2, 13);
+
+	// LWBRX
+	_testAsm(0x7C642C2C, "lwbrx r3, r4, r5");
+	_testAsm(0x7C604C2C, "lwbrx r3, 0, r9"); // rA = 0 form
+	disassemble(0x7C642C2C, PPCASM_OP_LWBRX);
+	checkOperandMask(true, true, true);
+	checkOpGPR(0, 3);
+	checkOpGPR(1, 4);
+	checkOpGPR(2, 5);
+
+	// LHBRX
+	_testAsm(0x7C642E2C, "lhbrx r3, r4, r5");
+	_testAsm(0x7C604E2C, "lhbrx r3, 0, r9"); // rA = 0 form
+	disassemble(0x7C642E2C, PPCASM_OP_LHBRX);
+	checkOperandMask(true, true, true);
+	checkOpGPR(0, 3);
+	checkOpGPR(1, 4);
+	checkOpGPR(2, 5);
 
 	// random extra tests
 	_testAsm(0x419D0040, "bgt cr7, .+0x40");
