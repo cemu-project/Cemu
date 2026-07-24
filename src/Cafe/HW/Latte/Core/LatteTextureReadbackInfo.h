@@ -7,7 +7,7 @@ class LatteTextureReadbackInfo
 {
 public:
 	LatteTextureReadbackInfo(LatteTextureView* textureView)
-		: hostTextureCopy(textureView->baseTexture), m_textureView(textureView)
+		: hostTextureCopy(textureView->baseTexture), m_firstSlice(textureView->firstSlice), m_textureView(textureView)
 	{}
 
 	virtual ~LatteTextureReadbackInfo() = default;
@@ -24,6 +24,7 @@ public:
 	bool forceFinish{ false }; // set to true if not finished in time for dependent operation
 	// texture info
 	LatteTextureDefinition hostTextureCopy{};
+	sint32 m_firstSlice{};
 
 protected:
 	LatteTextureView* m_textureView;

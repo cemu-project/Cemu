@@ -704,7 +704,7 @@ void optimizedLinearReadbackWriteLoop(LatteTextureLoaderCtx* textureLoader, uint
 		sint32 yc = y;
 		sint32 pixelOffset = yc * pitch;
 		copyType* rowPixelData = (copyType*)(linearPixelData + pixelOffset * sizeof(copyType));
-		copyType* blockData = (copyType*)LatteTextureLoader_getInputLinearOptimized_(textureLoader, 0, y, 1, 1, sizeof(copyType) * 8, 0, 1, 0, textureLoader->pitch, textureLoader->height);
+		copyType* blockData = (copyType*)LatteTextureLoader_getInputLinearOptimized_(textureLoader, 0, y, 1, 1, sizeof(copyType) * 8, textureLoader->sliceIndex, 1, 0, textureLoader->pitch, textureLoader->surfaceInfoHeight);
 		if constexpr (sizeof(copyType) == 4)
 		{
 			memcpy_dwords(blockData, rowPixelData, textureLoader->width);
@@ -726,10 +726,6 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 	LatteTextureLoaderCtx textureLoader = { 0 };
 	LatteTextureLoader_begin(&textureLoader, sliceIndex, mipIndex, textureData->physAddress, textureData->physMipAddress, textureData->format, textureData->dim, textureData->width, textureData->height, textureData->depth, textureData->mipLevels, textureData->pitch, textureData->tileMode, textureData->swizzle);
 
-#ifdef CEMU_DEBUG_ASSERT
-	if (textureData->depth != 1)
-		cemuLog_log(LogType::Force, "_writeReadbackTextureToMemory(): Texture has multiple slices (not supported)");
-#endif
 	if (textureLoader.physAddress == MPTR_NULL)
 	{
 		cemuLog_log(LogType::Force, "_writeReadbackTextureToMemory(): Texture has invalid address");

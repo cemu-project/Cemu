@@ -102,7 +102,6 @@ void LatteTextureReadbackInfoVk::StartTransfer()
 	auto* baseTexture = (LatteTextureVk*)m_textureView->baseTexture;
 	baseTexture->GetImageObj()->flagForCurrentCommandBuffer();
 
-	cemu_assert_debug(m_textureView->firstSlice == 0);
 	cemu_assert_debug(m_textureView->firstMip == 0);
 	cemu_assert_debug(m_textureView->baseTexture->dim != Latte::E_DIM::DIM_3D);
 
@@ -112,7 +111,7 @@ void LatteTextureReadbackInfoVk::StartTransfer()
 	region.bufferImageHeight = baseTexture->height;
 
 	region.imageSubresource.aspectMask = baseTexture->GetImageAspect();
-	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.baseArrayLayer = m_firstSlice;
 	region.imageSubresource.layerCount = 1;
 	region.imageSubresource.mipLevel = 0;
 

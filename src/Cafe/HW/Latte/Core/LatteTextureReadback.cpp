@@ -145,7 +145,7 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 		}
 #endif
 		uint8* pixelData = readbackInfo->GetData();
-		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, 0, 0, pixelData);
+		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, readbackInfo->m_firstSlice, 0, pixelData);
 		readbackInfo->ReleaseData();
 		// get the original texture if it still exists and invalidate the current data hash
 		LatteTextureView* origTexView = LatteTextureViewLookupCache::lookupSlice(readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.pitch, 0, 0, readbackInfo->hostTextureCopy.format);

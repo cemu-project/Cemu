@@ -1,7 +1,5 @@
-#include "Cafe/HW/Latte/Renderer/Renderer.h"
-#include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLTextureReadback.h"
-#include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureViewGL.h"
+#include "Cafe/HW/Latte/Renderer/OpenGL/LatteTextureGL.h"
 
 LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* textureView)
 	: LatteTextureReadbackInfo(textureView)
@@ -94,13 +92,15 @@ LatteTextureReadbackInfoGL::~LatteTextureReadbackInfoGL()
 void LatteTextureReadbackInfoGL::StartTransfer()
 {
 	cemu_assert(m_textureView);
-	((OpenGLRenderer*)g_renderer.get())->texture_bindAndActivate(m_textureView, 0);
+	LatteTextureGL* baseTexture = (LatteTextureGL*)m_textureView->baseTexture;
+	cemu_assert_debug(m_textureView->firstMip == 0);
+	cemu_assert_debug(m_textureView->baseTexture->dim != Latte::E_DIM::DIM_3D);
 	// create unsynchronized buffer
 	glGenBuffers(1, &texImageBufferGL);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, texImageBufferGL);
 	glBufferData(GL_PIXEL_PACK_BUFFER, m_image_size, NULL, GL_DYNAMIC_READ);
 	// request texture read into buffer
-	glGetTexImage(((LatteTextureViewGL*)m_textureView)->glTexTarget, 0, m_texFormatGL, m_texDataTypeGL, NULL);
+	glGetTextureSubImage(baseTexture->glId_texture, 0, 0, 0, m_firstSlice, baseTexture->width, baseTexture->height, 1, m_texFormatGL, m_texDataTypeGL, m_image_size, NULL);
 	glFlush();
 	// create fence sync (so we can check if the image copy operation finished)
 	imageCopyFinSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
