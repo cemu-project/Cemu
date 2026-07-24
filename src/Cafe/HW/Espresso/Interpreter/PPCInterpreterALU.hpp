@@ -33,7 +33,7 @@ static bool checkAdditionOverflow(uint32 x, uint32 y, uint32 r)
 static void PPCInterpreter_ADD(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	hCPU->gpr[rD] = (int)hCPU->gpr[rA] + (int)hCPU->gpr[rB];
+	hCPU->gpr[rD] = hCPU->gpr[rA] + hCPU->gpr[rB];
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
 	PPCInterpreter_nextInstruction(hCPU);
@@ -123,7 +123,7 @@ static void PPCInterpreter_ADDI(PPCInterpreter_t* hCPU, uint32 opcode)
 	sint32 rD, rA;
 	uint32 imm;
 	PPC_OPC_TEMPL_D_SImm(opcode, rD, rA, imm);
-	hCPU->gpr[rD] = (rA ? (int)hCPU->gpr[rA] : 0) + (int)imm;
+	hCPU->gpr[rD] = (rA ? hCPU->gpr[rA] : 0u) + imm;
 	PPCInterpreter_nextInstruction(hCPU);
 }
 
@@ -435,7 +435,7 @@ static void PPCInterpreter_MULHWU_(PPCInterpreter_t* hCPU, uint32 opcode)
 static void PPCInterpreter_MULLW(PPCInterpreter_t* hCPU, uint32 opcode)
 {
 	PPC_OPC_TEMPL3_XO();
-	sint64 result = (sint64)hCPU->gpr[rA] * (sint64)hCPU->gpr[rB];
+	sint64 result = (sint64)(sint32)hCPU->gpr[rA] * (sint64)(sint32)hCPU->gpr[rB];
 	hCPU->gpr[rD] = (uint32)result;
 	if (opHasRC())
 		ppc_update_cr0(hCPU, hCPU->gpr[rD]);
