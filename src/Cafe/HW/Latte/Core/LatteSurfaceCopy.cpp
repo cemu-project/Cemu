@@ -83,7 +83,7 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	// create destination texture if it doesnt exist
 	if (!destinationTexture)
 	{
-		destinationView = LatteTexture_CreateMapping(dst.physDataAddr, MPTR_NULL, rect.x + rect.width, rect.y + rect.height, 1, dst.pitch, Latte::MakeHWTileMode(dst.tilemode), dst.swizzle, 0, 1, dst.sliceIndex, 1, dst.surfaceFormat, dst.dim, Latte::IsMSAA(dst.dim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
+		destinationView = LatteTexture_CreateMapping(dst.physDataAddr, MPTR_NULL, rect.x + rect.width, rect.y + rect.height, dst.sliceIndex + 1, dst.pitch, Latte::MakeHWTileMode(dst.tilemode), dst.swizzle, 0, 1, dst.sliceIndex, 1, dst.surfaceFormat, dst.dim, Latte::IsMSAA(dst.dim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
 		destinationTexture = destinationView->baseTexture;
 	}
 	// copy texture
@@ -125,7 +125,7 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	const bool sourceIsLinear = sourceTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED || sourceTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL;
 	const bool destinationIsLinear = destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED || destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL;
 	bool shouldReadback = !sourceIsLinear && destinationIsLinear;
-	// special case for Bayonetta 2
+	// special case for Bayonetta 2 (note: Art Academy also triggers this, but likely doesn't actually need readback)
 	if (destinationTexture->width == 8 && destinationTexture->height == 8 && destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1)
 	{
 		cemuLog_logDebug(LogType::Force, "Texture readback after copy for Bayonetta 2 (phys: 0x{:08x})", destinationTexture->physAddress);
