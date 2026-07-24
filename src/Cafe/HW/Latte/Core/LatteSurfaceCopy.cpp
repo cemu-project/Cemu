@@ -61,6 +61,7 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 		LatteSurfaceCopy_CopyInRAM(src, dst, rect);
 		return;
 	}
+	LatteTexture_UpdateDataToLatest(sourceView->baseTexture);
 	sourceTexture = sourceView->baseTexture;
 	if (sourceTexture->reloadFromDynamicTextures)
 	{
@@ -122,13 +123,13 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 		debug_printf("Source or destination texture does not exist\n");
 	// if the texture is updated from a tiled to a linear format it's a strong indicator for CPU reads
 	// in which case we should sync the texture back to CPU RAM
+	// we have to be conservative here because readback is expensive
 	const bool sourceIsLinear = sourceTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED || sourceTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL;
 	const bool destinationIsLinear = destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED || destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL;
 	bool shouldReadback = !sourceIsLinear && destinationIsLinear;
 	// special case for Bayonetta 2 (note: Art Academy also triggers this, but likely doesn't actually need readback)
 	if (destinationTexture->width == 8 && destinationTexture->height == 8 && destinationTexture->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1)
 	{
-		cemuLog_logDebug(LogType::Force, "Texture readback after copy for Bayonetta 2 (phys: 0x{:08x})", destinationTexture->physAddress);
 		shouldReadback = true;
 	}
 	if (shouldReadback)
