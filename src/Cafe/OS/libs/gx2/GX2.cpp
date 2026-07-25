@@ -258,6 +258,28 @@ void gx2Export_GX2SetDRCScale(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
+void gx2Export_GX2SetTVScale(PPCInterpreter_t* hCPU)
+{
+	cemuLog_log(LogType::GX2, "GX2SetTVScale({},{})", hCPU->gpr[3], hCPU->gpr[4]);
+	osLib_returnFromFunction(hCPU, 0);
+}
+
+// Cemu always presents whichever scan buffer the title copies to, so the enable state itself
+// has no effect. It is logged because it tells us which outputs a title intends to drive
+void gx2Export_GX2SetTVEnable(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(enable, 0);
+	cemuLog_log(LogType::GX2, "GX2SetTVEnable({})", enable);
+	osLib_returnFromFunction(hCPU, 0);
+}
+
+void gx2Export_GX2SetDRCEnable(PPCInterpreter_t* hCPU)
+{
+	ppcDefineParamU32(enable, 0);
+	cemuLog_log(LogType::GX2, "GX2SetDRCEnable({})", enable);
+	osLib_returnFromFunction(hCPU, 0);
+}
+
 void gx2Export_GX2SetDRCConnectCallback(PPCInterpreter_t* hCPU)
 {
 	ppcDefineParamS32(channel, 0);
@@ -357,6 +379,9 @@ namespace GX2
 			osLib_addFunction("gx2", "GX2CalcTVSize", gx2Export_GX2CalcTVSize);
 			osLib_addFunction("gx2", "GX2CalcDRCSize", gx2Export_GX2CalcDRCSize);
 			osLib_addFunction("gx2", "GX2SetDRCScale", gx2Export_GX2SetDRCScale);
+			osLib_addFunction("gx2", "GX2SetTVScale", gx2Export_GX2SetTVScale);
+			osLib_addFunction("gx2", "GX2SetTVEnable", gx2Export_GX2SetTVEnable);
+			osLib_addFunction("gx2", "GX2SetDRCEnable", gx2Export_GX2SetDRCEnable);
 			osLib_addFunction("gx2", "GX2SetDRCConnectCallback", gx2Export_GX2SetDRCConnectCallback);
 
 			osLib_addFunction("gx2", "GX2GetSystemTVScanMode", coreinitExport_GX2GetSystemTVScanMode);
