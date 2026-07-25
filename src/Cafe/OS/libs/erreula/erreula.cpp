@@ -152,12 +152,12 @@ namespace erreula
 
 		bool IsDecideSelectLeftButtonError() const
 		{
-			return m_buttonSelection != BUTTON_SELECTION::LEFT;
+			return m_buttonSelection == BUTTON_SELECTION::LEFT;
 		}
 
 		bool IsDecideSelectRightButtonError() const
 		{
-			return m_buttonSelection != BUTTON_SELECTION::RIGHT;
+			return m_buttonSelection == BUTTON_SELECTION::RIGHT;
 		}
 
 		void SetButtonSelection(BUTTON_SELECTION selection)
