@@ -76,6 +76,7 @@ public:
 	void UpdateNFCMenu();
 	bool IsMenuHidden() const;
 	void TogglePadView();
+	void OpenPPCDebugger();
 
 #if BOOST_OS_WINDOWS
 	WXLRESULT MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lParam) override;

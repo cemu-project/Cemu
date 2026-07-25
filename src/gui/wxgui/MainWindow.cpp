@@ -377,6 +377,9 @@ MainWindow::MainWindow()
 	{
 			g_gdbstub = std::make_unique<GDBServer>(GetConfig().gdb_port);
 	}
+
+	if (LaunchSettings::OpenDebuggerEnabled())
+		OpenPPCDebugger();
 }
 
 MainWindow::~MainWindow()
@@ -1189,6 +1192,14 @@ void MainWindow::OnDebugViewPPCDebugger(wxCommandEvent& event)
 		m_debugger_window = nullptr;
 		return;
 	}
+
+	OpenPPCDebugger();
+}
+
+void MainWindow::OpenPPCDebugger()
+{
+	if (m_debugger_window)
+		return;
 
 	auto rect = GetDesktopRect();
 	/*
