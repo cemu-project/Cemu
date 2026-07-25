@@ -235,6 +235,8 @@ const char* ppcAssembler_getInstructionName(uint32 ppcAsmOp)
 	case PPCASM_OP_BGELR: return "BGELR";
 	case PPCASM_OP_BGTLR: return "BGTLR";
 	case PPCASM_OP_BNELR: return "BNELR";
+	case PPCASM_OP_BDZLR: return "BDZLR";
+	case PPCASM_OP_BDNZLR: return "BDNZLR";
 
 	case PPCASM_OP_BCTR: return "BCTR";
 	case PPCASM_OP_BCTRL: return "BCTRL";
@@ -1129,6 +1131,8 @@ PPCInstructionDef ppcInstructionTable[] =
 	{PPCASM_OP_BLELR, 0, 19, 16, OPC_NONE, OP_FORM_BRANCH_BCCLR, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_GT, nullptr}, // less or equal (not greater)
 	{PPCASM_OP_BGELR, 0, 19, 16, OPC_NONE, OP_FORM_BRANCH_BCCLR, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_LT, nullptr}, // greater or equal (not less)
 	{PPCASM_OP_BNELR, 0, 19, 16, OPC_NONE, OP_FORM_BRANCH_BCCLR, FLG_DEFAULT, C_MASK_BO | C_MASK_BI_CRBIT | C_MASK_LK, C_BIT_BO_FALSE | C_BITS_BI_EQ, nullptr}, // not equal
+	{PPCASM_OP_BDZLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK, C_BIT_BO_DZ, nullptr}, // decrement CTR, branch to LR if CTR == 0
+	{PPCASM_OP_BDNZLR, 0, 19, 16, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, C_MASK_BO | C_MASK_LK, C_BIT_BO_DNZ, nullptr}, // decrement CTR, branch to LR if CTR != 0
 
 	{PPCASM_OP_ISYNC, 0, 19, 150, OPC_NONE, OP_FORM_NO_OPERAND, FLG_DEFAULT, 0, 0, nullptr},
 
@@ -3438,6 +3442,16 @@ void ppcAsmTestDisassembler()
 	checkOpGPR(0, 3);
 	checkOpGPR(1, 4);
 	checkOpGPR(2, 5);
+
+	// BDZLR (no operands)
+	_testAsm(0x4E400020, "bdzlr");
+	disassemble(0x4E400020, PPCASM_OP_BDZLR);
+	checkOperandMask(false, false, false);
+
+	// BDNZLR (no operands)
+	_testAsm(0x4E000020, "bdnzlr");
+	disassemble(0x4E000020, PPCASM_OP_BDNZLR);
+	checkOperandMask(false, false, false);
 
 	// random extra tests
 	_testAsm(0x419D0040, "bgt cr7, .+0x40");

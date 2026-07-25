@@ -194,6 +194,8 @@ enum PPCASM_OP
 	PPCASM_OP_BGELR, // greater or equal
 	PPCASM_OP_BGTLR, // greater
 	PPCASM_OP_BNELR, // not equal
+	PPCASM_OP_BDZLR, // decrement CTR, branch if CTR == 0
+	PPCASM_OP_BDNZLR, // decrement CTR, branch if CTR != 0
 
 	PPCASM_OP_BCTR,
 	PPCASM_OP_BCTRL,
