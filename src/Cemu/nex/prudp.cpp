@@ -235,6 +235,7 @@ sint32 prudpPacket::buildData(uint8* output, sint32 maxLength)
 	uint8* packetBuffer = output;
 	sint32 writeIndex = 0;
 	// write constant header
+	cemu_assert(maxLength >= 0xB);
 	*(uint8*)(packetBuffer + 0x00) = src;
 	*(uint8*)(packetBuffer + 0x01) = dst;
 	uint16 typeAndFlags = (this->flags << 4) | (this->type);
@@ -246,17 +247,20 @@ sint32 prudpPacket::buildData(uint8* output, sint32 maxLength)
 	// variable fields
 	if (this->type == TYPE_SYN)
 	{
+		cemu_assert(maxLength >= (0xB + 4));
 		*(uint32*)(packetBuffer + writeIndex) = 0; // connection signature (always 0 for SYN packet)
 		writeIndex += 4;
 	}
 	else if (this->type == TYPE_CON)
 	{
 		// connection signature (+ kerberos data if secure connection)
+		cemu_assert(maxLength >= (0xB + packetData.size()));
 		memcpy(packetBuffer + writeIndex, &packetData.front(), packetData.size());
 		writeIndex += (int)packetData.size();
 	}
 	else if (this->type == TYPE_DATA)
 	{
+		cemu_assert(maxLength >= (0xB + 1 + packetData.size()));
 		*(uint8*)(packetBuffer + writeIndex) = fragmentIndex; // fragment index
 		writeIndex += 1;
 		if (packetData.empty() == false)
@@ -274,6 +278,7 @@ sint32 prudpPacket::buildData(uint8* output, sint32 maxLength)
 		cemu_assert_suspicious();
 	}
 	// checksum
+	cemu_assert(maxLength >= (writeIndex + 1));
 	*(uint8*)(packetBuffer + writeIndex) = calculateChecksum(packetBuffer, writeIndex);
 	writeIndex++;
 
@@ -367,7 +372,7 @@ prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings* streamSettings, ui
 	if (this->type == prudpPacket::TYPE_SYN)
 	{
 		// SYN packet
-		if (readIndex < 4)
+		if ((length - readIndex) < 4)
 		{
 			isInvalid = true;
 			return;
@@ -414,7 +419,7 @@ prudpIncomingPacket::prudpIncomingPacket(prudpStreamSettings* streamSettings, ui
 		// read payload size (optional)
 		if (hasPayloadSize)
 		{
-			uint16 payloadSize = *(uint32*)(data + readIndex);
+			uint16 payloadSize = *(uint16*)(data + readIndex);
 			readIndex += sizeof(uint16);
 			// verify payload size
 			if ((length - readIndex) != payloadSize)
@@ -903,6 +908,11 @@ void prudpClient::DirectSendPacket(prudpPacket* packet)
 {
 	uint8 packetBuffer[prudpPacket::PACKET_RAW_SIZE_MAX];
 	sint32 len = packet->buildData(packetBuffer, prudpPacket::PACKET_RAW_SIZE_MAX);
+	if (len > prudpPacket::PACKET_RAW_SIZE_MAX)
+	{
+		cemuLog_log(LogType::Force, "PRUDP: Packet exceeds maximum size");
+		return;
+	}
 	sockaddr_in destAddr;
 	destAddr.sin_family = AF_INET;
 	destAddr.sin_port = htons(m_dstPort);
@@ -930,9 +940,10 @@ void prudpClient::SendDatagram(uint8* input, sint32 length, bool reliable)
 {
 	cemu_assert_debug(reliable); // non-reliable packets require correct sequenceId handling and testing
 	cemu_assert_debug(m_hasSynAck && m_hasConAck); // cant send data packets before we are connected
-	if (length >= 0x300)
+	if (length > prudpPacket::PACKET_RAW_SIZE_MAX - 13)
 	{
 		cemuLog_logOnce(LogType::Force, "PRUDP: Datagram too long. Fragmentation not implemented yet");
+		return;
 	}
 	// single fragment data packet
 	uint16 flags = prudpPacket::FLAG_NEED_ACK;
