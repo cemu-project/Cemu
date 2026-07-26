@@ -38,6 +38,32 @@ enum RPCOpcode : uint32_t
 	OpcodePong = 4,
 };
 
+static std::string EscapeJSONString(std::string_view value)
+{
+	std::string escaped;
+	escaped.reserve(value.size() + 16); // original string length plus some extra space for escaped characters
+	for (unsigned char c : value)
+	{
+		switch (c)
+		{
+		case '"': escaped.append("\\\""); break;
+		case '\\': escaped.append("\\\\"); break;
+		case '\b': escaped.append("\\b"); break;
+		case '\f': escaped.append("\\f"); break;
+		case '\n': escaped.append("\\n"); break;
+		case '\r': escaped.append("\\r"); break;
+		case '\t': escaped.append("\\t"); break;
+		default:
+			if (c < 32)
+				escaped.append(shim::format("\\u{:04x}", c));
+			else
+				escaped.push_back(c);
+			break;
+		}
+	}
+	return escaped;
+}
+
 #ifdef _WIN32
 class NamedPipeImpl
 {
@@ -307,9 +333,9 @@ class NamedPipe : public NamedPipeImpl
 		{
 			jsonPayload.append(R"("activity": {)");
 			if (!presence.state.empty())
-				jsonPayload.append(shim::format(R"("state": "{}",)", presence.state));
+				jsonPayload.append(shim::format(R"("state": "{}",)", EscapeJSONString(presence.state)));
 			if (!presence.details.empty())
-				jsonPayload.append(shim::format(R"("details": "{}",)", presence.details));
+				jsonPayload.append(shim::format(R"("details": "{}",)", EscapeJSONString(presence.details)));
 			if (presence.startTimestamp || presence.endTimestamp)
 			{
 				jsonPayload.append(R"("timestamps": {)");
@@ -321,13 +347,19 @@ class NamedPipe : public NamedPipeImpl
 					jsonPayload.pop_back();
 				jsonPayload.append("},");
 			}
-			if (!presence.largeImageKey.empty() && !presence.largeImageText.empty() && !presence.smallImageKey.empty() && !presence.smallImageText.empty())
+			if (!presence.largeImageKey.empty() || !presence.largeImageText.empty() || !presence.smallImageKey.empty() || !presence.smallImageText.empty())
 			{
 				jsonPayload.append(R"("assets": {)");
-				jsonPayload.append(shim::format(R"("large_image": "{}",)", presence.largeImageKey));
-				jsonPayload.append(shim::format(R"("large_text": "{}",)", presence.largeImageText));
-				jsonPayload.append(shim::format(R"("small_image": "{}",)", presence.smallImageKey));
-				jsonPayload.append(shim::format(R"("small_text": "{}",)", presence.smallImageText));
+				if (!presence.largeImageKey.empty())
+					jsonPayload.append(shim::format(R"("large_image": "{}",)", EscapeJSONString(presence.largeImageKey)));
+				if (!presence.largeImageText.empty())
+					jsonPayload.append(shim::format(R"("large_text": "{}",)", EscapeJSONString(presence.largeImageText)));
+				if (!presence.smallImageKey.empty())
+					jsonPayload.append(shim::format(R"("small_image": "{}",)", EscapeJSONString(presence.smallImageKey)));
+				if (!presence.smallImageText.empty())
+					jsonPayload.append(shim::format(R"("small_text": "{}",)", EscapeJSONString(presence.smallImageText)));
+				if (jsonPayload.back() == ',')
+					jsonPayload.pop_back();
 				jsonPayload.append("},");
 			}
 			// party
@@ -335,7 +367,7 @@ class NamedPipe : public NamedPipeImpl
 			{
 				jsonPayload.append(R"("party": {)");
 				if (!presence.partyId.empty())
-					jsonPayload.append(shim::format(R"("id": "{}",)", presence.partyId));
+					jsonPayload.append(shim::format(R"("id": "{}",)", EscapeJSONString(presence.partyId)));
 				if (presence.partySize > 0 && presence.partyMax > 0)
 					jsonPayload.append(shim::format(R"("size": [{}, {}],)", presence.partySize, presence.partyMax));
 				jsonPayload.append(R"("privacy": )").append(std::to_string(presence.partyPrivacy)).append(",");
@@ -346,11 +378,11 @@ class NamedPipe : public NamedPipeImpl
 			{
 				jsonPayload.append(R"("secrets": {)");
 				if (!presence.matchSecret.empty())
-					jsonPayload.append(shim::format(R"("match": "{}",)", presence.matchSecret));
+					jsonPayload.append(shim::format(R"("match": "{}",)", EscapeJSONString(presence.matchSecret)));
 				if (!presence.joinSecret.empty())
-					jsonPayload.append(shim::format(R"("join": "{}",)", presence.joinSecret));
+					jsonPayload.append(shim::format(R"("join": "{}",)", EscapeJSONString(presence.joinSecret)));
 				if (!presence.spectateSecret.empty())
-					jsonPayload.append(shim::format(R"("spectate": "{}",)", presence.spectateSecret));
+					jsonPayload.append(shim::format(R"("spectate": "{}",)", EscapeJSONString(presence.spectateSecret)));
 				if (jsonPayload.back() == ',')
 					jsonPayload.pop_back();
 				jsonPayload.append("},");
@@ -649,7 +681,7 @@ void DiscordRPCLite::WorkerThread(std::string applicationId)
 				{
 					std::optional<std::string> cmd = ParseJSONField(jsonText, "cmd");
 					std::optional<std::string> evt = ParseJSONField(jsonText, "evt");
-					if (CompareStringI(*cmd, "DISPATCH"))
+					if (cmd && CompareStringI(*cmd, "DISPATCH"))
 					{
 						if (evt && CompareStringI(*evt, "READY"))
 						{

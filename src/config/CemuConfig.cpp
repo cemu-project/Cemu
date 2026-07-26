@@ -302,6 +302,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	config.set("mlc_path", mlc_path.GetValue().c_str());
 	config.set<bool>("permanent_storage", permanent_storage);
 	config.set("proxy_server", proxy_server.GetValue().c_str());
+	config.set<bool>("disable_screensaver", disable_screensaver);
 	config.set<bool>("play_boot_sound", play_boot_sound);
 
 	// config.set("cpu_mode", cpu_mode.GetValue());

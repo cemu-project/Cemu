@@ -833,8 +833,7 @@ void wxGameList::OnContextMenuSelected(wxCommandEvent& event)
                     if (!QueryIconForTitle(title_id, icon_large, icon_small))
                         break;
                     auto icon = m_image_list_data.GetIcon(icon_large);
-                	auto newClipboardData = wxBitmapDataObject(icon);
-                    wxClipboard::Get()->SetData(&newClipboardData);
+					wxClipboard::Get()->SetData(new wxBitmapDataObject(icon));
                     wxClipboard::Get()->Close();
                 }
                 break;

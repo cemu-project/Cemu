@@ -106,7 +106,7 @@ void WindowsInitCwd()
 		executablePath.resize(i);
 	else
 		executablePath.clear();
-	SetCurrentDirectoryW(executablePath.c_str());
+	SetCurrentDirectoryW(fs::path(executablePath).parent_path().c_str());
 	// set high priority
 	SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 	#endif

@@ -110,7 +110,7 @@ CURLcode _sslctx_function_CUSTOM(CURL* curl, void* sslctx, void* param)
 	}
 	for (auto& clientCertId : requestHelper->GetClientCertIds())
 	{
-		if (iosuCrypto_addCACertificate(sslctx, clientCertId) == false)
+		if (iosuCrypto_addClientCertificate(sslctx, clientCertId) == false)
 		{
 			cemuLog_log(LogType::Force, "Invalid client certificate ({})", clientCertId);
 		}
