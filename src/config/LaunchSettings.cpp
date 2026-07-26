@@ -151,7 +151,7 @@ std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstr
             try {
                 if (titleParam.starts_with('='))
                     titleParam.erase(titleParam.begin());
-            	TitleId titleId;
+            	TitleId titleId{};
             	if (!TitleIdParser::ParseFromStr(titleParam, titleId))
             		std::cerr << "Invalid title id format";
                 s_load_title_id = titleId;

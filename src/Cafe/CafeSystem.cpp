@@ -190,7 +190,6 @@ void LoadMainExecutable()
 		currentBaseApplicationHash = generateHashFromRawRPXData(baseRpxData, baseRpxSize);
 	}
 	free(baseRpxData);
-	debug_printf("RPXHash: 0x%08x\n", currentBaseApplicationHash);
 }
 
 fs::path getTitleSavePath()
