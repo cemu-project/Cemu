@@ -273,6 +273,13 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	// init modulename
 	rplLoaderContext->moduleName.assign(moduleName);
 
+	std::string fileName{moduleName};
+	fileName.append(rplLoaderContext->IsRPX() ? ".rpx" : ".rpl");
+
+	// allocate modulename in PPC memory
+	rplLoaderContext->ppcName = coreinit_allocFromSysArea(fileName.size() + 1, 4);
+	memcpy(rplLoaderContext->ppcName.GetPtr(), fileName.data(), fileName.size() + 1);
+
 	// load CRC section
 	uint32 crcTableExpectedSize = sectionCount * sizeof(uint32be);
 	if (!RPLLoader_CheckBounds(rplLoaderContext, crcSection->fileOffset, crcTableExpectedSize))
@@ -2070,6 +2077,18 @@ uint32 RPLLoader_GetHandleByModuleName(const char* name)
 	return RPL_INVALID_HANDLE;
 }
 
+const std::string RPLLoader_GetModuleNameByHandle(uint32 handle)
+{
+	for (auto& dep : rplDependencyList)
+	{
+		if (dep->coreinitHandle == handle)
+			return dep->moduleName;
+	}
+
+	return "";
+	
+}
+
 uint32 RPLLoader_GetMaxTLSModuleIndex()
 {
 	return rplLoader_currentTlsModuleIndex - 1;
@@ -2379,6 +2398,20 @@ uint32 RPLLoader_GetSDA2Base()
 RPLModule** RPLLoader_GetModuleList()
 {
 	return rplModuleList;
+}
+
+RPLModule* RPLLoader_GetModuleByName(std::string_view name) 
+{
+	std::string normalizedName = _RPLLoader_ExtractModuleNameFromPath(name);
+	RPLModule** modules = RPLLoader_GetModuleList();
+
+	for (uint32 i = 0; i < RPLLoader_GetModuleCount(); i++)
+	{
+		if (modules[i]->moduleName == normalizedName)
+			return modules[i];
+	}
+
+	return nullptr;
 }
 
 sint32 RPLLoader_GetModuleCount()
