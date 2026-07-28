@@ -253,6 +253,7 @@ void NexFriends::initiateLogin()
 	if (this->loginInProcess)
 		return;
 	std::unique_lock loginLock(mtx_login);
+	this->lastLoginAttemptTime = prudpGetMSTimestamp();
 	this->loginInProcess = true;
 	// reset all data
 	std::unique_lock listLock(mtx_lists);
@@ -582,7 +583,7 @@ void addUniquePidToList(std::vector<uint32>& pidList, uint32 pid)
 
 void NexFriends::getFriendPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count, bool includeFriendRequests)
 {
-	if (count < 0)
+	if (offset < 0 || count < 0)
 	{
 		*pidCount = 0;
 		return;
@@ -616,7 +617,7 @@ void NexFriends::getFriendPIDs(uint32* pidList, uint32* pidCount, sint32 offset,
 
 void NexFriends::getFriendRequestPIDs(uint32* pidList, uint32* pidCount, sint32 offset, sint32 count, bool includeIncoming, bool includeOutgoing)
 {
-	if (count < 0)
+	if (offset < 0 || count < 0)
 	{
 		*pidCount = 0;
 		return;
@@ -975,16 +976,16 @@ void NexFriends::update()
 		{
 			// should we try to reconnect?
 			uint32 timeSinceLastLoginAttempt = prudpGetMSTimestamp() - this->lastLoginAttemptTime;
-			uint32 delayTime = 30; // 30 seconds by default
+			uint32 delayTime;
 			if (this->numFailedLogins < 3)
-				delayTime = 30;
+				delayTime = 8 * 1000; // 8 seconds for first three attempts
 			else
 			{
 				if (this->numSuccessfulLogins == 0)
 					return; // never try again
 				if (this->numFailedLogins >= 10)
 					return; // stop after 10 failed attempts
-				delayTime = 60 + (this->numFailedLogins - 3) * 60; // add one minute each time it fails
+				delayTime = (60 + (this->numFailedLogins - 3) * 60) * 1000; // after third attempt: 1 one minute of wait time for each additional failed attempt
 			}
 			if (timeSinceLastLoginAttempt < delayTime)
 				return;
