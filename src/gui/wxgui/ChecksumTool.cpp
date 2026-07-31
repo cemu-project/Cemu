@@ -142,13 +142,13 @@ ChecksumTool::ChecksumTool(wxWindow* parent, wxTitleManagerList::TitleEntry& ent
 		box_sizer->Add(m_verify_online, 0, wxALL | wxEXPAND, 5);
 		
 		m_verify_local = new wxButton(box, wxID_ANY, _("Verify with local file"));
-		m_verify_online->SetToolTip(_("Verifies the checksum with a local JSON file you can select"));
+		m_verify_local->SetToolTip(_("Verifies the checksum with a local JSON file you can select"));
 		m_verify_local->Disable();
 		m_verify_local->Bind(wxEVT_BUTTON, &ChecksumTool::OnVerifyLocal, this);
 		box_sizer->Add(m_verify_local, 0, wxALL | wxEXPAND, 5);
 		
 		m_export_button = new wxButton(box, wxID_ANY, _("Export"));
-		m_verify_online->SetToolTip(_("Export the title checksum data to a local JSON file"));
+		m_export_button->SetToolTip(_("Export the title checksum data to a local JSON file"));
 		m_export_button->Disable();
 		m_export_button->Bind(wxEVT_BUTTON, &ChecksumTool::OnExportChecksums, this);
 		box_sizer->Add(m_export_button, 0, wxALL | wxEXPAND, 5);
