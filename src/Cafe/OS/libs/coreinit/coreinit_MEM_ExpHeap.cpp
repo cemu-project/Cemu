@@ -643,6 +643,10 @@ uint32 MEMResizeForMBlockExpHeap(MEMHeapHandle heap, void* memBlock, uint32 size
 				newSize = 0;
 		}
 	}
+	else
+	{
+		newSize = dataSize;
+	}
 
 	heap->ReleaseLock();
 
