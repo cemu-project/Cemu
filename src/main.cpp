@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 #ifdef HAS_SDL
 	SDL_SetMainReady();
 #endif
-	auto parse_rc = LaunchSLaunchSettings::HandleCommandline(argc, argv);
+	auto parse_rc = LaunchSettings::HandleCommandline(argc, argv);
 	if (parse_rc.has_value())
 		return *parse_rc;
 	WindowSystem::Create();
