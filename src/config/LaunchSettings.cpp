@@ -209,6 +209,7 @@ std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstr
 				std::cout << "--cos-argstr's first argument _must_ be a filename that ends in '.rpx'." << std::endl;
 				return 1;
 			}
+			s_cos_argstr = potential_argstr;
 		}
 
 		if (vm.count("cos-mounts"))
