@@ -242,8 +242,9 @@ int wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int
 #ifdef HAS_SDL
 	SDL_SetMainReady();
 #endif
-	if (!LaunchSettings::HandleCommandline(lpCmdLine))
-		return 0;
+	auto parse_rc = LaunchSettings::HandleCommandline(lpCmdLine);
+	if (parse_rc.has_value())
+		return *parse_rc;
 	WindowSystem::Create();
 	return 0;
 }
@@ -256,8 +257,9 @@ int main(int argc, char* argv[])
 #ifdef HAS_SDL
 	SDL_SetMainReady();
 #endif
-	if (!LaunchSettings::HandleCommandline(argc, argv))
-		return 0;
+	auto parse_rc = LaunchSettings::HandleCommandline(argc, argv);
+	if (parse_rc.has_value())
+		return *parse_rc;
 	WindowSystem::Create();
 	return 0;
 }
@@ -275,8 +277,9 @@ int main(int argc, char *argv[])
 #if BOOST_OS_LINUX || BOOST_OS_BSD
     XInitThreads();
 #endif
-    if (!LaunchSettings::HandleCommandline(argc, argv))
-		return 0;
+	auto parse_rc = LaunchSettings::HandleCommandline(argc, argv);
+  if (parse_rc.has_value())
+		return *parse_rc;
 	WindowSystem::Create();
 	return 0;
 }

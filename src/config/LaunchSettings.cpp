@@ -16,18 +16,18 @@
 
 void requireConsole();
 
-bool LaunchSettings::HandleCommandline(const wchar_t* lpCmdLine)
+std::optional<int> LaunchSettings::HandleCommandline(const wchar_t* lpCmdLine)
 {
 	#if BOOST_OS_WINDOWS
 	const std::vector<std::wstring> args = boost::program_options::split_winmain(lpCmdLine);
 	return HandleCommandline(args);
 	#else
 	cemu_assert_unimplemented();
-	return false;
+	return 1;
 	#endif
 }
 
-bool LaunchSettings::HandleCommandline(int argc, wchar_t* argv[])
+std::optional<int> LaunchSettings::HandleCommandline(int argc, wchar_t* argv[])
 {
 	std::vector<std::wstring> args;
 	args.reserve(argc);
@@ -39,7 +39,7 @@ bool LaunchSettings::HandleCommandline(int argc, wchar_t* argv[])
 	return HandleCommandline(args);
 }
 
-bool LaunchSettings::HandleCommandline(int argc, char* argv[])
+std::optional<int> LaunchSettings::HandleCommandline(int argc, char* argv[])
 {
 	std::vector<std::wstring> args;
 	args.reserve(argc);
@@ -51,7 +51,7 @@ bool LaunchSettings::HandleCommandline(int argc, char* argv[])
 	return HandleCommandline(args);
 }
 
-bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
+std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 {
 	namespace po = boost::program_options;
 	po::options_description desc{ "Launch options" };
@@ -73,7 +73,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 
 		("cos-mounts", po::wvalue<std::vector<std::wstring>>()->composing(), "A series of mounts in the form of: (path on host:path within emulated system, e.g. `/tmp:/vol/temporary/`)")
 		("forward-console-logging", "Forward OSReport, OSConsoleWrite, etc. to stdout/stderr.")
-		("cos-argstr", po::value<std::string>(), "A custom argstr used to override to the arguments to the first RPX that is launched, will be unset after the first launch.")
+		("cos-argstr", po::value<std::string>(), "A custom argstr ('file.rpx ....') that overrides the arguments to the first RPX that is launched, and will be unset after the first launch.")
 
 		("force-interpreter", po::value<bool>()->implicit_value(true), "Force interpreter CPU emulation, disables recompiler. Useful for debugging purposes where you want to get accurate memory accesses and stack traces.")
 		("force-multicore-interpreter", po::value<bool>()->implicit_value(true), "Force multi-core interpreter CPU emulation, disables recompiler. Only useful for getting stack traces, but slightly faster than the single-core interpreter mode.")
@@ -116,7 +116,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		{
 			requireConsole();
 			std::cout << visible << std::endl;
-			return false; // exit in main
+			return 0; // exit in main
 		}
 		if (vm.count("version"))
 		{
@@ -128,7 +128,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			versionStr = fmt::format("{}.{}-{}{}", EMULATOR_VERSION_MAJOR, EMULATOR_VERSION_MINOR, EMULATOR_VERSION_PATCH, EMULATOR_VERSION_SUFFIX);
 #endif
 			std::cout << versionStr << std::endl;
-			return false; // exit in main
+			return 0; // exit in main
 		}
 
 		if (vm.count("verbose"))
@@ -199,8 +199,18 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 			s_forward_console_logging = true;
 		}
 
-		if (vm.count("cos-argstr"))
-			s_cos_argstr = vm["cos-argstr"].as<std::string>();
+		if (vm.count("cos-argstr")) {
+			std::string potential_argstr = vm["cos-argstr"].as<std::string>();
+
+			// Validate our first argument has a '.rpx'; this is a requirement of COS.
+			size_t space_pos = potential_argstr.find(' ');
+			std::string_view first_arg = (space_pos == std::string_view::npos) ? std::string_view(potential_argstr) : std::string_view(potential_argstr).substr(0, space_pos);
+			if (first_arg.length() < 4 || first_arg.substr(first_arg.length() - 4) != ".rpx") {
+				std::cout << "--cos-argstr's first argument _must_ be a filename that ends in '.rpx'." << std::endl;
+				return 1;
+			}
+			s_cos_argstr = potential_argstr;
+		}
 
 		if (vm.count("cos-mounts"))
 		{
@@ -243,10 +253,10 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		if(!extract_path.empty())
 		{
 			ExtractorTool(extract_path, output_path, log_path);
-			return false;
+			return 0;
 		}
 
-		return true;
+		return std::nullopt;
 	}
 	catch (const std::exception& ex)
 	{
@@ -254,7 +264,7 @@ bool LaunchSettings::HandleCommandline(const std::vector<std::wstring>& args)
 		errorMsg.append("Error while trying to parse command line parameter:\n");
 		errorMsg.append(ex.what());
 		std::cout << errorMsg << std::endl;
-		return false;
+		return 1;
 	}
 	
 }

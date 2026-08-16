@@ -8,13 +8,13 @@ class LaunchSettings
 {
 public:
 	// winmain
-	static bool HandleCommandline(const wchar_t* lpCmdLine);
+	static std::optional<int> HandleCommandline(const wchar_t* lpCmdLine);
 	// wmain
-	static bool HandleCommandline(int argc, wchar_t* argv[]);
+	static std::optional<int> HandleCommandline(int argc, wchar_t* argv[]);
 	// main (unix)
-	static bool HandleCommandline(int argc, char* argv[]);
+	static std::optional<int> HandleCommandline(int argc, char* argv[]);
 
-	static bool HandleCommandline(const std::vector<std::wstring>& args);
+	static std::optional<int> HandleCommandline(const std::vector<std::wstring>& args);
 
 	static std::optional<fs::path> GetLoadFile() { return s_load_game_file; }
 	static std::optional<uint64> GetLoadTitleID() {return s_load_title_id;}
