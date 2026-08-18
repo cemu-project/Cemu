@@ -49,7 +49,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 ### Dependencies
 
 #### For Arch and derivatives:
-`sudo pacman -S --needed base-devel bluez-libs clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip`
+`sudo pacman -S --needed base-devel bluez-libs clang cmake freeglut git glm gtk3 libgcrypt libpulse libsecret linux-headers llvm nasm ninja systemd unzip zip wayland-protocols`
 
 #### For Debian, Ubuntu and derivatives:
 `sudo apt install -y cmake curl clang-15 freeglut3-dev git libbluetooth-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libtool nasm ninja-build`
