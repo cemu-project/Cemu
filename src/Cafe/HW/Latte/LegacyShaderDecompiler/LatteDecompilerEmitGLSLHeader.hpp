@@ -527,11 +527,23 @@ namespace LatteDecompiler
 		if (decompilerContext->shaderType == LatteConst::ShaderType::Pixel)
 		{
 			// generate pixel outputs for pixel shader
+			// output scalar type must match the bound color buffer's datatype, mirroring the
+			// native Metal backend (LatteDecompilerEmitMSLHeader.hpp); render targets with no
+			// bound format (NONE) get no declaration at all, same as Metal.
 			for (uint32 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
 			{
 				if ((decompilerContext->shader->pixelColorOutputMask&(1 << i)) != 0)
 				{
-					src->addFmt("layout(location = {}) out vec4 passPixelColor{};" _CRLF, i, i);
+					auto colorDataType = Latte::GetColorBufferDataType(LatteMRT::GetColorBufferFormat(i, *decompilerContext->contextRegistersNew));
+					if (colorDataType != Latte::ColorBufferDataType::NONE)
+					{
+						const char* glslType = "vec4";
+						if (colorDataType == Latte::ColorBufferDataType::UINT)
+							glslType = "uvec4";
+						else if (colorDataType == Latte::ColorBufferDataType::INT)
+							glslType = "ivec4";
+						src->addFmt("layout(location = {}) out {} passPixelColor{};" _CRLF, i, glslType, i);
+					}
 				}
 			}
 		}

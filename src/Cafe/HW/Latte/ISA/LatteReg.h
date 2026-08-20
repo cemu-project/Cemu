@@ -309,6 +309,26 @@ namespace Latte
 	};
 	DEFINE_ENUM_FLAG_OPERATORS(E_GX2SURFFMT);
 
+	// Renderer-neutral classification of a GX2 color-buffer format's scalar datatype.
+	// Used by the GLSL pixel shader generator (Vulkan and OpenGL) and its pixel-shader
+	// cache key, to match the native Metal backend's render-target-aware output typing.
+	enum class ColorBufferDataType
+	{
+		NONE,
+		INT,
+		UINT,
+		FLOAT,
+	};
+
+	inline ColorBufferDataType GetColorBufferDataType(E_GX2SURFFMT format)
+	{
+		if (format == E_GX2SURFFMT::INVALID_FORMAT)
+			return ColorBufferDataType::NONE;
+		if ((uint32)(format & E_GX2SURFFMT::FMT_BIT_INT) == 0)
+			return ColorBufferDataType::FLOAT;
+		return (uint32)(format & E_GX2SURFFMT::FMT_BIT_SIGNED) != 0 ? ColorBufferDataType::INT : ColorBufferDataType::UINT;
+	}
+
 	inline uint32 GetFormatBits(const Latte::E_HWSURFFMT hwFmt)
 	{
 		const uint8 sBitsTable[0x40] = {

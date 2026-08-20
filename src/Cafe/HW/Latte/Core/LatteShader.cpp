@@ -690,6 +690,22 @@ uint64 LatteSHRC_CalcPSAuxHash(LatteDecompilerShader* pixelShader, uint32* conte
 	}
 #endif
 
+	// GLSL: generated pixel-color output types depend on the bound color buffer's datatype
+	// (see LatteDecompilerEmitGLSLHeader.hpp / LatteDecompilerEmitGLSL.cpp). That GLSL is shared
+	// by both GLSL-based backends (Vulkan and OpenGL), so it must be part of shader identity for
+	// both. Renderer-neutral (no ENABLE_METAL dependency) so this is correct on Windows/Linux
+	// builds as well, not just macOS.
+	if (g_renderer->GetType() == RendererAPI::Vulkan || g_renderer->GetType() == RendererAPI::OpenGL)
+	{
+		for (uint8 i = 0; i < LATTE_NUM_COLOR_TARGET; i++)
+		{
+			auto format = LatteMRT::GetColorBufferFormat(i, LatteGPUState.contextNew);
+			uint8 dataType = (uint8)Latte::GetColorBufferDataType(format);
+			auxHash = std::rotl<uint64>(auxHash, 7);
+			auxHash += (uint64)dataType;
+		}
+	}
+
 	return auxHash;
 }
 

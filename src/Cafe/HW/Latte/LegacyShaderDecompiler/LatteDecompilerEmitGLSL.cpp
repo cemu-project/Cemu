@@ -5,6 +5,7 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
+#include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompiler.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInternal.h"
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerInstructions.h"
@@ -3316,9 +3317,22 @@ void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDecompile
 					src->add(") == false) discard;" _CRLF);
 				}
 				// pixel color output
-				src->addFmt("passPixelColor{} = ", pixelColorOutputIndex);
-				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
-				src->add(";" _CRLF);
+				// output scalar type must match the bound color buffer's datatype (float/uint/int) -
+				// mirrors the native Metal backend's as_type<> bit-reinterpretation, see LatteDecompilerEmitMSL.cpp.
+				// register read stays float; only the wrapping bitcast depends on the target's datatype.
+				auto pixelColorDataType = Latte::GetColorBufferDataType(LatteMRT::GetColorBufferFormat(pixelColorOutputIndex, *shaderContext->contextRegistersNew));
+				if (pixelColorDataType != Latte::ColorBufferDataType::NONE)
+				{
+					src->addFmt("passPixelColor{} = ", pixelColorOutputIndex);
+					if (pixelColorDataType == Latte::ColorBufferDataType::UINT)
+						src->add("floatBitsToUint(");
+					else if (pixelColorDataType == Latte::ColorBufferDataType::INT)
+						src->add("floatBitsToInt(");
+					_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, i);
+					if (pixelColorDataType == Latte::ColorBufferDataType::UINT || pixelColorDataType == Latte::ColorBufferDataType::INT)
+						src->add(")");
+					src->add(";" _CRLF);
+				}
 
 				if( cfInstruction->exportArrayBase+i >= 8 )
 					cemu_assert_unimplemented();
