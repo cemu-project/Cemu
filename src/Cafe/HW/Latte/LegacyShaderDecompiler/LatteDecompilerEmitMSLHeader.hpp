@@ -2,6 +2,7 @@
 
 #include "Common/precompiled.h"
 #include "Cafe/HW/Latte/Renderer/Metal/MetalRenderer.h"
+#include "Cafe/HW/Latte/Renderer/Metal/MetalCommon.h"
 #include "Cafe/HW/Latte/Core/LatteShader.h"
 
 namespace LatteDecompiler
@@ -447,6 +448,13 @@ namespace LatteDecompiler
 	static void _emitTextureDefinitions(LatteDecompilerShaderContext* shaderContext)
 	{
 	    bool renderTargetIndexUsed[LATTE_NUM_COLOR_TARGET] = {false};
+	    // tracks which texture unit first declared the sampler parameter for a given Metal
+	    // sampler slot. MSL requires unique [[sampler(N)]] indices among live parameters (MSL
+	    // spec 5.2.1) - two texture units sharing a guest sampler ID share a Metal slot but
+	    // cannot both declare a live parameter at that index, so later units alias to the first
+	    // via #define instead of re-declaring.
+	    sint32 samplerSlotOwnerUnit[MAX_MTL_SAMPLERS];
+	    std::fill(std::begin(samplerSlotOwnerUnit), std::end(samplerSlotOwnerUnit), -1);
 
 		auto src = shaderContext->shaderSource;
 		// texture sampler definition
@@ -500,10 +508,27 @@ namespace LatteDecompiler
     			}
 
     			uint32 binding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i];
-    			//uint32 textureBinding = shaderContext->output->resourceMappingMTL.textureUnitToBindingPoint[i] % 31;
-    			//uint32 samplerBinding = textureBinding % 16;
     			src->addFmt(" tex{} [[texture({})]]", i, binding);
-    			src->addFmt(", sampler samplr{} [[sampler({})]]", i, binding);
+
+    			sint32 samplerBinding = shaderContext->output->resourceMappingMTL.getSamplerBindingPoint(i);
+    			if (samplerBinding >= 0 && samplerBinding < MAX_MTL_SAMPLERS)
+    			{
+    			    if (samplerSlotOwnerUnit[samplerBinding] < 0)
+    			    {
+    			        samplerSlotOwnerUnit[samplerBinding] = i;
+    			        src->addFmt(", sampler samplr{} [[sampler({})]]", i, samplerBinding);
+    			    }
+    			    else
+    			    {
+    			        // this texture unit shares a Metal sampler slot with an earlier unit;
+    			        // alias its body references to that unit's parameter instead of
+    			        // re-declaring [[sampler(samplerBinding)]] a second time
+    			        src->addFmt("\n#define samplr{} samplr{}\n", i, samplerSlotOwnerUnit[samplerBinding]);
+    			    }
+    			}
+    			// else: no valid sampler binding for this unit (shader->hasError was set during
+    			// analysis when this happens - a shader needing >16 unique guest samplers - so
+    			// this function should not be reached for it; no sampler parameter is declared)
 			}
 		}
 	}

@@ -1689,6 +1689,16 @@ void MetalRenderer::SetTexture(MTL::RenderCommandEncoder* renderCommandEncoder, 
 
 void MetalRenderer::SetSamplerState(MTL::RenderCommandEncoder* renderCommandEncoder, MetalShaderType shaderType, MTL::SamplerState* samplerState, uint32 index)
 {
+    // hard bounds guard: the independent sampler mapping (LatteDecompilerAnalyzer.cpp,
+    // _initTextureBindingPointsMTL) should never produce an out-of-range index - a shader
+    // needing more than MAX_MTL_SAMPLERS unique guest samplers is marked hasError and skipped
+    // before reaching here. This is defense in depth, not the primary guarantee: refuse rather
+    // than write out of bounds or hand Metal an invalid index.
+    if (index >= MAX_MTL_SAMPLERS)
+    {
+        cemuLog_logOnce(LogType::Force, "[SAMPLERARCH] ERROR: refusing out-of-bounds Metal sampler binding {} (limit {})", index, MAX_MTL_SAMPLERS);
+        return;
+    }
     auto& boundSamplerState = m_state.m_encoderState.m_samplers[shaderType][index];
     if (samplerState == boundSamplerState)
         return;
@@ -2060,6 +2070,12 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		    cemuLog_logOnce(LogType::Force, "invalid texture binding {}", binding);
             continue;
 		}
+		// independent Metal sampler binding for this texture unit - deliberately not `binding`
+		// (the texture binding). Metal's texture (31) and sampler (16) argument tables are
+		// separate; reusing one index for both overflows the sampler table once a shader has
+		// >16 active texture units. See LatteDecompilerShaderResourceMapping::
+		// textureUnitToSamplerBindingPoint.
+		uint32 samplerBinding = (uint32)shader->resourceMapping.getSamplerBindingPoint(relative_textureUnit);
 
 		auto textureView = m_state.m_textures[hostTextureUnit];
 		if (!textureView)
@@ -2068,7 +2084,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
                 SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture1D, binding);
            	else
                 SetTexture(renderCommandEncoder, mtlShaderType, m_nullTexture2D, binding);
-            SetSamplerState(renderCommandEncoder, mtlShaderType, m_nearestSampler, binding);
+            SetSamplerState(renderCommandEncoder, mtlShaderType, m_nearestSampler, samplerBinding);
             continue;
 		}
 
@@ -2110,7 +2126,7 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 		    sampler = m_nearestSampler;
 		}
-        SetSamplerState(renderCommandEncoder, mtlShaderType, sampler, binding);
+        SetSamplerState(renderCommandEncoder, mtlShaderType, sampler, samplerBinding);
 
 		// get texture register word 0
 		uint32 word4 = LatteGPUState.contextRegister[texUnitRegIndex + 4];

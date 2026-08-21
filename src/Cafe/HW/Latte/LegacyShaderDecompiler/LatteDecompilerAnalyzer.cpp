@@ -522,6 +522,11 @@ namespace LatteDecompiler
 	{
 		decompilerContext->output->resourceMappingMTL.textureUnitBaseBindingPoint = decompilerContext->currentTextureBindingPointMTL;
 		sint32 relBindingPointIndex = 0;
+		// independent dense Metal sampler mapping, keyed by unique guest sampler ID. Texture
+		// units that share a guest sampler ID share a Metal sampler slot.
+		uint16 seenSamplerIds[LATTE_NUM_MAX_TEX_UNITS];
+		sint8 seenSamplerSlots[LATTE_NUM_MAX_TEX_UNITS]; // parallel to seenSamplerIds; -1 if that id overflowed MAX_MTL_SAMPLERS
+		sint32 seenSamplerIdCount = 0;
 		for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 		{
 			if (!decompilerContext->output->textureUnitMask[i] || decompilerContext->shader->textureRenderTargetIndex[i] != 255)
@@ -531,6 +536,42 @@ namespace LatteDecompiler
 			relBindingPointIndex++;
 			decompilerContext->output->resourceMappingMTL.textureUnitCount++;
 			decompilerContext->currentTextureBindingPointMTL++;
+
+			uint16 samplerId = decompilerContext->shader->textureUnitSamplerAssignment[i];
+			sint8 samplerSlot = -1;
+			bool alreadySeen = false;
+			for (sint32 s = 0; s < seenSamplerIdCount; s++)
+			{
+				if (seenSamplerIds[s] == samplerId)
+				{
+					samplerSlot = seenSamplerSlots[s]; // may be -1, if this id previously overflowed
+					alreadySeen = true;
+					break;
+				}
+			}
+			if (!alreadySeen)
+			{
+				if (seenSamplerIdCount < MAX_MTL_SAMPLERS)
+				{
+					samplerSlot = (sint8)seenSamplerIdCount;
+				}
+				else
+				{
+					// more than MAX_MTL_SAMPLERS unique guest sampler ids in one shader. Not
+					// observed in real BOTW measurement (max seen: 16 across ~5000 shaders,
+					// two full sessions, 1440p and 4K) - explicit fail rather than alias,
+					// modulo, clamp, or an out-of-bounds Metal sampler binding.
+					decompilerContext->shader->hasError = true;
+					samplerSlot = -1;
+					cemuLog_log(LogType::Force, "[SAMPLERARCH] ERROR: shader {:16x} stage {} needs more than {} unique Metal sampler slots "
+						"(texture unit {} guest sampler id {} has no binding) - shader will not be used",
+						decompilerContext->shaderBaseHash, (sint32)decompilerContext->shaderType, MAX_MTL_SAMPLERS, i, samplerId);
+				}
+				seenSamplerIds[seenSamplerIdCount] = samplerId;
+				seenSamplerSlots[seenSamplerIdCount] = samplerSlot;
+				seenSamplerIdCount++;
+			}
+			decompilerContext->output->resourceMappingMTL.textureUnitToSamplerBindingPoint[i] = samplerSlot;
 		}
 		if (relBindingPointIndex==0)
 			decompilerContext->output->resourceMappingMTL.textureUnitBaseBindingPoint = -1;

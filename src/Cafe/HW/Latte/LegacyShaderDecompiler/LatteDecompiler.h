@@ -53,12 +53,21 @@ struct LatteDecompilerShaderResourceMapping
 		std::fill(relBindingPointToRelTextureUnit, relBindingPointToRelTextureUnit + LATTE_NUM_MAX_TEX_UNITS, UNUSED_BINDING);
 		std::fill(uniformBuffersBindingPoint, uniformBuffersBindingPoint + LATTE_NUM_MAX_UNIFORM_BUFFERS, UNUSED_BINDING);
 		std::fill(attributeMapping, attributeMapping + LATTE_NUM_MAX_ATTRIBUTE_LOCATIONS, UNUSED_BINDING);
+		std::fill(textureUnitToSamplerBindingPoint, textureUnitToSamplerBindingPoint + LATTE_NUM_MAX_TEX_UNITS, UNUSED_BINDING);
 	}
 	// texture
 	sint8 textureUnitToBindingPoint[LATTE_NUM_MAX_TEX_UNITS]; // mostly for OpenGL backwards compatibility where texture units are not remapped and binding points are sparse
 	sint8 relBindingPointToRelTextureUnit[LATTE_NUM_MAX_TEX_UNITS]; // (only used on VK and Metal) index is relative binding point (absoluteBindingPoint - textureUnitBaseBindingPoint)
 	sint8 textureUnitBaseBindingPoint{UNUSED_BINDING};
 	sint8 textureUnitCount{0}; // number of entries set in textureUnitToBindingPoint
+	// Metal exclusive: independent sampler mapping, keyed by texture unit. Deliberately separate
+	// from textureUnitToBindingPoint - Metal's texture (31-slot) and sampler (16-slot) argument
+	// tables are genuinely distinct, and reusing one index for both overflows the smaller table
+	// once a shader has >16 active texture units. Densely assigned by unique guest sampler ID
+	// (see _initTextureBindingPointsMTL), so texture units sharing a guest sampler share a Metal
+	// sampler slot too. UNUSED_BINDING means this shader exceeded MAX_MTL_SAMPLERS unique guest
+	// sampler ids - shader->hasError is set in that case, this value should never reach emission.
+	sint8 textureUnitToSamplerBindingPoint[LATTE_NUM_MAX_TEX_UNITS];
 	// uniform buffer
 	sint8 uniformVarsBufferBindingPoint{UNUSED_BINDING}; // special block for uniform registers/remapped array/custom variables
 	sint8 uniformBuffersBindingPoint[LATTE_NUM_MAX_UNIFORM_BUFFERS];
@@ -88,6 +97,14 @@ struct LatteDecompilerShaderResourceMapping
 	sint32 getTextureBaseBindingPoint()
 	{
 		return textureUnitBaseBindingPoint;
+	}
+
+	// returns -1 if this texture unit has no valid Metal sampler binding (see
+	// textureUnitToSamplerBindingPoint)
+	sint32 getSamplerBindingPoint(sint32 textureUnit)
+	{
+		cemu_assert_debug(textureUnit >= 0 && textureUnit < LATTE_NUM_MAX_TEX_UNITS);
+		return textureUnitToSamplerBindingPoint[textureUnit];
 	}
 
 	bool getUniformBufferBindingRange(sint32& minBinding, sint32& maxBinding)
