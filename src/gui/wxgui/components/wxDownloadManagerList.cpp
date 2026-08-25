@@ -330,7 +330,7 @@ void wxDownloadManagerList::OnContextMenu(wxContextMenuEvent& event)
 		return;
 	
 	wxMenu menu;
-	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxDownloadManagerList::OnContextMenuSelected, this);
+	menu.Bind(wxEVT_MENU, &wxDownloadManagerList::OnContextMenuSelected, this);
 
 	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)

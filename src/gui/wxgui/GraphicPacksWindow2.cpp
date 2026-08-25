@@ -227,7 +227,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 		m_filter_text = new wxTextCtrl(left_panel, wxID_ANY, wxString::FromUTF8(m_filter));
 		filter_row->Add(m_filter_text, 0, wxALL | wxEXPAND, 5);
-		m_filter_text->Bind(wxEVT_COMMAND_TEXT_UPDATED, &GraphicPacksWindow2::OnFilterUpdate, this);
+		m_filter_text->Bind(wxEVT_TEXT, &GraphicPacksWindow2::OnFilterUpdate, this);
 
 		m_installed_games_only = new wxCheckBox(left_panel, wxID_ANY, _("Installed games"));
 		m_installed_games_only->SetValue(m_filter_installed_games);

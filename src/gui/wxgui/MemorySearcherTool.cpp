@@ -97,7 +97,7 @@ MemorySearcherTool::MemorySearcherTool(wxFrame* parent)
 	auto textEntryTable = new wxStaticText(this, wxID_ANY, _("Stored Entries"));
 	m_listEntryTable = new wxDataViewListCtrl(this, LIST_ENTRYTABLE, wxDefaultPosition, wxSize(420, 200), wxDV_HORIZ_RULES);
 	m_listEntryTable->Bind(wxEVT_DATAVIEW_ITEM_CONTEXT_MENU, &MemorySearcherTool::OnEntryListRightClick, this);
-	m_listEntryTable->Bind(wxEVT_COMMAND_DATAVIEW_ITEM_EDITING_DONE, &MemorySearcherTool::OnItemEdited, this);
+	m_listEntryTable->Bind(wxEVT_DATAVIEW_ITEM_EDITING_DONE, &MemorySearcherTool::OnItemEdited, this);
 	{
 		m_listEntryTable->AppendTextColumn(_("Description"), wxDATAVIEW_CELL_EDITABLE, 150, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
 		m_listEntryTable->AppendTextColumn(_("Address"), wxDATAVIEW_CELL_INERT, 100, wxALIGN_LEFT, wxDATAVIEW_COL_SORTABLE);
@@ -382,7 +382,7 @@ void MemorySearcherTool::OnEntryListRightClick(wxDataViewEvent& event)
 	//mnu.SetClientData(data);
 	mnu.Append(LIST_ENTRY_ADD, _("&Add new entry"))->Enable(false);
 	mnu.Append(LIST_ENTRY_REMOVE, _("&Remove entry"));
-	mnu.Bind(wxEVT_COMMAND_MENU_SELECTED, &MemorySearcherTool::OnPopupClick, this);
+	mnu.Bind(wxEVT_MENU, &MemorySearcherTool::OnPopupClick, this);
 	PopupMenu(&mnu);
 }
 
