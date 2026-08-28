@@ -139,6 +139,7 @@ namespace coreinit
 
 		// calculate month and day
 		uint32 dayInYear = (uint32)(daysSince0AD - yearStartDay);
+		uint32 dayOfYear = dayInYear; // dayInYear gets shifted below to index the non-leap month table, so keep a copy
 		bool isLeapYear = IsLeapYear(year);
 
 		uint32 month = 0; // 0-11
@@ -239,7 +240,7 @@ namespace coreinit
 			}
 		}
 
-		calenderStruct->dayOfYear = dayInYear;
+		calenderStruct->dayOfYear = dayOfYear;
 		calenderStruct->month = month;
 		calenderStruct->dayOfMonth = dayInMonth + 1;
 	}
