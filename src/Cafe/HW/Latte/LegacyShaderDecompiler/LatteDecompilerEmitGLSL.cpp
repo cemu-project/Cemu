@@ -1446,18 +1446,9 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 	else if( aluInstruction->opcode == ALU_OP2_INST_LSHL_INT )
 		_emitALUOperationBinary<LATTE_DECOMPILER_DTYPE_SIGNED_INT>(shaderContext, aluInstruction, " << ");
 	else if( aluInstruction->opcode == ALU_OP2_INST_LSHR_INT )
-		_emitALUOperationBinary<LATTE_DECOMPILER_DTYPE_SIGNED_INT>(shaderContext, aluInstruction, " >> ");
+		_emitALUOperationBinary<LATTE_DECOMPILER_DTYPE_UNSIGNED_INT>(shaderContext, aluInstruction, " >> ");
 	else if( aluInstruction->opcode == ALU_OP2_INST_ASHR_INT )
-	{
-		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
-		src->add(" = ");
-		_emitTypeConversionPrefix(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, outputType);
-		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-		src->add(" >> ");
-		_emitOperandInputCode(shaderContext, aluInstruction, 1, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
-		_emitTypeConversionSuffix(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, outputType);
-		src->add(";" _CRLF);
-	}
+		_emitALUOperationBinary<LATTE_DECOMPILER_DTYPE_SIGNED_INT>(shaderContext, aluInstruction, " >> ");
 	else if( aluInstruction->opcode == ALU_OP2_INST_SETGT ||
 		aluInstruction->opcode == ALU_OP2_INST_SETGE ||
 		aluInstruction->opcode == ALU_OP2_INST_SETNE ||
