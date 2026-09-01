@@ -1082,7 +1082,7 @@ void wxGameList::OnClose(wxCloseEvent& event)
 int wxGameList::FindInsertPosition(TitleId titleId, bool& entryAlreadyExists)
 {
 	entryAlreadyExists = false;
-	SortData data{this, ItemColumns(GetSortIndicator()), IsAscendingSortIndicator()};
+	SortData data{this, ItemColumns(GetSortIndicator()), IsAscendingSortIndicator() ? 1 : -1};
 	const auto itemCount = GetItemCount();
 
 	if (itemCount == 0)
@@ -1092,7 +1092,7 @@ int wxGameList::FindInsertPosition(TitleId titleId, bool& entryAlreadyExists)
 	while (low < high)
 	{
 		sint32 mid = low + (high - low) / 2;
-		auto cmp = SortComparator(titleId, (uint64)GetItemData(mid), &data);
+		auto cmp = data.dir * order_to_int(SortComparator(titleId, (uint64)GetItemData(mid), &data));
 		if (cmp <= 0)
 		{
 			if (cmp == 0)
