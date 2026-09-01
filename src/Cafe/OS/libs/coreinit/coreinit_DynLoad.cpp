@@ -108,7 +108,7 @@ namespace coreinit
 			*moduleHandleOut = rplHandle;
 		if (rplHandle == RPL_INVALID_HANDLE)
 		{
-			cemuLog_logDebug(LogType::Force, "OSDynLoad_Acquire() failed to load module '{}'", libName);
+			cemuLog_log(LogType::Force, "OSDynLoad_Acquire() failed to load module '{}'", libName); // [botwm-diag] promoted from logDebug (compiled out in release)
 			return 0xFFFCFFE9; // module not found
 		}
 

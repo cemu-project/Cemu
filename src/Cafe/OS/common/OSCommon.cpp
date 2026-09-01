@@ -107,6 +107,25 @@ extern "C" DLLEXPORT void osLib_registerHLEFunction(const char* libraryName, con
 	osLib_addFunctionInternal(libraryName, functionName, osFunction);
 }
 
+// Returns true if ANY HLE function has been registered under this library name.
+// osLib_registerHLEFunction is DLLEXPORT'd specifically so external code (mods,
+// injected libraries) can register HLE functions. Without a library-level lookup
+// there is no way for OSDynLoad_Acquire to know such a library exists, so those
+// registrations are unreachable at runtime.
+bool osLib_hasLibrary(const char* libraryName)
+{
+	if (!s_osFunctionTable)
+		return false;
+	uint32 libHashA, libHashB;
+	osLib_generateHashFromName(libraryName, &libHashA, &libHashB);
+	for (auto& it : *s_osFunctionTable)
+	{
+		if (it.libHashA == libHashA && it.libHashB == libHashB)
+			return true;
+	}
+	return false;
+}
+
 sint32 osLib_getFunctionIndex(const char* libraryName, const char* functionName)
 {
 	uint32 libHashA, libHashB;

@@ -2069,7 +2069,13 @@ uint32 RPLLoader_GetHandleByModuleName(const char* name)
 		if (dep->moduleName == moduleName)
 		{
 			cemu_assert_debug(dep->loadAttempted);
-			if (!dep->isCafeOSModule && !dep->rplLoaderContext)
+			// A module is also valid if it is backed purely by HLE functions
+			// registered through osLib_registerHLEFunction (which is DLLEXPORT'd
+			// for exactly this purpose). Such libraries have no .rpl file and are
+			// not built-in Cafe OS modules, but RPLLoader_FindModuleOrHLEExport
+			// already resolves their exports via rpl_mapHLEImport - only the
+			// handle lookup was missing, leaving them unreachable at runtime.
+			if (!dep->isCafeOSModule && !dep->rplLoaderContext && !osLib_hasLibrary(moduleName.c_str()))
 				return RPL_INVALID_HANDLE; // module not found
 			return dep->coreinitHandle;
 		}
