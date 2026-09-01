@@ -200,15 +200,16 @@ void ChecksumTool::LoadOnlineData() const
 
 			// check latest version
 			/*
-				https://api.github.com/repos/teamcemu/title-checksums/branches/master
-				https://api.github.com/repos/teamcemu/title-checksums/commits?per_page=1
+				https://api.github.com/repos/cemu-project/title-checksums/branches/master
+				https://api.github.com/repos/cemu-project/title-checksums/commits?per_page=1
 			*/
 			std::string data;
 			auto* curl = curl_easy_init();
-			curl_easy_setopt(curl, CURLOPT_URL, "https://api.github.com/repos/teamcemu/title-checksums/commits/master");
+			curl_easy_setopt(curl, CURLOPT_URL, "https://api.github.com/repos/cemu-project/title-checksums/commits/master");
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+			curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
 			curl_easy_setopt(curl, CURLOPT_USERAGENT, BUILD_VERSION_WITH_NAME_STRING);
 
 			curl_easy_perform(curl);
@@ -240,10 +241,11 @@ void ChecksumTool::LoadOnlineData() const
 		{
 			std::string data;
 			auto* curl = curl_easy_init();
-			curl_easy_setopt(curl, CURLOPT_URL, "https://github.com/TeamCemu/title-checksums/archive/master.zip");
+			curl_easy_setopt(curl, CURLOPT_URL, "https://github.com/cemu-project/title-checksums/archive/master.zip");
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &data);
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+			curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
 			curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);
 			curl_easy_setopt(curl, CURLOPT_USERAGENT, BUILD_VERSION_WITH_NAME_STRING);
 
@@ -258,7 +260,7 @@ void ChecksumTool::LoadOnlineData() const
 				zip_error_t error;
 				zip_error_init(&error);
 				zip_source_t* src;
-				if ((src = zip_source_buffer_create(data.data(), data.size(), 1, &error)) == nullptr)
+				if ((src = zip_source_buffer_create(data.data(), data.size(), 0, &error)) == nullptr)
 				{
 					zip_error_fini(&error);
 					return;
@@ -267,6 +269,8 @@ void ChecksumTool::LoadOnlineData() const
 				auto* za = zip_open_from_source(src, ZIP_RDONLY, &error);
 				if (!za)
 				{
+					zip_source_free(src);
+					zip_error_fini(&error);
 					wxQueueEvent(m_verify_online, new wxCommandEvent(wxEVT_ENABLE));
 					return;
 				}
@@ -323,6 +327,9 @@ void ChecksumTool::LoadOnlineData() const
 
 					zip_fclose(zipFile);
 				}
+
+				zip_discard(za);
+				zip_error_fini(&error);
 
 				std::ofstream file(checksum_path / "commit.txt");
 				if (file.is_open())

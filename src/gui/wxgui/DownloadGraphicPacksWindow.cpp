@@ -51,8 +51,9 @@ bool DownloadGraphicPacksWindow::curlDownloadFile(const char *url, curlDownloadF
 	curl_easy_setopt(curl, CURLOPT_PROGRESSDATA, downloadState);
 	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0);
 	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, true);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0);
-	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2);
+	curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
+	curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
 
 	curl_easy_setopt(curl, CURLOPT_USERAGENT, BUILD_VERSION_WITH_NAME_STRING);
 	downloadState->fileData.resize(0);
@@ -120,12 +121,12 @@ void DownloadGraphicPacksWindow::UpdateThread()
 	queryUrl.append("&");
 	sprintf(temp, "t=%u", (uint32)std::chrono::seconds(std::time(NULL)).count()); // add a dynamic part to the url to bypass overly aggressive caching (like some proxies do)
 	queryUrl.append(temp);
-	if (curlDownloadFile(queryUrl.c_str(), &tempDownloadState) && boost::starts_with((const char*)tempDownloadState.fileData.data(), "http"))
+	if (curlDownloadFile(queryUrl.c_str(), &tempDownloadState))
 	{
 		// convert downloaded data to url string
 		githubAPIUrl.assign(tempDownloadState.fileData.cbegin(), tempDownloadState.fileData.cend());
 	}
-	else
+	if (githubAPIUrl.empty())
 	{
 		// cemu api request failed, use hardcoded github url
 		cemuLog_log(LogType::Force, "Graphic pack update request failed or returned invalid URL. Using default repository URL instead");
@@ -214,7 +215,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 
 	// init zip source
 	zip_error_init(&error);
-	if ((src = zip_source_buffer_create(m_downloadState->fileData.data(), m_downloadState->fileData.size(), 1, &error)) == NULL)
+	if ((src = zip_source_buffer_create(m_downloadState->fileData.data(), m_downloadState->fileData.size(), 0, &error)) == NULL)
 	{
 		zip_error_fini(&error);
 		m_threadState = ThreadError;
@@ -285,6 +286,7 @@ void DownloadGraphicPacksWindow::UpdateThread()
 		zip_fclose(zipFile);
 	}
 	
+	zip_discard(za);
 	zip_error_fini(&error);
 	createGraphicPackDownloadedVersionFile(assetName);
 	m_threadState = ThreadFinished;

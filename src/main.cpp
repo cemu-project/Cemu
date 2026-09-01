@@ -198,35 +198,18 @@ void requireConsole()
 
 void HandlePostUpdate()
 {
-	// finalize update process
-	// delete update cemu.exe.backup if available
-	const auto filename = ActiveSettings::GetExecutablePath().replace_extension("exe.backup");
-	if (fs::exists(filename))
+	auto exeBackupPath = ActiveSettings::GetExecutablePath();
+	exeBackupPath.replace_extension( _utf8ToPath(_pathToUtf8(exeBackupPath.extension()).append(".backup")));
+	std::error_code ec;
+	if (!fs::exists(exeBackupPath, ec))
+		return;
+	// try to delete update residue, but give up quickly as to not cause a permanent hang
+	// it may succeed on next turn
+	for (sint32 i=0; i<3; i++)
 	{
-#if BOOST_OS_WINDOWS
-		HANDLE lock;
-		do
-		{
-			lock = CreateMutexW(nullptr, TRUE, L"Global\\cemu_update_lock");
-			std::this_thread::sleep_for(std::chrono::milliseconds(1));
-		} while (lock == nullptr);
-		const DWORD wait_result = WaitForSingleObject(lock, 2000);
-		CloseHandle(lock);
-
-		if (wait_result == WAIT_OBJECT_0)
-		{
-			std::this_thread::sleep_for(std::chrono::milliseconds(500));
-			std::error_code ec;
-			fs::remove(filename, ec);
-		}
-#else
-		while (fs::exists(filename))
-		{
-			std::error_code ec;
-			fs::remove(filename, ec);
-			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-		}
-#endif
+		if (fs::remove(exeBackupPath, ec))
+			break;
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 }
 

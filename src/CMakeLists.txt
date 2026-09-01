@@ -142,10 +142,8 @@ if (MACOS_BUNDLE)
 		endif()
 	endif()
 
-	set(UPDATE_SH_PATH "${CMAKE_SOURCE_DIR}/src/resource/update.sh")
 	set(APP_BUNDLE_DIR "$<TARGET_BUNDLE_DIR:CemuBin>")
 	set(FRAMEWORKS_DIR "${APP_BUNDLE_DIR}/Contents/Frameworks")
-	set(RESOURCES_DIR  "${APP_BUNDLE_DIR}/Contents/Resources")
 
 	if (ENABLE_VULKAN)
 		add_custom_command(TARGET CemuBin POST_BUILD
@@ -154,14 +152,6 @@ if (MACOS_BUNDLE)
 				"${FRAMEWORKS_DIR}/libMoltenVK.dylib"
 		)
 	endif()
-
-	add_custom_command(TARGET CemuBin POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy
-			"${UPDATE_SH_PATH}"
-			"${RESOURCES_DIR}/update.sh"
-		COMMAND chmod 755
-			"${RESOURCES_DIR}/update.sh"
-	)
 
 	if (ENABLE_LIBUSB)
 		add_custom_command(TARGET CemuBin POST_BUILD

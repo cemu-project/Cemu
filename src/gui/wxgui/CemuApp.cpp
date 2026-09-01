@@ -408,6 +408,25 @@ int CemuApp::OnExit()
 #if BOOST_OS_MACOS
 	SDLControllerProvider::ShutdownSDL();
 #endif
+	// handle restart if requested
+	if (m_restartExecutable.has_value() && !m_restartExecutable->empty() && fs::exists(*m_restartExecutable))
+	{
+		fs::path restartPath = *m_restartExecutable;
+#if BOOST_OS_WINDOWS
+		PROCESS_INFORMATION pi{};
+		STARTUPINFOW si{};
+		si.cb = sizeof(si);
+		std::wstring cmdline;
+		cmdline = L"\"" + boost::nowide::widen(_pathToUtf8(restartPath)) + L"\"";
+		CreateProcessW(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+#elif BOOST_OS_LINUX
+		std::string appPath = _pathToUtf8(restartPath);
+		execlp(appPath.c_str(), appPath.c_str(), (char *)NULL);
+#elif BOOST_OS_MACOS
+		std::string appPath = _pathToUtf8(restartPath);
+		execlp(appPath.c_str(), appPath.c_str(), (char *)NULL);
+#endif
+	}
 #if BOOST_OS_WINDOWS
 	ExitProcess(retValue);
 #else
@@ -646,4 +665,14 @@ void CemuApp::ActivateApp(wxActivateEvent& event)
 {
 	g_window_info.app_active = event.GetActive();
 	event.Skip();
+}
+
+void CemuApp::RequestRestart(fs::path executablePath)
+{
+	m_restartExecutable = executablePath;
+	CallAfter([this, executablePath = std::move(executablePath)]() mutable
+	{
+		if (m_mainFrame && !m_mainFrame->IsBeingDeleted())
+			m_mainFrame->Close(true);
+	});
 }
