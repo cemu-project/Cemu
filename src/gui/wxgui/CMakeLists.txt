@@ -191,6 +191,7 @@ endif()
 
 if(WIN32)
 	target_link_libraries(CemuWxGui PRIVATE bthprops)
+	target_compile_options(CemuWxGui PRIVATE /wd4312)
 endif()
 
 if(ALLOW_PORTABLE)

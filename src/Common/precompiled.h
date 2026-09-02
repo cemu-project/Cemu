@@ -179,6 +179,12 @@ inline sint16 _swapEndianS16(sint16 v)
 {
 	return (sint16)(((uint16)v >> 8) | ((uint16)v << 8));
 }
+#if defined(_M_ARM64)
+inline uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
+    *highProduct = __umulh(multiplier, multiplicand);
+    return multiplier * multiplicand;
+}
+#endif
 #else
 inline uint64 _swapEndianU64(uint64 v)
 {
@@ -290,6 +296,18 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
     *remainder = (uint64)((dividend % divisor) & 0xFFFFFFFFFFFFFFFF);
     return       (uint64)((dividend / divisor) & 0xFFFFFFFFFFFFFFFF);
 }
+#elif defined(_M_ARM64)
+inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, uint64 *remainder)
+{
+    uint64 high = highDividend;
+    uint64 low = lowDividend;
+    if (high >= divisor) {
+        high %= divisor;
+    } 
+    unsigned __int128 dividend = (((unsigned __int128)highDividend) << 64) | lowDividend;
+    *remainder = (uint64)(dividend % divisor);
+    return (uint64)(dividend / divisor);
+}
 #endif
 
 #if defined(_MSC_VER)
@@ -341,48 +359,65 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 #define FORCE_INLINE inline
 #endif
 
-FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is undefined
+FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is 32
 {
 #if defined(_MSC_VER)
-	return _tzcnt_u32(v); // TZCNT requires BMI1. But if not supported it will execute as BSF
+    #if defined(_M_ARM64) || defined(_M_ARM)
+        unsigned long index;
+        if (_BitScanForward(&index, (unsigned long)v)) 
+            return (int)index;
+        return 32; 
+    #else
+        // This is the x86/x64 specific intrinsic that was causing ARM64 build failures
+        return (v == 0) ? 32 : (int)_tzcnt_u32(v); 
+    #endif
 #elif defined(__GNUC__) || defined(__clang__)
-	return __builtin_ctz(v);
+    return v == 0 ? 32 : __builtin_ctz(v);
 #else
-	return std::countr_zero(v);
+    return (int)std::countr_zero(v);
 #endif
 }
 
-// On aarch64 we handle some of the x86 intrinsics by implementing them as wrappers
-#if defined(__aarch64__)
+#if defined(__aarch64__) || defined(_M_ARM64)
 
 inline void _mm_pause()
 {
+#if defined(_MSC_VER)
+    __yield();
+#else
     asm volatile("yield");
+#endif
 }
 
 inline uint64 __rdtsc()
 {
+#if defined(_MSC_VER)
+    return (uint64)_ReadStatusReg(ARM64_CNTVCT_EL0);
+#else
     uint64 t;
     asm volatile("mrs %0, cntvct_el0" : "=r" (t));
     return t;
+#endif
 }
 
 inline void _mm_mfence()
 {
-	asm volatile("" ::: "memory");
-	std::atomic_thread_fence(std::memory_order_seq_cst);
+    std::atomic_thread_fence(std::memory_order_seq_cst);
 }
 
 inline unsigned char _addcarry_u64(unsigned char carry, unsigned long long a, unsigned long long b, unsigned long long *result)
 {
-    *result = a + b + (unsigned long long)carry;
-    if (*result < a)
-        return 1;
-    return 0;
+#if !defined(_MSC_VER)
+    unsigned __int128 res = (unsigned __int128)a + b + carry;
+    *result = (unsigned long long)res;
+    return (res >> 64) ? 1 : 0;
+#else
+    *result = a + b + carry;
+    return (*result < a || (*result == a && carry > 0)) ? 1 : 0;
+#endif
 }
 
 #endif
-
 // asserts
 
 

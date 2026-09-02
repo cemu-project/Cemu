@@ -1,3 +1,4 @@
+#include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "config/ActiveSettings.h"
@@ -707,7 +708,7 @@ void optimizedLinearReadbackWriteLoop(LatteTextureLoaderCtx* textureLoader, uint
 		copyType* blockData = (copyType*)LatteTextureLoader_getInputLinearOptimized_(textureLoader, 0, y, 1, 1, sizeof(copyType) * 8, 0, 1, 0, textureLoader->pitch, textureLoader->height);
 		if constexpr (sizeof(copyType) == 4)
 		{
-			memcpy_dwords(blockData, rowPixelData, textureLoader->width);
+			SAFE_MOVSD(blockData, rowPixelData, textureLoader->width);
 		}
 		else
 		{
