@@ -2,6 +2,7 @@
 #include "Cafe/OS/libs/TCL/TCL.h"
 
 #include "HW/Latte/Core/LattePM4.h"
+#include "OS/libs/coreinit/coreinit_Time.h"
 
 namespace TCL
 {
@@ -91,7 +92,7 @@ namespace TCL
 				distance = TCL_RING_BUFFER_SIZE;
 			if (distance >= numU32s + 1) // assume distance minus one, because we are never allowed to completely wrap around
 				break;
-			_mm_pause();
+			coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertNsToTimerTicks(500000)); // sleep 0.5ms
 		}
 	}
 
