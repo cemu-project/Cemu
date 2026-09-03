@@ -1,4 +1,6 @@
 add_library(CemuWxGui STATIC
+  CameraSettingsWindow.cpp
+  CameraSettingsWindow.h
   canvas/IRenderCanvas.h
   CemuApp.cpp
   CemuApp.h
