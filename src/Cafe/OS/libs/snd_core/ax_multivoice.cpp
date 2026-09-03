@@ -164,4 +164,18 @@ namespace snd_core
 		return result;
 	}
 
+	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, int32_t deviceType, int32_t deviceIndex, uint32_t busIndex, uint16_t vol, int16_t delta)
+	{
+		for (auto voiceChannel = 0; voiceChannel < mv->channelCount; ++voiceChannel)
+		{
+			std::array<std::array<AXCHMIX2, AX_BUS_COUNT>, AX_TV_CHANNEL_COUNT> mix {};
+			mix[voiceChannel][busIndex].vol = vol;
+			mix[voiceChannel][busIndex].delta = delta;
+			const auto res = AXSetVoiceDeviceMix(mv->voice[voiceChannel], deviceType, deviceIndex, &mix[0][0]);
+			if (res != 0)
+				return res;
+		}
+		return 0;
+	}
+
 }

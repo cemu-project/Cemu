@@ -615,6 +615,7 @@ namespace snd_core
 			cafeExportRegister("sndcore2", AXSetMultiVoiceState, LogType::SoundAPI);
 			cafeExportRegister("sndcore2", AXSetMultiVoiceAdpcmLoop, LogType::SoundAPI);
 			cafeExportRegister("sndcore2", AXIsMultiVoiceRunning, LogType::SoundAPI);
+			cafeExportRegister("sndcore2", AXSetMultiVoiceDeviceMix, LogType::SoundAPI);
 
 			RegisterVoiceFunctions();
 		};

@@ -225,7 +225,7 @@ namespace snd_core
 
 	sint32 AXVoiceBegin(AXVPB* voice);
 	sint32 AXVoiceEnd(AXVPB* voice);
-	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX_DEPR* mix);
+	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX2* mix);
 	void AXSetVoiceState(AXVPB* vpb, sint32 voiceState);
 	sint32 AXIsVoiceRunning(AXVPB* vpb);
 	void AXSetVoiceType(AXVPB* vpb, uint16 voiceType);
@@ -387,6 +387,7 @@ namespace snd_core
 	void AXSetMultiVoiceState(AXVPBMULTI* mv, uint16 state);
 	void AXSetMultiVoiceAdpcmLoop(AXVPBMULTI* mv, AXPBADPCMLOOP_t* loops);
 	sint32 AXIsMultiVoiceRunning(AXVPBMULTI* mv);
+	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, uint32_t deviceType, uint32_t deviceIndex, uint32_t busIndex, uint16_t vol, int16_t delta);
 	
 	void AXOut_init();
 	void AXOut_reset();
