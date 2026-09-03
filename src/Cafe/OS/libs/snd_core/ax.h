@@ -387,7 +387,7 @@ namespace snd_core
 	void AXSetMultiVoiceState(AXVPBMULTI* mv, uint16 state);
 	void AXSetMultiVoiceAdpcmLoop(AXVPBMULTI* mv, AXPBADPCMLOOP_t* loops);
 	sint32 AXIsMultiVoiceRunning(AXVPBMULTI* mv);
-	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, uint32_t deviceType, uint32_t deviceIndex, uint32_t busIndex, uint16_t vol, int16_t delta);
+	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, int32_t deviceType, int32_t deviceIndex, uint32_t busIndex, uint16_t vol, int16_t delta);
 	
 	void AXOut_init();
 	void AXOut_reset();
