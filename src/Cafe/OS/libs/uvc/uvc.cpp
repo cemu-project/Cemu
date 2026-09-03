@@ -2,8 +2,9 @@
 
 namespace uvc
 {
-	class : public COSModule {
-		public:
+	class : public COSModule
+	{
+	  public:
 		std::string_view GetName() override
 		{
 			return "uvc";

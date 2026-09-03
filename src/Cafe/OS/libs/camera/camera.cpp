@@ -13,347 +13,347 @@
 
 namespace camera
 {
-    enum CAMStatus : sint32
-    {
-        CAM_STATUS_SUCCESS = 0,
-        CAM_STATUS_INVALID_ARG = -1,
-        CAM_STATUS_INVALID_HANDLE = -2,
-        CAM_STATUS_SURFACE_QUEUE_FULL = -4,
-        CAM_STATUS_INSUFFICIENT_MEMORY = -5,
-        CAM_STATUS_NOT_READY = -6,
-        CAM_STATUS_UNINITIALIZED = -8,
-        CAM_STATUS_UVC_ERROR = -9,
-        CAM_STATUS_DECODER_INIT_INIT_FAILED = -10,
-        CAM_STATUS_DEVICE_IN_USE = -12,
-        CAM_STATUS_DECODER_SESSION_FAILED = -13,
-        CAM_STATUS_INVALID_PROPERTY = -14,
-        CAM_STATUS_SEGMENT_VIOLATION = -15
-    };
+	enum CAMStatus : sint32
+	{
+		CAM_STATUS_SUCCESS = 0,
+		CAM_STATUS_INVALID_ARG = -1,
+		CAM_STATUS_INVALID_HANDLE = -2,
+		CAM_STATUS_SURFACE_QUEUE_FULL = -4,
+		CAM_STATUS_INSUFFICIENT_MEMORY = -5,
+		CAM_STATUS_NOT_READY = -6,
+		CAM_STATUS_UNINITIALIZED = -8,
+		CAM_STATUS_UVC_ERROR = -9,
+		CAM_STATUS_DECODER_INIT_INIT_FAILED = -10,
+		CAM_STATUS_DEVICE_IN_USE = -12,
+		CAM_STATUS_DECODER_SESSION_FAILED = -13,
+		CAM_STATUS_INVALID_PROPERTY = -14,
+		CAM_STATUS_SEGMENT_VIOLATION = -15
+	};
 
-    enum class CAMFps : uint32
-    {
-        FPS_15 = 0,
-        FPS_30 = 1
-    };
+	enum class CAMFps : uint32
+	{
+		FPS_15 = 0,
+		FPS_30 = 1
+	};
 
-    enum class CAMEventType : uint32
-    {
-        Decode = 0,
-        // Implement when AVM*DRC* functions are added
-        Detached [[maybe_unused]] = 1
-    };
+	enum class CAMEventType : uint32
+	{
+		Decode = 0,
+		// Implement when AVM*DRC* functions are added
+		Detached [[maybe_unused]] = 1
+	};
 
-    enum class CAMForceDisplay
-    {
-        None = 0,
-        DRC = 1
-    };
+	enum class CAMForceDisplay
+	{
+		None = 0,
+		DRC = 1
+	};
 
-    enum class CAMImageType : uint32
-    {
-        Default = 0
-    };
+	enum class CAMImageType : uint32
+	{
+		Default = 0
+	};
 
-    struct CAMImageInfo
-    {
-        betype<CAMImageType> type;
-        uint32be height;
-        uint32be width;
-    };
+	struct CAMImageInfo
+	{
+		betype<CAMImageType> type;
+		uint32be height;
+		uint32be width;
+	};
 
-    static_assert(sizeof(CAMImageInfo) == 0x0C);
+	static_assert(sizeof(CAMImageInfo) == 0x0C);
 
-    struct CAMInitInfo_t
-    {
-        CAMImageInfo imageInfo;
-        uint32be workMemorySize;
-        MEMPTR<void> workMemoryData;
-        MEMPTR<void> callback;
-        betype<CAMForceDisplay> forceDisplay;
-        betype<CAMFps> fps;
-        uint32be threadFlags;
-        uint8 unk[0x10];
-    };
+	struct CAMInitInfo_t
+	{
+		CAMImageInfo imageInfo;
+		uint32be workMemorySize;
+		MEMPTR<void> workMemoryData;
+		MEMPTR<void> callback;
+		betype<CAMForceDisplay> forceDisplay;
+		betype<CAMFps> fps;
+		uint32be threadFlags;
+		uint8 unk[0x10];
+	};
 
-    static_assert(sizeof(CAMInitInfo_t) == 0x34);
+	static_assert(sizeof(CAMInitInfo_t) == 0x34);
 
-    struct CAMTargetSurface
-    {
-        sint32be size;
-        MEMPTR<uint8> data;
-        uint8 unused[0x18];
-    };
+	struct CAMTargetSurface
+	{
+		sint32be size;
+		MEMPTR<uint8> data;
+		uint8 unused[0x18];
+	};
 
-    static_assert(sizeof(CAMTargetSurface) == 0x20);
+	static_assert(sizeof(CAMTargetSurface) == 0x20);
 
-    struct CAMDecodeEventParam
-    {
-        betype<CAMEventType> type;
-        MEMPTR<void> data;
-        uint32be channel;
-        uint32be errored;
-    };
+	struct CAMDecodeEventParam
+	{
+		betype<CAMEventType> type;
+		MEMPTR<void> data;
+		uint32be channel;
+		uint32be errored;
+	};
 
-    static_assert(sizeof(CAMDecodeEventParam) == 0x10);
+	static_assert(sizeof(CAMDecodeEventParam) == 0x10);
 
-    constexpr static int32_t CAM_HANDLE = 0;
+	constexpr static int32_t CAM_HANDLE = 0;
 
-    struct
-    {
-        bool previouslyInitialized = false;
-        bool initialized = false;
-        std::atomic_bool isOpen = false;
-        std::atomic_bool isExiting = false;
-        std::atomic_bool isWorkerExiting = false;
-        unsigned fps = 30;
-        MEMPTR<void> eventCallback = nullptr;
-        RingBuffer<MEMPTR<uint8>, 20> inTargetBuffers{};
-    } s_instance;
+	struct
+	{
+		bool previouslyInitialized = false;
+		bool initialized = false;
+		std::atomic_bool isOpen = false;
+		std::atomic_bool isExiting = false;
+		std::atomic_bool isWorkerExiting = false;
+		unsigned fps = 30;
+		MEMPTR<void> eventCallback = nullptr;
+		RingBuffer<MEMPTR<uint8>, 20> inTargetBuffers{};
+	} s_instance;
 
-    SysAllocator<coreinit::OSMutex> s_cameraMutex;
-    SysAllocator<CAMDecodeEventParam> s_cameraEventData;
-    SysAllocator<OSThread_t> s_cameraWorkerThread;
-    SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
-    SysAllocator s_cameraWorkerThreadName("CameraWorkerThread");
-    SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
-    SysAllocator<coreinit::OSDriverInterface> s_driverInterface;
-    SysAllocator s_driverName("CAM");
+	SysAllocator<coreinit::OSMutex> s_cameraMutex;
+	SysAllocator<CAMDecodeEventParam> s_cameraEventData;
+	SysAllocator<OSThread_t> s_cameraWorkerThread;
+	SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
+	SysAllocator s_cameraWorkerThreadName("CameraWorkerThread");
+	SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
+	SysAllocator<coreinit::OSDriverInterface> s_driverInterface;
+	SysAllocator s_driverName("CAM");
 
-    static void WorkerThreadFunc(PPCInterpreter_t*)
-    {
-        s_cameraEventData->type = CAMEventType::Decode;
-        s_cameraEventData->channel = 0;
-        s_cameraEventData->data = nullptr;
-        s_cameraEventData->errored = false;
-        PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
+	static void WorkerThreadFunc(PPCInterpreter_t*)
+	{
+		s_cameraEventData->type = CAMEventType::Decode;
+		s_cameraEventData->channel = 0;
+		s_cameraEventData->data = nullptr;
+		s_cameraEventData->errored = false;
+		PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
 
-        while (!s_instance.isExiting)
-        {
-            coreinit::OSWaitEvent(s_cameraOpenEvent);
-            while (true)
-            {
-                const auto surfaceBuffer = s_instance.inTargetBuffers.Pop();
-                if (!surfaceBuffer)
-                {
-                    // Only exit when no buffers are left
-                    if (!s_instance.isOpen || s_instance.isExiting)
-                        break;
-                    s_cameraEventData->data = nullptr;
-                    s_cameraEventData->errored = true;
-                }
-                else
-                {
-                    CameraManager::FillNV12Buffer(
-                        std::span<uint8, CameraManager::CAMERA_NV12_BUFFER_SIZE>(
-                            surfaceBuffer.GetPtr(), CameraManager::CAMERA_NV12_BUFFER_SIZE));
-                    s_cameraEventData->data = surfaceBuffer;
-                    s_cameraEventData->errored = false;
-                }
-                s_cameraEventData->type = CAMEventType::Decode;
-                s_cameraEventData->channel = 0;
-                PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
-                coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertMsToTimerTicks(1000 / s_instance.fps));
-            }
-        }
-        s_instance.isWorkerExiting = false;
-        coreinit::OSExitThread(0);
-    }
+		while (!s_instance.isExiting)
+		{
+			coreinit::OSWaitEvent(s_cameraOpenEvent);
+			while (true)
+			{
+				const auto surfaceBuffer = s_instance.inTargetBuffers.Pop();
+				if (!surfaceBuffer)
+				{
+					// Only exit when no buffers are left
+					if (!s_instance.isOpen || s_instance.isExiting)
+						break;
+					s_cameraEventData->data = nullptr;
+					s_cameraEventData->errored = true;
+				}
+				else
+				{
+					CameraManager::FillNV12Buffer(
+						std::span<uint8, CameraManager::CAMERA_NV12_BUFFER_SIZE>(
+							surfaceBuffer.GetPtr(), CameraManager::CAMERA_NV12_BUFFER_SIZE));
+					s_cameraEventData->data = surfaceBuffer;
+					s_cameraEventData->errored = false;
+				}
+				s_cameraEventData->type = CAMEventType::Decode;
+				s_cameraEventData->channel = 0;
+				PPCCoreCallback(s_instance.eventCallback, s_cameraEventData.GetMPTR());
+				coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertMsToTimerTicks(1000 / s_instance.fps));
+			}
+		}
+		s_instance.isWorkerExiting = false;
+		coreinit::OSExitThread(0);
+	}
 
-    sint32 CAMGetMemReq(const CAMImageInfo* info)
-    {
-        if (!info)
-            return CAM_STATUS_INVALID_ARG;
-        return 1 * 1024; // always return 1KB
-    }
+	sint32 CAMGetMemReq(const CAMImageInfo* info)
+	{
+		if (!info)
+			return CAM_STATUS_INVALID_ARG;
+		return 1 * 1024; // always return 1KB
+	}
 
-    CAMStatus CAMCheckMemSegmentation(const void* startAddr, uint32 size)
-    {
-        if (!startAddr || size == 0)
-            return CAM_STATUS_INVALID_ARG;
-        return CAM_STATUS_SUCCESS;
-    }
+	CAMStatus CAMCheckMemSegmentation(const void* startAddr, uint32 size)
+	{
+		if (!startAddr || size == 0)
+			return CAM_STATUS_INVALID_ARG;
+		return CAM_STATUS_SUCCESS;
+	}
 
-    sint32 CAMInit(sint32 channel, const CAMInitInfo_t* initInfo, betype<CAMStatus>* error)
-    {
-        *error = CAM_STATUS_SUCCESS;
-        CafeLockGuard lock(s_cameraMutex);
-        if (s_instance.initialized)
-        {
-            *error = CAM_STATUS_DEVICE_IN_USE;
-            return -1;
-        }
+	sint32 CAMInit(sint32 channel, const CAMInitInfo_t* initInfo, betype<CAMStatus>* error)
+	{
+		*error = CAM_STATUS_SUCCESS;
+		CafeLockGuard lock(s_cameraMutex);
+		if (s_instance.initialized)
+		{
+			*error = CAM_STATUS_DEVICE_IN_USE;
+			return -1;
+		}
 
-        if (channel != 0 || !initInfo || !initInfo->workMemoryData ||
-            !match_any_of(initInfo->forceDisplay, CAMForceDisplay::None, CAMForceDisplay::DRC) ||
-            !match_any_of(initInfo->fps, CAMFps::FPS_15, CAMFps::FPS_30) ||
-            initInfo->imageInfo.type != CAMImageType::Default)
-        {
-            *error = CAM_STATUS_INVALID_ARG;
-            return -1;
-        }
+		if (channel != 0 || !initInfo || !initInfo->workMemoryData ||
+			!match_any_of(initInfo->forceDisplay, CAMForceDisplay::None, CAMForceDisplay::DRC) ||
+			!match_any_of(initInfo->fps, CAMFps::FPS_15, CAMFps::FPS_30) ||
+			initInfo->imageInfo.type != CAMImageType::Default)
+		{
+			*error = CAM_STATUS_INVALID_ARG;
+			return -1;
+		}
 
-        if (s_instance.previouslyInitialized)
-        {
-            while (s_instance.isWorkerExiting)
-            {
-                coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertMsToTimerTicks(1000));
-            }
-        }
+		if (s_instance.previouslyInitialized)
+		{
+			while (s_instance.isWorkerExiting)
+			{
+				coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertMsToTimerTicks(1000));
+			}
+		}
 
-        cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
-        cemu_assert_debug(initInfo->workMemorySize != 0);
-        cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
+		cemu_assert_debug(initInfo->forceDisplay != CAMForceDisplay::DRC);
+		cemu_assert_debug(initInfo->workMemorySize != 0);
+		cemu_assert_debug(initInfo->imageInfo.type == CAMImageType::Default);
 
-        s_instance.isExiting = false;
-        s_instance.fps = initInfo->fps == CAMFps::FPS_15 ? 15 : 30;
-        s_instance.initialized = true;
-        s_instance.eventCallback = initInfo->callback;
+		s_instance.isExiting = false;
+		s_instance.fps = initInfo->fps == CAMFps::FPS_15 ? 15 : 30;
+		s_instance.initialized = true;
+		s_instance.eventCallback = initInfo->callback;
 
-        coreinit::OSInitEvent(s_cameraOpenEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED,
-                              coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
+		coreinit::OSInitEvent(s_cameraOpenEvent, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED,
+							  coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 
-        coreinit::__OSCreateThreadType(
-            s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThreadFunc), 0, nullptr,
-            s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(),
-            s_cameraWorkerThreadStack.GetByteSize(),
-            0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
-        coreinit::OSSetThreadName(s_cameraWorkerThread.GetPtr(), s_cameraWorkerThreadName.GetPtr());
-        coreinit::OSResumeThread(s_cameraWorkerThread.GetPtr());
+		coreinit::__OSCreateThreadType(
+			s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThreadFunc), 0, nullptr,
+			s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(),
+			s_cameraWorkerThreadStack.GetByteSize(),
+			0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
+		coreinit::OSSetThreadName(s_cameraWorkerThread.GetPtr(), s_cameraWorkerThreadName.GetPtr());
+		coreinit::OSResumeThread(s_cameraWorkerThread.GetPtr());
 
-        s_instance.previouslyInitialized = true;
+		s_instance.previouslyInitialized = true;
 
-        return channel;
-    }
+		return channel;
+	}
 
-    CAMStatus CAMClose(sint32 camHandle)
-    {
-        if (camHandle != CAM_HANDLE)
-            return CAM_STATUS_INVALID_HANDLE;
+	CAMStatus CAMClose(sint32 camHandle)
+	{
+		if (camHandle != CAM_HANDLE)
+			return CAM_STATUS_INVALID_HANDLE;
 
-        // Check necessary because this function is called on unload, and OSMutex needs an active scheduler
-        const auto schedulerActive = coreinit::OSIsSchedulerActive();
-        if (schedulerActive)
-            coreinit::OSLockMutex(s_cameraMutex);
+		// Check necessary because this function is called on unload, and OSMutex needs an active scheduler
+		const auto schedulerActive = coreinit::OSIsSchedulerActive();
+		if (schedulerActive)
+			coreinit::OSLockMutex(s_cameraMutex);
 
-        if (!s_instance.initialized || !s_instance.isOpen)
-            return CAM_STATUS_UNINITIALIZED;
-        s_instance.isOpen = false;
-        CameraManager::Close();
-        if (schedulerActive)
-            coreinit::OSUnlockMutex(s_cameraMutex);
-        return CAM_STATUS_SUCCESS;
-    }
+		if (!s_instance.initialized || !s_instance.isOpen)
+			return CAM_STATUS_UNINITIALIZED;
+		s_instance.isOpen = false;
+		CameraManager::Close();
+		if (schedulerActive)
+			coreinit::OSUnlockMutex(s_cameraMutex);
+		return CAM_STATUS_SUCCESS;
+	}
 
-    CAMStatus CAMOpen(sint32 camHandle)
-    {
-        if (camHandle != CAM_HANDLE)
-            return CAM_STATUS_INVALID_HANDLE;
-        CafeLockGuard lock(s_cameraMutex);
-        if (!s_instance.initialized)
-            return CAM_STATUS_UNINITIALIZED;
-        if (s_instance.isOpen)
-            return CAM_STATUS_DEVICE_IN_USE;
-        CameraManager::Open();
-        s_instance.isOpen = true;
-        coreinit::OSSignalEvent(s_cameraOpenEvent);
-        s_instance.inTargetBuffers.Clear();
-        return CAM_STATUS_SUCCESS;
-    }
+	CAMStatus CAMOpen(sint32 camHandle)
+	{
+		if (camHandle != CAM_HANDLE)
+			return CAM_STATUS_INVALID_HANDLE;
+		CafeLockGuard lock(s_cameraMutex);
+		if (!s_instance.initialized)
+			return CAM_STATUS_UNINITIALIZED;
+		if (s_instance.isOpen)
+			return CAM_STATUS_DEVICE_IN_USE;
+		CameraManager::Open();
+		s_instance.isOpen = true;
+		coreinit::OSSignalEvent(s_cameraOpenEvent);
+		s_instance.inTargetBuffers.Clear();
+		return CAM_STATUS_SUCCESS;
+	}
 
-    CAMStatus CAMSubmitTargetSurface(sint32 camHandle, CAMTargetSurface* targetSurface)
-    {
-        if (camHandle != CAM_HANDLE)
-            return CAM_STATUS_INVALID_HANDLE;
-        if (!targetSurface || targetSurface->data.IsNull() || targetSurface->size < 1)
-            return CAM_STATUS_INVALID_ARG;
-        cemu_assert_debug(targetSurface->size >= CameraManager::CAMERA_NV12_BUFFER_SIZE);
-        CafeLockGuard lock(s_cameraMutex);
-        if (!s_instance.initialized)
-            return CAM_STATUS_UNINITIALIZED;
-        if (!s_instance.inTargetBuffers.Push(targetSurface->data))
-            return CAM_STATUS_SURFACE_QUEUE_FULL;
-        return CAM_STATUS_SUCCESS;
-    }
+	CAMStatus CAMSubmitTargetSurface(sint32 camHandle, CAMTargetSurface* targetSurface)
+	{
+		if (camHandle != CAM_HANDLE)
+			return CAM_STATUS_INVALID_HANDLE;
+		if (!targetSurface || targetSurface->data.IsNull() || targetSurface->size < 1)
+			return CAM_STATUS_INVALID_ARG;
+		cemu_assert_debug(targetSurface->size >= CameraManager::CAMERA_NV12_BUFFER_SIZE);
+		CafeLockGuard lock(s_cameraMutex);
+		if (!s_instance.initialized)
+			return CAM_STATUS_UNINITIALIZED;
+		if (!s_instance.inTargetBuffers.Push(targetSurface->data))
+			return CAM_STATUS_SURFACE_QUEUE_FULL;
+		return CAM_STATUS_SUCCESS;
+	}
 
-    void CAMExit(sint32 camHandle)
-    {
-        if (camHandle != CAM_HANDLE || !s_instance.previouslyInitialized)
-            return;
-        CafeLockGuard lock(s_cameraMutex);
-        if (!s_instance.initialized)
-            return;
-        s_instance.isExiting = true;
-        s_instance.isWorkerExiting = true;
-        if (s_instance.isOpen)
-            CAMClose(camHandle);
-        coreinit::OSSignalEvent(s_cameraOpenEvent.GetPtr());
-        s_instance.initialized = false;
-    }
+	void CAMExit(sint32 camHandle)
+	{
+		if (camHandle != CAM_HANDLE || !s_instance.previouslyInitialized)
+			return;
+		CafeLockGuard lock(s_cameraMutex);
+		if (!s_instance.initialized)
+			return;
+		s_instance.isExiting = true;
+		s_instance.isWorkerExiting = true;
+		if (s_instance.isOpen)
+			CAMClose(camHandle);
+		coreinit::OSSignalEvent(s_cameraOpenEvent.GetPtr());
+		s_instance.initialized = false;
+	}
 
-    namespace Driver
-    {
-        MEMPTR<char> Name()
-        {
-            return s_driverName.GetPtr();
-        }
-        void Init() {}
-        void Acquire() {}
-        void Release()
-        {
-            CAMClose(CAM_HANDLE);
-        }
-        void Done()
-        {
-            CAMClose(CAM_HANDLE);
-        }
-    }
+	namespace Driver
+	{
+		MEMPTR<char> Name()
+		{
+			return s_driverName.GetPtr();
+		}
+		void Init() {}
+		void Acquire() {}
+		void Release()
+		{
+			CAMClose(CAM_HANDLE);
+		}
+		void Done()
+		{
+			CAMClose(CAM_HANDLE);
+		}
+	} // namespace Driver
 
-    class : public COSModule
-    {
-    public:
-        std::string_view GetName() override
-        {
-            return "camera";
-        }
+	class : public COSModule
+	{
+	  public:
+		std::string_view GetName() override
+		{
+			return "camera";
+		}
 
-    	std::vector<std::string_view> GetDependencies() override
-        {
-	        return {"avm", "coreinit", "uvc", "uvd"};
-        }
+		std::vector<std::string_view> GetDependencies() override
+		{
+			return {"avm", "coreinit", "uvc", "uvd"};
+		}
 
-        void RPLMapped() override
-        {
-            cafeExportRegister("camera", CAMGetMemReq, LogType::InputAPI);
-            cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::InputAPI);
-            cafeExportRegister("camera", CAMInit, LogType::InputAPI);
-            cafeExportRegister("camera", CAMExit, LogType::InputAPI);
-            cafeExportRegister("camera", CAMOpen, LogType::InputAPI);
-            cafeExportRegister("camera", CAMClose, LogType::InputAPI);
-            cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::InputAPI);
-        };
+		void RPLMapped() override
+		{
+			cafeExportRegister("camera", CAMGetMemReq, LogType::InputAPI);
+			cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::InputAPI);
+			cafeExportRegister("camera", CAMInit, LogType::InputAPI);
+			cafeExportRegister("camera", CAMExit, LogType::InputAPI);
+			cafeExportRegister("camera", CAMOpen, LogType::InputAPI);
+			cafeExportRegister("camera", CAMClose, LogType::InputAPI);
+			cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::InputAPI);
+		};
 
-        void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
-        {
-            if (reason == coreinit::RplEntryReason::Loaded)
-            {
-                s_driverInterface->getDriverName = makeCallableExport<Driver::Name>();
-                s_driverInterface->init = makeCallableExport<Driver::Init>();
-                s_driverInterface->onAcquireForeground = makeCallableExport<Driver::Acquire>();
-                s_driverInterface->onReleaseForeground = makeCallableExport<Driver::Release>();
-                s_driverInterface->done = makeCallableExport<Driver::Done>();
-                coreinit::OSDriver_Register(moduleHandle, 0x226, s_driverInterface.GetPtr(), 0, nullptr, nullptr,
-                                            nullptr);
-            }
-            else if (reason == coreinit::RplEntryReason::Unloaded)
-            {
-                Driver::Done();
-                coreinit::OSDriver_Deregister(moduleHandle, 0);
-            }
-        }
-    } s_COScameraModule;
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+			{
+				s_driverInterface->getDriverName = makeCallableExport<Driver::Name>();
+				s_driverInterface->init = makeCallableExport<Driver::Init>();
+				s_driverInterface->onAcquireForeground = makeCallableExport<Driver::Acquire>();
+				s_driverInterface->onReleaseForeground = makeCallableExport<Driver::Release>();
+				s_driverInterface->done = makeCallableExport<Driver::Done>();
+				coreinit::OSDriver_Register(moduleHandle, 0x226, s_driverInterface.GetPtr(), 0, nullptr, nullptr,
+											nullptr);
+			}
+			else if (reason == coreinit::RplEntryReason::Unloaded)
+			{
+				Driver::Done();
+				coreinit::OSDriver_Deregister(moduleHandle, 0);
+			}
+		}
+	} s_COScameraModule;
 
-    COSModule* GetModule()
-    {
-        return &s_COScameraModule;
-    }
-}
+	COSModule* GetModule()
+	{
+		return &s_COScameraModule;
+	}
+} // namespace camera
