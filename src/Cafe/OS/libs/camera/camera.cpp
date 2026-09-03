@@ -316,6 +316,11 @@ namespace camera
             return "camera";
         }
 
+    	std::vector<std::string_view> GetDependencies() override
+        {
+	        return {"avm", "coreinit", "uvc", "uvd"};
+        }
+
         void RPLMapped() override
         {
             cafeExportRegister("camera", CAMGetMemReq, LogType::InputAPI);
