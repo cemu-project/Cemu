@@ -331,31 +331,11 @@ namespace camera
         {
             if (reason == coreinit::RplEntryReason::Loaded)
             {
-                s_driverInterface->getDriverName = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
-                {
-                    osLib_returnFromFunction(hCPU, Driver::Name().GetMPTR());
-                });
-
-                s_driverInterface->init = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
-                {
-                    Driver::Init();
-                    osLib_returnFromFunction(hCPU, 0);
-                });
-                s_driverInterface->onAcquireForeground = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
-                {
-                    Driver::Acquire();
-                    osLib_returnFromFunction(hCPU, 0);
-                });
-                s_driverInterface->onReleaseForeground = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
-                {
-                    Driver::Release();
-                    osLib_returnFromFunction(hCPU, 0);
-                });
-                s_driverInterface->done = RPLLoader_MakePPCCallable(+[](PPCInterpreter_t* hCPU)
-                {
-                    Driver::Done();
-                    osLib_returnFromFunction(hCPU, 0);
-                });
+                s_driverInterface->getDriverName = makeCallableExport<Driver::Name>();
+                s_driverInterface->init = makeCallableExport<Driver::Init>();
+                s_driverInterface->onAcquireForeground = makeCallableExport<Driver::Acquire>();
+                s_driverInterface->onReleaseForeground = makeCallableExport<Driver::Release>();
+                s_driverInterface->done = makeCallableExport<Driver::Done>();
                 coreinit::OSDriver_Register(moduleHandle, 0x226, s_driverInterface.GetPtr(), 0, nullptr, nullptr,
                                             nullptr);
             }
