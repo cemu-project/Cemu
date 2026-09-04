@@ -534,7 +534,7 @@ namespace snd_core
 	}
 
 
-	void __AXSetVoiceChannelMix(AXCHMIX_DEPR* mixOut, AXCHMIX_DEPR* mixIn, sint16* mixMask)
+	void __AXSetVoiceChannelMix(AXCHMIX2* mixOut, const AXCHMIX2* mixIn, sint16be* mixMask)
 	{
 		for (sint32 i = 0; i < AX_BUS_COUNT; i++)
 		{
@@ -549,7 +549,7 @@ namespace snd_core
 		}
 	}
 
-	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX_DEPR* mix)
+	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX2* mix)
 	{
 		if (vpb == nullptr)
 			return -4;
@@ -561,8 +561,8 @@ namespace snd_core
 		AXVPBInternal_t* internal = __AXVPBInternalVoiceArray + (sint32)vpb->index;
 		sint32 channelCount;
 
-		uint16* deviceMixMask;
-		AXCHMIX_DEPR* voiceMix;
+		uint16be* deviceMixMask;
+		AXCHMIX2* voiceMix;
 		if (device == AX_DEV_TV)
 		{
 			channelCount = AX_TV_CHANNEL_COUNT;
@@ -577,15 +577,15 @@ namespace snd_core
 		}
 		else if (device == AX_DEV_RMT)
 		{
-			assert_dbg();
+			cemu_assert_debug(false);
 			channelCount = AX_RMT_CHANNEL_COUNT;
 		}
-		sint16 updatedMixMask[AX_BUS_COUNT];
-		for (sint32 i = 0; i < AX_BUS_COUNT; i++)
+		else
 		{
-			updatedMixMask[i] = 0;
+			UNREACHABLE;
 		}
-		sint16 channelMixMask[AX_BUS_COUNT];
+		sint16be updatedMixMask[AX_BUS_COUNT] = {};
+		sint16be channelMixMask[AX_BUS_COUNT];
 		for (sint32 c = 0; c < channelCount; c++)
 		{
 			__AXSetVoiceChannelMix(voiceMix, mix, channelMixMask);
@@ -599,7 +599,7 @@ namespace snd_core
 		}
 		for (sint32 i = 0; i < AX_BUS_COUNT; i++)
 		{
-			deviceMixMask[i] = _swapEndianU16(updatedMixMask[i]);
+			deviceMixMask[i] = updatedMixMask[i];
 		}
 		vpb->sync = (uint32)vpb->sync | (AX_SYNCFLAG_DEVICEMIXMASK | AX_SYNCFLAG_DEVICEMIX);
 		AXVoiceProtection_Acquire(vpb);

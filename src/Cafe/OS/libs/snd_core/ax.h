@@ -196,12 +196,6 @@ namespace snd_core
 		}
 	};
 
-	struct AXCHMIX_DEPR
-	{
-		uint16 vol;
-		sint16 delta;
-	};
-
 	struct AXCHMIX2
 	{
 		uint16be vol;
@@ -225,7 +219,7 @@ namespace snd_core
 
 	sint32 AXVoiceBegin(AXVPB* voice);
 	sint32 AXVoiceEnd(AXVPB* voice);
-	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX_DEPR* mix);
+	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX2* mix);
 	void AXSetVoiceState(AXVPB* vpb, sint32 voiceState);
 	sint32 AXIsVoiceRunning(AXVPB* vpb);
 	void AXSetVoiceType(AXVPB* vpb, uint16 voiceType);
@@ -387,6 +381,7 @@ namespace snd_core
 	void AXSetMultiVoiceState(AXVPBMULTI* mv, uint16 state);
 	void AXSetMultiVoiceAdpcmLoop(AXVPBMULTI* mv, AXPBADPCMLOOP_t* loops);
 	sint32 AXIsMultiVoiceRunning(AXVPBMULTI* mv);
+	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, sint32 deviceType, sint32 deviceIndex, uint32 busIndex, uint16 vol, sint16 delta);
 	
 	void AXOut_init();
 	void AXOut_reset();
