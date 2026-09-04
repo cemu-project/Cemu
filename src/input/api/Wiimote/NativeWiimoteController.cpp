@@ -28,9 +28,6 @@ void NativeWiimoteController::load(const pugi::xml_node& node)
 
 bool NativeWiimoteController::connect()
 {
-	if (is_connected())
-		return true;
-
 	if (!m_provider->is_registered_device(m_index))
 	{
 		m_provider->get_controllers();
