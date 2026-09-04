@@ -17,8 +17,8 @@
          - [Building Errors](#building-errors)
 - [macOS](#macos)
    - [Installing brew](#installing-brew)
-   - [Installing Tool Dependencies](#installing-tool-dependencies)
-   - [Installing Library Dependencies](#installing-library-dependencies)
+   - [Dependencies](#dependencies-1)
+   - [MoltenVK](#moltenvk)
    - [Build Cemu using CMake](#build-cemu-using-cmake)
 - [FreeBSD](#freebsd)
 	- [Installing Dependencies](#installing-dependencies)
@@ -56,7 +56,7 @@ To compile Cemu, a recent enough compiler and STL with C++20 support is required
 
 You may also need to install `libusb-1.0-0-dev` as a workaround for an issue with the vcpkg hidapi package.
 
-At Step 3 in [Build Cemu using cmake and clang](#build-cemu-using-cmake-and-clang), use the following command instead:
+At Step 3 in [Build Cemu using CMake and Clang](#cmake-and-clang), use the following command instead:
    `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 
 #### For Fedora and derivatives:
@@ -109,7 +109,7 @@ This section refers to running `cmake -S...` (truncated).
       * `cd dependencies/vcpkg && git fetch --unshallow`
 * `Please ensure you're using the latest port files with git pull and vcpkg update.`
    * Either:
-      * Update vcpkg by running by the following command:
+      * Update vcpkg by running the following command:
          * `git submodule update --remote dependencies/vcpkg`
       * If you are sure vcpkg is up to date, check the following logs:
          * `Cemu/dependencies/vcpkg/buildtrees/wxwidgets/config-x64-linux-out.log`
@@ -119,12 +119,12 @@ This section refers to running `cmake -S...` (truncated).
    * Add the following and try running the command again:
       * `-DCMAKE_MAKE_PROGRAM=/usr/bin/ninja`
 * Compiling failed during the boost-build dependency.
-   * It means you don't have a working/good standard library installation. Check the integrity of your system headers and making sure that C++ related packages are installed and intact.
+   * It means you don't have a working/good standard library installation. Check the integrity of your system headers and make sure that C++ related packages are installed and intact.
 * Compiling failed during rebuild after `git pull` with an error that mentions RPATH
    * Add the following and try running the command again:
       * `-DCMAKE_BUILD_WITH_INSTALL_RPATH=ON`
 * Environment variable `VCPKG_FORCE_SYSTEM_BINARIES` must be set.
-   * Execute the folowing and then try running the command again:
+   * Execute the following and then try running the command again:
       * `export VCPKG_FORCE_SYSTEM_BINARIES=1`
 * If you are getting a random error, read the [package-name-and-platform]-out.log and [package-name-and-platform]-err.log for the actual reason to see if you might be lacking the headers from a dependency.
 
@@ -139,9 +139,9 @@ This section refers to running `cmake --build build`.
 * `main.cpp.o: in function 'std::__cxx11::basic_string...`
    * You likely are experiencing a clang-14 issue. This can only be fixed by either lowering the clang version or using GCC, see [GCC](#gcc).
 * `fatal error: 'span' file not found`
-   *  You're either missing `libstdc++` or are using a version that's too old. Install at least v10 with your package manager, eg `sudo apt install libstdc++-10-dev`. See [#644](https://github.com/cemu-project/Cemu/issues/644).
+   *  You're either missing `libstdc++` or are using a version that's too old. Install at least v10 with your package manager, e.g. `sudo apt install libstdc++-10-dev`. See [#644](https://github.com/cemu-project/Cemu/issues/644).
 * `undefined libdecor_xx`
-   * You are likely experiencing an issue with sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
+   * You are likely experiencing an issue with the sdl2 package that comes with vcpkg. Delete sdl2 from vcpkg.json in source file and recompile.
 
 If you are getting a different error than any of the errors listed above, you may either open an issue in this repo or try using [GCC](#gcc). Make sure your standard library and compilers are updated since Cemu uses a lot of modern features!
 
@@ -226,7 +226,7 @@ cd build && ninja install
 You should now have a Cemu executable file in the /bin folder, which you can run using `./bin/Cemu_release`.
 
 ## Updating Cemu and source code
-1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command on the Cemu root).
+1. To update your Cemu local repository, use the command `git pull --recurse-submodules` (run this command in the Cemu root).
     - This should update your local copy of Cemu and all of its dependencies.
 2. Then, you can rebuild Cemu using the steps listed above, according to whether you use Linux or Windows.
 
@@ -270,4 +270,4 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 ### macOS
 | Flag         | Description                                    | Default |
 |--------------|------------------------------------------------|---------|
-| MACOS_BUNDLE | MacOS executable will be an application bundle | OFF     |
+| MACOS_BUNDLE | macOS executable will be an application bundle | OFF     |

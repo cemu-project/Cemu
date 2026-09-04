@@ -4,6 +4,7 @@ set_property(TARGET CemuResource PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$
 
 cemu_use_precompiled_header(CemuResource)
 
+# .S files are used for resource embedding on Linux+macOS currently, we can drop this once C/C++ #embed is generally available
 enable_language(ASM)
 
 # icon resources
