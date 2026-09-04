@@ -127,31 +127,31 @@ namespace snd_core
 		for (uint32 i = 0; i < mv->channelCount; ++i)
 			AXSetVoiceVe(mv->voice[i].GetPtr(), ve);
 	}
-	
+
 	void AXSetMultiVoiceSrcRatio(AXVPBMULTI* mv, float ratio)
 	{
 		for (uint32 i = 0; i < mv->channelCount; ++i)
 			AXSetVoiceSrcRatio(mv->voice[i].GetPtr(), ratio);
 	}
-	
+
 	void AXSetMultiVoiceSrc(AXVPBMULTI* mv, AXPBSRC_t* src)
 	{
 		for (uint32 i = 0; i < mv->channelCount; ++i)
 			AXSetVoiceSrc(mv->voice[i].GetPtr(), src);
 	}
-	
+
 	void AXSetMultiVoiceLoop(AXVPBMULTI* mv, uint16 loop)
 	{
 		for (uint32 i = 0; i < mv->channelCount; ++i)
 			AXSetVoiceLoop(mv->voice[i].GetPtr(), loop);
 	}
-	
+
 	void AXSetMultiVoiceState(AXVPBMULTI* mv, uint16 state)
 	{
 		for (uint32 i = 0; i < mv->channelCount; ++i)
 			AXSetVoiceState(mv->voice[i].GetPtr(), state);
 	}
-	
+
 	void AXSetMultiVoiceAdpcmLoop(AXVPBMULTI* mv, AXPBADPCMLOOP_t* loops)
 	{
 		for (uint32 i = 0; i < mv->channelCount; ++i)
@@ -164,11 +164,11 @@ namespace snd_core
 		return result;
 	}
 
-	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, int32_t deviceType, int32_t deviceIndex, uint32_t busIndex, uint16_t vol, int16_t delta)
+	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, sint32 deviceType, sint32 deviceIndex, uint32 busIndex, uint16 vol, sint16 delta)
 	{
 		for (auto voiceChannel = 0; voiceChannel < mv->channelCount; ++voiceChannel)
 		{
-			std::array<std::array<AXCHMIX2, AX_BUS_COUNT>, AX_TV_CHANNEL_COUNT> mix {};
+			std::array<std::array<AXCHMIX2, AX_BUS_COUNT>, AX_TV_CHANNEL_COUNT> mix{};
 			mix[voiceChannel][busIndex].vol = vol;
 			mix[voiceChannel][busIndex].delta = delta;
 			const auto res = AXSetVoiceDeviceMix(mv->voice[voiceChannel], deviceType, deviceIndex, &mix[0][0]);
