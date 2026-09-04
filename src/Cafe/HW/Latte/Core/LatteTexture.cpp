@@ -1312,6 +1312,15 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 	{
 		this->enableReadback = true;
 	}
+	else if (this->tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1 && (width * height) <= 64 * 64)
+	{
+		// Some titles reduce a frame down to a tiny surface on the GPU and then read the result
+		// back on the CPU - Disney Infinity does this for auto exposure, ending in a 1x8 R32_FLOAT
+		// holding average scene luminance. Those surfaces are 1D tiled rather than linear, so they
+		// would never be mirrored back and the title reads stale memory, computes an exposure of
+		// zero and renders the whole scene black. They are small enough that mirroring them is cheap.
+		this->enableReadback = true;
+	}
 
 	// calculate number of potential mip levels (from effective size)
 	sint32 effectiveWidth = width;
