@@ -442,9 +442,8 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
 
 	// load configs and module storage for already loaded modules
-	const auto module_count = RPLLoader_GetModuleCount();
 	const auto module_list = RPLLoader_GetModuleList();
-	for (sint32 i = 0; i < module_count; i++)
+	for (sint32 i = 0; i < module_list.size(); i++)
 	{
 		const auto module = module_list[i];
 		DebuggerModuleInfo moduleInfo(module);
@@ -452,7 +451,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	}
 
 	wxString label_text = _("> no modules loaded");
-	if (module_count != 0)
+	if (module_list.size() != 0)
 	{
 		RPLModule* currentModule = RPLLoader_FindModuleByCodeAddr(MEMORY_CODEAREA_ADDR);
 		if (currentModule)

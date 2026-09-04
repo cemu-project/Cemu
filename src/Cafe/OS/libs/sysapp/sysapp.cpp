@@ -244,9 +244,12 @@ sint32 _deserializeSysArgsEx2(uint8* copyDataPtr, sint32 copyDataSize, void(*cbD
 				assert_dbg();
 				return 1;
 			}
+			cemu_assert(argumentDataSize >= 0 && argumentDataSize < 1024*1024*8); // sanity check. Figure out what the limits are on real HW
+			cemu_assert(idxStart >= (argumentDataSize + 1));
 			idx = idxStart - argumentDataSize - 1; // beginning of data
 			deserializedArg_t deserializedArg = { 0 };
 			deserializedArg.argument = argumentName;
+			cemu_assert((idx + argumentDataSize) <= copyDataSize);
 			deserializedArg.size = argumentDataSize;
 			deserializedArg.data = copyDataPtr + idx;
 			deserializeSysArg(&deserializedArg);

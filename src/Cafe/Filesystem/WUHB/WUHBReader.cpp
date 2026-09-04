@@ -196,8 +196,18 @@ bool WUHBReader::ReadHeader()
 	auto read = m_fileIn->readData(&m_header, sizeof(m_header));
 	auto readSuccess = read == sizeof(m_header);
 	if (!readSuccess)
+	{
 		cemuLog_log(LogType::Force, "Failed to read WUHB header");
-	return readSuccess;
+		return false;
+	}
+
+	if (m_header.dir_hash_table_size < sizeof(uint32) || m_header.file_hash_table_size < sizeof(uint32))
+	{
+		cemuLog_log(LogType::Force, "Invalid WUHB hash table size");
+		return false;
+	}
+
+	return true;
 }
 unsigned char WUHBReader::NormalizeChar(unsigned char c)
 {

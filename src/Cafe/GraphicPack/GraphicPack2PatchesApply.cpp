@@ -15,12 +15,12 @@ bool _relocateAddress(PatchGroup* group, PatchContext_t* ctx, uint32 addr, uint3
 		return true;
 	}
 	// check if address is within module section
-	for (sint32 i = 0; i < ctx->matchedModule->rplHeader.sectionTableEntryCount; i++)
+	for (sint32 i = 0; i < ctx->matchedModule->sectionTable.size(); i++)
 	{
-		auto sect = ctx->matchedModule->sectionTablePtr + i;
-		if (addr >= sect->virtualAddress && addr < (sect->virtualAddress + sect->sectionSize))
+		const RPLFileSectionEntry& sect = ctx->matchedModule->sectionTable[i];
+		if (addr >= sect.virtualAddress && addr < (sect.virtualAddress + sect.sectionSize))
 		{
-			relocatedAddress = addr - sect->virtualAddress + memory_getVirtualOffsetFromPointer(ctx->matchedModule->sectionAddressTable2[i].ptr);
+			relocatedAddress = addr - sect.virtualAddress + memory_getVirtualOffsetFromPointer(ctx->matchedModule->sectionAddressTable[i].ptr);
 			return true;
 		}
 	}
