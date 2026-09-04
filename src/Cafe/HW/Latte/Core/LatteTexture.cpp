@@ -1307,8 +1307,9 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 			}
 		}
 	}
-	// determine if this texture should ever be mirrored to CPU RAM
-	if (this->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
+	// determine if this texture should ever be mirrored to CPU RAM.
+	if (this->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED ||
+		this->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_GENERAL)
 	{
 		this->enableReadback = true;
 	}
