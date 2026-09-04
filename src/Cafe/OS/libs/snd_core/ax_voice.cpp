@@ -566,14 +566,14 @@ namespace snd_core
 		if (device == AX_DEV_TV)
 		{
 			channelCount = AX_TV_CHANNEL_COUNT;
-			voiceMix = (AXCHMIX2*)internal->deviceMixTV + deviceIndex * 0x60 / 4;
-			deviceMixMask = (uint16be*)internal->deviceMixMaskTV;
+			voiceMix = internal->deviceMixTV + deviceIndex * 0x60 / 4;
+			deviceMixMask = internal->deviceMixMaskTV;
 		}
 		else if (device == AX_DEV_DRC)
 		{
 			channelCount = AX_DRC_CHANNEL_COUNT;
-			voiceMix = reinterpret_cast<AXCHMIX2*>(internal->deviceMixDRC) + deviceIndex * 16;
-			deviceMixMask = reinterpret_cast<uint16be*>(internal->deviceMixMaskDRC);
+			voiceMix = internal->deviceMixDRC + deviceIndex * 16;
+			deviceMixMask = internal->deviceMixMaskDRC;
 		}
 		else if (device == AX_DEV_RMT)
 		{

@@ -196,12 +196,6 @@ namespace snd_core
 		}
 	};
 
-	struct AXCHMIX_DEPR
-	{
-		uint16 vol;
-		sint16 delta;
-	};
-
 	struct AXCHMIX2
 	{
 		uint16be vol;
