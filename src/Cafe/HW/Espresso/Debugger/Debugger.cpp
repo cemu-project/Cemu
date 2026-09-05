@@ -199,7 +199,7 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 {
 	std::vector<std::thread::native_handle_type> schedulerThreadHandles = coreinit::OSGetSchedulerThreads();
 
-#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS && defined(ARCH_X86_64)
 	s_debuggerState.activeMemoryBreakpoint = bp;
 	for (auto& hThreadNH : schedulerThreadHandles)
 	{

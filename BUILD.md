@@ -42,6 +42,36 @@ Instructions for Visual Studio 2022:
 
 Any other IDE should also work as long as it has CMake and MSVC support. CLion and Visual Studio Code have been confirmed to work.
 
+### Windows on ARM64 (Snapdragon)
+
+Native ARM64 builds are supported and use **clang-cl**. The recompiler uses the
+AArch64 backend (`xbyak_aarch64`), so it runs natively rather than under x64
+emulation.
+
+Prerequisites (Visual Studio 2022 or Build Tools 2022 with these components):
+- MSVC v143 - ARM64/ARM64EC build tools
+- C++ Clang Compiler for Windows and *MSBuild support for LLVM (clang-cl) toolset*
+- C++ CMake tools for Windows (CMake 3.29 or newer)
+- Windows 11 SDK
+
+The Visual Studio CMake generator cannot assemble the codebase, so build from the
+command line with Ninja. Open an **"ARM64 Native Tools Command Prompt for VS 2022"**
+(or run `vcvarsarm64.bat`), then:
+
+```
+git clone --recursive https://github.com/cemu-project/Cemu
+cd Cemu
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=release ^
+  -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl ^
+  -DCMAKE_LINKER_TYPE=MSVC
+cmake --build build
+```
+
+`-DCMAKE_LINKER_TYPE=MSVC` makes clang link with the MSVC `link.exe` (required so
+that vcpkg's static libraries link correctly). The resulting binary is
+`bin/Cemu_release.exe`. Note: on ARM64 the bundled H.264 decoder (ih264d) is built
+as portable C, and libusb is used via the standard vcpkg package.
+
 ## Linux
 
 To compile Cemu, a recent enough compiler and STL with C++20 support is required! Clang-15 or higher is what we recommend.

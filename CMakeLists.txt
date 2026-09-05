@@ -51,7 +51,17 @@ if (ENABLE_VCPKG)
 	# CONFIG option
 	set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 	if (WIN32)
-		set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+		# Auto-select the vcpkg triplet based on the target architecture.
+		# Override on the command line with -DVCPKG_TARGET_TRIPLET=...
+		if (NOT DEFINED VCPKG_TARGET_TRIPLET)
+			if (CMAKE_GENERATOR_PLATFORM MATCHES "(ARM64|arm64)" OR
+				CMAKE_SYSTEM_PROCESSOR MATCHES "(ARM64|arm64|aarch64)" OR
+				"$ENV{VSCMD_ARG_TGT_ARCH}" STREQUAL "arm64")
+				set(VCPKG_TARGET_TRIPLET "arm64-windows-static" CACHE STRING "")
+			else()
+				set(VCPKG_TARGET_TRIPLET "x64-windows-static" CACHE STRING "")
+			endif()
+		endif()
 	endif()
 endif()
 
@@ -72,9 +82,13 @@ add_definitions(-DEMULATOR_VERSION_PATCH=${EMULATOR_VERSION_PATCH})
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-# enable link time optimization for release builds
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
-set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+# enable link time optimization for release builds.
+# Skip it for clang-cl on Windows: IPO forces the LLVM linker (lld-link), which
+# cannot consume the MSVC /GL objects inside vcpkg static libraries.
+if(NOT (MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE ON)
+	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO ON)
+endif()
 
 if (MSVC)
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT CemuBin)
@@ -256,11 +270,34 @@ add_subdirectory("dependencies/ih264d" EXCLUDE_FROM_ALL)
 
 if (CMAKE_OSX_ARCHITECTURES)
 	set(CEMU_ARCHITECTURE ${CMAKE_OSX_ARCHITECTURES})
+elseif (WIN32 AND (CMAKE_GENERATOR_PLATFORM MATCHES "(ARM64|arm64)" OR "$ENV{VSCMD_ARG_TGT_ARCH}" STREQUAL "arm64"))
+	# Windows ARM64: the host toolchain / emulated shell can misreport the
+	# processor, so trust the requested target platform instead.
+	set(CEMU_ARCHITECTURE "aarch64")
 else()
 	set(CEMU_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 if(CEMU_ARCHITECTURE MATCHES "(aarch64)|(AARCH64)|(arm64)|(ARM64)")
 	add_subdirectory("dependencies/xbyak_aarch64" EXCLUDE_FROM_ALL)
+	if(MSVC)
+		# Match the static CRT used by the rest of the project (vcpkg static triplet)
+		set_property(TARGET xbyak_aarch64 PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	endif()
+	if(MSVC AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+		# clang-cl emits calls to compiler-rt builtins (e.g. __udivti3 for 128-bit
+		# integer division) that lld-link does not link automatically. Link the
+		# clang_rt.builtins library that ships next to the compiler.
+		get_filename_component(_llvm_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
+		get_filename_component(_llvm_root "${_llvm_bin}" DIRECTORY)
+		file(GLOB _clang_rt_builtins "${_llvm_root}/lib/clang/*/lib/windows/clang_rt.builtins-aarch64.lib")
+		if(_clang_rt_builtins)
+			list(GET _clang_rt_builtins 0 _clang_rt_builtins)
+			link_libraries("${_clang_rt_builtins}")
+			message(STATUS "Linking compiler-rt builtins: ${_clang_rt_builtins}")
+		else()
+			message(WARNING "clang_rt.builtins-aarch64.lib not found; link may fail with undefined __udivti3")
+		endif()
+	endif()
 endif()
 
 find_package(ZArchive QUIET)

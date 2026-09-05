@@ -209,6 +209,7 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	// register info
 	sprintf(dumpLine, "\n");
 	cemuLog_writePlainToLog(dumpLine);
+#if defined(ARCH_X86_64)
 	sprintf(dumpLine, "RAX=%016I64x RBX=%016I64x RCX=%016I64x RDX=%016I64x\n", context->Rax, context->Rbx, context->Rcx, context->Rdx);
 	cemuLog_writePlainToLog(dumpLine);
 	sprintf(dumpLine, "RSP=%016I64x RBP=%016I64x RDI=%016I64x RSI=%016I64x\n", context->Rsp, context->Rbp, context->Rdi, context->Rsi);
@@ -217,6 +218,17 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	cemuLog_writePlainToLog(dumpLine);
 	sprintf(dumpLine, "R12=%016I64x R13=%016I64x R14=%016I64x R15=%016I64x\n", context->R12, context->R13, context->R14, context->R15);
 	cemuLog_writePlainToLog(dumpLine);
+#else // AArch64
+	for (int i = 0; i < 28; i += 4)
+	{
+		sprintf(dumpLine, "X%-2d=%016I64x X%-2d=%016I64x X%-2d=%016I64x X%-2d=%016I64x\n",
+			i, context->X[i], i + 1, context->X[i + 1], i + 2, context->X[i + 2], i + 3, context->X[i + 3]);
+		cemuLog_writePlainToLog(dumpLine);
+	}
+	sprintf(dumpLine, "X28=%016I64x FP =%016I64x LR =%016I64x SP =%016I64x PC =%016I64x\n",
+		context->X[28], context->Fp, context->Lr, context->Sp, context->Pc);
+	cemuLog_writePlainToLog(dumpLine);
+#endif
 
     CrashLog_SetOutputChannels(false, true);
     ExceptionHandler_LogGeneralInfo();
@@ -264,11 +276,15 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 		if (r != EXCEPTION_CONTINUE_SEARCH)
 			return r;
 
+#if defined(ARCH_X86_64)
 		if (GetBits(pExceptionInfo->ContextRecord->Dr6, 0, 1) || GetBits(pExceptionInfo->ContextRecord->Dr6, 1, 1))
 			debugger_handleSingleStepException(pExceptionInfo->ContextRecord->Dr6);
 		else if (GetBits(pExceptionInfo->ContextRecord->Dr6, 2, 1) || GetBits(pExceptionInfo->ContextRecord->Dr6, 3, 1))
 			g_gdbstub->HandleAccessException(pExceptionInfo->ContextRecord->Dr6);
 		return EXCEPTION_CONTINUE_EXECUTION;
+#else // AArch64: hardware debug registers (Dr6) not available; debugger single-step unsupported for now
+		return EXCEPTION_CONTINUE_SEARCH;
+#endif
 	}
 	return EXCEPTION_CONTINUE_SEARCH;
 }
