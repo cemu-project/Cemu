@@ -843,14 +843,46 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 			x64Gen_cdq(x64GenContext);
 		else
 			x64Gen_xor_reg64Low32_reg64Low32(x64GenContext, X86_REG_EDX, X86_REG_EDX);
-		// make sure we avoid division by zero
+		// handle PPC division edge cases without raising x86 #DE
+		bool isSignedDivide = imlInstruction->operation == PPCREC_IML_OP_DIVIDE_SIGNED;
 		x64Gen_test_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP);
-		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_EQUAL, 3);
+		sint32 jumpDivisorZero = x64GenContext->emitter->GetWriteIndex();
+		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_EQUAL, 0);
+		sint32 jumpOverflow = 0;
+		if( isSignedDivide )
+		{
+			x64Gen_cmp_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, -1);
+			sint32 jumpNoOverflow = x64GenContext->emitter->GetWriteIndex();
+			x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NOT_EQUAL, 0);
+			x64Gen_cmp_reg64Low32_imm32(x64GenContext, X86_REG_EAX, (sint32)0x80000000);
+			jumpOverflow = x64GenContext->emitter->GetWriteIndex();
+			x64Gen_jmpc_near(x64GenContext, X86_CONDITION_EQUAL, 0);
+			PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpNoOverflow, x64GenContext->emitter->GetWriteIndex());
+		}
 		// divide
-		if( imlInstruction->operation == PPCREC_IML_OP_DIVIDE_SIGNED )
+		if( isSignedDivide )
 			x64Gen_idiv_reg64Low32(x64GenContext, REG_RESV_TEMP);
 		else
 			x64Gen_div_reg64Low32(x64GenContext, REG_RESV_TEMP);
+		sint32 jumpEnd = x64GenContext->emitter->GetWriteIndex();
+		x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
+		// divisor is zero: divw yields the dividend sign, divwu yields zero
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpDivisorZero, x64GenContext->emitter->GetWriteIndex());
+		if( isSignedDivide )
+		{
+			x64Gen_sar_reg64Low32_imm8(x64GenContext, X86_REG_EAX, 31);
+			sint32 jumpEndFromZero = x64GenContext->emitter->GetWriteIndex();
+			x64Gen_jmpc_near(x64GenContext, X86_CONDITION_NONE, 0);
+			// signed overflow yields -1 for divw
+			PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpOverflow, x64GenContext->emitter->GetWriteIndex());
+			x64Gen_mov_reg64Low32_imm32(x64GenContext, X86_REG_EAX, 0xFFFFFFFF);
+			PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpEndFromZero, x64GenContext->emitter->GetWriteIndex());
+		}
+		else
+		{
+			x64Gen_xor_reg64Low32_reg64Low32(x64GenContext, X86_REG_EAX, X86_REG_EAX);
+		}
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, jumpEnd, x64GenContext->emitter->GetWriteIndex());
 		// result of division is now stored in EAX, move it to result register
 		if( rRegResult != X86_REG_EAX )
 			x64Gen_mov_reg64_reg64(x64GenContext, rRegResult, X86_REG_EAX);
