@@ -104,7 +104,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -136,7 +136,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -183,7 +183,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -215,7 +215,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -245,7 +245,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -277,7 +277,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -316,7 +316,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -348,7 +348,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -395,7 +395,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -427,7 +427,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -457,7 +457,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -489,7 +489,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -528,7 +528,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -560,7 +560,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -607,7 +607,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -639,7 +639,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -669,7 +669,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -701,7 +701,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -740,7 +740,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -772,7 +772,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -819,7 +819,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -851,7 +851,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -881,7 +881,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -913,7 +913,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -952,7 +952,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -984,7 +984,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1031,7 +1031,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1063,7 +1063,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1093,7 +1093,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1125,7 +1125,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1164,7 +1164,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1196,7 +1196,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1243,7 +1243,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1275,7 +1275,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1305,7 +1305,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1337,7 +1337,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1376,7 +1376,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1408,7 +1408,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1455,7 +1455,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1487,7 +1487,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1517,7 +1517,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1549,7 +1549,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1588,7 +1588,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1620,7 +1620,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1667,7 +1667,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1699,7 +1699,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1729,7 +1729,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1761,7 +1761,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1808,7 +1808,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1841,7 +1841,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1889,7 +1889,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1922,7 +1922,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -1970,7 +1970,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2003,7 +2003,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2051,7 +2051,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2084,7 +2084,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2132,7 +2132,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2165,7 +2165,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2213,7 +2213,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2246,7 +2246,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2294,7 +2294,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2327,7 +2327,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2375,7 +2375,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2408,7 +2408,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2456,7 +2456,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2489,7 +2489,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2537,7 +2537,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2570,7 +2570,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2618,7 +2618,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2651,7 +2651,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2699,7 +2699,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2732,7 +2732,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2780,7 +2780,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2813,7 +2813,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2861,7 +2861,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2894,7 +2894,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2942,7 +2942,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -2975,7 +2975,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3023,7 +3023,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3056,7 +3056,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3096,7 +3096,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3143,7 +3143,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3175,7 +3175,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3214,7 +3214,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3261,7 +3261,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3293,7 +3293,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3332,7 +3332,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3364,7 +3364,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3411,7 +3411,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3443,7 +3443,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3473,7 +3473,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3505,7 +3505,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3559,7 +3559,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3608,7 +3608,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3641,7 +3641,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3689,7 +3689,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3722,7 +3722,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3762,7 +3762,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3803,7 +3803,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3844,7 +3844,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3891,7 +3891,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3923,7 +3923,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -3968,7 +3968,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4000,7 +4000,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4045,7 +4045,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4077,7 +4077,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4128,7 +4128,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4178,7 +4178,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4211,7 +4211,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4276,7 +4276,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
@@ -4310,7 +4310,7 @@ public:
 		if ((memReg & 7) == 4)
 		{
 			cemu_assert_debug(index == X86_REG_NONE);
-			index = memReg;
+			index = X86_REG_RSP;
 			sib_use = true;
 		}
 		if (sib_use)
