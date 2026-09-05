@@ -19,6 +19,7 @@ void LatteTextureReadbackInfoMtl::StartTransfer()
 	cemu_assert_debug(m_textureView->baseTexture->dim != Latte::E_DIM::DIM_3D);
 
 	size_t bytesPerRow = GetMtlTextureBytesPerRow(baseTexture->format, baseTexture->isDepth, baseTexture->width);
+	m_rowPitch = static_cast<uint32>(bytesPerRow);
 	size_t bytesPerImage = GetMtlTextureBytesPerImage(baseTexture->format, baseTexture->isDepth, baseTexture->height, bytesPerRow);
 
 	auto blitCommandEncoder = m_mtlr->GetBlitCommandEncoder();

@@ -6,6 +6,7 @@ LatteTextureReadbackInfoVk::LatteTextureReadbackInfoVk(VkDevice device, LatteTex
 	: LatteTextureReadbackInfo(textureView), m_device(device)
 {
 	m_image_size = GetImageSize(textureView);
+	m_rowPitch = m_image_size / textureView->baseTexture->height;
 }
 
 LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk()

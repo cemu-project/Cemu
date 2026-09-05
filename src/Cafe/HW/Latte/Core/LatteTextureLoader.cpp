@@ -695,15 +695,12 @@ void LatteTextureLoader_UpdateTextureSliceData(LatteTexture* tex, uint32 sliceIn
 }
 
 template<typename copyType>
-void optimizedLinearReadbackWriteLoop(LatteTextureLoaderCtx* textureLoader, uint8* linearPixelData)
+void optimizedLinearReadbackWriteLoop(LatteTextureLoaderCtx* textureLoader, uint8* linearPixelData, uint32 sourcePitch)
 {
-	uint32 pitch = textureLoader->width;
 	// optimized for linear
 	for (sint32 y = 0; y < textureLoader->height; y++)
 	{
-		sint32 yc = y;
-		sint32 pixelOffset = yc * pitch;
-		copyType* rowPixelData = (copyType*)(linearPixelData + pixelOffset * sizeof(copyType));
+		copyType* rowPixelData = (copyType*)(linearPixelData + y * sourcePitch);
 		copyType* blockData = (copyType*)LatteTextureLoader_getInputLinearOptimized_(textureLoader, 0, y, 1, 1, sizeof(copyType) * 8, textureLoader->sliceIndex, 1, 0, textureLoader->pitch, textureLoader->surfaceInfoHeight);
 		if constexpr (sizeof(copyType) == 4)
 		{
@@ -721,7 +718,7 @@ void optimizedLinearReadbackWriteLoop(LatteTextureLoaderCtx* textureLoader, uint
 	}
 }
 
-void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* textureData, uint32 sliceIndex, uint32 mipIndex, uint8* linearPixelData)
+void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* textureData, uint32 sliceIndex, uint32 mipIndex, uint8* linearPixelData, uint32 sourceRowPitch)
 {
 	LatteTextureLoaderCtx textureLoader = { 0 };
 	LatteTextureLoader_begin(&textureLoader, sliceIndex, mipIndex, textureData->physAddress, textureData->physMipAddress, textureData->format, textureData->dim, textureData->width, textureData->height, textureData->depth, textureData->mipLevels, textureData->pitch, textureData->tileMode, textureData->swizzle);
@@ -736,22 +733,21 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 
 	if (textureData->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
 	{
-		uint32 pitch = textureLoader.width;
 		if (textureData->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM ||
 			textureData->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
 		{
-			optimizedLinearReadbackWriteLoop<uint32>(&textureLoader, linearPixelData);
+			optimizedLinearReadbackWriteLoop<uint32>(&textureLoader, linearPixelData, sourceRowPitch);
 		}
 		else if (textureData->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM)
 		{
-			optimizedLinearReadbackWriteLoop<uint64>(&textureLoader, linearPixelData);
+			optimizedLinearReadbackWriteLoop<uint64>(&textureLoader, linearPixelData, sourceRowPitch);
 		}
 		else if (textureData->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT)
 		{
 			for (sint32 y = 0; y < textureLoader.height; y += textureLoader.stepY)
 			{
 				sint32 yc = y;
-				sint32 pixelOffset = (0 + yc * pitch) * 16;
+				sint32 pixelOffset = yc * sourceRowPitch;
 				for (sint32 x = 0; x < textureLoader.width; x += textureLoader.stepX)
 				{
 					uint8* blockData = LatteTextureLoader_getInputLinearOptimized(&textureLoader, x, y);
@@ -771,7 +767,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 				for (sint32 x = 0; x < textureLoader.width; x += textureLoader.stepX)
 				{
 					uint8* blockData = LatteTextureLoader_getInputLinearOptimized(&textureLoader, x, y);
-					sint32 pixelOffset = (x + yc * pitch) * 4;
+					sint32 pixelOffset = yc * sourceRowPitch + x * 4;
 					(*(uint32*)(blockData + 0)) = *(uint32*)(linearPixelData + pixelOffset + 0);
 				}
 			}
@@ -784,7 +780,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 				for (sint32 x = 0; x < textureLoader.width; x += textureLoader.stepX)
 				{
 					uint8* blockData = LatteTextureLoader_getInputLinearOptimized(&textureLoader, x, y);
-					sint32 pixelOffset = (x + yc * pitch) * 8;
+					sint32 pixelOffset = yc * sourceRowPitch + x * 8;
 					(*(uint32*)(blockData + 0)) = *(uint32*)(linearPixelData + pixelOffset + 0);
 					(*(uint32*)(blockData + 4)) = *(uint32*)(linearPixelData + pixelOffset + 4);
 				}
@@ -792,7 +788,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		}
 		else if (textureData->format == Latte::E_GX2SURFFMT::R8_G8_UNORM)
 		{
-			optimizedLinearReadbackWriteLoop<uint16>(&textureLoader, linearPixelData);
+			optimizedLinearReadbackWriteLoop<uint16>(&textureLoader, linearPixelData, sourceRowPitch);
 		}
 		else if (textureData->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM)
 		{
@@ -800,7 +796,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		}
 		else if (textureData->format == Latte::E_GX2SURFFMT::R16_UNORM)
 		{
-			optimizedLinearReadbackWriteLoop<uint16>(&textureLoader, linearPixelData);
+			optimizedLinearReadbackWriteLoop<uint16>(&textureLoader, linearPixelData, sourceRowPitch);
 		}
 		else
 		{
@@ -816,7 +812,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		// used in Bayonetta 2
 		for (sint32 y = 0; y < textureLoader.height; y++)
 		{
-			uint8* pixelInput = linearPixelData + (y * textureLoader.width) * 4;
+			uint8* pixelInput = linearPixelData + y * sourceRowPitch;
 			for (sint32 x = 0; x < textureLoader.width; x++)
 			{
 				uint8* outputData = LatteTextureLoader_GetInput(&textureLoader, x, y);
@@ -831,7 +827,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		// Bayonetta 2 also uses this but it converts the depth buffer to a color texture first
 		for (sint32 y = 0; y < textureLoader.height; y++)
 		{
-			uint8* pixelInput = linearPixelData + (y * textureLoader.width) * 4;
+			uint8* pixelInput = linearPixelData + y * sourceRowPitch;
 			for (sint32 x = 0; x < textureLoader.width; x++)
 			{
 				uint8* outputData = LatteTextureLoader_GetInput(&textureLoader, x, y);

@@ -6,8 +6,8 @@
 class LatteTextureReadbackInfo
 {
 public:
-	LatteTextureReadbackInfo(LatteTextureView* textureView)
-		: hostTextureCopy(textureView->baseTexture), m_firstSlice(textureView->firstSlice), m_textureView(textureView)
+	LatteTextureReadbackInfo(LatteTextureView* textureView, sint32 mipIndex = 0)
+		: hostTextureCopy(textureView->baseTexture), m_firstSlice(textureView->firstSlice), m_firstMip(mipIndex), m_textureView(textureView)
 	{}
 
 	virtual ~LatteTextureReadbackInfo() = default;
@@ -25,6 +25,8 @@ public:
 	// texture info
 	LatteTextureDefinition hostTextureCopy{};
 	sint32 m_firstSlice{};
+	sint32 m_firstMip{}; // mip level transferred by the backend
+	uint32 m_rowPitch = 0; // bytes between rows in GetData(). Set by the backend
 
 protected:
 	LatteTextureView* m_textureView;

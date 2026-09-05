@@ -542,7 +542,6 @@ void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	texture_bindAndActivate(texView, 0);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &screenshotWidth);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &screenshotHeight);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment to 1
 
 	const sint32 pixelDataSize = screenshotWidth * screenshotHeight * 3;
 	std::vector<uint8> rgb_data(pixelDataSize);
