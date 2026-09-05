@@ -22,7 +22,7 @@ void LatteTC_UnregisterTexture(LatteTexture* tex)
 }
 
 // sample few uint64s uniformly over memory range
-uint32 _quickStochasticHash(void* texData, uint32 memRange)
+uint32 _quickStochasticHash(void* texData, uint32 memRange, bool is16ByteFormat)
 {
 	uint64* texDataU64 = (uint64*)texData;
 
@@ -30,11 +30,25 @@ uint32 _quickStochasticHash(void* texData, uint32 memRange)
 	memRange /= sizeof(uint64);
 
 	uint32 memStep = memRange / 37; // use prime here to avoid memStep aligning nicely with pitch of texture, leading to sampling only along the border of a texture
-	for (sint32 i = 0; i < 37; i++)
+
+	if (!is16ByteFormat)
 	{
-		hashVal += *texDataU64;
-		hashVal = (hashVal << 3) | (hashVal >> 61);
-		texDataU64 += memStep;
+		for (sint32 i = 0; i < 37; i++)
+		{
+			hashVal += *texDataU64;
+			hashVal = (hashVal << 3) | (hashVal >> 61);
+			texDataU64 += memStep;
+		}
+	}
+	else
+	{
+		for (sint32 i = 0; i < 37; i++)
+		{
+			hashVal += *texDataU64 ^ *(texDataU64 + 1); 
+			hashVal = (hashVal << 3) | (hashVal >> 61);
+			texDataU64 += memStep; 
+		}
+
 	}
 	return (uint32)hashVal ^ (uint32)(hashVal >> 32);
 }
@@ -84,7 +98,12 @@ uint32 LatteTexture_CalculateTextureDataHash(LatteTexture* hostTexture)
 		}
 		else
 		{
-			hashVal = _quickStochasticHash(texDataU32, memRange);
+			bool is16ByteFormat = (hostTexture->format == Latte::E_GX2SURFFMT::BC2_UNORM || 
+			                       hostTexture->format == Latte::E_GX2SURFFMT::BC2_SRGB || 
+			                       hostTexture->format == Latte::E_GX2SURFFMT::BC3_UNORM || 
+			                       hostTexture->format == Latte::E_GX2SURFFMT::BC3_SRGB);
+
+			hashVal = _quickStochasticHash(texDataU32, memRange, is16ByteFormat);
 		}
 		return hashVal;
 	}
@@ -219,7 +238,7 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		return false;
 	hostTexture->lastDataUpdateFrameCounter = LatteGPUState.frameCounter;
 	// we assume that certain texture properties indicate that the texture will never be written by the CPU
-	if (hostTexture->width == 1280 && hostTexture->format != Latte::E_GX2SURFFMT::R8_UNORM && force == false)
+	if (hostTexture->width == 1280 && hostTexture->format != Latte::E_GX2SURFFMT::R8_UNORM && hostTexture->format != Latte::E_GX2SURFFMT::BC3_UNORM && force == false)
 	{
 		// todo - remove this or find a better way to handle excluded texture invalidation checks (maybe via game profile?)
 		return false;
