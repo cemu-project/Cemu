@@ -166,6 +166,16 @@ namespace snd_core
 
 	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, sint32 deviceType, sint32 deviceIndex, uint32 busIndex, uint16 vol, sint16 delta)
 	{
+		if (busIndex > AX_BUS_COUNT) [[unlikely]]
+		{
+			cemuLog_log(LogType::APIErrors, "AXSetMultiVoiceDeviceMix: Invalid bus index {}", busIndex);
+			return 0;
+		}
+		else if (mv->channelCount > AX_TV_CHANNEL_COUNT) [[unlikely]]
+		{
+			cemuLog_log(LogType::APIErrors, "AXSetMultiVoiceDeviceMix: MultiVoice {} has invalid channel count ({})", MEMPTR(mv), mv->channelCount);
+			return 0;
+		}
 		for (auto voiceChannel = 0; voiceChannel < mv->channelCount; ++voiceChannel)
 		{
 			std::array<std::array<AXCHMIX2, AX_BUS_COUNT>, AX_TV_CHANNEL_COUNT> mix{};
