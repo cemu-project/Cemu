@@ -2703,8 +2703,21 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		switch (PPC_getBits(opcode, 30, 5))
 		{
 		case 0:
-			if (PPCRecompilerImlGen_FCMPU(ppcImlGenContext, opcode) == false)
+			// fcmpo (32) and mcrfs (64) are X-form and share the low 5 bits with fcmpu
+			switch (PPC_getBits(opcode, 30, 10))
+			{
+			case 0:
+				if (PPCRecompilerImlGen_FCMPU(ppcImlGenContext, opcode) == false)
+					unsupportedInstructionFound = true;
+				break;
+			case 32:
+				if (PPCRecompilerImlGen_FCMPO(ppcImlGenContext, opcode) == false)
+					unsupportedInstructionFound = true;
+				break;
+			default:
 				unsupportedInstructionFound = true;
+				break;
+			}
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
 		case 12:
@@ -2765,11 +2778,6 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		default:
 			switch (PPC_getBits(opcode, 30, 10))
 			{
-			case 32:
-				if (PPCRecompilerImlGen_FCMPO(ppcImlGenContext, opcode) == false)
-					unsupportedInstructionFound = true;
-				ppcImlGenContext->hasFPUInstruction = true;
-				break;
 			case 40:
 				if (PPCRecompilerImlGen_FNEG(ppcImlGenContext, opcode) == false)
 					unsupportedInstructionFound = true;
