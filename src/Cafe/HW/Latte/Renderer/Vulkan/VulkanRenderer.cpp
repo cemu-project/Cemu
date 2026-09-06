@@ -108,6 +108,35 @@ std::vector<VulkanRenderer::DeviceInfo> VulkanRenderer::GetDevices()
 
 	std::vector<DeviceInfo> result;
 
+	// If the Vulkan renderer is already running, enumerate through its instance and surface instead of creating a
+	// temporary instance + surface. On Wayland the NVIDIA driver shares per-display WSI state between instances and
+	// destroying the temporary one tears down callbacks the live swapchain still uses, so the next
+	// vkAcquireNextImageKHR on the Latte thread jumped to a null function pointer (crash when opening the settings
+	// dialog while a game is running)
+	if (g_renderer && g_renderer->GetType() == RendererAPI::Vulkan)
+	{
+		VulkanRenderer* vkr = VulkanRenderer::GetInstance();
+		if (vkr->m_instance != VK_NULL_HANDLE && vkr->m_mainSwapchainInfo && vkr->m_mainSwapchainInfo->m_surface != VK_NULL_HANDLE)
+		{
+			uint32_t device_count = 0;
+			vkEnumeratePhysicalDevices(vkr->m_instance, &device_count, nullptr);
+			std::vector<VkPhysicalDevice> devices(device_count);
+			vkEnumeratePhysicalDevices(vkr->m_instance, &device_count, devices.data());
+			for (const auto& device : devices)
+			{
+				if (IsDeviceSuitable(vkr->m_mainSwapchainInfo->m_surface, device))
+				{
+					VkPhysicalDeviceIDProperties physDeviceIDProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES };
+					VkPhysicalDeviceProperties2 physDeviceProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+					physDeviceProps.pNext = &physDeviceIDProps;
+					vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
+					result.emplace_back(physDeviceProps.properties.deviceName, physDeviceIDProps.deviceUUID);
+				}
+			}
+			return result;
+		}
+	}
+
 	std::vector<const char*> requiredExtensions;
 	requiredExtensions.clear();
 	requiredExtensions.emplace_back(VK_KHR_SURFACE_EXTENSION_NAME);
