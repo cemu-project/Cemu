@@ -350,6 +350,38 @@ namespace Latte
 		return dim == E_DIM::DIM_2D_MSAA || dim == E_DIM::DIM_2D_ARRAY_MSAA;
 	}
 
+	// PM4 packet field enums
+	enum class E_COHER_CNTL : uint32 // for SURFACE_SYNC packet
+	{
+		DEST_BASE_0_ENA       = (1<<0),
+		DEST_BASE_1_ENA       = (1<<1),
+		SO0_DEST_BASE_ENA     = (1<<2),
+		SO1_DEST_BASE_ENA     = (1<<3),
+		SO2_DEST_BASE_ENA     = (1<<4),
+		SO3_DEST_BASE_ENA     = (1<<5),
+		CB0_DEST_BASE_ENA     = (1<<6),
+		CB1_DEST_BASE_ENA     = (1<<7),
+		CB2_DEST_BASE_ENA     = (1<<8),
+		CB3_DEST_BASE_ENA     = (1<<9),
+		CB4_DEST_BASE_ENA     = (1<<10),
+		CB5_DEST_BASE_ENA     = (1<<11),
+		CB6_DEST_BASE_ENA     = (1<<12),
+		CB7_DEST_BASE_ENA     = (1<<13),
+		DB_DEST_BASE_ENA      = (1<<14),
+
+		FULL_CACHE_ENA       = (1<<20),
+
+		TC_ACTION_ENA        = (1<<23), // on Latte this bit seems to flush attribute buffer cache and texture cache
+		VC_ACTION_ENA        = (1<<24),
+		CB_ACTION_ENA        = (1<<25),
+		DB_ACTION_ENA        = (1<<26),
+		SH_ACTION_ENA        = (1<<27),
+		SX_ACTION_ENA        = (1<<28),
+
+		ENGINE_ME            = (1u<<31)
+	};
+	DEFINE_ENUM_FLAG_OPERATORS(E_COHER_CNTL);
+
 	enum GPU_LIMITS
 	{
 		NUM_VERTEX_BUFFERS = 16,

@@ -209,7 +209,7 @@ void LatteCP_skipWords(uint32 wordsToSkip)
 
 LatteCMDPtr LatteCP_itSurfaceSync(LatteCMDPtr cmd)
 {
-	uint32 invalidationFlags = LatteReadCMD();
+	Latte::E_COHER_CNTL invalidationFlags = static_cast<Latte::E_COHER_CNTL>(LatteReadCMD());
 	uint32 size = LatteReadCMD() << 8;
 	MPTR addressPhys = LatteReadCMD() << 8;
 	uint32 pollInterval = LatteReadCMD();
@@ -217,11 +217,15 @@ LatteCMDPtr LatteCP_itSurfaceSync(LatteCMDPtr cmd)
 	if (addressPhys == MPTR_NULL || size == 0xFFFFFFFF)
 		return cmd; // block global invalidations because they are too expensive
 
-	if (invalidationFlags & 0x800000)
+	// uniform invalidation needs both TC_ACTION_ENA and SH_ACTION_ENA?
+	if (HAS_FLAG(invalidationFlags, Latte::E_COHER_CNTL::TC_ACTION_ENA))
 	{
 		// invalidate uniform or attribute buffer
 		LatteBufferCache_invalidate(addressPhys, size);
 	}
+	// texture invalidation
+	if (HAS_FLAG(invalidationFlags, Latte::E_COHER_CNTL::TC_ACTION_ENA))
+		LatteTexture_Invalidate(addressPhys, size);
 	return cmd;
 }
 

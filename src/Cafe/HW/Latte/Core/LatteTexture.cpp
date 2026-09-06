@@ -169,6 +169,17 @@ void LatteTexture_UnregisterTextureMemoryOccupancy(LatteTexture* texture)
 	}
 }
 
+void LatteTexture_Invalidate(uint32 physAddr, uint32 size)
+{
+	if (size == 0xFFFFFFFF)
+		return; // full cache invalidation for all textures is too expensive, so for now lets ignore it. Most likely games don't use this anyway when they are modifying a single texture
+	std::vector<LatteTexture*> textures;
+	LatteTC_LookupTexturesByPhysAddr(physAddr, textures);
+	uint32 invalidationVal = LatteGPUState.frameCounter - 1;
+	for (LatteTexture* texture : textures)
+		texture->lastDataUpdateFrameCounter = invalidationVal;
+}
+
 // calculate the actually accessed data range
 // the resulting range is an estimate and may be smaller than the actual slice size (but not larger)
 void LatteTexture_EstimateMipSliceAccessedDataRange(LatteTexture* texture, sint32 sliceIndex, sint32 mipIndex, LatteTextureSliceMipInfo* sliceMipInfo)
