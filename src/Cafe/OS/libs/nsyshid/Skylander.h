@@ -85,8 +85,9 @@ namespace nsyshid
 		void WriteBlock(uint8 skyNum, uint8 block, const uint8* toWriteBuf,
 						uint8* replyBuf);
 
-		uint8 LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file);
+		uint8 LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file, int requestedSlot = -1);
 		bool RemoveSkylander(uint8 skyNum);
+		void GetFigureInfo(uint8 skyNum, uint8& outStatus, uint16& outId, uint16& outVariant);
 		bool CreateSkylander(fs::path pathName, uint16 skyId, uint16 skyVar);
 		uint16 SkylanderCRC16(uint16 initValue, const uint8* buffer, uint32 size);
 		static std::map<const std::pair<const uint16, const uint16>, const char*> GetListSkylanders();
