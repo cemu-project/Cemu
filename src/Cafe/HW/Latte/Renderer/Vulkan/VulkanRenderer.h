@@ -175,10 +175,10 @@ public:
 
 	struct DeviceInfo
 	{
-		DeviceInfo(const std::string name, uint8* uuid)
+		DeviceInfo(const std::string name, std::span<uint8, VK_UUID_SIZE> uuid)
 			: name(name)
 		{
-			std::copy(uuid, uuid + VK_UUID_SIZE, this->uuid.data());
+			std::copy(uuid.begin(), uuid.end(), this->uuid.begin());
 		}
 
 		std::string name;

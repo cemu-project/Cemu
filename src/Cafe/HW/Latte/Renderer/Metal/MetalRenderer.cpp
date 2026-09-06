@@ -164,6 +164,8 @@ MetalRenderer::MetalRenderer() : Renderer(RendererAPI::Metal)
     else
         m_vendor = GfxVendor::Generic;
 
+    m_selectedDeviceName = deviceName;
+
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
     m_supportsFramebufferFetch = GetConfig().framebuffer_fetch.GetValue() ? m_device->supportsFamily(MTL::GPUFamilyApple2) : false;
