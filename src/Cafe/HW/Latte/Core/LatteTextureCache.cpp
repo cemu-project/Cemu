@@ -207,12 +207,12 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		hostTexture->forceInvalidate = false;
 	}
 	// if texture is written by GPU operations we switch to a faster hash implementation
-	if (hostTexture->isUpdatedOnGPU && hostTexture->useLightHash == false)
-	{
-		hostTexture->useLightHash = true;
-		// update hash
-		hostTexture->texDataHash2 = LatteTexture_CalculateTextureDataHash(hostTexture);
-	}
+	// if (hostTexture->isUpdatedOnGPU && hostTexture->useLightHash == false)
+	// {
+	// 	hostTexture->useLightHash = true;
+	// 	// update hash
+	// 	hostTexture->texDataHash2 = LatteTexture_CalculateTextureDataHash(hostTexture);
+	// }
 	// only check each texture for updates once a frame
 	// todo: Instead of relying on frames, it would be better to recheck only after any GPU wait operation occurred.
 	if( hostTexture->lastDataUpdateFrameCounter == LatteGPUState.frameCounter && force == false)
@@ -242,6 +242,22 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		return true;
 	}
 	return false;
+}
+
+// For GPU updated textures we use a lighter hash algorithm. This also resets the current hash and loses any previous untracked modifications
+void LatteTC_SwitchToLightHash(LatteTexture* hostTexture)
+{
+	if (hostTexture->useLightHash)
+		return;
+	hostTexture->useLightHash = true;
+	hostTexture->texDataHash2 = LatteTexture_CalculateTextureDataHash(hostTexture);
+}
+
+void LatteTC_FlagSliceAsGPUUpdated(LatteTexture* hostTexture, uint32 sliceIndex, uint32 mipIndex)
+{
+	// todo - track gpu updated state per slice
+	hostTexture->isUpdatedOnGPU = true;
+	LatteTC_SwitchToLightHash(hostTexture);
 }
 
 void LatteTC_ResetTextureChangeTracker(LatteTexture* hostTexture, bool force)

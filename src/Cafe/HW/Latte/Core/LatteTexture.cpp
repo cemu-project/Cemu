@@ -539,7 +539,7 @@ void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 						LatteTexture_SyncSlice(subTexture, cSliceIndex, cMipIndex, baseTexture, texRel->baseSliceIndex + cSliceIndex, texRel->baseMipIndex + cMipIndex);
 						baseSliceMipInfo->lastDynamicUpdate = subSliceMipInfo->lastDynamicUpdate;
 						if(subTexture->isUpdatedOnGPU)
-							texture->isUpdatedOnGPU = true;
+							LatteTC_FlagSliceAsGPUUpdated(texture, baseSliceMipInfo->sliceIndex, baseSliceMipInfo->mipIndex);
 					}
 				}
 				else
@@ -550,7 +550,7 @@ void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 						LatteTexture_SyncSlice(baseTexture, texRel->baseSliceIndex + cSliceIndex, texRel->baseMipIndex + cMipIndex, subTexture, cSliceIndex, cMipIndex);
 						subSliceMipInfo->lastDynamicUpdate = baseSliceMipInfo->lastDynamicUpdate;
 						if (baseTexture->isUpdatedOnGPU)
-							texture->isUpdatedOnGPU = true;
+							LatteTC_FlagSliceAsGPUUpdated(texture, subSliceMipInfo->sliceIndex, subSliceMipInfo->mipIndex);
 					}
 				}
 			}
@@ -967,7 +967,7 @@ void LatteTexture_RecreateTextureWithDifferentMipSliceCount(LatteTexture* textur
 	if (texture->isUpdatedOnGPU)
 	{
 		LatteTexture_copyData(texture, view->baseTexture, texture->mipLevels, texture->depth);
-		view->baseTexture->isUpdatedOnGPU = true;
+		LatteTC_FlagSliceAsGPUUpdated(view->baseTexture, view->firstSlice, view->firstMip);
 	}
 	// remove old texture
 	LatteTexture_Delete(texture);
@@ -1384,7 +1384,6 @@ void LatteTexture_MarkConnectedTexturesForReloadFromDynamicTextures(LatteTexture
 void LatteTexture_TrackTextureGPUWrite(LatteTexture* texture, uint32 slice, uint32 mip, uint64 eventCounter)
 {
 	LatteTexture_MarkDynamicTextureAsChanged(texture->baseView, slice, mip, eventCounter);
-	LatteTC_ResetTextureChangeTracker(texture);
-	texture->isUpdatedOnGPU = true;
+	LatteTC_FlagSliceAsGPUUpdated(texture, slice, mip);
 	texture->lastUnflushedRTDrawcallIndex = LatteGPUState.drawCallCounter;
 }

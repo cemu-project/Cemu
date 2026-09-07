@@ -117,7 +117,7 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 		LatteTC_ResetTextureChangeTracker(destinationTexture);
 		// flag texture as updated
 		destinationTexture->lastUpdateEventCounter = LatteTexture_getNextUpdateEventCounter();
-		destinationTexture->isUpdatedOnGPU = true; // todo - also track update flag per-slice
+		LatteTC_FlagSliceAsGPUUpdated(destinationTexture, destinationView->firstSlice, destinationView->firstMip);
 	}
 	else
 		debug_printf("Source or destination texture does not exist\n");

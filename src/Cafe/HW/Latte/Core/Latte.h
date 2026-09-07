@@ -124,6 +124,7 @@ void LatteTexture_ReloadData(LatteTexture* hostTexture);
 
 bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force = false);
 void LatteTC_ResetTextureChangeTracker(LatteTexture* hostTexture, bool force = false);
+void LatteTC_FlagSliceAsGPUUpdated(LatteTexture* hostTexture, uint32 sliceIndex, uint32 mipIndex);
 
 void LatteTC_MarkTextureStillInUse(LatteTexture* texture); // lets the texture garbage collector know the texture is still in use at the time of this function call
 void LatteTC_CleanupUnusedTextures();
