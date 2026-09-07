@@ -395,23 +395,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
-		// note - before 1.15.4 this format was implemented as big-endian
-		//optimizedDecodeLoops<uint64, 2, false>(textureLoader, outputData);
-
-		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
-		{
-			sint32 yc = y;
-			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
-			{
-				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
-				sint32 pixelOffset = (x + yc * textureLoader->width) * 4 * sizeof(uint32); // write to target buffer
-				*(uint32*)(outputData + pixelOffset + 0) = _swapEndianU32(*(uint32*)(blockData + 0));
-				*(uint32*)(outputData + pixelOffset + 4) = _swapEndianU32(*(uint32*)(blockData + 4));
-				*(uint32*)(outputData + pixelOffset + 8) = _swapEndianU32(*(uint32*)(blockData + 8));
-				*(uint32*)(outputData + pixelOffset + 12) = _swapEndianU32(*(uint32*)(blockData + 12));
-				// todo: Verify if this format is big-endian
-			}
-		}
+		optimizedDecodeLoops<uint64, 2, false, false>(textureLoader, outputData);
 	}
 
 	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
@@ -433,23 +417,7 @@ public:
 
 	void decode(LatteTextureLoaderCtx* textureLoader, uint8* outputData) override
 	{
-		// note - before 1.15.4 this format was implemented as big-endian
-		//optimizedDecodeLoops<uint64, 1, false>(textureLoader, outputData);
-
-		for (sint32 y = 0; y < textureLoader->height; y += textureLoader->stepY)
-		{
-			sint32 yc = y;
-			for (sint32 x = 0; x < textureLoader->width; x += textureLoader->stepX)
-			{
-				uint8* blockData = LatteTextureLoader_GetInput(textureLoader, x, y);
-				sint32 pixelOffset = (x + yc * textureLoader->width) * 4 * sizeof(uint16); // write to target buffer
-				*(uint16*)(outputData + pixelOffset + 0) = _swapEndianU16(*(uint16*)(blockData + 0));
-				*(uint16*)(outputData + pixelOffset + 2) = _swapEndianU16(*(uint16*)(blockData + 2));
-				*(uint16*)(outputData + pixelOffset + 4) = _swapEndianU16(*(uint16*)(blockData + 4));
-				*(uint16*)(outputData + pixelOffset + 6) = _swapEndianU16(*(uint16*)(blockData + 6));
-				// todo: Verify if this format is big-endian
-			}
-		}
+		optimizedDecodeLoops<uint64, 1, false, false>(textureLoader, outputData);
 	}
 
 	void decodePixelToRGBA(uint8* blockData, uint8* outputPixel, uint8 blockOffsetX, uint8 blockOffsetY) override
