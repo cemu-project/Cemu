@@ -84,7 +84,14 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	// create destination texture if it doesnt exist
 	if (!destinationTexture)
 	{
-		destinationView = LatteTexture_CreateMapping(dst.physDataAddr, MPTR_NULL, rect.x + rect.width, rect.y + rect.height, dst.sliceIndex + 1, dst.pitch, Latte::MakeHWTileMode(dst.tilemode), dst.swizzle, 0, 1, dst.sliceIndex, 1, dst.surfaceFormat, dst.dim, Latte::IsMSAA(dst.dim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
+		uint32 dstSurfaceWidth = dst.pitch;
+		uint32 dstSurfaceHeight = dst.heightInTexels;
+		if (Latte::IsCompressedFormat(dst.surfaceFormat))
+		{
+			dstSurfaceWidth *= 4;
+			dstSurfaceHeight *= 4;
+		}
+		destinationView = LatteTexture_CreateMapping(dst.physDataAddr, MPTR_NULL, dstSurfaceWidth, dstSurfaceHeight, dst.sliceIndex + 1, dst.pitch, Latte::MakeHWTileMode(dst.tilemode), dst.swizzle, 0, 1, dst.sliceIndex, 1, dst.surfaceFormat, dst.dim, Latte::IsMSAA(dst.dim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
 		destinationTexture = destinationView->baseTexture;
 	}
 	// copy texture
