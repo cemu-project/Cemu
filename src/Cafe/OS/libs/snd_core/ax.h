@@ -219,7 +219,9 @@ namespace snd_core
 
 	sint32 AXVoiceBegin(AXVPB* voice);
 	sint32 AXVoiceEnd(AXVPB* voice);
-	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, AXCHMIX2* mix);
+	sint32 AXSetVoiceDeviceMix(AXVPB* vpb, sint32 device, sint32 deviceIndex, const AXCHMIX2* mix);
+	sint32 AXSetVoiceMix(AXVPB* vpb, const AXCHMIX2* mix);
+	sint32 AXSetVoiceDRCMix(AXVPB* vpb, const AXCHMIX2* mix);
 	void AXSetVoiceState(AXVPB* vpb, sint32 voiceState);
 	sint32 AXIsVoiceRunning(AXVPB* vpb);
 	void AXSetVoiceType(AXVPB* vpb, uint16 voiceType);
