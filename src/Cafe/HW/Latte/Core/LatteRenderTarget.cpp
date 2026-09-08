@@ -343,34 +343,18 @@ uint8 LatteMRT::GetActiveColorBufferMask(const LatteDecompilerShader* pixelShade
 		if (((channelTargetMask >> (i * 4)) & 0xF) == 0)
 			colorBufferMask &= ~(1 << i);
 	}
-	// render targets smaller than the scissor size are not allowed
-	// this fixes a few render issues in Cemu but we dont know if this matches HW behavior
-	// also check for color buffers without a valid pointer
+	// skip color buffers without a valid pointer
+	// (a scissor rectangle extending beyond a render target does not disable the color target —
+	// the part outside the render-target bounds is clipped, matching original Wii U hardware behavior.
+	// This is required for games like TANK! TANK! TANK! which keep a 1280x720 scissor active while
+	// rendering to an 854x480 GamePad intermediate color buffer.)
 	cemu_assert_debug(lcr.PA_SC_GENERIC_SCISSOR_TL.get_WINDOW_OFFSET_DISABLE() == true); // todo (not exposed by GX2 API)
-	uint32 scissorAccessWidth = lcr.PA_SC_GENERIC_SCISSOR_BR.get_BR_X();
-	uint32 scissorAccessHeight = lcr.PA_SC_GENERIC_SCISSOR_BR.get_BR_Y();
 	for (uint32 i = 0; i < 8; i++)
 	{
 		if( (colorBufferMask&(1<<i)) == 0 )
 			continue;
 		if (regView[mmCB_COLOR0_BASE + i] == MPTR_NULL) [[unlikely]]
 			colorBufferMask &= ~(1 << i);
-		// get width/height
-		uint32 regColorSize = regView[mmCB_COLOR0_SIZE + i];
-		uint32 regColorInfo = regView[mmCB_COLOR0_INFO + i];
-		// decode color buffer reg info
-		uint32 colorBufferPitch = (((regColorSize >> 0) & 0x3FF) + 1);
-		colorBufferPitch <<= 3;
-		uint32 pitchHeight = (((regColorSize >> 10) & 0xFFFFF) + 1);
-		pitchHeight <<= 6;
-		uint32 colorBufferHeight = pitchHeight / colorBufferPitch;
-		uint32 colorBufferWidth = colorBufferPitch;
-
-		if ((colorBufferWidth < (sint32)scissorAccessWidth) || (colorBufferHeight < (sint32)scissorAccessHeight))
-		{
-            // log this?
-			colorBufferMask &= ~(1<<i);
-		}
 	}
 	return colorBufferMask;
 }
