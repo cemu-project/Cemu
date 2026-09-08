@@ -379,6 +379,7 @@ private:
 		VkDescriptorSetInfo* activePixelDS{ nullptr };
 		VkDescriptorSetInfo* activeGeometryDS{ nullptr };
 		bool descriptorSetsChanged{ false };
+		CachedFBOVk::RendertargetSelfDependencyMask m_curRenderpassSelfDependencyInfo{};
 		VkImageAspectFlags feedbackLoopImageAspect{0xFFFFFFFF};
 		// viewport and scissor box
 		VkViewport currentViewport{};
