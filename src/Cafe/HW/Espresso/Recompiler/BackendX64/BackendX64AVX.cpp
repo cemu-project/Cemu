@@ -45,3 +45,21 @@ void x64Gen_avx_VSUBPD_xmm_xmm_xmm(x64GenContext_t* x64GenContext, sint32 dstReg
 
 	x64Gen_writeU8(x64GenContext, 0xC0 + (srcRegisterB & 7) + (dstRegister & 7) * 8);
 }
+
+// three byte VEX.128 with a [reg64 + imm32] memory operand
+static void _x64Gen_vex128_nds_mem(x64GenContext_t* x64GenContext, uint8 opcodeMap, uint8 pp, sint32 dstRegister, sint32 srcRegisterA, sint32 memRegister64, sint32 memImmS32, uint8 opcode)
+{
+	x64Gen_writeU8(x64GenContext, 0xC4);
+	x64Gen_writeU8(x64GenContext, ((dstRegister >= 8) ? 0x00 : 0x80) | 0x40 | ((memRegister64 >= 8) ? 0x00 : 0x20) | opcodeMap);
+	x64Gen_writeU8(x64GenContext, (((~srcRegisterA) & 0xF) << 3) | pp);
+	x64Gen_writeU8(x64GenContext, opcode);
+	x64Gen_writeU8(x64GenContext, 0x80 + (dstRegister & 7) * 8 + (memRegister64 & 7));
+	if ((memRegister64 & 7) == 4)
+		x64Gen_writeU8(x64GenContext, 0x24);
+	x64Gen_writeU32(x64GenContext, (uint32)memImmS32);
+}
+
+void x64Gen_avx_VMULSD_xmm_xmm_mem64Reg64(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegisterA, sint32 memRegister64, sint32 memImmS32)
+{
+	_x64Gen_vex128_nds_mem(x64GenContext, 1, VEX_PP_F2_0F, dstRegister, srcRegisterA, memRegister64, memImmS32, 0x59);
+}

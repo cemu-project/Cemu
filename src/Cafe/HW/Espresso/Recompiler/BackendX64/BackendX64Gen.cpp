@@ -542,6 +542,17 @@ void x64Gen_movZeroExtend_reg64Low32_reg64Low8(x64GenContext_t* x64GenContext, s
 	x64Gen_writeU8(x64GenContext, 0xC0+(srcRegister&7)+(destRegister&7)*8);
 }
 
+void x64Gen_lea_reg32_scaledIndex(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 index, uint8 scale, sint32 offset)
+{
+	cemu_assert_debug(dstRegister >= 0 && dstRegister < 16 && index >= 0 && index < 16 && index != X86_REG_RSP && scale < 4);
+	if (dstRegister >= 8 || index >= 8)
+		x64Gen_writeU8(x64GenContext, 0x40 | (dstRegister >= 8 ? 4 : 0) | (index >= 8 ? 2 : 0));
+	x64Gen_writeU8(x64GenContext, 0x8D);
+	x64Gen_writeU8(x64GenContext, 0x04 | ((dstRegister & 7) << 3));
+	x64Gen_writeU8(x64GenContext, (scale << 6) | ((index & 7) << 3) | 5);
+	x64Gen_writeU32(x64GenContext, static_cast<uint32>(offset));
+}
+
 void x64Gen_lea_reg64Low32_reg64Low32PlusReg64Low32(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegisterA64, sint32 memRegisterB64)
 {
 	// MOV <reg32>, DWORD [<reg32> + <reg32>]
@@ -921,6 +932,17 @@ void x64Gen_test_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegi
 	x64Gen_writeU32(x64GenContext, immU32);
 }
 
+void x64Gen_cmp_reg16_imm16(x64GenContext_t* x64GenContext, sint32 dstRegister, uint16 value)
+{
+	cemu_assert_debug(dstRegister >= 0 && dstRegister < 16);
+	x64Gen_writeU8(x64GenContext, 0x66);
+	if (dstRegister >= 8)
+		x64Gen_writeU8(x64GenContext, 0x41);
+	x64Gen_writeU8(x64GenContext, 0x81);
+	x64Gen_writeU8(x64GenContext, 0xF8 | (dstRegister & 7));
+	x64Gen_writeU16(x64GenContext, value);
+}
+
 void x64Gen_cmp_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, sint32 immS32)
 {
 	if( srcRegister >= 8 )
@@ -1149,6 +1171,16 @@ void x64Gen_shl_reg64Low32_imm8(x64GenContext_t* x64GenContext, sint32 srcRegist
 		x64Gen_writeU8(x64GenContext, 0xF0+(srcRegister&7));
 		x64Gen_writeU8(x64GenContext, (uint8)immS8);
 	}
+}
+
+void x64Gen_shr_reg8_imm8(x64GenContext_t* x64GenContext, sint32 dstRegister, uint8 shift)
+{
+	cemu_assert_debug(dstRegister >= 0 && dstRegister < 16);
+	if (dstRegister >= 4)
+		x64Gen_writeU8(x64GenContext, dstRegister >= 8 ? 0x41 : 0x40);
+	x64Gen_writeU8(x64GenContext, 0xC0);
+	x64Gen_writeU8(x64GenContext, 0xE8 | (dstRegister & 7));
+	x64Gen_writeU8(x64GenContext, shift);
 }
 
 void x64Gen_shr_reg64Low32_imm8(x64GenContext_t* x64GenContext, sint32 srcRegister, sint8 immS8)
