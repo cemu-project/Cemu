@@ -628,8 +628,8 @@ void PPCRecompiler_initPlatform()
 	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[1] = 0xFFFFFFFF;
 	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[2] = 0xFFFFFFFF;
 	ppcRecompilerInstanceData->_x64XMM_andFloatAbsMaskBottom[3] = 0xFFFFFFFF;
-	ppcRecompilerInstanceData->_x64XMM_singleWordMask[0] = 0xFFFFFFFFULL;
-	ppcRecompilerInstanceData->_x64XMM_singleWordMask[1] = 0ULL;
+	ppcRecompilerInstanceData->_x64XMM_constDouble2p149[0] = 0x1p149;
+	ppcRecompilerInstanceData->_x64XMM_constDouble2p149[1] = 0.0;
 	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[0] = 1.0;
 	ppcRecompilerInstanceData->_x64XMM_constDouble1_1[1] = 1.0;
 	ppcRecompilerInstanceData->_x64XMM_constDouble0_0[0] = 0.0;
@@ -652,6 +652,7 @@ void PPCRecompiler_initPlatform()
 	// mxcsr
 	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOn = 0x1F80 | 0x8000;
 	ppcRecompilerInstanceData->_x64XMM_mxCsr_ftzOff = 0x1F80;
+	ppcRecompilerInstanceData->_x64_pextSingleMask = 0xC7FFFFFFE0000000ULL; // sign, exponent bit 62, then bits 58-29
 }
 #else
 void PPCRecompiler_initPlatform()
