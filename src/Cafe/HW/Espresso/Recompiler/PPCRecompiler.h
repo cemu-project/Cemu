@@ -148,7 +148,7 @@ typedef struct
 	// MXCSR
 	uint32 _x64XMM_mxCsr_ftzOn;
 	uint32 _x64XMM_mxCsr_ftzOff;
-	// GPR masks
+	// PEXT mask
 	uint64 _x64_pextSingleMask;
 }PPCRecompilerInstanceData_t;
 

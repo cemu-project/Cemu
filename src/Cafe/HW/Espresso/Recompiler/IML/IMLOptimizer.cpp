@@ -10,6 +10,7 @@
 
 #include <boost/container/static_vector.hpp>
 #include <boost/container/small_vector.hpp>
+#include <boost/dynamic_bitset.hpp>
 
 IMLReg _FPRRegFromID(IMLRegID regId)
 {
@@ -716,5 +717,168 @@ void IMLOptimizer_StandardOptimizationPass(ppcImlGenContext_t& ppcImlGenContext)
 	for (IMLSegment* segIt : ppcImlGenContext.segmentList2)
 	{
 		IMLOptimizer_StandardOptimizationPassForSegment(regIoAnalysis, *segIt);
+	}
+}
+
+using IMLSinglePrecisionRegisters = boost::dynamic_bitset<uint64>;
+
+static bool IMLIsSinglePrecisionRegister(const IMLSinglePrecisionRegisters& singlePrecisionRegisters, IMLReg reg)
+{
+	return reg.GetBaseFormat() == IMLRegFormat::F64 && singlePrecisionRegisters.test(reg.GetRegID());
+}
+
+static void IMLUpdateSinglePrecisionRegisters(const IMLInstruction& inst, IMLSinglePrecisionRegisters& singlePrecisionRegisters)
+{
+	// calls and macros can change registers without reporting them
+	if (inst.type == PPCREC_IML_TYPE_CALL_IMM ||
+		(inst.type == PPCREC_IML_TYPE_MACRO && inst.operation != PPCREC_IML_MACRO_COUNT_CYCLES))
+	{
+		singlePrecisionRegisters.reset();
+		return;
+	}
+
+	IMLReg result = IMLREG_INVALID;
+	bool knownSingle = false;
+	if (inst.type == PPCREC_IML_TYPE_FPR_R)
+	{
+		result = inst.op_fpr_r.regR;
+		switch (inst.operation)
+		{
+		case PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM:
+		case PPCREC_IML_OP_FPR_LOAD_ONE:
+			knownSingle = true;
+			break;
+		case PPCREC_IML_OP_FPR_NEGATE:
+		case PPCREC_IML_OP_FPR_ABS:
+		case PPCREC_IML_OP_FPR_NEGATIVE_ABS:
+			knownSingle = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, result);
+			break;
+		}
+	}
+	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R && inst.operation == PPCREC_IML_OP_FPR_ASSIGN)
+	{
+		result = inst.op_fpr_r_r.regR;
+		knownSingle = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_fpr_r_r.regA);
+	}
+	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R_R && inst.operation == PPCREC_IML_OP_FPR_SELECT)
+	{
+		result = inst.op_fpr_r_r_r_r.regR;
+		knownSingle = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_fpr_r_r_r_r.regB) &&
+			IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_fpr_r_r_r_r.regC);
+	}
+
+	// check sources before clearing destinations, since they may alias
+	IMLUsedRegisters usage;
+	inst.CheckRegisterUsage(&usage);
+	usage.ForEachWrittenGPR([&](IMLReg reg) { singlePrecisionRegisters.reset(reg.GetRegID()); });
+	if (knownSingle)
+		singlePrecisionRegisters.set(result.GetRegID());
+}
+
+void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenContext)
+{
+	// track values rounded to single precision for CVTSD2SS stfs stores
+	// only track the lower F64 lane; lfs may load denormals and NaNs
+	auto& segments = ppcImlGenContext.segmentList2;
+	bool hasStore = false;
+	bool hasProducer = false;
+	for (size_t i = 0; i < segments.size(); i++)
+	{
+		segments[i]->momentaryIndex = static_cast<sint32>(i);
+		for (auto& inst : segments[i]->imlList)
+		{
+			if (inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
+			{
+				inst.op_storeLoad.flags2.singlePrecisionStore = false;
+				hasStore |= inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded;
+			}
+			hasProducer |= inst.type == PPCREC_IML_TYPE_FPR_R &&
+				(inst.operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM || inst.operation == PPCREC_IML_OP_FPR_LOAD_ONE);
+		}
+	}
+	if (!hasStore || !hasProducer)
+		return;
+
+	// follow executable branches, ignoring register liveness hints
+	std::vector<bool> reachable(segments.size(), false);
+	std::vector<size_t> workList;
+	auto enqueueReachable = [&](IMLSegment* seg)
+	{
+		if (seg && !reachable[seg->momentaryIndex])
+		{
+			reachable[seg->momentaryIndex] = true;
+			workList.push_back(seg->momentaryIndex);
+		}
+	};
+	for (auto* seg : segments)
+	{
+		if (seg->isEnterable || seg->list_prevSegments.empty())
+			enqueueReachable(seg);
+	}
+	for (size_t i = 0; i < workList.size(); i++)
+	{
+		auto* seg = segments[workList[i]];
+		enqueueReachable(seg->nextSegmentBranchNotTaken);
+		enqueueReachable(seg->nextSegmentBranchTaken);
+	}
+
+	// intersect incoming values to keep only known single-precision registers
+	const size_t regCount = static_cast<size_t>(ppcImlGenContext.GetMaxRegId()) + 1;
+	std::vector<IMLSinglePrecisionRegisters> outputs(segments.size(), IMLSinglePrecisionRegisters(regCount));
+	for (size_t i : workList)
+		outputs[i].set();
+	IMLSinglePrecisionRegisters singlePrecisionRegisters(regCount);
+	auto readInput = [&](IMLSegment* seg)
+	{
+		if (seg->isEnterable || seg->list_prevSegments.empty())
+			singlePrecisionRegisters.reset();
+		else
+		{
+			singlePrecisionRegisters.set();
+			for (auto* prev : seg->list_prevSegments)
+				singlePrecisionRegisters &= outputs[prev->momentaryIndex];
+		}
+	};
+	std::vector<bool> queued = reachable;
+	std::queue<size_t> pending;
+	for (size_t index : workList)
+		pending.push(index);
+	while (!pending.empty())
+	{
+		const size_t index = pending.front();
+		pending.pop();
+		queued[index] = false;
+		auto* seg = segments[index];
+		readInput(seg);
+		for (const auto& inst : seg->imlList)
+			IMLUpdateSinglePrecisionRegisters(inst, singlePrecisionRegisters);
+		if (seg->nextSegmentIsUncertain)
+			singlePrecisionRegisters.reset();
+		if (singlePrecisionRegisters == outputs[index])
+			continue;
+		outputs[index] = singlePrecisionRegisters;
+		for (auto* next : {seg->nextSegmentBranchNotTaken, seg->nextSegmentBranchTaken})
+		{
+			if (next && !queued[next->momentaryIndex])
+			{
+				queued[next->momentaryIndex] = true;
+				pending.push(next->momentaryIndex);
+			}
+		}
+	}
+
+	// mark stores after all incoming paths have been processed
+	for (auto* seg : segments)
+	{
+		if (!reachable[seg->momentaryIndex])
+			continue;
+		readInput(seg);
+		for (auto& inst : seg->imlList)
+		{
+			if ((inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED) &&
+				inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded)
+				inst.op_storeLoad.flags2.singlePrecisionStore = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_storeLoad.registerData);
+			IMLUpdateSinglePrecisionRegisters(inst, singlePrecisionRegisters);
+		}
 	}
 }
