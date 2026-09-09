@@ -353,6 +353,10 @@ bool PPCRecompiler_ApplyIMLPasses(ppcImlGenContext_t& ppcImlGenContext)
 
 	IMLOptimizer_StandardOptimizationPass(ppcImlGenContext);
 
+#ifdef ARCH_X86_64
+	IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext);
+#endif
+
 	PPCRecompiler_NativeRegisterAllocatorPass(ppcImlGenContext);
 
 	return true;

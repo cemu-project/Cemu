@@ -207,7 +207,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 			// value is already in single format
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM);
 		}
-		else if (mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ)
+		else if (mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ || imlInstruction->op_storeLoad.flags2.singlePrecisionStore)
 		{
 			x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, realRegisterXMM);
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);

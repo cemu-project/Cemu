@@ -424,14 +424,21 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 			strOutput.addFmt(" <No expand>");
 		}
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_STORE)
+	else if (inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
 	{
 		if (inst.op_storeLoad.flags2.signExtend)
 			strOutput.add("S");
 		else
 			strOutput.add("U");
-		strOutput.addFmt("{} [t{}+{}]", inst.op_storeLoad.copyWidth / 8, inst.op_storeLoad.registerMem.GetRegID(), inst.op_storeLoad.immS32);
+		if (inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
+			strOutput.addFmt("{} [{}+{}+{}]", inst.op_storeLoad.copyWidth / 8, IMLDebug_GetRegName(inst.op_storeLoad.registerMem), IMLDebug_GetRegName(inst.op_storeLoad.registerMem2), inst.op_storeLoad.immS32);
+		else
+			strOutput.addFmt("{} [t{}+{}]", inst.op_storeLoad.copyWidth / 8, inst.op_storeLoad.registerMem.GetRegID(), inst.op_storeLoad.immS32);
 		strOutput.addFmt(" = {} mode {}", IMLDebug_GetRegName(inst.op_storeLoad.registerData), inst.op_storeLoad.mode);
+		if (inst.op_storeLoad.flags2.notExpanded)
+			strOutput.add(" <No expand>");
+		if (inst.op_storeLoad.flags2.singlePrecisionStore)
+			strOutput.add(" <Single precision>");
 	}
 	else if (inst.type == PPCREC_IML_TYPE_FPR_R)
 	{
