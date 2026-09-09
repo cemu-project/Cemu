@@ -34,8 +34,8 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 		if (imlInstruction->IsSuffixInstruction())
 			break;
 		// check if FPR is stored
-		if ((imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE) ||
-			(imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE))
+		if ((imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE || imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE_INDEXED) &&
+			(imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE || imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ))
 		{
 			if (imlInstruction->op_storeLoad.registerData.GetRegID() == fprIndex)
 			{

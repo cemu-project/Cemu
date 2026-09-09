@@ -149,7 +149,7 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 	if( indexed )
 		realRegisterMem2 = _regI32(imlInstruction->op_storeLoad.registerMem2);
 	uint8 mode = imlInstruction->op_storeLoad.mode;
-	if( mode == PPCREC_FPR_ST_MODE_SINGLE )
+	if( mode == PPCREC_FPR_ST_MODE_SINGLE || mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ )
 	{
 		if (imlInstruction->op_storeLoad.flags2.notExpanded)
 		{
