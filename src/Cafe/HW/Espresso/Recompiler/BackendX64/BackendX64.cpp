@@ -1515,6 +1515,8 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 	{
 		return false;
 	}
+	for (auto& emitColdCode : x64GenContext.m_coldCode)
+		emitColdCode(&x64GenContext);
 	// allocate executable memory
 	uint8* executableMemory = PPCRecompilerX86_allocateExecutableMemory(x64GenContext.emitter->GetBuffer().size_bytes());
 	size_t baseAddress = (size_t)executableMemory;
