@@ -754,6 +754,18 @@ void x64Gen_movd_xmmReg_reg64Low32(x64GenContext_t* x64GenContext, sint32 xmmReg
 	x64Gen_writeU8(x64GenContext, 0xC0+(xmmRegisterDest&7)*8+(registerSrc&7));
 }
 
+void x64Gen_pextrw_reg32_xmmReg(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegister, uint8 word)
+{
+	cemu_assert_debug(dstRegister >= 0 && dstRegister < 16 && srcRegister >= 0 && srcRegister < 16 && word < 8);
+	x64Gen_writeU8(x64GenContext, 0x66);
+	if (dstRegister >= 8 || srcRegister >= 8)
+		x64Gen_writeU8(x64GenContext, 0x40 | (dstRegister >= 8 ? 4 : 0) | (srcRegister >= 8 ? 1 : 0));
+	x64Gen_writeU8(x64GenContext, 0x0F);
+	x64Gen_writeU8(x64GenContext, 0xC5);
+	x64Gen_writeU8(x64GenContext, 0xC0 | ((dstRegister & 7) << 3) | (srcRegister & 7));
+	x64Gen_writeU8(x64GenContext, word);
+}
+
 void x64Gen_movd_reg64Low32_xmmReg(x64GenContext_t* x64GenContext, sint32 registerDest, sint32 xmmRegisterSrc)
 {
 	// SSE2

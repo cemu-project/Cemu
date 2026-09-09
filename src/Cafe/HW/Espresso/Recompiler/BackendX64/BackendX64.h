@@ -124,6 +124,7 @@ void x64Gen_mov_reg64_imm64(x64GenContext_t* x64GenContext, sint32 destRegister,
 void x64Gen_mov_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 destRegister, uint64 immU32);
 void x64Gen_mov_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 
+void x64Gen_lea_reg32_scaledIndex(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 index, uint8 scale, sint32 offset);
 void x64Gen_lea_reg64Low32_reg64Low32PlusReg64Low32(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegisterA64, sint32 memRegisterB64);
 
 void x64Gen_cmovcc_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, uint32 conditionType, sint32 destRegister, sint32 srcRegister);
@@ -156,6 +157,7 @@ void x64Gen_and_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegis
 void x64Gen_and_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_test_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_test_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, uint32 immU32);
+void x64Gen_cmp_reg16_imm16(x64GenContext_t* x64GenContext, sint32 dstRegister, uint16 value);
 void x64Gen_cmp_reg64Low32_imm32(x64GenContext_t* x64GenContext, sint32 srcRegister, sint32 immS32);
 void x64Gen_cmp_reg64Low32_reg64Low32(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 srcRegister);
 void x64Gen_cmp_reg64Low32_mem32reg64(x64GenContext_t* x64GenContext, sint32 destRegister, sint32 memRegister, sint32 memImmS32);
@@ -170,6 +172,7 @@ void x64Gen_rol_reg64Low32_cl(x64GenContext_t* x64GenContext, sint32 srcRegister
 void x64Gen_rol_reg64Low16_imm8(x64GenContext_t* x64GenContext, sint32 srcRegister, sint8 immS8);
 void x64Gen_rol_reg64_imm8(x64GenContext_t* x64GenContext, sint32 srcRegister, sint8 immS8);
 void x64Gen_shl_reg64Low32_imm8(x64GenContext_t* x64GenContext, sint32 srcRegister, sint8 immS8);
+void x64Gen_shr_reg8_imm8(x64GenContext_t* x64GenContext, sint32 dstRegister, uint8 shift);
 void x64Gen_shr_reg64Low32_imm8(x64GenContext_t* x64GenContext, sint32 srcRegister, sint8 immS8);
 void x64Gen_sar_reg64Low32_imm8(x64GenContext_t* x64GenContext, sint32 srcRegister, sint8 immS8);
 
@@ -248,6 +251,7 @@ void x64Gen_rcpss_xmmReg_xmmReg(x64GenContext_t* x64GenContext, sint32 xmmRegist
 void x64Gen_mulss_xmmReg_memReg64(x64GenContext_t* x64GenContext, sint32 xmmRegister, sint32 memRegister, uint32 memImmU32);
 
 void x64Gen_movd_xmmReg_reg64Low32(x64GenContext_t* x64GenContext, sint32 xmmRegisterDest, sint32 registerSrc);
+void x64Gen_pextrw_reg32_xmmReg(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegister, uint8 word);
 void x64Gen_movd_reg64Low32_xmmReg(x64GenContext_t* x64GenContext, sint32 registerDest, sint32 xmmRegisterSrc);
 void x64Gen_movq_xmmReg_reg64(x64GenContext_t* x64GenContext, sint32 xmmRegisterDest, sint32 registerSrc);
 void x64Gen_movq_reg64_xmmReg(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 xmmRegisterSrc);
@@ -257,6 +261,7 @@ void x64Gen_movq_reg64_xmmReg(x64GenContext_t* x64GenContext, sint32 registerDst
 void x64Gen_avx_VPUNPCKHQDQ_xmm_xmm_xmm(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegisterA, sint32 srcRegisterB);
 void x64Gen_avx_VUNPCKHPD_xmm_xmm_xmm(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegisterA, sint32 srcRegisterB);
 void x64Gen_avx_VSUBPD_xmm_xmm_xmm(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegisterA, sint32 srcRegisterB);
+void x64Gen_avx_VMULSD_xmm_xmm_mem64Reg64(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 srcRegisterA, sint32 memRegister64, sint32 memImmS32);
 
 // BMI
 void x64Gen_movBEZeroExtend_reg64_mem32Reg64PlusReg64(x64GenContext_t* x64GenContext, sint32 dstRegister, sint32 memRegisterA64, sint32 memRegisterB64, sint32 memImmS32);
@@ -270,3 +275,4 @@ void x64Gen_sarx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 regist
 void x64Gen_sarx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
 void x64Gen_shlx_reg64_reg64_reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
 void x64Gen_shlx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerA, sint32 registerB);
+void x64Gen_pext_reg64_reg64_mem64Reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerSrc, sint32 memRegister64, sint32 memImmS32);

@@ -114,3 +114,17 @@ void x64Gen_shlx_reg32_reg32_reg32(x64GenContext_t* x64GenContext, sint32 regist
 	x64Gen_writeU8(x64GenContext, 0xF7);
 	x64Gen_writeU8(x64GenContext, 0xC0 + (registerDst & 7) * 8 + (registerA & 7));
 }
+
+void x64Gen_pext_reg64_reg64_mem64Reg64(x64GenContext_t* x64GenContext, sint32 registerDst, sint32 registerSrc, sint32 memRegister64, sint32 memImmS32)
+{
+	// PEXT reg64, reg64, QWORD [<reg64> + <imm32>]
+	// VEX.LZ.F3.0F38.W1 F5 /r (F2 would be PDEP)
+	x64Gen_writeU8(x64GenContext, 0xC4);
+	x64Gen_writeU8(x64GenContext, 0x42 | ((registerDst >= 8) ? 0x00 : 0x80) | ((memRegister64 >= 8) ? 0x00 : 0x20));
+	x64Gen_writeU8(x64GenContext, 0x82 | (((~registerSrc) & 0xF) << 3));
+	x64Gen_writeU8(x64GenContext, 0xF5);
+	x64Gen_writeU8(x64GenContext, 0x80 + (registerDst & 7) * 8 + (memRegister64 & 7));
+	if ((memRegister64 & 7) == 4)
+		x64Gen_writeU8(x64GenContext, 0x24);
+	x64Gen_writeU32(x64GenContext, (uint32)memImmS32);
+}
