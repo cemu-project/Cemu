@@ -83,7 +83,14 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	// create destination texture if it doesnt exist
 	if (!destinationTexture)
 	{
-		destinationView = LatteTexture_CreateMapping(dst.physDataAddr, MPTR_NULL, rect.x + rect.width, rect.y + rect.height, 1, dst.pitch, Latte::MakeHWTileMode(dst.tilemode), dst.swizzle, 0, 1, dst.sliceIndex, 1, dst.surfaceFormat, dst.dim, Latte::IsMSAA(dst.dim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
+		// use a dim matching the created slice range. Passing the GX2 dim (e.g. cubemap) with depth 1 gives a texture that never gets allocated on the host
+		const sint32 dstDepth = dst.sliceIndex + 1;
+		Latte::E_DIM dstDimBase;
+		if (Latte::IsMSAA(dst.dim))
+			dstDimBase = dstDepth > 1 ? Latte::E_DIM::DIM_2D_ARRAY_MSAA : Latte::E_DIM::DIM_2D_MSAA;
+		else
+			dstDimBase = dstDepth > 1 ? Latte::E_DIM::DIM_2D_ARRAY : Latte::E_DIM::DIM_2D;
+		destinationView = LatteTexture_CreateMapping(dst.physDataAddr, MPTR_NULL, rect.x + rect.width, rect.y + rect.height, dstDepth, dst.pitch, Latte::MakeHWTileMode(dst.tilemode), dst.swizzle, 0, 1, dst.sliceIndex, 1, dst.surfaceFormat, dstDimBase, Latte::IsMSAA(dst.dim) ? Latte::E_DIM::DIM_2D_MSAA : Latte::E_DIM::DIM_2D, false);
 		destinationTexture = destinationView->baseTexture;
 	}
 	// copy texture
