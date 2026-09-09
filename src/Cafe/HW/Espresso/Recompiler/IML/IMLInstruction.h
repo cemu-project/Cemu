@@ -275,6 +275,7 @@ enum
 
 	// fpr store
 	PPCREC_FPR_ST_MODE_SINGLE,
+	PPCREC_FPR_ST_MODE_SINGLE_FTZ, // paired-single conversion semantics
 	PPCREC_FPR_ST_MODE_DOUBLE,
 
 	PPCREC_FPR_ST_MODE_UI32_FROM_PS0, // store raw low-32bit of PS0

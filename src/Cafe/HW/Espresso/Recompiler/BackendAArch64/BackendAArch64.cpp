@@ -1194,7 +1194,7 @@ bool AArch64GenContext_t::fpr_store(IMLInstruction* imlInstruction, bool indexed
 	sint32 memOffset = imlInstruction->op_storeLoad.immS32;
 	uint8 mode = imlInstruction->op_storeLoad.mode;
 
-	if (mode == PPCREC_FPR_ST_MODE_SINGLE)
+	if (mode == PPCREC_FPR_ST_MODE_SINGLE || mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ)
 	{
 		add_imm(TEMP_GPR1.WReg, memReg, memOffset, TEMP_GPR1.WReg);
 		if (indexed)
