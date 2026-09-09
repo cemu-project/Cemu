@@ -61,9 +61,17 @@ CPUFeaturesImpl::CPUFeaturesImpl()
 	x86.aesni = ((cpuInfo[2] >> 25) & 1) != 0;
 	x86.ssse3 = ((cpuInfo[2] >> 9) & 1) != 0;
 	x86.sse4_1 = ((cpuInfo[2] >> 19) & 1) != 0;
+	uint32 family = ((cpuInfo[0] >> 8) & 0xF);
+	if (family == 0xF)
+		family += ((cpuInfo[0] >> 20) & 0xFF);
 	cpuidex(cpuInfo, 0x7, 0);
 	x86.avx2 = ((cpuInfo[1] >> 5) & 1) != 0;
 	x86.bmi2 = ((cpuInfo[1] >> 8) & 1) != 0;
+	// PEXT is slow on older AMD CPUs
+	cpuid(cpuInfo, 0);
+	const bool isIntel = cpuInfo[1] == 0x756E6547 && cpuInfo[3] == 0x49656E69 && cpuInfo[2] == 0x6C65746E; // "GenuineIntel"
+	const bool isAMD = cpuInfo[1] == 0x68747541 && cpuInfo[3] == 0x69746E65 && cpuInfo[2] == 0x444D4163; // "AuthenticAMD"
+	x86.fastPext = x86.bmi2 && (isIntel || (isAMD && family >= 0x19));
 	cpuid(cpuInfo, 0x80000007);
 	x86.invariant_tsc = ((cpuInfo[3] >> 8) & 1);
 	// get CPU brand name
