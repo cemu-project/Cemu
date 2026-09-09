@@ -1199,20 +1199,47 @@ bool AArch64GenContext_t::fpr_store(IMLInstruction* imlInstruction, bool indexed
 
 	if (mode == PPCREC_FPR_ST_MODE_SINGLE || mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ)
 	{
-		add_imm(TEMP_GPR1.WReg, memReg, memOffset, TEMP_GPR1.WReg);
-		if (indexed)
-			add(TEMP_GPR1.WReg, TEMP_GPR1.WReg, indexReg);
-
 		if (imlInstruction->op_storeLoad.flags2.notExpanded)
 		{
 			// value is already in single format
 			fmov(TEMP_GPR2.WReg, dataSReg);
 		}
-		else
+		else if (mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ)
 		{
 			fcvt(TEMP_FPR.SReg, dataDReg);
 			fmov(TEMP_GPR2.WReg, TEMP_FPR.SReg);
 		}
+		else
+		{
+			// stfs truncates instead of rounding, so build the result directly
+			Label denormal;
+			Label done;
+			fmov(TEMP_GPR2.XReg, dataDReg);
+			ubfx(TEMP_GPR1.XReg, TEMP_GPR2.XReg, 52, 11);
+			sub(TEMP_GPR1.WReg, TEMP_GPR1.WReg, 874);
+			cmp(TEMP_GPR1.WReg, 23);
+			blo(denormal);
+			lsr(TEMP_GPR1.XReg, TEMP_GPR2.XReg, 62);
+			ubfx(TEMP_GPR2.XReg, TEMP_GPR2.XReg, 29, 30);
+			orr(TEMP_GPR2.WReg, TEMP_GPR2.WReg, TEMP_GPR1.WReg, ShMod::LSL, 30);
+			L(done);
+			m_coldCode.emplace_back([this, denormal, done, dataDReg]() mutable
+			{
+				// scale denormals before extracting the mantissa
+				L(denormal);
+				mov(TEMP_GPR1.XReg, 0x4940000000000000ull); // 2^149
+				fmov(TEMP_FPR.DReg, TEMP_GPR1.XReg);
+				fmul(TEMP_FPR.DReg, TEMP_FPR.DReg, dataDReg);
+				fabs(TEMP_FPR.DReg, TEMP_FPR.DReg);
+				fcvtzs(TEMP_GPR1.WReg, TEMP_FPR.DReg);
+				lsr(TEMP_GPR2.XReg, TEMP_GPR2.XReg, 63);
+				orr(TEMP_GPR2.WReg, TEMP_GPR1.WReg, TEMP_GPR2.WReg, ShMod::LSL, 31);
+				b(done);
+			});
+		}
+		add_imm(TEMP_GPR1.WReg, memReg, memOffset, TEMP_GPR1.WReg);
+		if (indexed)
+			add(TEMP_GPR1.WReg, TEMP_GPR1.WReg, indexReg);
 		rev(TEMP_GPR2.WReg, TEMP_GPR2.WReg);
 		str(TEMP_GPR2.WReg, AdrExt(MEM_BASE_REG, TEMP_GPR1.WReg, ExtMod::UXTW));
 	}
