@@ -140,6 +140,57 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_load(PPCRecFunction_t* PPCRecFunctio
 	return true;
 }
 
+// stfs truncates instead of rounding, so preserve tiny values explicitly
+static void PPCRecompilerX64Gen_fprConvertToSingleBits(x64GenContext_t* x64GenContext, sint32 realRegisterXMM)
+{
+	// doubling removes the sign, so one comparison covers exponents 874-896
+	x64Gen_pextrw_reg32_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM, 3);
+	x64Gen_lea_reg32_scaledIndex(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP, 1, -(874 << 5));
+	x64Gen_cmp_reg16_imm16(x64GenContext, REG_RESV_TEMP, 23 << 5);
+	const sint32 denormalJump = x64GenContext->emitter->GetWriteIndex();
+	x64Gen_jmpc_far(x64GenContext, X86_CONDITION_UNSIGNED_BELOW, 0);
+
+	x64Gen_movq_reg64_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM);
+	if (g_CPUFeatures.x86.fastPext)
+	{
+		x64Gen_pext_reg64_reg64_mem64Reg64(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP,
+			REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64_pextSingleMask));
+	}
+	else
+	{
+		// rotate the unwanted exponent bits into the low byte, then shift them out
+		x64Gen_rol_reg64_imm8(x64GenContext, REG_RESV_TEMP, 5);
+		x64Gen_shr_reg8_imm8(x64GenContext, REG_RESV_TEMP, 3);
+		x64Gen_rol_reg64_imm8(x64GenContext, REG_RESV_TEMP, 30);
+	}
+	const sint32 resume = x64GenContext->emitter->GetWriteIndex();
+	const bool avx = g_CPUFeatures.x86.avx;
+	x64GenContext->m_coldCode.emplace_back([denormalJump, resume, realRegisterXMM, avx](x64GenContext_t* x64GenContext)
+	{
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, denormalJump, x64GenContext->emitter->GetWriteIndex());
+		// scale denormals before extracting the mantissa
+		if (avx)
+			x64Gen_avx_VMULSD_xmm_xmm_mem64Reg64(x64GenContext, REG_RESV_FPR_TEMP, realRegisterXMM,
+				REG_RESV_RECDATA, offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble2p149));
+		else
+		{
+			x64Gen_movsd_xmmReg_memReg64(x64GenContext, REG_RESV_FPR_TEMP, REG_RESV_RECDATA,
+				offsetof(PPCRecompilerInstanceData_t, _x64XMM_constDouble2p149));
+			x64Gen_mulsd_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, realRegisterXMM);
+		}
+		x64Gen_cvttsd2si_reg64Low_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
+		x64Gen_test_reg64Low32_reg64Low32(x64GenContext, REG_RESV_TEMP, REG_RESV_TEMP);
+		const sint32 positiveJump = x64GenContext->emitter->GetWriteIndex();
+		x64Gen_jmpc_far(x64GenContext, X86_CONDITION_NOT_SIGN, 0);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, positiveJump, resume);
+		x64Gen_neg_reg64Low32(x64GenContext, REG_RESV_TEMP);
+		x64Gen_or_reg64Low32_imm32(x64GenContext, REG_RESV_TEMP, 0x80000000u);
+		const sint32 doneJump = x64GenContext->emitter->GetWriteIndex();
+		x64Gen_jmpc_far(x64GenContext, X86_CONDITION_NONE, 0);
+		PPCRecompilerX64Gen_redirectRelativeJump(x64GenContext, doneJump, resume);
+	});
+}
+
 // store to memory
 bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFunction, ppcImlGenContext_t* ppcImlGenContext, x64GenContext_t* x64GenContext, IMLInstruction* imlInstruction, bool indexed)
 {
@@ -156,10 +207,14 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 			// value is already in single format
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM);
 		}
-		else
+		else if (mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ)
 		{
 			x64Gen_cvtsd2ss_xmmReg_xmmReg(x64GenContext, REG_RESV_FPR_TEMP, realRegisterXMM);
 			x64Gen_movd_reg64Low32_xmmReg(x64GenContext, REG_RESV_TEMP, REG_RESV_FPR_TEMP);
+		}
+		else
+		{
+			PPCRecompilerX64Gen_fprConvertToSingleBits(x64GenContext, realRegisterXMM);
 		}
 		if(g_CPUFeatures.x86.movbe == false )
 			x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);

@@ -137,7 +137,7 @@ typedef struct
 	alignas(16) uint64 _x64XMM_andAbsMaskBottom[2];
 	alignas(16) uint64 _x64XMM_andAbsMaskPair[2];
 	alignas(16) uint32 _x64XMM_andFloatAbsMaskBottom[4];
-	alignas(16) uint64 _x64XMM_singleWordMask[2];
+	alignas(16) double _x64XMM_constDouble2p149[2];
 	alignas(16) double _x64XMM_constDouble1_1[2];
 	alignas(16) double _x64XMM_constDouble0_0[2];
 	alignas(16) float  _x64XMM_constFloat0_0[2];
@@ -148,6 +148,8 @@ typedef struct
 	// MXCSR
 	uint32 _x64XMM_mxCsr_ftzOn;
 	uint32 _x64XMM_mxCsr_ftzOff;
+	// GPR masks
+	uint64 _x64_pextSingleMask;
 }PPCRecompilerInstanceData_t;
 
 extern PPCRecompilerInstanceData_t* ppcRecompilerInstanceData;
