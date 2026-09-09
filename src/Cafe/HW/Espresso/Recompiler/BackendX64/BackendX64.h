@@ -37,6 +37,9 @@ struct x64GenContext_t
 
 	// relocate offsets
 	std::vector<x64RelocEntry_t> relocateOffsetTable2;
+
+	// cold code emitted after the main code
+	std::vector<std::function<void(x64GenContext_t*)>> m_coldCode;
 };
 
 // reserved registers

@@ -161,6 +161,9 @@ struct AArch64GenContext_t : CodeGenerator
 			nop();
 	}
 
+	// cold code emitted after the main code
+	std::vector<std::function<void()>> m_coldCode;
+
 	std::map<IMLSegment*, size_t> segmentStarts;
 	void storeSegmentStart(IMLSegment* imlSegment)
 	{
@@ -1602,6 +1605,9 @@ bool PPCRecompiler_generateAArch64Code(struct PPCRecFunction_t* PPCRecFunction, 
 	{
 		return false;
 	}
+
+	for (size_t i = 0; i < aarch64GenContext.m_coldCode.size(); i++)
+		aarch64GenContext.m_coldCode[i]();
 
 	const size_t codeSize = aarch64GenContext.getSize();
 	if (!aarch64GenContext.processAllJumps())
