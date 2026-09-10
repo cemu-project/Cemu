@@ -82,6 +82,7 @@ public:
 	// flush control
 	virtual void Flush(bool waitIdle = false) = 0; // called when explicit flush is required (e.g. by imgui)
 	virtual void NotifyLatteCommandProcessorIdle() = 0; // called when command processor has no more commands available or when stalled
+	virtual void SurfaceSync(Latte::E_COHER_CNTL coher, MPTR address, uint32 size) {} // triggered by game via GX2Invalidate, can be utilized by the render backend as an optimization hint
 
 	// imgui
 	virtual bool ImguiBegin(bool mainWindow);

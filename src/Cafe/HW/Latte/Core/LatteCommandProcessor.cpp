@@ -214,6 +214,10 @@ LatteCMDPtr LatteCP_itSurfaceSync(LatteCMDPtr cmd)
 	MPTR addressPhys = LatteReadCMD() << 8;
 	uint32 pollInterval = LatteReadCMD();
 
+	// let the renderer know about colorbuffer invalidation
+	if (static_cast<uint32>(invalidationFlags & (Latte::E_COHER_CNTL::CB_ACTION_ENA | Latte::E_COHER_CNTL::CB_ALL_DEST_BASE_ENA)) != 0)
+		g_renderer->SurfaceSync(invalidationFlags, addressPhys, size);
+
 	if (addressPhys == MPTR_NULL || size == 0xFFFFFFFF)
 		return cmd; // block global invalidations because they are too expensive
 

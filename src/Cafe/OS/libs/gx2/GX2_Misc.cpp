@@ -286,11 +286,7 @@ namespace GX2
 
 	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_COLOR_BUFFER))
 	    {
-	        coherCntl |= Latte::E_COHER_CNTL::CB_ACTION_ENA
-	                   | Latte::E_COHER_CNTL::CB0_DEST_BASE_ENA | Latte::E_COHER_CNTL::CB1_DEST_BASE_ENA
-	                   | Latte::E_COHER_CNTL::CB2_DEST_BASE_ENA | Latte::E_COHER_CNTL::CB3_DEST_BASE_ENA
-	                   | Latte::E_COHER_CNTL::CB4_DEST_BASE_ENA | Latte::E_COHER_CNTL::CB5_DEST_BASE_ENA
-	                   | Latte::E_COHER_CNTL::CB6_DEST_BASE_ENA | Latte::E_COHER_CNTL::CB7_DEST_BASE_ENA;
+	        coherCntl |= Latte::E_COHER_CNTL::CB_ACTION_ENA | Latte::E_COHER_CNTL::CB_ALL_DEST_BASE_ENA;
 	    }
 
 	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_DEPTH_BUFFER))

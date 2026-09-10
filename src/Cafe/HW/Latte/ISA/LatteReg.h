@@ -359,7 +359,7 @@ namespace Latte
 		SO1_DEST_BASE_ENA     = (1<<3),
 		SO2_DEST_BASE_ENA     = (1<<4),
 		SO3_DEST_BASE_ENA     = (1<<5),
-		CB0_DEST_BASE_ENA     = (1<<6),
+		CB0_DEST_BASE_ENA     = (1<<6), // flush color buffer 0
 		CB1_DEST_BASE_ENA     = (1<<7),
 		CB2_DEST_BASE_ENA     = (1<<8),
 		CB3_DEST_BASE_ENA     = (1<<9),
@@ -367,6 +367,8 @@ namespace Latte
 		CB5_DEST_BASE_ENA     = (1<<11),
 		CB6_DEST_BASE_ENA     = (1<<12),
 		CB7_DEST_BASE_ENA     = (1<<13),
+		CB_ALL_DEST_BASE_ENA  = (0xFF<<6), // CB0-CB7 combined
+
 		DB_DEST_BASE_ENA      = (1<<14),
 
 		FULL_CACHE_ENA       = (1<<20),

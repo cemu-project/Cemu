@@ -240,6 +240,7 @@ public:
 
 	void Flush(bool waitIdle = false) override;
 	void NotifyLatteCommandProcessorIdle() override;
+	void SurfaceSync(Latte::E_COHER_CNTL coher, MPTR address, uint32 size) override;
 
 	uint64 GenUniqueId(); // return unique id (uses incrementing counter)
 
@@ -419,6 +420,7 @@ private:
 
 		// invalidation / flushing
 		uint64 currentFlushIndex{0};
+		bool colorBufferSyncPending{false}; // guest color-buffer sync since the previous draw; survives command-buffer resets
 		bool requestFlush{ false }; // flush after every draw operation. The renderpass dependencies dont handle dependencies across multiple drawcalls inside a single renderpass
 
 		// draw sequence

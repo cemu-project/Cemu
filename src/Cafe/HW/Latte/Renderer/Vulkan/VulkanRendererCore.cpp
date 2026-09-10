@@ -995,6 +995,12 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 	return dsInfo;
 }
 
+void VulkanRenderer::SurfaceSync(Latte::E_COHER_CNTL coher, MPTR address, uint32 size)
+{
+	if (static_cast<uint32>(coher & Latte::E_COHER_CNTL::CB_ALL_DEST_BASE_ENA) != 0)
+		m_state.colorBufferSyncPending = true;
+}
+
 void VulkanRenderer::sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass)
 {
 	bool writeFlushRequired = withinFeedbackLoopRenderPass; // feedback loop still requires us to emit a barrier
@@ -1029,6 +1035,12 @@ void VulkanRenderer::sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass
 	// barrier here
 	if (writeFlushRequired)
 	{
+		// Continued draws with unchanged descriptors in the same renderpass only introduce feedback hazards.
+		// Relax color feedback without a guest sync, but keep the read indices above updated for later passes.
+		if (withinFeedbackLoopRenderPass && !m_state.descriptorSetsChanged && !m_state.colorBufferSyncPending
+			&& m_state.m_curRenderpassSelfDependencyInfo.GetAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT)
+			return;
+
 		VkMemoryBarrier memoryBarrier{};
 		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 		memoryBarrier.srcAccessMask = 0;
@@ -1740,6 +1752,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_execute_first(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType, drawcallContext);
 	else
 		draw_execute_continued(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType, drawcallContext);
+	m_state.colorBufferSyncPending = false;
 	LatteGPUState.drawCallCounter++;
 }
 
