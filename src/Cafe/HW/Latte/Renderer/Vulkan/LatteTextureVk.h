@@ -87,8 +87,9 @@ public:
 	uint32 m_selfDependencyCheckIndex{}; // used to track if texture is being both sampled and output to during drawcall
 	VkImageAspectFlags m_selfDependencyCheckAspectMask{};
 
+	bool m_isAlternateFormat{}; // true if host pixel format does not 1:1 match the emulated guest texture pixel format
 private:
-	class VulkanRenderer* m_vkr;
+	class VulkanRenderer* m_vkr{};
 
 	VKRObjectTexture* vkObjTex{};
 	VkImageLayout m_defaultLayout{ VK_IMAGE_LAYOUT_GENERAL }; // the targetted long term layout of the texture. Can be either VK_IMAGE_LAYOUT_GENERAL or VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT for potential rendertargets if supported

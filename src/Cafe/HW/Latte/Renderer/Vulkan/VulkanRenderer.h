@@ -165,6 +165,7 @@ public:
 		VkFormat vkImageFormat;
 		VkImageAspectFlags vkImageAspect;
 		bool isCompressed;
+		bool isAlternateFormat; // true if the host pixel format doesn't 1:1 match the emulated format
 
 		// texture decoder info
 		TextureDecoder* decoder;

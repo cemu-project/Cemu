@@ -5,37 +5,41 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 	: LatteTextureReadbackInfo(textureView, textureView->firstMip)
 {
 	LatteTexture* baseTexture = textureView->baseTexture;
-	uint32 width = baseTexture->GetMipWidth(m_firstMip);
 	// handle format
 	if (textureView->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM)
 	{
-		m_rowPitch = width * 4;
 		m_texFormatGL = GL_RGBA;
 		m_texDataTypeGL = GL_UNSIGNED_BYTE;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
 	{
-		m_rowPitch = width * 4;
 		m_texFormatGL = GL_RGBA;
 		m_texDataTypeGL = GL_UNSIGNED_BYTE;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT)
 	{
-		m_rowPitch = width * 16;
 		m_texFormatGL = GL_RGBA;
 		m_texDataTypeGL = GL_FLOAT;
+	}
+	else if (textureView->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT)
+	{
+		m_texFormatGL = GL_RGBA_INTEGER;
+		m_texDataTypeGL = GL_UNSIGNED_INT;
+	}
+	else if (textureView->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_SINT)
+	{
+		m_texFormatGL = GL_RGBA_INTEGER;
+		m_texDataTypeGL = GL_INT;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R32_FLOAT)
 	{
 		if (baseTexture->isDepth)
 		{
-			m_rowPitch = width * 4;
 			m_texFormatGL = GL_DEPTH_COMPONENT;
 			m_texDataTypeGL = GL_FLOAT;
 		}
 		else
 		{
-			m_rowPitch = width * 4;
 			m_texFormatGL = GL_RED;
 			m_texDataTypeGL = GL_FLOAT;
 		}
@@ -44,33 +48,28 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 	{
 		if (baseTexture->isDepth)
 		{
-			m_rowPitch = width * 2;
 			m_texFormatGL = GL_DEPTH_COMPONENT;
 			m_texDataTypeGL = GL_UNSIGNED_SHORT;
 			cemu_assert_unimplemented();
 		}
 		else
 		{
-			m_rowPitch = width * 2;
 			m_texFormatGL = GL_RED;
 			m_texDataTypeGL = GL_UNSIGNED_SHORT;
 		}
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT)
 	{
-		m_rowPitch = width * 8;
 		m_texFormatGL = GL_RGBA;
 		m_texDataTypeGL = GL_HALF_FLOAT;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R8_G8_UNORM)
 	{
-		m_rowPitch = width * 2;
 		m_texFormatGL = GL_RG;
 		m_texDataTypeGL = GL_UNSIGNED_BYTE;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM)
 	{
-		m_rowPitch = width * 8;
 		m_texFormatGL = GL_RGBA;
 		m_texDataTypeGL = GL_UNSIGNED_SHORT;
 	}
@@ -80,8 +79,8 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 		return;
 	}
 	// OpenGL uses the default 4 byte pack alignment because it gives us slightly better row copy performance
-	m_rowPitch = (m_rowPitch + 3) & ~3u;
-	m_image_size = m_rowPitch * baseTexture->GetMipHeight(m_firstMip);
+	m_rowPitch = GetReadbackRowPitch(textureView, 4);
+	m_image_size = GetReadbackImageSize(textureView, m_rowPitch);
 }
 
 LatteTextureReadbackInfoGL::~LatteTextureReadbackInfoGL()

@@ -29,6 +29,7 @@ struct MetalPixelFormatInfo {
     Uvec2 blockTexelSize = {1, 1};
     bool hasStencil = false;
     TextureDecoder* textureDecoder = nullptr;
+    bool isAlternateFormat = false; // if true then pixel format does not match Latte 1:1
 };
 
 void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support);

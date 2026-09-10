@@ -387,6 +387,14 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 		glSuppliedFormatType = GL_UNSIGNED_INT;
 		glIsCompressed = false;
 	}
+	else if (format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_SINT)
+	{
+		glInternalFormat = GL_RGBA32I;
+		// supplied format
+		glSuppliedFormat = GL_RGBA_INTEGER;
+		glSuppliedFormatType = GL_INT;
+		glIsCompressed = false;
+	}
 	else if (format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT)
 	{
 		glInternalFormat = GL_RGBA16UI;

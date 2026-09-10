@@ -29,6 +29,9 @@ public:
 	uint32 m_rowPitch = 0; // bytes between rows in GetData(). Set by the backend
 
 protected:
+	static uint32 GetReadbackRowPitch(LatteTextureView* textureView, uint32 rowAlignment = 1);
+	static uint32 GetReadbackImageSize(LatteTextureView* textureView, uint32 rowPitch);
+
 	LatteTextureView* m_textureView;
 	uint32 m_image_size = 0;
 };

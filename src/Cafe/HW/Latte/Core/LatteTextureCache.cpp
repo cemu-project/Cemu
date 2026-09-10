@@ -206,13 +206,6 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		debug_printf("Force invalidate 0x%08x\n", hostTexture->physAddress);
 		hostTexture->forceInvalidate = false;
 	}
-	// if texture is written by GPU operations we switch to a faster hash implementation
-	// if (hostTexture->isUpdatedOnGPU && hostTexture->useLightHash == false)
-	// {
-	// 	hostTexture->useLightHash = true;
-	// 	// update hash
-	// 	hostTexture->texDataHash2 = LatteTexture_CalculateTextureDataHash(hostTexture);
-	// }
 	// only check each texture for updates once a frame
 	// todo: Instead of relying on frames, it would be better to recheck only after any GPU wait operation occurred.
 	if( hostTexture->lastDataUpdateFrameCounter == LatteGPUState.frameCounter && force == false)

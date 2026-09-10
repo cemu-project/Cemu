@@ -181,3 +181,20 @@ bool LatteTextureReadback_ReadbackToLinearBlocking(LatteTextureView* sourceView,
 	delete info;
 	return true;
 }
+
+uint32 LatteTextureReadbackInfo::GetReadbackRowPitch(LatteTextureView* textureView, uint32 rowAlignment)
+{
+	uint32 width = textureView->baseTexture->GetMipWidth(textureView->firstMip);
+	if (Latte::IsCompressedFormat(textureView->format))
+		width = (width + 3) / 4;
+	uint32 rowPitch = width * (Latte::GetFormatBits(textureView->format) / 8);
+	return (rowPitch + rowAlignment - 1) & ~(rowAlignment - 1);
+}
+
+uint32 LatteTextureReadbackInfo::GetReadbackImageSize(LatteTextureView* textureView, uint32 rowPitch)
+{
+	uint32 height = textureView->baseTexture->GetMipHeight(textureView->firstMip);
+	if (Latte::IsCompressedFormat(textureView->format))
+		height = (height + 3) / 4;
+	return height * rowPitch;
+}

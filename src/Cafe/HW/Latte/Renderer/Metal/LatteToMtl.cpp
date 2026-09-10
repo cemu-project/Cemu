@@ -6,10 +6,10 @@
 std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
     {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
 
-	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2}},
-	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, MetalDataType::FLOAT, 2}},
-	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, MetalDataType::FLOAT, 2}},
-	{Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2}},
+	{Latte::E_GX2SURFFMT::R4_G4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2, {1, 1}, false, nullptr, true}},
+	{Latte::E_GX2SURFFMT::R5_G6_B5_UNORM, {MTL::PixelFormatB5G6R5Unorm, MetalDataType::FLOAT, 2, {1, 1}, false, nullptr, true}},
+	{Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM, {MTL::PixelFormatBGR5A1Unorm, MetalDataType::FLOAT, 2, {1, 1}, false, nullptr, true}},
+	{Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM, {MTL::PixelFormatABGR4Unorm, MetalDataType::FLOAT, 2, {1, 1}, false, nullptr, true}},
 	{Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM, {MTL::PixelFormatA1BGR5Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R8_UNORM, {MTL::PixelFormatR8Unorm, MetalDataType::FLOAT, 1}},
 	{Latte::E_GX2SURFFMT::R8_SNORM, {MTL::PixelFormatR8Snorm, MetalDataType::FLOAT, 1}},
@@ -25,12 +25,12 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R8_G8_B8_A8_SINT, {MTL::PixelFormatRGBA8Sint, MetalDataType::INT, 4}},
 	{Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB, {MTL::PixelFormatRGBA8Unorm_sRGB, MetalDataType::FLOAT, 4}},
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM, {MTL::PixelFormatRGB10A2Unorm, MetalDataType::FLOAT, 4}},
-	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM, {MTL::PixelFormatRGBA16Snorm, MetalDataType::FLOAT, 8}},
+	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM, {MTL::PixelFormatRGBA16Snorm, MetalDataType::FLOAT, 8, {1, 1}, false, nullptr, true}},
 	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}},
-	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8}},
-	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB, {MTL::PixelFormatRGB10A2Unorm, MetalDataType::FLOAT, 4}}, // TODO: sRGB?
+	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8, {1, 1}, false, nullptr, true}},
+	{Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB, {MTL::PixelFormatRGB10A2Unorm, MetalDataType::FLOAT, 4, {1, 1}, false, nullptr, true}}, // TODO: sRGB?
 	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UNORM, {MTL::PixelFormatBGR10A2Unorm, MetalDataType::FLOAT, 4}},
-	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4}},
+	{Latte::E_GX2SURFFMT::A2_B10_G10_R10_UINT, {MTL::PixelFormatRGB10A2Uint, MetalDataType::UINT, 4, {1, 1}, false, nullptr, true}},
 	{Latte::E_GX2SURFFMT::R16_UNORM, {MTL::PixelFormatR16Unorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R16_SNORM, {MTL::PixelFormatR16Snorm, MetalDataType::FLOAT, 2}},
 	{Latte::E_GX2SURFFMT::R16_UINT, {MTL::PixelFormatR16Uint, MetalDataType::UINT, 2}},
@@ -46,11 +46,11 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_COLOR_FORMAT_TABLE = {
 	{Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT, {MTL::PixelFormatRGBA16Uint, MetalDataType::UINT, 8}},
 	{Latte::E_GX2SURFFMT::R16_G16_B16_A16_SINT, {MTL::PixelFormatRGBA16Sint, MetalDataType::INT, 8}},
 	{Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT, {MTL::PixelFormatRGBA16Float, MetalDataType::FLOAT, 8}},
-	{Latte::E_GX2SURFFMT::R24_X8_UNORM, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::R24_X8_FLOAT, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::X24_G8_UINT, {MTL::PixelFormatRGBA8Uint, MetalDataType::UINT, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::R32_X8_FLOAT, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4}}, // TODO: correct?
-	{Latte::E_GX2SURFFMT::X32_G8_UINT_X24, {MTL::PixelFormatRGBA16Uint, MetalDataType::UINT, 8}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R24_X8_UNORM, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4, {1, 1}, false, nullptr, true}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R24_X8_FLOAT, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4, {1, 1}, false, nullptr, true}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::X24_G8_UINT, {MTL::PixelFormatRGBA8Uint, MetalDataType::UINT, 4, {1, 1}, false, nullptr, true}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::R32_X8_FLOAT, {MTL::PixelFormatR32Float, MetalDataType::FLOAT, 4, {1, 1}, false, nullptr, true}}, // TODO: correct?
+	{Latte::E_GX2SURFFMT::X32_G8_UINT_X24, {MTL::PixelFormatRGBA16Uint, MetalDataType::UINT, 8, {1, 1}, false, nullptr, true}}, // TODO: correct?
 	{Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT, {MTL::PixelFormatRG11B10Float, MetalDataType::FLOAT, 4}},
 	{Latte::E_GX2SURFFMT::R32_UINT, {MTL::PixelFormatR32Uint, MetalDataType::UINT, 4}},
 	{Latte::E_GX2SURFFMT::R32_SINT, {MTL::PixelFormatR32Sint, MetalDataType::INT, 4}},
@@ -77,8 +77,8 @@ std::map<Latte::E_GX2SURFFMT, MetalPixelFormatInfo> MTL_DEPTH_FORMAT_TABLE = {
     {Latte::E_GX2SURFFMT::INVALID_FORMAT, {MTL::PixelFormatInvalid, MetalDataType::NONE, 0}},
 
 	{Latte::E_GX2SURFFMT::D24_S8_UNORM, {MTL::PixelFormatDepth24Unorm_Stencil8, MetalDataType::NONE, 4, {1, 1}, true}},
-	{Latte::E_GX2SURFFMT::D24_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 4, {1, 1}, true}},
-	{Latte::E_GX2SURFFMT::D32_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 5, {1, 1}, true}},
+	{Latte::E_GX2SURFFMT::D24_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 4, {1, 1}, true, nullptr, true}},
+	{Latte::E_GX2SURFFMT::D32_S8_FLOAT, {MTL::PixelFormatDepth32Float_Stencil8, MetalDataType::NONE, 5, {1, 1}, true, nullptr, true}},
 	{Latte::E_GX2SURFFMT::D16_UNORM, {MTL::PixelFormatDepth16Unorm, MetalDataType::NONE, 2, {1, 1}}},
 	{Latte::E_GX2SURFFMT::D32_FLOAT, {MTL::PixelFormatDepth32Float, MetalDataType::NONE, 4, {1, 1}}},
 };
@@ -142,24 +142,29 @@ void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
     {
         // B5G6R5Unorm
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].isAlternateFormat = true;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].bytesPerBlock = 4;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G6_B5_UNORM].textureDecoder = TextureDecoder_R5G6B5_UNORM_To_RGBA8::getInstance();
 
         // A1BGR5Unorm
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].isAlternateFormat = true;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM].textureDecoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::getInstance();
 
         // ABGR4Unorm
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].pixelFormat = MTL::PixelFormatRG8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].isAlternateFormat = true;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].bytesPerBlock = 2;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_UNORM].textureDecoder = TextureDecoder_R4G4_UNORM_To_RG8::getInstance();
 
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].isAlternateFormat = true;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].bytesPerBlock = 4;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM].textureDecoder = TextureDecoder_R4G4B4A4_UNORM_To_RGBA8::getInstance();
 
         // BGR5A1Unorm
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].pixelFormat = MTL::PixelFormatRGBA8Unorm;
+        MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].isAlternateFormat = true;
         MTL_COLOR_FORMAT_TABLE[Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM].textureDecoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8::getInstance();
     }
 
@@ -174,6 +179,7 @@ void CheckForPixelFormatSupport(const MetalPixelFormatSupport& support)
     {
         // Depth24Unorm_Stencil8
         MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].pixelFormat = MTL::PixelFormatDepth32Float_Stencil8;
+        MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].isAlternateFormat = true;
         // TODO: implement the decoder
         //MTL_DEPTH_FORMAT_TABLE[Latte::E_GX2SURFFMT::D24_S8_UNORM].textureDecoder = TextureDecoder_D24_S8_To_D32_S8::getInstance();
     }
@@ -185,7 +191,7 @@ const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, boo
     {
         auto it = MTL_DEPTH_FORMAT_TABLE.find(format);
         if (it == MTL_DEPTH_FORMAT_TABLE.end())
-            return {MTL::PixelFormatDepth16Unorm, MetalDataType::NONE, 2}; // Fallback
+            return {MTL::PixelFormatDepth16Unorm, MetalDataType::NONE, 2, {1, 1}, false, nullptr, true}; // Fallback
         else
             return it->second;
     }
@@ -193,7 +199,7 @@ const MetalPixelFormatInfo GetMtlPixelFormatInfo(Latte::E_GX2SURFFMT format, boo
     {
         auto it = MTL_COLOR_FORMAT_TABLE.find(format);
         if (it == MTL_COLOR_FORMAT_TABLE.end())
-            return {MTL::PixelFormatR8Unorm, MetalDataType::FLOAT, 1}; // Fallback
+            return {MTL::PixelFormatR8Unorm, MetalDataType::FLOAT, 1, {1, 1}, false, nullptr, true}; // Fallback
         else
             return it->second;
     }
