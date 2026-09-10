@@ -366,6 +366,31 @@ private:
 				}
 			}
 		}
+		// When several mounted folders contribute to the same directory (e.g. base title + update),
+		// concatenating the per-layer listings puts the update's files first. On hardware a directory
+		// is listed in FST order, which is sorted by name, and some games rely on that order.
+		// ZombiU indexes its .bfz archives in FSReadDir order and never gets past the boot screen when
+		// the update's Patch.lin.bfz is enumerated before the base archives.
+		if (m_folders.size() > 1)
+		{
+			std::sort(dirIterator->dirEntries.begin(), dirIterator->dirEntries.end(), [](const FSCDirEntry& a, const FSCDirEntry& b) {
+				std::string_view sa(a.path, strnlen(a.path, FSC_MAX_DIR_NAME_LENGTH));
+				std::string_view sb(b.path, strnlen(b.path, FSC_MAX_DIR_NAME_LENGTH));
+				size_t n = std::min(sa.size(), sb.size());
+				for (size_t i = 0; i < n; i++)
+				{
+					uint8 ca = (uint8)sa[i];
+					uint8 cb = (uint8)sb[i];
+					if (ca >= 'A' && ca <= 'Z')
+						ca += 'a' - 'A';
+					if (cb >= 'A' && cb <= 'Z')
+						cb += 'a' - 'A';
+					if (ca != cb)
+						return ca < cb;
+				}
+				return sa.size() < sb.size();
+			});
+		}
 		fscLeave();
 	}
 
