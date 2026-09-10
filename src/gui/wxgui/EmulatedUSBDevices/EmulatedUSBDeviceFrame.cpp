@@ -9,6 +9,7 @@
 
 #include "Cafe/OS/libs/nsyshid/nsyshid.h"
 #include "Cafe/OS/libs/nsyshid/Dimensions.h"
+#include "Cafe/OS/libs/nsyshid/SkylanderPortalIPC.h"
 
 #include "Common/FileStream.h"
 
@@ -35,7 +36,8 @@
 
 EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	: wxFrame(parent, wxID_ANY, _("Emulated USB Devices"), wxDefaultPosition,
-			  wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL)
+			  wxDefaultSize, wxDEFAULT_FRAME_STYLE | wxTAB_TRAVERSAL),
+	  m_skylanderUpdateTimer(this)
 {
 	SetIcon(wxICON(X_BOX));
 
@@ -53,9 +55,16 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	SetSizerAndFit(sizer);
 	Layout();
 	Centre(wxBOTH);
+
+	Bind(wxEVT_TIMER, &EmulatedUSBDeviceFrame::OnSkylanderTimer, this, m_skylanderUpdateTimer.GetId());
+	m_skylanderUpdateTimer.Start(500);
+	UpdateIpcServerState();
 }
 
-EmulatedUSBDeviceFrame::~EmulatedUSBDeviceFrame() {}
+EmulatedUSBDeviceFrame::~EmulatedUSBDeviceFrame()
+{
+	m_skylanderUpdateTimer.Stop();
+}
 
 wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 {
@@ -74,8 +83,22 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 		GetConfig().emulated_usb_devices.emulate_skylander_portal =
 			m_emulatePortal->IsChecked();
 		GetConfigHandle().Save();
+		UpdateIpcServerState();
 	});
 	row->Add(m_emulatePortal, 1, wxEXPAND | wxALL, 2);
+
+	m_skylanderIpcServer =
+		new wxCheckBox(box, wxID_ANY, _("Enable IPC Server"));
+	m_skylanderIpcServer->SetValue(
+		GetConfig().emulated_usb_devices.skylander_ipc_server);
+	m_skylanderIpcServer->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+		GetConfig().emulated_usb_devices.skylander_ipc_server =
+			m_skylanderIpcServer->IsChecked();
+		GetConfigHandle().Save();
+		UpdateIpcServerState();
+	});
+	row->Add(m_skylanderIpcServer, 1, wxEXPAND | wxALL, 2);
+
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
 	for (int i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
 	{
@@ -301,9 +324,7 @@ void EmulatedUSBDeviceFrame::LoadSkylanderPath(uint8 slot, wxString path)
 	uint16 skyVar = uint16(fileData[0x1D]) << 8 | uint16(fileData[0x1C]);
 
 	uint8 portalSlot = nsyshid::g_skyportal.LoadSkylander(fileData.data(),
-														  std::move(skyFile));
-	m_skySlots[slot] = std::tuple(portalSlot, skyId, skyVar);
-	UpdateSkylanderEdits();
+														  std::move(skyFile), slot);
 }
 
 void EmulatedUSBDeviceFrame::CreateSkylander(uint8 slot)
@@ -318,13 +339,7 @@ void EmulatedUSBDeviceFrame::CreateSkylander(uint8 slot)
 
 void EmulatedUSBDeviceFrame::ClearSkylander(uint8 slot)
 {
-	if (auto slotInfos = m_skySlots[slot])
-	{
-		auto [curSlot, id, var] = slotInfos.value();
-		nsyshid::g_skyportal.RemoveSkylander(curSlot);
-		m_skySlots[slot] = {};
-		UpdateSkylanderEdits();
-	}
+	nsyshid::g_skyportal.RemoveSkylander(slot);
 }
 
 CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
@@ -450,6 +465,58 @@ void EmulatedUSBDeviceFrame::UpdateSkylanderEdits()
 		}
 
 		m_skylanderSlots[i]->ChangeValue(displayString);
+	}
+}
+
+void EmulatedUSBDeviceFrame::OnSkylanderTimer(wxTimerEvent& event)
+{
+	bool changed = false;
+	for (uint8_t i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
+	{
+		uint8_t status;
+		uint16_t id, variant;
+		nsyshid::g_skyportal.GetFigureInfo(i, status, id, variant);
+		
+		if (status & 1)
+		{
+			if (!m_skySlots[i].has_value() || std::get<1>(m_skySlots[i].value()) != id || std::get<2>(m_skySlots[i].value()) != variant)
+			{
+				m_skySlots[i] = std::tuple(i, id, variant);
+				changed = true;
+			}
+		}
+		else
+		{
+			if (m_skySlots[i].has_value())
+			{
+				m_skySlots[i].reset();
+				changed = true;
+			}
+		}
+	}
+	
+	if (changed)
+	{
+		UpdateSkylanderEdits();
+	}
+}
+
+void EmulatedUSBDeviceFrame::UpdateIpcServerState()
+{
+	auto& config = GetConfig().emulated_usb_devices;
+	if (config.emulate_skylander_portal && config.skylander_ipc_server)
+	{
+		if (!nsyshid::g_skylanderIpcServer)
+			nsyshid::g_skylanderIpcServer = std::make_unique<nsyshid::SkylanderPortalIPCServer>(28013);
+		nsyshid::g_skylanderIpcServer->Start();
+	}
+	else
+	{
+		if (nsyshid::g_skylanderIpcServer)
+		{
+			nsyshid::g_skylanderIpcServer->Stop();
+			nsyshid::g_skylanderIpcServer.reset();
+		}
 	}
 }
 
