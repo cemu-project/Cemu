@@ -402,6 +402,8 @@ namespace snd_core
 	{
 		// snd_core
 		cafeExportRegister("snd_core", AXSetVoiceDeviceMix, LogType::SoundAPI);
+		cafeExportRegister("snd_core", AXSetVoiceMix, LogType::SoundAPI);
+		cafeExportRegister("snd_core", AXSetVoiceDRCMix, LogType::SoundAPI);
 		cafeExportRegister("snd_core", AXComputeLpfCoefs, LogType::SoundAPI);
 
 		cafeExportRegister("snd_core", AXSetVoiceState, LogType::SoundAPI);
@@ -434,6 +436,8 @@ namespace snd_core
 
 		// sndcore2
 		cafeExportRegister("sndcore2", AXSetVoiceDeviceMix, LogType::SoundAPI);
+		cafeExportRegister("sndcore2", AXSetVoiceMix, LogType::SoundAPI);
+		cafeExportRegister("sndcore2", AXSetVoiceDRCMix, LogType::SoundAPI);
 		cafeExportRegister("sndcore2", AXComputeLpfCoefs, LogType::SoundAPI);
 
 		cafeExportRegister("sndcore2", AXSetVoiceState, LogType::SoundAPI);
@@ -615,6 +619,7 @@ namespace snd_core
 			cafeExportRegister("sndcore2", AXSetMultiVoiceState, LogType::SoundAPI);
 			cafeExportRegister("sndcore2", AXSetMultiVoiceAdpcmLoop, LogType::SoundAPI);
 			cafeExportRegister("sndcore2", AXIsMultiVoiceRunning, LogType::SoundAPI);
+			cafeExportRegister("sndcore2", AXSetMultiVoiceDeviceMix, LogType::SoundAPI);
 
 			RegisterVoiceFunctions();
 		};
