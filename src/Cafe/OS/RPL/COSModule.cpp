@@ -48,6 +48,8 @@
 #include "OS/libs/h264_avc/h264dec.h"
 #include "OS/libs/ntag/ntag.h"
 #include "OS/libs/nfc/nfc.h"
+#include "OS/libs/uvc/uvc.h"
+#include "OS/libs/uvd/uvd.h"
 
 std::span<COSModule*> GetCOSModules()
 {
@@ -99,6 +101,8 @@ std::span<COSModule*> GetCOSModules()
 		H264::GetModule(),
 		ntag::GetModule(),
 		nfc::GetModule(),
+		uvc::GetModule(),
+		uvd::GetModule()
 	};
 	return s_cosModules;
 }
