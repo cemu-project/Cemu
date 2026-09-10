@@ -668,7 +668,12 @@ endif()
 if (ENABLE_LIBUSB)
   if (ENABLE_VCPKG)
     if(WIN32)
-      set(PKG_CONFIG_EXECUTABLE "${VCPKG_INSTALLED_DIR}/x64-windows/tools/pkgconf/pkgconf.exe")
+      # pkgconf is a host tool; locate it under whichever host triplet vcpkg
+      # used (x64-windows on Intel hosts, arm64-windows on ARM64 hosts).
+      file(GLOB _cemu_pkgconf "${VCPKG_INSTALLED_DIR}/*/tools/pkgconf/pkgconf.exe")
+      if(_cemu_pkgconf)
+        list(GET _cemu_pkgconf 0 PKG_CONFIG_EXECUTABLE)
+      endif()
     endif()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(libusb REQUIRED IMPORTED_TARGET libusb-1.0)

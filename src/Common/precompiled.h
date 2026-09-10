@@ -268,6 +268,15 @@ typedef union _LARGE_INTEGER {
     inline T& operator^= (T& a, T b) { return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type<T>::type&>(a) ^= static_cast<std::underlying_type<T>::type>(b) ); }
 #endif
 
+#if defined(_MSC_VER) && defined(_M_ARM64)
+// _umul128 is an x86-64 intrinsic and is not provided by <intrin.h> on AArch64
+inline uint64 _umul128(uint64 multiplier, uint64 multiplicand, uint64 *highProduct) {
+    unsigned __int128 x = (unsigned __int128)multiplier * (unsigned __int128)multiplicand;
+    *highProduct = (uint64)(x >> 64);
+    return (uint64)(x & 0xFFFFFFFFFFFFFFFF);
+}
+#endif
+
 template<typename T>
 inline T GetBits(T value, uint32 index, uint32 numBits)
 {
@@ -343,10 +352,10 @@ inline uint64 _udiv128(uint64 highDividend, uint64 lowDividend, uint64 divisor, 
 
 FORCE_INLINE int BSF(uint32 v) // returns index of first bit set, counting from LSB. If v is 0 then result is undefined
 {
-#if defined(_MSC_VER)
+#if defined(__GNUC__) || defined(__clang__)
+	return __builtin_ctz(v); // clang-cl also defines _MSC_VER, so check this first
+#elif defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86))
 	return _tzcnt_u32(v); // TZCNT requires BMI1. But if not supported it will execute as BSF
-#elif defined(__GNUC__) || defined(__clang__)
-	return __builtin_ctz(v);
 #else
 	return std::countr_zero(v);
 #endif
@@ -610,12 +619,14 @@ inline uint32 GetTitleIdLow(uint64 titleId)
 	return titleId & 0xFFFFFFFF;
 }
 
-#if defined(__GNUC__)
-#define memcpy_dwords(__dest, __src, __numDwords) memcpy((__dest), (__src), (__numDwords) * sizeof(uint32))
-#define memcpy_qwords(__dest, __src, __numQwords) memcpy((__dest), (__src), (__numQwords) * sizeof(uint64))
-#else
+// __movsd/__movsq are x86-only MSVC intrinsics; use memcpy everywhere else
+// (clang-cl does not define __GNUC__, and AArch64 has no such intrinsics)
+#if defined(_MSC_VER) && !defined(__clang__) && defined(ARCH_X86_64)
 #define memcpy_dwords(__dest, __src, __numDwords) __movsd((unsigned long*)(__dest), (const unsigned long*)(__src), __numDwords)
 #define memcpy_qwords(__dest, __src, __numQwords) __movsq((unsigned long long*)(__dest), (const unsigned long long*)(__src), __numQwords)
+#else
+#define memcpy_dwords(__dest, __src, __numDwords) memcpy((__dest), (__src), (__numDwords) * sizeof(uint32))
+#define memcpy_qwords(__dest, __src, __numQwords) memcpy((__dest), (__src), (__numQwords) * sizeof(uint64))
 #endif
 
 // PPC context and memory functions

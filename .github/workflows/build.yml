@@ -204,6 +204,84 @@ jobs:
         name: cemu-installer-windows-x64
         path: ./src/resource/cemu-${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}-windows-x64-installer.exe
 
+  build-windows-arm64:
+    continue-on-error: true
+    runs-on: windows-11-arm
+    steps:
+    - name: "Checkout repo"
+      uses: actions/checkout@v6
+      with:
+        submodules: "recursive"
+
+    - name: Setup release mode parameters
+      run: |
+        echo "BUILD_MODE=release" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "BUILD_FLAGS=" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+        echo "Build mode is release"
+
+    - name: Setup build flags for version
+      if: ${{ inputs.next_version_major != '' }}
+      run: |
+        echo "[INFO] Version ${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}"
+        echo "BUILD_FLAGS=${{ env.BUILD_FLAGS }} -DEMULATOR_VERSION_MAJOR=${{ inputs.next_version_major }} -DEMULATOR_VERSION_MINOR=${{ inputs.next_version_minor }}" | Out-File -FilePath $Env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: "Ensure clang-cl (LLVM) toolset is installed in Visual Studio"
+      run: |
+        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+        $vsPath = & $vswhere -latest -products * -property installationPath
+        $setup = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe"
+        $modifyArgs = "modify --installPath `"$vsPath`" --add Microsoft.VisualStudio.Component.VC.Llvm.Clang --add Microsoft.VisualStudio.Component.VC.Llvm.ClangToolset --quiet --norestart"
+        Start-Process -FilePath $setup -Wait -ArgumentList $modifyArgs
+
+    - name: "Setup MSVC environment (arm64)"
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: arm64
+
+    - name: "Setup Ninja"
+      run: choco install ninja -y
+
+    - name: "Setup cmake"
+      uses: jwlawson/actions-setup-cmake@v2
+      with:
+        cmake-version: '3.29.0'
+
+    - name: "Bootstrap vcpkg"
+      run: |
+        ./dependencies/vcpkg/bootstrap-vcpkg.bat
+
+    - name: 'Setup NuGet Credentials for vcpkg'
+      shell: 'bash'
+      run: |
+        `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
+        sources add \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+        -storepasswordincleartext \
+        -name "GitHub" \
+        -username "${{ github.repository_owner }}" \
+        -password "${{ secrets.GITHUB_TOKEN }}"
+        `./dependencies/vcpkg/vcpkg.exe fetch nuget | tail -n 1` \
+        setapikey "${{ secrets.GITHUB_TOKEN }}" \
+        -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+
+    - name: "cmake"
+      run: |
+        echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
+        cmake -S . -B build -G Ninja ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl -DCMAKE_LINKER_TYPE=MSVC -DVCPKG_INSTALL_OPTIONS="--clean-after-build"
+
+    - name: "Build Cemu"
+      run: |
+        cmake --build build
+
+    - name: Prepare artifact
+      run: Rename-Item bin/Cemu_release.exe Cemu.exe
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v6
+      with:
+        name: cemu-bin-windows-arm64
+        path: ./bin/Cemu.exe
+
   build-macos:
     runs-on: macos-14
     strategy:

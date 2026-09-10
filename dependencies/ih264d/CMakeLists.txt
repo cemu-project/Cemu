@@ -123,7 +123,12 @@ else()
 set(IH264D_ARCHITECTURE ${CMAKE_SYSTEM_PROCESSOR})
 endif()
 
-if (IH264D_ARCHITECTURE STREQUAL "x86_64" OR IH264D_ARCHITECTURE STREQUAL "amd64" OR IH264D_ARCHITECTURE STREQUAL "AMD64")
+# Normalize the architecture string so matching is case-insensitive.
+# MSVC/CMake reports "ARM64"/"AMD64" (uppercase) whereas the checks below use
+# the lowercase names emitted by GCC/Clang toolchains.
+string(TOLOWER "${IH264D_ARCHITECTURE}" IH264D_ARCHITECTURE)
+
+if (IH264D_ARCHITECTURE STREQUAL "x86_64" OR IH264D_ARCHITECTURE STREQUAL "amd64")
 set(LIBAVCDEC_X86_INCLUDES "common/x86" "decoder/x86")
 include_directories("common/" "decoder/" ${LIBAVCDEC_X86_INCLUDES})
 target_sources(ih264d PRIVATE
@@ -147,6 +152,18 @@ target_sources(ih264d PRIVATE
 "decoder/x86/ih264d_function_selector_ssse3.c"
 )
 elseif(IH264D_ARCHITECTURE STREQUAL "aarch64" OR IH264D_ARCHITECTURE STREQUAL "arm64")
+if(MSVC)
+# Windows on ARM64: build the generic C decoder. The NEON .s files are GAS syntax
+# and use ELF-only ":got:" relocations that cannot be assembled for COFF targets,
+# so we fall back to portable C (only affects H.264/FMV decode performance).
+set(LIBAVCDEC_ARM_INCLUDES "common/armv8" "decoder/arm")
+include_directories("common/" "decoder/" ${LIBAVCDEC_ARM_INCLUDES})
+target_sources(ih264d PRIVATE
+"common/armv8/ih264_platform_macros.h"
+"decoder/arm/ih264d_function_selector.c"
+)
+target_compile_definitions(ih264d PRIVATE ARMV8 DISABLE_NEON DEFAULT_ARCH=D_ARCH_ARM_NONEON)
+else()
 enable_language( C CXX ASM )
 set(LIBAVCDEC_ARM_INCLUDES "common/armv8" "decoder/arm")
 include_directories("common/" "decoder/" ${LIBAVCDEC_ARM_INCLUDES})
@@ -188,6 +205,7 @@ if(NOT MSVC)
 endif()
 if(APPLE)
     target_sources(ih264d PRIVATE "common/armv8/macos_arm_symbol_aliases.s")
+endif()
 endif()
 else()
 message(FATAL_ERROR "ih264d unknown architecture: ${IH264D_ARCHITECTURE}")
