@@ -128,7 +128,16 @@ jobs:
         path: artifacts
 
   build-windows:
-    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-2022
+            arch: x64
+          - os: windows-11-arm
+            arch: arm64
+    name: build-windows-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
     steps:
     - name: "Checkout repo"
       uses: actions/checkout@v6
@@ -190,19 +199,19 @@ jobs:
       shell: cmd
       run: |
         cd src\resource
-        makensis /DPRODUCT_VERSION=${{ inputs.next_version_major }}.${{ inputs.next_version_minor }} installer.nsi
+        makensis /DPRODUCT_VERSION=${{ inputs.next_version_major }}.${{ inputs.next_version_minor }} /DARCH=${{ matrix.arch }} installer.nsi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v6
       with:
-        name: cemu-bin-windows-x64
+        name: cemu-bin-windows-${{ matrix.arch }}
         path: ./bin/Cemu.exe
 
     - name: Upload NSIS Installer
       uses: actions/upload-artifact@v6
       with:
-        name: cemu-installer-windows-x64
-        path: ./src/resource/cemu-${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}-windows-x64-installer.exe
+        name: cemu-installer-windows-${{ matrix.arch }}
+        path: ./src/resource/cemu-${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}-windows-${{ matrix.arch }}-installer.exe
 
   build-macos:
     runs-on: macos-14
