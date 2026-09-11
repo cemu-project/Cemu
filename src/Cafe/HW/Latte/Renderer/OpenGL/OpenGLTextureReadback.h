@@ -11,11 +11,13 @@ public:
 
 	void StartTransfer() override;
 	bool IsFinished() override;
+	void ForceFinish() override;
 
 	uint8* GetData() override;
 	void ReleaseData() override;
 
 private:
+	bool WaitForCompletion(GLuint64 timeout);
 	GLuint m_texFormatGL;
 	GLuint m_texDataTypeGL;
 
