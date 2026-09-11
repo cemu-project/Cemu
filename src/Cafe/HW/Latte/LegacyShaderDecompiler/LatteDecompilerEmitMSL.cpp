@@ -1742,33 +1742,7 @@ static void _emitALUReductionInstructionCode(LatteDecompilerShaderContext* shade
 	}
 	else if( aluRedcInstruction[0]->isOP3 == false && (aluRedcInstruction[0]->opcode == ALU_OP2_INST_CUBE) )
 	{
-		/*
-		 * How the CUBE instruction works (guessed mostly, based on DirectX/OpenGL spec):
-		   Input: float4, 3d direction vector (can be unnormalized) + w component (which can be ignored, since it only scales the vector but does not affect the direction)
-
-		   First we figure out the major axis (closest axis-aligned vector). There are six possible vectors:
-		   +rx	0
-		   -rx	1
-		   +ry	2
-		   -ry	3
-		   +rz	4
-		   -rz	5
-		   The major axis vector is calculated by looking at the largest (absolute) 3d vector component and then setting the other components to 0.0
-		   The value that remains in the axis vector is referred to as 'MajorAxis' by the AMD documentation.
-		   The S,T coordinates are taken from the other two components.
-		   Example:	-0.5,0.2,0.4 -> -rx -> -0.5,0.0,0.0 MajorAxis: -0.5, S: 0.2 T: 0.4
-
-		   The CUBE reduction instruction requires a specific mapping for the input vector:
-		   src0 = Rn.zzxy
-		   src1 = Rn.yxzz
-		   It's probably related to the way the instruction works internally?
-		   If we look at the individual components per ALU unit:
-		   z y	-> Compare y/z
-		   z x  -> Compare x/z
-		   x z  -> Compare x/z
-		   y z  -> Compare y/z
-		*/
-
+		// CUBE uses src0.zzxy/src1.yxzz and returns T, S, twice the signed major axis, FaceID.
 		sint32 outputType;
 
 		src->add("redcCUBE(");
@@ -1820,9 +1794,9 @@ static void _emitALUReductionInstructionCode(LatteDecompilerShaderContext* shade
 		outputType = _getALUInstructionOutputDataType(shaderContext, aluRedcInstruction[3]);
 		_emitInstructionOutputVariableName(shaderContext, aluRedcInstruction[3]);
 		src->add(" = ");
-		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, outputType);
-		src->add("cubeMapFaceId");
-		_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_SIGNED_INT, outputType);
+		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
+		src->add("float(cubeMapFaceId)");
+		_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
 		src->add(";" _CRLF);
 	}
 	else
@@ -2067,7 +2041,7 @@ static void _emitALUClauseCode(LatteDecompilerShaderContext* shaderContext, Latt
 						continue;
 					_emitInstructionPVPSOutputVariableName(shaderContext, aluRedcInstruction[f]);
 					src->add(" = ");
-					_emitInstructionOutputVariableName(shaderContext, aluRedcInstruction[0]);
+					_emitInstructionOutputVariableName(shaderContext, aluRedcInstruction[f]);
 					src->add(";" _CRLF);
 				}
 			}
@@ -3735,97 +3709,44 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 {
 	if( shaderContext->analyzer.hasRedcCUBE )
 	{
-		fCStr_shaderSource->add("void redcCUBE(float4 src0, float4 src1, thread float3& stm, thread int& faceId)\r\n"
-		"{\r\n"
-		"// stm -> x .. s, y .. t, z .. MajorAxis*2.0\r\n"
-
-		"float3 inputCoord = normalize(float3(src1.y, src1.x, src0.x));\r\n"
-
-		"float rx = inputCoord.x;\r\n"
-		"float ry = inputCoord.y;\r\n"
-		"float rz = inputCoord.z;\r\n"
-		"if( abs(rx) > abs(ry) && abs(rx) > abs(rz) )\r\n"
-		"{\r\n"
-		"stm.z = rx*2.0;\r\n"
-		"stm.xy = float2(ry,rz);	\r\n"
-		"if( rx >= 0.0 )\r\n"
-		"{\r\n"
-		"faceId = 0;\r\n"
-		"}\r\n"
-		"else\r\n"
-		"{\r\n"
-		"faceId = 1;\r\n"
-		"}\r\n"
-		"}\r\n"
-		"else if( abs(ry) > abs(rx) && abs(ry) > abs(rz) )\r\n"
-		"{\r\n"
-		"stm.z = ry*2.0;\r\n"
-		"stm.xy = float2(rx,rz);	\r\n"
-		"if( ry >= 0.0 )\r\n"
-		"{\r\n"
-		"faceId = 2;\r\n"
-		"}\r\n"
-		"else\r\n"
-		"{\r\n"
-		"faceId = 3;\r\n"
-		"}\r\n"
-		"}\r\n"
-		"else //if( abs(rz) > abs(ry) && abs(rz) > abs(rx) )\r\n"
-		"{\r\n"
-		"stm.z = rz*2.0;\r\n"
-		"stm.xy = float2(rx,ry);	\r\n"
-		"if( rz >= 0.0 )\r\n"
-		"{\r\n"
-		"faceId = 4;\r\n"
-		"}\r\n"
-		"else\r\n"
-		"{\r\n"
-		"faceId = 5;\r\n"
-		"}\r\n"
-		"}\r\n"
-		"}\r\n");
+		fCStr_shaderSource->add(
+			"void redcCUBE(float4 src0, float4 src1, thread float3& stm, thread int& faceId)\r\n"
+			"{\r\n"
+			"float x = src1.y, y = src1.x, z = src0.x;\r\n"
+			"float ax = abs(x);\r\n"
+			"float ay = abs(y);\r\n"
+			"float az = abs(z);\r\n"
+			"if (az >= ax && az >= ay)\r\n"
+			"{\r\n"
+			"stm = float3(-y, z < 0.0 ? -x : x, z * 2.0);\r\n"
+			"faceId = z < 0.0 ? 5 : 4;\r\n"
+			"}\r\n"
+			"else if (ay >= ax)\r\n"
+			"{\r\n"
+			"stm = float3(y < 0.0 ? -z : z, x, y * 2.0);\r\n"
+			"faceId = y < 0.0 ? 3 : 2;\r\n"
+			"}\r\n"
+			"else\r\n"
+			"{\r\n"
+			"stm = float3(-y, x < 0.0 ? z : -z, x * 2.0);\r\n"
+			"faceId = x < 0.0 ? 1 : 0;\r\n"
+			"}\r\n"
+			"}\r\n");
 	}
 
 	if( shaderContext->analyzer.hasCubeMapTexture )
 	{
-		fCStr_shaderSource->add("float3 redcCUBEReverse(float2 st, int faceId)\r\n"
-		"{\r\n"
-		"st.yx = st.xy;\r\n"
-		"float3 v;\r\n"
-		"float majorAxis = 1.0;\r\n"
-		"if( faceId == 0 )\r\n"
-		"{\r\n"
-		"v.yz = (st-float2(1.5))*(majorAxis*2.0);\r\n"
-		"v.x = 1.0;\r\n"
-		"}\r\n"
-		"else if( faceId == 1 )\r\n"
-		"{\r\n"
-		"v.yz = (st-float2(1.5))*(majorAxis*2.0);\r\n"
-		"v.x = -1.0;\r\n"
-		"}\r\n"
-		"else if( faceId == 2 )\r\n"
-		"{\r\n"
-		"v.xz = (st-float2(1.5))*(majorAxis*2.0);\r\n"
-		"v.y = 1.0;\r\n"
-		"}\r\n"
-		"else if( faceId == 3 )\r\n"
-		"{\r\n"
-		"v.xz = (st-float2(1.5))*(majorAxis*2.0);\r\n"
-		"v.y = -1.0;\r\n"
-		"}\r\n"
-		"else if( faceId == 4 )\r\n"
-		"{\r\n"
-		"v.xy = (st-float2(1.5))*(majorAxis*2.0);\r\n"
-		"v.z = 1.0;\r\n"
-		"}\r\n"
-		"else\r\n"
-		"{\r\n"
-		"v.xy = (st-float2(1.5))*(majorAxis*2.0);\r\n"
-		"v.z = -1.0;\r\n"
-		"}\r\n"
-
-		"return v;\r\n"
-		"}\r\n");
+		fCStr_shaderSource->add(
+			"float3 redcCUBEReverse(float2 st, int faceId)\r\n"
+			"{\r\n"
+			"float2 tc = (st - float2(1.5)) * 2.0;\r\n"
+			"if (faceId == 0) return float3(1.0, -tc.x, -tc.y);\r\n"
+			"if (faceId == 1) return float3(-1.0, -tc.x, tc.y);\r\n"
+			"if (faceId == 2) return float3(tc.y, 1.0, tc.x);\r\n"
+			"if (faceId == 3) return float3(tc.y, -1.0, -tc.x);\r\n"
+			"if (faceId == 4) return float3(tc.y, -tc.x, 1.0);\r\n"
+			"return float3(-tc.y, -tc.x, -1.0);\r\n"
+			"}\r\n");
 	}
 
 	// Sample compare emulate
