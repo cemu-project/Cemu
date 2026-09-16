@@ -192,10 +192,17 @@ bool VulkanRenderer::IsAsyncPipelineAllowed(uint32 numIndices)
 		return false;
 
 	CachedFBOVk* currentFBO = m_state.activeFBO;
-	auto fboExtend = currentFBO->GetExtend();
 
-	if (fboExtend.width == 1600 && fboExtend.height == 1600)
-		return false; // Splatoon ink mechanics use 1600x1600 R8 and R8G8 framebuffers, this resolution is rare enough that we can just blacklist it globally
+	// splatoon uses single and dual channel color targets for ink coverage and for knowing if it's ok to submerge, keep them synchronous while everything can run async. this has been tested for a bit and works perfect besides on wall climbing, i have no idea what's up with that
+	for (const auto& colorBuffer : currentFBO->colorBuffer)
+	{
+		if (!colorBuffer.texture)
+			continue;
+
+		const auto format = colorBuffer.texture->format;
+		if (format == Latte::E_GX2SURFFMT::R8_UNORM || format == Latte::E_GX2SURFFMT::R8_G8_UNORM)
+			return false;
+	}
 
 	if (currentFBO->hasDepthBuffer())
 		return true; // aggressive filter but seems to work well so far
