@@ -908,9 +908,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::BC1_SRGB)
 		texDecoder = TextureDecoder_BC1::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC2_UNORM)
-		texDecoder = TextureDecoder_BC2_UNORM_uncompress::getInstance();
+		texDecoder = TextureDecoder_BC2::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC2_SRGB)
-		texDecoder = TextureDecoder_BC2_SRGB_uncompress::getInstance();
+		texDecoder = TextureDecoder_BC2::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC3_UNORM)
 		texDecoder = TextureDecoder_BC3::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC3_SRGB)
@@ -925,9 +925,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::BC4_SNORM)
 	{
 		if (dim != Latte::E_DIM::DIM_2D && dim != Latte::E_DIM::DIM_2D_ARRAY)
-			texDecoder = TextureDecoder_BC4::getInstance();
-		else
 			texDecoder = TextureDecoder_BC4_UNORM_uncompress::getInstance();
+		else
+			texDecoder = TextureDecoder_BC4::getInstance();
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC5_UNORM)
 		texDecoder = TextureDecoder_BC5::getInstance();

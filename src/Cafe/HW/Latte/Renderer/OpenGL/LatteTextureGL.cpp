@@ -153,9 +153,10 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC2_UNORM || format == Latte::E_GX2SURFFMT::BC2_SRGB)
 	{
-		// todo - use OpenGL BC2 format if available
-		formatInfoOut->setFormat(GL_RGBA16F, GL_RGBA, GL_FLOAT);
-		formatInfoOut->markAsAlternativeFormat();
+		if (format == Latte::E_GX2SURFFMT::BC2_SRGB)
+			formatInfoOut->setCompressed(GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, -1, -1);
+		else
+			formatInfoOut->setCompressed(GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, -1, -1);
 		return;
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC3_UNORM || format == Latte::E_GX2SURFFMT::BC3_SRGB)
