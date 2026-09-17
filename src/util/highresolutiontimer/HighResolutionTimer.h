@@ -83,3 +83,19 @@ private:
 	HRTick m_stopTime{};
 };
 
+// Sums up CPU time within scope over 100 frames and prints average
+class FrameBenchmarkHelper
+{
+public:
+	FrameBenchmarkHelper(std::string_view name);
+	~FrameBenchmarkHelper();
+
+	FrameBenchmarkHelper(const FrameBenchmarkHelper&) = delete;
+	FrameBenchmarkHelper& operator=(const FrameBenchmarkHelper&) = delete;
+
+	static void FrameEnd();
+
+	struct Entry;
+	Entry* m_entry;
+};
+
