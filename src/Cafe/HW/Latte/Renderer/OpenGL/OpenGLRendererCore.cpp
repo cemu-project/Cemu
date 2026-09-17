@@ -68,7 +68,7 @@ struct
 {
 	uint8* vboOutput;
 	uint32 vboStride;
-	uint8 dataFormat;
+	Latte::E_HWFMT dataFormat;
 	uint8 nfa;
 	bool isSigned;
 }activeAttributePointer[LATTE_VS_ATTRIBUTE_LIMIT] = { 0 };
@@ -82,9 +82,9 @@ void LatteDraw_resetAttributePointerCache()
 	}
 }
 
-void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uint32 bufferSize, uint32 stride, LatteParsedFetchShaderAttribute_t* attrib, uint8* vboOutput, uint32 vboStride)
+void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uint32 bufferSize, uint32 stride, LatteParsedFetchShaderAttribute* attrib, uint8* vboOutput, uint32 vboStride)
 {
-	uint32 dataFormat = attrib->format;
+	Latte::E_HWFMT dataFormat = attrib->format;
 	bool isSigned = attrib->isSigned != 0;
 	uint8 nfa = attrib->nfa;
 	// don't call glVertexAttribIPointer if parameters have not changed
@@ -98,27 +98,27 @@ void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uin
 	activeAttributePointer[attributeShaderLoc].nfa = nfa;
 	activeAttributePointer[attributeShaderLoc].isSigned = isSigned;
 	// setup attribute pointer
-	if (dataFormat == FMT_32_32_32_32_FLOAT || dataFormat == FMT_32_32_32_32)
+	if (dataFormat == Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_32_32_32_32)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 4, GL_UNSIGNED_INT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_32_32_32_FLOAT || dataFormat == FMT_32_32_32)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_32_32_32)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 3, GL_UNSIGNED_INT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_32_32_FLOAT || dataFormat == FMT_32_32)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_32_32_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_32_32)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 2, GL_UNSIGNED_INT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_32_FLOAT || dataFormat == FMT_32)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_32_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_32)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 1, GL_UNSIGNED_INT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_8_8_8_8)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_8_8_8_8)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 4, GL_UNSIGNED_BYTE, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_8_8)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_8_8)
 	{
 		// workaround for AMD (alignment must be 4 for 2xbyte)
 		if (((uint32)(size_t)vboOutput & 0x3) == 2 && LatteGPUState.glVendor == GLVENDOR_AMD)
@@ -130,23 +130,23 @@ void _setAttributeBufferPointerRaw(uint32 attributeShaderLoc, uint8* buffer, uin
 			glVertexAttribIPointer(attributeShaderLoc, 2, GL_UNSIGNED_BYTE, vboStride, vboOutput);
 		}
 	}
-	else if (dataFormat == FMT_8)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_8)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 1, GL_UNSIGNED_BYTE, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_16_16_16_16_FLOAT || dataFormat == FMT_16_16_16_16)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_16_16_16_16)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 4, GL_UNSIGNED_SHORT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_16_16_FLOAT || dataFormat == FMT_16_16)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_16_16_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_16_16)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 2, GL_UNSIGNED_SHORT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_16_FLOAT || dataFormat == FMT_16)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_16_FLOAT || dataFormat == Latte::E_HWFMT::HWFMT_16)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 1, GL_UNSIGNED_SHORT, vboStride, vboOutput);
 	}
-	else if (dataFormat == FMT_2_10_10_10)
+	else if (dataFormat == Latte::E_HWFMT::HWFMT_2_10_10_10)
 	{
 		glVertexAttribIPointer(attributeShaderLoc, 1, GL_UNSIGNED_INT, vboStride, vboOutput);
 	}
@@ -574,7 +574,7 @@ void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseIns
 	}
 }
 
-uint32 _glVertexBufferOffset[32] = { 0 };
+uint32 _glVertexBufferOffset[Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS] = { 0 };
 
 void OpenGLRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
 {
@@ -607,11 +607,11 @@ void OpenGLRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType,
 
 void LatteDraw_resetAttributePointerCache();
 
-void _resetAttributes(LatteParsedFetchShaderBufferGroup_t* attribGroup, bool* attributeArrayUsed)
+void _resetAttributes(LatteParsedFetchShaderBufferGroup* attribGroup, bool* attributeArrayUsed)
 {
 	for (sint32 i = 0; i < attribGroup->attribCount; i++)
 	{
-		LatteParsedFetchShaderAttribute_t* attrib = attribGroup->attrib + i;
+		LatteParsedFetchShaderAttribute* attrib = attribGroup->attrib + i;
 		sint32 attributeShaderLocation = attrib->semanticId; // we now bind to the semanticId instead
 		attributeArrayUsed[attributeShaderLocation] = false;
 	}
@@ -654,7 +654,7 @@ void OpenGLRenderer::_setupVertexAttributes()
 
 		for (sint32 i = 0; i < bufferGroup.attribCount; i++)
 		{
-			LatteParsedFetchShaderAttribute_t* attrib = bufferGroup.attrib + i;
+			LatteParsedFetchShaderAttribute* attrib = bufferGroup.attrib + i;
 			sint32 attributeShaderLocation = attrib->semanticId; // we now bind to the semanticId instead
 
 			attributeShaderLocation = vertexShader->resourceMapping.getAttribHostShaderIndex(attrib->semanticId);

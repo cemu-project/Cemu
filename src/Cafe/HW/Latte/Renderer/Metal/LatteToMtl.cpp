@@ -266,52 +266,52 @@ MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode)
     }
 }
 
-MTL::VertexFormat GetMtlVertexFormat(uint8 format)
+MTL::VertexFormat GetMtlVertexFormat(Latte::E_HWFMT format)
 {
     switch (format)
 	{
-	case FMT_32_32_32_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT:
 		return MTL::VertexFormatUInt4;
-	case FMT_32_32_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_32_32_FLOAT:
 		return MTL::VertexFormatUInt3;
-	case FMT_32_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_32_FLOAT:
 		return MTL::VertexFormatUInt2;
-	case FMT_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_FLOAT:
 		return MTL::VertexFormatUInt;
-	case FMT_8_8_8_8:
+	case Latte::E_HWFMT::HWFMT_8_8_8_8:
 		return MTL::VertexFormatUChar4;
-	case FMT_8_8_8:
+	case Latte::E_HWFMT::HWFMT_8_8_8:
 		return MTL::VertexFormatUChar3;
-	case FMT_8_8:
+	case Latte::E_HWFMT::HWFMT_8_8:
 		return MTL::VertexFormatUChar2;
-	case FMT_8:
+	case Latte::E_HWFMT::HWFMT_8:
 		return MTL::VertexFormatUChar;
-	case FMT_32_32_32_32:
+	case Latte::E_HWFMT::HWFMT_32_32_32_32:
 		return MTL::VertexFormatUInt4;
-	case FMT_32_32_32:
+	case Latte::E_HWFMT::HWFMT_32_32_32:
 		return MTL::VertexFormatUInt3;
-	case FMT_32_32:
+	case Latte::E_HWFMT::HWFMT_32_32:
 		return MTL::VertexFormatUInt2;
-	case FMT_32:
+	case Latte::E_HWFMT::HWFMT_32:
 		return MTL::VertexFormatUInt;
-	case FMT_16_16_16_16:
-		return MTL::VertexFormatUShort4; // verified to match OpenGL
-	case FMT_16_16_16:
+	case Latte::E_HWFMT::HWFMT_16_16_16_16:
+		return MTL::VertexFormatUShort4;
+	case Latte::E_HWFMT::HWFMT_16_16_16:
 		return MTL::VertexFormatUShort3;
-	case FMT_16_16:
+	case Latte::E_HWFMT::HWFMT_16_16:
 		return MTL::VertexFormatUShort2;
-	case FMT_16:
+	case Latte::E_HWFMT::HWFMT_16:
 		return MTL::VertexFormatUShort;
-	case FMT_16_16_16_16_FLOAT:
-		return MTL::VertexFormatUShort4; // verified to match OpenGL
-	case FMT_16_16_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT:
+		return MTL::VertexFormatUShort4;
+	case Latte::E_HWFMT::HWFMT_16_16_16_FLOAT:
 		return MTL::VertexFormatUShort3;
-	case FMT_16_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_16_FLOAT:
 		return MTL::VertexFormatUShort2;
-	case FMT_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_FLOAT:
 		return MTL::VertexFormatUShort;
-	case FMT_2_10_10_10:
-		return MTL::VertexFormatUInt; // verified to match OpenGL
+    case Latte::E_HWFMT::HWFMT_2_10_10_10:
+		return MTL::VertexFormatUInt;
 	default:
 		cemuLog_log(LogType::Force, "unsupported vertex format {}", (uint32)format);
 		assert_dbg();
@@ -319,51 +319,51 @@ MTL::VertexFormat GetMtlVertexFormat(uint8 format)
 	}
 }
 
-uint32 GetMtlVertexFormatSize(uint8 format)
+uint32 GetMtlVertexFormatSize(Latte::E_HWFMT format)
 {
     switch (format)
 	{
-	case FMT_32_32_32_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT:
 		return 16;
-	case FMT_32_32_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_32_32_FLOAT:
 		return 12;
-	case FMT_32_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_32_FLOAT:
 		return 8;
-	case FMT_32_FLOAT:
+	case Latte::E_HWFMT::HWFMT_32_FLOAT:
 		return 4;
-	case FMT_8_8_8_8:
+	case Latte::E_HWFMT::HWFMT_8_8_8_8:
 		return 4;
-	case FMT_8_8_8:
+	case Latte::E_HWFMT::HWFMT_8_8_8:
 		return 3;
-	case FMT_8_8:
+	case Latte::E_HWFMT::HWFMT_8_8:
 		return 2;
-	case FMT_8:
+	case Latte::E_HWFMT::HWFMT_8:
 		return 1;
-	case FMT_32_32_32_32:
+	case Latte::E_HWFMT::HWFMT_32_32_32_32:
 		return 16;
-	case FMT_32_32_32:
+	case Latte::E_HWFMT::HWFMT_32_32_32:
 		return 12;
-	case FMT_32_32:
+	case Latte::E_HWFMT::HWFMT_32_32:
 		return 8;
-	case FMT_32:
+	case Latte::E_HWFMT::HWFMT_32:
 		return 4;
-	case FMT_16_16_16_16:
+	case Latte::E_HWFMT::HWFMT_16_16_16_16:
 		return 8;
-	case FMT_16_16_16:
+	case Latte::E_HWFMT::HWFMT_16_16_16:
 		return 6;
-	case FMT_16_16:
+	case Latte::E_HWFMT::HWFMT_16_16:
 		return 4;
-	case FMT_16:
+	case Latte::E_HWFMT::HWFMT_16:
 		return 2;
-	case FMT_16_16_16_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT:
 		return 8;
-	case FMT_16_16_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_16_16_FLOAT:
 		return 6;
-	case FMT_16_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_16_FLOAT:
 		return 4;
-	case FMT_16_FLOAT:
+	case Latte::E_HWFMT::HWFMT_16_FLOAT:
 		return 2;
-	case FMT_2_10_10_10:
+	case Latte::E_HWFMT::HWFMT_2_10_10_10:
 		return 4;
 	default:
 		return 0;

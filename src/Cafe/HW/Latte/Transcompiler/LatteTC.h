@@ -62,7 +62,7 @@ private:
 	void processCF_EXPORT(const LatteCFInstruction_EXPORT_IMPORT& cfInstruction);
 
 	// helpers
-	void CF_CALL_FS_emitFetchAttribute(LatteParsedFetchShaderAttribute_t& attribute, Latte::GPRType dstGPR);
+	void CF_CALL_FS_emitFetchAttribute(LatteParsedFetchShaderAttribute& attribute, Latte::GPRType dstGPR);
 
 private:
 	// tracks mapping GPR<->IR variable for current basic block

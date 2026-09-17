@@ -808,8 +808,8 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		return;
 	}
 	// generic and slow decode loops
-	Latte::E_HWSURFFMT hwFormat = Latte::GetHWFormat(textureData->format);
-	if (hwFormat == Latte::E_HWSURFFMT::HWFMT_8_8_8_8)
+	Latte::E_HWFMT hwFormat = Latte::GetHWFormat(textureData->format);
+	if (hwFormat == Latte::E_HWFMT::HWFMT_8_8_8_8)
 	{
 		// used in Bayonetta 2
 		for (sint32 y = 0; y < textureLoader.height; y++)
@@ -823,7 +823,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 			}
 		}
 	}
-	else if (hwFormat == Latte::E_HWSURFFMT::HWFMT_32_FLOAT)
+	else if (hwFormat == Latte::E_HWFMT::HWFMT_32_FLOAT)
 	{
 		// required by Wind Waker for direct access to depth buffer
 		// Bayonetta 2 also uses this but it converts the depth buffer to a color texture first

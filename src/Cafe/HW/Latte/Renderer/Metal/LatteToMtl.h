@@ -66,9 +66,9 @@ size_t GetMtlTextureBytesPerImage(Latte::E_GX2SURFFMT format, bool isDepth, uint
 
 MTL::PrimitiveType GetMtlPrimitiveType(LattePrimitiveMode primitiveMode);
 
-MTL::VertexFormat GetMtlVertexFormat(uint8 format);
+MTL::VertexFormat GetMtlVertexFormat(Latte::E_HWFMT format);
 
-uint32 GetMtlVertexFormatSize(uint8 format);
+uint32 GetMtlVertexFormatSize(Latte::E_HWFMT format);
 
 MTL::IndexType GetMtlIndexType(Renderer::INDEX_TYPE indexType);
 

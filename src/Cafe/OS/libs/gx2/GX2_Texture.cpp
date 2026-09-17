@@ -51,7 +51,7 @@ namespace GX2
 		uint32 surfaceAA = texture->surface.aa;
 
 		// calculate register word 0
-		Latte::E_HWSURFFMT formatHw = Latte::GetHWFormat(format);
+		Latte::E_HWFMT formatHw = Latte::GetHWFormat(format);
 
 		Latte::LATTE_SQ_TEX_RESOURCE_WORD0_N newRegWord0;
 		newRegWord0.set_DIM(dim);

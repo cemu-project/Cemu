@@ -18,7 +18,7 @@
 
 #define _CRLF	"\r\n"
 
-void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContext, StringBuf* src, LatteParsedFetchShaderAttribute_t* attrib);
+void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContext, StringBuf* src, LatteParsedFetchShaderAttribute* attrib);
 
 /*
  * Variable names:
@@ -3057,19 +3057,19 @@ void _emitTEXReadMemCode(LatteDecompilerShaderContext* shaderContext, LatteDecom
 
 	sint32 readCount;
 
-	if (texInstruction->memRead.format == FMT_32_FLOAT)
+	if (texInstruction->memRead.format == Latte::E_HWFMT::HWFMT_32_FLOAT)
 	{
 		readCount = 1;
 		// todo
 		src->add("0.0");
 	}
-	else if (texInstruction->memRead.format == FMT_32_32_FLOAT)
+	else if (texInstruction->memRead.format == Latte::E_HWFMT::HWFMT_32_32_FLOAT)
 	{
 		readCount = 2;
 		// todo
 		src->add("vec2(0.0,0.0)");
 	}
-	else if (texInstruction->memRead.format == FMT_32_32_32_FLOAT)
+	else if (texInstruction->memRead.format == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT)
 	{
 		readCount = 3;
 		// todo
@@ -3874,7 +3874,7 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 
 #include "Cafe/HW/Latte/LegacyShaderDecompiler/LatteDecompilerEmitGLSLHeader.hpp"
 
-void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* shaderContext, LatteParsedFetchShaderAttribute_t& attrib)
+void LatteDecompiler_emitAttributeImport(LatteDecompilerShaderContext* shaderContext, LatteParsedFetchShaderAttribute& attrib)
 {
 	auto src = shaderContext->shaderSource;
 

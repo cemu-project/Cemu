@@ -390,7 +390,7 @@ private:
 		struct
 		{
 			uint32 offset;
-		}currentVertexBinding[LATTE_MAX_VERTEX_BUFFERS]{};
+		}currentVertexBinding[Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS]{};
 
 		// index buffer
 		Renderer::INDEX_TYPE activeIndexType{};

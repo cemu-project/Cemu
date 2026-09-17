@@ -93,7 +93,7 @@ void _readBigEndianAttributeU16x4(LatteDecompilerShader* shaderContext, StringBu
 	src->add("attrDecoder = ((attrDecoder>>8)&0xFF)|((attrDecoder<<8)&0xFF00);" _CRLF);
 }
 
-void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContext, StringBuf* src, LatteParsedFetchShaderAttribute_t* attrib)
+void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContext, StringBuf* src, LatteParsedFetchShaderAttribute* attrib)
 {
 	if (attrib->attributeBufferIndex >= Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS)
 	{
@@ -104,23 +104,23 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 	uint32 attributeInputIndex = attrib->semanticId;
 	if( attrib->endianSwap == LatteConst::VertexFetchEndianMode::SWAP_U32 )
 	{
-		if( attrib->format == FMT_32_32_32_32_FLOAT && attrib->nfa == 2 )
+		if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU32x4(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_32_32_32_FLOAT && attrib->nfa == 2 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU32x3(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_32_32_FLOAT && attrib->nfa == 2 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU32x2(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_32_FLOAT && attrib->nfa == 2 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU32x1(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_2_10_10_10 && attrib->nfa == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_2_10_10_10 && attrib->nfa == 0 )
 		{
 			_readBigEndianAttributeU32x1(shaderContext, src, attributeInputIndex);
 			// Bayonetta 2 uses this format to store normals
@@ -143,51 +143,51 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.w = floatBitsToUint(float(attrDecoder.w));" _CRLF); // unsure?
 
 		}
-		else if( attrib->format == FMT_32_32_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU32x4(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_32_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU32x3(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU32x2(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_32 && attrib->nfa == 1 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_32 && attrib->nfa == 1 && attrib->isSigned == 0)
 		{
 			_readBigEndianAttributeU32x1(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_32 && attrib->nfa == 1 && attrib->isSigned == 1)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_32 && attrib->nfa == 1 && attrib->isSigned == 1)
 		{
 			// we can just read the signed s32 as a u32 since no sign-extension is necessary
 			_readBigEndianAttributeU32x1(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
 		{
 			// seen in Minecraft Wii U Edition
 			src->addFmt("attrDecoder.xyzw = floatBitsToUint(vec4(attrDataSem{}.wzyx)/255.0);" _CRLF, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned != 0 )
 		{
 			// seen in Minecraft Wii U Edition
 			src->addFmt("attrDecoder.xyzw = attrDataSem{}.wzyx;" _CRLF, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x80) != 0 ) attrDecoder.x |= 0xFFFFFF00;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x80) != 0 ) attrDecoder.y |= 0xFFFFFF00;" _CRLF); 
-			src->add("if( (attrDecoder.z&0x80) != 0 ) attrDecoder.z |= 0xFFFFFF00;" _CRLF); 
-			src->add("if( (attrDecoder.w&0x80) != 0 ) attrDecoder.w |= 0xFFFFFF00;" _CRLF); 
-			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/127.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/127.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/127.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/127.0,-1.0));" _CRLF); 
+			src->add("if( (attrDecoder.x&0x80) != 0 ) attrDecoder.x |= 0xFFFFFF00;" _CRLF);
+			src->add("if( (attrDecoder.y&0x80) != 0 ) attrDecoder.y |= 0xFFFFFF00;" _CRLF);
+			src->add("if( (attrDecoder.z&0x80) != 0 ) attrDecoder.z |= 0xFFFFFF00;" _CRLF);
+			src->add("if( (attrDecoder.w&0x80) != 0 ) attrDecoder.w |= 0xFFFFFF00;" _CRLF);
+			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/127.0,-1.0));" _CRLF);
+			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/127.0,-1.0));" _CRLF);
+			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/127.0,-1.0));" _CRLF);
+			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/127.0,-1.0));" _CRLF);
 		}
-		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			// seen in Minecraft Wii U Edition
 			src->addFmt("attrDecoder.xyzw = attrDataSem{}.wzyx;" _CRLF, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_8_8_8_8 && attrib->nfa == 2 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 2 && attrib->isSigned == 0)
 		{
 			// seen in Ben 10 Omniverse
 			src->addFmt("attrDecoder.xyzw = floatBitsToUint(vec4(attrDataSem{}.wzyx));" _CRLF, attributeInputIndex);
@@ -200,25 +200,25 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 	}
 	else if( attrib->endianSwap == LatteConst::VertexFetchEndianMode::SWAP_NONE )
 	{
-		if( attrib->format == FMT_32_32_32_32_FLOAT && attrib->nfa == 2 )
+		if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT && attrib->nfa == 2 )
 		{
 			_readLittleEndianAttributeU32x4(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_32_32_32_FLOAT && attrib->nfa == 2)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT && attrib->nfa == 2)
 		{
 			_readLittleEndianAttributeU32x3(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_32_32_FLOAT && attrib->nfa == 2)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_32_32_FLOAT && attrib->nfa == 2)
 		{
 			// seen in Cities of Gold
 			_readLittleEndianAttributeU32x2(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_32 && attrib->nfa == 1 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_32 && attrib->nfa == 1 && attrib->isSigned == 0)
 		{
 			// seen in Nano Assault Neo
 			_readLittleEndianAttributeU32x1(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_2_10_10_10 && attrib->nfa == 0 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_2_10_10_10 && attrib->nfa == 0 && attrib->isSigned == 0)
 		{
 			// seen in Fast Racing Neo
 			_readLittleEndianAttributeU32x1(shaderContext, src, attributeInputIndex);
@@ -228,7 +228,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/1023.0,-1.0));" _CRLF);
 			src->add("attrDecoder.w = floatBitsToUint(float(attrDecoder.w));" _CRLF); // todo - is this correct?
 		}
-		else if (attrib->format == FMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
 			// seen in CoD ghosts
 			_readLittleEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
@@ -241,7 +241,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/32767.0,-1.0));" _CRLF);
 			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/32767.0,-1.0));" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16_16_16 && attrib->nfa == 2 && attrib->isSigned == 1 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 2 && attrib->isSigned == 1 )
 		{
 			// seen in Rabbids Land
 			_readLittleEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
@@ -251,13 +251,13 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("if( (attrDecoder.w&0x8000) != 0 ) attrDecoder.w |= 0xFFFF0000;" _CRLF);
 			src->add("attrDecoder.xyzw = floatBitsToUint(vec4(ivec4(attrDecoder)));" _CRLF);
 		}
-		else if (attrib->format == FMT_16_16_16_16_FLOAT && attrib->nfa == 2)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT && attrib->nfa == 2)
 		{
 			// seen in Giana Sisters: Twisted Dreams
 			_readLittleEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
 			src->add("attrDecoder.xyzw = floatBitsToInt(vec4(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)),unpackHalf2x16(attrDecoder.z|(attrDecoder.w<<16))));" _CRLF);
 		}
-		else if (attrib->format == FMT_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
 			// seen in Nano Assault Neo
 			_readLittleEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
@@ -266,34 +266,34 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/32767.0,-1.0));" _CRLF);
 			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/32767.0,-1.0));" _CRLF);
 		}
-		else if (attrib->format == FMT_16_16_FLOAT && attrib->nfa == 2)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16_FLOAT && attrib->nfa == 2)
 		{
 			// seen in Giana Sisters: Twisted Dreams
 			_readLittleEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
 			src->add("attrDecoder.xy = floatBitsToUint(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)));" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
 		{
 			src->addFmt("attrDecoder.xyzw = floatBitsToUint(vec4(attrDataSem{}.xyzw)/255.0);" _CRLF, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 0 && attrib->isSigned != 0 )
 		{
 			src->addFmt("attrDecoder.xyzw = attrDataSem{}.xyzw;" _CRLF, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x80) != 0 ) attrDecoder.x |= 0xFFFFFF00;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x80) != 0 ) attrDecoder.y |= 0xFFFFFF00;" _CRLF); 
-			src->add("if( (attrDecoder.z&0x80) != 0 ) attrDecoder.z |= 0xFFFFFF00;" _CRLF); 
-			src->add("if( (attrDecoder.w&0x80) != 0 ) attrDecoder.w |= 0xFFFFFF00;" _CRLF); 
-			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/127.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/127.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/127.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/127.0,-1.0));" _CRLF); 
+			src->add("if( (attrDecoder.x&0x80) != 0 ) attrDecoder.x |= 0xFFFFFF00;" _CRLF);
+			src->add("if( (attrDecoder.y&0x80) != 0 ) attrDecoder.y |= 0xFFFFFF00;" _CRLF);
+			src->add("if( (attrDecoder.z&0x80) != 0 ) attrDecoder.z |= 0xFFFFFF00;" _CRLF);
+			src->add("if( (attrDecoder.w&0x80) != 0 ) attrDecoder.w |= 0xFFFFFF00;" _CRLF);
+			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/127.0,-1.0));" _CRLF);
+			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/127.0,-1.0));" _CRLF);
+			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/127.0,-1.0));" _CRLF);
+			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/127.0,-1.0));" _CRLF);
 		}
-		else if (attrib->format == FMT_8_8_8_8 && attrib->nfa == 1 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 1 && attrib->isSigned == 0)
 		{
 			src->addFmt("attrDecoder.xyzw = attrDataSem{}.xyzw;" _CRLF, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_8_8_8_8 && attrib->nfa == 1 && attrib->isSigned != 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 1 && attrib->isSigned != 0)
 		{
 			// seen in Sonic Lost World
 			src->addFmt("attrDecoder.xyzw = attrDataSem{}.xyzw;" _CRLF, attributeInputIndex);
@@ -302,15 +302,15 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("if( (attrDecoder.z&0x80) != 0 ) attrDecoder.z |= 0xFFFFFF00;" _CRLF);
 			src->add("if( (attrDecoder.w&0x80) != 0 ) attrDecoder.w |= 0xFFFFFF00;" _CRLF);
 		}
-		else if( attrib->format == FMT_8_8_8_8 && attrib->nfa == 2 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8_8_8_8 && attrib->nfa == 2 && attrib->isSigned == 0 )
 		{
 			// seen in One Piece
 			src->addFmt("attrDecoder.xyzw = floatBitsToInt(vec4(attrDataSem{}.xyzw));" _CRLF, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_8_8 && attrib->nfa == 0 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8 && attrib->nfa == 0 && attrib->isSigned == 0)
 		{
 			if( (attrib->offset&3) == 2 && LatteGPUState.glVendor == GLVENDOR_AMD && g_renderer->GetType() == RendererAPI::OpenGL )
-			{ 
+			{
 				// AMD workaround
 				src->addFmt("attrDecoder.xy = floatBitsToUint(vec2(attrDataSem{}.zw)/255.0);" _CRLF, attributeInputIndex);
 				src->add("attrDecoder.zw = uvec2(0);" _CRLF);
@@ -321,7 +321,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 				src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 			}
 		}
-		else if (attrib->format == FMT_8_8 && attrib->nfa == 2 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8 && attrib->nfa == 2 && attrib->isSigned == 0)
 		{
 			// seen in BotW
 			if ((attrib->offset & 3) == 2 && LatteGPUState.glVendor == GLVENDOR_AMD && g_renderer->GetType() == RendererAPI::OpenGL)
@@ -336,7 +336,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 				src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 			}
 		}
-		else if (attrib->format == FMT_8_8 && attrib->nfa == 0 && attrib->isSigned != 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
 			if ((attrib->offset & 3) == 2 && LatteGPUState.glVendor == GLVENDOR_AMD && g_renderer->GetType() == RendererAPI::OpenGL)
 			{
@@ -358,7 +358,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 				src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 			}
 		}
-		else if (attrib->format == FMT_8_8 && attrib->nfa == 1 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_8_8 && attrib->nfa == 1 && attrib->isSigned == 0)
 		{
 			if ((attrib->offset & 3) == 2 && LatteGPUState.glVendor == GLVENDOR_AMD && g_renderer->GetType() == RendererAPI::OpenGL)
 			{
@@ -370,13 +370,13 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 				src->addFmt("attrDecoder.xyzw = uvec4(attrDataSem{}.xy,0,0);" _CRLF, attributeInputIndex);
 			}
 		}
-		else if( attrib->format == FMT_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8 && attrib->nfa == 0 && attrib->isSigned == 0 )
 		{
 			// seen in Pikmin 3
 			src->addFmt("attrDecoder.x = floatBitsToUint(float(attrDataSem{}.x)/255.0);" _CRLF, attributeInputIndex);
 			src->add("attrDecoder.yzw = uvec3(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_8 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_8 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			src->addFmt("attrDecoder.xyzw = uvec4(attrDataSem{}.x,0,0,0);" _CRLF, attributeInputIndex);
 		}
@@ -388,12 +388,12 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 	}
 	else if( attrib->endianSwap == LatteConst::VertexFetchEndianMode::SWAP_U16 )
 	{
-		if( attrib->format == FMT_16_16_16_16_FLOAT && attrib->nfa == 2 )
+		if( attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
 			src->add("attrDecoder.xyzw = floatBitsToInt(vec4(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)),unpackHalf2x16(attrDecoder.z|(attrDecoder.w<<16))));" _CRLF);
 		}
-		else if (attrib->format == FMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
 			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
@@ -405,7 +405,7 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.z = floatBitsToUint(max(float(int(attrDecoder.z))/32767.0,-1.0));" _CRLF);
 			src->add("attrDecoder.w = floatBitsToUint(max(float(int(attrDecoder.w))/32767.0,-1.0));" _CRLF);
 		}
-		else if (attrib->format == FMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned == 0)
 		{
 			// seen in BotW
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
@@ -414,83 +414,83 @@ void LatteDecompiler_emitAttributeDecodeGLSL(LatteDecompilerShader* shaderContex
 			src->add("attrDecoder.z = floatBitsToUint(float(int(attrDecoder.z))/65535.0);" _CRLF);
 			src->add("attrDecoder.w = floatBitsToUint(float(int(attrDecoder.w))/65535.0);" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16_16_16 && attrib->nfa == 2 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 2 && attrib->isSigned != 0 )
 		{
 			// seen in Minecraft Wii U Edition
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.z&0x8000) != 0 ) attrDecoder.z |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.w&0x8000) != 0 ) attrDecoder.w |= 0xFFFF0000;" _CRLF); 
+			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.z&0x8000) != 0 ) attrDecoder.z |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.w&0x8000) != 0 ) attrDecoder.w |= 0xFFFF0000;" _CRLF);
 			src->add("attrDecoder.x = floatBitsToUint(float(int(attrDecoder.x)));" _CRLF);
 			src->add("attrDecoder.y = floatBitsToUint(float(int(attrDecoder.y)));" _CRLF);
 			src->add("attrDecoder.z = floatBitsToUint(float(int(attrDecoder.z)));" _CRLF);
 			src->add("attrDecoder.w = floatBitsToUint(float(int(attrDecoder.w)));" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16_16_16 && attrib->nfa == 1 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 1 && attrib->isSigned != 0 )
 		{
 			// seen in Minecraft Wii U Edition
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.z&0x8000) != 0 ) attrDecoder.z |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.w&0x8000) != 0 ) attrDecoder.w |= 0xFFFF0000;" _CRLF); 
+			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.z&0x8000) != 0 ) attrDecoder.z |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.w&0x8000) != 0 ) attrDecoder.w |= 0xFFFF0000;" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16_16_16 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU16x4(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_16_16_FLOAT && attrib->nfa == 2 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16_FLOAT && attrib->nfa == 2 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
 			src->add("attrDecoder.xy = floatBitsToUint(unpackHalf2x16(attrDecoder.x|(attrDecoder.y<<16)));" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16 && attrib->nfa == 0 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 0 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
 			src->add("attrDecoder.xy = floatBitsToUint(vec2(float(attrDecoder.x), float(attrDecoder.y))/65535.0);" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16 && attrib->nfa == 0 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 0 && attrib->isSigned != 0 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF); 
-			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/32767.0,-1.0));" _CRLF); 
-			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/32767.0,-1.0));" _CRLF); 
+			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
+			src->add("attrDecoder.x = floatBitsToUint(max(float(int(attrDecoder.x))/32767.0,-1.0));" _CRLF);
+			src->add("attrDecoder.y = floatBitsToUint(max(float(int(attrDecoder.y))/32767.0,-1.0));" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16 && attrib->nfa == 1 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 1 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
 		}
-		else if( attrib->format == FMT_16_16 && attrib->nfa == 1 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 1 && attrib->isSigned != 0 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF); 
+			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16 && attrib->nfa == 2 && attrib->isSigned == 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 2 && attrib->isSigned == 0 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
 			src->add("attrDecoder.xy = floatBitsToUint(vec2(float(attrDecoder.x), float(attrDecoder.y)));" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if( attrib->format == FMT_16_16 && attrib->nfa == 2 && attrib->isSigned != 0 )
+		else if( attrib->format == Latte::E_HWFMT::HWFMT_16_16 && attrib->nfa == 2 && attrib->isSigned != 0 )
 		{
 			_readBigEndianAttributeU16x2(shaderContext, src, attributeInputIndex);
-			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF); 
-			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF); 
+			src->add("if( (attrDecoder.x&0x8000) != 0 ) attrDecoder.x |= 0xFFFF0000;" _CRLF);
+			src->add("if( (attrDecoder.y&0x8000) != 0 ) attrDecoder.y |= 0xFFFF0000;" _CRLF);
 			src->add("attrDecoder.xy = floatBitsToUint(vec2(float(int(attrDecoder.x)), float(int(attrDecoder.y))));" _CRLF);
 			src->add("attrDecoder.zw = uvec2(0);" _CRLF);
 		}
-		else if (attrib->format == FMT_16 && attrib->nfa == 1 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16 && attrib->nfa == 1 && attrib->isSigned == 0)
 		{
 			_readBigEndianAttributeU16x1(shaderContext, src, attributeInputIndex);
 		}
-		else if (attrib->format == FMT_16 && attrib->nfa == 0 && attrib->isSigned == 0)
+		else if (attrib->format == Latte::E_HWFMT::HWFMT_16 && attrib->nfa == 0 && attrib->isSigned == 0)
 		{
 			// seen in CoD ghosts
 			_readBigEndianAttributeU16x1(shaderContext, src, attributeInputIndex);

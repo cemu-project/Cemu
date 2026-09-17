@@ -928,7 +928,7 @@ void LatteDecompiler_ParseTEXClause(LatteDecompilerShader* shaderContext, LatteD
 				texInstruction.dstSel[2] = dstSelZ;
 				texInstruction.dstSel[3] = dstSelW;
 
-				texInstruction.memRead.format = dataFormat;
+				texInstruction.memRead.format = static_cast<Latte::E_HWFMT>(dataFormat);
 				texInstruction.memRead.nfa = nfa;
 				texInstruction.memRead.isSigned = isSigned;
 

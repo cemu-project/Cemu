@@ -254,16 +254,16 @@ bool LatteTexture_IsFormatViewCompatible(Latte::E_GX2SURFFMT formatA, Latte::E_G
 	{
 		// other formats
 		// seems like format 0x19 (RGB10_A2) has issues on OpenGL Intel and AMD when copying texture data
-		Latte::E_HWSURFFMT hwFormatA = Latte::GetHWFormat(formatA);
-		Latte::E_HWSURFFMT hwFormatB = Latte::GetHWFormat(formatB);
-		if (hwFormatA == Latte::E_HWSURFFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)
+		Latte::E_HWFMT hwFormatA = Latte::GetHWFormat(formatA);
+		Latte::E_HWFMT hwFormatB = Latte::GetHWFormat(formatB);
+		if (hwFormatA == Latte::E_HWFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)
 			return false;
-		if (formatA == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT && hwFormatB == Latte::E_HWSURFFMT::HWFMT_2_10_10_10)
+		if (formatA == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT && hwFormatB == Latte::E_HWFMT::HWFMT_2_10_10_10)
 			return false;
 
-		if (hwFormatA == Latte::E_HWSURFFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM)
+		if (hwFormatA == Latte::E_HWFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM)
 			return false;
-		if (formatA == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && hwFormatB == Latte::E_HWSURFFMT::HWFMT_2_10_10_10)
+		if (formatA == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && hwFormatB == Latte::E_HWFMT::HWFMT_2_10_10_10)
 			return false;
 
 		// format A1B5G5R5 views are not compatible with other 16-bit formats in OpenGL
@@ -575,7 +575,7 @@ bool __LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture
 	if (texture1->isDepth && texture2->isDepth == false)
 	{
 		// necessary for Smash? (currently our depth to color copy always converts and the depth ends up in R only)
-		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWSURFFMT::HWFMT_8_8_8_8)
+		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWFMT::HWFMT_8_8_8_8)
 			return true;
 	}
 
@@ -584,7 +584,7 @@ bool __LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		// found in Smash (Wii Fit Stage)
-		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWSURFFMT::HWFMT_8_24)
+		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWFMT::HWFMT_8_24)
 			return true;
 	}
 #endif

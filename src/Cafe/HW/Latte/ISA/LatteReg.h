@@ -111,7 +111,7 @@ namespace Latte
 			tileMode == E_HWTILEMODE::TM_3B_TILED_THICK;
 	}
 
-	enum class E_HWSURFFMT
+	enum class E_HWFMT : uint32 // used by both texture and memory fetch instructions
 	{
 		INVALID_FORMAT = 0,
 		// hardware formats only
@@ -154,19 +154,21 @@ namespace Latte
 		HWFMT_BC4 = 0x34,
 		HWFMT_BC5 = 0x35,
 
-		// these formats exist in R600/R700 documentation, but GX2 doesn't seem to handle them. Are they supported?
-		U_HWFMT_BC6 = 0x36,
-		U_HWFMT_BC7 = 0x37,
-		U_HWFMT_32_32_32 = 0x2F,
-		U_HWFMT_32_32_32_FLOAT = 0x30,
+		// formats 0x36 to 0x3E return only zero on Latte
+		// format 0x3F seems to be an alias for BC1?
 
-
+		// formats which are not a power of two in size are vertex fetch only?
+		HWFMT_8_8_8 = 0x2C,
+		HWFMT_16_16_16 = 0x2D,
+		HWFMT_16_16_16_FLOAT = 0x2E,
+		HWFMT_32_32_32 = 0x2F,
+		HWFMT_32_32_32_FLOAT = 0x30,
 	};
 
 	enum class E_GX2SURFFMT // GX2 surface format
 	{
 		INVALID_FORMAT = 0,
-		// base hardware formats (shared with E_HWSURFFMT)
+		// base hardware formats (shared with E_HWFMT)
 		HWFMT_8 = 0x1,
 		HWFMT_4_4 = 0x2,
 		HWFMT_3_3_2 = 0x3,
@@ -309,7 +311,7 @@ namespace Latte
 	};
 	DEFINE_ENUM_FLAG_OPERATORS(E_GX2SURFFMT);
 
-	inline uint32 GetFormatBits(const Latte::E_HWSURFFMT hwFmt)
+	inline uint32 GetFormatBits(const Latte::E_HWFMT hwFmt)
 	{
 		const uint8 sBitsTable[0x40] = {
 		0x00,0x08,0x08,0x00,0x00,0x10,0x10,0x10,
@@ -327,22 +329,22 @@ namespace Latte
 
 	inline uint32 GetFormatBits(const Latte::E_GX2SURFFMT gx2Fmt)
 	{
-		return GetFormatBits((Latte::E_HWSURFFMT)((uint32)gx2Fmt & 0x3F));
+		return GetFormatBits((Latte::E_HWFMT)((uint32)gx2Fmt & 0x3F));
 	}
 
-	inline E_HWSURFFMT GetHWFormat(E_GX2SURFFMT format)
+	inline E_HWFMT GetHWFormat(E_GX2SURFFMT format)
 	{
-		return (E_HWSURFFMT)((uint32)format & 0x3F);
+		return (E_HWFMT)((uint32)format & 0x3F);
 	}
 
-	inline bool IsCompressedFormat(Latte::E_HWSURFFMT format)
+	inline bool IsCompressedFormat(Latte::E_HWFMT format)
 	{
 		return (uint32)format >= 0x31 && (uint32)format <= 0x35;
 	}
 
 	inline bool IsCompressedFormat(Latte::E_GX2SURFFMT format)
 	{
-		return IsCompressedFormat((Latte::E_HWSURFFMT)((uint32)format & 0x3F));
+		return IsCompressedFormat((Latte::E_HWFMT)((uint32)format & 0x3F));
 	}
 
 	inline bool IsMSAA(Latte::E_DIM dim)
@@ -1110,7 +1112,7 @@ float get_##__regname() const \
 	{
 		LATTE_BITFIELD(HEIGHT, 0, 13);
 		LATTE_BITFIELD(DEPTH, 13, 13);
-		LATTE_BITFIELD_TYPED(DATA_FORMAT, 26, 6, E_HWSURFFMT);
+		LATTE_BITFIELD_TYPED(DATA_FORMAT, 26, 6, E_HWFMT);
 	};
 
 	struct LATTE_SQ_TEX_RESOURCE_WORD2_N : LATTEREG // 0xE002 + index * 7

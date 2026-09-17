@@ -50,7 +50,7 @@ namespace LatteAddrLib
 	{
 		uint32 size;
 		Latte::E_HWTILEMODE tileMode;
-		Latte::E_HWSURFFMT format;
+		Latte::E_HWFMT format;
 		uint32 bpp;
 		uint32 numSamples;
 		uint32 width;

@@ -37,7 +37,7 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 	colorBuffer->reg_mask = 0;
 	// reg color_info
 	Latte::E_GX2SURFFMT format = colorBuffer->surface.format;
-	Latte::E_HWSURFFMT hwFormat = Latte::GetHWFormat(format);
+	Latte::E_HWFMT hwFormat = Latte::GetHWFormat(format);
 	uint32 formatHighBits = (uint32)format & 0xF00;
 	uint32 regInfo = 0;
 	regInfo = (uint32)GX2::GetSurfaceFormatSwapMode(colorBuffer->surface.format);
@@ -74,7 +74,7 @@ void gx2Export_GX2InitColorBufferRegs(PPCInterpreter_t* hCPU)
 	}
 	else
 		cemu_assert_debug(false);
-	if (hwFormat == Latte::E_HWSURFFMT::HWFMT_5_5_5_1 || hwFormat == Latte::E_HWSURFFMT::HWFMT_10_10_10_2 )
+	if (hwFormat == Latte::E_HWFMT::HWFMT_5_5_5_1 || hwFormat == Latte::E_HWFMT::HWFMT_10_10_10_2 )
 		regInfo |= (2 << 16);
 	else
 		regInfo &= ~(3 << 16); // COMP_SWAP_mask

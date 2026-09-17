@@ -20,7 +20,7 @@ void gx2SurfaceCopySoftware(
 
 void LatteSurfaceCopy_CopyInRAM(const LatteSurfaceCopyParam& src, const LatteSurfaceCopyParam& dst, const LatteSurfaceCopyRect& rect)
 {
-	Latte::E_HWSURFFMT dstHwFormat = Latte::GetHWFormat(dst.surfaceFormat);
+	Latte::E_HWFMT dstHwFormat = Latte::GetHWFormat(dst.surfaceFormat);
 
 	sint32 copyWidth = rect.width;
 	sint32 copyHeight = rect.height;

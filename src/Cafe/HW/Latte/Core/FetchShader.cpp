@@ -16,58 +16,58 @@
 
 void LatteSHRC_RemoveShaderStateCacheEntryByKey(uint64 key);
 
-uint32 LatteShaderRecompiler_getAttributeSize(LatteParsedFetchShaderAttribute_t* attrib)
+uint32 LatteShaderRecompiler_getAttributeSize(Latte::E_HWFMT format)
 {
-	if (attrib->format == FMT_32_32_32_32 || attrib->format == FMT_32_32_32_32_FLOAT)
+	if (format == Latte::E_HWFMT::HWFMT_32_32_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT)
 		return 4 * 4;
-	else if (attrib->format == FMT_32_32_32 || attrib->format == FMT_32_32_32_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_32_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT)
 		return 3 * 4;
-	else if (attrib->format == FMT_32_32 || attrib->format == FMT_32_32_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_FLOAT)
 		return 2 * 4;
-	else if (attrib->format == FMT_32 || attrib->format == FMT_32_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_32 || format == Latte::E_HWFMT::HWFMT_32_FLOAT)
 		return 1 * 4;
-	else if (attrib->format == FMT_16_16_16_16 || attrib->format == FMT_16_16_16_16_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_16_16_16_16 || format == Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT)
 		return 4 * 2;
-	else if (attrib->format == FMT_16_16 || attrib->format == FMT_16_16_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_16_16 || format == Latte::E_HWFMT::HWFMT_16_16_FLOAT)
 		return 2 * 2;
-	else if (attrib->format == FMT_16 || attrib->format == FMT_16_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_16 || format == Latte::E_HWFMT::HWFMT_16_FLOAT)
 		return 1 * 2;
-	else if (attrib->format == FMT_8_8_8_8)
+	else if (format == Latte::E_HWFMT::HWFMT_8_8_8_8)
 		return 4 * 1;
-	else if (attrib->format == FMT_8_8)
+	else if (format == Latte::E_HWFMT::HWFMT_8_8)
 		return 2 * 1;
-	else if (attrib->format == FMT_8)
+	else if (format == Latte::E_HWFMT::HWFMT_8)
 		return 1 * 1;
-	else if (attrib->format == FMT_2_10_10_10)
+	else if (format == Latte::E_HWFMT::HWFMT_2_10_10_10)
 		return 4;
 	else
 		cemu_assert_unimplemented();
 	return 0;
 }
 
-uint32 LatteShaderRecompiler_getAttributeAlignment(LatteParsedFetchShaderAttribute_t* attrib)
+uint32 LatteShaderRecompiler_getAttributeAlignment(Latte::E_HWFMT format)
 {
-	if (attrib->format == FMT_32_32_32_32 || attrib->format == FMT_32_32_32_32_FLOAT)
+	if (format == Latte::E_HWFMT::HWFMT_32_32_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT)
 		return 4;
-	else if (attrib->format == FMT_32_32_32 || attrib->format == FMT_32_32_32_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_32_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT)
 		return 4;
-	else if (attrib->format == FMT_32_32 || attrib->format == FMT_32_32_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_32_32 || format == Latte::E_HWFMT::HWFMT_32_32_FLOAT)
 		return 4;
-	else if (attrib->format == FMT_32 || attrib->format == FMT_32_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_32 || format == Latte::E_HWFMT::HWFMT_32_FLOAT)
 		return 4;
-	else if (attrib->format == FMT_16_16_16_16 || attrib->format == FMT_16_16_16_16_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_16_16_16_16 || format == Latte::E_HWFMT::HWFMT_16_16_16_16_FLOAT)
 		return 2;
-	else if (attrib->format == FMT_16_16 || attrib->format == FMT_16_16_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_16_16 || format == Latte::E_HWFMT::HWFMT_16_16_FLOAT)
 		return 2;
-	else if (attrib->format == FMT_16 || attrib->format == FMT_16_FLOAT)
+	else if (format == Latte::E_HWFMT::HWFMT_16 || format == Latte::E_HWFMT::HWFMT_16_FLOAT)
 		return 2;
-	else if (attrib->format == FMT_8_8_8_8)
+	else if (format == Latte::E_HWFMT::HWFMT_8_8_8_8)
 		return 1;
-	else if (attrib->format == FMT_8_8)
+	else if (format == Latte::E_HWFMT::HWFMT_8_8)
 		return 1;
-	else if (attrib->format == FMT_8)
+	else if (format == Latte::E_HWFMT::HWFMT_8)
 		return 1;
-	else if (attrib->format == FMT_2_10_10_10)
+	else if (format == Latte::E_HWFMT::HWFMT_2_10_10_10)
 		return 4;
 	else
 		cemu_assert_unimplemented();
@@ -79,10 +79,10 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 	uint64 key = 0;
 	for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
 	{
-		LatteParsedFetchShaderBufferGroup_t& group = fetchShader->bufferGroups[g];
+		LatteParsedFetchShaderBufferGroup& group = fetchShader->bufferGroups[g];
 		for (sint32 f = 0; f < group.attribCount; f++)
 		{
-			LatteParsedFetchShaderAttribute_t* attrib = group.attrib + f;
+			LatteParsedFetchShaderAttribute* attrib = group.attrib + f;
 			key += (uint64)attrib->endianSwap;
 			key = std::rotl<uint64>(key, 3);
 			key += (uint64)attrib->nfa;
@@ -133,7 +133,7 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 	{
 		for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
 	{
-			LatteParsedFetchShaderBufferGroup_t& group = fetchShader->bufferGroups[g];
+			LatteParsedFetchShaderBufferGroup& group = fetchShader->bufferGroups[g];
 			key += (uint64)group.attributeBufferIndex;
 			key = std::rotl<uint64>(key, 5);
 		}
@@ -143,7 +143,7 @@ void LatteShader_calculateFSKey(LatteFetchShader* fetchShader)
 	fetchShader->key = key;
 }
 
-uint32 LatteParsedFetchShaderBufferGroup_t::getCurrentBufferStride(uint32* contextRegister) const
+uint32 LatteParsedFetchShaderBufferGroup::getCurrentBufferStride(uint32* contextRegister) const
 {
 	uint32 bufferIndex = this->attributeBufferIndex;
 	uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
@@ -182,7 +182,7 @@ void LatteFetchShader::CheckIfVerticesNeedManualFetchMtl(uint32* contextRegister
 {
 	for (sint32 g = 0; g < bufferGroups.size(); g++)
 	{
-	    LatteParsedFetchShaderBufferGroup_t& group = bufferGroups[g];
+	    LatteParsedFetchShaderBufferGroup& group = bufferGroups[g];
 		uint32 bufferIndex = group.attributeBufferIndex;
 		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
 		uint32 bufferStride = (contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;
@@ -216,21 +216,25 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	bool isSigned = instr->getField_FORMAT_COMP_ALL() == LatteClauseInstruction_VTX::FORMAT_COMP::COMP_SIGNED;
 	auto endianSwap = instr->getField_ENDIAN_SWAP();
 
+	uint32 attribSize = LatteShaderRecompiler_getAttributeSize(dataFormat);
+	cemu_assert(attribSize > 0);
+	uint32 offsetAfterAttrib = offset + attribSize;
+
 	// get buffer
 	cemu_assert_debug(bufferId >= 0xA0 && bufferId < 0xB0);
 	uint32 bufferIndex = (bufferId - 0xA0);
 
 	// get or add new attribute group (by buffer index)
-	LatteParsedFetchShaderBufferGroup_t* attribGroup = nullptr;
+	LatteParsedFetchShaderBufferGroup* attribGroup = nullptr;
 	if (LatteFetchShader::isValidBufferIndex(bufferIndex))
 	{
-		auto bufferGroupItr = std::find_if(parsedFetchShader->bufferGroups.begin(), parsedFetchShader->bufferGroups.end(), [bufferIndex](LatteParsedFetchShaderBufferGroup_t& bufferGroup) {return bufferGroup.attributeBufferIndex == bufferIndex; });
+		auto bufferGroupItr = std::find_if(parsedFetchShader->bufferGroups.begin(), parsedFetchShader->bufferGroups.end(), [bufferIndex](LatteParsedFetchShaderBufferGroup& bufferGroup) {return bufferGroup.attributeBufferIndex == bufferIndex; });
 		if (bufferGroupItr != parsedFetchShader->bufferGroups.end())
 			attribGroup = &(*bufferGroupItr);
 	}
 	else
 	{
-		auto bufferGroupItr = std::find_if(parsedFetchShader->bufferGroupsInvalid.begin(), parsedFetchShader->bufferGroupsInvalid.end(), [bufferIndex](LatteParsedFetchShaderBufferGroup_t& bufferGroup) {return bufferGroup.attributeBufferIndex == bufferIndex; });
+		auto bufferGroupItr = std::find_if(parsedFetchShader->bufferGroupsInvalid.begin(), parsedFetchShader->bufferGroupsInvalid.end(), [bufferIndex](LatteParsedFetchShaderBufferGroup& bufferGroup) {return bufferGroup.attributeBufferIndex == bufferIndex; });
 		if (bufferGroupItr != parsedFetchShader->bufferGroupsInvalid.end())
 			attribGroup = &(*bufferGroupItr);
 	}
@@ -245,17 +249,18 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 		parsedFetchShader->attributeBufferMask |= (1 << bufferIndex);
 		attribGroup->attributeBufferIndex = bufferIndex;
 		attribGroup->minOffset = offset;
-		attribGroup->maxOffset = offset;
+		attribGroup->totalAttribRangeSize = offset;
 	}
 	// add attribute
 	sint32 groupAttribIndex = attribGroup->attribCount;
 	if (attribGroup->attribCount < (groupAttribIndex + 1))
 	{
+		cemu_assert(groupAttribIndex < 127);
 		attribGroup->attribCount = (groupAttribIndex + 1);
-		attribGroup->attrib = (LatteParsedFetchShaderAttribute_t*)realloc(attribGroup->attrib, sizeof(LatteParsedFetchShaderAttribute_t) * attribGroup->attribCount);
+		attribGroup->attrib = (LatteParsedFetchShaderAttribute*)realloc(attribGroup->attrib, sizeof(LatteParsedFetchShaderAttribute) * attribGroup->attribCount);
 	}
 	attribGroup->attrib[groupAttribIndex].semanticId = semanticId;
-	attribGroup->attrib[groupAttribIndex].format = (uint8)dataFormat;
+	attribGroup->attrib[groupAttribIndex].format = dataFormat;
 	attribGroup->attrib[groupAttribIndex].fetchType = fetchType;
 	attribGroup->attrib[groupAttribIndex].nfa = (uint8)nfa;
 	attribGroup->attrib[groupAttribIndex].isSigned = isSigned;
@@ -267,7 +272,7 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	attribGroup->attrib[groupAttribIndex].attributeBufferIndex = bufferIndex;
 	attribGroup->attrib[groupAttribIndex].endianSwap = endianSwap;
 	attribGroup->minOffset = (std::min)(attribGroup->minOffset, offset);
-	attribGroup->maxOffset = (std::max)(attribGroup->maxOffset, offset);
+	attribGroup->totalAttribRangeSize = (std::max)(attribGroup->totalAttribRangeSize, offsetAfterAttrib);
 	// get alu divisor
 	if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_X)
 	{
@@ -418,30 +423,16 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	}
 	newFetchShader->bufferGroups.shrink_to_fit();
 	// calculate group information
-	// VBO offsets and stride
-	uint32 vboOffset = 0;
 	for (auto& bufferGroup : newFetchShader->bufferGroups)
 	{
-		for(sint32 i=0; i< bufferGroup.attribCount; i++)
+		bufferGroup.hasVtxIndexAccess = false;
+		bufferGroup.hasInstanceIndexAccess = false;
+		for(sint32 i=0; i<bufferGroup.attribCount; i++)
 		{
-			uint32 attribSize = LatteShaderRecompiler_getAttributeSize(bufferGroup.attrib+i);
-			uint32 attribAlignment = LatteShaderRecompiler_getAttributeAlignment(bufferGroup.attrib+i);
-			// fix alignment
-			vboOffset = (vboOffset+attribAlignment-1)&~(attribAlignment-1);
-			vboOffset += attribSize;
-			// index type
-			if(bufferGroup.attrib[i].fetchType == LatteConst::VERTEX_DATA)
-				bufferGroup.hasVtxIndexAccess = true;
-			else if (bufferGroup.attrib[i].fetchType == LatteConst::INSTANCE_DATA)
-				bufferGroup.hasInstanceIndexAccess = true;
+			auto& attrib = bufferGroup.attrib[i];
+			bufferGroup.hasVtxIndexAccess |= (attrib.fetchType == LatteConst::VERTEX_DATA);
+			bufferGroup.hasInstanceIndexAccess |= (attrib.fetchType == LatteConst::INSTANCE_DATA);
 		}
-		// fix alignment of whole vertex
-		if(bufferGroup.attribCount > 0 )
-		{
-			uint32 attribAlignment = LatteShaderRecompiler_getAttributeAlignment(bufferGroup.attrib+0);
-			vboOffset = (vboOffset+attribAlignment-1)&~(attribAlignment-1);
-		}
-		bufferGroup.vboStride = vboOffset;
 	}
 	LatteShader_calculateFSKey(newFetchShader);
 	newFetchShader->CalculateFetchShaderVkHash();

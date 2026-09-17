@@ -198,7 +198,7 @@ namespace GX2
 			vtxInstruction.setField_BUFFER_ID(attrBufferId + 0xA0);
 			vtxInstruction.setField_FETCH_TYPE((LatteConst::VertexFetchType2)attrIndexType);
 			vtxInstruction.setField_SRC_SEL_X((LatteClauseInstruction_VTX::SRC_SEL)srcSelX);
-			vtxInstruction.setField_DATA_FORMAT((LatteConst::VertexFetchFormat)fetchFormat);
+			vtxInstruction.setField_DATA_FORMAT((Latte::E_HWFMT)fetchFormat);
 			vtxInstruction.setField_NUM_FORMAT_ALL((LatteClauseInstruction_VTX::NUM_FORMAT_ALL)nfa);
 			vtxInstruction.setField_OFFSET(attributeDescription[i].offset);
 			if ((attrFormat & 0x200) != 0)

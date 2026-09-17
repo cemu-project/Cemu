@@ -789,7 +789,7 @@ void _readAttr_FLOAT_32_32_32_32(void* ptr, LatteReg_t& output)
 	output.s32[3] = _readVtxU32<endianMode>((uint32*)ptr + 3);
 }
 
-#define _fmtKey(__fmt, __endianSwap, __nfa, __isSigned) ((__endianSwap)|((__nfa)<<2)|((__isSigned)<<4)|((__fmt)<<5))
+#define _fmtKey(__fmt, __endianSwap, __nfa, __isSigned) ((__endianSwap)|((__nfa)<<2)|((__isSigned)<<4)|((uint32)(__fmt)<<5))
 
 void LatteSoftware_loadVertexAttributes(sint32 index)
 {
@@ -841,13 +841,13 @@ void LatteSoftware_loadVertexAttributes(sint32 index)
 
 			switch (formatKey)
 			{
-			case _fmtKey(FMT_32_32_FLOAT, GPU7_ENDIAN_8IN32, LATTE_NFA_2, LATTE_VTX_UNSIGNED):
+			case _fmtKey(Latte::E_HWFMT::HWFMT_32_32_FLOAT, GPU7_ENDIAN_8IN32, LATTE_NFA_2, LATTE_VTX_UNSIGNED):
 				_readAttr_FLOAT_32_32<GPU7_ENDIAN_8IN32, LATTE_NFA_2>(inputData, attrData);
 				break;
-			case _fmtKey(FMT_32_32_32_FLOAT, GPU7_ENDIAN_8IN32, LATTE_NFA_2, LATTE_VTX_UNSIGNED):
+			case _fmtKey(Latte::E_HWFMT::HWFMT_32_32_32_FLOAT, GPU7_ENDIAN_8IN32, LATTE_NFA_2, LATTE_VTX_UNSIGNED):
 				_readAttr_FLOAT_32_32_32<GPU7_ENDIAN_8IN32, LATTE_NFA_2>(inputData, attrData);
 				break;
-			case _fmtKey(FMT_32_32_32_32_FLOAT, GPU7_ENDIAN_8IN32, LATTE_NFA_2, LATTE_VTX_UNSIGNED):
+			case _fmtKey(Latte::E_HWFMT::HWFMT_32_32_32_32_FLOAT, GPU7_ENDIAN_8IN32, LATTE_NFA_2, LATTE_VTX_UNSIGNED):
 				_readAttr_FLOAT_32_32_32_32<GPU7_ENDIAN_8IN32, LATTE_NFA_2>(inputData, attrData);
 				break;
 			default:
