@@ -3740,12 +3740,12 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 			"float3 redcCUBEReverse(float2 st, int faceId)\r\n"
 			"{\r\n"
 			"float2 tc = (st - float2(1.5)) * 2.0;\r\n"
-			"if (faceId == 0) return float3(1.0, -tc.x, -tc.y);\r\n"
-			"if (faceId == 1) return float3(-1.0, -tc.x, tc.y);\r\n"
-			"if (faceId == 2) return float3(tc.y, 1.0, tc.x);\r\n"
-			"if (faceId == 3) return float3(tc.y, -1.0, -tc.x);\r\n"
-			"if (faceId == 4) return float3(tc.y, -tc.x, 1.0);\r\n"
-			"return float3(-tc.y, -tc.x, -1.0);\r\n"
+			"if (faceId == 0) return float3(1.0, -tc.y, -tc.x);\r\n"
+			"if (faceId == 1) return float3(-1.0, -tc.y, tc.x);\r\n"
+			"if (faceId == 2) return float3(tc.x, 1.0, tc.y);\r\n"
+			"if (faceId == 3) return float3(tc.x, -1.0, -tc.y);\r\n"
+			"if (faceId == 4) return float3(tc.x, -tc.y, 1.0);\r\n"
+			"return float3(-tc.x, -tc.y, -1.0);\r\n"
 			"}\r\n");
 	}
 

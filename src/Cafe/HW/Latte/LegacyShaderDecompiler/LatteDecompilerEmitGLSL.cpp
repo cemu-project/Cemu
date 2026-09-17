@@ -3767,12 +3767,12 @@ void LatteDecompiler_emitGLSLHelperFunctions(LatteDecompilerShaderContext* shade
 			"vec3 redcCUBEReverse(vec2 st, int faceId)\r\n"
 			"{\r\n"
 			"vec2 tc = (st - vec2(1.5)) * 2.0;\r\n"
-			"if (faceId == 0) return vec3(1.0, -tc.x, -tc.y);\r\n"
-			"if (faceId == 1) return vec3(-1.0, -tc.x, tc.y);\r\n"
-			"if (faceId == 2) return vec3(tc.y, 1.0, tc.x);\r\n"
-			"if (faceId == 3) return vec3(tc.y, -1.0, -tc.x);\r\n"
-			"if (faceId == 4) return vec3(tc.y, -tc.x, 1.0);\r\n"
-			"return vec3(-tc.y, -tc.x, -1.0);\r\n"
+			"if (faceId == 0) return vec3(1.0, -tc.y, -tc.x);\r\n"
+			"if (faceId == 1) return vec3(-1.0, -tc.y, tc.x);\r\n"
+			"if (faceId == 2) return vec3(tc.x, 1.0, tc.y);\r\n"
+			"if (faceId == 3) return vec3(tc.x, -1.0, -tc.y);\r\n"
+			"if (faceId == 4) return vec3(tc.x, -tc.y, 1.0);\r\n"
+			"return vec3(-tc.x, -tc.y, -1.0);\r\n"
 			"}\r\n");
 	}
 
