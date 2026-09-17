@@ -2443,8 +2443,11 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 
 			src->addFmt(")*uf_tex{}Scale", texInstruction->textureFetch.textureIndex); // close vec2 and scale
 
-			src->add("), 0"); // close ivec2 and lod param
-			// todo - lod
+			src->add("), ");
+			if (texOpcode == GPU7_TEX_INST_LD)
+				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
+			else
+				src->add("0");
 		}
 		else if (texDim == Latte::E_DIM::DIM_1D)
 		{
@@ -2453,8 +2456,11 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 			src->add("float(");
 			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 0, (texOpcode == GPU7_TEX_INST_LD) ? LATTE_DECOMPILER_DTYPE_SIGNED_INT : LATTE_DECOMPILER_DTYPE_FLOAT);
 			src->addFmt(")*uf_tex{}Scale.x", texInstruction->textureFetch.textureIndex);
-			src->add("), 0");
-			// todo - lod
+			src->add("), ");
+			if (texOpcode == GPU7_TEX_INST_LD)
+				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
+			else
+				src->add("0");
 		}
 		else
 			cemu_assert_debug(false);
@@ -2506,7 +2512,10 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 				{
 					debugBreakpoint();
 				}
-				src->addFmt("vec3({}, {})", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0), _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[3], -1, -1, -1, tempBuffer1));
+				const uint8 compareSelector = texOpcode == GPU7_TEX_INST_SAMPLE_C_L ?
+					texInstruction->textureFetch.srcSel[2] :
+					texInstruction->textureFetch.srcSel[3];
+				src->addFmt("vec3({}, {})", _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, texInstruction->textureFetch.srcSel[0], texInstruction->textureFetch.srcSel[1], -1, -1, tempBuffer0), _getTexGPRAccess(shaderContext, texInstruction->srcGpr, LATTE_DECOMPILER_DTYPE_FLOAT, compareSelector, -1, -1, -1, tempBuffer1));
 			}
 		}
 		else if( texDim == Latte::E_DIM::DIM_3D || texDim == Latte::E_DIM::DIM_2D_ARRAY )
@@ -2552,10 +2561,7 @@ void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContext, Latt
 		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_C_L)
 		{
 			src->add(",");
-			if(texOpcode == GPU7_TEX_INST_SAMPLE_LB)
-				src->add(_FormatFloatAsGLSLConstant((float)texInstruction->textureFetch.lodBias / 16.0f));
-			else
-				_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
+			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, 3, LATTE_DECOMPILER_DTYPE_FLOAT);
 		}
 		else if( texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ )
 		{
