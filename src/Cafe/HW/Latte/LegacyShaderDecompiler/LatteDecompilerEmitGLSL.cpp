@@ -1084,7 +1084,7 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
 		src->add(";" _CRLF);
 		src->add("tempResultf = floor(tempResultf);" _CRLF);
-		src->add("tempResultf = clamp(tempResultf, -256.0, 255.0);" _CRLF);
+		src->add("tempResultf = (tempResultf >= -256.0 && tempResultf <= 255.0) ? tempResultf : -256.0;" _CRLF);
 		// set AR
 		if( aluInstruction->destElem == 0 )
 			src->add("ARi.x = int(tempResultf);" _CRLF);
@@ -1109,7 +1109,7 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 		src->add("tempResulti = ");
 		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_SIGNED_INT);
 		src->add(";" _CRLF);
-		src->add("tempResulti = clamp(tempResulti, -256, 255);" _CRLF);
+		src->add("tempResulti = (tempResulti >= -256 && tempResulti <= 255) ? tempResulti : -256;" _CRLF);
 		// set AR
 		if( aluInstruction->destElem == 0 )
 			src->add("ARi.x = tempResulti;" _CRLF);
