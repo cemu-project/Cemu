@@ -140,7 +140,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 				src->add("attrDecoder.y = as_type<uint>(max(float(int(attrDecoder.y))/1023.0,-1.0));" _CRLF);
 				src->add("attrDecoder.z = as_type<uint>(max(float(int(attrDecoder.z))/1023.0,-1.0));" _CRLF);
 			}
-			src->add("attrDecoder.w = as_type<uint>(float(attrDecoder.w));" _CRLF); // unsure?
+			src->add("attrDecoder.w = as_type<uint>(float(attrDecoder.w) * (1.0 / 3.0));" _CRLF);
 
 		}
 		else if( attrib->format == Latte::E_HWFMT::HWFMT_32_32_32_32 && attrib->nfa == 1 && attrib->isSigned == 0 )
@@ -226,7 +226,7 @@ void LatteDecompiler_emitAttributeDecodeMSL(LatteDecompilerShader* shaderContext
 			src->add("attrDecoder.x = as_type<uint>(max(float(int(attrDecoder.x))/1023.0,-1.0));" _CRLF);
 			src->add("attrDecoder.y = as_type<uint>(max(float(int(attrDecoder.y))/1023.0,-1.0));" _CRLF);
 			src->add("attrDecoder.z = as_type<uint>(max(float(int(attrDecoder.z))/1023.0,-1.0));" _CRLF);
-			src->add("attrDecoder.w = as_type<uint>(float(attrDecoder.w));" _CRLF); // todo - is this correct?
+			src->add("attrDecoder.w = as_type<uint>(float(attrDecoder.w) * (1.0 / 3.0));" _CRLF);
 		}
 		else if (attrib->format == Latte::E_HWFMT::HWFMT_16_16_16_16 && attrib->nfa == 0 && attrib->isSigned != 0)
 		{
