@@ -1356,7 +1356,7 @@ void OpenGLRenderer::renderstate_updateTextureSettingsGL(LatteDecompilerShader* 
 		const _LatteRegisterSetSampler* samplerWords = LatteGPUState.contextNew.SQ_TEX_SAMPLER + samplerIndex;
 
 		auto filterMag = samplerWords->WORD0.get_XY_MAG_FILTER();
-		auto filterMin = samplerWords->WORD0.get_XY_MAG_FILTER();
+		auto filterMin = samplerWords->WORD0.get_XY_MIN_FILTER();
 		//auto filterZ = samplerWords->WORD0.get_Z_FILTER();
 		auto filterMip = samplerWords->WORD0.get_MIP_FILTER();
 
