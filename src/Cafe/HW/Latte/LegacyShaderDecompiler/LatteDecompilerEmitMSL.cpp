@@ -1522,8 +1522,8 @@ static void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderConte
 		}
 		else if( cfInstruction->type == GPU7_CF_INST_ALU_BREAK )
 		{
-			// leave current loop
-			src->add("if( predResult == false ) break;" _CRLF);
+			src->add("if (predResult) break;" _CRLF);
+			src->addFmt("{} = false;" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
 		}
 		else
 			cemu_assert_debug(false);
@@ -3529,9 +3529,9 @@ static void _emitCFCall(LatteDecompilerShaderContext* shaderContext, LatteDecomp
 		return;
 	}
 	// init CF stack variables
-	src->addFmt("activeMaskStackSub{:04x}[0] = true;" _CRLF, subroutineInfo->cfAddr);
-	src->addFmt("activeMaskStackCSub{:04x}[0] = true;" _CRLF, subroutineInfo->cfAddr);
-	src->addFmt("activeMaskStackCSub{:04x}[1] = true;" _CRLF, subroutineInfo->cfAddr);
+	src->addFmt("activeMaskStackSub{:04x}[0] = {};" _CRLF, subroutineInfo->cfAddr, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
+	src->addFmt("activeMaskStackCSub{:04x}[0] = activeMaskStackSub{:04x}[0];" _CRLF, subroutineInfo->cfAddr, subroutineInfo->cfAddr);
+	src->addFmt("activeMaskStackCSub{:04x}[1] = activeMaskStackSub{:04x}[0];" _CRLF, subroutineInfo->cfAddr, subroutineInfo->cfAddr);
 
 	shaderContext->isSubroutine = true;
 	shaderContext->subroutineInfo = subroutineInfo;
@@ -3625,6 +3625,8 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 	{
 		// start of loop
 		// if pixel is disabled, then skip loop
+		src->add("{" _CRLF);
+		src->addFmt("bool loopActive = {};" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
 		if (ActiveSettings::ShaderPreventInfiniteLoopsEnabled())
 		{
 			// with iteration limit to prevent infinite loops
@@ -3644,6 +3646,8 @@ void LatteDecompiler_emitClauseCodeMSL(LatteDecompilerShaderContext* shaderConte
 		// this might not always work
 		if( cfInstruction->popCount != 0 )
 			debugBreakpoint();
+		src->add("}" _CRLF);
+		src->addFmt("{} = loopActive;" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
 		src->add("}" _CRLF);
 	}
 	else if( cfInstruction->type == GPU7_CF_INST_LOOP_BREAK )
