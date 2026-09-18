@@ -111,7 +111,7 @@ public:
 	void bufferCache_upload(uint8* buffer, sint32 size, uint32 bufferOffset) override;
 	void bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size) override;
 
-	void buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size) override;
+	void buffer_bindVertexBuffers(std::span<BindBufferParam> bindings) override;
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
 
 	void _setupVertexAttributes();

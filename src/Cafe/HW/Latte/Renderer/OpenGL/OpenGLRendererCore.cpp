@@ -576,9 +576,12 @@ void LatteDrawGL_doDraw(_INDEX_TYPE indexType, uint32 baseVertex, uint32 baseIns
 
 uint32 _glVertexBufferOffset[Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS] = { 0 };
 
-void OpenGLRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
+void OpenGLRenderer::buffer_bindVertexBuffers(std::span<BindBufferParam> bindings)
 {
-	_glVertexBufferOffset[bufferIndex] = offset;
+	for (const auto& binding : bindings)
+	{
+		_glVertexBufferOffset[binding.index] = binding.bindOffset;
+	}
 }
 
 void OpenGLRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)
@@ -632,9 +635,6 @@ void OpenGLRenderer::_setupVertexAttributes()
 	bool attributeArrayUsed[32] = { 0 }; // used to keep track of enabled vertex attributes for this shader
 	sint32 attributeDataIndex = 0;
 	uint32 vboDataOffset = 0;
-
-	bool tfBufferIsBound = false;
-	sint32 maxReallocAttemptLimit = 1;
 
 	for(auto& bufferGroup : parsedFetchShader->bufferGroups)
 	{

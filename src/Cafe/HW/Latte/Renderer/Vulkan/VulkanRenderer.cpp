@@ -3786,17 +3786,18 @@ void VulkanRenderer::streamout_rendererFinishDrawcall()
 	m_streamoutState.buffer[3].enabled = false;
 }
 
-
-void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
+void VulkanRenderer::buffer_bindVertexBuffers(std::span<BindBufferParam> bindings)
 {
 	cemu_assert_debug(!m_useHostMemoryForCache);
-	if (m_state.currentVertexBinding[bufferIndex].offset == offset)
-		return;
-	cemu_assert_debug(bufferIndex < Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS);
-	m_state.currentVertexBinding[bufferIndex].offset = offset;
-	VkBuffer attrBuffer = m_bufferCache;
-	VkDeviceSize attrOffset = offset;
-	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+	VkBuffer buffer = m_bufferCache;
+	for (auto& binding : bindings)
+	{
+		if (m_state.currentVertexBinding[binding.index].offset == binding.bindOffset)
+			continue;
+		m_state.currentVertexBinding[binding.index].offset = binding.bindOffset;
+		VkDeviceSize bindOffset = binding.bindOffset;
+		vkCmdBindVertexBuffers(m_state.currentCommandBuffer, binding.index, 1, &buffer, &bindOffset);
+	}
 }
 
 void VulkanRenderer::buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)

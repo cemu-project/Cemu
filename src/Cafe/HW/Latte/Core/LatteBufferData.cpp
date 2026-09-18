@@ -224,14 +224,8 @@ void LatteBufferCache_Sync(uint32 maxVtxIndex, uint32 baseInstance, uint32 insta
 	{
 		uint32* __restrict bufferRegStartPtr = LatteGPUState.contextRegister + mmSQ_VTX_ATTRIBUTE_BLOCK_START;
 
-		struct BindBufferParam
-		{
-			uint8 index;
-			uint32 bindOffset;
-			uint32 bindSize;
-		};
-		BindBufferParam bindBufferArray[32];
-		sint32 bindBufferArraySize = 0;
+		Renderer::BindBufferParam bindBufferArray[32];
+		size_t bindBufferArraySize = 0;
 
 		cemu_assert_debug(parsedFetchShader->bufferGroups.size() < 32); // fetch shader generation should guarantee
 		for (auto& bufferGroup : parsedFetchShader->bufferGroups)
@@ -242,6 +236,7 @@ void LatteBufferCache_Sync(uint32 maxVtxIndex, uint32 baseInstance, uint32 insta
 			uint32* __restrict bufferRegs = bufferRegStartPtr + bufferIndex * 7;
 			MPTR bufferAddress = bufferRegs[0];
 			uint32 bufferStride = (bufferRegs[2] >> 11) & 0xFFFF;
+			bindBufferArray[bindBufferArraySize].stride = bufferStride;
 			// todo - respect buffer max size
 
 			if (bufferAddress == MPTR_NULL) [[unlikely]]
@@ -287,11 +282,7 @@ void LatteBufferCache_Sync(uint32 maxVtxIndex, uint32 baseInstance, uint32 insta
 			bindBufferArraySize++;
 		}
 		// update vertex buffer bindings
-		for (uint32 i=0; i<bindBufferArraySize; i++)
-		{
-			auto& boundBuf = bindBufferArray[i];
-			g_renderer->buffer_bindVertexBuffer(boundBuf.index, boundBuf.bindOffset, boundBuf.bindSize);
-		}
+		g_renderer->buffer_bindVertexBuffers({bindBufferArray, bindBufferArraySize});
 	}
 	// sync uniform buffers
 	LatteDecompilerShader* vertexShader = LatteSHRC_GetActiveVertexShader();

@@ -1019,12 +1019,14 @@ void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint
     CopyBufferToBuffer(GetXfbRingBuffer(), srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size, MTL::RenderStageVertex | MTL::RenderStageMesh, ALL_MTL_RENDER_STAGES);
 }
 
-void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
+void MetalRenderer::buffer_bindVertexBuffers(std::span<BindBufferParam> bindings)
 {
     cemu_assert_debug(!m_memoryManager->UseHostMemoryForCache());
-    cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
-
-    m_state.m_vertexBufferOffsets[bufferIndex] = offset;
+    for (const auto& binding : bindings)
+    {
+        cemu_assert_debug(binding.index < LATTE_MAX_VERTEX_BUFFERS);
+        m_state.m_vertexBufferOffsets[binding.index] = binding.bindOffset;
+    }
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)

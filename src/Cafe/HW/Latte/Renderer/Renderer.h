@@ -130,7 +130,15 @@ public:
 	virtual void bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size) = 0;
 	virtual void bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size) = 0;
 
-	virtual void buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size) = 0;
+	struct BindBufferParam
+	{
+		uint8 index;
+		uint16 stride;
+		uint32 bindOffset;
+		uint32 bindSize;
+	};
+
+	virtual void buffer_bindVertexBuffers(std::span<BindBufferParam> bindings) = 0;
 	virtual void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) = 0;
 
 	// shader
