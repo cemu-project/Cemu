@@ -1,12 +1,12 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "GX2.h"
 #include "GX2_Shader.h"
+#include "GX2_Misc.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 #include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/HW/Latte/ISA/LatteReg.h"
 #include "Cafe/HW/Latte/ISA/LatteInstructions.h"
-
-uint32 memory_getVirtualOffsetFromPointer(void* ptr); // remove once we updated everything to MEMPTR
 
 namespace GX2
 {
@@ -465,6 +465,99 @@ namespace GX2
 		_GX2SubmitUniformReg(0, offset, values, sizeInU32s);
 	}
 
+	void GX2SetShaderModeEx(GX2_SHADER_MODE mode, uint32 shaderGprsVS, uint32 shaderStackVS, uint32 shaderGprsGS, uint32 shaderStackGS, uint32 shaderGprsPS, uint32 shaderStackPS)
+	{
+		if (static_cast<uint32>(mode) > static_cast<uint32>(GX2_SHADER_MODE::COMPUTE_SHADER))
+		{
+			cemu_assert_suspicious();
+			return;
+		}
+		bool isGeometry = mode == GX2_SHADER_MODE::GEOMETRY_SHADER;
+		bool isCompute = mode == GX2_SHADER_MODE::COMPUTE_SHADER;
+		bool setThreadGrouping = !isCompute && coreinit::__OSGetProcessSDKVersion() >= 21104;
+		GX2ReserveCmdSpace((isCompute ? 26 : isGeometry ? 8 : 11) + (setThreadGrouping ? 3 : 0));
+		// geometry mode sets this in GX2SetGeometryShader
+		if (!isGeometry)
+		{
+			Latte::LATTE_VGT_GS_MODE gsMode;
+			if (isCompute)
+			{
+				gsMode.set_MODE(Latte::LATTE_VGT_GS_MODE::E_MODE::SCENARIO_G)
+					.set_COMPUTE_MODE(Latte::LATTE_VGT_GS_MODE::E_COMPUTE_MODE::ON)
+					.set_PARTIAL_THD_AT_EOI(true);
+			}
+			gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
+				Latte::REGADDR::VGT_GS_MODE - LATTE_REG_BASE_CONTEXT,
+				gsMode);
+		}
+
+		Latte::LATTE_SQ_CONFIG sqConfig;
+		sqConfig.set_DX9_CONSTS(mode == GX2_SHADER_MODE::UNIFORM_REGISTER)
+			.set_ALU_INST_PREFER_VECTOR(true)
+			.set_PS_PRIO(isCompute ? 0 : 3)
+			.set_VS_PRIO(isCompute ? 1 : 2)
+			.set_GS_PRIO(isCompute ? 2 : 1)
+			.set_ES_PRIO(isCompute ? 3 : 0);
+		uint32 threadResource = 0x04043088;
+		Latte::LATTE_SQ_GPR_RESOURCE_MGMT_1 gprResource1;
+		Latte::LATTE_SQ_GPR_RESOURCE_MGMT_2 gprResource2;
+		Latte::LATTE_SQ_STACK_RESOURCE_MGMT_1 stackResource1;
+		Latte::LATTE_SQ_STACK_RESOURCE_MGMT_2 stackResource2;
+		if (isCompute)
+		{
+			threadResource = 0xBD010101;
+			gprResource2.set_NUM_ES_GPRS(0xF8);
+			stackResource2.set_NUM_ES_STACK_ENTRIES(0x100);
+		}
+		else
+		{
+			gprResource1.set_NUM_PS_GPRS(shaderGprsPS);
+			stackResource1.set_NUM_PS_STACK_ENTRIES(shaderStackPS);
+			if (isGeometry)
+			{
+				// in geometry shader mode, the VS runs in ES and VS runs the geometry copy shader
+				gprResource1.set_NUM_VS_GPRS(0x40);
+				gprResource2.set_NUM_GS_GPRS(shaderGprsGS).set_NUM_ES_GPRS(shaderGprsVS);
+				stackResource2.set_NUM_GS_STACK_ENTRIES(shaderStackGS).set_NUM_ES_STACK_ENTRIES(shaderStackVS);
+				threadResource = 0x1C08207C;
+			}
+			else
+			{
+				gprResource1.set_NUM_VS_GPRS(shaderGprsVS);
+				stackResource1.set_NUM_VS_STACK_ENTRIES(shaderStackVS);
+			}
+		}
+
+		gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONFIG_REG, 7),
+			Latte::REGADDR::SQ_CONFIG - LATTE_REG_BASE_CONFIG,
+			sqConfig, gprResource1.getRawValue() | 0x40000000,
+			gprResource2, threadResource, stackResource1, stackResource2);
+
+		if (isCompute)
+		{
+			gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONFIG_REG, 5),
+				Latte::REGADDR::SQ_ESGS_RING_BASE - LATTE_REG_BASE_CONFIG,
+				0, 0xFFFFFF, 0, 0xFFFFFF);
+			gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
+				Latte::REGADDR::SQ_ESGS_RING_ITEMSIZE - LATTE_REG_BASE_CONTEXT,
+				0);
+			gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
+				Latte::REGADDR::SQ_GSVS_RING_ITEMSIZE - LATTE_REG_BASE_CONTEXT,
+				1);
+			gx2WriteGather_submit(pm4HeaderType3(IT_SET_CONTEXT_REG, 2),
+				Latte::REGADDR::VGT_STRMOUT_EN - LATTE_REG_BASE_CONTEXT,
+				0);
+		}
+		else if (setThreadGrouping)
+		{
+			gx2WriteGather_submit(pm4HeaderType3(IT_SET_ALL_CONTEXTS, 2),
+				Latte::REGADDR::SPI_THREAD_GROUPING - LATTE_REG_BASE_CONTEXT,
+				1);
+		}
+		if (mode != GX2_SHADER_MODE::UNIFORM_REGISTER)
+			GX2Invalidate(GX2InvalidationFlag::GPU_SHADER, MPTR_NULL, 0xFFFFFFFF);
+	}
+
 	void GX2ShaderInit()
 	{
 		cafeExportRegister("gx2", GX2CalcFetchShaderSizeEx, LogType::GX2);
@@ -479,5 +572,7 @@ namespace GX2
 
 		cafeExportRegister("gx2", GX2SetVertexUniformReg, LogType::GX2);
 		cafeExportRegister("gx2", GX2SetPixelUniformReg, LogType::GX2);
+
+		cafeExportRegister("gx2", GX2SetShaderModeEx, LogType::GX2);
 	}
 }

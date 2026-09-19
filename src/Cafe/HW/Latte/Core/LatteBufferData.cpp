@@ -71,69 +71,86 @@ void rectGenerate4thVertex(uint32be* output, uint32be* input0, uint32be* input1,
 bool LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float* uniformData, bool aluConstDirty, uint32 uniformBufferDirtyMask)
 {
 	bool hasChange = false;
-	uint32 shaderAluConst;
-	uint32 shaderUniformRegisterOffset;
-
-	switch (shader->shaderType)
+	if (LatteGPUState.contextNew.SQ_CONFIG.get_DX9_CONSTS())
 	{
-	case LatteConst::ShaderType::Vertex:
-		shaderAluConst = 0x400;
-		shaderUniformRegisterOffset = mmSQ_VTX_UNIFORM_BLOCK_START;
-		break;
-	case LatteConst::ShaderType::Pixel:
-		shaderAluConst = 0;
-		shaderUniformRegisterOffset = mmSQ_PS_UNIFORM_BLOCK_START;
-		break;
-	case LatteConst::ShaderType::Geometry:
-		shaderAluConst = 0; // geometry shader has no ALU const
-		shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
-		break;
-	default:
-		UNREACHABLE;
-	}
-
-	// sourced from uniform registers
-	if (aluConstDirty)
-	{
-		uint32* aluConstBase = LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst;
-		for (auto it : shader->list_remappedUniformEntries_register)
+		// ALU const only
+		uint32 shaderAluConst;
+		switch (shader->shaderType)
 		{
-			uint64* __restrict uniformRegData = (uint64*)(aluConstBase + it.indexOffset / 4);
-			uint64* __restrict regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
-			regDest[0] = uniformRegData[0];
-			regDest[1] = uniformRegData[1];
+		case LatteConst::ShaderType::Vertex:
+			shaderAluConst = 0x400;
+			break;
+		case LatteConst::ShaderType::Pixel:
+			shaderAluConst = 0;
+			break;
+		case LatteConst::ShaderType::Geometry:
+			shaderAluConst = 0; // geometry shader has no ALU const
+			break;
+		default:
+			UNREACHABLE;
 		}
-		if (!shader->list_remappedUniformEntries_register.empty())
-			hasChange = true;
-	}
-	// sourced from uniform buffers
-	if (uniformBufferDirtyMask)
-	{
-		for (auto& bufferGroup : shader->list_remappedUniformEntries_bufferGroups)
+		// sourced from uniform registers
+		if (aluConstDirty)
 		{
-			if ((uniformBufferDirtyMask&(1<<bufferGroup.bufferId)) == 0)
-				continue;
-			MPTR physicalAddr = LatteGPUState.contextRegister[shaderUniformRegisterOffset + bufferGroup.kcacheBankIdOffset / 4];
-			if (physicalAddr)
+			uint32* aluConstBase = LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst;
+			for (auto it : shader->list_remappedUniformEntries_register)
 			{
-				uint8* __restrict uniformBase = memory_base + physicalAddr;
-				for (auto& it : bufferGroup.entries)
-				{
-					uint64* __restrict regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
-					uint64* __restrict uniformEntrySrc = (uint64*)(uniformBase + it.indexOffset);
-					memcpy(regDest, uniformEntrySrc, 16);
-				}
+				uint64* __restrict uniformRegData = (uint64*)(aluConstBase + it.indexOffset / 4);
+				uint64* __restrict regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
+				regDest[0] = uniformRegData[0];
+				regDest[1] = uniformRegData[1];
 			}
-			else
+			if (!shader->list_remappedUniformEntries_register.empty())
+				hasChange = true;
+		}
+	}
+	else
+	{
+		// uniform blocks only
+		uint32 shaderUniformRegisterOffset;
+		switch (shader->shaderType)
+		{
+		case LatteConst::ShaderType::Vertex:
+			shaderUniformRegisterOffset = mmSQ_VTX_UNIFORM_BLOCK_START;
+			break;
+		case LatteConst::ShaderType::Pixel:
+			shaderUniformRegisterOffset = mmSQ_PS_UNIFORM_BLOCK_START;
+			break;
+		case LatteConst::ShaderType::Geometry:
+			shaderUniformRegisterOffset = mmSQ_GS_UNIFORM_BLOCK_START;
+			break;
+		default:
+			UNREACHABLE;
+		}
+		// sourced from uniform buffers
+		if (uniformBufferDirtyMask)
+		{
+			for (auto& bufferGroup : shader->list_remappedUniformEntries_bufferGroups)
 			{
-				for (auto& it : bufferGroup.entries)
+				if ((uniformBufferDirtyMask&(1<<bufferGroup.bufferId)) == 0)
+					continue;
+				MPTR physicalAddr = LatteGPUState.contextRegister[shaderUniformRegisterOffset + bufferGroup.kcacheBankIdOffset / 4];
+				if (physicalAddr)
 				{
-					uint64* regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
-					regDest[0] = 0;
-					regDest[1] = 0;
+					uint8* __restrict uniformBase = memory_base + physicalAddr;
+					for (auto& it : bufferGroup.entries)
+					{
+						uint64* __restrict regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
+						uint64* __restrict uniformEntrySrc = (uint64*)(uniformBase + it.indexOffset);
+						memcpy(regDest, uniformEntrySrc, 16);
+					}
 				}
+				else
+				{
+					for (auto& it : bufferGroup.entries)
+					{
+						uint64* regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
+						regDest[0] = 0;
+						regDest[1] = 0;
+					}
+				}
+				hasChange = true;
 			}
-			hasChange = true;
 		}
 	}
 	return hasChange;
@@ -224,10 +241,10 @@ void LatteBufferCache_Sync(uint32 maxVtxIndex, uint32 baseInstance, uint32 insta
 	{
 		uint32* __restrict bufferRegStartPtr = LatteGPUState.contextRegister + mmSQ_VTX_ATTRIBUTE_BLOCK_START;
 
-		Renderer::BindBufferParam bindBufferArray[32];
+		Renderer::BindBufferParam bindBufferArray[Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS];
 		size_t bindBufferArraySize = 0;
 
-		cemu_assert_debug(parsedFetchShader->bufferGroups.size() < 32); // fetch shader generation should guarantee
+		cemu_assert_debug(parsedFetchShader->bufferGroups.size() < Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS);
 		for (auto& bufferGroup : parsedFetchShader->bufferGroups)
 		{
 			uint32 bufferIndex = bufferGroup.attributeBufferIndex;

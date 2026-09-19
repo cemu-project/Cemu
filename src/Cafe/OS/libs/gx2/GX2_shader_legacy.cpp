@@ -326,41 +326,6 @@ void gx2Export_GX2RSetVertexUniformBlock(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
-void gx2Export_GX2SetShaderModeEx(PPCInterpreter_t* hCPU)
-{
-	GX2::GX2ReserveCmdSpace(8+4);
-	uint32 mode = hCPU->gpr[3];
-
-	uint32 sqConfig = hCPU->gpr[3] == 0 ? 4 : 0;
-	if (mode == GX2_SHADER_MODE_COMPUTE_SHADER)
-		sqConfig |= 0xE4000000; // ES/GS/PS priority?
-	// todo - other sqConfig bits
-
-	gx2WriteGather_submit((uint32)(pm4HeaderType3(IT_SET_CONFIG_REG, 7)),
-			(uint32)(mmSQ_CONFIG - 0x2000),
-			sqConfig,
-			0, // ukn / todo
-			0, // ukn / todo
-			0, // ukn / todo
-			0, // ukn / todo
-			0 // ukn / todo
-		);
-
-	// if not GS, then update mmVGT_GS_MODE
-	if( mode != GX2_SHADER_MODE_GEOMETRY_SHADER )
-	{
-		// update VGT_GS_MODE only if no geometry shader is used (else this register is already set by GX2SetGeometryShader)
-		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SET_CONTEXT_REG, 2));
-		gx2WriteGather_submitU32AsBE(Latte::REGADDR::VGT_GS_MODE-0xA000);
-		if (mode == GX2_SHADER_MODE_COMPUTE_SHADER)
-			gx2WriteGather_submitU32AsBE(Latte::LATTE_VGT_GS_MODE().set_MODE(Latte::LATTE_VGT_GS_MODE::E_MODE::SCENARIO_G).set_COMPUTE_MODE(Latte::LATTE_VGT_GS_MODE::E_COMPUTE_MODE::ON).set_PARTIAL_THD_AT_EOI(true).getRawValueBE());
-		else
-			gx2WriteGather_submitU32AsBE(_swapEndianU32(0));
-	}
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
 void gx2Export_GX2CalcGeometryShaderInputRingBufferSize(PPCInterpreter_t* hCPU)
 {
 	uint32 size = (hCPU->gpr[3]*4) * 0x1000;

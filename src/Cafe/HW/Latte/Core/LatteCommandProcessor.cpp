@@ -743,7 +743,8 @@ LatteCMDPtr LatteCP_itDrawIndexAuto(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 	uint32 ukn = LatteReadCMD();
 	LatteGPUState.currentDrawCallTick = GetTickCount();
 	// todo - better way to identify compute drawcalls
-	if ((LatteGPUState.contextRegister[mmSQ_CONFIG] >> 24) == 0xE4)
+	auto& sqConfig = LatteGPUState.contextNew.SQ_CONFIG;
+	if (sqConfig.get_PS_PRIO() == 0 && sqConfig.get_VS_PRIO() == 1 && sqConfig.get_GS_PRIO() == 2 && sqConfig.get_ES_PRIO() == 3)
 	{
 		uint32 vsProgramCode = ((LatteGPUState.contextRegister[mmSQ_PGM_START_ES] & 0xFFFFFF) << 8);
 		uint32 vsProgramSize = LatteGPUState.contextRegister[mmSQ_PGM_START_ES + 1] << 3;
@@ -1199,6 +1200,7 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				switch (itCode)
 				{
 				case IT_SET_CONTEXT_REG:
+				case IT_SET_ALL_CONTEXTS:
 				{
 					LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_CONTEXT>(cmdData, nWords);
 				}
@@ -1484,6 +1486,7 @@ void LatteCP_ProcessRingbuffer()
 			}
 			break;
 			case IT_SET_CONTEXT_REG:
+			case IT_SET_ALL_CONTEXTS:
 			{
 				LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_CONTEXT>(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 512;

@@ -423,6 +423,7 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	}
 	newFetchShader->bufferGroups.shrink_to_fit();
 	// calculate group information
+	cemu_assert(newFetchShader->bufferGroups.size() <= Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS);
 	for (auto& bufferGroup : newFetchShader->bufferGroups)
 	{
 		bufferGroup.hasVtxIndexAccess = false;
@@ -453,8 +454,6 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 	{
 		newFetchShader->m_isRegistered = true;
 	}
-
-
 	return newFetchShader;
 }
 

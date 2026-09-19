@@ -338,7 +338,6 @@ namespace GX2
 
 			osLib_addFunction("gx2", "GX2SetPixelUniformBlock", gx2Export_GX2SetPixelUniformBlock);
 			osLib_addFunction("gx2", "GX2SetGeometryUniformBlock", gx2Export_GX2SetGeometryUniformBlock);
-			osLib_addFunction("gx2", "GX2SetShaderModeEx", gx2Export_GX2SetShaderModeEx);
 
 			osLib_addFunction("gx2", "GX2CalcGeometryShaderInputRingBufferSize", gx2Export_GX2CalcGeometryShaderInputRingBufferSize);
 			osLib_addFunction("gx2", "GX2CalcGeometryShaderOutputRingBufferSize", gx2Export_GX2CalcGeometryShaderOutputRingBufferSize);

@@ -28,25 +28,16 @@ static_assert(sizeof(betype<GX2FetchShader::FetchShaderType>) == 4);
 
 namespace GX2
 {
+	enum class GX2_SHADER_MODE : uint32
+	{
+		UNIFORM_REGISTER = 0,
+		UNIFORM_BLOCK = 1,
+		GEOMETRY_SHADER = 2,
+		COMPUTE_SHADER = 3,
+	};
 
 	void GX2ShaderInit();
 }
-
-// code below still needs to be modernized (use betype, enum classes, move to namespace)
-
-// deprecated, use GX2_SHADER_MODE enum class instead
-#define GX2_SHADER_MODE_UNIFORM_REGISTER	0
-#define GX2_SHADER_MODE_UNIFORM_BLOCK		1
-#define GX2_SHADER_MODE_GEOMETRY_SHADER		2
-#define GX2_SHADER_MODE_COMPUTE_SHADER		3
-
-enum class GX2_SHADER_MODE : uint32
-{
-	UNIFORM_REGISTER = 0,
-	UNIFORM_BLOCK = 1,
-	GEOMETRY_SHADER = 2,
-	COMPUTE_SHADER = 3,
-};
 
 struct GX2VertexShader
 {
@@ -68,7 +59,7 @@ struct GX2VertexShader
 	}regs;
 	/* +0x0D0 */ uint32be shaderSize;
 	/* +0x0D4 */ MEMPTR<void> shaderPtr;
-	/* +0x0D8 */ betype<GX2_SHADER_MODE> shaderMode;
+	/* +0x0D8 */ betype<GX2::GX2_SHADER_MODE> shaderMode;
 	/* +0x0DC */ uint32 uniformBlockCount;
 	/* +0x0E0 */ MPTR uniformBlockInfo;
 	/* +0x0E4 */ uint32 uniformVarCount;

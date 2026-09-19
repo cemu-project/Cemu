@@ -1068,6 +1068,11 @@ void _LatteDecompiler_Process(LatteDecompilerShaderContext* shaderContext, uint8
 		LatteDecompiler_analyze(shaderContext, shaderContext->shader);
 	if (shaderContext->shader->hasError == false)
 		LatteDecompiler_analyzeDataTypes(shaderContext);
+	// check for usage errors
+	if ( shaderContext->analyzer.uniformRegisterAccessTracker.HasAccess() && shaderContext->analyzer.uniformBufferAccessTracker->HasAccess() )
+	{
+		cemuLog_log(LogType::APIErrors, "Shader {:08x} accesses both uniform registers and uniform blocks. Latte does not support using both at the same time (uniform mode is configured via GX2SetShaderModeEx)", shaderContext->shaderBaseHash);
+	}
 	// emit code
 	if (shaderContext->shader->hasError == false)
 	{
