@@ -2,7 +2,7 @@
 
 #include <wx/dcmemory.h>
 #include <wx/icon.h>
-#include <wx/imaglist.h>
+#include <wx/bmpbndl.h>
 #include <wx/renderer.h>
 
 wxDEFINE_EVENT(wxEVT_CHECKTREE_FOCUS, wxTreeEvent);
@@ -103,82 +103,15 @@ wxCheckTree::wxCheckTree(wxWindow* parent, const wxWindowID id, const wxPoint& p
 
 void wxCheckTree::Init()
 {
-	int width = wxRendererNative::Get().GetCheckBoxSize(this).GetWidth();
-	int height = wxRendererNative::Get().GetCheckBoxSize(this).GetHeight();
-
-	auto states = new wxImageList(width, height, true);
-
-	wxBitmap unchecked_bmp(width, height);
-	wxBitmap unchecked_mouse_over_bmp(width, height);
-	wxBitmap unchecked_left_down_bmp(width, height);
-	wxBitmap unchecked_disabled_bmp(width, height);
-	wxBitmap checked_bmp(width, height);
-	wxBitmap checked_mouse_over_bmp(width, height);
-	wxBitmap checked_left_down_bmp(width, height);
-	wxBitmap checked_disabled_bmp(width, height);
-
-	wxMemoryDC renderer_dc;
-
-	// Unchecked
-	renderer_dc.SelectObject(unchecked_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_NONE);
-
-	// Unchecked Mouse Over
-	renderer_dc.SelectObject(unchecked_mouse_over_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CURRENT);
-
-	// Unchecked and Disabled
-	renderer_dc.SelectObject(unchecked_disabled_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_DISABLED);
-
-	// Unchecked Left Down
-	renderer_dc.SelectObject(unchecked_left_down_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CURRENT | wxCONTROL_PRESSED);
-
-	// Checked
-	renderer_dc.SelectObject(checked_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED);
-
-	// Checked Mouse Over
-	renderer_dc.SelectObject(checked_mouse_over_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_CURRENT);
-
-	// Checked Left Down
-	renderer_dc.SelectObject(checked_left_down_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_CURRENT | wxCONTROL_PRESSED);
-
-	// Checked and Disabled
-	renderer_dc.SelectObject(checked_disabled_bmp);
-	renderer_dc.SetBackground(*wxTheBrushList->FindOrCreateBrush(GetBackgroundColour()));
-	renderer_dc.Clear();
-	wxRendererNative::Get().DrawCheckBox(this, renderer_dc, wxRect(0, 0, width, height), wxCONTROL_CHECKED | wxCONTROL_DISABLED);
-
-	renderer_dc.SelectObject(wxNullBitmap);
-
-	states->Add(unchecked_bmp);
-	states->Add(unchecked_mouse_over_bmp);
-	states->Add(unchecked_left_down_bmp);
-	states->Add(unchecked_disabled_bmp);
-	states->Add(checked_bmp);
-	states->Add(checked_mouse_over_bmp);
-	states->Add(checked_left_down_bmp);
-	states->Add(checked_disabled_bmp);
-
-	AssignStateImageList(states);
+	UpdateCheckBoxImages();
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter(&wxCheckTree::UpdateCheckBoxImages);
+	});
+	Bind(wxEVT_DPI_CHANGED, [this](wxDPIChangedEvent& event) {
+		event.Skip();
+		CallAfter(&wxCheckTree::UpdateCheckBoxImages);
+	});
 
 	Connect(wxEVT_TREE_SEL_CHANGING, wxTreeEventHandler( wxCheckTree::On_Tree_Sel_Changed ), nullptr, this);
 
@@ -196,6 +129,44 @@ void wxCheckTree::Init()
 
 	Connect(wxEVT_SET_FOCUS, wxFocusEventHandler( wxCheckTree::On_Tree_Focus_Set ), nullptr, this);
 	Connect(wxEVT_KILL_FOCUS, wxFocusEventHandler( wxCheckTree::On_Tree_Focus_Lost ), nullptr, this);
+}
+
+void wxCheckTree::UpdateCheckBoxImages()
+{
+	const wxSize size = wxRendererNative::Get().GetCheckBoxSize(this);
+	wxVector<wxBitmapBundle> states;
+	const int flags[] = {
+		wxCONTROL_NONE,
+		wxCONTROL_CURRENT,
+		wxCONTROL_CURRENT | wxCONTROL_PRESSED,
+		wxCONTROL_DISABLED,
+		wxCONTROL_CHECKED,
+		wxCONTROL_CHECKED | wxCONTROL_CURRENT,
+		wxCONTROL_CHECKED | wxCONTROL_CURRENT | wxCONTROL_PRESSED,
+		wxCONTROL_CHECKED | wxCONTROL_DISABLED,
+	};
+	for (const int stateFlags : flags)
+	{
+		wxBitmap bitmap;
+#ifdef __WXOSX__
+		bitmap.CreateWithDIPSize(size, GetDPIScaleFactor(), 32);
+		bitmap.UseAlpha();
+#else
+		bitmap.Create(size.x, size.y);
+#endif
+		wxMemoryDC dc(bitmap);
+#ifdef __WXOSX__
+		dc.SetBackground(wxBrush(wxColour(0, 0, 0, 0)));
+#else
+		dc.SetBackground(wxBrush(GetBackgroundColour()));
+#endif
+		dc.Clear();
+		wxRendererNative::Get().DrawCheckBox(this, dc, wxRect(wxPoint(0, 0), size), stateFlags);
+		dc.SelectObject(wxNullBitmap);
+		states.push_back(wxBitmapBundle::FromBitmap(bitmap));
+	}
+	SetStateImages(states);
+	Refresh();
 }
 
 void wxCheckTree::Sort(const wxTreeItemId& node, bool recursive)

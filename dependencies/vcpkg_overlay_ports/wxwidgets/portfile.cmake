@@ -16,6 +16,7 @@ vcpkg_from_github(
         fix-listctrl-report-image-clipping.patch
         fix-listctrl-inactive-selection-colour.patch
         fix-treectrl-inactive-selection-colour.patch
+        fix-cocoa-cell-drawing-appearance.patch
 )
 
 # Submodule dependencies
