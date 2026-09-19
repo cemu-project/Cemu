@@ -234,7 +234,7 @@ jobs:
         brew uninstall bicep
         brew untap aws/tap azure/bicep
         brew update
-        brew install nasm automake libtool
+        brew install nasm automake libtool mono
 
     - name: "Install molten-vk"
       run: |
