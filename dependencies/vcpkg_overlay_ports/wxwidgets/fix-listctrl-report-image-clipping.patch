@@ -1,0 +1,29 @@
+diff --git a/src/generic/listctrl.cpp b/src/generic/listctrl.cpp
+index fbf28b9472..c12f9cd3dd 100644
+--- a/src/generic/listctrl.cpp
++++ b/src/generic/listctrl.cpp
+@@ -771,18 +771,21 @@ void wxListLineData::DrawInReportMode( wxDC *dc,
+ 
+     x += ICON_OFFSET_X;
+ 
++    wxCoord xColumn = rect.x;
+     size_t col = 0;
+     for ( const auto& item : m_items )
+     {
+         int width = m_owner->GetColumnWidth(col);
++        const wxRect rectColumn(xColumn, rect.y, width, rect.height);
++        xColumn += width;
++
+         if (col == 0 && m_owner->HasCheckBoxes())
+             width -= x;
+         int xOld = x;
+         x += width;
+ 
+-        width -= 8;
+-        const int wText = width;
+-        wxDCClipper clipper(*dc, xOld, rect.y, wText, rect.height);
++        wxDCClipper clipper(*dc, rectColumn);
++        width -= 8;
+ 
+         if ( item.HasImage() )
+         {

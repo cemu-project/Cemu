@@ -392,16 +392,12 @@ void wxGameList::SetStyle(Style style, bool save)
 
 	wxWindowUpdateLocker updatelock(this);
 
+	const auto selection = GetFirstSelected();
+	if (selection != wxNOT_FOUND)
+		m_pendingSelection = static_cast<TitleId>(GetItemData(selection));
+
 	m_style = style;
 	SetWindowStyleFlag(GetStyleFlags(m_style));
-
-	uint64 selected_title_id = 0;
-	auto selection = GetFirstSelected();
-	if (selection != wxNOT_FOUND)
-	{
-		selected_title_id = (uint64)GetItemData(selection);
-		selection = wxNOT_FOUND;
-	}
 
 	switch(style)
 	{
@@ -420,12 +416,6 @@ void wxGameList::SetStyle(Style style, bool save)
 	SortEntries();
 	UpdateItemColors();
 
-	if(selection != wxNOT_FOUND)
-	{
-		Select(selection);
-		Focus(selection);
-	}
-
 	if(save)
 	{
 		GetWxGUIConfig().game_list_style = (int)m_style;
@@ -443,9 +433,9 @@ long wxGameList::GetStyleFlags(Style style) const
 	case Style::kList:
 		return (wxLC_SINGLE_SEL | wxLC_VRULES | wxLC_REPORT);
 	case Style::kIcons:
-		return (wxLC_SINGLE_SEL | wxLC_ICON);
+		return (wxLC_SINGLE_SEL | wxLC_ICON | wxLC_ALIGN_TOP | wxLC_AUTOARRANGE);
 	case Style::kSmallIcons:
-		return (wxLC_SINGLE_SEL | wxLC_ICON);
+		return (wxLC_SINGLE_SEL | wxLC_ICON | wxLC_ALIGN_TOP | wxLC_AUTOARRANGE);
 	default:
 		wxASSERT(false);
 		return (wxLC_SINGLE_SEL | wxLC_REPORT);
@@ -994,7 +984,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	const auto& config = GetWxGUIConfig();
 	wxWindowUpdateLocker lock(this);
 	if(config.show_icon_column)
-		SetColumnWidth(ColumnIcon, kListIconWidth+2);
+		SetColumnWidth(ColumnIcon, GetItemCount() ? wxLIST_AUTOSIZE : GetColumnDefaultWidth(ColumnIcon));
 	else
 		SetColumnWidth(ColumnIcon, 0);
 	SetColumnWidth(ColumnName, config.column_width.name);
@@ -1130,8 +1120,8 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 		TitleId baseTitleId = gameInfo.GetBaseTitleId();
 		bool isNewEntry = false;
 
-		int icon = -1; /* 0 is the default empty icon */
-		int icon_small = -1; /* 0 is the default empty icon */
+		int icon = 0;
+		int icon_small = 0;
 		QueryIconForTitle(baseTitleId, icon, icon_small);
 
 		bool entryAlreadyExists = false;
@@ -1139,7 +1129,9 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 		if(!entryAlreadyExists)
 		{
 			// entry doesn't exist
-			index = InsertItem(index, wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
+			const int initialImage = m_style == Style::kList ? -1 :
+				(m_style == Style::kIcons ? icon : icon_small);
+			index = InsertItem(index, wxString::FromUTF8(GetNameByTitleId(baseTitleId)), initialImage);
 			SetItemPtrData(index, baseTitleId);
 			isNewEntry = true;
 			hasAnyNewEntry = true;
@@ -1207,7 +1199,23 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 		}
 	}
 	if (hasAnyNewEntry)
+	{
 		UpdateItemColors();
+		if (m_style == Style::kList && GetWxGUIConfig().show_icon_column)
+			SetColumnWidth(ColumnIcon, wxLIST_AUTOSIZE);
+	}
+
+	if (m_pendingSelection)
+	{
+		const auto selection = FindListItemByTitleId(*m_pendingSelection);
+		if (selection != wxNOT_FOUND)
+		{
+			Select(selection);
+			Focus(selection);
+			EnsureVisible(selection);
+			m_pendingSelection.reset();
+		}
+	}
 }
 
 void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)
