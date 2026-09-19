@@ -1,0 +1,11 @@
+--- a/src/generic/treectlg.cpp
++++ b/src/generic/treectlg.cpp
+@@ -2785,6 +2785,8 @@
+ #ifdef __WXMAC__
+             if (m_hasFocus)
+                colText = *wxWHITE;
++            else
++               colText = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT);
+ #else
+             colText = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXHIGHLIGHTTEXT);
+ #endif
