@@ -28,6 +28,7 @@ private:
 	bool m_filter_installed_games;
 	std::vector<uint64_t> m_installed_games;
 
+	void UpdateAppearance();
 	void ClearPresets();
 	void FillGraphicPackList() const;
 	void GetChildren(const wxTreeItemId& id, std::vector<wxTreeItemId>& children) const;

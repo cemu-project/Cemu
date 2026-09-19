@@ -331,6 +331,39 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 
 	UpdateTitleRunning(CafeSystem::IsTitleRunning());
 	FillGraphicPackList();
+	UpdateAppearance();
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter(&GraphicPacksWindow2::UpdateAppearance);
+	});
+}
+
+void GraphicPacksWindow2::UpdateAppearance()
+{
+	const auto previousActivated = m_activated_colour;
+	const auto previousIncompatible = m_incompatible_colour;
+	m_default_colour = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+	m_activated_colour = wxSystemSettings::SelectLightDark(wxColour(0x00, 0x80, 0x00), wxColour(0x42, 0xB3, 0x42));
+	m_incompatible_colour = wxSystemSettings::SelectLightDark(wxColour(0xCC, 0x00, 0x00), wxColour(0xDE, 0x49, 0x49));
+
+	std::vector<wxTreeItemId> nodes;
+	const auto root = m_graphic_pack_tree->GetRootItem();
+	if (root.IsOk())
+		GetChildren(root, nodes);
+	for (size_t i = 0; i < nodes.size(); ++i)
+	{
+		const auto node = nodes[i];
+		const auto color = m_graphic_pack_tree->GetItemTextColour(node);
+		m_graphic_pack_tree->SetItemTextColour(node, color == previousActivated ? m_activated_colour :
+			(color == previousIncompatible ? m_incompatible_colour : m_default_colour));
+		GetChildren(node, nodes);
+	}
+
+	const auto link = wxSystemSettings::SelectLightDark(wxColour(0x00, 0x55, 0xAA), wxColour(0x80, 0xBD, 0xFF));
+	m_download_from_url->SetNormalColour(link);
+	m_download_from_url->SetHoverColour(link);
+	m_download_from_url->SetVisitedColour(wxSystemSettings::SelectLightDark(wxColour(0x70, 0x36, 0x9B), wxColour(0xCC, 0xA9, 0xFF)));
+	Refresh();
 }
 
 void GraphicPacksWindow2::SaveStateToConfig()
