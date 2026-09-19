@@ -176,6 +176,10 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 
 	m_tooltip_timer = new wxTimer(this);
 
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter([this] { UpdateItemColors(); Refresh(); });
+	});
 	Bind(wxEVT_CLOSE_WINDOW, &wxGameList::OnClose, this);
 	Bind(wxEVT_MOTION, &wxGameList::OnMouseMove, this);
 	Bind(wxEVT_LIST_KEY_DOWN, &wxGameList::OnKeyDown, this);
@@ -445,23 +449,26 @@ long wxGameList::GetStyleFlags(Style style) const
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
     wxWindowUpdateLocker lock(this);
+	const auto primaryColor = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+	const auto alternateColor = wxHelper::CalculateAccentColour(primaryColor);
+	const auto favoriteColor = wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48));
 
     for (int i = startIndex; i < GetItemCount(); ++i)
     {
         const uint64 titleId = GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))
 		{
-			SetItemBackgroundColour(i, kFavoriteColor);
+			SetItemBackgroundColour(i, favoriteColor);
 			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else if ((i % 2) != 0)
 		{
-            SetItemBackgroundColour(i, kPrimaryColor);
+            SetItemBackgroundColour(i, primaryColor);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else
 		{
-            SetItemBackgroundColour(i, kAlternateColor);
+            SetItemBackgroundColour(i, alternateColor);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 	}
