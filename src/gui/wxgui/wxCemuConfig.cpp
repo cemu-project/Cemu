@@ -61,7 +61,7 @@ void wxCemuConfig::Load(XMLConfigParser& parser)
 
 	// return default width if value in config file out of range
 	auto loadColumnSize = [&gamelist](const char* name, uint32 defaultWidth) {
-		sint64 val = gamelist.get(name, DefaultColumnSize::name);
+		sint64 val = gamelist.get(name, defaultWidth);
 		if (val < 0 || val > (sint64)std::numeric_limits<uint32>::max)
 			return defaultWidth;
 		return static_cast<uint32>(val);
