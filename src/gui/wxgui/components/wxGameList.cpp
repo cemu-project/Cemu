@@ -156,9 +156,9 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
 	if(config.show_icon_column)
-		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, GetColumnDefaultWidth(ColumnIcon));
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_CENTER, GetColumnDefaultWidth(ColumnIcon));
 	else
-		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, 0);
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_CENTER, 0);
 	InsertColumn(ColumnName, _("Game"), wxLIST_FORMAT_LEFT, config.column_width.name);
 	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_LEFT, config.column_width.version);
 	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_LEFT, config.column_width.dlc);
