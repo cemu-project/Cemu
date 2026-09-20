@@ -2,10 +2,10 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "GX2.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 
+#include "GX2_Shader.h"
 #include "GX2_Command.h"
 #include "GX2_State.h"
 #include "Cafe/CafeSystem.h"
@@ -212,6 +212,8 @@ void _GX2Context_WriteCmdRestoreState(GX2ContextState_t* gx2ContextState, uint32
 void GX2SetDefaultState()
 {
 	GX2::GX2ReserveCmdSpace(0x100);
+
+	GX2::GX2SetShaderModeEx(GX2::GX2_SHADER_MODE::UNIFORM_REGISTER, 48, 64, 0, 0, 200, 192);
 
 	Latte::LATTE_PA_CL_VTE_CNTL reg{};
 	reg.set_VPORT_X_OFFSET_ENA(true).set_VPORT_X_SCALE_ENA(true);

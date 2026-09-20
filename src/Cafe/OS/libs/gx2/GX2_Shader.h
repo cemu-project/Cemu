@@ -36,6 +36,8 @@ namespace GX2
 		COMPUTE_SHADER = 3,
 	};
 
+	void GX2SetShaderModeEx(GX2_SHADER_MODE mode, uint32 shaderGprsVS, uint32 shaderStackVS, uint32 shaderGprsGS, uint32 shaderStackGS, uint32 shaderGprsPS, uint32 shaderStackPS);
+
 	void GX2ShaderInit();
 }
 
