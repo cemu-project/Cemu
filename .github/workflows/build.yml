@@ -205,7 +205,7 @@ jobs:
         path: ./src/resource/cemu-${{ inputs.next_version_major }}.${{ inputs.next_version_minor }}-windows-x64-installer.exe
 
   build-macos:
-    runs-on: macos-14
+    runs-on: macos-15
     strategy:
       fail-fast: false
       matrix:
@@ -234,7 +234,7 @@ jobs:
         brew uninstall bicep
         brew untap aws/tap azure/bicep
         brew update
-        brew install nasm automake libtool
+        brew install nasm automake libtool mono
 
     - name: "Install molten-vk"
       run: |
