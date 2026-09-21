@@ -991,7 +991,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	const auto& config = GetWxGUIConfig();
 	wxWindowUpdateLocker lock(this);
 	if(config.show_icon_column)
-		SetColumnWidth(ColumnIcon, GetItemCount() ? wxLIST_AUTOSIZE : GetColumnDefaultWidth(ColumnIcon));
+		SetColumnWidth(ColumnIcon, GetColumnDefaultWidth(ColumnIcon));
 	else
 		SetColumnWidth(ColumnIcon, 0);
 	SetColumnWidth(ColumnName, config.column_width.name);
@@ -1208,8 +1208,6 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 	if (hasAnyNewEntry)
 	{
 		UpdateItemColors();
-		if (m_style == Style::kList && GetWxGUIConfig().show_icon_column)
-			SetColumnWidth(ColumnIcon, wxLIST_AUTOSIZE);
 	}
 
 	if (m_pendingSelection)
