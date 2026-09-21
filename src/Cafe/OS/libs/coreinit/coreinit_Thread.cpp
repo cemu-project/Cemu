@@ -969,7 +969,7 @@ namespace coreinit
 	{
 		if (newPriority < 0 || newPriority >= 0x20)
 		{
-			cemu_assert_debug(false);
+			cemuLog_log(LogType::APIErrors, "OSSetThreadPriority: Thread priority must be in range 0-31");
 			return false; // invalid priority value
 		}
 		__OSLockScheduler();

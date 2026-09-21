@@ -1388,7 +1388,7 @@ void nsysnetExport_gethostbyname(PPCInterpreter_t* hCPU)
 SysAllocator<wu_hostent> _staticHostent;
 SysAllocator<char, 256> _staticHostentName;
 SysAllocator<MPTR, 32> _staticHostentPtrList;
-SysAllocator<wu_in_addr> _staticHostentEntries;
+SysAllocator<wu_in_addr, 32> _staticHostentEntries;
 
 void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 {

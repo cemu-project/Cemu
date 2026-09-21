@@ -927,6 +927,7 @@ namespace nsyshid
 
 		replyBuf[0] = 'Q';
 		replyBuf[2] = block;
+		cemu_assert(block < (SKY_FIGURE_SIZE/16));
 		if (skylander.status & 1)
 		{
 			replyBuf[1] = (0x10 | skyNum);
@@ -938,8 +939,7 @@ namespace nsyshid
 		}
 	}
 
-	void SkylanderUSB::WriteBlock(uint8 skyNum, uint8 block,
-								  const uint8* toWriteBuf, uint8* replyBuf)
+	void SkylanderUSB::WriteBlock(uint8 skyNum, uint8 block, const uint8* toWriteBuf, uint8* replyBuf)
 	{
 		std::lock_guard lock(m_skyMutex);
 
@@ -947,7 +947,7 @@ namespace nsyshid
 
 		replyBuf[0] = 'W';
 		replyBuf[2] = block;
-
+		cemu_assert(block < (SKY_FIGURE_SIZE/16));
 		if (skylander.status & 1)
 		{
 			replyBuf[1] = (0x10 | skyNum);

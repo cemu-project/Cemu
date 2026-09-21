@@ -177,6 +177,8 @@ namespace iosu
 					T ReadType()
 					{
 						cemu_assert(!m_isOutput);
+						cemu_assert(headSize < 1024*1024*512 && middleSize < 1024*1024*512 && tailSize < 1024*1024*512);
+						cemu_assert((headSize + middleSize + tailSize) <= sizeof(T));
 						T v;
 						memcpy((uint8_t*)&v, headPtr, headSize);
 						memcpy((uint8_t*)&v + headSize, middlePtr, middleSize);
