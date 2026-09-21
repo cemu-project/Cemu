@@ -241,15 +241,9 @@ bool PPCRecompilerX64Gen_imlInstruction_fpr_store(PPCRecFunction_t* PPCRecFuncti
 				assert_dbg();
 			x64Gen_add_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
 		}
-		x64Gen_movsd_memReg64_xmmReg(x64GenContext, realRegisterXMM, REG_RESV_HCPU, offsetof(PPCInterpreter_t, temporaryFPR));
-		// store double low part	
-		x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, REG_RESV_HCPU, offsetof(PPCInterpreter_t, temporaryFPR)+0);
-		x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32+4, REG_RESV_TEMP);
-		// store double high part	
-		x64Emit_mov_reg64_mem32(x64GenContext, REG_RESV_TEMP, REG_RESV_HCPU, offsetof(PPCInterpreter_t, temporaryFPR)+4);
-		x64Gen_bswap_reg64Lower32bit(x64GenContext, REG_RESV_TEMP);
-		x64Gen_movTruncate_mem32Reg64PlusReg64_reg64(x64GenContext, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32+0, REG_RESV_TEMP);
+		x64Gen_movq_reg64_xmmReg(x64GenContext, REG_RESV_TEMP, realRegisterXMM);
+		x64GenContext->emitter->BSWAP_q(REG_RESV_TEMP);
+		x64Gen_mov_mem64Reg64PlusReg64_reg64(x64GenContext, REG_RESV_TEMP, REG_RESV_MEMBASE, realRegisterMem, imlInstruction->op_storeLoad.immS32);
 		if( indexed )
 		{
 			x64Gen_sub_reg64Low32_reg64Low32(x64GenContext, realRegisterMem, realRegisterMem2);
