@@ -253,14 +253,21 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		auto* sizer = new wxBoxSizer(wxVERTICAL);
 		{
 			m_gp_options = new wxScrolled<wxPanel>(m_right_panel, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL | wxNO_BORDER | wxVSCROLL);
-			m_gp_options->SetScrollRate(-1, 10);
+			m_gp_options->SetScrollRate(0, 10);
+			m_gp_options->ShowScrollbars(wxSHOW_SB_NEVER, wxSHOW_SB_DEFAULT);
+
+			long textStyle = wxST_NO_AUTORESIZE;
+#if wxCHECK_VERSION(3, 3, 2)
+			textStyle |= wxST_WRAP;
+#endif
 
 			auto* inner_sizer = new wxBoxSizer(wxVERTICAL);
 			{
 				auto* box = new wxStaticBox(m_gp_options, wxID_ANY, _("Graphic pack"));
 				auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
-				m_graphic_pack_name = new wxStaticText(box, wxID_ANY, wxEmptyString);
+				m_graphic_pack_name = new wxStaticText(box, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, textStyle);
+				m_graphic_pack_name->SetMinSize(wxSize(0, -1));
 				box_sizer->Add(m_graphic_pack_name, 1, wxEXPAND | wxALL, 5);
 
 				inner_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -270,7 +277,8 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 				auto* box = new wxStaticBox(m_gp_options, wxID_ANY, _("Description"));
 				auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
-				m_graphic_pack_description = new wxStaticText(box, wxID_ANY, wxEmptyString);
+				m_graphic_pack_description = new wxStaticText(box, wxID_ANY, wxEmptyString, wxDefaultPosition, wxDefaultSize, textStyle);
+				m_graphic_pack_description->SetMinSize(wxSize(0, -1));
 				box_sizer->Add(m_graphic_pack_description, 1, wxEXPAND | wxALL, 5);
 
 				inner_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
@@ -302,7 +310,7 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		
 		sizer->Add(new wxStaticLine(m_right_panel, wxID_ANY), 0, wxLEFT|wxRIGHT | wxEXPAND, 3);
 
-		auto* row = new wxBoxSizer(wxHORIZONTAL);
+		auto* row = new wxWrapSizer(wxHORIZONTAL, 0);
 		
 		m_update_graphicPacks = new wxButton(m_right_panel, wxID_ANY, _("Download latest community graphic packs"));
 		m_update_graphicPacks->Bind(wxEVT_BUTTON, &GraphicPacksWindow2::OnCheckForUpdates, this);
@@ -336,6 +344,13 @@ GraphicPacksWindow2::GraphicPacksWindow2(wxWindow* parent, uint64_t title_id_fil
 		event.Skip();
 		CallAfter(&GraphicPacksWindow2::UpdateAppearance);
 	});
+}
+
+void GraphicPacksWindow2::UpdateOptionsLayout()
+{
+	m_right_panel->Layout();
+	m_gp_options->Layout();
+	m_gp_options->FitInside();
 }
 
 void GraphicPacksWindow2::UpdateAppearance()
@@ -439,6 +454,7 @@ void GraphicPacksWindow2::LoadPresetSelections(const GraphicPackPtr& gp)
 		auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
 		auto* preset = new wxChoice(box, wxID_ANY);
+		preset->SetMinSize(wxSize(0, -1));
 		preset->SetClientObject(new wxStringClientData(categoryWxStr));
 		preset->Bind(wxEVT_CHOICE, &GraphicPacksWindow2::OnActivePresetChanged, this);
 
@@ -485,15 +501,10 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 			if (gp != m_shown_graphic_pack)
 			{
 				m_preset_sizer->Clear(true);
-				m_gp_name = gp->GetName();
-				m_graphic_pack_name->SetLabel(wxString::FromUTF8(m_gp_name));
-
-				if (gp->GetDescription().empty())
-					m_gp_description = _("This graphic pack has no description").utf8_string();
-				else
-					m_gp_description = gp->GetDescription();
-
-				m_graphic_pack_description->SetLabel(wxString::FromUTF8(m_gp_description));
+				m_graphic_pack_name->SetLabel(wxString::FromUTF8(gp->GetName()));
+				m_graphic_pack_description->SetLabel(gp->GetDescription().empty()
+					? _("This graphic pack has no description")
+					: wxString::FromUTF8(gp->GetDescription()));
 
 				LoadPresetSelections(gp);
 				
@@ -501,14 +512,7 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 
 				m_shown_graphic_pack = gp;
 
-				m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 20);
-				m_graphic_pack_name->GetGrandParent()->Layout();
-
-				m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 20);
-				m_graphic_pack_description->GetGrandParent()->Layout();
-
-				m_right_panel->FitInside();
-				m_right_panel->Layout();	
+				UpdateOptionsLayout();
 			}
 			return;
 		}
@@ -523,8 +527,7 @@ void GraphicPacksWindow2::OnTreeSelectionChanged(wxTreeEvent& event)
 	m_shown_graphic_pack.reset();
 
 	m_gp_options->Hide();
-	m_right_panel->FitInside();
-	m_right_panel->Layout();
+	UpdateOptionsLayout();
 }
 
 void GraphicPacksWindow2::OnTreeChoiceChanged(wxTreeEvent& event)
@@ -620,10 +623,7 @@ void GraphicPacksWindow2::OnActivePresetChanged(wxCommandEvent& event)
 		wxWindowUpdateLocker lock(this);
 		ClearPresets();
 		LoadPresetSelections(m_shown_graphic_pack);
-		//m_preset_sizer->GetContainingWindow()->Layout();
-		//m_right_panel->FitInside();
-		m_right_panel->FitInside();
-		m_right_panel->Layout();
+		UpdateOptionsLayout();
 	}
 
 	if (!m_shown_graphic_pack->RequiresRestart(false, true))
@@ -693,15 +693,6 @@ void GraphicPacksWindow2::OnSizeChanged(wxSizeEvent& event)
 
 	const auto width = std::max(obj->GetMinimumPaneSize(), obj->GetParent()->GetClientSize().GetWidth());
 	obj->SetSashPosition((sint32)(m_ratio * width));
-
-	if (!m_gp_name.empty())
-		m_graphic_pack_name->SetLabel(wxString::FromUTF8(m_gp_name));
-
-	if (!m_gp_description.empty())
-		m_graphic_pack_description->SetLabel(wxString::FromUTF8(m_gp_description));
-
-	m_graphic_pack_name->Wrap(m_graphic_pack_name->GetParent()->GetClientSize().GetWidth() - 10);
-	m_graphic_pack_description->Wrap(m_graphic_pack_description->GetParent()->GetClientSize().GetWidth() - 10);
 
 	event.Skip();
 }
