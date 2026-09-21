@@ -125,6 +125,7 @@ bool _isIntegerInstruction(const LatteDecompilerALUInstruction& aluInstruction)
 		case ALU_OP2_INST_KILLE:
 		case ALU_OP2_INST_KILLGT:
 		case ALU_OP2_INST_KILLGE:
+		case ALU_OP2_INST_RECIP_CLAMPED:
 		case ALU_OP2_INST_RECIP_FF:
 		case ALU_OP2_INST_RECIP_IEEE:
 		case ALU_OP2_INST_RECIPSQRT_CLAMPED:

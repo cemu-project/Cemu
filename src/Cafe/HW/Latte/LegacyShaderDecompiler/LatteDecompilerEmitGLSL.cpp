@@ -1189,6 +1189,19 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 		_emitTypeConversionSuffix(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
 		src->add(";" _CRLF);
 	}
+	else if (aluInstruction->opcode == ALU_OP2_INST_RECIP_CLAMPED)
+	{
+		src->add("tempResultf = 1.0 / (");
+		_emitOperandInputCode(shaderContext, aluInstruction, 0, LATTE_DECOMPILER_DTYPE_FLOAT);
+		src->add(");" _CRLF);
+		src->add("if (isinf(tempResultf)) tempResultf = uintBitsToFloat((floatBitsToUint(tempResultf) & 0x80000000u) | 0x7f7fffffu);" _CRLF);
+		_emitInstructionOutputVariableName(shaderContext, aluInstruction);
+		src->add(" = ");
+		_emitTypeConversionPrefix(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
+		src->add("tempResultf");
+		_emitTypeConversionSuffix(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, outputType);
+		src->add(";" _CRLF);
+	}
 	else if (aluInstruction->opcode == ALU_OP2_INST_RECIP_FF)
 	{
 		// untested (BotW bombs)

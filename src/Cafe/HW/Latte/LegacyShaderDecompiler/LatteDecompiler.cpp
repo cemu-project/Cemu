@@ -302,6 +302,7 @@ bool LatteDecompiler_IsALUTransInstruction(bool isOP3, uint32 opcode)
 
 	if( opcode == ALU_OP2_INST_COS ||
 		opcode == ALU_OP2_INST_SIN ||
+		opcode == ALU_OP2_INST_RECIP_CLAMPED ||
 		opcode == ALU_OP2_INST_RECIP_FF ||
 		opcode == ALU_OP2_INST_RECIP_IEEE ||
 		opcode == ALU_OP2_INST_RECIPSQRT_IEEE ||
