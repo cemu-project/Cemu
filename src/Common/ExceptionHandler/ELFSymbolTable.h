@@ -15,17 +15,16 @@ private:
 
 	Elf64_Ehdr* header = nullptr;
 
-	Elf64_Shdr* shTable = nullptr;
-	char* shStrTable = nullptr;
+	std::span<Elf64_Shdr> shTable{};
+	std::span<char> shStrTable{};
 
-	Elf64_Sym* symTable = nullptr;
-	uint64 symTableLen = 0;
-	char* strTable = nullptr;
+	std::span<Elf64_Sym> symTable{};
+	std::span<char> strTable{};
 
-	uint16 FindSection(int type, const std::string_view& name);
+	Elf64_Shdr* FindSection(Elf64_Word type, const std::string_view& name);
 
-	void* SectionPointer (uint16 index);
-	void* SectionPointer(const Elf64_Shdr& section);
+	template <typename T>
+	std::span<T> SectionAsArray(const Elf64_Shdr* section);
 
 	// ownership of mapped memory, cannot copy.
 	ELFSymbolTable(const ELFSymbolTable&) = delete;
