@@ -117,10 +117,11 @@ DisasmCtrl::DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& po
 {
 	Init();
 
-	if (!g_ipArrowBitmap.has_value())
-	{
-		InitSyntaxColors();
-	}
+	InitSyntaxColors();
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter([this] { InitSyntaxColors(); Refresh(); });
+	});
 
 	auto tooltip_sizer = new wxBoxSizer(wxVERTICAL);
 	tooltip_sizer->Add(new wxStaticText(m_tooltip_window, wxID_ANY, wxEmptyString), 0, wxALL, 5);

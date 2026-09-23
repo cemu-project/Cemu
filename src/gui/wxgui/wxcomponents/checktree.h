@@ -63,6 +63,8 @@ class WXDLLIMPEXP_CHECKTREE wxCheckTree : public wxTreeCtrl
 		};
 
     private:
+        void UpdateCheckBoxImages();
+
         //event handlers
 		void On_Tree_Sel_Changed( wxTreeEvent& event );
 

@@ -156,9 +156,9 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 
 	InsertColumn(ColumnHiddenName, "", wxLIST_FORMAT_LEFT, 0);
 	if(config.show_icon_column)
-		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, GetColumnDefaultWidth(ColumnIcon));
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_CENTER, GetColumnDefaultWidth(ColumnIcon));
 	else
-		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_LEFT, 0);
+		InsertColumn(ColumnIcon, _("Icon"), wxLIST_FORMAT_CENTER, 0);
 	InsertColumn(ColumnName, _("Game"), wxLIST_FORMAT_LEFT, config.column_width.name);
 	InsertColumn(ColumnVersion, _("Version"), wxLIST_FORMAT_LEFT, config.column_width.version);
 	InsertColumn(ColumnDLC, _("DLC"), wxLIST_FORMAT_LEFT, config.column_width.dlc);
@@ -176,6 +176,10 @@ wxGameList::wxGameList(wxWindow* parent, wxWindowID id)
 
 	m_tooltip_timer = new wxTimer(this);
 
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter([this] { UpdateItemColors(); Refresh(); });
+	});
 	Bind(wxEVT_CLOSE_WINDOW, &wxGameList::OnClose, this);
 	Bind(wxEVT_MOTION, &wxGameList::OnMouseMove, this);
 	Bind(wxEVT_LIST_KEY_DOWN, &wxGameList::OnKeyDown, this);
@@ -392,16 +396,12 @@ void wxGameList::SetStyle(Style style, bool save)
 
 	wxWindowUpdateLocker updatelock(this);
 
+	const auto selection = GetFirstSelected();
+	if (selection != wxNOT_FOUND)
+		m_pendingSelection = static_cast<TitleId>(GetItemData(selection));
+
 	m_style = style;
 	SetWindowStyleFlag(GetStyleFlags(m_style));
-
-	uint64 selected_title_id = 0;
-	auto selection = GetFirstSelected();
-	if (selection != wxNOT_FOUND)
-	{
-		selected_title_id = (uint64)GetItemData(selection);
-		selection = wxNOT_FOUND;
-	}
 
 	switch(style)
 	{
@@ -420,12 +420,6 @@ void wxGameList::SetStyle(Style style, bool save)
 	SortEntries();
 	UpdateItemColors();
 
-	if(selection != wxNOT_FOUND)
-	{
-		Select(selection);
-		Focus(selection);
-	}
-
 	if(save)
 	{
 		GetWxGUIConfig().game_list_style = (int)m_style;
@@ -443,9 +437,9 @@ long wxGameList::GetStyleFlags(Style style) const
 	case Style::kList:
 		return (wxLC_SINGLE_SEL | wxLC_VRULES | wxLC_REPORT);
 	case Style::kIcons:
-		return (wxLC_SINGLE_SEL | wxLC_ICON);
+		return (wxLC_SINGLE_SEL | wxLC_ICON | wxLC_ALIGN_TOP | wxLC_AUTOARRANGE);
 	case Style::kSmallIcons:
-		return (wxLC_SINGLE_SEL | wxLC_ICON);
+		return (wxLC_SINGLE_SEL | wxLC_ICON | wxLC_ALIGN_TOP | wxLC_AUTOARRANGE);
 	default:
 		wxASSERT(false);
 		return (wxLC_SINGLE_SEL | wxLC_REPORT);
@@ -455,23 +449,26 @@ long wxGameList::GetStyleFlags(Style style) const
 void wxGameList::UpdateItemColors(sint32 startIndex)
 {
     wxWindowUpdateLocker lock(this);
+	const auto primaryColor = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOW);
+	const auto alternateColor = wxHelper::CalculateAccentColour(primaryColor);
+	const auto favoriteColor = wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48));
 
     for (int i = startIndex; i < GetItemCount(); ++i)
     {
         const uint64 titleId = GetItemData(i);
 		if (GetConfig().IsGameListFavorite(titleId))
 		{
-			SetItemBackgroundColour(i, kFavoriteColor);
+			SetItemBackgroundColour(i, favoriteColor);
 			SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else if ((i % 2) != 0)
 		{
-            SetItemBackgroundColour(i, kPrimaryColor);
+            SetItemBackgroundColour(i, primaryColor);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 		else
 		{
-            SetItemBackgroundColour(i, kAlternateColor);
+            SetItemBackgroundColour(i, alternateColor);
             SetItemTextColour(i, wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
 		}
 	}
@@ -993,7 +990,7 @@ void wxGameList::ApplyGameListColumnWidths()
 	const auto& config = GetWxGUIConfig();
 	wxWindowUpdateLocker lock(this);
 	if(config.show_icon_column)
-		SetColumnWidth(ColumnIcon, kListIconWidth+2);
+		SetColumnWidth(ColumnIcon, GetColumnDefaultWidth(ColumnIcon));
 	else
 		SetColumnWidth(ColumnIcon, 0);
 	SetColumnWidth(ColumnName, config.column_width.name);
@@ -1129,8 +1126,8 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 		TitleId baseTitleId = gameInfo.GetBaseTitleId();
 		bool isNewEntry = false;
 
-		int icon = -1; /* 0 is the default empty icon */
-		int icon_small = -1; /* 0 is the default empty icon */
+		int icon = 0;
+		int icon_small = 0;
 		QueryIconForTitle(baseTitleId, icon, icon_small);
 
 		bool entryAlreadyExists = false;
@@ -1138,7 +1135,9 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 		if(!entryAlreadyExists)
 		{
 			// entry doesn't exist
-			index = InsertItem(index, wxString::FromUTF8(GetNameByTitleId(baseTitleId)));
+			const int initialImage = m_style == Style::kList ? -1 :
+				(m_style == Style::kIcons ? icon : icon_small);
+			index = InsertItem(index, wxString::FromUTF8(GetNameByTitleId(baseTitleId)), initialImage);
 			SetItemPtrData(index, baseTitleId);
 			isNewEntry = true;
 			hasAnyNewEntry = true;
@@ -1206,7 +1205,21 @@ void wxGameList::OnTimerBulkAddEntriesToGameList(wxTimerEvent& event)
 		}
 	}
 	if (hasAnyNewEntry)
+	{
 		UpdateItemColors();
+	}
+
+	if (m_pendingSelection)
+	{
+		const auto selection = FindListItemByTitleId(*m_pendingSelection);
+		if (selection != wxNOT_FOUND)
+		{
+			Select(selection);
+			Focus(selection);
+			EnsureVisible(selection);
+			m_pendingSelection.reset();
+		}
+	}
 }
 
 void wxGameList::OnGameEntryUpdatedByTitleId(wxTitleIdEvent& event)

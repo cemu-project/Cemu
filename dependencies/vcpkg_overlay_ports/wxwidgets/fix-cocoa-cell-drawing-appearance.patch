@@ -1,0 +1,40 @@
+--- a/src/osx/cocoa/renderer.mm
++++ b/src/osx/cocoa/renderer.mm
+@@ -729,15 +729,28 @@
+         NSGraphicsContext.currentContext = [NSGraphicsContext graphicsContextWithCGContext:cgContext
+                                                    flipped:YES];
+ 
+-        [cell drawWithFrame:controlRect inView:(NSView*) win->GetHandle()];
+-        if (flags & wxCONTROL_FOCUSED)
+-        {
+-            NSSetFocusRingStyle(NSFocusRingOnly);
+-            // we must draw into a separate layer, otherwise every single subcell eg in a combobox
+-            // will have its own focus rect drawn
+-            CGContextBeginTransparencyLayerWithRect(cgContext, NSRectToCGRect(controlRect), nullptr);
+-            [cell drawFocusRingMaskWithFrame:controlRect inView:(NSView*) win->GetHandle()];
+-            CGContextEndTransparencyLayer(cgContext);
++        const auto drawCell = [&]()
++        {
++            [cell drawWithFrame:controlRect inView:(NSView*) win->GetHandle()];
++            if (flags & wxCONTROL_FOCUSED)
++            {
++                NSSetFocusRingStyle(NSFocusRingOnly);
++                CGContextBeginTransparencyLayerWithRect(cgContext, NSRectToCGRect(controlRect), nullptr);
++                [cell drawFocusRingMaskWithFrame:controlRect inView:(NSView*) win->GetHandle()];
++                CGContextEndTransparencyLayer(cgContext);
++            }
++        };
++#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 110000
++        if ( WX_IS_MACOS_AVAILABLE(11, 0) )
++        {
++            [[(NSView*) win->GetHandle() effectiveAppearance]
++                performAsCurrentDrawingAppearance:^{ drawCell(); }];
++        }
++        else
++#endif
++        {
++            wxOSXEffectiveAppearanceSetter appearance;
++            drawCell();
+         }
+ 
+         NSGraphicsContext.currentContext = formerContext;
