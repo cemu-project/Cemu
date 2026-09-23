@@ -757,7 +757,7 @@ void wxTitleManagerList::OnContextMenu(wxContextMenuEvent& event)
 		return;
 	
 	wxMenu menu;
-	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxTitleManagerList::OnContextMenuSelected, this);
+	menu.Bind(wxEVT_MENU, &wxTitleManagerList::OnContextMenuSelected, this);
 
 	const auto selection = GetFirstSelected();
 	if (selection == wxNOT_FOUND)

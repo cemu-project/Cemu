@@ -642,7 +642,7 @@ void wxGameList::OnContextMenu(wxContextMenuEvent& event)
 	auto& config = GetConfig();
 
 	wxMenu menu;
-	menu.Bind(wxEVT_COMMAND_MENU_SELECTED, &wxGameList::OnContextMenuSelected, this);
+	menu.Bind(wxEVT_MENU, &wxGameList::OnContextMenuSelected, this);
 
 	const auto selection = GetFirstSelected();
 	if (selection != wxNOT_FOUND)
@@ -900,7 +900,7 @@ void wxGameList::OnColumnRightClick(wxListEvent& event)
 	menu.AppendCheckItem(ShowRegion, _("Show &region"))->Check(GetColumnWidth(ColumnRegion) > 0);
     menu.AppendCheckItem(ShowTitleId, _("Show &title ID"))->Check(GetColumnWidth(ColumnTitleID) > 0);
 
-	menu.Bind(wxEVT_COMMAND_MENU_SELECTED,
+	menu.Bind(wxEVT_MENU,
 		[this](wxCommandEvent& event) {
 			event.Skip();
 
