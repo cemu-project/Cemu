@@ -65,5 +65,7 @@
 			<string>Viewer</string>
 		</dict>
 	</array>
+	<key>NSCameraUsageDescription</key>
+    <string>For Wii U Gamepad camera emulation</string>
 </dict>
 </plist>
