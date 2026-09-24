@@ -42,20 +42,54 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	auto& config = GetConfig();
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
-	auto* notebook = new wxNotebook(this, wxID_ANY);
+	m_notebook = new wxNotebook(this, wxID_ANY);
 
-	notebook->AddPage(AddSkylanderPage(notebook), _("Skylanders Portal"));
-	notebook->AddPage(AddInfinityPage(notebook), _("Infinity Base"));
-	notebook->AddPage(AddDimensionsPage(notebook), _("Dimensions Toypad"));
+	m_notebook->AddPage(AddSkylanderPage(m_notebook), _("Skylanders Portal"));
+	m_notebook->AddPage(AddInfinityPage(m_notebook), _("Infinity Base"));
+	m_notebook->AddPage(AddDimensionsPage(m_notebook), _("Dimensions Toypad"));
+	m_notebook->Bind(wxEVT_NOTEBOOK_PAGE_CHANGED, [this](wxBookCtrlEvent& event) {
+		UpdateWindowSizeForCurrentPage();
+		event.Skip();
+	});
 
-	sizer->Add(notebook, 1, wxEXPAND | wxALL, 2);
+	sizer->Add(m_notebook, 1, wxEXPAND | wxALL, 2);
 
-	SetSizerAndFit(sizer);
+	SetSizer(sizer);
+	sizer->Fit(this);
+	m_notebook->SetFitToCurrentPage(true);
+	UpdateWindowSizeForCurrentPage();
 	Layout();
 	Centre(wxBOTH);
 }
 
 EmulatedUSBDeviceFrame::~EmulatedUSBDeviceFrame() {}
+
+void EmulatedUSBDeviceFrame::UpdateWindowSizeForCurrentPage()
+{
+	if (!m_notebook || !GetSizer())
+		return;
+
+	m_notebook->InvalidateBestSize();
+
+	wxSize frameSize = GetSize();
+	const wxSize minSize = GetSizer()->ComputeFittingWindowSize(this);
+	SetMinSize(minSize);
+	bool shouldGrow = false;
+
+	if (frameSize.x < minSize.x)
+	{
+		frameSize.x = minSize.x;
+		shouldGrow = true;
+	}
+	if (frameSize.y < minSize.y)
+	{
+		frameSize.y = minSize.y;
+		shouldGrow = true;
+	}
+
+	if (shouldGrow)
+		SetSize(frameSize);
+}
 
 wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 {
@@ -177,7 +211,6 @@ wxBoxSizer* EmulatedUSBDeviceFrame::AddSkylanderRow(uint8 rowNumber, wxStaticBox
 	m_skylanderSlots[rowNumber] =
 		new wxTextCtrl(box, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize,
 					   wxTE_READONLY);
-	m_skylanderSlots[rowNumber]->SetMinSize(wxSize(150, -1));
 	m_skylanderSlots[rowNumber]->Disable();
 	row->Add(m_skylanderSlots[rowNumber], 1, wxEXPAND | wxALL, 2);
 	auto* loadButton = new wxButton(box, wxID_ANY, _("Load"));
@@ -207,7 +240,6 @@ wxBoxSizer* EmulatedUSBDeviceFrame::AddInfinityRow(wxString name, uint8 rowNumbe
 	m_infinitySlots[rowNumber] =
 		new wxTextCtrl(box, wxID_ANY, _("None"), wxDefaultPosition, wxDefaultSize,
 					   wxTE_READONLY);
-	m_infinitySlots[rowNumber]->SetMinSize(wxSize(150, -1));
 	m_infinitySlots[rowNumber]->Disable();
 	row->Add(m_infinitySlots[rowNumber], 1, wxALL | wxEXPAND, 5);
 	auto* loadButton = new wxButton(box, wxID_ANY, _("Load"));
