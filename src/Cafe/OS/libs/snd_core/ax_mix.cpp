@@ -629,9 +629,9 @@ namespace snd_core
 		}
 	}
 
-	sint32 AXVoiceMix_MergeInto(float* inputSamples, float* outputSamples, sint32 sampleCount, AXCHMIX_DEPR* mix, sint16 deltaI)
+	sint32 AXVoiceMix_MergeInto(float* inputSamples, float* outputSamples, sint32 sampleCount, AXCHMIX2* mix, sint16 deltaI)
 	{
-		float vol = (float)_swapEndianU16(mix->vol) / (float)0x8000;
+		float vol = (float)mix->vol / (float)0x8000;
 		if (deltaI != 0)
 		{
 			float delta = (float)deltaI / (float)0x8000;
@@ -650,7 +650,7 @@ namespace snd_core
 			}
 		}
 		uint16 volI = (uint16)(vol * 32768.0f);
-		mix->vol = _swapEndianU16(volI);
+		mix->vol = volI;
 		return volI;
 	}
 
@@ -818,15 +818,15 @@ namespace snd_core
 		{
 			for (sint32 channel = 0; channel < 6; channel++)
 			{
-				uint32 channelMixMask = (_swapEndianU16(internalShadowCopy->deviceMixMaskTV[busIndex]) >> (channel * 2)) & 3;
+				uint32 channelMixMask = (internalShadowCopy->deviceMixMaskTV[busIndex] >> (channel * 2)) & 3;
 				if (channelMixMask == 0)
 				{
 					internalShadowCopy->reserved1E8[busIndex*AX_TV_CHANNEL_COUNT + channel] = 0;
 					continue;
 				}
-				AXCHMIX_DEPR* mix = internalShadowCopy->deviceMixTV + channel * 4 + busIndex;
+				AXCHMIX2* mix = internalShadowCopy->deviceMixTV + channel * 4 + busIndex;
 				float* output = __AXMixBufferTV + (busIndex * 6 + channel) * samplesPerFrame;
-				AXVoiceMix_MergeInto(sampleData, output, sampleCount, mix, _swapEndianS16(mix->delta));
+				AXVoiceMix_MergeInto(sampleData, output, sampleCount, mix, mix->delta);
 				internalShadowCopy->reserved1E8[busIndex*AX_TV_CHANNEL_COUNT + channel] = mix->vol;
 			}
 		}
@@ -835,16 +835,16 @@ namespace snd_core
 		{
 			for (sint32 channel = 0; channel < AX_DRC_CHANNEL_COUNT; channel++)
 			{
-				uint32 channelMixMask = (_swapEndianU16(internalShadowCopy->deviceMixMaskDRC[busIndex]) >> (channel * 2)) & 3;
+				uint32 channelMixMask = (internalShadowCopy->deviceMixMaskDRC[busIndex] >> (channel * 2)) & 3;
 
 				if (channelMixMask == 0)
 				{
 					//internalShadowCopy->reserved1E8[busIndex*AX_DRC_CHANNEL_COUNT + channel] = 0;
 					continue;
 				}
-				AXCHMIX_DEPR* mix = internalShadowCopy->deviceMixDRC + channel * 4 + busIndex;
+				AXCHMIX2* mix = internalShadowCopy->deviceMixDRC + channel * 4 + busIndex;
 				float* output = __AXMixBufferDRC + (busIndex * AX_DRC_CHANNEL_COUNT + channel) * samplesPerFrame;
-				AXVoiceMix_MergeInto(sampleData, output, sampleCount, mix, _swapEndianS16(mix->delta));
+				AXVoiceMix_MergeInto(sampleData, output, sampleCount, mix, mix->delta);
 			}
 		}
 
