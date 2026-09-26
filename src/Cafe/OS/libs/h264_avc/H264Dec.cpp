@@ -459,10 +459,10 @@ namespace H264
 		coreinit::OSResetEvent(flushEvt);
 		session->QueueFlush();
 		coreinit::OSWaitEvent(flushEvt);
-		while(true)
+		while (true)
 		{
 			H264DecoderBackend::DecodeResult decodeResult;
-			if( !session->GetFrameOutputIfReady(decodeResult) )
+			if (!session->GetFrameOutputIfReady(decodeResult))
 				break;
 			// todo - output all frames in a single callback?
 			H264DoFrameOutputCallback(ctx, decodeResult);
@@ -667,12 +667,12 @@ namespace H264
 		if(ctx->decoderState.numFramesInFlight > numFramesToBuffer)
 		{
 			ctx->decoderState.numFramesInFlight--;
-			while(true)
+			while (true)
 			{
 				coreinit::OSEvent& evt = session->GetFrameOutputEvent();
 				coreinit::OSWaitEvent(&evt);
 				H264DecoderBackend::DecodeResult decodeResult;
-				if( !session->GetFrameOutputIfReady(decodeResult) )
+				if (!session->GetFrameOutputIfReady(decodeResult))
 					continue;
 				H264DoFrameOutputCallback(ctx, decodeResult);
 				break;
