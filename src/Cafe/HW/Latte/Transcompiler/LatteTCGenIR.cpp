@@ -2,7 +2,7 @@
 #include "Cafe/HW/Latte/ISA/LatteInstructions.h"
 #include "util/Zir/Core/ZpIRBuilder.h"
 
-void LatteTCGenIR::CF_CALL_FS_emitFetchAttribute(LatteParsedFetchShaderAttribute_t& attribute, Latte::GPRType dstGPR)
+void LatteTCGenIR::CF_CALL_FS_emitFetchAttribute(LatteParsedFetchShaderAttribute& attribute, Latte::GPRType dstGPR)
 {
 	auto irBuilder = m_irGenContext.irBuilder;
 
@@ -37,16 +37,16 @@ void LatteTCGenIR::CF_CALL_FS_emitFetchAttribute(LatteParsedFetchShaderAttribute
 			bool isSigned = attribute.isSigned;
 
 			// transform
-			LatteConst::VertexFetchFormat fmt = (LatteConst::VertexFetchFormat)attribute.format;
+			Latte::E_HWFMT fmt = (Latte::E_HWFMT)attribute.format;
 			LatteClauseInstruction_VTX::NUM_FORMAT_ALL nfa = (LatteClauseInstruction_VTX::NUM_FORMAT_ALL)attribute.nfa;
 
-			if (fmt == LatteConst::VertexFetchFormat::VTX_FMT_32_32_32_FLOAT ||
-				fmt == LatteConst::VertexFetchFormat::VTX_FMT_32_32_FLOAT)
+			if (fmt == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT ||
+				fmt == Latte::E_HWFMT::HWFMT_32_32_FLOAT)
 			{
 				uint32 numComp;
-				if (fmt == LatteConst::VertexFetchFormat::VTX_FMT_32_32_32_FLOAT)
+				if (fmt == Latte::E_HWFMT::HWFMT_32_32_32_FLOAT)
 					numComp = 3;
-				else if (fmt == LatteConst::VertexFetchFormat::VTX_FMT_32_32_FLOAT)
+				else if (fmt == Latte::E_HWFMT::HWFMT_32_32_FLOAT)
 					numComp = 2;
 				else
 				{
@@ -61,21 +61,21 @@ void LatteTCGenIR::CF_CALL_FS_emitFetchAttribute(LatteParsedFetchShaderAttribute
 				irBuilder->emit_RR(ZpIR::IR::OpCode::BITCAST, irBuilder->createReg(elementResult, ZpIR::DataType::F32), resultHolder);
 				resultHolder = elementResult;
 			}
-			else if (fmt == LatteConst::VertexFetchFormat::VTX_FMT_8_8_8_8)
+			else if (fmt == Latte::E_HWFMT::HWFMT_8_8_8_8)
 			{
 				uint32 numComp;
 				switch (fmt)
 				{
-				case LatteConst::VertexFetchFormat::VTX_FMT_8_8_8_8:
+				case Latte::E_HWFMT::HWFMT_8_8_8_8:
 					numComp = 4;
 					break;
-				case LatteConst::VertexFetchFormat::VTX_FMT_8_8_8:
+				case Latte::E_HWFMT::HWFMT_8_8_8:
 					numComp = 3;
 					break;
-				case LatteConst::VertexFetchFormat::VTX_FMT_8_8:
+				case Latte::E_HWFMT::HWFMT_8_8:
 					numComp = 2;
 					break;
-				case LatteConst::VertexFetchFormat::VTX_FMT_8:
+				case Latte::E_HWFMT::HWFMT_8:
 					numComp = 1;
 					break;
 				}

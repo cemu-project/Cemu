@@ -1240,7 +1240,7 @@ void nsysnetExport_select(PPCInterpreter_t* hCPU)
 				break;
 			}
 			// yield thread
-			PPCCore_switchToScheduler();
+			coreinit::OSSleepTicks(coreinit::EspressoTime::ConvertNsToTimerTicks(300000)); // sleep 0.3ms so we don't end up with a case where a single select loop starves all other CPU threads (seen in Just Dance 2018)
 		}
 		else
 		{

@@ -544,7 +544,7 @@ void LatteSHRC_UpdateVSBaseHash(uint8* vertexShaderPtr, uint32 vertexShaderSize,
 		{
       		for (sint32 g = 0; g < fetchShader->bufferGroups.size(); g++)
             {
-           	    LatteParsedFetchShaderBufferGroup_t& group = fetchShader->bufferGroups[g];
+           	    LatteParsedFetchShaderBufferGroup& group = fetchShader->bufferGroups[g];
           		uint32 bufferIndex = group.attributeBufferIndex;
           		uint32 bufferBaseRegisterIndex = mmSQ_VTX_ATTRIBUTE_BLOCK_START + bufferIndex * 7;
           		uint32 bufferStride = (LatteGPUState.contextRegister[bufferBaseRegisterIndex + 2] >> 11) & 0xFFFF;

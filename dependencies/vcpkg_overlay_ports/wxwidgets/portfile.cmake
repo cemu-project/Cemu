@@ -12,6 +12,11 @@ vcpkg_from_github(
         fix-pcre2.patch
         gtk3-link-libraries.patch
         sdl2.patch
+        fix-listctrl-icon-row-layout.patch
+        fix-listctrl-report-image-clipping.patch
+        fix-listctrl-inactive-selection-colour.patch
+        fix-treectrl-inactive-selection-colour.patch
+        fix-cocoa-cell-drawing-appearance.patch
 )
 
 # Submodule dependencies

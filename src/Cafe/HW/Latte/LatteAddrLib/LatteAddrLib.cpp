@@ -76,101 +76,99 @@ namespace LatteAddrLib
 		return std::bit_ceil<uint32>(dim);
 	}
 
-	uint32 GetBitsPerPixel(E_HWSURFFMT format, uint32* pElemMode, uint32* pExpandX, uint32* pExpandY)
+	uint32 GetBitsPerPixel(E_HWFMT format, uint32* pElemMode, uint32* pExpandX, uint32* pExpandY)
 	{
 		uint32 bpp;
 		uint32 elemMode = 3;
 		switch (format)
 		{
-		case E_HWSURFFMT::INVALID_FORMAT:
+		case E_HWFMT::INVALID_FORMAT:
 			bpp = 0;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_8:
-		case E_HWSURFFMT::HWFMT_4_4:
-		case E_HWSURFFMT::HWFMT_3_3_2:
+		case E_HWFMT::HWFMT_8:
+		case E_HWFMT::HWFMT_4_4:
+		case E_HWFMT::HWFMT_3_3_2:
 			bpp = 8;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_16:
-		case E_HWSURFFMT::HWFMT_16_FLOAT:
-		case E_HWSURFFMT::HWFMT_8_8:
-		case E_HWSURFFMT::HWFMT_5_6_5:
-		case E_HWSURFFMT::HWFMT_6_5_5:
-		case E_HWSURFFMT::HWFMT_1_5_5_5:
-		case E_HWSURFFMT::HWFMT_4_4_4_4:
+		case E_HWFMT::HWFMT_16:
+		case E_HWFMT::HWFMT_16_FLOAT:
+		case E_HWFMT::HWFMT_8_8:
+		case E_HWFMT::HWFMT_5_6_5:
+		case E_HWFMT::HWFMT_6_5_5:
+		case E_HWFMT::HWFMT_1_5_5_5:
+		case E_HWFMT::HWFMT_4_4_4_4:
 			bpp = 16;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_5_5_5_1:
+		case E_HWFMT::HWFMT_5_5_5_1:
 			bpp = 16;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_32:
-		case E_HWSURFFMT::HWFMT_32_FLOAT:
-		case E_HWSURFFMT::HWFMT_16_16:
-		case E_HWSURFFMT::HWFMT_16_16_FLOAT:
-		case E_HWSURFFMT::HWFMT_24_8:
-		case E_HWSURFFMT::HWFMT_24_8_FLOAT:
-		case E_HWSURFFMT::HWFMT_10_11_11:
-		case E_HWSURFFMT::HWFMT_11_11_10:
-		case E_HWSURFFMT::HWFMT_2_10_10_10:
-		case E_HWSURFFMT::HWFMT_8_8_8_8:
-		case E_HWSURFFMT::HWFMT_8_24:
-		case E_HWSURFFMT::HWFMT_8_24_FLOAT:
-		case E_HWSURFFMT::HWFMT_10_11_11_FLOAT:
-		case E_HWSURFFMT::HWFMT_11_11_10_FLOAT:
-		case E_HWSURFFMT::HWFMT_10_10_10_2:
+		case E_HWFMT::HWFMT_32:
+		case E_HWFMT::HWFMT_32_FLOAT:
+		case E_HWFMT::HWFMT_16_16:
+		case E_HWFMT::HWFMT_16_16_FLOAT:
+		case E_HWFMT::HWFMT_24_8:
+		case E_HWFMT::HWFMT_24_8_FLOAT:
+		case E_HWFMT::HWFMT_10_11_11:
+		case E_HWFMT::HWFMT_11_11_10:
+		case E_HWFMT::HWFMT_2_10_10_10:
+		case E_HWFMT::HWFMT_8_8_8_8:
+		case E_HWFMT::HWFMT_8_24:
+		case E_HWFMT::HWFMT_8_24_FLOAT:
+		case E_HWFMT::HWFMT_10_11_11_FLOAT:
+		case E_HWFMT::HWFMT_11_11_10_FLOAT:
+		case E_HWFMT::HWFMT_10_10_10_2:
 			bpp = 32;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_32_32:
-		case E_HWSURFFMT::HWFMT_32_32_FLOAT:
-		case E_HWSURFFMT::HWFMT_16_16_16_16:
-		case E_HWSURFFMT::HWFMT_16_16_16_16_FLOAT:
-		case E_HWSURFFMT::HWFMT_X24_8_32_FLOAT:
+		case E_HWFMT::HWFMT_32_32:
+		case E_HWFMT::HWFMT_32_32_FLOAT:
+		case E_HWFMT::HWFMT_16_16_16_16:
+		case E_HWFMT::HWFMT_16_16_16_16_FLOAT:
+		case E_HWFMT::HWFMT_X24_8_32_FLOAT:
 			bpp = 64;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_32_32_32_32:
-		case E_HWSURFFMT::HWFMT_32_32_32_32_FLOAT:
+		case E_HWFMT::HWFMT_32_32_32_32:
+		case E_HWFMT::HWFMT_32_32_32_32_FLOAT:
 			bpp = 128;
 			*pExpandX = 1;
 			*pExpandY = 1;
 			break;
-		case E_HWSURFFMT::HWFMT_BC1:
+		case E_HWFMT::HWFMT_BC1:
 			elemMode = 9;
 			bpp = 64;
 			*pExpandX = 4;
 			*pExpandY = 4;
 			break;
-		case E_HWSURFFMT::HWFMT_BC2:
+		case E_HWFMT::HWFMT_BC2:
 			elemMode = 10;
 			bpp = 128;
 			*pExpandX = 4;
 			*pExpandY = 4;
 			break;
-		case E_HWSURFFMT::HWFMT_BC3:
+		case E_HWFMT::HWFMT_BC3:
 			elemMode = 11;
 			bpp = 128;
 			*pExpandX = 4;
 			*pExpandY = 4;
 			break;
-		case E_HWSURFFMT::HWFMT_BC4:
+		case E_HWFMT::HWFMT_BC4:
 			elemMode = 12;
 			bpp = 64;
 			*pExpandX = 4;
 			*pExpandY = 4;
 			break;
-		case E_HWSURFFMT::HWFMT_BC5:
-		case E_HWSURFFMT::U_HWFMT_BC6:
-		case E_HWSURFFMT::U_HWFMT_BC7:
+		case E_HWFMT::HWFMT_BC5:
 			elemMode = 13;
 			bpp = 128;
 			*pExpandX = 4;
@@ -262,9 +260,9 @@ namespace LatteAddrLib
 		}
 	}
 
-	void ComputeMipLevelDimensions(uint32* pWidth, uint32* pHeight, uint32* pNumSlices, AddrSurfaceFlags flags, Latte::E_HWSURFFMT format, uint32 mipLevel)
+	void ComputeMipLevelDimensions(uint32* pWidth, uint32* pHeight, uint32* pNumSlices, AddrSurfaceFlags flags, Latte::E_HWFMT format, uint32 mipLevel)
 	{
-		bool isBCn = (uint32)format >= (uint32)Latte::E_HWSURFFMT::HWFMT_BC1 && (uint32)format <= (uint32)Latte::E_HWSURFFMT::U_HWFMT_BC7;
+		bool isBCn = (uint32)format >= (uint32)Latte::E_HWFMT::HWFMT_BC1 && (uint32)format <= (uint32)Latte::E_HWFMT::HWFMT_BC5;
 		if (isBCn && (mipLevel == 0 || flags.inputIsBase))
 		{
 			*pWidth = PowTwoAlign(*pWidth, 4);
@@ -302,7 +300,7 @@ namespace LatteAddrLib
 			width = std::max<uint32>(1, width);
 			height = std::max<uint32>(1, height);
 			slices = std::max<uint32>(1, slices);
-			if (format != E_HWSURFFMT::U_HWFMT_32_32_32 && format != E_HWSURFFMT::U_HWFMT_32_32_32_FLOAT)
+			if (format != E_HWFMT::HWFMT_32_32_32 && format != E_HWFMT::HWFMT_32_32_32_FLOAT)
 			{
 				width = NextPow2(width);
 				height = NextPow2(height);
@@ -948,7 +946,7 @@ namespace LatteAddrLib
 		uint32 expandY = 1;
 		cemu_assert_debug(pIn->tileIndex == 0 && pIn->pTileInfo == nullptr);
 		pOut->pixelBits = pIn->bpp;
-		if (pIn->format != E_HWSURFFMT::INVALID_FORMAT)
+		if (pIn->format != E_HWFMT::INVALID_FORMAT)
 		{
 			bpp = GetBitsPerPixel(pIn->format, &elemMode, &expandX, &expandY);
 			if (pIn->tileMode == E_HWTILEMODE::TM_LINEAR_ALIGNED && elemMode == 4 && expandX == 3)
@@ -971,7 +969,7 @@ namespace LatteAddrLib
 		pOut->bpp = pIn->bpp;
 		pOut->pixelPitch = pOut->pitch;
 		pOut->pixelHeight = pOut->height;
-		if (pIn->format != E_HWSURFFMT::INVALID_FORMAT && (!pIn->flags.linearWA || pIn->mipLevel == 0))
+		if (pIn->format != E_HWFMT::INVALID_FORMAT && (!pIn->flags.linearWA || pIn->mipLevel == 0))
 		{
 			RestoreSurfaceInfo(elemMode, expandX, expandY, &bpp, &pOut->pixelPitch, &pOut->pixelHeight);
 		}
@@ -1003,7 +1001,7 @@ namespace LatteAddrLib
 	void GX2CalculateSurfaceInfo(Latte::E_GX2SURFFMT surfaceFormat, uint32 surfaceWidth, uint32 surfaceHeight, uint32 surfaceDepth, E_DIM surfaceDim, E_GX2TILEMODE surfaceTileMode, uint32 surfaceAA, uint32 level, AddrSurfaceInfo_OUT* pSurfOut, bool optimizeForDepthBuffer, bool optimizeForScanBuffer)
 	{
 		AddrSurfaceInfo_IN surfInfoIn = { 0 };
-		Latte::E_HWSURFFMT hwFormat = Latte::GetHWFormat(surfaceFormat);
+		Latte::E_HWFMT hwFormat = Latte::GetHWFormat(surfaceFormat);
 		memset(pSurfOut, 0, sizeof(AddrSurfaceInfo_OUT));
 		pSurfOut->size = sizeof(AddrSurfaceInfo_OUT);
 		if (surfaceTileMode == E_GX2TILEMODE::TM_LINEAR_SPECIAL)

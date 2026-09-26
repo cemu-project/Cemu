@@ -1,0 +1,11 @@
+--- a/src/generic/listctrl.cpp
++++ b/src/generic/listctrl.cpp
+@@ -656,7 +656,7 @@
+         if ( hasFocus )
+             colText = *wxWHITE;
+         else
+-            colText = *wxBLACK;
++            colText = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXTEXT);
+ #else
+         colText = wxSystemSettings::GetColour(wxSYS_COLOUR_LISTBOXHIGHLIGHTTEXT);
+ #endif

@@ -164,6 +164,8 @@ MetalRenderer::MetalRenderer() : Renderer(RendererAPI::Metal)
     else
         m_vendor = GfxVendor::Generic;
 
+    m_selectedDeviceName = deviceName;
+
     // Feature support
     m_isAppleGPU = m_device->supportsFamily(MTL::GPUFamilyApple1);
     m_supportsFramebufferFetch = GetConfig().framebuffer_fetch.GetValue() ? m_device->supportsFamily(MTL::GPUFamilyApple2) : false;
@@ -963,7 +965,13 @@ void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, s
 
 LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView* textureView)
 {
-    size_t uploadSize = static_cast<LatteTextureMtl*>(textureView->baseTexture)->GetTexture()->allocatedSize();
+    auto* baseTexture = static_cast<LatteTextureMtl*>(textureView->baseTexture);
+    if (baseTexture->m_isAlternateFormat)
+    {
+        cemuLog_logDebug(LogType::Force, "Metal does not support readback of texture format 0x{:x}", (uint32)baseTexture->format);
+        return nullptr;
+    }
+    size_t uploadSize = baseTexture->GetTexture()->allocatedSize();
 
     if ((m_readbackBufferWriteOffset + uploadSize) > TEXTURE_READBACK_SIZE)
 	{
@@ -1011,12 +1019,14 @@ void MetalRenderer::bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint
     CopyBufferToBuffer(GetXfbRingBuffer(), srcOffset, m_memoryManager->GetBufferCache(), dstOffset, size, MTL::RenderStageVertex | MTL::RenderStageMesh, ALL_MTL_RENDER_STAGES);
 }
 
-void MetalRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
+void MetalRenderer::buffer_bindVertexBuffers(std::span<BindBufferParam> bindings)
 {
     cemu_assert_debug(!m_memoryManager->UseHostMemoryForCache());
-    cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
-
-    m_state.m_vertexBufferOffsets[bufferIndex] = offset;
+    for (const auto& binding : bindings)
+    {
+        cemu_assert_debug(binding.index < LATTE_MAX_VERTEX_BUFFERS);
+        m_state.m_vertexBufferOffsets[binding.index] = binding.bindOffset;
+    }
 }
 
 void MetalRenderer::buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size)

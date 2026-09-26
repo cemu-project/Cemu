@@ -45,8 +45,7 @@ uint32 RPLLoader_FindModuleOrHLEExport(uint32 moduleHandle, bool isData, const c
 uint32 RPLLoader_GetSDA1Base();
 uint32 RPLLoader_GetSDA2Base();
 
-sint32 RPLLoader_GetModuleCount();
-RPLModule** RPLLoader_GetModuleList();
+std::span<RPLModule*> RPLLoader_GetModuleList();
 RPLModule* RPLLoader_GetModuleByName(std::string_view name);
 
 MEMPTR<void> RPLLoader_AllocateCodeCaveMem(uint32 alignment, uint32 size);

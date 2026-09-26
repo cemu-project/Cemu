@@ -190,7 +190,6 @@ void LoadMainExecutable()
 		currentBaseApplicationHash = generateHashFromRawRPXData(baseRpxData, baseRpxSize);
 	}
 	free(baseRpxData);
-	debug_printf("RPXHash: 0x%08x\n", currentBaseApplicationHash);
 }
 
 fs::path getTitleSavePath()
@@ -1199,4 +1198,45 @@ namespace CafeSystem
 		return s_foregroundReturnStatus;
 	}
 
+
+	void DumpCurrentRPX()
+	{
+		if (!IsTitleRunning() || _pathToExecutable.empty())
+			return;
+		const fs::path dumpDirectory = ActiveSettings::GetUserDataPath("dump/rpx/{:016x}", GetForegroundTitleId());
+		std::error_code ec;
+		fs::create_directories(dumpDirectory, ec);
+		if (ec)
+		{
+			cemuLog_log(LogType::Force, "Failed to create RPX dump directory \"{}\": {}", _pathToUtf8(dumpDirectory), ec.message());
+			return;
+		}
+		auto dumpFile = [&dumpDirectory](const std::string& sourcePath)
+		{
+			auto fileData = fsc_extractFile(sourcePath.c_str());
+			if (!fileData)
+				return;
+			FileStream* fs = FileStream::createFile2(dumpDirectory / _utf8ToPath(sourcePath).filename());
+			if (!fs)
+				return;
+			fs->writeData(fileData->data(), (sint32)fileData->size());
+			delete fs;
+		};
+		// dump RPX
+		dumpFile(_pathToExecutable);
+		// dump RPLs
+		const std::string codeDirectory = _pathToExecutable.substr(0, _pathToExecutable.find_last_of('/') + 1);
+		sint32 fscStatus;
+		FSCVirtualFile* dirIterator = fsc_openDirIterator(codeDirectory.c_str(), &fscStatus);
+		if (dirIterator)
+		{
+			FSCDirEntry dirEntry;
+			while (fsc_nextDir(dirIterator, &dirEntry))
+			{
+				if (dirEntry.isFile && boost::iends_with(dirEntry.path, ".rpl"))
+					dumpFile(codeDirectory + dirEntry.path);
+			}
+			fsc_close(dirIterator);
+		}
+	}
 }

@@ -122,10 +122,10 @@ namespace NCrypto
 
 		for (size_t i = 0, j = 0; i < in_len;) 
 		{
-			uint32 a = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<int>(inputStr[i++])];
-			uint32 b = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<int>(inputStr[i++])];
-			uint32 c = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<int>(inputStr[i++])];
-			uint32 d = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<int>(inputStr[i++])];
+			uint32 a = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<uint8>(inputStr[i++])];
+			uint32 b = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<uint8>(inputStr[i++])];
+			uint32 c = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<uint8>(inputStr[i++])];
+			uint32 d = inputStr[i] == '=' ? 0 & i++ : kDecodingTable[static_cast<uint8>(inputStr[i++])];
 
 			uint32 triple = (a << 3 * 6) + (b << 2 * 6) + (c << 1 * 6) + (d << 0 * 6);
 
@@ -296,7 +296,7 @@ namespace NCrypto
 				cemu_assert_debug(extHeader->sectionTableEntrySize == 0x14);
 				for (uint32 i = 0; i < extHeader->sectionTableNumEntries; i++)
 				{
-					ETicketFileHeaderExtV1SectionHeader* sectHeader = (ETicketFileHeaderExtV1SectionHeader*)readStruct(0x2A4 + extHeader->sectionTableOffset, sizeof(ETicketFileHeaderExtV1SectionHeader));
+					ETicketFileHeaderExtV1SectionHeader* sectHeader = (ETicketFileHeaderExtV1SectionHeader*)readStruct(0x2A4 + extHeader->sectionTableOffset + i * extHeader->sectionTableEntrySize, sizeof(ETicketFileHeaderExtV1SectionHeader));
 					if (!sectHeader)
 						return false;
 					if (sectHeader->type == ETicketFileHeaderExtV1SectionHeader::SECTION_TYPE_CONTENT_RIGHTS)

@@ -800,6 +800,7 @@ void (*AES128_CBC_decrypt)(uint8* output, uint8* input, uint32 length, const uin
 // AES128-CTR encrypt/decrypt
 void AES128CTR_transform(uint8* data, sint32 length, uint8* key, uint8* nonceIv)
 {
+	cemu_assert_debug(length >= 0 && (length&15) == 0); // length must be a multiple of 16
 	for (sint32 i = 0; i < length; i += 16)
 	{
 		uint8* d = data + i;

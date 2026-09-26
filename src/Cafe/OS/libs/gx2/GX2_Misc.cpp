@@ -1,7 +1,6 @@
 #include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/OS/common/OSCommon.h"
 #include "GX2.h"
-#include "config/CemuConfig.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "config/ActiveSettings.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
@@ -12,6 +11,8 @@
 #include "GX2_Misc.h"
 #include "GX2_Memory.h"
 #include "GX2_Texture.h"
+
+#include "Cafe/HW/Latte/ISA/LatteReg.h"
 
 void gx2Export_GX2SetSwapInterval(PPCInterpreter_t* hCPU)
 {
@@ -270,37 +271,60 @@ namespace GX2
 		return 1;
 	}
 
-	void GX2Invalidate(uint32 invalidationFlags, MPTR invalidationAddr, uint32 invalidationSize)
+	void GX2Invalidate(GX2InvalidationFlag invalidationFlags, MPTR invalidationAddr, uint32 invalidationSize)
 	{
-		uint32 surfaceSyncFlags = 0;
+		Latte::E_COHER_CNTL coherCntl{};
 
-		if (invalidationFlags & 0x04)
-		{
-			// uniform block
-			surfaceSyncFlags |= 0x8800000;
-		}
-		if (invalidationFlags & 0x01)
-		{
-			// attribute data
-			surfaceSyncFlags |= 0x800000;
-		}
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_ATTRIB) || HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_TEXTURE))
+	        coherCntl |= Latte::E_COHER_CNTL::TC_ACTION_ENA;
 
-		if (invalidationFlags & 0x40)
-		{
-			// CPU cache
-			LatteBufferCache_notifyDCFlush(invalidationAddr, invalidationSize);
-		}
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_UNIFORM_BLOCK))
+	        coherCntl |= Latte::E_COHER_CNTL::TC_ACTION_ENA | Latte::E_COHER_CNTL::SH_ACTION_ENA;
 
-		if (surfaceSyncFlags != 0)
-		{
-			GX2ReserveCmdSpace(5);
-			// write PM4 command
-			gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SURFACE_SYNC, 4)); // IT_SURFACE_SYNC + 4 data dwords
-			gx2WriteGather_submitU32AsBE(surfaceSyncFlags);
-			gx2WriteGather_submitU32AsBE((invalidationSize + 0xFF) >> 8); // size
-			gx2WriteGather_submitU32AsBE(memory_virtualToPhysical(invalidationAddr) >> 8); // base address (divided by 0x100)
-			gx2WriteGather_submitU32AsBE(0x00000004); // poll interval
-		}
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_SHADER))
+	        coherCntl |= Latte::E_COHER_CNTL::SH_ACTION_ENA;
+
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_COLOR_BUFFER))
+	    {
+	        coherCntl |= Latte::E_COHER_CNTL::CB_ACTION_ENA | Latte::E_COHER_CNTL::CB_ALL_DEST_BASE_ENA;
+	    }
+
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_DEPTH_BUFFER))
+	        coherCntl |= Latte::E_COHER_CNTL::DB_ACTION_ENA | Latte::E_COHER_CNTL::DB_DEST_BASE_ENA;
+
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_STREAM_OUT))
+	    {
+	        coherCntl |= Latte::E_COHER_CNTL::SX_ACTION_ENA
+	                   | Latte::E_COHER_CNTL::SO0_DEST_BASE_ENA | Latte::E_COHER_CNTL::SO1_DEST_BASE_ENA
+	                   | Latte::E_COHER_CNTL::SO2_DEST_BASE_ENA | Latte::E_COHER_CNTL::SO3_DEST_BASE_ENA;
+	    }
+
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::GPU_EXPORT_BUFFER))
+	    {
+	        coherCntl |= Latte::E_COHER_CNTL::SX_ACTION_ENA
+	                   | Latte::E_COHER_CNTL::DB_ACTION_ENA
+	                   | Latte::E_COHER_CNTL::CB_ACTION_ENA
+	                   | Latte::E_COHER_CNTL::TC_ACTION_ENA
+	                   | Latte::E_COHER_CNTL::DEST_BASE_0_ENA;
+	    }
+
+	    if (HAS_FLAG(invalidationFlags, GX2InvalidationFlag::CPU))
+	        LatteBufferCache_notifyDCFlush(invalidationAddr, invalidationSize);
+
+	    if (coherCntl == static_cast<Latte::E_COHER_CNTL>(0))
+	        return; // no GPU-side invalidation
+
+	    coherCntl |= Latte::E_COHER_CNTL::ENGINE_ME;
+
+	    uint32 physicalAddr = memory_virtualToPhysical(invalidationAddr);
+	    uint32 sizeUnits = (invalidationSize == 0xFFFFFFFFu) ? 0x00FFFFFFu : ((invalidationSize + 0xFF) >> 8);
+
+	    GX2ReserveCmdSpace(5);
+	    gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_SURFACE_SYNC, 4));
+	    gx2WriteGather_submitU32AsBE(static_cast<uint32>(coherCntl));
+	    gx2WriteGather_submitU32AsBE(sizeUnits);
+	    gx2WriteGather_submitU32AsBE(physicalAddr >> 8);
+	    gx2WriteGather_submitU32AsBE(4u);
 	}
 
 	void GX2MiscInit()

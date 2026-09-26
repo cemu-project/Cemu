@@ -1,0 +1,112 @@
+--- a/src/generic/listctrl.cpp
++++ b/src/generic/listctrl.cpp
+@@ -3070,6 +3070,9 @@
+         return;
+     }
+ 
++    if ( m_dirty )
++        RecalculatePositionsAndRefresh();
++
+     // don't use m_linesPerPage directly as it might not be computed yet
+     const int pageSize = GetCountPerPage();
+     wxCHECK_RET( pageSize, wxT("should have non zero page size") );
+@@ -3083,6 +3086,50 @@
+     }
+ 
+     int keyCode = event.GetKeyCode();
++    if ( HasFlag(wxLC_ICON) && HasFlag(wxLC_ALIGN_TOP) )
++    {
++        const size_t count = GetItemCount();
++        size_t columns = 1;
++        while ( columns < count &&
++                GetLineRect(columns).y == GetLineRect(0).y )
++            ++columns;
++
++        size_t target = m_current;
++        switch ( keyCode )
++        {
++            case WXK_LEFT:
++                if ( m_current % columns != 0 )
++                    --target;
++                break;
++            case WXK_RIGHT:
++                if ( m_current % columns + 1 < columns && m_current + 1 < count )
++                    ++target;
++                break;
++            case WXK_UP:
++                if ( m_current >= columns )
++                    target -= columns;
++                break;
++            case WXK_DOWN:
++                if ( m_current / columns < (count - 1) / columns )
++                    target = wxMin(m_current + columns, count - 1);
++                break;
++            case WXK_PAGEUP:
++                target = m_current >= (size_t)pageSize ? m_current - pageSize : 0;
++                break;
++            case WXK_PAGEDOWN:
++                target = wxMin(m_current + pageSize, count - 1);
++                break;
++            default:
++                break;
++        }
++        if ( keyCode == WXK_LEFT || keyCode == WXK_RIGHT ||
++                keyCode == WXK_UP || keyCode == WXK_DOWN ||
++                keyCode == WXK_PAGEUP || keyCode == WXK_PAGEDOWN )
++        {
++            OnArrowChar(target, event);
++            return;
++        }
++    }
+     switch ( keyCode )
+     {
+         case WXK_UP:
+@@ -4074,6 +4121,48 @@
+                        GetListCtrl()->GetScrollPos(wxVERTICAL),
+                        true );
+     }
++    else if ( HasFlag(wxLC_ICON) && HasFlag(wxLC_ALIGN_TOP) )
++    {
++        int cellWidth = 1;
++        int cellHeight = 1;
++        for ( size_t i = 0; i < count; ++i )
++        {
++            GetLine(i)->CalculateSize(&dc, iconSpacing);
++            const wxSize size = GetLineSize(i);
++            cellWidth = wxMax(cellWidth, size.x);
++            cellHeight = wxMax(cellHeight, size.y);
++        }
++
++        const int pitch = cellWidth + MARGIN_BETWEEN_ROWS;
++        int availableWidth = clientWidth - 2 * EXTRA_BORDER_X;
++        int columns = wxMax(1, (availableWidth + MARGIN_BETWEEN_ROWS) / pitch);
++        int rows = (count + columns - 1) / columns;
++        if ( 2 * EXTRA_BORDER_Y + rows * cellHeight > clientHeight )
++        {
++            availableWidth -= wxSystemSettings::GetMetric(wxSYS_VSCROLL_X, this);
++            columns = wxMax(1, (availableWidth + MARGIN_BETWEEN_ROWS) / pitch);
++            rows = (count + columns - 1) / columns;
++        }
++
++        for ( size_t i = 0; i < count; ++i )
++        {
++            wxListLineData* line = GetLine(i);
++            line->SetPosition(EXTRA_BORDER_X + (i % columns) * pitch,
++                              EXTRA_BORDER_Y + (i / columns) * cellHeight,
++                              iconSpacing);
++            line->m_gi->ExtendWidth(cellWidth);
++        }
++
++        m_linesPerPage = columns * wxMax(1, (clientHeight - 2 * EXTRA_BORDER_Y) / cellHeight);
++        const int entireHeight = count ? 2 * EXTRA_BORDER_Y + rows * cellHeight : 0;
++        const int entireWidth = count && cellWidth > availableWidth
++                                   ? cellWidth + 2 * EXTRA_BORDER_X : 0;
++        GetListCtrl()->SetScrollbars(
++            SCROLL_UNIT_X, lineHeight,
++            (entireWidth + SCROLL_UNIT_X - 1) / SCROLL_UNIT_X,
++            (entireHeight + lineHeight - 1) / lineHeight,
++            0, GetListCtrl()->GetScrollPos(wxVERTICAL), true);
++    }
+     else // !report
+     {
+         // we have 3 different layout strategies: either layout all items

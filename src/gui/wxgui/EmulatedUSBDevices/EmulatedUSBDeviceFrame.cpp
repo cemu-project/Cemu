@@ -556,6 +556,7 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 			wxMessageDialog idError(this, "Error Converting Figure Number!", "Number Entered is Invalid");
 			idError.ShowModal();
 			this->EndModal(0);
+			return;
 		}
 		uint32 figNum = longFigNum & 0xFFFFFFFF;
 		auto figure = nsyshid::g_infinitybase.FindFigure(figNum);
@@ -565,7 +566,10 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 						   "BIN files (*.bin)|*.bin", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
 		if (saveFileDialog.ShowModal() == wxID_CANCEL)
+		{
 			this->EndModal(0);
+			return;
+		}
 
 		m_filePath = saveFileDialog.GetPath();
 
@@ -723,6 +727,7 @@ CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 			wxMessageDialog idError(this, "Error Converting Figure Number!", "Number Entered is Invalid");
 			idError.ShowModal();
 			this->EndModal(0);
+			return;
 		}
 		uint16 figNum = longFigNum & 0xFFFF;
 		auto figure = nsyshid::g_dimensionstoypad.FindFigure(figNum);
@@ -732,7 +737,10 @@ CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 						   "BIN files (*.bin)|*.bin", wxFD_SAVE | wxFD_OVERWRITE_PROMPT);
 
 		if (saveFileDialog.ShowModal() == wxID_CANCEL)
+		{
 			this->EndModal(0);
+			return;
+		}
 
 		m_filePath = saveFileDialog.GetPath();
 

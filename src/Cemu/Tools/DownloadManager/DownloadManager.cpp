@@ -283,7 +283,7 @@ void DownloadManager::loadTicketCache()
 			return;
 		}
 		uint64 ticketId = memReader.readBE<uint64>();
-		uint64 ticketVersion = memReader.readBE<uint32>();
+		uint32 ticketVersion = memReader.readBE<uint32>();
 		std::vector<uint8> eTicketData = memReader.readPODVector<uint8>();
 		std::vector<std::vector<uint8>> eTicketCerts;
 		uint8 certCount = memReader.readBE<uint8>();

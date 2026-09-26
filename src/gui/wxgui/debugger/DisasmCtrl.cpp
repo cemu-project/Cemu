@@ -117,10 +117,11 @@ DisasmCtrl::DisasmCtrl(wxWindow* parent, const wxWindowID& id, const wxPoint& po
 {
 	Init();
 
-	if (!g_ipArrowBitmap.has_value())
-	{
-		InitSyntaxColors();
-	}
+	InitSyntaxColors();
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter([this] { InitSyntaxColors(); Refresh(); });
+	});
 
 	auto tooltip_sizer = new wxBoxSizer(wxVERTICAL);
 	tooltip_sizer->Add(new wxStaticText(m_tooltip_window, wxID_ANY, wxEmptyString), 0, wxALL, 5);
@@ -598,7 +599,7 @@ void DisasmCtrl::OnKeyPressed(sint32 key_code, const wxPoint& position)
 				debugger_toggleExecuteBreakpoint(*optVirtualAddress);
 
 				wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
-				wxPostEvent(this->m_parent, evt);
+				wxPostEvent(this->GetParent(), evt);
 			}
 			return;
 		}
@@ -660,7 +661,7 @@ void DisasmCtrl::OnMouseDClick(const wxPoint& position, uint32 line)
 		debugger_toggleExecuteBreakpoint(virtualAddress);
 		RefreshLine(line);
 		wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
-		wxPostEvent(this->m_parent, evt);
+		wxPostEvent(this->GetParent(), evt);
 		return;
 	}
 	else if (pos.x <= OFFSET_ADDRESS + OFFSET_ADDRESS_RELATIVE + OFFSET_DISASSEMBLY)
@@ -747,21 +748,21 @@ void DisasmCtrl::OnContextMenuEntryClicked(wxCommandEvent& event)
 		{
 			debugger_toggleExecuteBreakpoint(m_contextMenuAddress);
 			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
-			wxPostEvent(this->m_parent, evt);
+			wxPostEvent(this->GetParent(), evt);
 			break;
 		}
 		case IDContextMenu_ToggleLoggingBreakpoint:
 		{
 			debugger_toggleLoggingBreakpoint(m_contextMenuAddress);
 			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE);
-			wxPostEvent(this->m_parent, evt);
+			wxPostEvent(this->GetParent(), evt);
 			break;
 		}
 		case IDContextMenu_RestoreOriginalInstructions:
 		{
 			debugger_removePatch(m_contextMenuAddress);
 			wxCommandEvent evt(wxEVT_BREAKPOINT_CHANGE); // This also refreshes the disassembly view
-			wxPostEvent(this->m_parent, evt);
+			wxPostEvent(this->GetParent(), evt);
 			break;
 		}
 		case IDContextMenu_CopyAddress:

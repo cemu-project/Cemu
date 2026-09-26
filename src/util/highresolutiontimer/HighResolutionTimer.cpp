@@ -1,5 +1,4 @@
 #include "util/highresolutiontimer/HighResolutionTimer.h"
-#include "Common/precompiled.h"
 
 HighResolutionTimer HighResolutionTimer::now()
 {
@@ -44,3 +43,48 @@ uint64 HighResolutionTimer::m_freq = []() -> uint64 {
     return (uint64)1000000000 / (uint64)pc.tv_nsec;
 #endif
 }();
+
+struct FrameBenchmarkHelper::Entry
+{
+	HRTick totalTicks{};
+	HRTick startTick{};
+};
+
+struct
+{
+	std::map<std::string, FrameBenchmarkHelper::Entry, std::less<>> m_entries;
+	uint32 m_frameCount{};
+}s_frameBenchmarkHelperState;
+
+FrameBenchmarkHelper::FrameBenchmarkHelper(std::string_view name)
+{
+	auto& entries = s_frameBenchmarkHelperState.m_entries;
+	auto it = entries.find(name);
+	if (it == entries.end())
+		it = entries.try_emplace(std::string(name)).first;
+	m_entry = &it->second;
+	m_entry->startTick = HighResolutionTimer::now().getTick();
+}
+
+FrameBenchmarkHelper::~FrameBenchmarkHelper()
+{
+	HRTick endTick = HighResolutionTimer::now().getTick();
+	m_entry->totalTicks += (endTick - m_entry->startTick);
+}
+
+void FrameBenchmarkHelper::FrameEnd()
+{
+	if (s_frameBenchmarkHelperState.m_entries.empty())
+		return;
+	s_frameBenchmarkHelperState.m_frameCount++;
+	if (s_frameBenchmarkHelperState.m_frameCount != 100)
+		return;
+	s_frameBenchmarkHelperState.m_frameCount = 0;
+	cemuLog_log(LogType::Force, "FrameBenchmarkHelper results (avg over last 100 frames):");
+	for (auto& [name, entry] : s_frameBenchmarkHelperState.m_entries)
+	{
+		double millisecondsPerFrame = HighResolutionTimer::getTimeDiff(0, entry.totalTicks) * 1000.0 / 100.0;
+		entry.totalTicks = 0;
+		cemuLog_log(LogType::Force, "  {}: {:.4f} ms/frame", name, millisecondsPerFrame);
+	}
+}

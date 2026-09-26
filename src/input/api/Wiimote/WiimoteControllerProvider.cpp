@@ -775,8 +775,9 @@ void WiimoteControllerProvider::rotate_ir(WiimoteState& wiimote_state)
 			continue;
 		// move to center, rotate and move back
 		dot.pos -= 0.5f;
-		dot.pos.x = (dot.pos.x * cos) + (dot.pos.y * (-sin));
-		dot.pos.y = (dot.pos.x * sin) + (dot.pos.y * cos);
+		auto tmp = dot.pos;
+		dot.pos.x = (tmp.x * cos) + (tmp.y * (-sin));
+		dot.pos.y = (tmp.x * sin) + (tmp.y * cos);
 		dot.pos += 0.5f;
 	}
 }

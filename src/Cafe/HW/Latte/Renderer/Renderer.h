@@ -54,6 +54,7 @@ public:
 	virtual ~Renderer() = default;
 
 	RendererAPI GetType() const { return m_rendererAPI; }
+	const std::string& GetDeviceName() { return m_selectedDeviceName; }
 
 	virtual void Initialize();
 	virtual void Shutdown();
@@ -81,6 +82,7 @@ public:
 	// flush control
 	virtual void Flush(bool waitIdle = false) = 0; // called when explicit flush is required (e.g. by imgui)
 	virtual void NotifyLatteCommandProcessorIdle() = 0; // called when command processor has no more commands available or when stalled
+	virtual void SurfaceSync(Latte::E_COHER_CNTL coher, MPTR address, uint32 size) {} // triggered by game via GX2Invalidate, can be utilized by the render backend as an optimization hint
 
 	// imgui
 	virtual bool ImguiBegin(bool mainWindow);
@@ -128,7 +130,15 @@ public:
 	virtual void bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size) = 0;
 	virtual void bufferCache_copyStreamoutToMainBuffer(uint32 srcOffset, uint32 dstOffset, uint32 size) = 0;
 
-	virtual void buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size) = 0;
+	struct BindBufferParam
+	{
+		uint8 index;
+		uint16 stride;
+		uint32 bindOffset;
+		uint32 bindSize;
+	};
+
+	virtual void buffer_bindVertexBuffers(std::span<BindBufferParam> bindings) = 0;
 	virtual void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) = 0;
 
 	// shader
@@ -165,6 +175,7 @@ protected:
 	virtual void GetVendorInformation() { }
 	RendererAPI m_rendererAPI;
 	GfxVendor m_vendor = GfxVendor::Generic;
+	std::string m_selectedDeviceName = "";
 
 	static uint8 SRGBComponentToRGB(uint8 ci);
 	static uint8 RGBComponentToSRGB(uint8 cli);

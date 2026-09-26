@@ -32,12 +32,12 @@ struct FPReg
 	{
 	}
 	const size_t index;
-	const VReg VReg;
-	const QReg QReg;
-	const DReg DReg;
-	const SReg SReg;
-	const HReg HReg;
-	const BReg BReg;
+	const ::VReg VReg;
+	const ::QReg QReg;
+	const ::DReg DReg;
+	const ::SReg SReg;
+	const ::HReg HReg;
+	const ::BReg BReg;
 };
 
 struct GPReg
@@ -47,8 +47,8 @@ struct GPReg
 	{
 	}
 	const size_t index;
-	const XReg XReg;
-	const WReg WReg;
+	const ::XReg XReg;
+	const ::WReg WReg;
 };
 
 static const XReg HCPU_REG{HCPU_REG_ID}, PPC_REC_INSTANCE_REG{PPC_RECOMPILER_INSTANCE_DATA_REG_ID}, MEM_BASE_REG{MEMORY_BASE_REG_ID};
@@ -1603,11 +1603,13 @@ bool PPCRecompiler_generateAArch64Code(struct PPCRecFunction_t* PPCRecFunction, 
 		return false;
 	}
 
+	const size_t codeSize = aarch64GenContext.getSize();
 	if (!aarch64GenContext.processAllJumps())
 	{
 		cemuLog_log(LogType::Recompiler, "PPCRecompiler_generateAArch64Code(): some jumps exceeded the +/-128MB offset.");
 		return false;
 	}
+	aarch64GenContext.setSize(codeSize);
 
 	aarch64GenContext.readyRE();
 

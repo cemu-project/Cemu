@@ -165,6 +165,7 @@ public:
 		VkFormat vkImageFormat;
 		VkImageAspectFlags vkImageAspect;
 		bool isCompressed;
+		bool isAlternateFormat; // true if the host pixel format doesn't 1:1 match the emulated format
 
 		// texture decoder info
 		TextureDecoder* decoder;
@@ -175,10 +176,10 @@ public:
 
 	struct DeviceInfo
 	{
-		DeviceInfo(const std::string name, uint8* uuid)
+		DeviceInfo(const std::string name, std::span<uint8, VK_UUID_SIZE> uuid)
 			: name(name)
 		{
-			std::copy(uuid, uuid + VK_UUID_SIZE, this->uuid.data());
+			std::copy(uuid.begin(), uuid.end(), this->uuid.begin());
 		}
 
 		std::string name;
@@ -239,6 +240,7 @@ public:
 
 	void Flush(bool waitIdle = false) override;
 	void NotifyLatteCommandProcessorIdle() override;
+	void SurfaceSync(Latte::E_COHER_CNTL coher, MPTR address, uint32 size) override;
 
 	uint64 GenUniqueId(); // return unique id (uses incrementing counter)
 
@@ -335,7 +337,7 @@ public:
 	void bufferCache_upload(uint8* buffer, sint32 size, uint32 bufferOffset) override;
 	void bufferCache_copy(uint32 srcOffset, uint32 dstOffset, uint32 size) override;
 
-	void buffer_bindVertexBuffer(uint32 bufferIndex, uint32 buffer, uint32 size) override;
+	void buffer_bindVertexBuffers(std::span<BindBufferParam> bindings) override;
 	void buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size);
 	std::pair<VkBuffer, uint32> buffer_genStrideWorkaroundVertexBuffer(MPTR buffer, uint32 size, uint32 oldStride);
 	void buffer_bindUniformBuffer(LatteConst::ShaderType shaderType, uint32 bufferIndex, uint32 offset, uint32 size) override;
@@ -378,6 +380,7 @@ private:
 		VkDescriptorSetInfo* activePixelDS{ nullptr };
 		VkDescriptorSetInfo* activeGeometryDS{ nullptr };
 		bool descriptorSetsChanged{ false };
+		CachedFBOVk::RendertargetSelfDependencyMask m_curRenderpassSelfDependencyInfo{};
 		VkImageAspectFlags feedbackLoopImageAspect{0xFFFFFFFF};
 		// viewport and scissor box
 		VkViewport currentViewport{};
@@ -387,7 +390,7 @@ private:
 		struct
 		{
 			uint32 offset;
-		}currentVertexBinding[LATTE_MAX_VERTEX_BUFFERS]{};
+		}currentVertexBinding[Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS]{};
 
 		// index buffer
 		Renderer::INDEX_TYPE activeIndexType{};
@@ -417,6 +420,7 @@ private:
 
 		// invalidation / flushing
 		uint64 currentFlushIndex{0};
+		bool colorBufferSyncPending{false}; // guest color-buffer sync since the previous draw; survives command-buffer resets
 		bool requestFlush{ false }; // flush after every draw operation. The renderpass dependencies dont handle dependencies across multiple drawcalls inside a single renderpass
 
 		// draw sequence

@@ -50,7 +50,7 @@ namespace GX2
 	{
 		uint32be structSize;
 		betype<Latte::E_HWTILEMODE> tileMode;
-		betype<Latte::E_HWSURFFMT> format;
+		betype<Latte::E_HWFMT> format;
 		uint32be bpp;
 		uint32be numSamples;
 		uint32be width;
@@ -186,7 +186,7 @@ namespace GX2
 		ADDRComputeSurfaceInfo_INPUT& paramIn = *_paramIn.GetPointer();
 		memset(&paramIn, 0, sizeof(ADDRComputeSurfaceInfo_INPUT));
 		memset(paramOut, 0, sizeof(ADDRComputeSurfaceInfo_OUTPUT));
-		Latte::E_HWSURFFMT hwFormat = GetHWFormat(surfaceFormat);
+		Latte::E_HWFMT hwFormat = GetHWFormat(surfaceFormat);
 		if (surfaceTileMode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL)
 		{
 			uint32 numSamples = 1 << surfaceAA;			

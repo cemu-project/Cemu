@@ -60,7 +60,10 @@ bool SDLController::connect()
 	SDL_JoystickID *gamepad_ids = SDL_GetGamepads(&gamepad_count);
 
 	if (!gamepad_ids || index < 0 || index >= gamepad_count)
+	{
+		SDL_free(gamepad_ids);
 		return false;
+	}
 
 	m_diid = gamepad_ids[index];
 	SDL_free(gamepad_ids);

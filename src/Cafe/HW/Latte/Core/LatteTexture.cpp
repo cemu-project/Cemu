@@ -169,6 +169,17 @@ void LatteTexture_UnregisterTextureMemoryOccupancy(LatteTexture* texture)
 	}
 }
 
+void LatteTexture_Invalidate(uint32 physAddr, uint32 size)
+{
+	if (size == 0xFFFFFFFF)
+		return; // full cache invalidation for all textures is too expensive, so for now lets ignore it. Most likely games don't use this anyway when they are modifying a single texture
+	std::vector<LatteTexture*> textures;
+	LatteTC_LookupTexturesByPhysAddr(physAddr, textures);
+	uint32 invalidationVal = LatteGPUState.frameCounter - 1;
+	for (LatteTexture* texture : textures)
+		texture->lastDataUpdateFrameCounter = invalidationVal;
+}
+
 // calculate the actually accessed data range
 // the resulting range is an estimate and may be smaller than the actual slice size (but not larger)
 void LatteTexture_EstimateMipSliceAccessedDataRange(LatteTexture* texture, sint32 sliceIndex, sint32 mipIndex, LatteTextureSliceMipInfo* sliceMipInfo)
@@ -243,16 +254,16 @@ bool LatteTexture_IsFormatViewCompatible(Latte::E_GX2SURFFMT formatA, Latte::E_G
 	{
 		// other formats
 		// seems like format 0x19 (RGB10_A2) has issues on OpenGL Intel and AMD when copying texture data
-		Latte::E_HWSURFFMT hwFormatA = Latte::GetHWFormat(formatA);
-		Latte::E_HWSURFFMT hwFormatB = Latte::GetHWFormat(formatB);
-		if (hwFormatA == Latte::E_HWSURFFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)
+		Latte::E_HWFMT hwFormatA = Latte::GetHWFormat(formatA);
+		Latte::E_HWFMT hwFormatB = Latte::GetHWFormat(formatB);
+		if (hwFormatA == Latte::E_HWFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT)
 			return false;
-		if (formatA == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT && hwFormatB == Latte::E_HWSURFFMT::HWFMT_2_10_10_10)
+		if (formatA == Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT && hwFormatB == Latte::E_HWFMT::HWFMT_2_10_10_10)
 			return false;
 
-		if (hwFormatA == Latte::E_HWSURFFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM)
+		if (hwFormatA == Latte::E_HWFMT::HWFMT_2_10_10_10 && formatB == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM)
 			return false;
-		if (formatA == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && hwFormatB == Latte::E_HWSURFFMT::HWFMT_2_10_10_10)
+		if (formatA == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && hwFormatB == Latte::E_HWFMT::HWFMT_2_10_10_10)
 			return false;
 
 		// format A1B5G5R5 views are not compatible with other 16-bit formats in OpenGL
@@ -528,7 +539,7 @@ void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 						LatteTexture_SyncSlice(subTexture, cSliceIndex, cMipIndex, baseTexture, texRel->baseSliceIndex + cSliceIndex, texRel->baseMipIndex + cMipIndex);
 						baseSliceMipInfo->lastDynamicUpdate = subSliceMipInfo->lastDynamicUpdate;
 						if(subTexture->isUpdatedOnGPU)
-							texture->isUpdatedOnGPU = true;
+							LatteTC_FlagSliceAsGPUUpdated(texture, baseSliceMipInfo->sliceIndex, baseSliceMipInfo->mipIndex);
 					}
 				}
 				else
@@ -539,7 +550,7 @@ void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 						LatteTexture_SyncSlice(baseTexture, texRel->baseSliceIndex + cSliceIndex, texRel->baseMipIndex + cMipIndex, subTexture, cSliceIndex, cMipIndex);
 						subSliceMipInfo->lastDynamicUpdate = baseSliceMipInfo->lastDynamicUpdate;
 						if (baseTexture->isUpdatedOnGPU)
-							texture->isUpdatedOnGPU = true;
+							LatteTC_FlagSliceAsGPUUpdated(texture, subSliceMipInfo->sliceIndex, subSliceMipInfo->mipIndex);
 					}
 				}
 			}
@@ -564,7 +575,7 @@ bool __LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture
 	if (texture1->isDepth && texture2->isDepth == false)
 	{
 		// necessary for Smash? (currently our depth to color copy always converts and the depth ends up in R only)
-		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWSURFFMT::HWFMT_8_8_8_8)
+		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWFMT::HWFMT_8_8_8_8)
 			return true;
 	}
 
@@ -573,7 +584,7 @@ bool __LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture
 	if (g_renderer->GetType() == RendererAPI::Vulkan)
 	{
 		// found in Smash (Wii Fit Stage)
-		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWSURFFMT::HWFMT_8_24)
+		if (texture1->format == Latte::E_GX2SURFFMT::D32_FLOAT && Latte::GetHWFormat(texture2->format) == Latte::E_HWFMT::HWFMT_8_24)
 			return true;
 	}
 #endif
@@ -956,7 +967,7 @@ void LatteTexture_RecreateTextureWithDifferentMipSliceCount(LatteTexture* textur
 	if (texture->isUpdatedOnGPU)
 	{
 		LatteTexture_copyData(texture, view->baseTexture, texture->mipLevels, texture->depth);
-		view->baseTexture->isUpdatedOnGPU = true;
+		LatteTC_FlagSliceAsGPUUpdated(view->baseTexture, view->firstSlice, view->firstMip);
 	}
 	// remove old texture
 	LatteTexture_Delete(texture);
@@ -1373,7 +1384,6 @@ void LatteTexture_MarkConnectedTexturesForReloadFromDynamicTextures(LatteTexture
 void LatteTexture_TrackTextureGPUWrite(LatteTexture* texture, uint32 slice, uint32 mip, uint64 eventCounter)
 {
 	LatteTexture_MarkDynamicTextureAsChanged(texture->baseView, slice, mip, eventCounter);
-	LatteTC_ResetTextureChangeTracker(texture);
-	texture->isUpdatedOnGPU = true;
+	LatteTC_FlagSliceAsGPUUpdated(texture, slice, mip);
 	texture->lastUnflushedRTDrawcallIndex = LatteGPUState.drawCallCounter;
 }

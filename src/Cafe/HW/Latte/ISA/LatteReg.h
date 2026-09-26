@@ -111,7 +111,7 @@ namespace Latte
 			tileMode == E_HWTILEMODE::TM_3B_TILED_THICK;
 	}
 
-	enum class E_HWSURFFMT
+	enum class E_HWFMT : uint32 // used by both texture and memory fetch instructions
 	{
 		INVALID_FORMAT = 0,
 		// hardware formats only
@@ -154,19 +154,21 @@ namespace Latte
 		HWFMT_BC4 = 0x34,
 		HWFMT_BC5 = 0x35,
 
-		// these formats exist in R600/R700 documentation, but GX2 doesn't seem to handle them. Are they supported?
-		U_HWFMT_BC6 = 0x36,
-		U_HWFMT_BC7 = 0x37,
-		U_HWFMT_32_32_32 = 0x2F,
-		U_HWFMT_32_32_32_FLOAT = 0x30,
+		// formats 0x36 to 0x3E return only zero on Latte
+		// format 0x3F seems to be an alias for BC1?
 
-
+		// formats which are not a power of two in size are vertex fetch only?
+		HWFMT_8_8_8 = 0x2C,
+		HWFMT_16_16_16 = 0x2D,
+		HWFMT_16_16_16_FLOAT = 0x2E,
+		HWFMT_32_32_32 = 0x2F,
+		HWFMT_32_32_32_FLOAT = 0x30,
 	};
 
 	enum class E_GX2SURFFMT // GX2 surface format
 	{
 		INVALID_FORMAT = 0,
-		// base hardware formats (shared with E_HWSURFFMT)
+		// base hardware formats (shared with E_HWFMT)
 		HWFMT_8 = 0x1,
 		HWFMT_4_4 = 0x2,
 		HWFMT_3_3_2 = 0x3,
@@ -309,7 +311,7 @@ namespace Latte
 	};
 	DEFINE_ENUM_FLAG_OPERATORS(E_GX2SURFFMT);
 
-	inline uint32 GetFormatBits(const Latte::E_HWSURFFMT hwFmt)
+	inline uint32 GetFormatBits(const Latte::E_HWFMT hwFmt)
 	{
 		const uint8 sBitsTable[0x40] = {
 		0x00,0x08,0x08,0x00,0x00,0x10,0x10,0x10,
@@ -327,28 +329,62 @@ namespace Latte
 
 	inline uint32 GetFormatBits(const Latte::E_GX2SURFFMT gx2Fmt)
 	{
-		return GetFormatBits((Latte::E_HWSURFFMT)((uint32)gx2Fmt & 0x3F));
+		return GetFormatBits((Latte::E_HWFMT)((uint32)gx2Fmt & 0x3F));
 	}
 
-	inline E_HWSURFFMT GetHWFormat(E_GX2SURFFMT format)
+	inline E_HWFMT GetHWFormat(E_GX2SURFFMT format)
 	{
-		return (E_HWSURFFMT)((uint32)format & 0x3F);
+		return (E_HWFMT)((uint32)format & 0x3F);
 	}
 
-	inline bool IsCompressedFormat(Latte::E_HWSURFFMT format)
+	inline bool IsCompressedFormat(Latte::E_HWFMT format)
 	{
 		return (uint32)format >= 0x31 && (uint32)format <= 0x35;
 	}
 
 	inline bool IsCompressedFormat(Latte::E_GX2SURFFMT format)
 	{
-		return IsCompressedFormat((Latte::E_HWSURFFMT)((uint32)format & 0x3F));
+		return IsCompressedFormat((Latte::E_HWFMT)((uint32)format & 0x3F));
 	}
 
 	inline bool IsMSAA(Latte::E_DIM dim)
 	{
 		return dim == E_DIM::DIM_2D_MSAA || dim == E_DIM::DIM_2D_ARRAY_MSAA;
 	}
+
+	// PM4 packet field enums
+	enum class E_COHER_CNTL : uint32 // for SURFACE_SYNC packet
+	{
+		DEST_BASE_0_ENA       = (1<<0),
+		DEST_BASE_1_ENA       = (1<<1),
+		SO0_DEST_BASE_ENA     = (1<<2),
+		SO1_DEST_BASE_ENA     = (1<<3),
+		SO2_DEST_BASE_ENA     = (1<<4),
+		SO3_DEST_BASE_ENA     = (1<<5),
+		CB0_DEST_BASE_ENA     = (1<<6), // flush color buffer 0
+		CB1_DEST_BASE_ENA     = (1<<7),
+		CB2_DEST_BASE_ENA     = (1<<8),
+		CB3_DEST_BASE_ENA     = (1<<9),
+		CB4_DEST_BASE_ENA     = (1<<10),
+		CB5_DEST_BASE_ENA     = (1<<11),
+		CB6_DEST_BASE_ENA     = (1<<12),
+		CB7_DEST_BASE_ENA     = (1<<13),
+		CB_ALL_DEST_BASE_ENA  = (0xFF<<6), // CB0-CB7 combined
+
+		DB_DEST_BASE_ENA      = (1<<14),
+
+		FULL_CACHE_ENA       = (1<<20),
+
+		TC_ACTION_ENA        = (1<<23), // on Latte this bit seems to flush attribute buffer cache and texture cache
+		VC_ACTION_ENA        = (1<<24),
+		CB_ACTION_ENA        = (1<<25),
+		DB_ACTION_ENA        = (1<<26),
+		SH_ACTION_ENA        = (1<<27),
+		SX_ACTION_ENA        = (1<<28),
+
+		ENGINE_ME            = (1u<<31)
+	};
+	DEFINE_ENUM_FLAG_OPERATORS(E_COHER_CNTL);
 
 	enum GPU_LIMITS
 	{
@@ -361,6 +397,17 @@ namespace Latte
 	enum REGADDR
 	{
 		VGT_PRIMITIVE_TYPE					= 0x2256,
+
+		SQ_CONFIG							= 0x2300,
+		SQ_GPR_RESOURCE_MGMT_1				= 0x2301,
+		SQ_GPR_RESOURCE_MGMT_2				= 0x2302,
+		SQ_THREAD_RESOURCE_MGMT				= 0x2303,
+		SQ_STACK_RESOURCE_MGMT_1			= 0x2304,
+		SQ_STACK_RESOURCE_MGMT_2			= 0x2305,
+		SQ_ESGS_RING_BASE					= 0x2310,
+		SQ_ESGS_RING_SIZE					= 0x2311,
+		SQ_GSVS_RING_BASE					= 0x2312,
+		SQ_GSVS_RING_SIZE					= 0x2313,
 
 		// each stage has 12 sets of 4 border color registers
 		TD_PS_SAMPLER0_BORDER_RED			= 0x2900,
@@ -409,6 +456,7 @@ namespace Latte
 		SPI_VS_OUT_ID_0						= 0xA185,
 
 		SPI_VS_OUT_CONFIG					= 0xA1B1,
+		SPI_THREAD_GROUPING					= 0xA1B2,
 
 		CB_BLEND0_CONTROL					= 0xA1E0, // first
 		CB_BLEND7_CONTROL					= 0xA1E7, // last
@@ -434,6 +482,8 @@ namespace Latte
 		SQ_PGM_RESOURCES_ES					= 0xA224,
 		SQ_PGM_START_FS						= 0xA225,
 		SQ_PGM_RESOURCES_FS					= 0xA229,
+		SQ_ESGS_RING_ITEMSIZE				= 0xA22A,
+		SQ_GSVS_RING_ITEMSIZE				= 0xA22B,
 
 		SQ_VTX_SEMANTIC_CLEAR				= 0xA238,
 
@@ -451,6 +501,7 @@ namespace Latte
 
 		VGT_INSTANCE_STEP_RATE_0			= 0xA2A8,
 		VGT_INSTANCE_STEP_RATE_1			= 0xA2A9,
+		VGT_STRMOUT_EN						= 0xA2AC,
 
 		VGT_STRMOUT_BUFFER_SIZE_0			= 0xA2B4,
 		VGT_STRMOUT_VTX_STRIDE_0			= 0xA2B5,
@@ -596,6 +647,42 @@ float get_##__regname() const \
 
 	protected:
 		uint32 v{};
+	};
+
+	struct LATTE_SQ_CONFIG : LATTEREG // 0x2300
+	{
+		// todo: bits 0-1
+		LATTE_BITFIELD_BOOL(DX9_CONSTS, 2);
+		LATTE_BITFIELD_BOOL(ALU_INST_PREFER_VECTOR, 3);
+		// todo: bits 4-23
+		LATTE_BITFIELD(PS_PRIO, 24, 2);
+		LATTE_BITFIELD(VS_PRIO, 26, 2);
+		LATTE_BITFIELD(GS_PRIO, 28, 2);
+		LATTE_BITFIELD(ES_PRIO, 30, 2);
+	};
+
+	struct LATTE_SQ_GPR_RESOURCE_MGMT_1 : LATTEREG // 0x2301
+	{
+		LATTE_BITFIELD(NUM_PS_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_VS_GPRS, 8, 8);
+	};
+
+	struct LATTE_SQ_GPR_RESOURCE_MGMT_2 : LATTEREG // 0x2302
+	{
+		LATTE_BITFIELD(NUM_GS_GPRS, 0, 8);
+		LATTE_BITFIELD(NUM_ES_GPRS, 8, 8);
+	};
+
+	struct LATTE_SQ_STACK_RESOURCE_MGMT_1 : LATTEREG // 0x2304
+	{
+		LATTE_BITFIELD(NUM_PS_STACK_ENTRIES, 0, 12);
+		LATTE_BITFIELD(NUM_VS_STACK_ENTRIES, 16, 12);
+	};
+
+	struct LATTE_SQ_STACK_RESOURCE_MGMT_2 : LATTEREG // 0x2305
+	{
+		LATTE_BITFIELD(NUM_GS_STACK_ENTRIES, 0, 12);
+		LATTE_BITFIELD(NUM_ES_STACK_ENTRIES, 16, 12);
 	};
 
 	// shared enums
@@ -1076,7 +1163,7 @@ float get_##__regname() const \
 	{
 		LATTE_BITFIELD(HEIGHT, 0, 13);
 		LATTE_BITFIELD(DEPTH, 13, 13);
-		LATTE_BITFIELD_TYPED(DATA_FORMAT, 26, 6, E_HWSURFFMT);
+		LATTE_BITFIELD_TYPED(DATA_FORMAT, 26, 6, E_HWFMT);
 	};
 
 	struct LATTE_SQ_TEX_RESOURCE_WORD2_N : LATTEREG // 0xE002 + index * 7
@@ -1445,7 +1532,19 @@ struct LatteContextRegister
 	uint8 padding0[0x08958];
 
 	/* +0x08958 */ Latte::LATTE_VGT_PRIMITIVE_TYPE VGT_PRIMITIVE_TYPE;
-	uint8 padding5[0x0A400 - 0x0895C];
+	uint8 padding_0895C[0x08C00 - 0x0895C];
+	/* +0x08C00 */ Latte::LATTE_SQ_CONFIG SQ_CONFIG;
+	/* +0x08C04 */ Latte::LATTE_SQ_GPR_RESOURCE_MGMT_1 SQ_GPR_RESOURCE_MGMT_1;
+	/* +0x08C08 */ Latte::LATTE_SQ_GPR_RESOURCE_MGMT_2 SQ_GPR_RESOURCE_MGMT_2;
+	/* +0x08C0C */ uint32 SQ_THREAD_RESOURCE_MGMT;
+	/* +0x08C10 */ Latte::LATTE_SQ_STACK_RESOURCE_MGMT_1 SQ_STACK_RESOURCE_MGMT_1;
+	/* +0x08C14 */ Latte::LATTE_SQ_STACK_RESOURCE_MGMT_2 SQ_STACK_RESOURCE_MGMT_2;
+	uint8 padding_08C18[0x08C40 - 0x08C18];
+	/* +0x08C40 */ uint32 SQ_ESGS_RING_BASE;
+	/* +0x08C44 */ uint32 SQ_ESGS_RING_SIZE;
+	/* +0x08C48 */ uint32 SQ_GSVS_RING_BASE;
+	/* +0x08C4C */ uint32 SQ_GSVS_RING_SIZE;
+	uint8 padding5[0x0A400 - 0x08C50];
 	/* +0x0A400 */ _LatteRegisterSetSamplerBorderColor TD_PS_SAMPLER_BORDER_COLOR[Latte::GPU_LIMITS::NUM_SAMPLERS_PER_STAGE];
 	uint8 padding6[0x0A600 - 0x0A520];
 	/* +0x0A600 */ _LatteRegisterSetSamplerBorderColor TD_VS_SAMPLER_BORDER_COLOR[Latte::GPU_LIMITS::NUM_SAMPLERS_PER_STAGE];
@@ -1484,7 +1583,8 @@ struct LatteContextRegister
 
 	/* +0x286C4 */ Latte::LATTE_SPI_VS_OUT_CONFIG SPI_VS_OUT_CONFIG;
 
-	uint8 padding_286C8[0x28780 - 0x286C8];
+	/* +0x286C8 */ uint32 SPI_THREAD_GROUPING;
+	uint8 padding_286CC[0x28780 - 0x286CC];
 
 	/* +0x28780 */ Latte::LATTE_CB_BLENDN_CONTROL CB_BLENDN_CONTROL[8];
 
@@ -1556,7 +1656,9 @@ struct LatteContextRegister
 	/* +0x28AA0 */ Latte::LATTE_VGT_INSTANCE_STEP_RATE_X VGT_INSTANCE_STEP_RATE_0;
 	/* +0x28AA4 */ Latte::LATTE_VGT_INSTANCE_STEP_RATE_X VGT_INSTANCE_STEP_RATE_1;
 
-	uint8 padding_28AA8[0x28AD0 - 0x28AA8];
+	uint8 padding_28AA8[0x28AB0 - 0x28AA8];
+	/* +0x28AB0 */ uint32 VGT_STRMOUT_EN;
+	uint8 padding_28AB4[0x28AD0 - 0x28AB4];
 
 	/* +0x28AD0 */ _LatteRegisterSetStreamoutBuffer VGT_STRMOUT_BUFFER_X[4];
 	/* +0x28B10 */ Latte::LATTE_VGT_STRMOUT_BASE_OFFSET_X VGT_STRMOUT_BASE_OFFSET_X[4];
@@ -1627,6 +1729,20 @@ struct LatteContextRegister
 static_assert(sizeof(LatteContextRegister) == 0x10000 * 4 + 9 * 4);
 
 static_assert(offsetof(LatteContextRegister, VGT_PRIMITIVE_TYPE) == Latte::REGADDR::VGT_PRIMITIVE_TYPE * 4);
+static_assert(offsetof(LatteContextRegister, SQ_CONFIG) == Latte::REGADDR::SQ_CONFIG * 4);
+static_assert(offsetof(LatteContextRegister, SQ_GPR_RESOURCE_MGMT_1) == Latte::REGADDR::SQ_GPR_RESOURCE_MGMT_1 * 4);
+static_assert(offsetof(LatteContextRegister, SQ_GPR_RESOURCE_MGMT_2) == Latte::REGADDR::SQ_GPR_RESOURCE_MGMT_2 * 4);
+static_assert(offsetof(LatteContextRegister, SQ_THREAD_RESOURCE_MGMT) == Latte::REGADDR::SQ_THREAD_RESOURCE_MGMT * 4);
+static_assert(offsetof(LatteContextRegister, SQ_STACK_RESOURCE_MGMT_1) == Latte::REGADDR::SQ_STACK_RESOURCE_MGMT_1 * 4);
+static_assert(offsetof(LatteContextRegister, SQ_STACK_RESOURCE_MGMT_2) == Latte::REGADDR::SQ_STACK_RESOURCE_MGMT_2 * 4);
+static_assert(offsetof(LatteContextRegister, SQ_ESGS_RING_BASE) == Latte::REGADDR::SQ_ESGS_RING_BASE * 4);
+static_assert(offsetof(LatteContextRegister, SQ_ESGS_RING_SIZE) == Latte::REGADDR::SQ_ESGS_RING_SIZE * 4);
+static_assert(offsetof(LatteContextRegister, SQ_GSVS_RING_BASE) == Latte::REGADDR::SQ_GSVS_RING_BASE * 4);
+static_assert(offsetof(LatteContextRegister, SQ_GSVS_RING_SIZE) == Latte::REGADDR::SQ_GSVS_RING_SIZE * 4);
+static_assert(offsetof(LatteContextRegister, SPI_THREAD_GROUPING) == Latte::REGADDR::SPI_THREAD_GROUPING * 4);
+static_assert(offsetof(LatteContextRegister, SQ_ESGS_RING_ITEMSIZE) == Latte::REGADDR::SQ_ESGS_RING_ITEMSIZE * 4);
+static_assert(offsetof(LatteContextRegister, SQ_GSVS_RING_ITEMSIZE) == Latte::REGADDR::SQ_GSVS_RING_ITEMSIZE * 4);
+static_assert(offsetof(LatteContextRegister, VGT_STRMOUT_EN) == Latte::REGADDR::VGT_STRMOUT_EN * 4);
 static_assert(offsetof(LatteContextRegister, TD_PS_SAMPLER_BORDER_COLOR) == Latte::REGADDR::TD_PS_SAMPLER0_BORDER_RED * 4);
 static_assert(offsetof(LatteContextRegister, TD_VS_SAMPLER_BORDER_COLOR) == Latte::REGADDR::TD_VS_SAMPLER0_BORDER_RED * 4);
 static_assert(offsetof(LatteContextRegister, TD_GS_SAMPLER_BORDER_COLOR) == Latte::REGADDR::TD_GS_SAMPLER0_BORDER_RED * 4);

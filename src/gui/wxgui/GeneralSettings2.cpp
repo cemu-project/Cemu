@@ -380,11 +380,6 @@ wxPanel* GeneralSettings2::AddGraphicsPage(wxNotebook* notebook)
 		m_graphic_api->SetSelection(0);
 		if (api_size > 1)
 			m_graphic_api->SetToolTip(_("Select one of the available graphic back ends"));
-		if (CafeSystem::IsTitleRunning())
-		{
-			m_graphic_api->Disable();
-			m_graphic_api->SetToolTip(_("Graphics API cannot be changed while a title is running"));
-		}
 		row->Add(m_graphic_api, 0, wxALL, 5);
 		m_graphic_api->Bind(wxEVT_CHOICE, &GeneralSettings2::OnGraphicAPISelected, this);
 
@@ -1232,37 +1227,40 @@ void GeneralSettings2::StoreConfig()
 	// graphics
 	config.graphic_api = m_api_map[m_graphic_api->GetSelection()];
 
-	selection = m_graphic_device->GetSelection();
-#ifdef ENABLE_VULKAN
-	if (config.graphic_api == GraphicAPI::kVulkan)
+	if (!CafeSystem::IsTitleRunning())
 	{
-    	if (selection != wxNOT_FOUND)
-    	{
-    		const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
-    		if (info)
-    			config.vk_graphic_device_uuid = info->GetDeviceInfo().uuid;
-    		else
-    			config.vk_graphic_device_uuid = {};
-    	}
-    	else
-    		config.vk_graphic_device_uuid = {};
-	}
+		selection = m_graphic_device->GetSelection();
+#ifdef ENABLE_VULKAN
+		if (config.graphic_api == GraphicAPI::kVulkan)
+		{
+			if (selection != wxNOT_FOUND)
+			{
+				const auto* info = (wxVulkanUUID*)m_graphic_device->GetClientObject(selection);
+				if (info)
+					config.vk_graphic_device_uuid = info->GetDeviceInfo().uuid;
+				else
+					config.vk_graphic_device_uuid = {};
+			}
+			else
+				config.vk_graphic_device_uuid = {};
+		}
 #endif
 #ifdef ENABLE_METAL
-	if (config.graphic_api == GraphicAPI::kMetal)
-	{
-		if (selection != wxNOT_FOUND)
+		if (config.graphic_api == GraphicAPI::kMetal)
 		{
-			const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
-			if (info)
-				config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+			if (selection != wxNOT_FOUND)
+			{
+				const auto* info = (wxMetalUUID*)m_graphic_device->GetClientObject(selection);
+				if (info)
+					config.mtl_graphic_device_uuid = info->GetDeviceInfo().uuid;
+				else
+					config.mtl_graphic_device_uuid = {};
+			}
 			else
 				config.mtl_graphic_device_uuid = {};
 		}
-		else
-			config.mtl_graphic_device_uuid = {};
-	}
 #endif
+	}
 
 
 	config.gx2drawdone_sync = m_gx2drawdone_sync->IsChecked();
@@ -1332,6 +1330,13 @@ void GeneralSettings2::ValidateConfig()
 
 void GeneralSettings2::DisableSettings(bool game_launched)
 {
+	if (game_launched)
+	{
+		m_graphic_api->Disable();
+		m_graphic_api->SetToolTip(_("Graphics API cannot be changed while a title is running"));
+		m_graphic_device->Disable();
+		m_graphic_device->SetToolTip(_("Graphics Device cannot be changed while a title is running"));
+	}
 }
 
 void GeneralSettings2::OnAudioLatencyChanged(wxCommandEvent& event)
@@ -1783,25 +1788,34 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		m_vsync->Select(selection);
 
 		m_graphic_device->Enable();
-		auto devices = VulkanRenderer::GetDevices();
 		m_graphic_device->Clear();
-		if(!devices.empty())
+		if (!CafeSystem::IsTitleRunning())
 		{
-			for(const auto& device : devices)
+			auto devices = VulkanRenderer::GetDevices();
+			if(!devices.empty())
 			{
-				m_graphic_device->Append(device.name, new wxVulkanUUID(device));
-			}
-			m_graphic_device->SetSelection(0);
-
-			const auto& config = GetConfig();
-			for(size_t i = 0; i < devices.size(); ++i)
-			{
-				if(config.vk_graphic_device_uuid == devices[i].uuid)
+				for(const auto& device : devices)
 				{
-					m_graphic_device->SetSelection(i);
-					break;
+					m_graphic_device->Append(device.name, new wxVulkanUUID(device));
+				}
+				m_graphic_device->SetSelection(0);
+
+				const auto& config = GetConfig();
+				for(size_t i = 0; i < devices.size(); ++i)
+				{
+					if(config.vk_graphic_device_uuid == devices[i].uuid)
+					{
+						m_graphic_device->SetSelection(i);
+						break;
+					}
 				}
 			}
+		}
+		else
+		{
+			cemu_assert(g_renderer != nullptr);
+			m_graphic_device->Append(g_renderer->GetDeviceName());
+			m_graphic_device->SetSelection(0);
 		}
 		break;
 	}
@@ -1822,24 +1836,33 @@ void GeneralSettings2::HandleGraphicsApiSelection()
 		m_graphic_device->Enable();
 		m_graphic_device->Clear();
 
-		auto devices = MetalRenderer::GetDevices();
-		if(!devices.empty())
+		if (!CafeSystem::IsTitleRunning())
 		{
-			for (const auto& device : devices)
+			auto devices = MetalRenderer::GetDevices();
+			if(!devices.empty())
 			{
-				m_graphic_device->Append(device.name, new wxMetalUUID(device));
-			}
-			m_graphic_device->SetSelection(0);
-
-			const auto& config = GetConfig();
-			for (size_t i = 0; i < devices.size(); ++i)
-			{
-				if (config.mtl_graphic_device_uuid == devices[i].uuid)
+				for (const auto& device : devices)
 				{
-					m_graphic_device->SetSelection(i);
-					break;
+					m_graphic_device->Append(device.name, new wxMetalUUID(device));
+				}
+				m_graphic_device->SetSelection(0);
+
+				const auto& config = GetConfig();
+				for (size_t i = 0; i < devices.size(); ++i)
+				{
+					if (config.mtl_graphic_device_uuid == devices[i].uuid)
+					{
+						m_graphic_device->SetSelection(i);
+						break;
+					}
 				}
 			}
+		}
+		else
+		{
+			cemu_assert(g_renderer != nullptr);
+			m_graphic_device->Append(g_renderer->GetDeviceName());
+			m_graphic_device->SetSelection(0);
 		}
 		break;
 	}
@@ -2276,6 +2299,7 @@ void GeneralSettings2::OnAudioChannelsSelected(wxCommandEvent& event)
 
 void GeneralSettings2::OnGraphicAPISelected(wxCommandEvent& event)
 {
+	cemu_assert_debug(!CafeSystem::IsTitleRunning());
 	HandleGraphicsApiSelection();
 }
 

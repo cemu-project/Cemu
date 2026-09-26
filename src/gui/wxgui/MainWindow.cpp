@@ -149,6 +149,7 @@ enum
 	MAINFRAME_MENU_ID_DEBUG_DUMP_SHADERS,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_RECOMPILER_FUNCTIONS,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_RAM,
+	MAINFRAME_MENU_ID_DEBUG_DUMP_RPX,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_FST,
 	MAINFRAME_MENU_ID_DEBUG_DUMP_CURL_REQUESTS,
 	// help
@@ -224,6 +225,7 @@ EVT_MENU(MAINFRAME_MENU_ID_DEBUG_AUDIO_AUX_ONLY, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VK_ACCURATE_BARRIERS, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_GPU_CAPTURE, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, MainWindow::OnDebugSetting)
+EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_RPX, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, MainWindow::OnDebugSetting)
 // debug -> View ...
 EVT_MENU(MAINFRAME_MENU_ID_DEBUG_VIEW_LOGGING_WINDOW, MainWindow::OnLoggingWindow)
@@ -242,7 +244,6 @@ EVT_COMMAND(wxID_ANY, wxEVT_GAMELIST_BEGIN_UPDATE, MainWindow::OnGameListBeginUp
 EVT_COMMAND(wxID_ANY, wxEVT_GAMELIST_END_UPDATE, MainWindow::OnGameListEndUpdate)
 EVT_COMMAND(wxID_ANY, wxEVT_ACCOUNTLIST_REFRESH, MainWindow::OnAccountListRefresh)
 EVT_COMMAND(wxID_ANY, wxEVT_SET_WINDOW_TITLE, MainWindow::OnSetWindowTitle)
-
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_RECREATE_CANVAS, MainWindow::OnRequestRecreateCanvas)
 EVT_COMMAND(wxID_ANY, wxEVT_REQUEST_GAME_EXIT, MainWindow::OnRequestGameExit)
 
@@ -377,6 +378,9 @@ MainWindow::MainWindow()
 	{
 			g_gdbstub = std::make_unique<GDBServer>(GetConfig().gdb_port);
 	}
+
+	if (LaunchSettings::OpenDebuggerEnabled())
+		OpenPPCDebugger();
 }
 
 MainWindow::~MainWindow()
@@ -1037,6 +1041,8 @@ void MainWindow::OnDebugSetting(wxCommandEvent& event)
 		ActiveSettings::EnableAudioOnlyAux(event.IsChecked());
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_RAM)
 		memory_createDump();
+	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_RPX)
+		CafeSystem::DumpCurrentRPX();
 	else if (event.GetId() == MAINFRAME_MENU_ID_DEBUG_DUMP_FST)
 	{
 		/*	int msgBoxAnswer = wxMessageBox(_("All files from the currently running game will be dumped to /dump/<gamefolder>. This process can take a few minutes."),
@@ -1189,6 +1195,14 @@ void MainWindow::OnDebugViewPPCDebugger(wxCommandEvent& event)
 		m_debugger_window = nullptr;
 		return;
 	}
+
+	OpenPPCDebugger();
+}
+
+void MainWindow::OpenPPCDebugger()
+{
+	if (m_debugger_window)
+		return;
 
 	auto rect = GetDesktopRect();
 	/*
@@ -1790,7 +1804,9 @@ void MainWindow::SetMenuVisible(bool state)
 	if (m_menu_visible == state)
 		return;
 
+#if !BOOST_OS_MACOS // on macOS hiding the menu seems to cause issues (see #609)
 	SetMenuBar(state ? m_menuBar : nullptr);
+#endif
 	m_menu_visible = state;
 }
 
@@ -2367,7 +2383,8 @@ void MainWindow::RecreateMenu()
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_PPC_DEBUGGER, _("&View PPC debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_AUDIO_DEBUGGER, _("&View audio debugger"));
 	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_VIEW_TEXTURE_RELATIONS, _("&View texture cache info"));
-	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, _("&Dump current RAM"));
+	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_RAM, _("&Dump current RAM"))->Enable(m_game_launched);
+	debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_RPX, _("&Dump current RPX"))->Enable(m_game_launched);
 	// debugMenu->Append(MAINFRAME_MENU_ID_DEBUG_DUMP_FST, _("&Dump WUD filesystem"))->Enable(false);
 
 	m_menuBar->Append(debugMenu, _("&Debug"));

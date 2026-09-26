@@ -209,19 +209,27 @@ void LatteCP_skipWords(uint32 wordsToSkip)
 
 LatteCMDPtr LatteCP_itSurfaceSync(LatteCMDPtr cmd)
 {
-	uint32 invalidationFlags = LatteReadCMD();
+	Latte::E_COHER_CNTL invalidationFlags = static_cast<Latte::E_COHER_CNTL>(LatteReadCMD());
 	uint32 size = LatteReadCMD() << 8;
 	MPTR addressPhys = LatteReadCMD() << 8;
 	uint32 pollInterval = LatteReadCMD();
 
+	// let the renderer know about colorbuffer invalidation
+	if (static_cast<uint32>(invalidationFlags & (Latte::E_COHER_CNTL::CB_ACTION_ENA | Latte::E_COHER_CNTL::CB_ALL_DEST_BASE_ENA)) != 0)
+		g_renderer->SurfaceSync(invalidationFlags, addressPhys, size);
+
 	if (addressPhys == MPTR_NULL || size == 0xFFFFFFFF)
 		return cmd; // block global invalidations because they are too expensive
 
-	if (invalidationFlags & 0x800000)
+	// uniform invalidation needs both TC_ACTION_ENA and SH_ACTION_ENA?
+	if (HAS_FLAG(invalidationFlags, Latte::E_COHER_CNTL::TC_ACTION_ENA))
 	{
 		// invalidate uniform or attribute buffer
 		LatteBufferCache_invalidate(addressPhys, size);
 	}
+	// texture invalidation
+	if (HAS_FLAG(invalidationFlags, Latte::E_COHER_CNTL::TC_ACTION_ENA))
+		LatteTexture_Invalidate(addressPhys, size);
 	return cmd;
 }
 
@@ -735,7 +743,8 @@ LatteCMDPtr LatteCP_itDrawIndexAuto(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 	uint32 ukn = LatteReadCMD();
 	LatteGPUState.currentDrawCallTick = GetTickCount();
 	// todo - better way to identify compute drawcalls
-	if ((LatteGPUState.contextRegister[mmSQ_CONFIG] >> 24) == 0xE4)
+	auto& sqConfig = LatteGPUState.contextNew.SQ_CONFIG;
+	if (sqConfig.get_PS_PRIO() == 0 && sqConfig.get_VS_PRIO() == 1 && sqConfig.get_GS_PRIO() == 2 && sqConfig.get_ES_PRIO() == 3)
 	{
 		uint32 vsProgramCode = ((LatteGPUState.contextRegister[mmSQ_PGM_START_ES] & 0xFFFFFF) << 8);
 		uint32 vsProgramSize = LatteGPUState.contextRegister[mmSQ_PGM_START_ES + 1] << 3;
@@ -1191,6 +1200,7 @@ void LatteCP_processCommandBuffer(DrawPassContext& drawPassCtx)
 				switch (itCode)
 				{
 				case IT_SET_CONTEXT_REG:
+				case IT_SET_ALL_CONTEXTS:
 				{
 					LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_CONTEXT>(cmdData, nWords);
 				}
@@ -1476,6 +1486,7 @@ void LatteCP_ProcessRingbuffer()
 			}
 			break;
 			case IT_SET_CONTEXT_REG:
+			case IT_SET_ALL_CONTEXTS:
 			{
 				LatteCP_itSetRegistersGeneric<LATTE_REG_BASE_CONTEXT>(cmd, nWords);
 				timerRecheck += CP_TIMER_RECHECK / 512;

@@ -1,0 +1,49 @@
+diff --git a/src/generic/listctrl.cpp b/src/generic/listctrl.cpp
+index fbf28b9..9da9fda 100644
+--- a/src/generic/listctrl.cpp
++++ b/src/generic/listctrl.cpp
+@@ -771,23 +771,42 @@ void wxListLineData::DrawInReportMode( wxDC *dc,
+ 
+     x += ICON_OFFSET_X;
+ 
++    wxCoord xColumn = rect.x;
+     size_t col = 0;
+     for ( const auto& item : m_items )
+     {
+         int width = m_owner->GetColumnWidth(col);
++        const wxRect rectColumn(xColumn, rect.y, wxMax(0, width - 1), rect.height);
++        xColumn += width;
++
+         if (col == 0 && m_owner->HasCheckBoxes())
+             width -= x;
+         int xOld = x;
+         x += width;
+ 
++        wxDCClipper clipper(*dc, rectColumn);
+         width -= 8;
+-        const int wText = width;
+-        wxDCClipper clipper(*dc, xOld, rect.y, wText, rect.height);
+ 
+         if ( item.HasImage() )
+         {
+             int ix, iy;
+             m_owner->GetImageSize( ix, iy );
++            if ( !item.HasText() )
++            {
++                wxListItem column;
++                m_owner->GetColumn(col, column);
++                switch ( column.GetAlign() )
++                {
++                    case wxLIST_FORMAT_RIGHT:
++                        xOld = rectColumn.GetRight() - ix + 1;
++                        break;
++                    case wxLIST_FORMAT_CENTER:
++                        xOld = rectColumn.x + (rectColumn.width - ix) / 2;
++                        break;
++                    default:
++                        break;
++                }
++            }
+             m_owner->DrawImage( item.GetImage(), dc, xOld, yMid - iy/2 );
+ 
+             ix += IMAGE_MARGIN_IN_REPORT_MODE;

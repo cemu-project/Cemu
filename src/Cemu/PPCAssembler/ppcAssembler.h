@@ -164,6 +164,8 @@ enum PPCASM_OP
 	PPCASM_OP_STBU,
 	PPCASM_OP_STBX,
 	PPCASM_OP_STBUX,
+	PPCASM_OP_LWBRX,
+	PPCASM_OP_LHBRX,
 	PPCASM_OP_STWBRX,
 	PPCASM_OP_STHBRX,
 	PPCASM_OP_STSWI,
@@ -186,12 +188,17 @@ enum PPCASM_OP
 	PPCASM_OP_BDNZ,
 
 	PPCASM_OP_BLR,
+	PPCASM_OP_BLRL, // and set LR
 	PPCASM_OP_BLTLR, // less
 	PPCASM_OP_BLELR, // less or equal
 	PPCASM_OP_BEQLR, // equal
 	PPCASM_OP_BGELR, // greater or equal
 	PPCASM_OP_BGTLR, // greater
 	PPCASM_OP_BNELR, // not equal
+	PPCASM_OP_BDZLR, // decrement CTR, branch if CTR == 0
+	PPCASM_OP_BDNZLR, // decrement CTR, branch if CTR != 0
+	PPCASM_OP_BDZLRL, // decrement CTR, branch if CTR == 0 and set LR
+	PPCASM_OP_BDNZLRL, // decrement CTR, branch if CTR != 0 and set LR
 
 	PPCASM_OP_BCTR,
 	PPCASM_OP_BCTRL,

@@ -127,7 +127,7 @@ RegisterWindow::RegisterWindow(DebuggerWindow2& parent, const wxPoint& main_posi
 	if (parent.GetConfig().data().pin_to_main)
 		OnMainMove(main_position, main_size);
 
-	//Bind(wxEVT_COMMAND_MENU_SELECTED, &RegisterWindow::OnValueContextMenuSelected, this, kContextMenuZero, kContextMenuGotoDump);
+	//Bind(wxEVT_MENU, &RegisterWindow::OnValueContextMenuSelected, this, kContextMenuZero, kContextMenuGotoDump);
 }
 
 

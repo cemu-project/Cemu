@@ -3,9 +3,10 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 
 LatteTextureReadbackInfoVk::LatteTextureReadbackInfoVk(VkDevice device, LatteTextureView* textureView)
-	: LatteTextureReadbackInfo(textureView), m_device(device)
+	: LatteTextureReadbackInfo(textureView, textureView->firstMip), m_device(device)
 {
 	m_image_size = GetImageSize(textureView);
+	m_rowPitch = m_image_size / textureView->baseTexture->GetMipHeight(m_firstMip);
 }
 
 LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk()
@@ -14,84 +15,13 @@ LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk()
 
 uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 {
-	const auto* baseTexture = (LatteTextureVk*)textureView->baseTexture;
-	// handle format
-	const auto textureFormat = baseTexture->GetFormat();
-	if (textureView->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM)
+	auto* baseTexture = (LatteTextureVk*)textureView->baseTexture;
+	if (baseTexture->m_isAlternateFormat || baseTexture->IsCompressedFormat())
 	{
-		cemu_assert(textureFormat == VK_FORMAT_R8G8B8A8_UNORM);
-		return baseTexture->width * baseTexture->height * 4;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R8_UNORM )
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R8_UNORM);
-		return baseTexture->width * baseTexture->height * 1;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R8G8B8A8_SRGB);
-		return baseTexture->width * baseTexture->height * 4;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R32G32B32A32_SFLOAT);
-		return baseTexture->width * baseTexture->height * 16;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R32_FLOAT)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R32_SFLOAT || textureFormat == VK_FORMAT_D32_SFLOAT);
-		if (baseTexture->isDepth)
-			return baseTexture->width * baseTexture->height * 4;
-		else
-			return baseTexture->width * baseTexture->height * 4;		
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R16_UNORM)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R16_UNORM);
-		if (baseTexture->isDepth)
-		{
-			cemu_assert_debug(false);
-			return baseTexture->width * baseTexture->height * 2;
-		}
-		else
-		{
-			return baseTexture->width * baseTexture->height * 2;
-		}
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_FLOAT)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R16G16B16A16_SFLOAT);
-		return baseTexture->width * baseTexture->height * 8;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R8_G8_UNORM)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R8G8_UNORM);
-		return baseTexture->width * baseTexture->height * 2;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UNORM)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_R16G16B16A16_UNORM);
-		return baseTexture->width * baseTexture->height * 8;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::D24_S8_UNORM)
-	{
-		cemu_assert(textureFormat == VK_FORMAT_D24_UNORM_S8_UINT);
-		// todo - if driver does not support VK_FORMAT_D24_UNORM_S8_UINT this is represented as VK_FORMAT_D32_SFLOAT_S8_UINT which is 8 bytes
-		return baseTexture->width * baseTexture->height * 4;
-	}
-	else if (textureView->format == Latte::E_GX2SURFFMT::R5_G6_B5_UNORM )
-	{
-		if(textureFormat == VK_FORMAT_R5G6B5_UNORM_PACK16){
-			return baseTexture->width * baseTexture->height * 2;
-		}	
+		cemuLog_logDebug(LogType::Force, "Vulkan does not support readback of texture format 0x{:x}", (uint32)baseTexture->format);
 		return 0;
 	}
-	else
-	{
-		cemuLog_log(LogType::Force, "Unsupported texture readback format {:04x}", (uint32)textureView->format);
-		cemu_assert_debug(false);
-		return 0;
-	}
+	return LatteTextureReadbackInfo::GetReadbackImageSize(textureView, GetReadbackRowPitch(textureView));
 }
 
 
@@ -102,22 +32,20 @@ void LatteTextureReadbackInfoVk::StartTransfer()
 	auto* baseTexture = (LatteTextureVk*)m_textureView->baseTexture;
 	baseTexture->GetImageObj()->flagForCurrentCommandBuffer();
 
-	cemu_assert_debug(m_textureView->firstSlice == 0);
-	cemu_assert_debug(m_textureView->firstMip == 0);
 	cemu_assert_debug(m_textureView->baseTexture->dim != Latte::E_DIM::DIM_3D);
 
 	VkBufferImageCopy region{};
 	region.bufferOffset = m_buffer_offset;
-	region.bufferRowLength = baseTexture->width;
-	region.bufferImageHeight = baseTexture->height;
+	region.bufferRowLength = baseTexture->GetMipWidth(m_firstMip);
+	region.bufferImageHeight = baseTexture->GetMipHeight(m_firstMip);
 
 	region.imageSubresource.aspectMask = baseTexture->GetImageAspect();
-	region.imageSubresource.baseArrayLayer = 0;
+	region.imageSubresource.baseArrayLayer = m_firstSlice;
 	region.imageSubresource.layerCount = 1;
-	region.imageSubresource.mipLevel = 0;
+	region.imageSubresource.mipLevel = m_firstMip;
 
 	region.imageOffset = {0,0,0};
-	region.imageExtent = {(uint32)baseTexture->width,(uint32)baseTexture->height,1};
+	region.imageExtent = {region.bufferRowLength, region.bufferImageHeight, 1};
 
 	const auto renderer = VulkanRenderer::GetInstance();
 	renderer->draw_endRenderPass();

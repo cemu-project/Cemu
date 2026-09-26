@@ -573,6 +573,7 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 	const bool has_device_set = config.vk_graphic_device_uuid != zero;
 
 	VkPhysicalDevice fallbackDevice = VK_NULL_HANDLE;
+	std::string fallbackDeviceName = "";
 
 	std::vector<VkPhysicalDevice> devices(device_count);
 	vkEnumeratePhysicalDevices(m_instance, &device_count, devices.data());
@@ -580,21 +581,25 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 	{
 		if (IsDeviceSuitable(surface, device))
 		{
+			VkPhysicalDeviceIDProperties physDeviceIDProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES };
+			VkPhysicalDeviceProperties2 physDeviceProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+			physDeviceProps.pNext = &physDeviceIDProps;
+			vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
+
 			if (fallbackDevice == VK_NULL_HANDLE)
+			{
 				fallbackDevice = device;
+				fallbackDeviceName = physDeviceProps.properties.deviceName;
+			}
 
 			if (has_device_set)
 			{
-				VkPhysicalDeviceIDProperties physDeviceIDProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ID_PROPERTIES };
-				VkPhysicalDeviceProperties2 physDeviceProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-				physDeviceProps.pNext = &physDeviceIDProps;
-				vkGetPhysicalDeviceProperties2(device, &physDeviceProps);
-
 				if (memcmp(config.vk_graphic_device_uuid.data(), physDeviceIDProps.deviceUUID, VK_UUID_SIZE) != 0)
 					continue;
 			}
 
 			m_physicalDevice = device;
+			m_selectedDeviceName = physDeviceProps.properties.deviceName;
 			break;
 		}
 	}
@@ -603,6 +608,7 @@ VulkanRenderer::VulkanRenderer() : Renderer(RendererAPI::Vulkan)
 	{
 		cemuLog_log(LogType::Force, "The selected GPU could not be found or is not suitable. Falling back to first available device instead");
 		m_physicalDevice = fallbackDevice;
+		m_selectedDeviceName = fallbackDeviceName;
 		config.vk_graphic_device_uuid = {}; // resetting device selection
 	}
 	else if (m_physicalDevice == VK_NULL_HANDLE)
@@ -2063,6 +2069,10 @@ void VulkanRenderer::ImguiEnd()
 	ImGui::Render();
 	ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), m_state.currentCommandBuffer);
 	vkCmdEndRenderPass(m_state.currentCommandBuffer);
+
+	// restore viewport and scissor box
+	vkCmdSetViewport(m_state.currentCommandBuffer, 0, 1, &m_state.currentViewport);
+	vkCmdSetScissor(m_state.currentCommandBuffer, 0, 1, &m_state.currentScissorRect);
 }
 
 ImTextureID VulkanRenderer::GenerateTexture(const std::vector<uint8>& data, const Vector2i& size)
@@ -2452,6 +2462,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 	formatInfoOut->texelCountX = width;
 	formatInfoOut->texelCountY = height;
 	formatInfoOut->isCompressed = false;
+	formatInfoOut->isAlternateFormat = false;
 	if (isDepth)
 	{
 		switch (format)
@@ -2462,6 +2473,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 				formatInfoOut->vkImageFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 				formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 				formatInfoOut->decoder = TextureDecoder_NullData64::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
 			else
 			{
@@ -2475,6 +2487,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->vkImageFormat = VK_FORMAT_D32_SFLOAT_S8_UINT;
 			formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 			formatInfoOut->decoder = TextureDecoder_NullData64::getInstance();
+			formatInfoOut->isAlternateFormat = true;
 			break;
 		case Latte::E_GX2SURFFMT::D32_FLOAT:
 			formatInfoOut->vkImageFormat = VK_FORMAT_D32_SFLOAT;
@@ -2497,6 +2510,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->vkImageFormat = VK_FORMAT_D16_UNORM;
 			formatInfoOut->vkImageAspect = VK_IMAGE_ASPECT_DEPTH_BIT;
 			formatInfoOut->decoder = nullptr;
+			formatInfoOut->isAlternateFormat = true;
 			break;
 		}
 	}
@@ -2580,19 +2594,24 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R4_G4_UNORM:
 			if (m_supportedFormatInfo.fmt_r4g4_unorm_pack == false)
 			{
-				if (m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack == false) {
+				if (m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack == false)
+				{
 					formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 					formatInfoOut->decoder = TextureDecoder_R4G4_UNORM_To_RGBA8::getInstance();
+					formatInfoOut->isAlternateFormat = true;
 				}
-				else {
+				else
+				{
 					formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
 					formatInfoOut->decoder = TextureDecoder_R4_G4_UNORM_To_ABGR4::getInstance();
+					formatInfoOut->isAlternateFormat = true;
 				}
 			}
 			else
 			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4_UNORM_PACK8;
 				formatInfoOut->decoder = TextureDecoder_R4_G4::getInstance();
+				formatInfoOut->isAlternateFormat = true; // R and G swapped?
 			}
 			break;
 			// R formats
@@ -2634,37 +2653,49 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			break;
 			// special formats
 		case Latte::E_GX2SURFFMT::R5_G6_B5_UNORM:
-			if (m_supportedFormatInfo.fmt_r5g6b5_unorm_pack == false) {
+			if (m_supportedFormatInfo.fmt_r5g6b5_unorm_pack == false)
+			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 				formatInfoOut->decoder = TextureDecoder_R5G6B5_UNORM_To_RGBA8::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
-			else {
+			else
+			{
 				// Vulkan has R in MSB, GPU7 has it in LSB
 				formatInfoOut->vkImageFormat = VK_FORMAT_R5G6B5_UNORM_PACK16;
 				formatInfoOut->decoder = TextureDecoder_R5_G6_B5_swappedRB::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
 			break;
 		case Latte::E_GX2SURFFMT::R5_G5_B5_A1_UNORM:
-			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
+			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false)
+			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 				formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB_To_RGBA8::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
-			else {
+			else
+			{
 				// used in Super Mario 3D World for the hidden Luigi sprites
 				// since order of channels is reversed in Vulkan compared to GX2 the format we need is A1B5G5R5
 				formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16;
 				formatInfoOut->decoder = TextureDecoder_R5_G5_B5_A1_UNORM_swappedRB::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
 			break;
 		case Latte::E_GX2SURFFMT::A1_B5_G5_R5_UNORM:
-			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false) {
+			if (m_supportedFormatInfo.fmt_a1r5g5b5_unorm_pack == false)
+			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan_To_RGBA8::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
-			else {
+			else
+			{
 				// used by VC64 (e.g. Ocarina of Time)
 				formatInfoOut->vkImageFormat = VK_FORMAT_A1R5G5B5_UNORM_PACK16; // A 15 R 10..14, G 5..9 B 0..4
 				formatInfoOut->decoder = TextureDecoder_A1_B5_G5_R5_UNORM_vulkan::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
 			break;
 		case Latte::E_GX2SURFFMT::R11_G11_B10_FLOAT:
@@ -2672,13 +2703,17 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			formatInfoOut->decoder = TextureDecoder_R11_G11_B10_FLOAT::getInstance();
 			break;
 		case Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM:
-			if (m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack == false) {
+			if (m_supportedFormatInfo.fmt_r4g4b4a4_unorm_pack == false)
+			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
 				formatInfoOut->decoder = TextureDecoder_R4G4B4A4_UNORM_To_RGBA8::getInstance();
+				formatInfoOut->isAlternateFormat = true;
 			}
-			else {
+			else
+			{
 				formatInfoOut->vkImageFormat = VK_FORMAT_R4G4B4A4_UNORM_PACK16;
  				formatInfoOut->decoder = TextureDecoder_R4_G4_B4_A4_UNORM::getInstance();
+				formatInfoOut->isAlternateFormat = true; // channel order is different?
 			}
 			break;
 			// special formats - R10G10B10_A2
@@ -2689,6 +2724,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SNORM:
 			formatInfoOut->vkImageFormat = VK_FORMAT_R16G16B16A16_SNORM; // Vulkan has VK_FORMAT_A2R10G10B10_SNORM_PACK32 but it doesnt work?
 			formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_SNORM_To_RGBA16::getInstance();
+			formatInfoOut->isAlternateFormat = true;
 			break;
 		case Latte::E_GX2SURFFMT::R10_G10_B10_A2_SRGB:
 			//formatInfoOut->vkImageFormat = VK_FORMAT_R16G16B16A16_SNORM; // Vulkan has no uncompressed SRGB format with more than 8 bits per channel
@@ -2696,6 +2732,7 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 			//break;
 			formatInfoOut->vkImageFormat = VK_FORMAT_A2B10G10R10_UNORM_PACK32; // todo - verify
 			formatInfoOut->decoder = TextureDecoder_R10_G10_B10_A2_UNORM::getInstance();
+			formatInfoOut->isAlternateFormat = true;
 			break;
 			// compressed formats
 		case Latte::E_GX2SURFFMT::BC1_SRGB:
@@ -2741,15 +2778,19 @@ void VulkanRenderer::GetTextureFormatInfoVK(Latte::E_GX2SURFFMT format, bool isD
 		case Latte::E_GX2SURFFMT::R24_X8_UNORM:
 			formatInfoOut->vkImageFormat = VK_FORMAT_R32_SFLOAT;
 			formatInfoOut->decoder = TextureDecoder_R24_X8::getInstance();
+			formatInfoOut->isAlternateFormat = true;
 			break;
 		case Latte::E_GX2SURFFMT::X24_G8_UINT:
 			// used by Color Splash and Resident Evil
 			formatInfoOut->vkImageFormat = VK_FORMAT_R8G8B8A8_UINT; // todo - should we use ABGR format?
 			formatInfoOut->decoder = TextureDecoder_X24_G8_UINT::getInstance(); // todo - verify
+			formatInfoOut->isAlternateFormat = true;
+			break;
 		case Latte::E_GX2SURFFMT::R32_X8_FLOAT:
 			// seen in Disney Infinity 3.0
 			formatInfoOut->vkImageFormat = VK_FORMAT_R32_SFLOAT;
 			formatInfoOut->decoder = TextureDecoder_NullData64::getInstance();
+			formatInfoOut->isAlternateFormat = true;
 			break;
 		default:
 			cemuLog_log(LogType::Force, "Unsupported color texture format {:04x}", (uint32)format);
@@ -3749,22 +3790,23 @@ void VulkanRenderer::streamout_rendererFinishDrawcall()
 	m_streamoutState.buffer[3].enabled = false;
 }
 
-
-void VulkanRenderer::buffer_bindVertexBuffer(uint32 bufferIndex, uint32 offset, uint32 size)
+void VulkanRenderer::buffer_bindVertexBuffers(std::span<BindBufferParam> bindings)
 {
 	cemu_assert_debug(!m_useHostMemoryForCache);
-	if (m_state.currentVertexBinding[bufferIndex].offset == offset)
-		return;
-	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
-	m_state.currentVertexBinding[bufferIndex].offset = offset;
-	VkBuffer attrBuffer = m_bufferCache;
-	VkDeviceSize attrOffset = offset;
-	vkCmdBindVertexBuffers(m_state.currentCommandBuffer, bufferIndex, 1, &attrBuffer, &attrOffset);
+	VkBuffer buffer = m_bufferCache;
+	for (auto& binding : bindings)
+	{
+		if (m_state.currentVertexBinding[binding.index].offset == binding.bindOffset)
+			continue;
+		m_state.currentVertexBinding[binding.index].offset = binding.bindOffset;
+		VkDeviceSize bindOffset = binding.bindOffset;
+		vkCmdBindVertexBuffers(m_state.currentCommandBuffer, binding.index, 1, &buffer, &bindOffset);
+	}
 }
 
 void VulkanRenderer::buffer_bindVertexStrideWorkaroundBuffer(VkBuffer fixedBuffer, uint32 offset, uint32 bufferIndex, uint32 size)
 {
-	cemu_assert_debug(bufferIndex < LATTE_MAX_VERTEX_BUFFERS);
+	cemu_assert_debug(bufferIndex < Latte::GPU_LIMITS::NUM_VERTEX_BUFFERS);
 	m_state.currentVertexBinding[bufferIndex].offset = 0xFFFFFFFF;
 	VkBuffer attrBuffer = fixedBuffer;
 	VkDeviceSize attrOffset = offset;

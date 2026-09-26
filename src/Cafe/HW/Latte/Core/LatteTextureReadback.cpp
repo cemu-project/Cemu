@@ -145,7 +145,7 @@ void LatteTextureReadback_UpdateFinishedTransfers(bool forceFinish)
 		}
 #endif
 		uint8* pixelData = readbackInfo->GetData();
-		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, 0, 0, pixelData);
+		LatteTextureLoader_writeReadbackTextureToMemory(&readbackInfo->hostTextureCopy, readbackInfo->m_firstSlice, readbackInfo->m_firstMip, pixelData, readbackInfo->m_rowPitch);
 		readbackInfo->ReleaseData();
 		// get the original texture if it still exists and invalidate the current data hash
 		LatteTextureView* origTexView = LatteTextureViewLookupCache::lookupSlice(readbackInfo->hostTextureCopy.physAddress, readbackInfo->hostTextureCopy.width, readbackInfo->hostTextureCopy.height, readbackInfo->hostTextureCopy.pitch, 0, 0, readbackInfo->hostTextureCopy.format);
@@ -172,7 +172,7 @@ bool LatteTextureReadback_ReadbackToLinearBlocking(LatteTextureView* sourceView,
 
 	uint8* data = info->GetData(); // returned pixel format should match Latte format
 	uint32 bpp = Latte::GetFormatBits(sourceView->baseTexture->format) / 8;
-	uint32 srcRowBytes = sourceView->baseTexture->width * bpp;
+	uint32 srcRowBytes = info->m_rowPitch;
 	uint32 dstRowBytes = dstWidth * bpp;
 	for (uint32 y = 0; y < dstHeight; y++)
 		memcpy(dstPtr + y * dstPitch * bpp, data + y * srcRowBytes, dstRowBytes);
@@ -180,4 +180,21 @@ bool LatteTextureReadback_ReadbackToLinearBlocking(LatteTextureView* sourceView,
 	info->ReleaseData();
 	delete info;
 	return true;
+}
+
+uint32 LatteTextureReadbackInfo::GetReadbackRowPitch(LatteTextureView* textureView, uint32 rowAlignment)
+{
+	uint32 width = textureView->baseTexture->GetMipWidth(textureView->firstMip);
+	if (Latte::IsCompressedFormat(textureView->format))
+		width = (width + 3) / 4;
+	uint32 rowPitch = width * (Latte::GetFormatBits(textureView->format) / 8);
+	return (rowPitch + rowAlignment - 1) & ~(rowAlignment - 1);
+}
+
+uint32 LatteTextureReadbackInfo::GetReadbackImageSize(LatteTextureView* textureView, uint32 rowPitch)
+{
+	uint32 height = textureView->baseTexture->GetMipHeight(textureView->firstMip);
+	if (Latte::IsCompressedFormat(textureView->format))
+		height = (height + 3) / 4;
+	return height * rowPitch;
 }

@@ -112,14 +112,15 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 
 	// button repeat
 	const auto now = std::chrono::high_resolution_clock::now();
-	if (status.hold != m_last_holdvalue)
+	uint32 currentHold = status.hold;
+	if (currentHold != m_last_holdvalue)
 	{
 		m_last_hold_change = m_last_pulse = now;
 	}
 
 	if (repeat.pulse > 0)
 	{
-		if (m_last_hold_change + std::chrono::milliseconds(repeat.delay) >= now)
+		if (currentHold != 0 && m_last_hold_change + std::chrono::milliseconds(repeat.delay) <= now)
 		{
 			if ((m_last_pulse + std::chrono::milliseconds(repeat.pulse)) < now)
 			{
@@ -130,9 +131,9 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 	}
 
 	// general
-	status.release = m_last_holdvalue & ~status.hold;
-	status.trig = ~m_last_holdvalue & status.hold;
-	m_last_holdvalue = status.hold;
+	status.release = m_last_holdvalue & ~currentHold;
+	status.trig = ~m_last_holdvalue & currentHold;
+	m_last_holdvalue = currentHold;
 
 	// touch
 	update_touch(status);

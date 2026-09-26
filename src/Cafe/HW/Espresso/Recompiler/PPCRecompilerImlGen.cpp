@@ -975,7 +975,9 @@ bool PPCRecompilerImlGen_SUBFIC(ppcImlGenContext_t* ppcImlGenContext, uint32 opc
 	IMLReg regCa = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_XER_CA);
 	IMLReg regTmp = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY + 0);
 	ppcImlGenContext->emitInst().make_r_r(PPCREC_IML_OP_NOT, regTmp, regA);
-	ppcImlGenContext->emitInst().make_r_r_s32_carry(PPCREC_IML_OP_ADD, regD, regTmp, (sint32)imm + 1, regCa);
+	// imm + 1 wraps for imm == -1, which drops the carry. pass the +1 as input carry instead
+	ppcImlGenContext->emitInst().make_r_s32(PPCREC_IML_OP_ASSIGN, regCa, 1);
+	ppcImlGenContext->emitInst().make_r_r_s32_carry(PPCREC_IML_OP_ADD_WITH_CARRY, regD, regTmp, (sint32)imm, regCa);
 	return true;
 }
 
@@ -2505,7 +2507,7 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 				unsupportedInstructionFound = true;
 			break;
 		case 918: // STHBRX
-			if (!PPCRecompilerImlGen_STORE_INDEXED(ppcImlGenContext, opcode, 16, false, true))
+			if (!PPCRecompilerImlGen_STORE_INDEXED(ppcImlGenContext, opcode, 16, false, false))
 				unsupportedInstructionFound = true;
 			break;
 		case 922:
@@ -2703,8 +2705,21 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		switch (PPC_getBits(opcode, 30, 5))
 		{
 		case 0:
-			if (PPCRecompilerImlGen_FCMPU(ppcImlGenContext, opcode) == false)
+			// fcmpo (32) and mcrfs (64) are X-form and share the low 5 bits with fcmpu
+			switch (PPC_getBits(opcode, 30, 10))
+			{
+			case 0:
+				if (PPCRecompilerImlGen_FCMPU(ppcImlGenContext, opcode) == false)
+					unsupportedInstructionFound = true;
+				break;
+			case 32:
+				if (PPCRecompilerImlGen_FCMPO(ppcImlGenContext, opcode) == false)
+					unsupportedInstructionFound = true;
+				break;
+			default:
 				unsupportedInstructionFound = true;
+				break;
+			}
 			ppcImlGenContext->hasFPUInstruction = true;
 			break;
 		case 12:
@@ -2765,11 +2780,6 @@ bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext)
 		default:
 			switch (PPC_getBits(opcode, 30, 10))
 			{
-			case 32:
-				if (PPCRecompilerImlGen_FCMPO(ppcImlGenContext, opcode) == false)
-					unsupportedInstructionFound = true;
-				ppcImlGenContext->hasFPUInstruction = true;
-				break;
 			case 40:
 				if (PPCRecompilerImlGen_FNEG(ppcImlGenContext, opcode) == false)
 					unsupportedInstructionFound = true;

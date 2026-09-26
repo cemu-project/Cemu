@@ -45,6 +45,9 @@ class FileStream
 	~FileStream();
 	FileStream() = default;
 
+	// atomic helper
+	static bool WriteFileAtomic(const fs::path& path, std::span<uint8> fileData, bool allowTargetFileRename = false);
+
  private:
 	FileStream(HANDLE hFile);
 

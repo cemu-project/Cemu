@@ -8,13 +8,13 @@ class LaunchSettings
 {
 public:
 	// winmain
-	static bool HandleCommandline(const wchar_t* lpCmdLine);
+	static std::optional<int> HandleCommandline(const wchar_t* lpCmdLine);
 	// wmain
-	static bool HandleCommandline(int argc, wchar_t* argv[]);
+	static std::optional<int> HandleCommandline(int argc, wchar_t* argv[]);
 	// main (unix)
-	static bool HandleCommandline(int argc, char* argv[]);
+	static std::optional<int> HandleCommandline(int argc, char* argv[]);
 
-	static bool HandleCommandline(const std::vector<std::wstring>& args);
+	static std::optional<int> HandleCommandline(const std::vector<std::wstring>& args);
 
 	static std::optional<fs::path> GetLoadFile() { return s_load_game_file; }
 	static std::optional<uint64> GetLoadTitleID() {return s_load_title_id;}
@@ -31,6 +31,7 @@ public:
 	static std::unordered_map<fs::path, std::wstring>& CosMounts() { return s_cos_mounts; }
 
 	static bool GDBStubEnabled() { return s_enable_gdbstub; }
+	static bool OpenDebuggerEnabled() { return s_open_debugger; }
 	static bool NSightModeEnabled() { return s_nsight_mode; }
 
 	static bool ForceInterpreter() { return s_force_interpreter; };
@@ -56,6 +57,7 @@ private:
 	inline static std::unordered_map<fs::path, std::wstring> s_cos_mounts{};
 
 	inline static bool s_enable_gdbstub = false;
+	inline static bool s_open_debugger = false;
 	inline static bool s_nsight_mode = false;
 
 	inline static bool s_force_interpreter = false;

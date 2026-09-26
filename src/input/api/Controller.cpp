@@ -30,9 +30,10 @@ const ControllerState& ControllerBase::update_state()
 	// ignore default buttons
 	result.buttons.UnsetButtons(m_default_state.buttons);
 	// apply deadzone and range and ignore default axis values
-	apply_axis_setting(result.axis, m_default_state.axis, m_settings.axis);
-	apply_axis_setting(result.rotation, m_default_state.rotation, m_settings.rotation);
-	apply_axis_setting(result.trigger, m_default_state.trigger, m_settings.trigger);
+	auto settings = get_settings();
+	apply_axis_setting(result.axis, m_default_state.axis, settings.axis);
+	apply_axis_setting(result.rotation, m_default_state.rotation, settings.rotation);
+	apply_axis_setting(result.trigger, m_default_state.trigger, settings.trigger);
 
 	apply_axis_button(result.buttons, result.axis, kAxisXP);
 	apply_axis_button(result.buttons, result.rotation, kRotationXP);

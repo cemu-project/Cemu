@@ -31,8 +31,8 @@ namespace coreinit
 
 	void InitializeSysHeap()
 	{
-		cafeExportRegister("h264", OSAllocFromSystem, LogType::CoreinitMem);
-		cafeExportRegister("h264", OSFreeToSystem, LogType::CoreinitMem);
+		cafeExportRegister("coreinit", OSAllocFromSystem, LogType::CoreinitMem);
+		cafeExportRegister("coreinit", OSFreeToSystem, LogType::CoreinitMem);
 	}
 
 }

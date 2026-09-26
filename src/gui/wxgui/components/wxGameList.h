@@ -61,12 +61,9 @@ public:
 private:
 	std::atomic_bool m_exit = false;
 	Style m_style;
+	std::optional<TitleId> m_pendingSelection;
 	long GetStyleFlags(Style style) const;
 
-	const wxColour kUpdateColor{ wxSystemSettings::SelectLightDark(wxColour(195, 57, 57), wxColour(84, 29, 29)) };
-	const wxColour kFavoriteColor{ wxSystemSettings::SelectLightDark(wxColour(253, 246, 211), wxColour(82, 84, 48)) };
-	const wxColour kPrimaryColor = GetBackgroundColour();
-	const wxColour kAlternateColor = wxHelper::CalculateAccentColour(kPrimaryColor);
 	void UpdateItemColors(sint32 startIndex = 0);
 
 	enum ItemColumns : int

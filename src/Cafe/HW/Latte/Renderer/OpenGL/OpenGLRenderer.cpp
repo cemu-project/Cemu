@@ -542,12 +542,13 @@ void OpenGLRenderer::HandleScreenshotRequest(LatteTextureView* texView, bool pad
 	texture_bindAndActivate(texView, 0);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &screenshotWidth);
 	glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &screenshotHeight);
-	glPixelStorei(GL_PACK_ALIGNMENT, 1); // set alignment to 1
 
 	const sint32 pixelDataSize = screenshotWidth * screenshotHeight * 3;
 	std::vector<uint8> rgb_data(pixelDataSize);
 
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, rgb_data.data());
+	glPixelStorei(GL_PACK_ALIGNMENT, 4);
 	texture_bindAndActivate(nullptr, 0);
 	
 	const bool srcUsesSRGB = HAS_FLAG(texView->format, Latte::E_GX2SURFFMT::FMT_BIT_SRGB);
@@ -984,6 +985,8 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 		texDecoder = TextureDecoder_R11_G11_B10_FLOAT::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT)
 		texDecoder = TextureDecoder_R32_G32_B32_A32_UINT::getInstance();
+	else if (format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_SINT)
+		texDecoder = TextureDecoder_R32_G32_B32_A32_UINT::getInstance(); // reuse the UINT decoder
 	else if (format == Latte::E_GX2SURFFMT::R16_G16_B16_A16_UINT)
 		texDecoder = TextureDecoder_R16_G16_B16_A16_UINT::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UINT)

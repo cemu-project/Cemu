@@ -995,9 +995,15 @@ VkDescriptorSetInfo* VulkanRenderer::draw_getOrCreateDescriptorSet(PipelineInfo*
 	return dsInfo;
 }
 
+void VulkanRenderer::SurfaceSync(Latte::E_COHER_CNTL coher, MPTR address, uint32 size)
+{
+	if (static_cast<uint32>(coher & Latte::E_COHER_CNTL::CB_ALL_DEST_BASE_ENA) != 0)
+		m_state.colorBufferSyncPending = true;
+}
+
 void VulkanRenderer::sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass)
 {
-	bool writeFlushRequired = false;
+	bool writeFlushRequired = withinFeedbackLoopRenderPass; // feedback loop still requires us to emit a barrier
 
 	if (m_state.activeVertexDS)
 	{
@@ -1029,6 +1035,12 @@ void VulkanRenderer::sync_inputTexturesChanged(bool withinFeedbackLoopRenderPass
 	// barrier here
 	if (writeFlushRequired)
 	{
+		// Continued draws with unchanged descriptors in the same renderpass only introduce feedback hazards.
+		// Relax color feedback without a guest sync, but keep the read indices above updated for later passes.
+		if (withinFeedbackLoopRenderPass && !m_state.descriptorSetsChanged && !m_state.colorBufferSyncPending
+			&& m_state.m_curRenderpassSelfDependencyInfo.GetAspectMask() == VK_IMAGE_ASPECT_COLOR_BIT)
+			return;
+
 		VkMemoryBarrier memoryBarrier{};
 		memoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
 		memoryBarrier.srcAccessMask = 0;
@@ -1187,40 +1199,35 @@ bool s_syncOnNextDraw = false;
 void VulkanRenderer::draw_setRenderPass()
 {
 	CachedFBOVk* fboVk = m_state.activeFBO;
-	// note - pixel self dependency can be handled via feedback_loop extension
-	// vertex/geometry self dependency needs renderpass split
-	CachedFBOVk::RendertargetSelfDependencyMask renderSelfDependencyInfo{};
+	// note - vertex/geometry self dependency needs renderpass split
 
-	// update self-dependency state
+	auto& currentSelfDependencyInfo = m_state.m_curRenderpassSelfDependencyInfo;
 	if (m_state.descriptorSetsChanged || m_state.activeRenderpassFBO != fboVk)
 	{
-		renderSelfDependencyInfo = fboVk->CheckForSelfDependency(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
+		currentSelfDependencyInfo = fboVk->CheckForSelfDependency(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 	}
 
 	auto vkObjRenderPass = fboVk->GetRenderPassObj();
 	auto vkObjFramebuffer = fboVk->GetFramebufferObj();
 
-	bool feedbackLoopHandlesSelfDependency = UseAttachmentFeedbackLoop() && renderSelfDependencyInfo.HasSelfDependency() && !renderSelfDependencyInfo.HasVertexOrGeometrySelfDependency();
-	bool selfDependencyNeedsPassSplit = renderSelfDependencyInfo.HasSelfDependency() && !feedbackLoopHandlesSelfDependency;
+	bool feedbackLoopHandlesSelfDependency = UseAttachmentFeedbackLoop() && currentSelfDependencyInfo.HasSelfDependency() && !currentSelfDependencyInfo.HasVertexOrGeometrySelfDependency();
+	bool selfDependencyNeedsPassSplit = currentSelfDependencyInfo.HasSelfDependency() && !feedbackLoopHandlesSelfDependency;
 	bool overridePassReuse = selfDependencyNeedsPassSplit && (GetConfig().vk_accurate_barriers || m_state.activePipelineInfo->neverSkipAccurateBarrier);
 
 	if (!overridePassReuse && m_state.activeRenderpassFBO == fboVk)
 	{
-		if (m_state.descriptorSetsChanged)
+		if (m_state.descriptorSetsChanged || feedbackLoopHandlesSelfDependency)
 			sync_inputTexturesChanged(feedbackLoopHandlesSelfDependency);
-		if (UseAttachmentFeedbackLoop() && renderSelfDependencyInfo.GetAspectMask() != m_state.feedbackLoopImageAspect)
+		if (UseAttachmentFeedbackLoop() && currentSelfDependencyInfo.GetAspectMask() != m_state.feedbackLoopImageAspect)
 		{
-			m_state.feedbackLoopImageAspect = renderSelfDependencyInfo.GetAspectMask();
-			vkCmdSetAttachmentFeedbackLoopEnableEXT(m_state.currentCommandBuffer, renderSelfDependencyInfo.GetAspectMask());
+			m_state.feedbackLoopImageAspect = currentSelfDependencyInfo.GetAspectMask();
+			vkCmdSetAttachmentFeedbackLoopEnableEXT(m_state.currentCommandBuffer, currentSelfDependencyInfo.GetAspectMask());
 		}
 		return;
 	}
 	draw_endRenderPass();
 	if (m_state.descriptorSetsChanged)
 		sync_inputTexturesChanged();
-
-	// assume that FBO changed, update self-dependency state
-	renderSelfDependencyInfo = fboVk->CheckForSelfDependency(m_state.activeVertexDS, m_state.activeGeometryDS, m_state.activePixelDS);
 
 	sync_RenderPassLoadTextures(fboVk);
 
@@ -1245,10 +1252,10 @@ void VulkanRenderer::draw_setRenderPass()
 	}
 
 	m_state.activeRenderpassFBO = fboVk;
-	if (UseAttachmentFeedbackLoop() && renderSelfDependencyInfo.GetAspectMask() != m_state.feedbackLoopImageAspect)
+	if (UseAttachmentFeedbackLoop() && currentSelfDependencyInfo.GetAspectMask() != m_state.feedbackLoopImageAspect)
 	{
-		m_state.feedbackLoopImageAspect = renderSelfDependencyInfo.GetAspectMask();
-		vkCmdSetAttachmentFeedbackLoopEnableEXT(m_state.currentCommandBuffer, renderSelfDependencyInfo.GetAspectMask());
+		m_state.feedbackLoopImageAspect = currentSelfDependencyInfo.GetAspectMask();
+		vkCmdSetAttachmentFeedbackLoopEnableEXT(m_state.currentCommandBuffer, currentSelfDependencyInfo.GetAspectMask());
 	}
 
 	vkObjRenderPass->flagForCurrentCommandBuffer();
@@ -1745,6 +1752,7 @@ void VulkanRenderer::draw_execute(uint32 baseVertex, uint32 baseInstance, uint32
 		draw_execute_first(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType, drawcallContext);
 	else
 		draw_execute_continued(baseVertex, baseInstance, instanceCount, count, indexDataMPTR, indexType, drawcallContext);
+	m_state.colorBufferSyncPending = false;
 	LatteGPUState.drawCallCounter++;
 }
 

@@ -236,9 +236,28 @@ void cafeExportMakeWrapper(const char* libname, const char* funcname)
 	}
 
 template<auto fn>
+void cafeCallableExportWrapper(PPCInterpreter_t* hCPU)
+{
+	auto tup = cafeExportBuildArgTuple(hCPU, fn);
+	if constexpr (!std::is_void_v<decltype(std::apply(fn, tup))>)
+	{
+		// has non-void return type
+		decltype(auto) result = std::apply(fn, tup);
+		cafeExportParamWrapper::setReturnResult(hCPU, result);
+	}
+	else
+	{
+		// return type is void
+		std::apply(fn, tup);
+	}
+	// return from func
+	hCPU->instructionPointer = hCPU->spr.LR;
+}
+
+template<auto fn>
 MPTR makeCallableExport()
 {
-	return PPCInterpreter_makeCallableExportDepr(&cafeExportCallWrapper<fn, "CALLABLE_EXPORT">);
+	return RPLLoader_MakePPCCallable(&cafeCallableExportWrapper<fn>);
 }
 
 void osLib_addVirtualPointer(const char* libraryName, const char* functionName, uint32 vPtr);

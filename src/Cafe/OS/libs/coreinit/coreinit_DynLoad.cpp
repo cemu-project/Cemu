@@ -224,31 +224,35 @@ namespace coreinit
 
 	sint32 OSDynLoad_GetNumberOfRPLs()
 	{
-		return RPLLoader_GetModuleCount();
+		return (sint32)RPLLoader_GetModuleList().size();
 	}
 
 	uint32 OSDynLoad_GetRPLInfo(uint32 first, uint32 count, OSDynLoad_NotifyData* outInfos) 
 	{
 		if (count == 0)
 			return 1;
-		RPLModule** modules = RPLLoader_GetModuleList();
+		auto modules = RPLLoader_GetModuleList();
+		for (uint32 i = first; i < first + count; i++)
+		{
+			auto& outEntry = outInfos[i - first];
+			if (i >= modules.size())
+			{
+				memset(&outEntry, 0, sizeof(OSDynLoad_NotifyData));
+				continue;
+			}
+			outEntry.name = modules[i]->ppcName.GetMPTR();
 
-		for (uint32 i = first; i < count; i++)
-		{	
-			outInfos[i].name = modules[i]->ppcName.GetMPTR();
+			outEntry.textAddr = modules[i]->regionMappingBase_text.GetBEValue();
+			outEntry.textOffset = modules[i]->regionMappingBase_text.GetMPTR() - modules[i]->regionOrigAddr_text;
+			outEntry.textSize = modules[i]->regionSize_text;
 
-			outInfos[i].textAddr = modules[i]->regionMappingBase_text.GetBEValue();
-			outInfos[i].textOffset = modules[i]->regionMappingBase_text.GetMPTR() - modules[i]->regionOrigAddr_text;
-			outInfos[i].textSize = modules[i]->regionSize_text;
+			outEntry.dataAddr = modules[i]->regionMappingBase_data;
+			outEntry.dataOffset = modules[i]->regionMappingBase_data - modules[i]->regionOrigAddr_data;
+			outEntry.dataSize = modules[i]->regionSize_data;
 
-			outInfos[i].dataAddr = modules[i]->regionMappingBase_data;
-			outInfos[i].dataOffset = modules[i]->regionMappingBase_data - modules[i]->regionOrigAddr_data;
-			outInfos[i].dataSize = modules[i]->regionSize_data;
-
-			outInfos[i].readAddr = modules[i]->regionMappingBase_data;
-			outInfos[i].readOffset = modules[i]->regionMappingBase_data - modules[i]->regionOrigAddr_data;
-			outInfos[i].readSize = modules[i]->regionSize_data;
-
+			outEntry.readAddr = modules[i]->regionMappingBase_data;
+			outEntry.readOffset = modules[i]->regionMappingBase_data - modules[i]->regionOrigAddr_data;
+			outEntry.readSize = modules[i]->regionSize_data;
 		}
 
 		return 1;

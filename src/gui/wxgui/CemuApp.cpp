@@ -385,22 +385,6 @@ bool CemuApp::OnInit()
 		wxWlSetAppId(m_mainFrame, "info.cemu.Cemu");
 #endif
 
-	// show warning on macOS about state of builds
-#if BOOST_OS_MACOS
-	if (!config.did_show_macos_disclaimer)
-	{
-		const auto message = _(
-			"Thank you for testing the in-development build of Cemu for macOS.\n \n"
-			"The macOS port is currently purely experimental and should not be considered stable or ready for issue-free gameplay. "
-			"There are also known issues with degraded performance due to the use of MoltenVk and Rosetta for ARM Macs. We appreciate your patience while we improve Cemu for macOS.");
-		wxMessageDialog dialog(nullptr, message, _("Preview version"), wxCENTRE | wxOK | wxICON_WARNING);
-		dialog.SetOKLabel(_("I understand"));
-		dialog.ShowModal();
-		config.did_show_macos_disclaimer = true;
-		GetConfigHandle().Save();
-	}
-#endif
-
 	return true;
 }
 
@@ -424,6 +408,25 @@ int CemuApp::OnExit()
 #if BOOST_OS_MACOS
 	SDLControllerProvider::ShutdownSDL();
 #endif
+	// handle restart if requested
+	if (m_restartExecutable.has_value() && !m_restartExecutable->empty() && fs::exists(*m_restartExecutable))
+	{
+		fs::path restartPath = *m_restartExecutable;
+#if BOOST_OS_WINDOWS
+		PROCESS_INFORMATION pi{};
+		STARTUPINFOW si{};
+		si.cb = sizeof(si);
+		std::wstring cmdline;
+		cmdline = L"\"" + boost::nowide::widen(_pathToUtf8(restartPath)) + L"\"";
+		CreateProcessW(nullptr, (wchar_t*)cmdline.c_str(), nullptr, nullptr, FALSE, 0, nullptr, nullptr, &si, &pi);
+#elif BOOST_OS_LINUX
+		std::string appPath = _pathToUtf8(restartPath);
+		execlp(appPath.c_str(), appPath.c_str(), (char *)NULL);
+#elif BOOST_OS_MACOS
+		std::string appPath = _pathToUtf8(restartPath);
+		execlp(appPath.c_str(), appPath.c_str(), (char *)NULL);
+#endif
+	}
 #if BOOST_OS_WINDOWS
 	ExitProcess(retValue);
 #else
@@ -662,4 +665,14 @@ void CemuApp::ActivateApp(wxActivateEvent& event)
 {
 	g_window_info.app_active = event.GetActive();
 	event.Skip();
+}
+
+void CemuApp::RequestRestart(fs::path executablePath)
+{
+	m_restartExecutable = executablePath;
+	CallAfter([this, executablePath = std::move(executablePath)]() mutable
+	{
+		if (m_mainFrame && !m_mainFrame->IsBeingDeleted())
+			m_mainFrame->Close(true);
+	});
 }

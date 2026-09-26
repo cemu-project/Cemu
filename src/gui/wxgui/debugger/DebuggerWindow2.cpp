@@ -68,7 +68,7 @@ wxBEGIN_EVENT_TABLE(DebuggerWindow2, wxFrame)
 	EVT_COMMAND(wxID_ANY, wxEVT_UPDATE_VIEW, DebuggerWindow2::OnUpdateView)
 	EVT_COMMAND(wxID_ANY, wxEVT_BREAKPOINT_CHANGE, DebuggerWindow2::OnBreakpointChange)
 	EVT_COMMAND(wxID_ANY, wxEVT_MOVE_TO_DISASM_ADDR, DebuggerWindow2::OnMoveToDisasmAddr)
-	EVT_COMMAND(wxID_ANY, wxEVT_COMMAND_TOOL_CLICKED, DebuggerWindow2::OnToolClicked)
+	EVT_COMMAND(wxID_ANY, wxEVT_TOOL, DebuggerWindow2::OnToolClicked)
 	EVT_COMMAND(wxID_ANY, wxEVT_BREAKPOINT_HIT, DebuggerWindow2::OnBreakpointHit)
 	EVT_COMMAND(wxID_ANY, wxEVT_RUN, DebuggerWindow2::OnRunProgram)
 	EVT_COMMAND(wxID_ANY, wxEVT_NOTIFY_MODULE_LOADED, DebuggerWindow2::OnNotifyModuleLoaded)
@@ -308,9 +308,10 @@ void DebuggerModuleStorage::Save(XMLConfigParser& parser)
 	}
 }
 
-void DebuggerWindow2::CreateToolBar() 
+void DebuggerWindow2::CreateToolBar()
 {
-	m_toolbar = wxFrame::CreateToolBar(wxTB_HORIZONTAL, wxID_ANY);
+	m_toolbar = new wxToolBar(this, wxID_ANY, wxDefaultPosition, wxDefaultSize,
+		wxTB_HORIZONTAL | wxTB_NODIVIDER | wxTB_NOALIGN);
 	m_toolbar->SetToolBitmapSize(wxSize(16, 16));
 
 	wxBitmap goto_bitmap = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_GOTO_png, sizeof(DEBUGGER_GOTO_png), wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT));
@@ -336,6 +337,26 @@ void DebuggerWindow2::CreateToolBar()
 	m_toolbar->EnableTool(TOOL_ID_STEP_INTO, false);
 	m_toolbar->EnableTool(TOOL_ID_STEP_OVER, false);
 
+}
+
+void DebuggerWindow2::UpdateAppearance()
+{
+	const auto foreground = wxSystemSettings::GetColour(wxSYS_COLOUR_WINDOWTEXT);
+	const auto disabled = wxSystemSettings::GetColour(wxSYS_COLOUR_GRAYTEXT);
+	auto updateTool = [&](int id, const auto& png) {
+		m_toolbar->SetToolNormalBitmap(id, wxHelper::LoadThemedBitmapFromPNG(png, sizeof(png), foreground));
+		m_toolbar->SetToolDisabledBitmap(id, wxHelper::LoadThemedBitmapFromPNG(png, sizeof(png), disabled));
+	};
+	updateTool(TOOL_ID_GOTO, DEBUGGER_GOTO_png);
+	updateTool(TOOL_ID_BP, DEBUGGER_BP_RED_png);
+	updateTool(TOOL_ID_STEP_INTO, DEBUGGER_STEP_INTO_png);
+	updateTool(TOOL_ID_STEP_OVER, DEBUGGER_STEP_OVER_png);
+	m_pause = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_PAUSE_png, sizeof(DEBUGGER_PAUSE_png), foreground);
+	m_run = wxHelper::LoadThemedBitmapFromPNG(DEBUGGER_PLAY_png, sizeof(DEBUGGER_PLAY_png), foreground);
+	m_toolbar->SetToolNormalBitmap(TOOL_ID_PAUSE, debugger_isTrapped() ? m_run : m_pause);
+	m_module_label->SetForegroundColour(wxSystemSettings::SelectLightDark(wxColour(0x88, 0x27, 0xAA), wxColour(0xDC, 0xA0, 0xF0)));
+	m_toolbar->Refresh();
+	Refresh();
 }
 
 void DebuggerWindow2::LoadModuleStorage(const DebuggerModuleInfo& moduleInfo)
@@ -440,11 +461,11 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	CreateToolBar();
 
 	wxBoxSizer* main_sizer = new wxBoxSizer(wxVERTICAL);
+	main_sizer->Add(m_toolbar, 0, wxEXPAND);
 
 	// load configs and module storage for already loaded modules
-	const auto module_count = RPLLoader_GetModuleCount();
 	const auto module_list = RPLLoader_GetModuleList();
-	for (sint32 i = 0; i < module_count; i++)
+	for (sint32 i = 0; i < module_list.size(); i++)
 	{
 		const auto module = module_list[i];
 		DebuggerModuleInfo moduleInfo(module);
@@ -452,7 +473,7 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	}
 
 	wxString label_text = _("> no modules loaded");
-	if (module_count != 0)
+	if (module_list.size() != 0)
 	{
 		RPLModule* currentModule = RPLLoader_FindModuleByCodeAddr(MEMORY_CODEAREA_ADDR);
 		if (currentModule)
@@ -462,7 +483,6 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	}
 
 	m_module_label = new wxStaticText(this, wxID_ANY, label_text);
-	m_module_label->SetForegroundColour(wxColour(0xFFbf52fe));
 	main_sizer->Add(m_module_label, 0, wxEXPAND | wxALL, 5);
 
 	m_disasm_ctrl = new DisasmCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxScrolledWindowStyle);
@@ -483,6 +503,11 @@ DebuggerWindow2::DebuggerWindow2(wxFrame& parent, const wxRect& display_size)
 	m_config.data().pin_to_main = value;
 
 	s_debuggerWindow = this;
+	UpdateAppearance();
+	Bind(wxEVT_SYS_COLOUR_CHANGED, [this](wxSysColourChangedEvent& event) {
+		event.Skip();
+		CallAfter(&DebuggerWindow2::UpdateAppearance);
+	});
 }
 
 DebuggerWindow2::~DebuggerWindow2()
