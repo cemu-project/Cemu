@@ -2198,6 +2198,15 @@ void MetalRenderer::BindStageResources(MTL::RenderCommandEncoder* renderCommandE
 		{
 			LatteMRT::GetCurrentFragCoordScale(GET_UNIFORM_DATA_PTR(shader->uniform.loc_fragCoordScale));
 		}
+		for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
+		{
+			if (shader->uniform.loc_framebufferFetchSize[t] < 0)
+				continue;
+			const auto& texture = LatteGPUState.contextNew.SQ_TEX_START_PS[t];
+			sint32* size = reinterpret_cast<sint32*>(GET_UNIFORM_DATA_PTR(shader->uniform.loc_framebufferFetchSize[t]));
+			size[0] = texture.word0.get_WIDTH() + 1;
+			size[1] = texture.word1.get_HEIGHT() + 1;
+		}
 		if (shader->uniform.loc_verticesPerInstance >= 0)
 		{
 			*(int*)(supportBufferData + ((size_t)shader->uniform.loc_verticesPerInstance / 4)) = m_state.m_streamoutState.verticesPerInstance;

@@ -2646,7 +2646,7 @@ static void _emitTEXGetTextureResInfoCode(LatteDecompilerShaderContext* shaderCo
 	src->add("{" _CRLF);
 	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && shaderContext->shader->textureRenderTargetIndex[textureIndex] != 255)
 	{
-		src->add("int4 info = int4(1920, 1080, 0, 1);" _CRLF);
+		src->addFmt("int4 info = int4(supportBuffer.framebufferFetchSize{}, 0, 1);" _CRLF, textureIndex);
 	}
 	else if (dim == Latte::E_DIM::DIM_1D)
 		src->addFmt("int4 info = int4(tex{}.get_width(), 0, 0, 1);" _CRLF, textureIndex);

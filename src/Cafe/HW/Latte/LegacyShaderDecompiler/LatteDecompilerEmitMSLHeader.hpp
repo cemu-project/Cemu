@@ -84,6 +84,15 @@ namespace LatteDecompiler
 				uniformCurrentOffset += 8;
 			}
 		}
+		for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
+		{
+			if (!static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() || shader->textureRenderTargetIndex[t] == 255)
+				continue;
+			uniformCurrentOffset = (uniformCurrentOffset + 7) & ~7;
+			src->addFmt("int2 framebufferFetchSize{};" _CRLF, t);
+			uniformOffsets.offset_framebufferFetchSize[t] = uniformCurrentOffset;
+			uniformCurrentOffset += 8;
+		}
 		// provide scale factor for every texture that is accessed via texel coordinates (texelFetch)
 		for (sint32 t = 0; t < LATTE_NUM_MAX_TEX_UNITS; t++)
 		{
