@@ -2692,76 +2692,51 @@ static void _emitTEXGetTextureResInfoCode(LatteDecompilerShaderContext* shaderCo
 static void _emitTEXGetCompTexLodCode(LatteDecompilerShaderContext* shaderContext, LatteDecompilerTEXInstruction* texInstruction)
 {
 	StringBuf* src = shaderContext->shaderSource;
-	src->add(_getRegisterVarName(shaderContext, texInstruction->dstGpr));
-	src->add(".");
-
-	const char* resultElemTable[4] = {"x","y","z","w"};
-	sint32 numWrittenElements = 0;
-	for(sint32 f=0; f<4; f++)
+	const sint32 textureIndex = texInstruction->textureFetch.textureIndex;
+	const auto dim = shaderContext->shader->textureUnitDim[textureIndex];
+	const sint32 components = (dim == Latte::E_DIM::DIM_1D || dim == Latte::E_DIM::DIM_1D_ARRAY) ? 1 :
+		(dim == Latte::E_DIM::DIM_3D || dim == Latte::E_DIM::DIM_CUBEMAP) ? 3 : 2;
+	src->add("{" _CRLF);
+	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && shaderContext->shader->textureRenderTargetIndex[textureIndex] != 255)
 	{
-		if( texInstruction->dstSel[f] < 4 )
-		{
-			src->add(resultElemTable[f]);
-			numWrittenElements++;
-		}
-		else if( texInstruction->dstSel[f] == 7 )
-		{
-			// masked and not written
-		}
-		else
-		{
-			debugBreakpoint();
-		}
-	}
-
-	src->add(" = ");
-	_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType, 4);
-
-	if (static_cast<MetalRenderer*>(g_renderer.get())->SupportsFramebufferFetch() && shaderContext->shader->textureRenderTargetIndex[texInstruction->textureFetch.textureIndex] != 255)
-	{
-	    // We assume that textures accessed as framebuffer fetch are always sampled at pixel coordinates, therefore the lod would always be 0.0
-	    src->add("float4(0.0, 0.0, 0.0, 0.0)");
+		// framebuffer fetch assumes one texel per pixel
+		src->add("float lod = 0.0;" _CRLF "float level = 0.0;" _CRLF);
 	}
 	else
 	{
-    	if (shaderContext->shader->textureUnitDim[texInstruction->textureFetch.textureIndex] == Latte::E_DIM::DIM_CUBEMAP)
-    	{
-    		// 3 coordinates
-    		if(shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}{}), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
-    		else
-    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, as_type<float3>({}.{}{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]], resultElemTable[texInstruction->textureFetch.srcSel[2]]);
-    	}
-    	else
-    	{
-    		if (shaderContext->typeTracker.defaultDataType == LATTE_DECOMPILER_DTYPE_FLOAT)
-    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, {}.{}{}), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
-    		else
-    			src->addFmt("float4(textureCalculateLod(tex{}, samplr{}, as_type<float2>({}.{}{})), 0.0, 0.0)", texInstruction->textureFetch.textureIndex, texInstruction->textureFetch.textureIndex, _getRegisterVarName(shaderContext, texInstruction->srcGpr), resultElemTable[texInstruction->textureFetch.srcSel[0]], resultElemTable[texInstruction->textureFetch.srcSel[1]]);
-    		debugBreakpoint();
-    	}
+		src->addFmt("float lod = tex{}.calculate_unclamped_lod(samplr{}, ", textureIndex, textureIndex);
+		if (components > 1)
+			src->addFmt("float{}(", components);
+		for (sint32 i = 0; i < components; ++i)
+		{
+			if (i != 0)
+				src->add(", ");
+			_emitTEXSampleCoordInputComponent(shaderContext, texInstruction, i, LATTE_DECOMPILER_DTYPE_FLOAT);
+		}
+		if (components > 1)
+			src->add(")");
+		src->add(");" _CRLF);
+		// x/z: computed lod, y/w: clamped mip level
+		src->addFmt("float level = clamp(floor(lod + 0.5), 0.0, float(tex{}.get_num_mip_levels() - 1));" _CRLF, textureIndex);
 	}
-
-	_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
-	src->add(".");
-
-	for(sint32 f=0; f<4; f++)
+	for (sint32 i = 0; i < 4; ++i)
 	{
-		if( texInstruction->dstSel[f] < 4 )
-		{
-			src->add(resultElemTable[texInstruction->dstSel[f]]);
-			numWrittenElements++;
-		}
-		else if( texInstruction->dstSel[f] == 7 )
-		{
-			// masked and not written
-		}
+		const uint8 selector = texInstruction->dstSel[i];
+		if (selector == 7)
+			continue;
+		src->addFmt("{}.{} = ", _getRegisterVarName(shaderContext, texInstruction->dstGpr), _getElementStrByIndex(i));
+		_emitTypeConversionPrefixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
+		if (selector < 4)
+			src->add((selector & 1) ? "level" : "lod");
 		else
 		{
-			debugBreakpoint();
+			cemu_assert_debug(selector == 4 || selector == 5);
+			src->add(selector == 5 ? "1.0" : "0.0");
 		}
+		_emitTypeConversionSuffixMSL(shaderContext, LATTE_DECOMPILER_DTYPE_FLOAT, shaderContext->typeTracker.defaultDataType);
+		src->add(";" _CRLF);
 	}
-	src->add(";" _CRLF);
+	src->add("}" _CRLF);
 }
 
 static void _emitTEXSetCubemapIndexCode(LatteDecompilerShaderContext* shaderContext, LatteDecompilerTEXInstruction* texInstruction)
@@ -3742,15 +3717,6 @@ void LatteDecompiler_emitHelperFunctions(LatteDecompilerShaderContext* shaderCon
 	    "return compareValue < tex.sample(samplr, coord).x ? 1.0 : 0.0;\r\n"
 	"}\r\n"
 	);
-
-	// Texture calculate lod
-	// TODO: only add when needed
-	fCStr_shaderSource->add(""
-	"template<typename TextureT, typename CoordT>\r\n"
-	"float2 textureCalculateLod(TextureT tex, sampler samplr, CoordT coord) {\r\n"
-        "float lod = tex.calculate_unclamped_lod(samplr, coord);\r\n"
-        "return float2(floor(lod), fract(lod));\r\n"
-	"}\r\n");
 
 	// clamp
 	fCStr_shaderSource->add(""
