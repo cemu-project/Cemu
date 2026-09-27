@@ -87,6 +87,7 @@ public:
 	void* texture_acquireTextureUploadBuffer(uint32 size) override;
 	void texture_releaseTextureUploadBuffer(uint8* mem) override;
 
+	bool SupportsS3TC(bool isSRGB) const { return isSRGB ? m_supportsS3TCSRGB : m_supportsS3TC; }
 	TextureDecoder* texture_chooseDecodedFormat(Latte::E_GX2SURFFMT format, bool isDepth, Latte::E_DIM dim, uint32 width, uint32 height) override;
 
 	void texture_clearSlice(LatteTexture* hostTexture, sint32 sliceIndex, sint32 mipIndex) override;
@@ -184,6 +185,8 @@ private:
 	GLuint m_pipeline = 0;
 
 	bool m_isPadViewContext{};
+	bool m_supportsS3TC = false;
+	bool m_supportsS3TCSRGB = false;
 
 	// rendertarget viewport
 	float prevViewportX = 0;

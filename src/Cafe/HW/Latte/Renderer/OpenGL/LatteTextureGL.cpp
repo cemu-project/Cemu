@@ -105,6 +105,19 @@ void LatteTextureGL::GetOpenGLFormatInfo(bool isDepth, Latte::E_GX2SURFFMT forma
 		return;
 	}
 
+	const auto hwFormat = Latte::GetHWFormat(format);
+	if (hwFormat == Latte::E_HWFMT::HWFMT_BC1 || hwFormat == Latte::E_HWFMT::HWFMT_BC2 || hwFormat == Latte::E_HWFMT::HWFMT_BC3)
+	{
+		const bool isSRGB = HAS_FLAG(format, Latte::E_GX2SURFFMT::FMT_BIT_SRGB);
+		if (!OpenGLRenderer::GetInstance()->SupportsS3TC(isSRGB))
+		{
+			// fall back to software decoding, with sRGB conversion handled by the texture sampler
+			formatInfoOut->setFormat(isSRGB ? GL_SRGB8_ALPHA8 : GL_RGBA8, GL_RGBA, GL_FLOAT);
+			formatInfoOut->markAsAlternativeFormat();
+			return;
+		}
+	}
+
 	bool glIsCompressed = false;
 	bool isUsingAlternativeFormat = false; // set to true if there is no bit-perfect matching OpenGL format
 	sint32 glInternalFormat;
