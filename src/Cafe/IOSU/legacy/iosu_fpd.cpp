@@ -20,6 +20,9 @@ namespace iosu
 {
 	namespace fpd
 	{
+		constinit IOSUStaticData s_staticData;
+		nn::IPCSimpleService::WorkArea s_workArea(s_staticData);
+
 		using NotificationRunningId = uint64;
 
 		struct NotificationEntry
@@ -362,7 +365,7 @@ namespace iosu
 			std::vector<FPDClient*> m_clients;
 
 		  public:
-			FPDService() : iosu::nn::IPCSimpleService("/dev/fpd") {}
+			FPDService() : iosu::nn::IPCSimpleService("/dev/fpd", s_workArea) {}
 
 			std::string GetThreadName() override
 			{
@@ -1510,6 +1513,7 @@ namespace iosu
 		{
 			void TitleStart() override
 			{
+				s_staticData.Allocate();
 				gFPDService.Start();
 				gFPDService.SetTimerUpdate(1000); // call TimerUpdate() once a second
 			}
@@ -1517,6 +1521,7 @@ namespace iosu
 			{
 				gFPDService.StopFriendSession();
 				gFPDService.Stop();
+				s_staticData.Deallocate();
 			}
 		}sIOSUModuleNNFPD;
 

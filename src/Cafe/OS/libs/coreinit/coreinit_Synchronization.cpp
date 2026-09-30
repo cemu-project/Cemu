@@ -174,7 +174,7 @@ namespace coreinit
 
 	/************* OSRendezvous ************/
 
-	SysAllocator<OSEvent> g_rendezvousEvent;
+	CafeStaticVar<OSEvent> g_rendezvousEvent{coreinit::g_coreinitStaticData};
 
 	void OSInitRendezvous(OSRendezvous* rendezvous)
 	{

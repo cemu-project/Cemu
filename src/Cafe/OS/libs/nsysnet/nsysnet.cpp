@@ -79,6 +79,7 @@
 
 #define WU_SO_ESHUTDOWN		0x000F
 
+constinit COSStaticData s_nsysnetData;
 
 typedef signed int WUSOCKET;
 
@@ -1385,10 +1386,10 @@ void nsysnetExport_gethostbyname(PPCInterpreter_t* hCPU)
 	return;
 }
 
-SysAllocator<wu_hostent> _staticHostent;
-SysAllocator<char, 256> _staticHostentName;
-SysAllocator<MPTR, 32> _staticHostentPtrList;
-SysAllocator<wu_in_addr, 32> _staticHostentEntries;
+CafeStaticVar<wu_hostent> _staticHostent{s_nsysnetData};
+CafeStaticVar<char, 256> _staticHostentName{s_nsysnetData};
+CafeStaticVar<MPTR, 32> _staticHostentPtrList{s_nsysnetData};
+CafeStaticVar<wu_in_addr, 32> _staticHostentEntries{s_nsysnetData};
 
 void nsysnetExport_gethostbyaddr(PPCInterpreter_t* hCPU)
 {
@@ -2211,8 +2212,14 @@ namespace nsysnet
 			return "nsysnet";
 		}
 
+		void RPLUnmapped() override
+		{
+			s_nsysnetData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_nsysnetData.Allocate();
 			cafeExportRegister("nsysnet", inet_ntop, LogType::Socket);
 
 		    // the below code is the old way of registering API which is deprecated

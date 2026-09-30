@@ -50,6 +50,8 @@
 
 extern bool isLaunchTypeELF;
 
+constinit COSStaticData s_vpadStaticData;
+
 VPADDir g_vpadGyroDirOverwrite[VPAD_MAX_CONTROLLERS] =
 {
 		{{1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}, {0.0f, 0.0f, 0.1f}},
@@ -162,7 +164,7 @@ namespace vpad
 	
 	struct
 	{
-		SysAllocator<coreinit::OSAlarm_t> alarm;
+		CafeStaticVar<coreinit::OSAlarm_t> alarm{s_vpadStaticData};
 
 		struct
 		{
@@ -1169,8 +1171,21 @@ namespace vpad
 			return "vpad";
 		}
 
+		void RPLUnmapped() override
+		{
+			coreinit::OSCancelAlarm(g_vpad.alarm.GetPtr());
+			s_vpadStaticData.Deallocate();
+		}
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+				start();
+		}
+
 		void RPLMapped() override
 		{
+			s_vpadStaticData.Allocate();
 			cafeExportRegister("vpad", VPADSetBtnRepeat, LogType::InputAPI);
 			cafeExportRegister("vpad", VPADSetSamplingCallback, LogType::InputAPI);
 			cafeExportRegister("vpad", VPADRead, LogType::InputAPI);

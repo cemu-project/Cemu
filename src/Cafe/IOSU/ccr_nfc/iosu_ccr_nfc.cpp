@@ -1,3 +1,4 @@
+#include "Common/CafeStaticVar.h"
 #include "iosu_ccr_nfc.h"
 #include "Cafe/IOSU/kernel/iosu_kernel.h"
 #include "util/crypto/aes128.h"
@@ -9,7 +10,8 @@ namespace iosu
 	namespace ccr_nfc
 	{
 		IOSMsgQueueId sCCRNFCMsgQueue;
-		SysAllocator<iosu::kernel::IOSMessage, 0x20> sCCRNFCMsgQueueMsgBuffer;
+		constinit IOSUStaticData s_ccrNfcStaticData;
+		CafeStaticVar<iosu::kernel::IOSMessage, 0x20> sCCRNFCMsgQueueMsgBuffer{s_ccrNfcStaticData};
 		std::thread sCCRNFCThread;
 
 		constexpr uint8 sNfcKey[] = { 0xC1, 0x2B, 0x07, 0x10, 0xD7, 0x2C, 0xEB, 0x5D, 0x43, 0x49, 0xB7, 0x43, 0xE3, 0xCA, 0xD2, 0x24 };
@@ -374,6 +376,8 @@ namespace iosu
 		{
 			void SystemLaunch() override
 			{
+				s_ccrNfcStaticData.Allocate();
+
 				sCCRNFCMsgQueue = iosu::kernel::IOS_CreateMessageQueue(sCCRNFCMsgQueueMsgBuffer.GetPtr(), sCCRNFCMsgQueueMsgBuffer.GetCount());
 				cemu_assert(!IOS_ResultIsError(static_cast<IOS_ERROR>(sCCRNFCMsgQueue)));
 
@@ -395,6 +399,8 @@ namespace iosu
 
 				iosu::kernel::IOS_DestroyMessageQueue(sCCRNFCMsgQueue);
 				sCCRNFCMsgQueue = -1;
+
+				s_ccrNfcStaticData.Deallocate();
 			}
 		} sIOSUModuleCCRNFC;
 

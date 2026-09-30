@@ -29,6 +29,8 @@
 
 namespace nfc
 {
+	constinit COSStaticData s_nfcStaticData;
+
 	struct NFCContext
 	{
 		bool isInitialized;
@@ -56,7 +58,7 @@ namespace nfc
 		void* writeContext;
 		MPTR getTagInfoCallback;
 
-		SysAllocator<NFCTagInfo> tagInfo;
+		CafeStaticVar<NFCTagInfo> tagInfo{s_nfcStaticData};
 
 		fs::path tagPath;
 		std::shared_ptr<TagV0> tag;
@@ -646,8 +648,14 @@ namespace nfc
 			return "nfc";
 		}
 
+		void RPLUnmapped() override
+		{
+			s_nfcStaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_nfcStaticData.Allocate();
 			cafeExportRegister("nfc", NFCInit, LogType::NFC);
 			cafeExportRegister("nfc", NFCInitEx, LogType::NFC);
 			cafeExportRegister("nfc", NFCShutdown, LogType::NFC);

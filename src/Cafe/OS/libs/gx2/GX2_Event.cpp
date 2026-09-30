@@ -12,9 +12,8 @@
 
 namespace GX2
 {
-
-	SysAllocator<coreinit::OSThreadQueue> g_vsyncThreadQueue;
-	SysAllocator<coreinit::OSThreadQueue> g_flipThreadQueue;
+	CafeStaticVar<coreinit::OSThreadQueue> g_vsyncThreadQueue{s_gx2StaticData};
+	CafeStaticVar<coreinit::OSThreadQueue> g_flipThreadQueue{s_gx2StaticData};
 
 	void GX2SetGPUFence(uint32be* fencePtr, uint32 mask, uint32 compareOp, uint32 compareValue)
 	{
@@ -143,9 +142,9 @@ namespace GX2
 
 	// event callback thread
 	bool s_callbackThreadLaunched{};
-	SysAllocator<OSThread_t> s_eventCallbackThread;
-	SysAllocator<uint8, 0x2000> s_eventCallbackThreadStack;
-	SysAllocator<char, 64> s_eventCallbackThreadName;
+	CafeStaticVar<OSThread_t> s_eventCallbackThread{s_gx2StaticData};
+	CafeStaticVar<uint8, 0x2000> s_eventCallbackThreadStack{s_gx2StaticData};
+	CafeStaticVar<char, 64> s_eventCallbackThreadName{s_gx2StaticData};
 	// event callback queue
 	struct GX2EventQueueEntry
 	{
@@ -154,11 +153,13 @@ namespace GX2
 		GX2CallbackEventType eventType{(GX2CallbackEventType)-1};
 	};
 
-	SysAllocator<coreinit::OSSemaphore> s_eventCbQueueSemaphore;
+	CafeStaticVar<coreinit::OSSemaphore> s_eventCbQueueSemaphore{s_gx2StaticData};
 	ConcurrentQueue<GX2EventQueueEntry> s_eventCbQueue;
 
 	void __GX2NotifyEvent(GX2CallbackEventType eventType)
 	{
+		if (!g_vsyncThreadQueue.IsAllocated())
+			return;
 		if ((size_t)eventType >= GX2CallbackEventTypeCount)
 		{
 			cemu_assert_debug(false);

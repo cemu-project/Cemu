@@ -83,16 +83,16 @@ namespace snd_core
             __AXVoicesPerPriority[i].clear();
     }
 
-	SysAllocator<AXVPBInternal_t, AX_MAX_VOICES> _buffer__AXVPBInternalVoiceArray;
+	CafeStaticVar<AXVPBInternal_t, AX_MAX_VOICES> _buffer__AXVPBInternalVoiceArray{g_sndStaticData};
 	AXVPBInternal_t* __AXVPBInternalVoiceArray;
 
-	SysAllocator<AXVPBInternal_t, AX_MAX_VOICES> _buffer__AXVPBInternalVoiceShadowCopyArray;
+	CafeStaticVar<AXVPBInternal_t, AX_MAX_VOICES> _buffer__AXVPBInternalVoiceShadowCopyArray{g_sndStaticData};
 	AXVPBInternal_t* __AXVPBInternalVoiceShadowCopyArrayPtr; // this is the array used by audio mixing (it's synced at the beginning of every audio frame with __AXVPBInternalVoiceArray)
 
-	SysAllocator<AXVPBItd, AX_MAX_VOICES> _buffer__AXVPBItdArray;
+	CafeStaticVar<AXVPBItd, AX_MAX_VOICES> _buffer__AXVPBItdArray{g_sndStaticData};
 	AXVPBItd* __AXVPBItdArrayPtr;
 
-	SysAllocator<AXVPB, AX_MAX_VOICES> _buffer__AXVPBArray;
+	CafeStaticVar<AXVPB, AX_MAX_VOICES> _buffer__AXVPBArray{g_sndStaticData};
 	AXVPB* __AXVPBArrayPtr;
 
 	struct AXUSERPROTECTION

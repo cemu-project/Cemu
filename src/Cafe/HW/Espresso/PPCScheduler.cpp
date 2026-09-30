@@ -60,6 +60,7 @@ void _PPCCore_callbackExit(PPCInterpreter_t* hCPU)
 
 PPCInterpreter_t* PPCCore_executeCallbackInternal(uint32 functionMPTR)
 {
+	cemu_assert_debug(PPCInterpreter_getCurrentInstance()); // PPC callbacks can be only called from the dedicated PPC scheduler threads
 	cemu_assert_debug(functionMPTR != 0);
 	PPCInterpreter_t* hCPU = PPCInterpreter_getCurrentInstance();
 	// remember LR and instruction pointer

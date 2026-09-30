@@ -1,5 +1,7 @@
+#include "Cafe/OS/libs/coreinit/coreinit.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "util/helpers/fspinlock.h"
+#include "Common/CafeStaticVar.h"
 
 struct CoreinitAsyncCallback
 {
@@ -71,10 +73,10 @@ std::vector<struct CoreinitAsyncCallback*> CoreinitAsyncCallback::s_asyncCallbac
 std::vector<struct CoreinitAsyncCallback*> CoreinitAsyncCallback::s_asyncCallbackQueue;
 FSpinlock CoreinitAsyncCallback::s_asyncCallbackSpinlock;
 
-SysAllocator<OSThread_t> g_coreinitCallbackThread;
-SysAllocator<uint8, 1024*64> _g_coreinitCallbackThreadStack;
-SysAllocator<coreinit::OSSemaphore> g_asyncCallbackAsync;
-SysAllocator<char, 32> _g_coreinitCBThreadName;
+CafeStaticVar<OSThread_t> g_coreinitCallbackThread{coreinit::g_coreinitStaticData};
+CafeStaticVar<uint8, 1024*64> _g_coreinitCallbackThreadStack{coreinit::g_coreinitStaticData};
+CafeStaticVar<coreinit::OSSemaphore> g_asyncCallbackAsync{coreinit::g_coreinitStaticData};
+CafeStaticVar<char, 32> _g_coreinitCBThreadName{coreinit::g_coreinitStaticData};
 
 void _coreinitCallbackThread(PPCInterpreter_t* hCPU)
 {

@@ -11,13 +11,16 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Misc.h"
 
+
 namespace nn
 {
 	namespace olv
 	{
-		static SysAllocator<OSThread_t> s_OlvReleaseBgThread;
-		SysAllocator<uint8, 1024> s_OlvReleaseBgThreadStack;
-		SysAllocator<char, 32> s_OlvReleaseBgThreadName;
+		constinit COSStaticData s_nnolvStaticData;
+
+		CafeStaticVar<OSThread_t> s_OlvReleaseBgThread{s_nnolvStaticData};
+		CafeStaticVar<uint8, 1024> s_OlvReleaseBgThreadStack{s_nnolvStaticData};
+		CafeStaticVar<char, 32> s_OlvReleaseBgThreadName{s_nnolvStaticData};
 
 		void StubPostAppReleaseBackground(PPCInterpreter_t* hCPU)
 		{
@@ -103,8 +106,14 @@ namespace nn
 				return "nn_olv";
 			}
 
+			void RPLUnmapped() override
+			{
+				s_nnolvStaticData.Deallocate();
+			}
+
 			void RPLMapped() override
 			{
+				s_nnolvStaticData.Allocate();
 				loadOliveInitializeTypes();
 				loadOliveUploadCommunityTypes();
 				loadOliveDownloadCommunityTypes();

@@ -60,7 +60,7 @@ namespace GX2
 		uint64be lastSubmissionTime;
     };
 
-	SysAllocator<GX2CommandState> s_commandState;
+	CafeStaticVar<GX2CommandState> s_commandState{s_gx2StaticData};
 	GX2PerCoreCBState s_mainCoreLastCommandState;
 	bool s_cbBufferIsInternallyAllocated;
 
@@ -529,6 +529,8 @@ namespace GX2
 
     void GX2CommandResetToDefaultState()
     {
+		if (!s_commandState.IsAllocated())
+			return;
 		s_commandState->commandPoolBase = nullptr;
 		s_commandState->commandPoolSizeInU32s = 0;
 		s_commandState->gpuCommandReadPtr = nullptr;

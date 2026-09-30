@@ -15,19 +15,30 @@ namespace nn
 {
 namespace boss
 {
+	constinit COSStaticData s_rplData;
+
+	CafeStaticVar<Title::VTable> Title::s_titleVTable{s_rplData};
+	CafeStaticVar<BossAccount::VTable> BossAccount::s_VTable{s_rplData};
+	CafeStaticVar<TaskSetting::VTableTaskSetting> TaskSetting::s_VTable{s_rplData};
+	CafeStaticVar<NetTaskSetting::VTableNetTaskSetting> NetTaskSetting::s_VTable{s_rplData};
+	CafeStaticVar<NbdlTaskSetting::VTableNbdlTaskSetting> NbdlTaskSetting::s_VTable{s_rplData};
+	CafeStaticVar<RawUlTaskSetting::VTableRawUlTaskSetting> RawUlTaskSetting::s_VTable{s_rplData};
+	CafeStaticVar<RawDlTaskSetting::VTableRawDlTaskSetting> RawDlTaskSetting::s_VTable{s_rplData};
+	CafeStaticVar<PlayReportSetting::VTablePlayReportSetting> PlayReportSetting::s_VTable{s_rplData};
+
 	IPCServiceClient s_ipcClient;
 
 	static constexpr BossResult resultSuccess = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_BOSS, 0x80);
 	static constexpr BossResult resultInvalidParam = BUILD_NN_RESULT(NN_RESULT_LEVEL_LVL6, NN_RESULT_MODULE_NN_BOSS, 0x3780);
 	static constexpr BossResult resultUknA0220300 = BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_BOSS, 0x20300);
 
-	SysAllocator<coreinit::OSMutex> g_mutex;
+	CafeStaticVar<coreinit::OSMutex> g_mutex{s_rplData};
 	sint32 g_initCounter = 0;
 	bool g_isInitialized = false;
 
 	#define DTOR_WRAPPER(__TYPE) RPLLoader_MakePPCCallable([](PPCInterpreter_t* hCPU) { dtor(MEMPTR<__TYPE>(hCPU->gpr[3]), hCPU->gpr[4]); osLib_returnFromFunction(hCPU, 0); })
 
-	SysAllocator<uint8, 0x10000, 64> s_ipcBuffer;
+	CafeStaticVar<uint8, 0x10000, 64> s_ipcBuffer{s_rplData};
 
 	constexpr uint32 BOSS_MEM_MAGIC = 0xCAFE4321;
 
@@ -492,7 +503,7 @@ namespace boss
 			VTableEntry rtti;
 			VTableEntry dtor;
 		};
-		static inline SysAllocator<VTableTask> s_vTable;
+		static inline CafeStaticVar<VTableTask> s_vTable{s_rplData};
 
 		uint32be persistentId; // 0x00
 		uint32be uk2; // 0x04
@@ -744,7 +755,7 @@ namespace boss
 			VTableEntry rttiTask;
 		};
 		static_assert(sizeof(VTablePrivilegedTask) == 8*3);
-		static inline SysAllocator<VTablePrivilegedTask> s_VTable;
+		static inline CafeStaticVar<VTablePrivilegedTask> s_VTable{s_rplData};
 
 		static PrivilegedTask* ctor(PrivilegedTask* _thisptr)
 		{
@@ -778,7 +789,7 @@ namespace boss
 		struct VTableAlmightyTask : public VTablePrivilegedTask
 		{};
 		static_assert(sizeof(VTableAlmightyTask) == 8*3);
-		static inline SysAllocator<VTableAlmightyTask> s_VTable;
+		static inline CafeStaticVar<VTableAlmightyTask> s_VTable{s_rplData};
 
 		static AlmightyTask* ctor(AlmightyTask* _thisptr)
 		{
@@ -850,7 +861,7 @@ namespace boss
 			VTableEntry rtti;
 			VTableEntry dtor;
 		};
-		static inline SysAllocator<VTableStorage> s_vTable;
+		static inline CafeStaticVar<VTableStorage> s_vTable{s_rplData};
 
 		enum StorageKind
 		{
@@ -958,7 +969,7 @@ namespace boss
 			VTableEntry rttiStorage;
 		};
 		static_assert(sizeof(VTableAlmightyStorage) == 8*3);
-		static inline SysAllocator<VTableAlmightyStorage> s_VTable;
+		static inline CafeStaticVar<VTableAlmightyStorage> s_VTable{s_rplData};
 
 		static AlmightyStorage* ctor(AlmightyStorage* _thisptr)
 		{
@@ -1001,7 +1012,7 @@ namespace boss
 			VTableEntry rtti;
 			VTableEntry dtor;
 		};
-		static inline SysAllocator<VTableNsData> s_vTable;
+		static inline CafeStaticVar<VTableNsData> s_vTable{s_rplData};
 
 		/* +0x00 */ DataName name;
 		/* +0x20 */ Storage storage;
@@ -1202,8 +1213,14 @@ namespace nn::boss
 			return "nn_boss";
 		}
 
+		void RPLUnmapped() override
+		{
+			s_rplData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_rplData.Allocate();
 			cafeExportRegisterFunc(nn::boss::GetBossState, "nn_boss", "GetBossState__Q2_2nn4bossFv", LogType::NN_BOSS);
 
 			// boss lib

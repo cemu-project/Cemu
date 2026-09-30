@@ -102,8 +102,8 @@ namespace coreinit
 
 	//static_assert(sizeof(IPCDriverInstance) == 0x1740);
 
-	SysAllocator<IPCResourceBuffer, IPC_NUM_RESOURCE_BUFFERS * Espresso::CORE_COUNT, 0x40> s_ipcResourceBuffers;
-	SysAllocator<IPCDriver, Espresso::CORE_COUNT, 0x40> s_ipcDriver;
+	CafeStaticVar<IPCResourceBuffer, IPC_NUM_RESOURCE_BUFFERS * Espresso::CORE_COUNT, 0x40> s_ipcResourceBuffers{coreinit::g_coreinitStaticData};
+	CafeStaticVar<IPCDriver, Espresso::CORE_COUNT, 0x40> s_ipcDriver{coreinit::g_coreinitStaticData};
 
 	IPCDriver& IPCDriver_GetByCore(uint32 coreIndex)
 	{
@@ -176,11 +176,11 @@ namespace coreinit
 
 	/* IPC threads */
 
-	SysAllocator<OSThread_t, Espresso::CORE_COUNT> gIPCThread;
-	SysAllocator<uint8, 0x4000 * Espresso::CORE_COUNT> _gIPCThreadStack;
-	SysAllocator<uint8, 0x18 * Espresso::CORE_COUNT> _gIPCThreadNameStorage;
-	SysAllocator<OSMessageQueue, Espresso::CORE_COUNT> gIPCThreadMsgQueue;
-	SysAllocator<OSMessage, Espresso::CORE_COUNT * IPC_NUM_RESOURCE_BUFFERS> _gIPCThreadSemaphoreStorage;
+	CafeStaticVar<OSThread_t, Espresso::CORE_COUNT> gIPCThread{coreinit::g_coreinitStaticData};
+	CafeStaticVar<uint8, 0x4000 * Espresso::CORE_COUNT> _gIPCThreadStack{coreinit::g_coreinitStaticData};
+	CafeStaticVar<uint8, 0x18 * Espresso::CORE_COUNT> _gIPCThreadNameStorage{coreinit::g_coreinitStaticData};
+	CafeStaticVar<OSMessageQueue, Espresso::CORE_COUNT> gIPCThreadMsgQueue{coreinit::g_coreinitStaticData};
+	CafeStaticVar<OSMessage, Espresso::CORE_COUNT * IPC_NUM_RESOURCE_BUFFERS> _gIPCThreadSemaphoreStorage{coreinit::g_coreinitStaticData};
 
 	// handler thread for asynchronous callbacks for IPC responses
 	void __IPCDriverThreadFunc(PPCInterpreter_t* hCPU)

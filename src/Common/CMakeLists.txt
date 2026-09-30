@@ -1,5 +1,7 @@
 add_library(CemuCommon 
   betype.h
+  CafeStaticVar.cpp
+  CafeStaticVar.h
   cpu_features.cpp
   cpu_features.h
   enumFlags.h

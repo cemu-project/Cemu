@@ -1,17 +1,16 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
-#include <bitset>
-#include <mutex>
 #include "nsyshid.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Backend.h"
 #include "Whitelist.h"
 
+
 namespace nsyshid
 {
+	constinit COSStaticData s_nsyshidStaticData;
 
 	std::list<std::shared_ptr<Backend>> backendList;
-
 	std::list<std::shared_ptr<Device>> deviceList;
 
 	typedef struct _HIDClient_t
@@ -75,7 +74,7 @@ namespace nsyshid
 
 	const int HID_MAX_NUM_DEVICES = 128;
 
-	SysAllocator<HID_t, HID_MAX_NUM_DEVICES> HIDPool;
+	CafeStaticVar<HID_t, HID_MAX_NUM_DEVICES> HIDPool{s_nsyshidStaticData};
 	std::queue<size_t> HIDPoolIndexQueue;
 
 	void InitHIDPoolIndexQueue()
@@ -96,6 +95,9 @@ namespace nsyshid
 	HID_t* GetFreeHID()
 	{
 		std::lock_guard<std::recursive_mutex> lock(hidMutex);
+		cemu_assert_debug(HIDPool.IsAllocated());
+		if (!HIDPool.IsAllocated())
+			return nullptr;
 		InitHIDPoolIndexQueue();
 		if (HIDPoolIndexQueue.empty())
 		{
@@ -952,8 +954,28 @@ namespace nsyshid
 			return "nsyshid";
 		}
 
+		void RPLUnmapped() override
+		{
+			// Stop backends and drop callbacks before their guest descriptors go away.
+			{
+				std::lock_guard<std::recursive_mutex> lock(hidMutex);
+				HIDClientList.clear();
+			}
+			DetachAllBackends();
+			std::list<std::shared_ptr<Device>> remainingDevices;
+			{
+				std::lock_guard<std::recursive_mutex> lock(hidMutex);
+				remainingDevices = deviceList;
+			}
+			for (const auto& device : remainingDevices)
+				DetachDevice(device);
+			std::lock_guard<std::recursive_mutex> lock(hidMutex);
+			s_nsyshidStaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_nsyshidStaticData.Allocate();
 			osLib_addFunction("nsyshid", "HIDAddClient", export_HIDAddClient);
 			osLib_addFunction("nsyshid", "HIDDelClient", export_HIDDelClient);
 			osLib_addFunction("nsyshid", "HIDGetDescriptor", export_HIDGetDescriptor);

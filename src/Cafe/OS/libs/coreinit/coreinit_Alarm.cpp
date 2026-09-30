@@ -10,12 +10,11 @@
 
 namespace coreinit
 {
-	SysAllocator<OSEvent> g_alarmEvent;
+	CafeStaticVar<OSEvent> g_alarmEvent{coreinit::g_coreinitStaticData};
 
-	SysAllocator<OSThread_t> g_alarmThread;
-	SysAllocator<uint8, 1024 * 128> _g_alarmThreadStack;
-	SysAllocator<char, 32> _g_alarmThreadName;
-
+	CafeStaticVar<OSThread_t> g_alarmThread{coreinit::g_coreinitStaticData};
+	CafeStaticVar<uint8, 1024 * 128> _g_alarmThreadStack{coreinit::g_coreinitStaticData};
+	CafeStaticVar<char, 32> _g_alarmThreadName{coreinit::g_coreinitStaticData};
 
 	class OSHostAlarm 
 	{

@@ -4,6 +4,7 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MessageQueue.h"
+#include "Common/CafeStaticVar.h"
 
 namespace snd_core
 {
@@ -76,12 +77,12 @@ namespace snd_core
 	static_assert(offsetof(AXFINALMIXCBPARAM, numDevices) == 0x08);
 	static_assert(offsetof(AXFINALMIXCBPARAM, numChannelOutput) == 0x0A);
 
-	SysAllocator<AXFINALMIXCBPARAM> __AXFinalMixCBStructTV;
-	SysAllocator<AXFINALMIXCBPARAM> __AXFinalMixCBStructDRC;
-	SysAllocator<AXFINALMIXCBPARAM> __AXFinalMixCBStructRMT;
+	CafeStaticVar<AXFINALMIXCBPARAM> __AXFinalMixCBStructTV{g_sndStaticData};
+	CafeStaticVar<AXFINALMIXCBPARAM> __AXFinalMixCBStructDRC{g_sndStaticData};
+	CafeStaticVar<AXFINALMIXCBPARAM> __AXFinalMixCBStructRMT{g_sndStaticData};
 
-	SysAllocator<MEMPTR<sint32>, 6> __AXFinalMixCBStructTV_dataPtrArray;
-	SysAllocator<MEMPTR<sint32>, 4 * 2> __AXFinalMixCBStructDRC_dataPtrArray;
+	CafeStaticVar<MEMPTR<sint32>, 6> __AXFinalMixCBStructTV_dataPtrArray{g_sndStaticData};
+	CafeStaticVar<MEMPTR<sint32>, 4 * 2> __AXFinalMixCBStructDRC_dataPtrArray{g_sndStaticData};
 
 	sint32 __AXFinalMixOutputChannelCount[AX_DEV_COUNT] = { 0 }; // number of output channels returned by final mix callback
 
@@ -89,7 +90,7 @@ namespace snd_core
 	MPTR __AXFrameCallback = MPTR_NULL; // set via AXRegisterFrameCallback()
 	MPTR __AXAppFrameCallback[AX_APP_FRAME_CALLBACK_MAX];
 	MPTR __AXDeviceFinalMixCallback[AX_DEV_COUNT];
-	SysAllocator<coreinit::OSMutex, 1> __AXAppFrameCallbackMutex;
+	CafeStaticVar<coreinit::OSMutex, 1> __AXAppFrameCallbackMutex{g_sndStaticData};
 
 	void AXResetCallbacks()
 	{
@@ -211,8 +212,7 @@ namespace snd_core
 		return 0;
 	}
 
-
-	SysAllocator<AXRemixMatrices_t, 12> g_remix_matrices;
+	CafeStaticVar<AXRemixMatrices_t, 12> g_remix_matrices{g_sndStaticData};
 
 	sint32 AXSetDeviceRemixMatrix(sint32 deviceId, uint32 inputChannelCount, uint32 outputChannelCount, const MEMPTR<float32be>& matrix)
 	{
@@ -307,15 +307,15 @@ namespace snd_core
 		return -10;
 	}
 
-	SysAllocator<sint32, AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT> __AXTVOutputBuffer;
-	SysAllocator<sint32, AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * 2> __AXDRCOutputBuffer;
+	CafeStaticVar<sint32, AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT> __AXTVOutputBuffer{g_sndStaticData};
+	CafeStaticVar<sint32, AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * 2> __AXDRCOutputBuffer{g_sndStaticData};
 
-	SysAllocator<sint32, AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT> __AXTempFinalMixTVBuffer;
-	SysAllocator<sint32, AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * 2> __AXTempFinalMixDRCBuffer;
+	CafeStaticVar<sint32, AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT> __AXTempFinalMixTVBuffer{g_sndStaticData};
+	CafeStaticVar<sint32, AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * 2> __AXTempFinalMixDRCBuffer{g_sndStaticData};
 
 	// 48KHz buffers
-	SysAllocator<sint32, AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT> __AXTVBuffer48;
-	SysAllocator<sint32, AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * 2> __AXDRCBuffer48;
+	CafeStaticVar<sint32, AX_SAMPLES_MAX * AX_TV_CHANNEL_COUNT> __AXTVBuffer48{g_sndStaticData};
+	CafeStaticVar<sint32, AX_SAMPLES_MAX * AX_DRC_CHANNEL_COUNT * 2> __AXDRCBuffer48{g_sndStaticData};
 
 	sint32 AXUpsampleLinear32To48(sint32* inputBuffer, sint32* outputBuffer, sint32* sampleHistory, sint32 sampleCount, bool shiftSamples, sint32 channelCount)
 	{
@@ -937,7 +937,7 @@ namespace snd_core
 	
 	void AXIst_HandleDeviceRemix()
 	{
-		extern SysAllocator<AXRemixMatrices_t, 12> g_remix_matrices;
+		extern CafeStaticVar<AXRemixMatrices_t, 12> g_remix_matrices;
 		extern sint32 __AXOutTVOutputChannelCount;
 		extern sint32 __AXOutDRCOutputChannelCount;
 
@@ -966,11 +966,11 @@ namespace snd_core
 
 	std::atomic_bool __AXIstIsProcessingFrame = false;
 
-	SysAllocator<OSThread_t> __AXIstThread;
-	SysAllocator<uint8, 0x4000> __AXIstThreadStack;
+	CafeStaticVar<OSThread_t> __AXIstThread{g_sndStaticData};
+	CafeStaticVar<uint8, 0x4000> __AXIstThreadStack{g_sndStaticData};
 
-	SysAllocator<coreinit::OSMessage, 0x10> __AXIstThreadMsgArray;
-	SysAllocator<coreinit::OSMessageQueue, 1> __AXIstThreadMsgQueue;
+	CafeStaticVar<coreinit::OSMessage, 0x10> __AXIstThreadMsgArray{g_sndStaticData};
+	CafeStaticVar<coreinit::OSMessageQueue, 1> __AXIstThreadMsgQueue{g_sndStaticData};
 
 	void AXIst_InitThread()
 	{
@@ -1040,7 +1040,7 @@ namespace snd_core
 		}
 	}
 
-	SysAllocator<coreinit::OSMessage> _queueFrameMsg;
+	CafeStaticVar<coreinit::OSMessage> _queueFrameMsg{g_sndStaticData};
 
 	void AXIst_QueueFrame()
 	{

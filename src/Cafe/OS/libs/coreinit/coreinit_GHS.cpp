@@ -25,7 +25,7 @@ namespace coreinit
 		uint32 ghs_Errno; // exposed as 'errno' data export
 	};
 
-	SysAllocator<GHSAccessibleData> g_ghs_data;
+	CafeStaticVar<GHSAccessibleData> g_ghs_data{coreinit::g_coreinitStaticData};
 
 	struct ghs_flock
 	{
@@ -38,7 +38,7 @@ namespace coreinit
 	std::recursive_mutex g_ghsLock;
 	std::recursive_mutex g_ghsLockFlock;
 
-	SysAllocator<coreinit::OSMutex, GHS_FOPEN_MAX> _flockMutexArray;
+	CafeStaticVar<coreinit::OSMutex, GHS_FOPEN_MAX> _flockMutexArray{coreinit::g_coreinitStaticData};
 	bool _flockMutexMask[GHS_FOPEN_MAX]; // if set, mutex in _flockMutexArray is reserved
 
 	#define IOB_FLAG_IN				(0x1)

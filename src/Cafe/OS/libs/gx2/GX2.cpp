@@ -313,6 +313,8 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 
 namespace GX2
 {
+	constinit COSStaticData s_gx2StaticData;
+
 	class : public COSModule
 	{
 		public:
@@ -326,8 +328,14 @@ namespace GX2
 			return "gx2";
 		}
 
+		void RPLUnmapped() override
+		{
+			s_gx2StaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_gx2StaticData.Allocate();
 			osLib_addFunction("gx2", "GX2GetContextStateDisplayList", gx2Export_GX2GetContextStateDisplayList);
 
 			// swap, vsync & timing

@@ -1,10 +1,9 @@
 #pragma once
 #include "Cafe/HW/Espresso/Const.h"
 #include "Cafe/OS/RPL/COSModule.h"
+class COSStaticData;
 
 #define PPC_CORE_COUNT     (Espresso::CORE_COUNT)
-
-#include "Cafe/OS/libs/coreinit/coreinit_MessageQueue.h"
 
 // async callback helper
 
@@ -36,6 +35,8 @@ void OSFreeToSystem(MPTR mem);
 
 namespace coreinit
 {
+	extern COSStaticData g_coreinitStaticData;
+
 	sint32 OSGetCoreId();
 	uint32 OSGetCoreCount();
 	uint32 OSGetStackPointer();

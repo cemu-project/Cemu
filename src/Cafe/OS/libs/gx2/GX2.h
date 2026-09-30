@@ -12,8 +12,11 @@
 
 // general
 
+class COSStaticData;
+
 namespace GX2
 {
+	extern COSStaticData s_gx2StaticData;
 	COSModule* GetModule();
 }
 

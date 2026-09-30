@@ -2,6 +2,7 @@
 #include "Cafe/OS/libs/snd_core/ax_internal.h"
 #include "Cafe/HW/MMU/MMU.h"
 #include "config/ActiveSettings.h"
+#include "Common/CafeStaticVar.h"
 
 void mic_updateOnAXFrame();
 

@@ -287,7 +287,7 @@ bool RPLLoader_ProcessHeaders(std::string_view moduleName, uint8* rplData, uint3
 	fileName.append(rplLoaderContext->IsRPX() ? ".rpx" : ".rpl");
 
 	// allocate modulename in PPC memory
-	rplLoaderContext->ppcName = coreinit_allocFromSysArea(fileName.size() + 1, 4);
+	rplLoaderContext->ppcName = OSAllocFromSystem(fileName.size() + 1, 4);
 	memcpy(rplLoaderContext->ppcName.GetPtr(), fileName.data(), fileName.size() + 1);
 
 	// load CRC section

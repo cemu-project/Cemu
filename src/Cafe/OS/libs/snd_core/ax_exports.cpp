@@ -7,13 +7,19 @@
 
 namespace snd_core
 {
+	// snd_core and sndcore2 share the AX implementation in Cemu, but technically they are exclusive/conflicting implementations and no game should use them at the same time
+	// but just in case we keep g_sndStaticData alive until both modules are unloaded
+	COSStaticData g_sndStaticData;
+	static uint32 s_mappedSoundModules = 0;
+
 	sndGeneric_t sndGeneric;
 
 	void AXResetToDefaultState()
 	{
 		sndGeneric = {};
 		resetNumProcessedFrames();
-        AXVBP_Reset();
+		if (g_sndStaticData.IsAllocated())
+			AXVBP_Reset();
     }
 
 	bool AXIsInit()
@@ -473,8 +479,19 @@ namespace snd_core
 			return "snd_core";
 		}
 
+		void RPLUnmapped() override
+		{
+			cemu_assert(s_mappedSoundModules > 0);
+			--s_mappedSoundModules;
+			if (s_mappedSoundModules == 0)
+				g_sndStaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			if (s_mappedSoundModules == 0)
+				g_sndStaticData.Allocate();
+			++s_mappedSoundModules;
 			AXResetToDefaultState();
 			cafeExportRegisterFunc(sndcore1_AXInit, "snd_core", "AXInit", LogType::SoundAPI);
 			cafeExportRegisterFunc(sndcore1_AXInitEx, "snd_core", "AXInitEx", LogType::SoundAPI);
@@ -548,8 +565,19 @@ namespace snd_core
 			return "sndcore2";
 		}
 
+		void RPLUnmapped() override
+		{
+			cemu_assert(s_mappedSoundModules > 0);
+			--s_mappedSoundModules;
+			if (s_mappedSoundModules == 0)
+				g_sndStaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			if (s_mappedSoundModules == 0)
+				g_sndStaticData.Allocate();
+			++s_mappedSoundModules;
 			cafeExportRegisterFunc(sndcore2_AXInitWithParams, "sndcore2", "AXInitWithParams", LogType::SoundAPI);
 			cafeExportRegisterFunc(sndcore2_AXInit, "sndcore2", "AXInit", LogType::SoundAPI);
 			cafeExportRegisterFunc(sndcore2_AXInitEx, "sndcore2", "AXInitEx", LogType::SoundAPI);

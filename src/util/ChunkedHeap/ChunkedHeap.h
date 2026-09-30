@@ -372,6 +372,7 @@ public:
 
 	void free(void* addr) override
 	{
+		cemu_assert_debug(addr >= m_heapBase && addr < (m_heapBase + m_heapSize));
 		_free((uint32)((uint8*)addr - (uint8*)m_heapBase));
 	}
 

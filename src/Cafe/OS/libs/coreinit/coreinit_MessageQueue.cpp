@@ -6,8 +6,8 @@ namespace coreinit
 	void UpdateSystemMessageQueue();
 	void HandleReceivedSystemMessage(OSMessage* msg);
 
-	SysAllocator<OSMessageQueue> g_systemMessageQueue;
-	SysAllocator<OSMessage, 16> _systemMessageQueueArray;
+	CafeStaticVar<OSMessageQueue> g_systemMessageQueue{coreinit::g_coreinitStaticData};
+	CafeStaticVar<OSMessage, 16> _systemMessageQueueArray{coreinit::g_coreinitStaticData};
 
 	void OSInitMessageQueueEx(OSMessageQueue* msgQueue, OSMessage* msgArray, uint32 msgCount, void* userData)
 	{

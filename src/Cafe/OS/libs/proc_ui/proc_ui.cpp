@@ -20,6 +20,8 @@ using namespace coreinit;
 
 namespace proc_ui
 {
+	constinit COSStaticData s_procuiStaticData;
+
 	enum class ProcUICoreThreadCommand
 	{
 		AcquireForeground = 0x0,
@@ -58,26 +60,26 @@ namespace proc_ui
 	MEMPTR<void> s_saveCallbackEx; // with custom param and return value, set by ProcUIInitEx()
 	MEMPTR<void> s_saveCallbackExUserParam;
 	MEMPTR<coreinit::OSMessageQueue> s_systemMessageQueuePtr;
-	SysAllocator<coreinit::OSEvent> s_eventStateMessageReceived;
-	SysAllocator<coreinit::OSEvent> s_eventWaitingBeforeReleaseForeground;
-	SysAllocator<coreinit::OSEvent> s_eventBackgroundThreadGotMessage;
+	CafeStaticVar<coreinit::OSEvent> s_eventStateMessageReceived{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSEvent> s_eventWaitingBeforeReleaseForeground{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSEvent> s_eventBackgroundThreadGotMessage{s_procuiStaticData};
 	// procUI core threads
 	uint32 s_coreThreadStackSize;
 	bool s_coreThreadsCreated;
 	std::atomic<ProcUICoreThreadCommand> s_commandForCoreThread;
-	SysAllocator<OSThread_t> s_coreThreadArray[Espresso::CORE_COUNT];
+	CafeStaticVar<OSThread_t, Espresso::CORE_COUNT> s_coreThreadArray{s_procuiStaticData};
 	MEMPTR<void> s_coreThreadStackPerCore[Espresso::CORE_COUNT];
-	SysAllocator<CafeString<22>> s_coreThread0NameBuffer;
-	SysAllocator<CafeString<22>> s_coreThread1NameBuffer;
-	SysAllocator<CafeString<22>> s_coreThread2NameBuffer;
-	SysAllocator<coreinit::OSEvent> s_eventCoreThreadsNewCommandReady;
-	SysAllocator<coreinit::OSEvent> s_eventCoreThreadsCommandDone;
-	SysAllocator<coreinit::OSRendezvous> s_coreThreadRendezvousA;
-	SysAllocator<coreinit::OSRendezvous> s_coreThreadRendezvousB;
-	SysAllocator<coreinit::OSRendezvous> s_coreThreadRendezvousC;
+	CafeStaticVar<CafeString<22>> s_coreThread0NameBuffer{s_procuiStaticData};
+	CafeStaticVar<CafeString<22>> s_coreThread1NameBuffer{s_procuiStaticData};
+	CafeStaticVar<CafeString<22>> s_coreThread2NameBuffer{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSEvent> s_eventCoreThreadsNewCommandReady{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSEvent> s_eventCoreThreadsCommandDone{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSRendezvous> s_coreThreadRendezvousA{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSRendezvous> s_coreThreadRendezvousB{s_procuiStaticData};
+	CafeStaticVar<coreinit::OSRendezvous> s_coreThreadRendezvousC{s_procuiStaticData};
 	// background thread
 	MEMPTR<void> s_backgroundThreadStack;
-	SysAllocator<OSThread_t> s_backgroundThread;
+	CafeStaticVar<OSThread_t> s_backgroundThread{s_procuiStaticData};
 	// user defined heap
 	MEMPTR<void> s_memoryPoolHeapPtr;
 	MEMPTR<void> s_memAllocPtr;
@@ -102,8 +104,8 @@ namespace proc_ui
 	uint32be s_driverArgUkn1;
 	uint32be s_driverArgUkn2;
 	bool s_driverInBackground;
-	SysAllocator<OSDriverInterface> s_ProcUIDriver;
-	SysAllocator<CafeString<16>> s_ProcUIDriverName;
+	CafeStaticVar<OSDriverInterface> s_ProcUIDriver{s_procuiStaticData};
+	CafeStaticVar<CafeString<16>> s_ProcUIDriverName{s_procuiStaticData};
 
 
 	void* _AllocMem(uint32 size)
@@ -854,8 +856,14 @@ namespace proc_ui
 			return "proc_ui";
 		}
 
+		void RPLUnmapped() override
+		{
+			s_procuiStaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_procuiStaticData.Allocate();
 			reset();
 
 			cafeExportRegister("proc_ui", ProcUIInit, LogType::ProcUi);

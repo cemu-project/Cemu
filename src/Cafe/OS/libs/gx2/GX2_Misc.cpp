@@ -78,7 +78,7 @@ void gx2Export_GX2SampleBottomGPUCycle(PPCInterpreter_t* hCPU)
 
 namespace GX2
 {
-	SysAllocator<uint8, 640 * 480 * 4, 0x1000> _lastFrame;
+	CafeStaticVar<uint8, 640 * 480 * 4, 0x1000> _lastFrame{s_gx2StaticData};
 	uint32 sGX2MainCoreIndex = 0;
 
 	void _test_AddrLib();

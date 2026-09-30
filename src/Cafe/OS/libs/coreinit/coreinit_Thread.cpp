@@ -65,9 +65,9 @@ namespace coreinit
 	std::vector<std::thread> sSchedulerThreads;
 	std::mutex sSchedulerStateMtx;
 
-	SysAllocator<OSThreadQueue> g_activeThreadQueue; // list of all threads (can include non-detached inactive threads)
+	CafeStaticVar<OSThreadQueue> g_activeThreadQueue{coreinit::g_coreinitStaticData}; // list of all threads (can include non-detached inactive threads)
 
-	SysAllocator<OSThreadQueue, 3> g_coreRunQueue;
+	CafeStaticVar<OSThreadQueue, 3> g_coreRunQueue{coreinit::g_coreinitStaticData};
 	CounterSemaphore g_coreRunQueueThreadCount[3];
 
 	bool g_isMulticoreMode;
@@ -1485,8 +1485,8 @@ namespace coreinit
 		return sSchedulerActive;
 	}
 
-	SysAllocator<OSThread_t, PPC_CORE_COUNT> s_defaultThreads;
-	SysAllocator<uint8, PPC_CORE_COUNT * 1024 * 1024> s_stack;
+	CafeStaticVar<OSThread_t, PPC_CORE_COUNT> s_defaultThreads{coreinit::g_coreinitStaticData};
+	CafeStaticVar<uint8, PPC_CORE_COUNT * 1024 * 1024> s_stack{coreinit::g_coreinitStaticData};
 
 	OSThread_t* OSGetDefaultThread(sint32 coreIndex)
 	{
@@ -1532,10 +1532,10 @@ namespace coreinit
 			MEMPTR<void> deallocatorFunc;
 		};
 
-		SysAllocator<OSThread_t> terminatorThread;
-		SysAllocator<uint8, 16 * 1024> threadStack;
-		SysAllocator<char, 64> threadName;
-		SysAllocator<OSSemaphore> semaphoreQueuedDeallocators;
+		CafeStaticVar<OSThread_t> terminatorThread{coreinit::g_coreinitStaticData};
+		CafeStaticVar<uint8, 16 * 1024> threadStack{coreinit::g_coreinitStaticData};
+		CafeStaticVar<char, 64> threadName{coreinit::g_coreinitStaticData};
+		CafeStaticVar<OSSemaphore> semaphoreQueuedDeallocators{coreinit::g_coreinitStaticData};
 		ConcurrentQueue<DeallocatorQueueEntry> queueDeallocators;
 	};
 
@@ -1575,18 +1575,18 @@ namespace coreinit
 		}
 	}
 
-	SysAllocator<char, 64> _defaultThreadName[PPC_CORE_COUNT];
+	CafeStaticVar<std::array<char, 64>, PPC_CORE_COUNT> _defaultThreadName{coreinit::g_coreinitStaticData};
 
 	void __OSInitDefaultThreads()
 	{
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
-			sprintf(_defaultThreadName[i].GetPtr(), "Default Core %d", i);
+			sprintf(_defaultThreadName[i].data(), "Default Core %d", i);
 			OSThread_t* coreDefaultThread = coreinit::OSGetDefaultThread(i);
 			uint32 stackSize;
 			void* stackBase = coreinit::OSGetDefaultThreadStack(i, stackSize);
 			coreinit::OSCreateThreadType(coreDefaultThread, MPTR_NULL, 0, nullptr, (uint8*)stackBase + stackSize, stackSize, 16, 1 << i, OSThread_t::THREAD_TYPE::TYPE_APP);
-			coreinit::OSSetThreadName(coreDefaultThread, _defaultThreadName[i].GetPtr());
+			coreinit::OSSetThreadName(coreDefaultThread, _defaultThreadName[i].data());
 		}
 	}
 

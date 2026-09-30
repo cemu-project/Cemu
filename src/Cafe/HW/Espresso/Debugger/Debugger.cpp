@@ -5,7 +5,7 @@
 #include "Cafe/HW/Espresso/Recompiler/PPCRecompiler.h"
 #include "Cemu/ExpressionParser/ExpressionParser.h"
 
-#include "Cafe/OS/libs/coreinit/coreinit.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "OS/RPL/rpl.h"
 #include "util/helpers/helpers.h"
 
@@ -792,3 +792,4 @@ bool debugger_getOptionLogOnlyMemoryBreakpoints()
 {
 	return s_debuggerState.logOnlyMemoryBreakpoints;
 }
+

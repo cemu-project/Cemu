@@ -1,6 +1,7 @@
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/libs/snd_core/ax_internal.h"
 #include "Cafe/HW/Espresso/PPCState.h"
+#include "Common/CafeStaticVar.h"
 
 namespace snd_core
 {
@@ -56,8 +57,8 @@ namespace snd_core
 		}
 	};
 
-	SysAllocator<AUXTVBuffer>			__AXAuxTVBuffer;
-	SysAllocator<AUXDRCBuffer, 2>		__AXAuxDRCBuffer;
+	CafeStaticVar<AUXTVBuffer> __AXAuxTVBuffer{g_sndStaticData};
+	CafeStaticVar<AUXDRCBuffer, 2> __AXAuxDRCBuffer{g_sndStaticData};
 
 	uint32 __AXCurrentAuxInputFrameIndex = 0;
 
@@ -188,8 +189,8 @@ namespace snd_core
 		return 0;
 	}
 
-	SysAllocator<MEMPTR<sint32be>, 6> __AXAuxCB_dataPtrs;
-	SysAllocator<AXAUXCBCHANNELINFO> __AXAuxCB_auxCBStruct;
+	CafeStaticVar<MEMPTR<sint32be>, 6> __AXAuxCB_dataPtrs{g_sndStaticData};
+	CafeStaticVar<AXAUXCBCHANNELINFO> __AXAuxCB_auxCBStruct{g_sndStaticData};
 
 	void AXAux_Process()
 	{

@@ -1,6 +1,8 @@
 #pragma once
 #include "Common/CafeString.h"
 
+template<typename T, size_t count, size_t alignment> class RPLStaticVar;
+
 namespace nn::boss
 {
 	typedef uint32 BossResult;
@@ -54,7 +56,7 @@ namespace nn::boss
 			VTableEntry rtti;
 			VTableEntry dtor;
 		};
-		static inline SysAllocator<VTable> s_titleVTable;
+		static CafeStaticVar<VTable, 1, 32> s_titleVTable;
 
 		static Title* ctor(Title* _this);
 		static void dtor(Title* _this, uint32 options);
@@ -78,7 +80,7 @@ namespace nn::boss
 			VTableEntry rtti;
 			VTableEntry dtor;
 		};
-		static inline SysAllocator<VTable> s_VTable;
+		static CafeStaticVar<VTable, 1, 32> s_VTable;
 
 		uint32be accountId;
 		MEMPTR<void> vTablePtr;
@@ -232,7 +234,7 @@ namespace nn::boss
 			VTableEntry RegisterPreprocess; // todo - double check the offset
 			VTableEntry unk1;
 		};
-		static inline SysAllocator<VTableTaskSetting> s_VTable;
+		static CafeStaticVar<VTableTaskSetting, 1, 32> s_VTable;
 
 		static TaskSetting* ctor(TaskSetting* _thisptr);
 		static void dtor(TaskSetting* _this, uint32 options);
@@ -280,7 +282,7 @@ namespace nn::boss
 	{
 		struct VTableNetTaskSetting : public VTableTaskSetting
 		{ };
-		static inline SysAllocator<VTableNetTaskSetting> s_VTable;
+		static CafeStaticVar<VTableNetTaskSetting, 1, 32> s_VTable;
 
 		static NetTaskSetting* ctor(NetTaskSetting* _thisptr);
 		static BossResult AddCaCert(NetTaskSetting* _thisptr, const char* name);
@@ -300,7 +302,7 @@ namespace nn::boss
 			VTableEntry rttiNetTaskSetting; // unknown
 		};
 		static_assert(sizeof(VTableNbdlTaskSetting) == 8*5);
-		static inline SysAllocator<VTableNbdlTaskSetting> s_VTable;
+		static CafeStaticVar<VTableNbdlTaskSetting, 1, 32> s_VTable;
 
 		static NbdlTaskSetting* ctor(NbdlTaskSetting* _thisptr);
 		static BossResult Initialize(NbdlTaskSetting* _thisptr, const char* bossCode, uint64 directorySizeLimit, const char* bossDirectory);
@@ -323,7 +325,7 @@ namespace nn::boss
 			VTableEntry rttiNetTaskSetting; // unknown
 		};
 		static_assert(sizeof(VTableRawUlTaskSetting) == 8*5);
-		static inline SysAllocator<VTableRawUlTaskSetting> s_VTable;
+		static CafeStaticVar<VTableRawUlTaskSetting, 1, 32> s_VTable;
 
 		static RawUlTaskSetting* ctor(RawUlTaskSetting* _thisptr);
 		static void dtor(RawUlTaskSetting* _this, uint32 options);
@@ -339,7 +341,7 @@ namespace nn::boss
 			VTableEntry rttiNetTaskSetting; // unknown
 		};
 		static_assert(sizeof(VTableRawDlTaskSetting) == 8*5);
-		static inline SysAllocator<VTableRawDlTaskSetting> s_VTable;
+		static CafeStaticVar<VTableRawDlTaskSetting, 1, 32> s_VTable;
 
 		static RawDlTaskSetting* ctor(RawDlTaskSetting* _thisptr);
 		static BossResult Initialize(RawDlTaskSetting* _thisptr, const char* url, bool newArrival, bool led, const char* fileName, const char* bossDirectory);
@@ -360,7 +362,7 @@ namespace nn::boss
 		struct VTablePlayReportSetting : public VTableRawUlTaskSetting
 		{};
 		static_assert(sizeof(VTablePlayReportSetting) == 8*5);
-		static inline SysAllocator<VTablePlayReportSetting> s_VTable;
+		static CafeStaticVar<VTablePlayReportSetting, 1, 32> s_VTable;
 
 		static PlayReportSetting* ctor(PlayReportSetting* _this);
 		static void dtor(PlayReportSetting* _this, uint32 options);

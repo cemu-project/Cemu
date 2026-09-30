@@ -8,6 +8,8 @@
 #include "util/helpers/helpers.h"
 #include "resource/IconsFontAwesome5.h"
 
+constinit COSStaticData s_swkbdStaticData;
+
 #define SWKBD_FORM_STRING_MAX_LENGTH	(4096) // counted in 16-bit characters
 
 #define SWKBD_STATE_BLANK				(0)	// not visible
@@ -85,18 +87,14 @@ typedef struct
 	bool cancelState;
 }swkbdInternalState_t;
 
-swkbdInternalState_t* swkbdInternalState = nullptr;
 sint32 isNeedCalcSubThreadFont = 0;
 sint32 isNeedCalcSubThreadPredict = 0;
 
+CafeStaticVar<swkbdInternalState_t> swkbdInternalState{s_swkbdStaticData};
+
 void SwkbdCreate(uint8* workMemory, uint32 regionType, uint32 unk, coreinit::FSClient_t* fsClient)
 {
-	if( swkbdInternalState == nullptr )
-	{
-		MPTR swkbdInternalStateMPTR = coreinit_allocFromSysArea(sizeof(swkbdInternalState_t), 4);
-		swkbdInternalState = (swkbdInternalState_t*)memory_getPointerFromVirtualOffset(swkbdInternalStateMPTR);
-		memset(swkbdInternalState, 0x00, sizeof(swkbdInternalState_t));
-	}
+	memset(swkbdInternalState.GetPtr(), 0, sizeof(swkbdInternalState_t));
 	coreinit::OSSleepTicks(ESPRESSO_TIMER_CLOCK); // simulate this function taking a bit of time to run. MH3U/MH3G requires this to not softlock
 	// pretend that there is some work to do
 	isNeedCalcSubThreadFont = 3;
@@ -574,7 +572,7 @@ typedef struct
 	uint32be endIndex;
 }changeStringParam_t;
 
-SysAllocator<changeStringParam_t> _changeStringParam;
+CafeStaticVar<changeStringParam_t> _changeStringParam{s_swkbdStaticData};
 
 void swkbd_inputStringChanged()
 {
@@ -679,8 +677,14 @@ namespace swkbd
 			return "swkbd";
 		}
 
+		void RPLUnmapped() override
+		{
+			s_swkbdStaticData.Deallocate();
+		}
+
 		void RPLMapped() override
 		{
+			s_swkbdStaticData.Allocate();
 			cafeExportRegisterFunc(SwkbdCreate, "swkbd", "SwkbdCreate__3RplFPUcQ3_2nn5swkbd10RegionTypeUiP8FSClient", LogType::SWKBD);
 			cafeExportRegisterFunc(SwkbdCalc, "swkbd", "SwkbdCalc__3RplFRCQ3_2nn5swkbd14ControllerInfo", LogType::SWKBD);
 			cafeExportRegisterFunc(SwkbdGetStateKeyboard, "swkbd", "SwkbdGetStateKeyboard__3RplFv", LogType::SWKBD);
@@ -704,7 +708,7 @@ namespace swkbd
 		{
 			if (reason == coreinit::RplEntryReason::Loaded)
 			{
-				swkbdInternalState = nullptr;
+
 			}
 			else if (reason == coreinit::RplEntryReason::Unloaded)
 			{

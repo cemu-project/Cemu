@@ -7,6 +7,8 @@
 #include "WindowSystem.h"
 #include "input/InputManager.h"
 
+constinit COSStaticData s_padscoreStaticData;
+
 // KPAD
 
 enum class KPAD_ERROR : sint32
@@ -55,7 +57,7 @@ namespace padscore
 	WPADState_t g_wpad_state = kWPADStateMaster;
 
 	struct {
-		SysAllocator<coreinit::OSAlarm_t> alarm;
+		CafeStaticVar<coreinit::OSAlarm_t> alarm{s_padscoreStaticData};
 		bool kpad_initialized = false;
 
 		struct WPADData
@@ -774,8 +776,21 @@ namespace padscore
 			return "padscore";
 		}
 
+		void RPLUnmapped() override
+		{
+			coreinit::OSCancelAlarm(g_padscore.alarm.GetPtr());
+			s_padscoreStaticData.Deallocate();
+		}
+
+		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		{
+			if (reason == coreinit::RplEntryReason::Loaded)
+				start();
+		}
+
 		void RPLMapped() override
 		{
+			s_padscoreStaticData.Allocate();
 			cafeExportRegister("padscore", WPADIsMplsAttached, LogType::InputAPI);
 			cafeExportRegister("padscore", WPADGetAccGravityUnit, LogType::InputAPI);
 

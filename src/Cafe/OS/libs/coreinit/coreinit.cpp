@@ -184,6 +184,8 @@ void coreinitExport_OSGetSharedData(PPCInterpreter_t* hCPU)
 
 namespace coreinit
 {
+	COSStaticData g_coreinitStaticData;
+
 	sint32 OSGetCoreId()
 	{
 		return PPCInterpreter_getCoreIndex(PPCInterpreter_getCurrentInstance());
@@ -297,6 +299,7 @@ namespace coreinit
 
 		void RPLMapped() override
 		{
+			g_coreinitStaticData.Allocate();
 			coreinit::InitializeCore();
 			coreinit::InitializeSchedulerLock();
 			coreinit::InitializeSysHeap();
@@ -359,6 +362,11 @@ namespace coreinit
 			osLib_addFunction("coreinit", "OSGetSharedData", coreinitExport_OSGetSharedData);
 			osLib_addFunction("coreinit", "UCReadSysConfig", coreinitExport_UCReadSysConfig);
 		};
+
+		void RPLUnmapped() override
+		{
+			g_coreinitStaticData.Deallocate();
+		}
 
 		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
 		{

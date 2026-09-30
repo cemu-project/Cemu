@@ -29,8 +29,9 @@ namespace coreinit
 	};
 }
 
-// utility functions
+// utilities
 #include "Cafe/OS/common/OSUtil.h"
+#include "Common/CafeStaticVar.h"
 
 // va_list
 struct ppc_va_list

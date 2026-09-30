@@ -3,7 +3,7 @@
 
 namespace coreinit
 {
-	SysAllocator<OSSystemInfo> g_system_info;
+	CafeStaticVar<OSSystemInfo> g_system_info{coreinit::g_coreinitStaticData};
 
 	const OSSystemInfo& OSGetSystemInfo()
 	{

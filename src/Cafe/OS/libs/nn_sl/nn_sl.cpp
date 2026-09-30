@@ -4,11 +4,14 @@
 #include "config/ActiveSettings.h"
 #include "Cafe/CafeSystem.h"
 
+
 namespace nn
 {
 	typedef uint32 Result;
 	namespace sl
 	{
+		constinit COSStaticData s_nnslStaticData;
+
 		struct VTableEntry
 		{
 			uint16be offsetA{0};
@@ -66,7 +69,7 @@ namespace nn
 				VTableEntry dtor;
 				VTableEntry get;
 			};
-			static inline SysAllocator<VTable> s_titleVTable;
+			static inline CafeStaticVar<VTable> s_titleVTable{s_nnslStaticData};
 
 			static WhiteListAccessor* ctor(WhiteListAccessor* _this)
 			{
@@ -97,7 +100,7 @@ namespace nn
 		};
 		static_assert(sizeof(WhiteListAccessor) == 0x04);
 
-		SysAllocator<WhiteListAccessor> s_defaultWhiteListAccessor;
+		CafeStaticVar<WhiteListAccessor> s_defaultWhiteListAccessor{s_nnslStaticData};
 
 		WhiteListAccessor* GetDefaultWhiteListAccessor()
 		{
@@ -112,8 +115,14 @@ namespace nn
 				return "nn_sl";
 			}
 
+			void RPLUnmapped() override
+			{
+				s_nnslStaticData.Deallocate();
+			}
+
 			void RPLMapped() override
 			{
+				s_nnslStaticData.Allocate();
 				cafeExportRegisterFunc(nn::sl::GetDefaultWhiteListAccessor, "nn_sl", "GetDefaultWhiteListAccessor__Q2_2nn2slFv", LogType::NN_SL);
 			};
 

@@ -384,6 +384,9 @@ namespace iosu
 {
 	namespace act
 	{
+		constinit IOSUStaticData s_staticData;
+		nn::IPCService::WorkArea s_workArea(s_staticData);
+
 		uint8 getCurrentAccountSlot()
 		{
 			return 1;
@@ -605,7 +608,7 @@ namespace iosu
 		class ActService : public iosu::nn::IPCService
 		{
 		public:
-			ActService() : iosu::nn::IPCService("/dev/act") {}
+			ActService() : iosu::nn::IPCService("/dev/act", s_workArea) {}
 
 			nnResult ServiceCall(IPCServiceCall& serviceCall) override
 			{
@@ -619,12 +622,14 @@ namespace iosu
 
 		void Initialize()
 		{
+			s_staticData.Allocate();
 			gActService.Start();
 		}
 
 		void Stop()
 		{
 			gActService.Stop();
+			s_staticData.Deallocate();
 		}
 	}
 }

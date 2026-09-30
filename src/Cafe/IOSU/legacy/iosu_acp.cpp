@@ -581,6 +581,8 @@ namespace iosu
 
 	namespace acp
 	{
+		constinit IOSUStaticData s_staticData;
+		iosu::nn::IPCService::WorkArea s_ipcServiceWorkArea(s_staticData);
 
 		uint64 _ACPGetTimestamp()
 		{
@@ -780,7 +782,7 @@ namespace iosu
 		class AcpMainService : public iosu::nn::IPCService
 		{
 		  public:
-			AcpMainService() : iosu::nn::IPCService("/dev/acp_main") {}
+			AcpMainService() : iosu::nn::IPCService("/dev/acp_main", s_ipcServiceWorkArea) {}
 
 			nnResult ServiceCall(IPCServiceCall& serviceCall) override
 			{
@@ -796,12 +798,14 @@ namespace iosu
 		{
 			void TitleStart() override
 			{
+				s_staticData.Allocate();
 				gACPMainService.Start();
 				// gACPMainService.SetTimerUpdate(1000); // call TimerUpdate() once a second
 			}
 			void TitleStop() override
 			{
 				gACPMainService.Stop();
+				s_staticData.Deallocate();
 			}
 		}sIOSUModuleNNACP;
 
