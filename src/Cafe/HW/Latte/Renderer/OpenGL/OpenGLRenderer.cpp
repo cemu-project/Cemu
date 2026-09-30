@@ -303,7 +303,25 @@ void OpenGLRenderer::Initialize()
 
 	GLCanvas_MakeCurrent(false);
 	LoadOpenGLImports();
-	GetVendorInformation();	
+	GetVendorInformation();
+
+	m_supportsS3TC = false;
+	m_supportsS3TCSRGB = false;
+	bool supportsTextureSRGB = false;
+	sint32 extensionCount = 0;
+	glGetIntegerv(GL_NUM_EXTENSIONS, &extensionCount);
+	for (sint32 i = 0; i < extensionCount; ++i)
+	{
+		const char* extension = reinterpret_cast<const char*>(glGetStringi(GL_EXTENSIONS, i));
+		if (strcmp(extension, "GL_EXT_texture_compression_s3tc") == 0)
+			m_supportsS3TC = true;
+		else if (strcmp(extension, "GL_EXT_texture_sRGB") == 0)
+			supportsTextureSRGB = true;
+		else if (strcmp(extension, "GL_EXT_texture_compression_s3tc_srgb") == 0)
+			m_supportsS3TCSRGB = true;
+	}
+	// sRGB S3TC formats require both extensions
+	m_supportsS3TCSRGB |= m_supportsS3TC && supportsTextureSRGB;
 
 #if BOOST_OS_WINDOWS
 	if (wglSwapIntervalEXT)
@@ -314,6 +332,8 @@ void OpenGLRenderer::Initialize()
 		glMaxShaderCompilerThreadsARB(0xFFFFFFFF);
 
 	cemuLog_log(LogType::Force, "OpenGL extensions:");
+	cemuLog_log(LogType::Force, "S3TC textures: {}", m_supportsS3TC ? "available" : "software decoding");
+	cemuLog_log(LogType::Force, "S3TC sRGB textures: {}", m_supportsS3TCSRGB ? "available" : "software decoding");
 	cemuLog_log(LogType::Force, "ARB_clip_control: {}", glClipControl ? "available" : "not supported");
 	cemuLog_log(LogType::Force, "ARB_get_program_binary: {}", (glGetProgramBinary != NULL && glProgramBinary != NULL) ? "available" : "not supported");
 	cemuLog_log(LogType::Force, "ARB_clear_texture: {}", (glClearTexImage != NULL) ? "available" : "not supported");
@@ -889,6 +909,26 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 		}
 		return nullptr;
 	}
+	if (!SupportsS3TC(HAS_FLAG(format, Latte::E_GX2SURFFMT::FMT_BIT_SRGB)))
+	{
+		switch (format)
+		{
+		case Latte::E_GX2SURFFMT::BC1_UNORM:
+			return TextureDecoder_BC1_UNORM_uncompress::getInstance();
+		case Latte::E_GX2SURFFMT::BC1_SRGB:
+			return TextureDecoder_BC1_SRGB_uncompress::getInstance();
+		case Latte::E_GX2SURFFMT::BC2_UNORM:
+			return TextureDecoder_BC2_UNORM_uncompress::getInstance();
+		case Latte::E_GX2SURFFMT::BC2_SRGB:
+			return TextureDecoder_BC2_SRGB_uncompress::getInstance();
+		case Latte::E_GX2SURFFMT::BC3_UNORM:
+			return TextureDecoder_BC3_UNORM_uncompress::getInstance();
+		case Latte::E_GX2SURFFMT::BC3_SRGB:
+			return TextureDecoder_BC3_SRGB_uncompress::getInstance();
+		default:
+			break;
+		}
+	}
 	if (format == Latte::E_GX2SURFFMT::R4_G4_UNORM)
 		texDecoder = TextureDecoder_R4_G4_UNORM_To_RGBA4::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::R4_G4_B4_A4_UNORM)
@@ -908,9 +948,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::BC1_SRGB)
 		texDecoder = TextureDecoder_BC1::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC2_UNORM)
-		texDecoder = TextureDecoder_BC2_UNORM_uncompress::getInstance();
+		texDecoder = TextureDecoder_BC2::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC2_SRGB)
-		texDecoder = TextureDecoder_BC2_SRGB_uncompress::getInstance();
+		texDecoder = TextureDecoder_BC2::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC3_UNORM)
 		texDecoder = TextureDecoder_BC3::getInstance();
 	else if (format == Latte::E_GX2SURFFMT::BC3_SRGB)
@@ -925,9 +965,9 @@ TextureDecoder* OpenGLRenderer::texture_chooseDecodedFormat(Latte::E_GX2SURFFMT 
 	else if (format == Latte::E_GX2SURFFMT::BC4_SNORM)
 	{
 		if (dim != Latte::E_DIM::DIM_2D && dim != Latte::E_DIM::DIM_2D_ARRAY)
-			texDecoder = TextureDecoder_BC4::getInstance();
-		else
 			texDecoder = TextureDecoder_BC4_UNORM_uncompress::getInstance();
+		else
+			texDecoder = TextureDecoder_BC4::getInstance();
 	}
 	else if (format == Latte::E_GX2SURFFMT::BC5_UNORM)
 		texDecoder = TextureDecoder_BC5::getInstance();

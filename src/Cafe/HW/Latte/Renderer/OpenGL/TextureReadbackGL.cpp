@@ -111,13 +111,24 @@ void LatteTextureReadbackInfoGL::StartTransfer()
 
 bool LatteTextureReadbackInfoGL::IsFinished()
 {
-	GLenum status = glClientWaitSync(imageCopyFinSync, 0, 0);
-		if (status == GL_TIMEOUT_EXPIRED)
-			return false;
-		else if (status == GL_ALREADY_SIGNALED || status == GL_SIGNALED)
-			return true;
-		else
-			throw std::runtime_error("_updateFinishedTransfers(): Error during readback sync check\n");
+	return WaitForCompletion(0);
+}
+
+void LatteTextureReadbackInfoGL::ForceFinish()
+{
+	while (!WaitForCompletion(1000000000ull))
+	{
+	}
+}
+
+bool LatteTextureReadbackInfoGL::WaitForCompletion(GLuint64 timeout)
+{
+	const GLenum status = glClientWaitSync(imageCopyFinSync, timeout != 0 ? GL_SYNC_FLUSH_COMMANDS_BIT : 0, timeout);
+	if (status == GL_TIMEOUT_EXPIRED)
+		return false;
+	if (status == GL_ALREADY_SIGNALED || status == GL_CONDITION_SATISFIED)
+		return true;
+	throw std::runtime_error("OpenGL: Error waiting for texture readback");
 }
 
 uint8* LatteTextureReadbackInfoGL::GetData()

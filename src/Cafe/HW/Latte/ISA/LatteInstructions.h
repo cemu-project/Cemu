@@ -750,6 +750,7 @@ public:
 		SQRT_IEEE = 0x6A,
 		SIN = 0x06E,
 		COS = 0x06F,
+		RECIP_CLAMPED = 0x64,
 		RECIP_FF = 0x65,
 		RECIP_IEEE = 0x66,
 		RECIPSQRT_CLAMPED = 0x67,
@@ -896,6 +897,7 @@ public:
 		{
 		case COS:
 		case SIN:
+		case RECIP_CLAMPED:
 		case RECIP_FF: // todo: verify
 		case RECIP_IEEE: // todo: verify
 		case RECIPSQRT_IEEE: // todo: verify
