@@ -1589,8 +1589,9 @@ void _emitALUOP2InstructionCode(LatteDecompilerShaderContext* shaderContext, Lat
 		}
 		else if( cfInstruction->type == GPU7_CF_INST_ALU_BREAK )
 		{
-			src->add("if (predResult) break;" _CRLF);
-			src->addFmt("{} = false;" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1));
+			// defer the break until the ALU clause has finished
+			if (aluInstruction->updateExecuteMask)
+				src->add("aluBreak = aluBreak || (predResult == false);" _CRLF);
 		}
 		else
 			cemu_assert_debug(false);
@@ -3530,7 +3531,11 @@ void LatteDecompiler_emitClauseCode(LatteDecompilerShaderContext* shaderContext,
 			src->addFmt("{} = {};" _CRLF, _getActiveMaskVarName(shaderContext, cfInstruction->activeStackDepth), _getActiveMaskVarName(shaderContext, cfInstruction->activeStackDepth-1));
 			src->addFmt("{} = {};" _CRLF, _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth + 1), _getActiveMaskCVarName(shaderContext, cfInstruction->activeStackDepth));
 		}
+		if (cfInstruction->type == GPU7_CF_INST_ALU_BREAK)
+			src->add("bool aluBreak = false;" _CRLF);
 		_emitALUClauseCode(shaderContext, cfInstruction);
+		if (cfInstruction->type == GPU7_CF_INST_ALU_BREAK)
+			src->add("if (aluBreak) break;" _CRLF);
 		if( shaderContext->analyzer.modifiesPixelActiveState )
 			src->add("}" _CRLF);
 		cemu_assert_debug(!(shaderContext->analyzer.modifiesPixelActiveState == false && cfInstruction->type != GPU7_CF_INST_ALU));
