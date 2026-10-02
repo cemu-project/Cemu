@@ -2508,19 +2508,22 @@ static void _emitTEXSampleTextureCode(LatteDecompilerShaderContext* shaderContex
     	// gradient parameters
     	if (texOpcode == GPU7_TEX_INST_SAMPLE_G)
     	{
-    		if (texDim == Latte::E_DIM::DIM_2D ||
-    			texDim == Latte::E_DIM::DIM_1D)
+		if (texDim == Latte::E_DIM::DIM_1D)
+		{
+			src->add(", gradient1d(gradH.x, gradV.x)");
+		}
+		else if (texDim == Latte::E_DIM::DIM_2D)
     		{
     			src->add(", gradient2d(gradH.xy, gradV.xy)");
     		}
-    		else
+		else
     		{
     			cemu_assert_unimplemented();
     		}
     	}
 
     	// offset
-		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ || texOpcode == GPU7_TEX_INST_SAMPLE || texOpcode == GPU7_TEX_INST_SAMPLE_C )
+		if( texOpcode == GPU7_TEX_INST_SAMPLE_L || texOpcode == GPU7_TEX_INST_SAMPLE_LB || texOpcode == GPU7_TEX_INST_SAMPLE_G || texOpcode == GPU7_TEX_INST_SAMPLE_LZ || texOpcode == GPU7_TEX_INST_SAMPLE_C_LZ || texOpcode == GPU7_TEX_INST_SAMPLE || texOpcode == GPU7_TEX_INST_SAMPLE_C )
     	{
     		if( hasOffset )
     		{
