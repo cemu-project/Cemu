@@ -13,7 +13,7 @@ namespace nn
 {
 	namespace fp
 	{
-		constinit constinit COSStaticData s_nnfpStaticData;
+		constinit COSStaticData s_nnfpStaticData;
 
 		static const auto FPResult_OkZero = 0;
 		static const auto FPResult_Ok = BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_FP, 0);
