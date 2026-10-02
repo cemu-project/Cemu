@@ -24,6 +24,7 @@
 #include "OS/libs/nn_ndm/nn_ndm.h"
 #include "OS/libs/nn_spm/nn_spm.h"
 #include "OS/libs/nn_save/nn_save.h"
+#include "OS/libs/nn_sl/nn_sl.h"
 #include "OS/libs/nsysnet/nsysnet.h"
 #include "OS/libs/nn_fp/nn_fp.h"
 #include "OS/libs/nn_idbe/nn_idbe.h"
@@ -76,6 +77,7 @@ std::span<COSModule*> GetCOSModules()
 		nn::ndm::GetModule(),
 		nn::spm::GetModule(),
 		nn::save::GetModule(),
+		nn::sl::GetModule(),
 		nsysnet::GetModule(),
 		nn::fp::GetModule(),
 		nn::olv::GetModule(),
