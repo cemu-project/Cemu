@@ -416,7 +416,16 @@ void LatteDecompiler_analyzeExport(LatteDecompilerShaderContext* shaderContext, 
 	{
 		if (cfInstruction->exportType == 2 && cfInstruction->exportArrayBase < 32)
 		{
-			shaderContext->shader->outputParameterMask |= (1<<cfInstruction->exportArrayBase);
+			for (uint32 burstIndex = 0; burstIndex < (cfInstruction->exportBurstCount + 1); burstIndex++)
+			{
+				uint32 paramIndex = cfInstruction->exportArrayBase + burstIndex;
+				if (paramIndex >= 32)
+				{
+					cemu_assert_unimplemented();
+					break;
+				}
+				shaderContext->shader->outputParameterMask |= (1u << paramIndex);
+			}
 		}
 		else if (cfInstruction->exportType == 1 && cfInstruction->exportArrayBase == GPU7_DECOMPILER_CF_EXPORT_POINT_SIZE)
 		{

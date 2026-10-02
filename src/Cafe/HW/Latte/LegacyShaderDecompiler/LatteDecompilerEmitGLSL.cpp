@@ -3147,7 +3147,7 @@ void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDecompile
 	src->add("// export" _CRLF);
 	if(shaderContext->shaderType == LatteConst::ShaderType::Vertex )
 	{
-		if( cfInstruction->exportBurstCount != 0 )
+		if( cfInstruction->exportBurstCount != 0 && cfInstruction->exportType != 2 )
 			debugBreakpoint();
 		if (cfInstruction->exportType == 1 && cfInstruction->exportArrayBase == GPU7_DECOMPILER_CF_EXPORT_BASE_POSITION)
 		{
@@ -3188,17 +3188,43 @@ void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDecompile
 		else if( cfInstruction->exportType == 2 && cfInstruction->exportArrayBase < 32 )
 		{
 			// export parameter
-			sint32 paramIndex = cfInstruction->exportArrayBase;
-			uint32 vsSemanticId = _getVertexShaderOutParamSemanticId(shaderContext->contextRegisters, paramIndex);
-			if (vsSemanticId != 0xFF)
+			for (uint32 burstIndex = 0; burstIndex < (cfInstruction->exportBurstCount + 1); burstIndex++)
 			{
-				src->addFmt("passParameterSem{} = ", vsSemanticId);
-				_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, 0);
-				src->add(";" _CRLF);
-			}
-			else
-			{
-				src->add("// skipped export to semanticId 255" _CRLF);
+				uint32 paramIndex = cfInstruction->exportArrayBase + burstIndex;
+				if (paramIndex >= 32)
+				{
+					cemu_assert_unimplemented();
+					break;
+				}
+				uint32 vsSemanticId = _getVertexShaderOutParamSemanticId(shaderContext->contextRegisters, paramIndex);
+				if (vsSemanticId != 0xFF)
+				{
+					// preserve earlier exports for masked components
+					char componentMask[5]{};
+					uint32 componentCount = 0;
+					for (uint32 component = 0; component < 4; component++)
+					{
+						if (cfInstruction->exportComponentSel[component] != 7)
+						{
+							componentMask[componentCount] = _getElementStrByIndex(component)[0];
+							componentCount++;
+						}
+					}
+					if (componentCount == 0)
+						continue;
+					src->addFmt("passParameterSem{}", vsSemanticId);
+					if (componentCount < 4)
+						src->addFmt(".{}", componentMask);
+					src->add(" = ");
+					_emitExportGPRReadCode(shaderContext, cfInstruction, LATTE_DECOMPILER_DTYPE_FLOAT, burstIndex);
+					if (componentCount < 4)
+						src->addFmt(".{}", componentMask);
+					src->add(";" _CRLF);
+				}
+				else
+				{
+					src->add("// skipped export to semanticId 255" _CRLF);
+				}
 			}
 		}
 		else
