@@ -4,6 +4,7 @@
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "coreinit_MessageQueue.h"
 #include "coreinit_IPC.h"
+#include "util/helpers/fspinlock.h"
 
 namespace coreinit
 {
@@ -212,6 +213,23 @@ namespace coreinit
 
 	/* coreinit IOS_* API */
 
+	// PPC kernel IPC state for the current title
+	static FSpinlock s_ipcKernelLock;
+	static std::vector<IOSDevHandle> s_openIOSHandles;
+	static uint32 s_pendingOpenClose{0};
+	static uint32 s_activeReplyDeliveries{0}; // replies already being delivered to coreinit
+	static std::atomic_bool s_ipcShutdown{false};
+
+	static void IPCSubmitFromKernel(uint32 coreIndex, IPCCommandBody* command)
+	{
+		if (command->cmdId == IPCCommandId::IOS_OPEN || command->cmdId == IPCCommandId::IOS_CLOSE)
+		{
+			std::lock_guard lock(s_ipcKernelLock);
+			++s_pendingOpenClose;
+		}
+		iosu::kernel::IPCSubmitFromCOS(coreIndex, command);
+	}
+
 	void _IPCDriver_SubmitCmdAllQueued(IPCDriver& ipcDriver)
 	{
 		// on COS, submitted commands first go to the COS kernel via syscall 0x2000, where they are processed, copied and queued again
@@ -242,7 +260,7 @@ namespace coreinit
 				cemu_assert_unimplemented();
 				break;
 			}
-			iosu::kernel::IPCSubmitFromCOS(ipcDriver.coreIndex, &res->resourcePtr->commandBody);
+			IPCSubmitFromKernel(ipcDriver.coreIndex, &res->resourcePtr->commandBody);
 		}
 		ipcDriver.state = IPCDriverState::READY;
 	}
@@ -311,11 +329,97 @@ namespace coreinit
 	void IPCDriver_NotifyResponses(uint32 ppcCoreIndex, IPCCommandBody** responseArray, uint32 numResponses)
 	{
 		cemu_assert(numResponses < 11);
+		std::unique_lock lock(s_ipcKernelLock);
+		for (uint32 i = 0; i < numResponses; i++)
+		{
+			const auto& response = *responseArray[i];
+			if (response.cmdId == IPCCommandId::IOS_OPEN || response.cmdId == IPCCommandId::IOS_CLOSE)
+			{
+				cemu_assert(s_pendingOpenClose != 0);
+				--s_pendingOpenClose;
+				if (!IOS_ResultIsError((IOS_ERROR)response.result.value()))
+				{
+					if (response.cmdId == IPCCommandId::IOS_OPEN)
+						s_openIOSHandles.push_back(response.result);
+					else
+						std::erase(s_openIOSHandles, response.devHandle.value());
+				}
+			}
+		}
+		if (s_ipcShutdown.load())
+			return;
+		++s_activeReplyDeliveries;
+		// reply delivery acquires the scheduler lock, so release the IPC lock first
+		lock.unlock();
+
 		IPCDriver& ipcDriver = IPCDriver_GetByCore(ppcCoreIndex);
 		ipcDriver.kernelSharedArea.numAvailableResponses = numResponses;
 		for (uint32 i = 0; i < numResponses; i++)
 			ipcDriver.kernelSharedArea.responseArray[i] = responseArray[i];
 		IPCDriver_KernelCallback(ipcDriver);
+
+		lock.lock();
+		--s_activeReplyDeliveries;
+	}
+
+	// closes all IOS handles after PPC execution has stopped
+	// IOSU services must finish or cancel pending requests before replying to Close
+	void IPCCloseAllHandles()
+	{
+		cemu_assert_debug(!OSIsSchedulerActive());
+		std::unique_lock lock(s_ipcKernelLock);
+		// stop delivering replies to coreinit, but keep updating the handle list
+		s_ipcShutdown.store(true);
+		// wait for Open/Close replies and any coreinit reply delivery already in progress
+		// other requests may need Close to cancel them
+		while (s_pendingOpenClose != 0 || s_activeReplyDeliveries != 0)
+		{
+			lock.unlock();
+			std::this_thread::yield();
+			lock.lock();
+		}
+		auto handles = s_openIOSHandles;
+		lock.unlock();
+
+		for (IOSDevHandle handle : handles)
+		{
+			IPCCommandBody closeBody{};
+			closeBody.cmdId = IPCCommandId::IOS_CLOSE;
+			closeBody.devHandle = handle;
+			auto nextLogTime = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+			IOS_ERROR result;
+			do
+			{
+				IPCSubmitFromKernel(1, &closeBody);
+				lock.lock();
+				// keep waiting so closeBody stays valid until IOSU replies
+				while (s_pendingOpenClose != 0)
+				{
+					lock.unlock();
+					std::this_thread::yield();
+					if (std::chrono::steady_clock::now() >= nextLogTime)
+					{
+						cemuLog_log(LogType::Force, "IPC: Still waiting for shutdown Close on handle {}", handle);
+						nextLogTime = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+					}
+					lock.lock();
+				}
+				result = (IOS_ERROR)closeBody.result.value();
+				lock.unlock();
+				if (result == IOS_ERROR_WOULD_BLOCK)
+				{
+					if (std::chrono::steady_clock::now() >= nextLogTime)
+					{
+						cemuLog_log(LogType::Force, "IPC: Still waiting to dispatch shutdown Close on handle {}", handle);
+						nextLogTime = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+					}
+					std::this_thread::yield();
+				}
+			}
+			while (result == IOS_ERROR_WOULD_BLOCK);
+			if (IOS_ResultIsError(result))
+				cemuLog_log(LogType::Force, "IPC: Shutdown Close failed for handle {}: {}", handle, (sint32)result);
+		}
 	}
 
 	void _IPCDriver_SetupCmd_IOSOpen(IPCDriver& ipcDriver, IPCResourceBufferDescriptor* requestDescriptor, const char* devicePath, uint32 flags)
@@ -457,6 +561,12 @@ namespace coreinit
 
 	void InitializeIPC()
 	{
+		{
+			std::lock_guard lock(s_ipcKernelLock);
+			cemu_assert(s_pendingOpenClose == 0 && s_activeReplyDeliveries == 0);
+			s_openIOSHandles.clear();
+			s_ipcShutdown.store(false);
+		}
 		for (uint32 i = 0; i < Espresso::CORE_COUNT; i++)
 		{
 			IPCDriver_InitForCore(i);

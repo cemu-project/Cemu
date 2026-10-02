@@ -18,6 +18,7 @@
 #include "Cafe/TitleList/TitleList.h"
 #include "Cafe/TitleList/GameInfo.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
+#include "Cafe/OS/libs/coreinit/coreinit_IPC.h"
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/RPL/rpl.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
@@ -1066,6 +1067,7 @@ namespace CafeSystem
 			return;
 		coreinit::OSSchedulerEnd();
 		Latte_Stop();
+		coreinit::IPCCloseAllHandles();
 		// reset Cafe OS userspace modules
 		snd_core::reset();
 		coreinit::OSAlarm_Shutdown();
