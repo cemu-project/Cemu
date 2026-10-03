@@ -640,6 +640,15 @@ namespace ntag
 
 		void RPLMapped() override
 		{
+			for (auto& writeData : gWriteData)
+				writeData = {};
+			gFormatSettings = {};
+			std::fill(std::begin(gDetectCallbacks), std::end(gDetectCallbacks), MPTR_NULL);
+			std::fill(std::begin(gAbortCallbacks), std::end(gAbortCallbacks), MPTR_NULL);
+			std::fill(std::begin(gReadCallbacks), std::end(gReadCallbacks), MPTR_NULL);
+			std::fill(std::begin(gWriteCallbacks), std::end(gWriteCallbacks), MPTR_NULL);
+			ccrNfcOpened = false;
+			gCcrNfcHandle = 0;
 			cafeExportRegister("ntag", NTAGInit, LogType::NTAG);
 			cafeExportRegister("ntag", NTAGInitEx, LogType::NTAG);
 			cafeExportRegister("ntag", NTAGShutdown, LogType::NTAG);

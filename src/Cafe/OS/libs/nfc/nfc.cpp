@@ -92,6 +92,7 @@ namespace nfc
 		context->readContext = nullptr;
 		context->writeCallback = MPTR_NULL;
 		context->writeContext = nullptr;
+		context->getTagInfoCallback = MPTR_NULL;
 
 		context->tagPath = "";
 		context->tag = {};
@@ -656,6 +657,13 @@ namespace nfc
 		void RPLMapped() override
 		{
 			s_nfcStaticData.Allocate();
+			for (auto& context : gNFCContexts)
+			{
+				__NFCClearContext(&context);
+				context.touchTime = {};
+				context.filter = {};
+				context.writeMessage = {};
+			}
 			cafeExportRegister("nfc", NFCInit, LogType::NFC);
 			cafeExportRegister("nfc", NFCInitEx, LogType::NFC);
 			cafeExportRegister("nfc", NFCShutdown, LogType::NFC);

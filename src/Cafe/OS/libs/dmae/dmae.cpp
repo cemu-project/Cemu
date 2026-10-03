@@ -130,6 +130,7 @@ namespace dmae
 
 		void RPLMapped() override
 		{
+			dmaeRetiredTimestamp = 0;
 			osLib_addFunction("dmae", "DMAECopyMem", dmaeExport_DMAECopyMem);
 			osLib_addFunction("dmae", "DMAEFillMem", dmaeExport_DMAEFillMem);
 			osLib_addFunction("dmae", "DMAEWaitDone", dmaeExport_DMAEWaitDone);

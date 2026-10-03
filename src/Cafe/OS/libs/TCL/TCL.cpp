@@ -176,6 +176,8 @@ namespace TCL
 
 		void RPLMapped() override
 		{
+			tclRingBufferA_readIndex = 0;
+			tclRingBufferA_writeIndex = 0;
 			s_rplData.Allocate();
 			cafeExportRegister("TCL", TCLSubmitToRing, LogType::Placeholder);
 			cafeExportRegister("TCL", TCLTimestamp, LogType::Placeholder);
