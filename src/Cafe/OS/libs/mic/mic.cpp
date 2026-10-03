@@ -465,8 +465,15 @@ namespace mic
 			return "mic";
 		}
 
+		void RPLUnmapped() override
+		{
+			std::unique_lock lock(g_audioInputMutex);
+			mic_updateDevicePlayState(false);
+		}
+
 		void RPLMapped() override
 		{
+			MICStatus = {};
 			osLib_addFunction("mic", "MICInit", micExport_MICInit);
 			osLib_addFunction("mic", "MICOpen", micExport_MICOpen);
 			osLib_addFunction("mic", "MICClose", micExport_MICClose);

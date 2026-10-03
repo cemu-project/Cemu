@@ -781,6 +781,7 @@ namespace nn
 				g_fp.initCounter = 0;
 				g_fp.isAdminMode = false;
 				g_fp.isLoggedIn = false;
+				g_fp.fpdHandle = 0;
 				g_fp.getNotificationCalled = false;
 				g_fp.notificationHandler = nullptr;
 				g_fp.notificationHandlerParam = nullptr;
