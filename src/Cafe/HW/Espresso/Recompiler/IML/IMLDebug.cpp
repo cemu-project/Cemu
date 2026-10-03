@@ -437,8 +437,6 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		strOutput.addFmt(" = {} mode {}", IMLDebug_GetRegName(inst.op_storeLoad.registerData), inst.op_storeLoad.mode);
 		if (inst.op_storeLoad.flags2.notExpanded)
 			strOutput.add(" <No expand>");
-		if (inst.op_storeLoad.flags2.singlePrecisionStore)
-			strOutput.add(" <Single precision>");
 	}
 	else if (inst.type == PPCREC_IML_TYPE_FPR_R)
 	{
