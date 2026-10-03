@@ -1223,7 +1223,7 @@ bool AArch64GenContext_t::fpr_store(IMLInstruction* imlInstruction, bool indexed
 			// value is already in single format
 			fmov(TEMP_GPR2.WReg, dataSReg);
 		}
-		else if (mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ)
+		else if (mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ || imlInstruction->op_storeLoad.flags2.singlePrecisionStore)
 		{
 			fcvt(TEMP_FPR.SReg, dataDReg);
 			fmov(TEMP_GPR2.WReg, TEMP_FPR.SReg);
