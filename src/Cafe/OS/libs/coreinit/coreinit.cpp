@@ -305,7 +305,8 @@ namespace coreinit
 			coreinit::InitializeSysHeap();
 
 			// allocate coreinit global data
-			gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
+			if (!gCoreinitData)
+				gCoreinitData = (CoreinitSharedData*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(CoreinitSharedData), 32));
 			memset(gCoreinitData, 0x00, sizeof(CoreinitSharedData));
 
 			// coreinit weak links
@@ -365,6 +366,8 @@ namespace coreinit
 
 		void RPLUnmapped() override
 		{
+			ResetAsyncCallback();
+			ResetFS();
 			g_coreinitStaticData.Deallocate();
 		}
 

@@ -4,6 +4,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Alarm.h"
+#include "Cafe/OS/libs/coreinit/coreinit_GHS.h"
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/HW/Espresso/Debugger/GDBStub.h"
 #include "Cafe/HW/Espresso/Interpreter/PPCInterpreterInternal.h"
@@ -187,6 +188,7 @@ namespace coreinit
 		cemu_assert_debug(thread->state == OSThread_t::THREAD_STATE::STATE_NONE);
 		thread->id = 0x8000;
 
+		__OSTLSFreeForThread(thread);
 		__OSDeleteHostThread(thread);
 	}
 
@@ -320,7 +322,7 @@ namespace coreinit
 		thread->waitingForMutex = nullptr;
 		memset(&thread->crt, 0, sizeof(thread->crt));
 		static_assert(sizeof(thread->crt) == 0x1D8);
-		thread->tlsBlocksMPTR = 0;
+		thread->tlsBlocks = nullptr;
 		thread->numAllocatedTLSBlocks = 0;
 		thread->tlsStatus = 0;
 		OSInitThreadQueueEx(&thread->joinQueue, thread);
@@ -1567,6 +1569,7 @@ namespace coreinit
 	{
 		for (sint32 i = 0; i < PPC_CORE_COUNT; i++)
 		{
+			s_terminatorThreads[i].queueDeallocators.clear();
 			OSInitSemaphore(s_terminatorThreads[i].semaphoreQueuedDeallocators.GetPtr(), 0);
 			sprintf(s_terminatorThreads[i].threadName.GetPtr(), "{SYS Thread Terminator Core %d}", i);
 			OSCreateThreadType(s_terminatorThreads[i].terminatorThread.GetPtr(), PPCInterpreter_makeCallableExportDepr(__OSTerminatorThreadFunc), 0, nullptr, (uint8*)s_terminatorThreads[i].threadStack.GetPtr() + s_terminatorThreads[i].threadStack.GetByteSize(), (sint32)s_terminatorThreads[i].threadStack.GetByteSize(), 0, 1 << i, OSThread_t::THREAD_TYPE::TYPE_IO);
@@ -1640,7 +1643,10 @@ namespace coreinit
 	{
 		OSInitThreadQueue(g_activeThreadQueue.GetPtr());
 		for (sint32 i = 0; i < Espresso::CORE_COUNT; i++)
+		{
+			g_coreRunQueueThreadCount[i].reset();
 			OSInitThreadQueue(g_coreRunQueue.GetPtr() + i);
+		}
 		for (sint32 i = 0; i < Espresso::CORE_COUNT; i++)
 			__currentCoreThread[i] = nullptr;
 		__OSInitDefaultThreads();

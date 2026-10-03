@@ -118,6 +118,8 @@ namespace coreinit
 
 	bool _sdCard01Mounted = false;
 	bool _mlc01Mounted = false;
+	std::string s_sdCardMountPath;
+	std::string s_mlcMountPath;
 
 	void mountSDCard()
 	{
@@ -130,6 +132,7 @@ namespace coreinit
 		FSCDeviceHostFS_Mount("/vol/external01", _pathToUtf8(path), FSC_PRIORITY_BASE);
 
 		_sdCard01Mounted = true;
+		s_sdCardMountPath = "/vol/external01";
 	}
 
 	FS_RESULT FSMount(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FS_MOUNT_SOURCE* mountSourceInfo, char* mountPathOut, sint32 mountPathMaxLength, FS_ERROR_MASK errMask)
@@ -164,6 +167,7 @@ namespace coreinit
 			if (!FSCDeviceHostFS_Mount(mountPathOut, _pathToUtf8(path), FSC_PRIORITY_BASE))
 				return FS_RESULT::ERR_PLACEHOLDER;
 			_sdCard01Mounted = true;
+			s_sdCardMountPath = mountPathOut;
 		}
 		else if (strcmp(mountPathSrc, "/dev/mlc01") == 0)
 		{
@@ -173,6 +177,7 @@ namespace coreinit
 			if (!FSCDeviceHostFS_Mount(mountPathOut, _pathToUtf8(ActiveSettings::GetMlcPath()), FSC_PRIORITY_BASE))
 				return FS_RESULT::ERR_PLACEHOLDER;
 			_mlc01Mounted = true;
+			s_mlcMountPath = mountPathOut;
 		}
 		else
 		{
@@ -2645,8 +2650,24 @@ namespace coreinit
 		return FSA_RESULT::OK;
 	}
 
+	void ResetFS()
+	{
+		if (_sdCard01Mounted)
+			fsc_unmount(s_sdCardMountPath, FSC_PRIORITY_BASE);
+		if (_mlc01Mounted)
+			fsc_unmount(s_mlcMountPath, FSC_PRIORITY_BASE);
+		s_sdCardMountPath.clear();
+		s_mlcMountPath.clear();
+		s_fsa_activeClients.clear();
+	}
+
 	void InitializeFS()
 	{
+		sFSInitialized = true;
+		sFSShutdown = false;
+		_sdCard01Mounted = false;
+		_mlc01Mounted = false;
+		s_fsaInitDone = false;
 		OSInitMutex(&s_fsGlobalMutex);
 
 		cafeExportRegister("coreinit", FSInit, LogType::CoreinitFile);

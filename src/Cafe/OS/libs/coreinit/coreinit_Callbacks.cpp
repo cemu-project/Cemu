@@ -26,11 +26,25 @@ struct CoreinitAsyncCallback
 		}
 		CoreinitAsyncCallback* cb = s_asyncCallbackQueue[0];
 		s_asyncCallbackQueue.erase(s_asyncCallbackQueue.begin());
+		s_activeCallback = cb;
 		s_asyncCallbackSpinlock.unlock();
 		cb->doCall();
 		s_asyncCallbackSpinlock.lock();
 		releaseToPool(cb);
+		s_activeCallback = nullptr;
 		s_asyncCallbackSpinlock.unlock();
+	}
+
+	static void Reset()
+	{
+		for (auto* cb : s_asyncCallbackPool)
+			delete cb;
+		s_asyncCallbackPool.clear();
+		for (auto* cb : s_asyncCallbackQueue)
+			delete cb;
+		s_asyncCallbackQueue.clear();
+		delete s_activeCallback;
+		s_activeCallback = nullptr;
 	}
 
 private:
@@ -63,6 +77,7 @@ private:
 	static std::vector<struct CoreinitAsyncCallback*> s_asyncCallbackPool;
 	static std::vector<struct CoreinitAsyncCallback*> s_asyncCallbackQueue;
 	static FSpinlock s_asyncCallbackSpinlock;
+	static CoreinitAsyncCallback* s_activeCallback;
 
 	sint32	m_numParameters;
 	uint32	m_gprParam[9];
@@ -72,6 +87,7 @@ private:
 std::vector<struct CoreinitAsyncCallback*> CoreinitAsyncCallback::s_asyncCallbackPool;
 std::vector<struct CoreinitAsyncCallback*> CoreinitAsyncCallback::s_asyncCallbackQueue;
 FSpinlock CoreinitAsyncCallback::s_asyncCallbackSpinlock;
+CoreinitAsyncCallback* CoreinitAsyncCallback::s_activeCallback{};
 
 CafeStaticVar<OSThread_t> g_coreinitCallbackThread{coreinit::g_coreinitStaticData};
 CafeStaticVar<uint8, 1024*64> _g_coreinitCallbackThreadStack{coreinit::g_coreinitStaticData};
@@ -115,4 +131,9 @@ void InitializeAsyncCallback()
 
 	strcpy(_g_coreinitCBThreadName.GetPtr(), "Callback Thread");
 	coreinit::OSSetThreadName(g_coreinitCallbackThread.GetPtr(), _g_coreinitCBThreadName.GetPtr());
+}
+
+void ResetAsyncCallback()
+{
+	CoreinitAsyncCallback::Reset();
 }

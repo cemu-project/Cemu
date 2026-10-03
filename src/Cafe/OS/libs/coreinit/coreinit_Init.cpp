@@ -198,7 +198,8 @@ sint32 _coreinitTitleEntryPoint;
 
 void coreinit_start(PPCInterpreter_t* hCPU)
 {
-	_coreinitInfo = (coreinitInit_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitInit_t), 32));
+	if (!_coreinitInfo)
+		_coreinitInfo = (coreinitInit_t*)memory_getPointerFromVirtualOffset(coreinit_allocFromSysArea(sizeof(coreinitInit_t), 32));
 	memset(_coreinitInfo, 0, sizeof(coreinitInit_t));
 
 	CafeInit();

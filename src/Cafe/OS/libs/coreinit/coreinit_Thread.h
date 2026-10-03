@@ -362,6 +362,16 @@ namespace coreinit
 
 	static_assert(sizeof(OSFastCond) == 0x1C);
 
+	/********* TLS *********/
+
+	struct OSTLSBlock
+	{
+		MPTR addr;
+		uint32 ukn04;
+	};
+
+	static_assert(sizeof(OSTLSBlock) == 8);
+
 };
 
 struct OSThread_t
@@ -490,7 +500,7 @@ struct OSThread_t
 	// TLS
 	/* +0x664 */ uint16								numAllocatedTLSBlocks;
 	/* +0x666 */ sint16								tlsStatus;
-	/* +0x668 */ MPTR								tlsBlocksMPTR;
+	/* +0x668 */ MEMPTR<coreinit::OSTLSBlock>		tlsBlocks;
 	
 	/* +0x66C */ MEMPTR<coreinit::OSFastMutex>		waitingForFastMutex;
 	/* +0x670 */ coreinit::OSFastMutexLink			contendedFastMutex;

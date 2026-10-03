@@ -273,6 +273,9 @@ namespace coreinit
 
 	void InitializeLC()
 	{
+		memset(lcAllocatedBlocks, 0, sizeof(lcAllocatedBlocks));
+		memset(LCIsEnabled, 0, sizeof(LCIsEnabled));
+		_lcDisableErrorCounter = 0;
 		for (sint32 f = 0; f < PPC_CORE_COUNT; f++)
 		{
 			memset(lcCacheMask[f], LC_MASK_FREE, (LC_LOCKED_CACHE_SIZE + LC_LOCKED_CACHE_GRANULARITY - 1) / LC_LOCKED_CACHE_GRANULARITY);

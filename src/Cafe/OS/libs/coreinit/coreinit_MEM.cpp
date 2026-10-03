@@ -621,6 +621,7 @@ namespace coreinit
             it = nullptr;
 
         g_heapTableCount = 0;
+        gHeapFillValues = { 0xC3C3C3C3, 0xF3F3F3F3, 0xD3D3D3D3 };
         g_slockInitialized = false;
         g_listsInitialized = false;
         gDefaultHeap = nullptr;

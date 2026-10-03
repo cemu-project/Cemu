@@ -131,13 +131,14 @@ namespace coreinit
 		{
 			cemuLog_log(LogType::Force, "Disable JIT on dynamic code area");
 		}
-		_avoidCodeGenJIT = true; // this function getting called is usually a sign that 
+		_avoidCodeGenJIT = true; // this function getting called is usually a sign that the title will directly write to the executable memory
 		// does this have a return value?
 		return true;
 	}
 
 	void InitializeCodeGen()
 	{
+		_avoidCodeGenJIT = false;
 		cafeExportRegister("coreinit", OSGetCodegenVirtAddrRange, LogType::Placeholder);
 		cafeExportRegister("coreinit", ICInvalidateRange, LogType::Placeholder);
 

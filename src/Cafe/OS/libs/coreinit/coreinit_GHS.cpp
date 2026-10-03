@@ -211,13 +211,21 @@ namespace coreinit
 		coreinit::OSUnlockMutex(mtx->mutexPtr.GetPtr());
 	}
 
-	struct OSTLSBlock
+	void __OSTLSFreeForThread(OSThread_t* thread)
 	{
-		MPTR addr;
-		uint32 ukn04;
-	};
-
-	static_assert(sizeof(OSTLSBlock) == 8);
+		if (thread->tlsBlocks != nullptr)
+		{
+			OSTLSBlock* tlsBlocks = thread->tlsBlocks.GetPtr();
+			for (uint32 i = 0; i < _swapEndianU16(thread->numAllocatedTLSBlocks); i++)
+			{
+				if (tlsBlocks[i].addr != MPTR_NULL)
+					coreinit_freeToSysArea(_swapEndianU32(tlsBlocks[i].addr));
+			}
+			coreinit_freeToSysArea(thread->tlsBlocks.GetMPTR());
+			thread->tlsBlocks = nullptr;
+			thread->numAllocatedTLSBlocks = 0;
+		}
+	}
 
 	struct TLS_Index
 	{
@@ -233,25 +241,26 @@ namespace coreinit
 		if (_swapEndianU16(tlsIndex->tlsModuleIndex) == 0)
 			assert_dbg();
 
-		// check if we need to allocate additional TLS blocks for this thread
-		if (_swapEndianU16(tlsIndex->tlsModuleIndex) >= _swapEndianU32(currentThread->numAllocatedTLSBlocks))
+		// check if we need to allocate larger TLS storage
+		if (_swapEndianU16(tlsIndex->tlsModuleIndex) >= _swapEndianU16(currentThread->numAllocatedTLSBlocks))
 		{
-			uint32 allocSize = (RPLLoader_GetMaxTLSModuleIndex() + 1) * sizeof(OSTLSBlock); // __OSDynLoad_gTLSHeader.ukn00 * 8;
+			uint32 allocSize = (RPLLoader_GetMaxTLSModuleIndex() + 1) * sizeof(OSTLSBlock);
 			MPTR allocMem = coreinit_allocFromSysArea(allocSize, 4);
+			cemu_assert(allocMem);
 			memset(memory_getPointerFromVirtualOffset(allocMem), 0, allocSize);
-			if (_swapEndianU32(currentThread->numAllocatedTLSBlocks) != 0)
+			if (_swapEndianU16(currentThread->numAllocatedTLSBlocks) != 0)
 			{
 				// keep previously allocated blocks
-				memcpy(memory_getPointerFromVirtualOffset(allocMem), memory_getPointerFromVirtualOffset(_swapEndianU32(currentThread->tlsBlocksMPTR)), _swapEndianU32(currentThread->numAllocatedTLSBlocks) * 8);
+				memcpy(memory_getPointerFromVirtualOffset(allocMem), currentThread->tlsBlocks.GetPtr(), _swapEndianU16(currentThread->numAllocatedTLSBlocks) * 8);
+				coreinit_freeToSysArea(currentThread->tlsBlocks.GetMPTR());
 			}
-			currentThread->tlsBlocksMPTR = _swapEndianU32(allocMem);
+			currentThread->tlsBlocks = MEMPTR<OSTLSBlock>(allocMem);
 			currentThread->numAllocatedTLSBlocks = _swapEndianU16(RPLLoader_GetMaxTLSModuleIndex() + 1);
 		}
 		// look up TLS address based on moduleIndex
-		OSTLSBlock* tlsBlock = (OSTLSBlock*)memory_getPointerFromVirtualOffsetAllowNull(_swapEndianU32(currentThread->tlsBlocksMPTR) + sizeof(OSTLSBlock) * (uint32)_swapEndianU16(tlsIndex->tlsModuleIndex));
+		OSTLSBlock* tlsBlock = currentThread->tlsBlocks.GetPtr() + (uint32)_swapEndianU16(tlsIndex->tlsModuleIndex);
 		if (tlsBlock->addr != _swapEndianU32(MPTR_NULL))
 		{
-			//osLib_returnFromFunction(hCPU, _swapEndianU32(tlsBlock->addr)+_swapEndianU32(tlsIndex->ukn04));
 			return memory_getPointerFromVirtualOffset(_swapEndianU32(tlsBlock->addr) + _swapEndianU32(tlsIndex->ukn04));
 		}
 		// alloc data for TLS block
