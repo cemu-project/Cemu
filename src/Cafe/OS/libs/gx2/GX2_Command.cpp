@@ -507,6 +507,9 @@ namespace GX2
 
 	void GX2CommandInit()
 	{
+		for (auto& state : s_perCoreCBState)
+			state = {};
+		s_mainCoreLastCommandState = {};
 		cafeExportRegister("gx2", GX2Flush, LogType::GX2);
 
 		cafeExportRegister("gx2", GX2GetLastSubmittedTimeStamp, LogType::GX2);

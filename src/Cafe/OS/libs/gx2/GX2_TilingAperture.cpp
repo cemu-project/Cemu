@@ -54,6 +54,12 @@ MPTR GX2TilingAperature_allocateTilingMemory(uint32 size)
 
 std::atomic<uint32> sGenAperatureHandle{1};
 
+void GX2ResetTilingAperture()
+{
+	activeTilingAperatureCount = 0;
+	sGenAperatureHandle = 1;
+}
+
 uint32 GX2TilingAperature_GenerateHandle()
 {
 	return sGenAperatureHandle.fetch_add(1);

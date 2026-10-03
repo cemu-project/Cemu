@@ -269,6 +269,7 @@ namespace GX2
 
     void GX2EventResetToDefaultState()
     {
+        s_eventCbQueue.clear();
         s_callbackThreadLaunched = false;
         for(auto& it : s_eventCallback)
         {

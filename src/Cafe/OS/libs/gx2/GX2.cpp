@@ -311,6 +311,8 @@ void gx2Export_GX2SetSemaphore(PPCInterpreter_t* hCPU)
 	osLib_returnFromFunction(hCPU, 0);
 }
 
+extern MPTR gx2CurrentContextStateMPTR;
+
 namespace GX2
 {
 	constinit COSStaticData s_gx2StaticData;
@@ -335,6 +337,9 @@ namespace GX2
 
 		void RPLMapped() override
 		{
+			gx2CurrentContextStateMPTR = MPTR_NULL;
+			lastSwapTime = 0;
+			GX2ResetTilingAperture();
 			s_gx2StaticData.Allocate();
 			osLib_addFunction("gx2", "GX2GetContextStateDisplayList", gx2Export_GX2GetContextStateDisplayList);
 
