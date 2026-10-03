@@ -275,7 +275,7 @@ enum
 
 	// fpr store
 	PPCREC_FPR_ST_MODE_SINGLE,
-	PPCREC_FPR_ST_MODE_SINGLE_FTZ, // paired-single conversion semantics
+	PPCREC_FPR_ST_MODE_SINGLE_FTZ, // paired-single conversion semantics or values already rounded to single precision
 	PPCREC_FPR_ST_MODE_DOUBLE,
 
 	PPCREC_FPR_ST_MODE_UI32_FROM_PS0, // store raw low-32bit of PS0
@@ -424,7 +424,6 @@ struct IMLInstruction
 				bool swapEndian : 1;
 				bool signExtend : 1;
 				bool notExpanded : 1; // for floats
-				bool singlePrecisionStore : 1; // value is already rounded to single precision
 			}flags2;
 			uint8 mode; // transfer mode
 			sint32 immS32;
@@ -743,7 +742,6 @@ struct IMLInstruction
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.mode = mode;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
-		this->op_storeLoad.flags2.singlePrecisionStore = false;
 	}
 
 	void make_fpr_memory_r_indexed(IMLReg registerSource, IMLReg registerMemory1, IMLReg registerMemory2, sint32 immS32, uint32 mode, bool switchEndian)
@@ -756,7 +754,6 @@ struct IMLInstruction
 		this->op_storeLoad.immS32 = immS32;
 		this->op_storeLoad.mode = mode;
 		this->op_storeLoad.flags2.swapEndian = switchEndian;
-		this->op_storeLoad.flags2.singlePrecisionStore = false;
 	}
 
 	void make_fpr_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)

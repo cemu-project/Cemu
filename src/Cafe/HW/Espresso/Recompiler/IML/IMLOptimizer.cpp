@@ -777,7 +777,7 @@ static void IMLUpdateSinglePrecisionRegisters(const IMLInstruction& inst, IMLSin
 
 void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenContext)
 {
-	// track values rounded to single precision for CVTSD2SS stfs stores
+	// use single-precision conversion for stfs values already rounded to single precision
 	// only track the lower F64 lane; lfs may load denormals and NaNs
 	auto& segments = ppcImlGenContext.segmentList2;
 	bool hasStore = false;
@@ -788,10 +788,7 @@ void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenCon
 		for (auto& inst : segments[i]->imlList)
 		{
 			if (inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
-			{
-				inst.op_storeLoad.flags2.singlePrecisionStore = false;
 				hasStore |= inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded;
-			}
 			hasProducer |= inst.type == PPCREC_IML_TYPE_FPR_R &&
 				(inst.operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM || inst.operation == PPCREC_IML_OP_FPR_LOAD_ONE);
 		}
@@ -867,7 +864,7 @@ void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenCon
 		}
 	}
 
-	// mark stores after all incoming paths have been processed
+	// lower stores after all incoming paths have been processed
 	for (auto* seg : segments)
 	{
 		if (!reachable[seg->momentaryIndex])
@@ -876,8 +873,9 @@ void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenCon
 		for (auto& inst : seg->imlList)
 		{
 			if ((inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED) &&
-				inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded)
-				inst.op_storeLoad.flags2.singlePrecisionStore = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_storeLoad.registerData);
+				inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded &&
+				IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_storeLoad.registerData))
+				inst.op_storeLoad.mode = PPCREC_FPR_ST_MODE_SINGLE_FTZ;
 			IMLUpdateSinglePrecisionRegisters(inst, singlePrecisionRegisters);
 		}
 	}
