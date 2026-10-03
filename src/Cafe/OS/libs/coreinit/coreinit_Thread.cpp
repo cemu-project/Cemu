@@ -23,23 +23,20 @@
 #endif
 #endif
 
-namespace {
-
-void enableFlushDenormalsToZero()
+static void ConfigureHostFloatingPointEnvironment()
 {
 #if defined(ARCH_X86_64)
 	_mm_setcsr(_mm_getcsr() | 0x8000);
 #elif defined(__arm64__)
+	// enable flush-to-zero and preserve NaN signs and payloads (FZ=1, DN=0)
 #if defined(__clang__)
-	__arm_wsr64("fpcr", __arm_rsr64("fpcr") | (1 << 24));
+	__arm_wsr64("fpcr", (__arm_rsr64("fpcr") | (1 << 24)) & ~(1 << 25));
 #elif defined(__GNUC__)
-	__builtin_aarch64_set_fpcr(__builtin_aarch64_get_fpcr() | (1 << 24));
+	__builtin_aarch64_set_fpcr((__builtin_aarch64_get_fpcr() | (1 << 24)) & ~(1 << 25));
 #elif defined(_MSC_VER)
-	_WriteStatusReg(ARM64_FPCR, _ReadStatusReg(ARM64_FPCR) | (1 << 24));
+	_WriteStatusReg(ARM64_FPCR, (_ReadStatusReg(ARM64_FPCR) | (1 << 24)) & ~(1 << 25));
 #endif
 #endif
-}
-
 }
 
 SlimRWLock srwlock_activeThreadList;
@@ -1348,7 +1345,7 @@ namespace coreinit
 #endif
 		OSHostThread* hostThread = (OSHostThread*)_thread;
 
-		enableFlushDenormalsToZero();
+		ConfigureHostFloatingPointEnvironment();
 
 		PPCInterpreter_t* hCPU = &hostThread->ppcInstance;
 		__OSLoadThread(hostThread->m_thread, hCPU, hostThread->selectedCore);
@@ -1395,7 +1392,7 @@ namespace coreinit
 		SetThreadName(fmt::format("OSSched[core={}]", (uintptr_t)_assignedCoreIndex).c_str());
 		t_assignedCoreIndex = (sint32)(uintptr_t)_assignedCoreIndex;
 
-		enableFlushDenormalsToZero();
+		ConfigureHostFloatingPointEnvironment();
 
 #if BOOST_OS_LINUX
 		if (g_gdbstub)
