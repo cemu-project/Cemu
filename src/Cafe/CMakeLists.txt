@@ -462,6 +462,10 @@ add_library(CemuCafe
   OS/libs/sysapp/sysapp.h
   OS/libs/TCL/TCL.cpp
   OS/libs/TCL/TCL.h
+  OS/libs/uvc/uvc.cpp
+  OS/libs/uvc/uvc.h
+  OS/libs/uvd/uvd.cpp
+  OS/libs/uvd/uvd.h
   OS/libs/vpad/vpad.cpp
   OS/libs/vpad/vpad.h
   OS/libs/zlib125
