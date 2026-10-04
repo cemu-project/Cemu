@@ -25,6 +25,7 @@ class EmulatedUSBDeviceFrame : public wxFrame
 	std::array<std::optional<uint32>, 7> GetCurrentMinifigs();
 
   private:
+	wxNotebook* m_notebook = nullptr;
 	wxCheckBox* m_emulatePortal;
 	wxCheckBox* m_emulateBase;
 	wxCheckBox* m_emulateToypad;
@@ -40,6 +41,7 @@ class EmulatedUSBDeviceFrame : public wxFrame
 	wxBoxSizer* AddSkylanderRow(uint8 row_number, wxStaticBox* box);
 	wxBoxSizer* AddInfinityRow(wxString name, uint8 row_number, wxStaticBox* box);
 	wxBoxSizer* AddDimensionPanel(uint8 pad, uint8 index, wxStaticBox* box);
+	void UpdateWindowSizeForCurrentPage();
 	void LoadSkylander(uint8 slot);
 	void LoadSkylanderPath(uint8 slot, wxString path);
 	void CreateSkylander(uint8 slot);
