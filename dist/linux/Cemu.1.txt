@@ -1,0 +1,71 @@
+CEMU(1)                         Wii U emulator                         CEMU(1)
+
+NAME
+       Cemu - Wii U emulator
+
+SYNOPSIS
+       Cemu [OPTIONS...]
+
+DESCRIPTION
+       Cemu is a Wii U emulator that is able to run most Wii U games and home‐
+       brew in a playable state.  It's written in C/C++ and is being actively
+       developed with new features and fixes to increase compatibility, conve‐
+       nience and usability.
+
+OPTIONS
+       If an option has argument n, a value of 1 (or no argument) enables the
+       option.  A value of 0 disables the option.
+
+   Launch options
+       -g path, --game path
+              Path of game to launch
+
+       -m path, --mlc path
+              Custom mlc folder location
+
+       -f [n], --fullscreen [n]
+              Launch games in fullscreen mode
+
+       -u [n], --ud [n]
+              Render output upside-down
+
+       -a id, --account id
+              Persistent id of account
+
+       --force-interpreter [n]
+              Force interpreter CPU emulation and disable recompiler
+
+       --act-url url
+              URL prefix for account server
+
+       --ecs-url url
+              URL for ECS service
+
+       -h, --help
+              Display a usage message and exit
+
+       -v, --version
+              Display Cemu version and exit
+
+   Extractor tool
+       -e path, --extract path
+              Path to WUD or WUX file for extraction
+
+       -p path, --path path
+              Path of file to extract (for example meta/meta.xml)
+
+       -o path, --output path
+              Output path for extracted file
+
+BUGS
+       To report a bug, visit https://github.com/cemu-project/Cemu/issues
+
+SEE ALSO
+       Project homepage:
+
+       https://github.com/cemu-project/Cemu
+
+AUTHORS
+       Exzap; Petergov.
+
+Cemu                              2022-12-09                           CEMU(1)
