@@ -18,6 +18,13 @@ struct FSAsyncParams
 };
 static_assert(sizeof(FSAsyncParams) == 0xC);
 
+struct FSAttachParams
+{
+	MEMPTR<void> userCallback;
+	MEMPTR<void> userContext;
+};
+static_assert(sizeof(FSAttachParams) == 0x8);
+
 namespace coreinit
 {
 	struct FSCmdBlockBody;
@@ -242,7 +249,7 @@ namespace coreinit
 	sint32 __FSQueryInfoAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, uint8* queryString, uint32 queryType, void* queryResult, uint32 errHandling, FSAsyncParams* fsAsyncParams);
 
 	// coreinit exports
-	FS_RESULT FSAddClientEx(FSClient_t* fsClient, uint32 uknR4, uint32 errHandling);
+	FS_RESULT FSAddClientEx(FSClient_t* fsClient, FSAttachParams* attachParams, uint32 errHandling);
 	FS_RESULT FSAddClient(FSClient_t* fsClient, uint32 errHandling);
 	FS_RESULT FSDelClient(FSClient_t* fsClient, uint32 errHandling);
 
@@ -292,6 +299,8 @@ namespace coreinit
 	sint32 FSReadDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, FSDirEntry_t* dirEntryOut, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSCloseDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSCloseDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask);
+	sint32 FSRewindDirAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask, FSAsyncParams* fsAsyncParams);
+	sint32 FSRewindDir(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, FSDirHandle2 dirHandle, uint32 errorMask);
 
 	sint32 FSFlushQuotaAsync(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask, FSAsyncParams* fsAsyncParams);
 	sint32 FSFlushQuota(FSClient_t* fsClient, FSCmdBlock_t* fsCmdBlock, char* path, uint32 errorMask);
