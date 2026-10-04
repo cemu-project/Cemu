@@ -199,7 +199,7 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 {
 	std::vector<std::thread::native_handle_type> schedulerThreadHandles = coreinit::OSGetSchedulerThreads();
 
-#if BOOST_OS_WINDOWS
+#if BOOST_OS_WINDOWS && defined(_M_X64)
 	s_debuggerState.activeMemoryBreakpoint = bp;
 	for (auto& hThreadNH : schedulerThreadHandles)
 	{
@@ -235,9 +235,51 @@ void debugger_updateMemoryBreakpoint(DebuggerBreakpoint* bp)
 		SetThreadContext(hThread, &ctx);
 		ResumeThread(hThread);
 	}
-	#else
+#elif defined(_M_X64)
+	s_debuggerState.activeMemoryBreakpoint = bp;
+    for (auto& hThreadNH : schedulerThreadHandles)
+    {
+        HANDLE hThread = (HANDLE)hThreadNH;
+        CONTEXT ctx{};
+        ctx.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+        
+        SuspendThread(hThread);
+        if (GetThreadContext(hThread, &ctx))
+        {
+            if (s_debuggerState.activeMemoryBreakpoint)
+            {
+                // ARM64 uses Bvr/Bcr pairs. We'll use slot 0.
+                ctx.Bvr[0] = (DWORD64)memory_getPointerFromVirtualOffset(bp->address);
+                
+                // Construct the Control Register (BCR)
+                DWORD64 bcr = 0;
+                bcr |= 0x1;          // Bit 0: Global Enable
+                bcr |= (0x3 << 1);   // Bits 1-2: User and Privileged access
+                bcr |= (0xF << 5);   // Bits 5-8: Byte address select (watch all 4 bytes)
+                
+                // Map Cemu BP types to ARM64 Watchpoint types
+                if (bp->bpType == DEBUGGER_BP_T_MEMORY_READ)
+                    bcr |= (0x1 << 21); // Bit 21-22: 1 = Load
+                else if (bp->bpType == DEBUGGER_BP_T_MEMORY_WRITE)
+                    bcr |= (0x2 << 21); // Bit 21-22: 2 = Store
+                else
+                    bcr |= (0x3 << 21); // Bit 21-22: 3 = Either
+
+                ctx.Bcr[0] = bcr;
+            }
+            else
+            {
+                // Disable breakpoint slot 0
+                ctx.Bvr[0] = 0;
+                ctx.Bcr[0] = 0;
+            }
+            SetThreadContext(hThread, &ctx);
+        }
+        ResumeThread(hThread);
+    }
+#else
 	cemuLog_log(LogType::Force, "Debugger breakpoints are not supported");
-	#endif
+#endif
 }
 
 void debugger_handleSingleStepException(uint64 dr6)

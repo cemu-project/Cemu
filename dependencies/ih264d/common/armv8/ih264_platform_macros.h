@@ -38,144 +38,95 @@
 
 #include <stdint.h>
 
-#ifndef  ARMV8
-
-static __inline WORD32 CLIP_U8(WORD32 x)
-{
-    asm("usat %0, #8, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_S8(WORD32 x)
-{
-    asm("ssat %0, #8, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_U10(WORD32 x)
-{
-    asm("usat %0, #10, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_S10(WORD32 x)
-{
-    asm("ssat %0, #10, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_U11(WORD32 x)
-{
-    asm("usat %0, #11, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_S11(WORD32 x)
-{
-    asm("ssat %0, #11, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_U12(WORD32 x)
-{
-    asm("usat %0, #12, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_S12(WORD32 x)
-{
-    asm("ssat %0, #12, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-static __inline WORD32 CLIP_U16(WORD32 x)
-{
-    asm("usat %0, #16, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-static __inline WORD32 CLIP_S16(WORD32 x)
-{
-    asm("ssat %0, #16, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-
-
-static __inline UWORD32 ITT_BIG_ENDIAN(UWORD32 x)
-{
-    asm("rev %0, %1" : "=r"(x) : "r"(x));
-    return x;
-}
-#define NOP(nop_cnt)    {UWORD32 nop_i; for (nop_i = 0; nop_i < nop_cnt; nop_i++) asm("nop");}
-
-#else
-
-#define CLIP_U8(x) CLIP3(0, UINT8_MAX, (x))
-#define CLIP_S8(x) CLIP3(INT8_MIN, INT8_MAX, (x))
-
-#define CLIP_U10(x) CLIP3(0, 1023, (x))
-#define CLIP_S10(x) CLIP3(-512, 511, (x))
-
-#define CLIP_U11(x) CLIP3(0, 2047, (x))
-#define CLIP_S11(x) CLIP3(-1024, 1023, (x))
-
-#define CLIP_U12(x) CLIP3(0, 4095, (x))
-#define CLIP_S12(x) CLIP3(-2048, 2047, (x))
-
-#define CLIP_U16(x) CLIP3(0, UINT16_MAX, (x))
-#define CLIP_S16(x) CLIP3(INT16_MIN, INT16_MAX, (x))
-
-#define ITT_BIG_ENDIAN(x)       __asm__("rev %0, %1" : "=r"(x) : "r"(x));
-
-#define NOP(nop_cnt)                                \
-{                                                   \
-    UWORD32 nop_i;                                  \
-    for (nop_i = 0; nop_i < nop_cnt; nop_i++)       \
-        __asm__ __volatile__("mov x0, x0");         \
-}
-
+#ifndef WORD32
+typedef int32_t  WORD32;
+#endif
+#ifndef UWORD32
+typedef uint32_t UWORD32;
 #endif
 
-/*saturating instructions are not available for WORD64 in ARMv7, hence we cannot
- * use inline assembly like other clips*/
-#define CLIP_U32(x) CLIP3(0, UINT32_MAX, (x))
-#define CLIP_S32(x) CLIP3(INT32_MIN, INT32_MAX, (x))
+#include <arm_neon.h>
 
-#define DATA_SYNC() __sync_synchronize()
+#ifdef _MSC_VER
+    #include <intrin.h>
+    
+    #if defined(_M_ARM64) && !defined(__arm64_intrinsics_h__)
+        #ifndef _ARM64_BARRIER_ISH
+            #define _ARM64_BARRIER_ISH 0xB 
+        #endif
+    #endif
 
-#define SHL(x,y) (((y) < 32) ? ((x) << (y)) : 0)
-#define SHR(x,y) (((y) < 32) ? ((x) >> (y)) : 0)
+    #define INLINE      __inline
+    #define MEM_ALIGN8  __declspec(align(8))
+    #define MEM_ALIGN16 __declspec(align(16))
+    #define MEM_ALIGN32 __declspec(align(32))
+    
+    #define DATA_SYNC() __dmb(_ARM64_BARRIER_ISH)
+    
+    #define NOP(nop_cnt) { for (int i = 0; i < (int)nop_cnt; i++) __nop(); }
+    
+    #define ITT_BIG_ENDIAN(x) _byteswap_ulong(x)
+#else
+    #define INLINE      inline
+    #define MEM_ALIGN8  __attribute__ ((aligned (8)))
+    #define MEM_ALIGN16 __attribute__ ((aligned (16)))
+    #define MEM_ALIGN32 __attribute__ ((aligned (32)))
+    
+    #define DATA_SYNC() __sync_synchronize()
+    
+    #define NOP(nop_cnt)                                                \
+    {                                                                   \
+        uint32_t nop_i;                                                 \
+        for (nop_i = 0; nop_i < nop_cnt; nop_i++)                       \
+            __asm__ __volatile__("mov x0, x0");                         \
+    }
+
+    static INLINE uint32_t ITT_BIG_ENDIAN(uint32_t x) {
+        return __builtin_bswap32(x);
+    }
+#endif
+
+#ifndef CLIP3
+#define CLIP3(min_val, max_val, x) (((x) < (min_val)) ? (min_val) : (((x) > (max_val)) ? (max_val) : (x)))
+#endif
+
+#define CLIP_U8(x)  CLIP3(0, 255, (x))
+#define CLIP_S8(x)  CLIP3(-128, 127, (x))
+#define CLIP_U10(x) CLIP3(0, 1023, (x))
+#define CLIP_S10(x) CLIP3(-512, 511, (x))
+#define CLIP_U11(x) CLIP3(0, 2047, (x))
+#define CLIP_S11(x) CLIP3(-1024, 1023, (x))
+#define CLIP_U12(x) CLIP3(0, 4095, (x))
+#define CLIP_S12(x) CLIP3(-2048, 2047, (x))
+#define CLIP_U16(x) CLIP3(0, 65535, (x))
+#define CLIP_S16(x) CLIP3(-32768, 32767, (x))
+#define CLIP_U32(x) CLIP3(0, 0xFFFFFFFF, (x))
+#define CLIP_S32(x) CLIP3(-2147483647-1, 2147483647, (x))
+
+static INLINE uint32_t CLZ(uint32_t u4_word) {
+    if (u4_word == 0) return 31;
+#ifdef _MSC_VER
+    return (uint32_t)_CountLeadingZeros(u4_word);
+#else
+    return (uint32_t)__builtin_clz(u4_word);
+#endif
+}
+
+static INLINE uint32_t CTZ(uint32_t u4_word) {
+    if (u4_word == 0) return 31;
+#ifdef _MSC_VER
+    unsigned long index;
+    _BitScanForward(&index, u4_word);
+    return (uint32_t)index;
+#else
+    return (uint32_t)__builtin_ctz(u4_word);
+#endif
+}
+
+#define SHL(x,y) (((y) < 32) ? ((uint32_t)(x) << (y)) : 0)
+#define SHR(x,y) (((y) < 32) ? ((uint32_t)(x) >> (y)) : 0)
 
 #define SHR_NEG(val,shift)  ((shift>0)?(val>>shift):(val<<(-shift)))
 #define SHL_NEG(val,shift)  ((shift<0)?(val>>(-shift)):(val<<shift))
-
-#define INLINE inline
-
-/* In normal cases, 0 will not be passed as an argument to CLZ and CTZ.
-As CLZ and CTZ outputs are used as a shift value in few places, these return
-31 for u4_word == 0 case, just to handle error cases gracefully without any
-undefined behaviour */
-
-static INLINE UWORD32 CLZ(UWORD32 u4_word)
-{
-    if(u4_word)
-        return (__builtin_clz(u4_word));
-    else
-        return 31;
-}
-static INLINE UWORD32 CTZ(UWORD32 u4_word)
-{
-    if(0 == u4_word)
-        return 31;
-    else
-    {
-        unsigned int index;
-        index = __builtin_ctz(u4_word);
-        return (UWORD32)index;
-    }
-}
-
-#define MEM_ALIGN8 __attribute__ ((aligned (8)))
-#define MEM_ALIGN16 __attribute__ ((aligned (16)))
-#define MEM_ALIGN32 __attribute__ ((aligned (32)))
 
 #endif /* _IH264_PLATFORM_MACROS_H_ */
