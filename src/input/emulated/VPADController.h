@@ -1,6 +1,7 @@
 #pragma once
 
 #include "input/emulated/EmulatedController.h"
+#include "input/emulated/GamePadTouch.h"
 #include "Cafe/OS/libs/vpad/vpad.h"
 
 
@@ -47,6 +48,11 @@ public:
 
 		kButtonId_Home,
 
+		// Append special actions to preserve all existing profile mapping IDs.
+		kButtonId_Touch1,
+		kButtonId_Touch2,
+		kButtonId_Touch3,
+
 		kButtonId_Max,
 	};
 
@@ -91,6 +97,9 @@ public:
 	void load(const pugi::xml_node& node) override;
 	void save(pugi::xml_node& node) override;
 
+	GamePadTouch::Position GetTouchPosition(size_t index) const { return m_touch.GetPosition(index); }
+	void SetTouchPosition(size_t index, sint32 x, sint32 y) { m_touch.SetPosition(index, x, y); }
+
 private:
 	bool m_mic_active = false;
 	bool m_screen_active = false;
@@ -106,5 +115,5 @@ private:
 
 	void update_touch(VPADStatus_t& status);
 	void update_motion(VPADStatus_t& status);
-	glm::ivec2 m_last_touch_position{};
+	GamePadTouch m_touch;
 };

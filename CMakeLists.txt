@@ -228,3 +228,9 @@ if (NOT ZArchive_FOUND)
 endif()
 
 add_subdirectory(src)
+
+option(CEMU_BUILD_TOUCH_TESTS "Build GamePad touch input tests" OFF)
+if (CEMU_BUILD_TOUCH_TESTS)
+	enable_testing()
+	add_subdirectory(tests/input)
+endif()

@@ -53,7 +53,7 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 	for (uint32 i = kButtonId_A; i < kButtonId_Max; ++i)
 	{
 		// axis will be aplied later
-		if (is_axis_mapping(i))
+		if (is_axis_mapping(i) || i >= kButtonId_Touch1)
 			continue;
 
 		if (is_mapping_down(i))
@@ -184,25 +184,14 @@ void VPADController::update()
 
 void VPADController::update_touch(VPADStatus_t& status)
 {
-	status.tpData.touch = kTpTouchOff;
-	status.tpData.validity = kTpInvalid;
-	// keep x,y from previous update
-	// NGDK (Neko Game Development Kit 2) games (e.g. Mysterios Cities of Gold) rely on x/y remaining intact after touch is released
-	status.tpData.x = (uint16)m_last_touch_position.x;
-	status.tpData.y = (uint16)m_last_touch_position.y;
-
+	std::optional<GamePadTouch::RawPosition> pointer;
 	auto& instance = InputManager::instance();
 	bool pad_view;
 	if (has_position())
 	{
 		const auto mouse = get_position();
 
-		status.tpData.touch = kTpTouchOn;
-		status.tpData.validity = kTpValid;
-		status.tpData.x = (uint16)(mouse.x * 3883.0f + 92.0f);
-		status.tpData.y = (uint16)(4095.0f - mouse.y * 3694.0f - 254.0f);
-
-		m_last_touch_position = glm::ivec2{status.tpData.x, status.tpData.y};
+		pointer = GamePadTouch::FromNormalized(mouse.x, mouse.y);
 	}
 	else if (const auto left_mouse = instance.get_left_down_mouse_info(&pad_view))
 	{
@@ -214,22 +203,18 @@ void VPADController::update_touch(VPADStatus_t& status)
 		relative_mouse_pos = { std::max(relative_mouse_pos.x, 0.0f), std::max(relative_mouse_pos.y, 0.0f) };
 		relative_mouse_pos /= image_size;
 
-		status.tpData.touch = kTpTouchOn;
-		status.tpData.validity = kTpValid;
-		status.tpData.x = (uint16)((relative_mouse_pos.x * 3883.0f) + 92.0f);
-		status.tpData.y = (uint16)(4095.0f - (relative_mouse_pos.y * 3694.0f) - 254.0f);
-
-		m_last_touch_position = glm::ivec2{ status.tpData.x, status.tpData.y };
-
-		/*cemuLog_log(LogType::Force, "TDATA: {},{} -> {},{} -> {},{} -> {},{} -> {},{} -> {},{}",
-			left_mouse->x, left_mouse->y,
-			(left_mouse.value() - image_pos).x, (left_mouse.value() - image_pos).y,
-			relative_mouse_pos.x, relative_mouse_pos.y,
-			(uint16)(relative_mouse_pos.x * 3883.0 + 92.0), (uint16)(4095.0 - relative_mouse_pos.y * 3694.0 - 254.0),
-			status.tpData.x.value(), status.tpData.y.value(), status.tpData.x.bevalue(), status.tpData.y.bevalue()
-		);*/
+		pointer = GamePadTouch::FromNormalized(relative_mouse_pos.x, relative_mouse_pos.y);
 	}
 
+	std::array<bool, GamePadTouch::kBindingCount> buttons{};
+	for (size_t i = 0; i < buttons.size(); ++i)
+		buttons[i] = is_mapping_down(kButtonId_Touch1 + i);
+	const auto touch = m_touch.Read(pointer, buttons);
+	status.tpData.touch = touch.down ? kTpTouchOn : kTpTouchOff;
+	status.tpData.validity = touch.down ? kTpValid : kTpInvalid;
+	// NGDK games rely on x/y remaining intact after touch is released.
+	status.tpData.x = touch.position.x;
+	status.tpData.y = touch.position.y;
 	status.tpProcessed1 = status.tpData;
 	status.tpProcessed2 = status.tpData;
 }
@@ -382,6 +367,9 @@ std::string_view VPADController::get_button_name(ButtonId id)
 	case kButtonId_StickR_Left: return wxTRANSLATE("left");
 	case kButtonId_StickR_Right: return wxTRANSLATE("right");
 	case kButtonId_Home: return wxTRANSLATE("home");
+	case kButtonId_Touch1:
+	case kButtonId_Touch2:
+	case kButtonId_Touch3: return wxTRANSLATE("GamePad Touch");
 	default:
 		cemu_assert_debug(false);
 		return "";
@@ -689,11 +677,13 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 
 void VPADController::load(const pugi::xml_node& node)
 {
+	m_touch.Load(node);
 	if (const auto value = node.child("toggle_display"))
 		m_screen_active_toggle = ConvertString<bool>(value.child_value());
 }
 
 void VPADController::save(pugi::xml_node& node)
 {
+	m_touch.Save(node);
 	node.append_child("toggle_display").append_child(pugi::node_pcdata).set_value(fmt::format("{}", (int)m_screen_active_toggle).c_str());
 }

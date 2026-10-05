@@ -37,6 +37,7 @@ add_library(CemuInput
 	emulated/VPADController.cpp
 	emulated/WiimoteController.cpp
 	emulated/VPADController.h
+	emulated/GamePadTouch.h
 	emulated/ClassicController.cpp
 	emulated/ClassicController.h
 )

@@ -6,6 +6,7 @@
 #include <wx/textctrl.h>
 #include <wx/slider.h>
 #include <wx/checkbox.h>
+#include <wx/spinctrl.h>
 
 
 #include "gui/helpers/wxControlObject.h"
@@ -150,6 +151,35 @@ VPADInputPanel::VPADInputPanel(wxWindow* parent)
 	toggleScreenText->SetToolTip(toggleScreenTT);
 	main_sizer->Add(m_togglePadViewCheckBox, wxGBPosition(row,column+1), wxDefaultSpan, wxALL | wxEXPAND, 5);
 
+	// Reuse the ordinary mapping widgets and capture behavior for each touch action.
+	for (size_t i = 0; i < GamePadTouch::kBindingCount; ++i)
+	{
+		const sint32 touchRow = 12 + static_cast<sint32>(i);
+		add_button_row(main_sizer, touchRow, 0,
+			static_cast<VPADController::ButtonId>(VPADController::kButtonId_Touch1 + i),
+			formatWxString(_("GamePad Touch {}"), i + 1));
+
+		main_sizer->Add(new wxStaticText(this, wxID_ANY, _("X (0-853)")), wxGBPosition(touchRow, 3), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		m_touchX[i] = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(85, -1), wxSP_ARROW_KEYS, 0, GamePadTouch::kWidth - 1);
+		main_sizer->Add(m_touchX[i], wxGBPosition(touchRow, 4), wxDefaultSpan, wxALL, 5);
+		main_sizer->Add(new wxStaticText(this, wxID_ANY, _("Y (0-479)")), wxGBPosition(touchRow, 7), wxDefaultSpan, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+		m_touchY[i] = new wxSpinCtrl(this, wxID_ANY, "0", wxDefaultPosition, wxSize(85, -1), wxSP_ARROW_KEYS, 0, GamePadTouch::kHeight - 1);
+		main_sizer->Add(m_touchY[i], wxGBPosition(touchRow, 8), wxDefaultSpan, wxALL, 5);
+
+		const auto savePosition = [this, i](wxCommandEvent& event)
+		{
+			if (const auto controller = m_touchController.lock())
+				controller->SetTouchPosition(i, m_touchX[i]->GetValue(), m_touchY[i]->GetValue());
+			event.Skip();
+		};
+		for (auto* editor : {m_touchX[i], m_touchY[i]})
+		{
+			editor->SetToolTip(_("Native GamePad coordinates (854x480), measured from the top-left. Touch stays down while the button is held. Pointer input has priority; the first held touch binding wins."));
+			editor->Bind(wxEVT_SPINCTRL, savePosition);
+			editor->Bind(wxEVT_TEXT, savePosition);
+		}
+	}
+
 	//////////////////////////////////////////////////////////////////
 
 	SetSizer(main_sizer);
@@ -200,7 +230,18 @@ void VPADInputPanel::OnVolumeChange(wxCommandEvent& event)
 void VPADInputPanel::load_controller(const EmulatedControllerPtr& controller)
 {
 	InputPanel::load_controller(controller);
+	m_touchController.reset();
+	const auto vpad = std::dynamic_pointer_cast<VPADController>(controller);
+	for (size_t i = 0; i < GamePadTouch::kBindingCount; ++i)
+	{
+		const auto position = vpad ? vpad->GetTouchPosition(i) : GamePadTouch::Position{0, 0};
+		m_touchX[i]->SetValue(position.x);
+		m_touchY[i]->SetValue(position.y);
+	}
+	m_touchController = vpad;
+	if (!vpad)
+		return;
 
-	const bool isToggle = static_cast<VPADController*>(controller.get())->is_screen_active_toggle();
+	const bool isToggle = vpad->is_screen_active_toggle();
 	m_togglePadViewCheckBox->SetValue(isToggle);
 }
