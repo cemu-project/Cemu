@@ -67,6 +67,7 @@ struct SwapchainInfoVk
 	VkDevice m_logicalDevice{};
 	VkSurfaceKHR m_surface{};
 	VkSurfaceFormatKHR m_surfaceFormat{};
+	bool m_transferUsageSupported = false; // GamePad present gate (fork)
 	VkSwapchainKHR m_swapchain{};
 	Vector2i m_desiredExtent{};
 	VkExtent2D m_actualExtent{};

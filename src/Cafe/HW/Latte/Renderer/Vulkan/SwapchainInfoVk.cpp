@@ -380,6 +380,11 @@ VkSwapchainCreateInfoKHR SwapchainInfoVk::CreateSwapchainCreateInfo(VkSurfaceKHR
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	// GamePad present gate (fork): copies in/out of the swapchain image, where the driver allows it
+	constexpr VkImageUsageFlags transferUsage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+	m_transferUsageSupported = (swapchainSupport.capabilities.supportedUsageFlags & transferUsage) == transferUsage;
+	if (m_transferUsageSupported)
+		createInfo.imageUsage |= transferUsage;
 
 	const VulkanRenderer::QueueFamilyIndices indices = VulkanRenderer::GetInstance()->FindQueueFamilies(surface, m_physicalDevice);
 	m_swapchainQueueFamilyIndices = { (uint32)indices.graphicsFamily, (uint32)indices.presentFamily };

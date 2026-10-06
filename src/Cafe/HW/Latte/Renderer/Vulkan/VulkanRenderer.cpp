@@ -1869,6 +1869,7 @@ void VulkanRenderer::Shutdown()
 	SubmitCommandBuffer();
 	WaitDeviceIdle();
 	DrcCapture_Release(); // GamePad bridge (fork)
+	PresentGate_Release(); // GamePad present gate (fork)
 	// stop compilation threads
 	RendererShaderVk::Shutdown();
 	PipelineCompiler::CompileThreadPool_Stop();
@@ -3036,6 +3037,9 @@ void VulkanRenderer::SwapBuffer(bool mainWindow)
 		VkClearColorValue clearColor{ 0, 0, 0, 0 };
 		ClearColorImageRaw(chainInfo.m_swapchainImages[chainInfo.swapchainImageIndex], 0, 0, clearColor, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
 	}
+
+	if (mainWindow)
+		PresentGate_Apply(chainInfo); // GamePad present gate (fork)
 
 	const size_t currentFrameCmdBufferID = GetCurrentCommandBufferId();
 

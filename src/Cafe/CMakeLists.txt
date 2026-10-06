@@ -6,6 +6,8 @@ add_library(CemuCafe
   CafeSystem.h
   GamePad/GamePadSink.cpp
   GamePad/GamePadSink.h
+  GamePad/SyncPattern.cpp
+  GamePad/SyncPattern.h
   GamePad/drcbridge_ipc.h
   Filesystem/fsc.cpp
   Filesystem/fscDeviceHostFS.cpp
@@ -545,6 +547,7 @@ if (ENABLE_VULKAN)
     HW/Latte/Renderer/Vulkan/VulkanQuery.cpp
     HW/Latte/Renderer/Vulkan/VulkanRendererCore.cpp
     HW/Latte/Renderer/Vulkan/VulkanDrcCapture.cpp
+    HW/Latte/Renderer/Vulkan/VulkanPresentGate.cpp
     HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp
     HW/Latte/Renderer/Vulkan/VulkanRenderer.h
     HW/Latte/Renderer/Vulkan/VulkanSurfaceCopy.cpp
