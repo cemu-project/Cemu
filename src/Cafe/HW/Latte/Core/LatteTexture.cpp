@@ -1319,7 +1319,14 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 		}
 	}
 	// determine if this texture should ever be mirrored to CPU RAM
-	if (this->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
+	bool readbackLinear = this->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED;
+	// small tiled render targets may be read by the CPU
+	// fixes exposure readback in games like Cars 3
+	bool readbackSmallTiled =
+		tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1 &&
+		format == Latte::E_GX2SURFFMT::R32_FLOAT &&
+		!isDepth && width == 1 && height <= 8 && depth == 1 && mipLevels == 1;
+	if (readbackLinear || readbackSmallTiled)
 	{
 		this->enableReadback = true;
 	}
