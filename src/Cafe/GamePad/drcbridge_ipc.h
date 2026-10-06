@@ -1,5 +1,5 @@
 // VERBATIM COPY of cemu-gamepad project bridge/include/drcbridge/ipc.h. Do not edit here; update both.
-// Cemu <-> GamePad bridge IPC, version 1.0. Normative; docs/IPC.md explains it.
+// Cemu <-> GamePad bridge IPC, version 1.1. Normative; docs/IPC.md explains it.
 // Self-contained on purpose: the Cemu fork carries a verbatim copy of this file.
 // Plain C-compatible structs, host byte order (same machine), CLOCK_MONOTONIC nanoseconds.
 #pragma once
@@ -8,7 +8,7 @@
 
 #define DRCB_MAGIC 0x42435244u /* "DRCB" little-endian */
 #define DRCB_VERSION_MAJOR 1
-#define DRCB_VERSION_MINOR 0
+#define DRCB_VERSION_MINOR 1
 
 #define DRCB_SOCKET_DIR "cemu-gamepad" /* under $XDG_RUNTIME_DIR */
 #define DRCB_SOCKET_NAME "bridge.sock"
@@ -83,6 +83,18 @@ struct drcb_reject
 enum drcb_pixel_format
 {
 	DRCB_FMT_RGBA8 = 1,
+	// 1.1, bridge -> mock pad only: the pad's encoded video. The slot holds a drcb_encoded_frame header,
+	// then the chunks back to back (raw CABAC slice data, no headers, not NAL-escaped). `stride` in
+	// FRAME_SUBMIT = total bytes used in the slot. Cemu never sends this.
+	DRCB_FMT_DRC_H264 = 2,
+};
+
+#define DRCB_DRC_CHUNKS 5 // libdrc include/drc/internal/h264-encoder.h: kH264ChunksPerFrame
+
+struct drcb_encoded_frame
+{
+	uint32_t idr;
+	uint32_t chunk_size[DRCB_DRC_CHUNKS];
 };
 
 struct drcb_frame_submit
