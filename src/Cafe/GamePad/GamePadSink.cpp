@@ -48,7 +48,6 @@ namespace GamePadSink
 		} s;
 
 		// ---- screen sync measurement: pair TV and pad display times by frame counter ----
-		constexpr sint32 kMaxHoldFrames = 6; // 100 ms at 60 Hz (GamePadBridgeConfig::kMaxTvHoldMs)
 		constexpr size_t kSyncRing = 512;
 		struct SyncRecord
 		{
@@ -305,12 +304,12 @@ namespace GamePadSink
 		return s.frameCounter.load(std::memory_order_relaxed);
 	}
 
-	sint32 TvHoldFrames()
+	sint64 TvHoldNs()
 	{
 		const auto& cfg = GetGamePadBridgeConfig();
 		if (!cfg.enabled || !s.ready)
 			return 0;
-		return std::clamp<sint32>(sint32(std::lround(cfg.tvHoldMs / (1000.0 / 60.0))), 0, kMaxHoldFrames);
+		return sint64(std::clamp<sint32>(cfg.tvHoldMs, 0, GamePadBridgeConfig::kMaxTvHoldMs)) * 1'000'000;
 	}
 
 	bool PatternActive()
@@ -331,8 +330,8 @@ namespace GamePadSink
 			sync.lastReportNs = tPresentNs;
 		if (tPresentNs - sync.lastReportNs >= 10'000'000'000)
 		{
-			cemuLog_log(LogType::Force, "GamePad sync: hold {} frame(s) (TV hold setting {} ms), pattern {}", TvHoldFrames(),
-						GetGamePadBridgeConfig().tvHoldMs, PatternActive() ? "on" : "off");
+			cemuLog_log(LogType::Force, "GamePad sync: TV hold setting {} ms, pattern {}", TvHoldNs() / 1'000'000,
+						PatternActive() ? "on" : "off");
 			ReportPercentiles("TV hold (flip -> present call)", sync.holdNs);
 			// Both ends are estimates: TV = present call (FIFO adds up to a frame), pad = mock pad's
 			// "drawn". The camera method (docs/SYNC.md) is the real measurement.

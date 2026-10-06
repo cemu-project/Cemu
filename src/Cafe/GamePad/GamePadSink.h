@@ -29,8 +29,12 @@ namespace GamePadSink
 	// ---- present gate / screen sync (render thread) ----
 	// Counts DRC flips; the TV frame of the same emulated frame carries the same value.
 	uint64 FrameCounter();
-	// Frames to hold the TV picture: round(tvHoldMs / 16.67), 0 unless enabled and connected.
-	sint32 TvHoldFrames();
+	// How long to hold the TV picture (ns): tvHoldMs, 0 unless enabled and connected. A time, not a frame
+	// count: games change frame rate between scenes (Nintendo Land's title screen runs at 30), and a
+	// frame-count gate held 117 ms instead of 67 there (docs/MEASUREMENTS.md).
+	sint64 TvHoldNs();
+	// Ring size the gate needs to cover the maximum hold at 60 Hz, plus the current frame.
+	constexpr sint32 kGateRingSize = 8;
 	// Camera sync pattern on both screens (enabled, connected and turned on in settings).
 	bool PatternActive();
 	// The gate just presented the TV picture of frame `counter`, flipped at tFlipShownNs.

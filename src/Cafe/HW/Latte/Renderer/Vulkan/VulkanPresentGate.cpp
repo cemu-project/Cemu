@@ -2,10 +2,12 @@
 // it lines up with the GamePad screen, which trails because of readback, encode, radio and decode.
 //
 // Runs in SwapBuffer(mainWindow) just before the frame is submitted and presented. The finished swapchain
-// image is copied into a ring of K+1 images, and the image from K frames ago is copied back into the
-// swapchain image, which is then presented as usual. No extra thread, no queue sharing, no swapchain-image
-// hoarding, no throughput loss; precision is whole frames (+-8 ms worst case), which is what FIFO vsync
-// displays at anyway. Extra GPU work: two image copies per TV frame while K > 0.
+// image is copied into a ring of recent frames (with their flip times), and the newest frame that is at
+// least `hold` old (minus half a frame) is copied back into the swapchain image, which is then presented as
+// usual. Selection is by TIME, not frame count, so the hold stays right when the game's frame rate changes.
+// No extra thread, no queue sharing, no swapchain-image hoarding, no throughput loss; precision is whole
+// frames (+-8 ms at 60 Hz), which is what FIFO vsync displays at anyway. Extra GPU work: two image copies
+// per TV frame while the gate is active.
 //
 // With the sync test pattern on, the ring is filled with the CPU-drawn pattern instead of the game picture
 // (and blitted to the swapchain), so the pattern goes through exactly the same delay.
@@ -35,8 +37,8 @@ namespace
 
 struct PresentGateState
 {
-	std::vector<GateSlot> slots; // K+1
-	sint32 holdFrames = 0;
+	std::vector<GateSlot> slots; // GamePadSink::kGateRingSize
+	sint64 holdNs = 0;
 	bool patternMode = false;
 	VkExtent2D extent{};
 	VkFormat format = VK_FORMAT_UNDEFINED;
@@ -78,12 +80,12 @@ void VulkanRenderer::PresentGate_Release()
 		}
 	}
 	m_presentGate->slots.clear();
-	m_presentGate->holdFrames = 0;
+	m_presentGate->holdNs = 0;
 }
 
 void VulkanRenderer::PresentGate_Apply(SwapchainInfoVk& chain)
 {
-	const sint32 hold = GamePadSink::TvHoldFrames();
+	const sint64 hold = GamePadSink::TvHoldNs();
 	const bool pattern = GamePadSink::PatternActive();
 	if (hold <= 0 && !pattern)
 	{
@@ -108,7 +110,7 @@ void VulkanRenderer::PresentGate_Apply(SwapchainInfoVk& chain)
 	const VkFormat swapFormat = chain.m_surfaceFormat.format;
 	const VkFormat ringFormat = pattern ? VK_FORMAT_R8G8B8A8_UNORM : swapFormat;
 	const VkExtent2D ringExtent = pattern ? VkExtent2D{kPatternW, kPatternH} : extent;
-	const uint32 count = uint32(std::max(hold, 0)) + 1;
+	const uint32 count = hold > 0 ? uint32(GamePadSink::kGateRingSize) : 1;
 
 	if (pattern)
 	{
@@ -124,7 +126,7 @@ void VulkanRenderer::PresentGate_Apply(SwapchainInfoVk& chain)
 		}
 	}
 
-	// (Re)create the ring when the hold, mode, size or format changes. Rare; a device wait is fine.
+	// (Re)create the ring when on/off, mode, size or format changes. Rare; a device wait is fine.
 	if (st.slots.size() != count || st.patternMode != pattern || st.extent.width != ringExtent.width ||
 		st.extent.height != ringExtent.height || st.format != ringFormat)
 	{
@@ -178,12 +180,11 @@ void VulkanRenderer::PresentGate_Apply(SwapchainInfoVk& chain)
 				return;
 			}
 		}
-		st.holdFrames = hold;
 		st.patternMode = pattern;
 		st.extent = ringExtent;
 		st.format = ringFormat;
 		st.head = 0;
-		cemuLog_log(LogType::Force, "GamePad present gate: holding TV picture {} frame(s){}", hold, pattern ? ", sync test pattern" : "");
+		cemuLog_log(LogType::Force, "GamePad present gate: active ({} ms hold{})", hold / 1'000'000, pattern ? ", sync test pattern" : "");
 	}
 
 	draw_endRenderPass(); // transfers are invalid inside a render pass
@@ -219,11 +220,34 @@ void VulkanRenderer::PresentGate_Apply(SwapchainInfoVk& chain)
 	cur.counter = counter;
 	cur.tFlipNs = tNow;
 
-	// 2) Show the frame from `hold` frames ago (or the oldest we have, while the ring fills up).
+	// 2) Show the newest frame flipped at least `hold` ago (half a frame of slack, so a steady 60 Hz
+	//    stream with hold = 33 ms picks exactly 2 frames back rather than jittering between 2 and 3).
+	//    If none is that old yet (ring filling, or hold beyond what the ring covers at this rate),
+	//    show the oldest frame we have.
 	const uint32 n = uint32(st.slots.size());
-	uint32 showIndex = (st.head + n - uint32(st.holdFrames)) % n;
-	while (!st.slots[showIndex].hasContent)
-		showIndex = (showIndex + 1) % n;
+	const sint64 halfFrame = 8'333'333;
+	const sint64 cutoff = tNow - hold + halfFrame;
+	uint32 showIndex = st.head;
+	sint64 best = INT64_MIN, oldest = INT64_MAX;
+	uint32 oldestIndex = st.head;
+	for (uint32 i = 0; i < n; i++)
+	{
+		const GateSlot& sl = st.slots[i];
+		if (!sl.hasContent)
+			continue;
+		if (sl.tFlipNs <= cutoff && sl.tFlipNs > best)
+		{
+			best = sl.tFlipNs;
+			showIndex = i;
+		}
+		if (sl.tFlipNs < oldest)
+		{
+			oldest = sl.tFlipNs;
+			oldestIndex = i;
+		}
+	}
+	if (best == INT64_MIN)
+		showIndex = oldestIndex;
 	GateSlot& show = st.slots[showIndex];
 
 	GateBarrier(cmd, swapImage, pattern ? VK_IMAGE_LAYOUT_PRESENT_SRC_KHR : VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
