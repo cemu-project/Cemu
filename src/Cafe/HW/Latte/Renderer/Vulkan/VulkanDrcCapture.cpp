@@ -24,6 +24,7 @@ namespace
 		bool usesConvImage = false;
 		uint64 commandBufferId = 0;
 		sint64 tFlipNs = 0;
+		uint64 counter = 0; // GamePadSink::FrameCounter() at capture
 		bool pending = false;
 	};
 }
@@ -71,7 +72,7 @@ static void DrcHarvest(VulkanRenderer* r, DrcCaptureState& st)
 				dst[x + 3] = src[x + 3];
 			}
 		}
-		GamePadSink::EndFrame(target, next->width, next->height, next->tFlipNs);
+		GamePadSink::EndFrame(target, next->width, next->height, next->tFlipNs, next->counter);
 	}
 }
 
@@ -250,6 +251,7 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 	slot->width = width;
 	slot->height = height;
 	slot->tFlipNs = tFlipNs;
+	slot->counter = GamePadSink::FrameCounter();
 	slot->commandBufferId = GetCurrentCommandBufferId();
 	slot->pending = true;
 	return true;

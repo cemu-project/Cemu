@@ -1,4 +1,5 @@
 #include "Cafe/GamePad/GamePadSink.h"
+#include "Cafe/GamePad/SyncPattern.h"
 #include "Cafe/GamePad/drcbridge_ipc.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
@@ -43,7 +44,48 @@ namespace GamePadSink
 			// counters, reported at disconnect
 			uint64 submitted = 0, droppedNoSlot = 0, droppedCapture = 0, presented = 0;
 			std::atomic<uint64> presentedAtomic{0};
+			std::atomic<uint64> frameCounter{0};
 		} s;
+
+		// ---- screen sync measurement: pair TV and pad display times by frame counter ----
+		constexpr sint32 kMaxHoldFrames = 6; // 100 ms at 60 Hz (GamePadBridgeConfig::kMaxTvHoldMs)
+		constexpr size_t kSyncRing = 512;
+		struct SyncRecord
+		{
+			uint64 counter = ~0ull;
+			sint64 tvPresentNs = 0;
+			sint64 padPresentedNs = 0;
+		};
+		struct SyncState
+		{
+			std::mutex mutex; // render thread (TV side) vs receiver thread (pad side)
+			SyncRecord rec[kSyncRing];
+			uint64 frameIdToCounter[kSyncRing]{}; // DRC frame_id -> counter
+			std::vector<sint64> holdNs, skewNs; // skew = TV present - pad presented (positive: TV later)
+			sint64 lastReportNs = 0;
+		} sync;
+
+		SyncRecord& SyncRec(uint64 counter)
+		{
+			SyncRecord& r = sync.rec[counter % kSyncRing];
+			if (r.counter != counter)
+				r = SyncRecord{counter};
+			return r;
+		}
+
+		void ReportPercentiles(const char* name, std::vector<sint64>& v)
+		{
+			if (v.empty())
+			{
+				cemuLog_log(LogType::Force, "GamePad sync: {:<34} n=0", name);
+				return;
+			}
+			std::sort(v.begin(), v.end());
+			auto pct = [&](double p) { return double(v[std::min(v.size() - 1, size_t(p / 100.0 * (v.size() - 1) + 0.5))]) / 1e6; };
+			cemuLog_log(LogType::Force, "GamePad sync: {:<34} n={:<5} min {:7.2f}  p50 {:7.2f}  p95 {:7.2f}  p99 {:7.2f}  max {:7.2f} ms",
+						name, v.size(), double(v.front()) / 1e6, pct(50), pct(95), pct(99), double(v.back()) / 1e6);
+			v.clear();
+		}
 
 		void Notice(const std::string& text, sint32 durationMs)
 		{
@@ -109,8 +151,17 @@ namespace GamePadSink
 					}
 					break;
 				case DRCB_MSG_FRAME_PRESENTED:
-					// Present gate (Task 7) consumes these. For now: count them.
 					s.presentedAtomic.fetch_add(1, std::memory_order_relaxed);
+					if (n >= int(sizeof(drcb_frame_presented)))
+					{
+						auto* p = reinterpret_cast<drcb_frame_presented*>(payload);
+						std::lock_guard lock(sync.mutex);
+						const uint64 counter = sync.frameIdToCounter[p->frame_id % kSyncRing];
+						SyncRecord& r = SyncRec(counter);
+						r.padPresentedNs = p->t_presented_ns;
+						if (r.tvPresentNs)
+							sync.skewNs.push_back(r.tvPresentNs - r.padPresentedNs);
+					}
 					break;
 				case DRCB_MSG_PAD_STATUS:
 					if (n >= int(sizeof(drcb_pad_status)))
@@ -249,9 +300,51 @@ namespace GamePadSink
 #endif
 	}
 
+	uint64 FrameCounter()
+	{
+		return s.frameCounter.load(std::memory_order_relaxed);
+	}
+
+	sint32 TvHoldFrames()
+	{
+		const auto& cfg = GetGamePadBridgeConfig();
+		if (!cfg.enabled || !s.ready)
+			return 0;
+		return std::clamp<sint32>(sint32(std::lround(cfg.tvHoldMs / (1000.0 / 60.0))), 0, kMaxHoldFrames);
+	}
+
+	bool PatternActive()
+	{
+		const auto& cfg = GetGamePadBridgeConfig();
+		return cfg.enabled && cfg.syncTestPattern && s.ready;
+	}
+
+	void OnTvPresent(uint64 counter, sint64 tFlipShownNs, sint64 tPresentNs)
+	{
+		std::lock_guard lock(sync.mutex);
+		sync.holdNs.push_back(tPresentNs - tFlipShownNs);
+		SyncRecord& r = SyncRec(counter);
+		r.tvPresentNs = tPresentNs;
+		if (r.padPresentedNs)
+			sync.skewNs.push_back(r.tvPresentNs - r.padPresentedNs);
+		if (sync.lastReportNs == 0)
+			sync.lastReportNs = tPresentNs;
+		if (tPresentNs - sync.lastReportNs >= 10'000'000'000)
+		{
+			cemuLog_log(LogType::Force, "GamePad sync: hold {} frame(s) (TV hold setting {} ms), pattern {}", TvHoldFrames(),
+						GetGamePadBridgeConfig().tvHoldMs, PatternActive() ? "on" : "off");
+			ReportPercentiles("TV hold (flip -> present call)", sync.holdNs);
+			// Both ends are estimates: TV = present call (FIFO adds up to a frame), pad = mock pad's
+			// "drawn". The camera method (docs/SYNC.md) is the real measurement.
+			ReportPercentiles("TV present - pad presented (skew)", sync.skewNs);
+			sync.lastReportNs = tPresentNs;
+		}
+	}
+
 	void OnDrcFlip(LatteTextureView* texView)
 	{
 #if BOOST_OS_LINUX
+		s.frameCounter.fetch_add(1, std::memory_order_relaxed);
 		if (!GetGamePadBridgeConfig().enabled)
 		{
 			if (s.sock >= 0)
@@ -328,9 +421,15 @@ namespace GamePadSink
 		return false;
 	}
 
-	void EndFrame(const FrameTarget& target, uint32 width, uint32 height, sint64 tFlipNs)
+	void EndFrame(const FrameTarget& target, uint32 width, uint32 height, sint64 tFlipNs, uint64 counter)
 	{
 #if BOOST_OS_LINUX
+		if (PatternActive())
+			SyncPattern::Draw(target.dst, width, height, target.stride, counter);
+		{
+			std::lock_guard lock(sync.mutex);
+			sync.frameIdToCounter[s.nextFrameId % kSyncRing] = counter;
+		}
 		drcb_frame_submit m{};
 		m.slot = target.slot;
 		m.format = DRCB_FMT_RGBA8;

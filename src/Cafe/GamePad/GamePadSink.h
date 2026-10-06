@@ -23,7 +23,18 @@ namespace GamePadSink
 		uint32 slot;
 	};
 	bool BeginFrame(uint32 width, uint32 height, FrameTarget& out);
-	void EndFrame(const FrameTarget& target, uint32 width, uint32 height, sint64 tFlipNs);
+	// counter: FrameCounter() at the DRC flip this frame came from (pairs it with the TV frame).
+	void EndFrame(const FrameTarget& target, uint32 width, uint32 height, sint64 tFlipNs, uint64 counter);
+
+	// ---- present gate / screen sync (render thread) ----
+	// Counts DRC flips; the TV frame of the same emulated frame carries the same value.
+	uint64 FrameCounter();
+	// Frames to hold the TV picture: round(tvHoldMs / 16.67), 0 unless enabled and connected.
+	sint32 TvHoldFrames();
+	// Camera sync pattern on both screens (enabled, connected and turned on in settings).
+	bool PatternActive();
+	// The gate just presented the TV picture of frame `counter`, flipped at tFlipShownNs.
+	void OnTvPresent(uint64 counter, sint64 tFlipShownNs, sint64 tPresentNs);
 
 	// Monotonic clock shared with the bridge (CLOCK_MONOTONIC, ns).
 	sint64 NowNs();
