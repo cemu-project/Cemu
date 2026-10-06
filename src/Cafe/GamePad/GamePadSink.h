@@ -1,0 +1,33 @@
+#pragma once
+
+// DRC sink: hands the GamePad (DRC) framebuffer to the cemu-gamepad bridge and takes its replies.
+// Fork-only. Protocol: drcbridge_ipc.h (IPC v1). Settings: config/GamePadBridgeConfig.h.
+//
+// Threading: OnDrcFlip / BeginFrame / EndFrame / Shutdown run on the render thread. A receiver
+// thread reads bridge messages; it never touches the video path except to mark slots free.
+
+class LatteTextureView;
+
+namespace GamePadSink
+{
+	// Called on every DRC flip, whether or not Cemu's own GamePad window is open.
+	// Manages the bridge connection and asks the renderer to capture the frame.
+	void OnDrcFlip(LatteTextureView* texView);
+
+	// Used by the renderer's capture path once pixels are on the CPU side.
+	// BeginFrame returns false if the frame must be dropped (not connected, or no free slot).
+	struct FrameTarget
+	{
+		uint8* dst;
+		uint32 stride;
+		uint32 slot;
+	};
+	bool BeginFrame(uint32 width, uint32 height, FrameTarget& out);
+	void EndFrame(const FrameTarget& target, uint32 width, uint32 height, sint64 tFlipNs);
+
+	// Monotonic clock shared with the bridge (CLOCK_MONOTONIC, ns).
+	sint64 NowNs();
+
+	// Title stopped: say goodbye and disconnect.
+	void Shutdown();
+}

@@ -205,6 +205,10 @@ public:
 	bool IsPadWindowActive() override;
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
+	// GamePad bridge (fork): VulkanDrcCapture.cpp
+	bool DrcCapture(LatteTextureView* texView, sint64 tFlipNs) override;
+	void DrcCapture_Release();
+	struct DrcCaptureState* m_drcCapture = nullptr;
 
 	void QueryMemoryInfo();
 	void QueryAvailableFormats();

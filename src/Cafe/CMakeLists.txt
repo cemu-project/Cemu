@@ -4,6 +4,9 @@ add_library(CemuCafe
   Account/Account.h
   CafeSystem.cpp
   CafeSystem.h
+  GamePad/GamePadSink.cpp
+  GamePad/GamePadSink.h
+  GamePad/drcbridge_ipc.h
   Filesystem/fsc.cpp
   Filesystem/fscDeviceHostFS.cpp
   Filesystem/fscDeviceHostFS.h
@@ -541,6 +544,7 @@ if (ENABLE_VULKAN)
     HW/Latte/Renderer/Vulkan/VulkanPipelineStableCache.h
     HW/Latte/Renderer/Vulkan/VulkanQuery.cpp
     HW/Latte/Renderer/Vulkan/VulkanRendererCore.cpp
+    HW/Latte/Renderer/Vulkan/VulkanDrcCapture.cpp
     HW/Latte/Renderer/Vulkan/VulkanRenderer.cpp
     HW/Latte/Renderer/Vulkan/VulkanRenderer.h
     HW/Latte/Renderer/Vulkan/VulkanSurfaceCopy.cpp
