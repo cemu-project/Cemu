@@ -1,9 +1,10 @@
 // Fork-only: asynchronous readback of the DRC (GamePad) framebuffer for the GamePad bridge.
 //
 // Unlike HandleScreenshotRequest (submit + wait, i.e. a full GPU stall), this records the copy into the
-// current command buffer and harvests the pixels on a later DRC flip once that command buffer has
-// finished. Cost: about one frame of latency instead of a render-thread stall. The bridge measures it
-// as "cemu flip->submit" (docs/MEASUREMENTS.md).
+// current command buffer and harvests the pixels once that command buffer has finished. Harvesting happens
+// in ProcessFinishedCommandBuffers (as soon as Cemu notices finished GPU work, like its own texture
+// readbacks) and again on the next DRC flip. The first version harvested only on the next flip, which cost
+// a whole frame (17 ms); the bridge measures this as "cemu flip->submit" (docs/MEASUREMENTS.md).
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureViewVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
@@ -255,6 +256,12 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 	slot->commandBufferId = GetCurrentCommandBufferId();
 	slot->pending = true;
 	return true;
+}
+
+void VulkanRenderer::DrcCapture_HarvestFinished()
+{
+	if (m_drcCapture)
+		DrcHarvest(this, *m_drcCapture);
 }
 
 void VulkanRenderer::DrcCapture_Release()

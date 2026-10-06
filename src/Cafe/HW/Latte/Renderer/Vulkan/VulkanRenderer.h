@@ -208,6 +208,7 @@ public:
 	// GamePad bridge (fork): VulkanDrcCapture.cpp
 	bool DrcCapture(LatteTextureView* texView, sint64 tFlipNs) override;
 	void DrcCapture_Release();
+	void DrcCapture_HarvestFinished();
 	struct DrcCaptureState* m_drcCapture = nullptr;
 	// GamePad present gate (fork): VulkanPresentGate.cpp
 	void PresentGate_Apply(struct SwapchainInfoVk& chain);

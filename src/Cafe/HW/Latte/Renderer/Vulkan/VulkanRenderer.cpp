@@ -2180,6 +2180,7 @@ void VulkanRenderer::ProcessFinishedCommandBuffers()
 	if (finishedCmdBuffers)
 	{
 		LatteTextureReadback_UpdateFinishedTransfers(false);
+		DrcCapture_HarvestFinished(); // GamePad bridge (fork): hand off DRC frames as soon as the GPU is done
 	}
 }
 
