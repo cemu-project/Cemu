@@ -1,8 +1,10 @@
 #pragma once
 
 #include <wx/panel.h>
+#include <wx/spinctrl.h>
 
 class wxCheckBox;
+class wxSpinCtrl;
 
 // "GamePad" tab in the General settings dialog (fork-only).
 // Reads and writes GamePadBridgeConfig directly; the dialog's normal save on close
@@ -14,6 +16,10 @@ public:
 
 private:
 	void OnEnableChanged(wxCommandEvent& event);
+	void OnTvHoldChanged(wxSpinEvent& event);
+	void OnPatternChanged(wxCommandEvent& event);
 
 	wxCheckBox* m_enable;
+	wxSpinCtrl* m_tvHold;
+	wxCheckBox* m_pattern;
 };
