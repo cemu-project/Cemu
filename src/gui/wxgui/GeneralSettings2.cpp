@@ -1,6 +1,7 @@
 #include "wxCemuConfig.h"
 #include "wxgui/wxgui.h"
 #include "wxgui/GeneralSettings2.h"
+#include "wxgui/GamePadBridgePanel.h"
 #include "wxgui/CemuApp.h"
 #include "wxgui/helpers/wxControlObject.h"
 
@@ -1083,6 +1084,7 @@ GeneralSettings2::GeneralSettings2(wxWindow* parent, bool game_launched)
 	notebook->AddPage(AddGraphicsPage(notebook), _("Graphics"));
 	notebook->AddPage(AddAudioPage(notebook), _("Audio"));
 	notebook->AddPage(AddOverlayPage(notebook), _("Overlay"));
+	notebook->AddPage(new GamePadBridgePanel(notebook), _("GamePad"));
 	notebook->AddPage(AddAccountPage(notebook), _("Account"));
 	notebook->AddPage(AddDebugPage(notebook), _("Debug"));
 

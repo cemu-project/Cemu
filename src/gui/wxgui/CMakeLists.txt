@@ -52,6 +52,8 @@ add_library(CemuWxGui STATIC
   GameProfileWindow.h
   GameUpdateWindow.cpp
   GameUpdateWindow.h
+  GamePadBridgePanel.cpp
+  GamePadBridgePanel.h
   GeneralSettings2.cpp
   GeneralSettings2.h
   GettingStartedDialog.cpp
@@ -153,6 +155,7 @@ target_include_directories(CemuWxGui PUBLIC ${RAPIDJSON_INCLUDE_DIRS})
 
 target_link_libraries(CemuWxGui PRIVATE
   CemuCommon
+  CemuConfig
   CemuResource
   libzip::zip
   ZArchive::zarchive

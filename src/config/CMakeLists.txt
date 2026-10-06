@@ -3,6 +3,8 @@ add_library(CemuConfig
     ActiveSettings.h
     CemuConfig.cpp
     CemuConfig.h
+    GamePadBridgeConfig.cpp
+    GamePadBridgeConfig.h
     ConfigValue.h
     LaunchSettings.cpp
     LaunchSettings.h
