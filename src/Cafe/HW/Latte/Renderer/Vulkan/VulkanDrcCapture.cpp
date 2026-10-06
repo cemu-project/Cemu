@@ -131,6 +131,10 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 		slot->capacity = size;
 	}
 
+	// Transfers are invalid inside a render pass; the game's pass can still be open at flip time.
+	// (Cemu does the same before its own copies, e.g. VulkanRenderer.cpp "vkCmdCopyImage must be
+	// called outside of a renderpass".) First real run without this read back only black.
+	draw_endRenderPass();
 	baseTex->GetImageObj()->flagForCurrentCommandBuffer();
 	VkImage srcImage = baseTex->GetImageObj()->m_image;
 	const VkFormat format = baseTex->GetFormat();

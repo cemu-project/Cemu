@@ -1,6 +1,8 @@
 #include "Cafe/GamePad/GamePadSink.h"
 #include "Cafe/GamePad/drcbridge_ipc.h"
+#include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
+#include "Cafe/HW/Latte/Core/LatteTexture.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/GamePadBridgeConfig.h"
 #include "util/helpers/helpers.h"
@@ -283,6 +285,11 @@ namespace GamePadSink
 			s.noticeShownForOutage = false;
 		}
 
+		// Same preparation LatteRenderTarget_copyToBackbuffer does before displaying: the flipped texture
+		// can be stale, with the newest pixels in an overlapping cached texture. Without this the capture
+		// read only black whenever Cemu's own GamePad window was closed.
+		LatteTexture_UpdateDataToLatest(texView->baseTexture);
+		LatteTC_MarkTextureStillInUse(texView->baseTexture);
 		if (!g_renderer->DrcCapture(texView, NowNs()))
 		{
 			s.droppedCapture++;
