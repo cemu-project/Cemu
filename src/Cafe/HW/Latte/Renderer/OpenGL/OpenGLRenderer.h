@@ -180,7 +180,7 @@ private:
 	void texture_setActiveTextureUnit(sint32 index);
 
 	void texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
-	void texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
+	void texture_syncSliceUncompressedToCompressed(LatteTexture* srcTexture, sint32 srcMip, sint32 srcX, sint32 srcY, sint32 srcSlice, LatteTexture* dstTexture, sint32 dstMip, sint32 dstX, sint32 dstY, sint32 dstSlice, sint32 blockWidth, sint32 blockHeight, sint32 depth);
 
 	GLuint m_pipeline = 0;
 

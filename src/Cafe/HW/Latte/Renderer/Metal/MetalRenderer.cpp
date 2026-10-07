@@ -877,6 +877,14 @@ void MetalRenderer::texture_setLatteTexture(LatteTextureView* textureView, uint3
 
 void MetalRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, sint32 effectiveSrcX, sint32 effectiveSrcY, sint32 srcSlice, LatteTexture* dst, sint32 dstMip, sint32 effectiveDstX, sint32 effectiveDstY, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcDepth_)
 {
+    if (!src->IsCompressedFormat() && dst->IsCompressedFormat())
+    {
+        sint32 dstMipWidth, dstMipHeight;
+        dst->GetEffectiveSize(dstMipWidth, dstMipHeight, dstMip);
+        effectiveCopyWidth = std::min(effectiveCopyWidth, std::max(1, (dstMipWidth - effectiveDstX) / 4));
+        effectiveCopyHeight = std::min(effectiveCopyHeight, std::max(1, (dstMipHeight - effectiveDstY) / 4));
+    }
+
     // Source size seems to apply to the destination texture as well, therefore we need to adjust it when block size doesn't match
     Uvec2 srcBlockTexelSize = GetMtlPixelFormatInfo(src->format, src->isDepth).blockTexelSize;
     Uvec2 dstBlockTexelSize = GetMtlPixelFormatInfo(dst->format, dst->isDepth).blockTexelSize;

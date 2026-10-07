@@ -482,14 +482,19 @@ void LatteTexture_SyncSlice(LatteTexture* srcTexture, sint32 srcSliceIndex, sint
 	bool srcIsCompressed = srcTexture->IsCompressedFormat();
 	bool dstIsCompressed = dstTexture->IsCompressedFormat();
 
+	srcWidth = std::max(srcWidth >> srcMipIndex, 1);
+	srcHeight = std::max(srcHeight >> srcMipIndex, 1);
+	dstWidth = std::max(dstWidth >> dstMipIndex, 1);
+	dstHeight = std::max(dstHeight >> dstMipIndex, 1);
+
 	if (srcIsCompressed != dstIsCompressed)
 	{
 		// convert into unit of source texture
 		if (srcIsCompressed == false)
 		{
 			// destination compressed, source uncompressed (integer format)
-			dstWidth >>= 2;
-			dstHeight >>= 2;
+			dstWidth = (dstWidth + 3) / 4;
+			dstHeight = (dstHeight + 3) / 4;
 		}
 		else
 		{
@@ -498,11 +503,6 @@ void LatteTexture_SyncSlice(LatteTexture* srcTexture, sint32 srcSliceIndex, sint
 			dstHeight <<= 2;
 		}
 	}
-
-	srcWidth = std::max(srcWidth >> srcMipIndex, 1);
-	srcHeight = std::max(srcHeight >> srcMipIndex, 1);
-	dstWidth = std::max(dstWidth >> dstMipIndex, 1);
-	dstHeight = std::max(dstHeight >> dstMipIndex, 1);
 
 	sint32 copyWidth = std::min(srcWidth, dstWidth);
 	sint32 copyHeight = std::min(srcHeight, dstHeight);
