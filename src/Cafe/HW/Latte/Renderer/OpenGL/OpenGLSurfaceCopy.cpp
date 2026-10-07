@@ -25,12 +25,13 @@ void _setDepthCompareMode(LatteTextureViewGL* textureView, uint8 depthCompareMod
 	}
 }
 
-void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
+void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height, sint32 srcX, sint32 srcY, sint32 dstX, sint32 dstY)
 {
 	// scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
+	LatteTexture_scaleToEffectiveSize(destinationTexture, &dstX, &dstY, 0);
 	sint32 sourceEffectiveWidth, sourceEffectiveHeight;
 	sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 	// reset everything
@@ -46,7 +47,7 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 		SetAttributeArrayState(i, false, -1);
 	catchOpenGLError();
 	// set viewport
-	g_renderer->renderTarget_setViewport(0, 0, (float)effectiveCopyWidth, (float)effectiveCopyHeight, 0.0f, 1.0f);
+	g_renderer->renderTarget_setViewport((float)dstX, (float)dstY, (float)effectiveCopyWidth, (float)effectiveCopyHeight, 0.0f, 1.0f);
 	catchOpenGLError();
 	// get a view of the copied slice/mip in the source and destination texture
 	LatteTextureView* sourceView = sourceTexture->GetOrCreateView(srcMip, 1, srcSlice, 1);
@@ -77,32 +78,34 @@ void OpenGLRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 	catchOpenGLError();
 
 	float vertexOffsets[4 * 4];
-	float srcCopyWidth = (float)width / (float)sourceTexture->width;
-	float srcCopyHeight = (float)height / (float)sourceTexture->height;
+	float srcCopyWidth = (float)width / (float)sourceTexture->GetMipWidth(srcMip);
+	float srcCopyHeight = (float)height / (float)sourceTexture->GetMipHeight(srcMip);
+	float srcU = (float)srcX / (float)sourceTexture->GetMipWidth(srcMip);
+	float srcV = (float)srcY / (float)sourceTexture->GetMipHeight(srcMip);
 	// q0 vertex
 	vertexOffsets[0] = -1.0f;
 	vertexOffsets[1] = 1.0f;
 	// q0 uv
-	vertexOffsets[2] = 0.0f;
-	vertexOffsets[3] = 0.0f;
+	vertexOffsets[2] = srcU;
+	vertexOffsets[3] = srcV;
 	// q1
 	vertexOffsets[4] = 1.0f;
 	vertexOffsets[5] = 1.0f;
 	// q1 uv
-	vertexOffsets[6] = srcCopyWidth;
-	vertexOffsets[7] = 0.0f;
+	vertexOffsets[6] = srcU + srcCopyWidth;
+	vertexOffsets[7] = srcV;
 	// q2
 	vertexOffsets[8] = -1.0f;
 	vertexOffsets[9] = -1.0f;
 	// q2 uv
-	vertexOffsets[10] = 0.0f;
-	vertexOffsets[11] = srcCopyHeight;
+	vertexOffsets[10] = srcU;
+	vertexOffsets[11] = srcV + srcCopyHeight;
 	// q3
 	vertexOffsets[12] = 1.0f;
 	vertexOffsets[13] = -1.0f;
 	// q3 uv
-	vertexOffsets[14] = srcCopyWidth;
-	vertexOffsets[15] = srcCopyHeight;
+	vertexOffsets[14] = srcU + srcCopyWidth;
+	vertexOffsets[15] = srcV + srcCopyHeight;
 
 	glUniform4fv(copyShader->copyShaderUniforms.uniformLoc_vertexOffsets, 4, vertexOffsets);
 	catchOpenGLError();

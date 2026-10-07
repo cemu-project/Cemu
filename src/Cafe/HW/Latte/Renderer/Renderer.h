@@ -122,7 +122,7 @@ public:
 	virtual LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) = 0;
 
 	// surface copy
-	virtual void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height) = 0;
+	virtual void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height, sint32 srcX = 0, sint32 srcY = 0, sint32 dstX = 0, sint32 dstY = 0) = 0;
 
 	// buffer cache
 	virtual void bufferCache_init(const sint32 bufferSize) = 0;

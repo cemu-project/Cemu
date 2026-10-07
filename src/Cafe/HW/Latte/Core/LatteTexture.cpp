@@ -362,7 +362,7 @@ void LatteTexture_CopySlice(LatteTexture* srcTexture, sint32 srcSlice, sint32 sr
 {
 	if (srcTexture->isDepth != dstTexture->isDepth)
 	{
-		g_renderer->surfaceCopy_copySurfaceWithFormatConversion(srcTexture, srcMip, srcSlice, dstTexture, dstMip, dstSlice, width, height);
+		g_renderer->surfaceCopy_copySurfaceWithFormatConversion(srcTexture, srcMip, srcSlice, dstTexture, dstMip, dstSlice, width, height, srcX, srcY, dstX, dstY);
 		return;
 	}
 	// rescale copy size

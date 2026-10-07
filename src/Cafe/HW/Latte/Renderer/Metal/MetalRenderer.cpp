@@ -992,18 +992,20 @@ LatteTextureReadbackInfo* MetalRenderer::texture_createReadback(LatteTextureView
 	return result;
 }
 
-void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
+void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height, sint32 srcX, sint32 srcY, sint32 dstX, sint32 dstY)
 {
     // scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
+	LatteTexture_scaleToEffectiveSize(sourceTexture, &srcX, &srcY, 0);
+	LatteTexture_scaleToEffectiveSize(destinationTexture, &dstX, &dstY, 0);
 	//sint32 sourceEffectiveWidth, sourceEffectiveHeight;
 	//sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 
     if (sourceTexture->isDepth && !destinationTexture->isDepth && FormatIsRenderable(destinationTexture->format))
     {
-        surfaceCopy_viaDrawcall(sourceTexture, srcMip, srcSlice, destinationTexture, dstMip, dstSlice, effectiveCopyWidth, effectiveCopyHeight);
+        surfaceCopy_viaDrawcall(sourceTexture, srcMip, srcSlice, destinationTexture, dstMip, dstSlice, effectiveCopyWidth, effectiveCopyHeight, srcX, srcY, dstX, dstY);
         return;
     }
 
@@ -1013,10 +1015,10 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
         return;
     }
 
-    texture_copyImageSubData(sourceTexture, srcMip, 0, 0, srcSlice, destinationTexture, dstMip, 0, 0, dstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
+    texture_copyImageSubData(sourceTexture, srcMip, srcX, srcY, srcSlice, destinationTexture, dstMip, dstX, dstY, dstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
 }
 
-void MetalRenderer::surfaceCopy_viaDrawcall(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight)
+void MetalRenderer::surfaceCopy_viaDrawcall(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcX, sint32 srcY, sint32 dstX, sint32 dstY)
 {
     cemu_assert_debug(sourceTexture->isDepth && !destinationTexture->isDepth);
 
@@ -1033,8 +1035,10 @@ void MetalRenderer::surfaceCopy_viaDrawcall(LatteTexture* sourceTexture, sint32 
     auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
     renderCommandEncoder->setRenderPipelineState(GetCopyDepthToColorPipeline(destinationMtl->pixelFormat()));
     renderCommandEncoder->setFragmentTexture(sourceView->GetRGBAView(), GET_HELPER_TEXTURE_BINDING(0));
-    renderCommandEncoder->setViewport(MTL::Viewport{0.0, 0.0, (double)effectiveCopyWidth, (double)effectiveCopyHeight, 0.0, 1.0});
-    renderCommandEncoder->setScissorRect(MTL::ScissorRect{0, 0, (uint32)effectiveCopyWidth, (uint32)effectiveCopyHeight});
+    const sint32 srcTexelOffset[2] = {srcX - dstX, srcY - dstY};
+    renderCommandEncoder->setFragmentBytes(srcTexelOffset, sizeof(srcTexelOffset), GET_HELPER_BUFFER_BINDING(0));
+    renderCommandEncoder->setViewport(MTL::Viewport{(double)dstX, (double)dstY, (double)effectiveCopyWidth, (double)effectiveCopyHeight, 0.0, 1.0});
+    renderCommandEncoder->setScissorRect(MTL::ScissorRect{(uint32)dstX, (uint32)dstY, (uint32)effectiveCopyWidth, (uint32)effectiveCopyHeight});
     renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
     EndEncoding();
 }
@@ -1613,7 +1617,8 @@ void MetalRenderer::draw_handleSpecialState5()
 	encoderState.m_renderPipelineState = pipeline;
 	SetTexture(renderCommandEncoder, METAL_SHADER_TYPE_FRAGMENT, depthTextureMtl->GetRGBAView(), GET_HELPER_TEXTURE_BINDING(0));
 	// TODO: make a helper function for this
-	renderCommandEncoder->setFragmentBytes(&vpWidth, sizeof(sint32), GET_HELPER_BUFFER_BINDING(0));
+	const sint32 srcTexelOffset[2] = {0, 0};
+	renderCommandEncoder->setFragmentBytes(srcTexelOffset, sizeof(srcTexelOffset), GET_HELPER_BUFFER_BINDING(0));
 	encoderState.m_buffers[METAL_SHADER_TYPE_FRAGMENT][GET_HELPER_BUFFER_BINDING(0)] = {nullptr};
 
 	renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle,  NS::UInteger(0),  NS::UInteger(3));

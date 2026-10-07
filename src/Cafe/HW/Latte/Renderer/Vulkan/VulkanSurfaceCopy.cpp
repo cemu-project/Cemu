@@ -579,7 +579,7 @@ VKRObjectDescriptorSet* VulkanRenderer::surfaceCopy_getOrCreateDescriptorSet(VkC
 	return vkObjDescriptorSet;
 }
 
-void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight)
+void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcX, sint32 srcY, sint32 dstX, sint32 dstY)
 {
 	draw_endRenderPass();
 
@@ -640,8 +640,8 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 	pushConstantData.vertexOffsets[6] = 1.0f;
 	pushConstantData.vertexOffsets[7] = -1.0f;
 
-	pushConstantData.srcTexelOffset[0] = 0;
-	pushConstantData.srcTexelOffset[1] = 0;
+	pushConstantData.srcTexelOffset[0] = srcX - dstX;
+	pushConstantData.srcTexelOffset[1] = srcY - dstY;
 
 	vkCmdPushConstants(m_state.currentCommandBuffer, copySurfacePipelineInfo->vkObjPipeline->m_pipelineLayout, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(pushConstantData), &pushConstantData);
 
@@ -650,21 +650,21 @@ void VulkanRenderer::surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint3
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassInfo.renderPass = copySurfacePipelineInfo->vkObjRenderPass->m_renderPass;
 	renderPassInfo.framebuffer = vkObjFramebuffer->m_frameBuffer;
-	renderPassInfo.renderArea.offset = { 0, 0 };
+	renderPassInfo.renderArea.offset = { dstX, dstY };
 	renderPassInfo.renderArea.extent = { (uint32_t)effectiveCopyWidth, (uint32_t)effectiveCopyHeight };
 	renderPassInfo.clearValueCount = 0;
 
 	VkViewport viewport{};
-	viewport.x = 0;
-	viewport.y = (float)effectiveCopyHeight;
+	viewport.x = (float)dstX;
+	viewport.y = (float)(dstY + effectiveCopyHeight);
 	viewport.width = (float)effectiveCopyWidth;
 	viewport.height = (float)-effectiveCopyHeight;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 
 	VkRect2D scissor;
-	scissor.offset.x = 0;
-	scissor.offset.y = 0;
+	scissor.offset.x = dstX;
+	scissor.offset.y = dstY;
 	scissor.extent.width = effectiveCopyWidth;
 	scissor.extent.height = effectiveCopyHeight;
 
@@ -786,12 +786,14 @@ bool vkIsBitCompatibleColorDepthFormat(VkFormat format1, VkFormat format2)
 	return false;
 }
 
-void VulkanRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height)
+void VulkanRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height, sint32 srcX, sint32 srcY, sint32 dstX, sint32 dstY)
 {
 	// scale copy size to effective size
 	sint32 effectiveCopyWidth = width;
 	sint32 effectiveCopyHeight = height;
 	LatteTexture_scaleToEffectiveSize(sourceTexture, &effectiveCopyWidth, &effectiveCopyHeight, 0);
+	LatteTexture_scaleToEffectiveSize(sourceTexture, &srcX, &srcY, 0);
+	LatteTexture_scaleToEffectiveSize(destinationTexture, &dstX, &dstY, 0);
 	sint32 sourceEffectiveWidth, sourceEffectiveHeight;
 	sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 
@@ -811,7 +813,7 @@ void VulkanRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 		return;
 	}
 
-	surfaceCopy_viaDrawcall(srcTextureVk, texSrcMip, texSrcSlice, dstTextureVk, texDstMip, texDstSlice, effectiveCopyWidth, effectiveCopyHeight);
+	surfaceCopy_viaDrawcall(srcTextureVk, texSrcMip, texSrcSlice, dstTextureVk, texDstMip, texDstSlice, effectiveCopyWidth, effectiveCopyHeight, srcX, srcY, dstX, dstY);
 }
 
 // called whenever a texture is destroyed
