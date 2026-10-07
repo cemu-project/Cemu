@@ -621,6 +621,15 @@ static bool LatteTexture_GetSubtextureRowOffset(LatteTexture* baseTexture, Latte
 	uint32 pitchAlignment;
 	switch (baseTexture->tileMode)
 	{
+	case Latte::E_HWTILEMODE::TM_LINEAR_GENERAL:
+	case Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED:
+		rowAlignment = 1;
+		pitchAlignment = 1;
+		break;
+	case Latte::E_HWTILEMODE::TM_1D_TILED_THIN1:
+		rowAlignment = 8;
+		pitchAlignment = 8;
+		break;
 	case Latte::E_HWTILEMODE::TM_2D_TILED_THIN1:
 		rowAlignment = 64;
 		pitchAlignment = 32;
