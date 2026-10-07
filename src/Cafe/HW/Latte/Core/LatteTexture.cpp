@@ -513,7 +513,16 @@ void LatteTexture_SyncSlice(LatteTexture* srcTexture, sint32 srcSliceIndex, sint
 
 void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 {
-	// note: Currently this function assumes that only one other texture is updated per slice/mip (if multiple overlap, we should merge the one with the latest timestamp the latest of each individually)
+	struct PendingCopy
+	{
+		LatteTextureSliceMipInfo* m_src;
+		LatteTextureSliceMipInfo* m_dst;
+		sint32 m_srcY;
+		sint32 m_dstY;
+		uint64 m_update;
+	};
+	boost::container::small_vector<PendingCopy, 8> pendingCopies;
+	// defer timestamps to keep updates from other regions
 	for (auto& texRel : texture->list_compatibleRelations)
 	{
 		LatteTexture* baseTexture = texRel->baseTexture;
@@ -536,10 +545,7 @@ void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 					// baseTexture is target texture
 					if (baseSliceMipInfo->lastDynamicUpdate < subSliceMipInfo->lastDynamicUpdate)
 					{
-						LatteTexture_SyncSlice(subTexture, cSliceIndex, cMipIndex, baseTexture, texRel->baseSliceIndex + cSliceIndex, texRel->baseMipIndex + cMipIndex, 0, texRel->yOffset);
-						baseSliceMipInfo->lastDynamicUpdate = subSliceMipInfo->lastDynamicUpdate;
-						if(subTexture->isUpdatedOnGPU)
-							LatteTC_FlagSliceAsGPUUpdated(texture, baseSliceMipInfo->sliceIndex, baseSliceMipInfo->mipIndex);
+						pendingCopies.push_back({subSliceMipInfo, baseSliceMipInfo, 0, texRel->yOffset, subSliceMipInfo->lastDynamicUpdate});
 					}
 				}
 				else
@@ -547,14 +553,19 @@ void LatteTexture_UpdateTextureFromDynamicChanges(LatteTexture* texture)
 					// subTexture is target texture
 					if (subSliceMipInfo->lastDynamicUpdate < baseSliceMipInfo->lastDynamicUpdate)
 					{
-						LatteTexture_SyncSlice(baseTexture, texRel->baseSliceIndex + cSliceIndex, texRel->baseMipIndex + cMipIndex, subTexture, cSliceIndex, cMipIndex, texRel->yOffset, 0);
-						subSliceMipInfo->lastDynamicUpdate = baseSliceMipInfo->lastDynamicUpdate;
-						if (baseTexture->isUpdatedOnGPU)
-							LatteTC_FlagSliceAsGPUUpdated(texture, subSliceMipInfo->sliceIndex, subSliceMipInfo->mipIndex);
+						pendingCopies.push_back({baseSliceMipInfo, subSliceMipInfo, texRel->yOffset, 0, baseSliceMipInfo->lastDynamicUpdate});
 					}
 				}
 			}
 		}
+	}
+	std::stable_sort(pendingCopies.begin(), pendingCopies.end(), [](const PendingCopy& a, const PendingCopy& b) { return a.m_update < b.m_update; });
+	for (const auto& copy : pendingCopies)
+	{
+		LatteTexture_SyncSlice(copy.m_src->texture, copy.m_src->sliceIndex, copy.m_src->mipIndex, copy.m_dst->texture, copy.m_dst->sliceIndex, copy.m_dst->mipIndex, copy.m_srcY, copy.m_dstY);
+		copy.m_dst->lastDynamicUpdate = copy.m_update;
+		if (copy.m_src->texture->isUpdatedOnGPU)
+			LatteTC_FlagSliceAsGPUUpdated(texture, copy.m_dst->sliceIndex, copy.m_dst->mipIndex);
 	}
 }
 
