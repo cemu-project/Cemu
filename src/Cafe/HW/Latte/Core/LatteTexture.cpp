@@ -599,6 +599,48 @@ bool LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture* 
 	return __LatteTexture_IsBlockedFormatRelation(texture2, texture1);
 }
 
+static bool LatteTexture_GetSubtextureRowOffset(LatteTexture* baseTexture, LatteTexture* subTexture, sint32& yOffset)
+{
+	if (baseTexture->dim != Latte::E_DIM::DIM_2D || subTexture->dim != Latte::E_DIM::DIM_2D ||
+		baseTexture->depth != 1 || subTexture->depth != 1 || baseTexture->mipLevels != 1 || subTexture->mipLevels != 1)
+		return false;
+	if (baseTexture->IsCompressedFormat() || subTexture->IsCompressedFormat() || baseTexture->format != subTexture->format)
+		return false;
+	if (baseTexture->tileMode != subTexture->tileMode || baseTexture->pitch != subTexture->pitch ||
+		baseTexture->width != subTexture->width || baseTexture->swizzle != subTexture->swizzle)
+		return false;
+	if (baseTexture->physAddress > subTexture->physAddress)
+		return false;
+	if (baseTexture->overwriteInfo.hasFormatOverwrite != subTexture->overwriteInfo.hasFormatOverwrite ||
+		(baseTexture->overwriteInfo.hasFormatOverwrite && baseTexture->overwriteInfo.format != subTexture->overwriteInfo.format))
+		return false;
+	if (!LatteTexture_doesEffectiveRescaleRatioMatch(baseTexture, 0, subTexture, 0))
+		return false;
+
+	uint32 rowAlignment;
+	uint32 pitchAlignment;
+	switch (baseTexture->tileMode)
+	{
+	case Latte::E_HWTILEMODE::TM_2D_TILED_THIN1:
+		rowAlignment = 64;
+		pitchAlignment = 32;
+		break;
+	default:
+		return false;
+	}
+	if (baseTexture->pitch <= 0 || baseTexture->pitch % pitchAlignment != 0)
+		return false;
+	uint64 rowBytes = (uint64)baseTexture->pitch * baseTexture->GetBPP() / 8;
+	uint64 offset = subTexture->physAddress - baseTexture->physAddress;
+	if (rowBytes == 0 || offset % rowBytes != 0)
+		return false;
+	uint64 rows = offset / rowBytes;
+	if (rows % rowAlignment != 0 || rows + subTexture->height > baseTexture->height)
+		return false;
+	yOffset = (sint32)rows;
+	return true;
+}
+
 // called if two textures are known to overlap in memory
 // this function then tries to figure out the details and registers the relation in texture*->list_compatibleRelations
 bool LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* texture2)
@@ -635,6 +677,7 @@ bool LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 	{
 		sint32 baseSliceIndex;
 		sint32 baseMipIndex;
+		sint32 yOffset = 0;
 		if (texture1->physAddress == texture2->physAddress)
 		{
 			baseSliceIndex = 0;
@@ -644,7 +687,10 @@ bool LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 		{
 			if (LatteTexture_GetSubtextureSliceAndMip(texture1, texture2, &baseSliceIndex, &baseMipIndex) == false)
 			{
-				return false;
+				if (!LatteTexture_GetSubtextureRowOffset(texture1, texture2, yOffset))
+					return false;
+				baseSliceIndex = 0;
+				baseMipIndex = 0;
 			}
 		}
 		sint32 sharedMipLevels = 1;
@@ -671,7 +717,7 @@ bool LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 		rel->baseSliceIndex = baseSliceIndex;
 		rel->mipCount = sharedMipLevels;
 		rel->sliceCount = compatibleDepthRange;
-		rel->yOffset = 0; // todo
+		rel->yOffset = yOffset;
 		texture1->list_compatibleRelations.push_back(rel);
 		texture2->list_compatibleRelations.push_back(rel);
 	}
@@ -785,7 +831,8 @@ void LatteTexture_GatherTextureRelations(LatteTexture* texture)
 						}
 						else
 						{
-							LatteTexture_TrackDataOverlap(texture, sliceMipInfo, occupancy);
+							if (!LatteTexture_TrackTextureRelation(texture, itrTexture))
+								LatteTexture_TrackDataOverlap(texture, sliceMipInfo, occupancy);
 						}
 					}
 				}
