@@ -225,6 +225,7 @@ public:
 
 	// surface copy
 	void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height) override;
+	void surfaceCopy_viaDrawcall(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
 
 	// buffer cache
 	void bufferCache_init(const sint32 bufferSize) override;
@@ -252,6 +253,7 @@ public:
 	void draw_updateUniformBuffersDirectAccess(LatteDecompilerShader* shader, const uint32 uniformBufferRegOffset);
 
 	void draw_handleSpecialState5();
+	MTL::RenderPipelineState* GetCopyDepthToColorPipeline(MTL::PixelFormat colorPixelFormat);
 
 	// index
 	IndexAllocation indexData_reserveIndexMemory(uint32 size) override;

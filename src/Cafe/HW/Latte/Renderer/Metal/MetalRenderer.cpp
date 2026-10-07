@@ -993,7 +993,42 @@ void MetalRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* so
 	//sint32 sourceEffectiveWidth, sourceEffectiveHeight;
 	//sourceTexture->GetEffectiveSize(sourceEffectiveWidth, sourceEffectiveHeight, srcMip);
 
+    if (sourceTexture->isDepth && !destinationTexture->isDepth && FormatIsRenderable(destinationTexture->format))
+    {
+        surfaceCopy_viaDrawcall(sourceTexture, srcMip, srcSlice, destinationTexture, dstMip, dstSlice, effectiveCopyWidth, effectiveCopyHeight);
+        return;
+    }
+
+    if (sourceTexture->GetBPP() != destinationTexture->GetBPP())
+    {
+        cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceWithFormatConversion(): Mismatching BPP");
+        return;
+    }
+
     texture_copyImageSubData(sourceTexture, srcMip, 0, 0, srcSlice, destinationTexture, dstMip, 0, 0, dstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
+}
+
+void MetalRenderer::surfaceCopy_viaDrawcall(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight)
+{
+    cemu_assert_debug(sourceTexture->isDepth && !destinationTexture->isDepth);
+
+    auto sourceView = static_cast<LatteTextureViewMtl*>(sourceTexture->GetOrCreateView(Latte::E_DIM::DIM_2D, sourceTexture->format, srcMip, 1, srcSlice, 1));
+    auto destinationView = static_cast<LatteTextureViewMtl*>(destinationTexture->GetOrCreateView(Latte::E_DIM::DIM_2D, destinationTexture->format, dstMip, 1, dstSlice, 1));
+    MTL::Texture* destinationMtl = destinationView->GetRGBAView();
+
+    NS_STACK_SCOPED MTL::RenderPassDescriptor* renderPassDescriptor = MTL::RenderPassDescriptor::alloc()->init();
+    auto colorAttachment = renderPassDescriptor->colorAttachments()->object(0);
+    colorAttachment->setTexture(destinationMtl);
+    colorAttachment->setLoadAction(MTL::LoadActionLoad);
+    colorAttachment->setStoreAction(MTL::StoreActionStore);
+
+    auto renderCommandEncoder = GetTemporaryRenderCommandEncoder(renderPassDescriptor);
+    renderCommandEncoder->setRenderPipelineState(GetCopyDepthToColorPipeline(destinationMtl->pixelFormat()));
+    renderCommandEncoder->setFragmentTexture(sourceView->GetRGBAView(), GET_HELPER_TEXTURE_BINDING(0));
+    renderCommandEncoder->setViewport(MTL::Viewport{0.0, 0.0, (double)effectiveCopyWidth, (double)effectiveCopyHeight, 0.0, 1.0});
+    renderCommandEncoder->setScissorRect(MTL::ScissorRect{0, 0, (uint32)effectiveCopyWidth, (uint32)effectiveCopyHeight});
+    renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle, NS::UInteger(0), NS::UInteger(3));
+    EndEncoding();
 }
 
 void MetalRenderer::bufferCache_init(const sint32 bufferSize)
@@ -1555,19 +1590,7 @@ void MetalRenderer::draw_handleSpecialState5()
 	LatteMRT::GetVirtualViewportDimensions(vpWidth, vpHeight);
 
 	// Get the pipeline
-	MTL::PixelFormat colorPixelFormat = colorTextureMtl->GetRGBAView()->pixelFormat();
-	auto& pipeline = m_copyDepthToColorPipelines[colorPixelFormat];
-	if (!pipeline)
-	{
-	    m_copyDepthToColorDesc->colorAttachments()->object(0)->setPixelFormat(colorPixelFormat);
-
-        NS::Error* error = nullptr;
-        pipeline = m_device->newRenderPipelineState(m_copyDepthToColorDesc, &error);
-        if (error)
-        {
-            cemuLog_log(LogType::Force, "failed to create copy depth to color pipeline (error: {})", error->localizedDescription()->utf8String());
-        }
-	}
+	MTL::RenderPipelineState* pipeline = GetCopyDepthToColorPipeline(colorTextureMtl->GetRGBAView()->pixelFormat());
 
 	// Sadly, we need to end encoding to ensure that the depth data is up-to-date
 	EndEncoding();
@@ -1586,6 +1609,23 @@ void MetalRenderer::draw_handleSpecialState5()
 	encoderState.m_buffers[METAL_SHADER_TYPE_FRAGMENT][GET_HELPER_BUFFER_BINDING(0)] = {nullptr};
 
 	renderCommandEncoder->drawPrimitives(MTL::PrimitiveTypeTriangle,  NS::UInteger(0),  NS::UInteger(3));
+}
+
+MTL::RenderPipelineState* MetalRenderer::GetCopyDepthToColorPipeline(MTL::PixelFormat colorPixelFormat)
+{
+	auto& pipeline = m_copyDepthToColorPipelines[colorPixelFormat];
+	if (!pipeline)
+	{
+	    m_copyDepthToColorDesc->colorAttachments()->object(0)->setPixelFormat(colorPixelFormat);
+
+        NS::Error* error = nullptr;
+        pipeline = m_device->newRenderPipelineState(m_copyDepthToColorDesc, &error);
+        if (error)
+        {
+            cemuLog_log(LogType::Force, "failed to create copy depth to color pipeline (error: {})", error->localizedDescription()->utf8String());
+        }
+	}
+	return pipeline;
 }
 
 Renderer::IndexAllocation MetalRenderer::indexData_reserveIndexMemory(uint32 size)

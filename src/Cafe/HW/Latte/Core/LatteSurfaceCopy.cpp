@@ -21,6 +21,11 @@ void gx2SurfaceCopySoftware(
 void LatteSurfaceCopy_CopyInRAM(const LatteSurfaceCopyParam& src, const LatteSurfaceCopyParam& dst, const LatteSurfaceCopyRect& rect)
 {
 	Latte::E_HWFMT dstHwFormat = Latte::GetHWFormat(dst.surfaceFormat);
+	if (Latte::GetFormatBits(Latte::GetHWFormat(src.surfaceFormat)) != Latte::GetFormatBits(dstHwFormat))
+	{
+		cemuLog_logDebug(LogType::Force, "LatteSurfaceCopy_CopyInRAM(): Mismatching bpp, skipping copy");
+		return;
+	}
 
 	sint32 copyWidth = rect.width;
 	sint32 copyHeight = rect.height;
@@ -115,6 +120,8 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 			// copy slice
 			if (sourceView->baseTexture->isDepth != destinationView->baseTexture->isDepth)
 				g_renderer->surfaceCopy_copySurfaceWithFormatConversion(sourceTexture, sourceView->firstMip, sourceView->firstSlice, destinationTexture, destinationView->firstMip, destinationView->firstSlice, copyWidth, copyHeight);
+			else if (sourceTexture->GetBPP() != destinationTexture->GetBPP())
+				cemuLog_logDebug(LogType::Force, "LatteSurfaceCopy: Unsupported conversion between formats 0x{:04x} and 0x{:04x}", (uint32)sourceTexture->format, (uint32)destinationTexture->format);
 			else
 				g_renderer->texture_copyImageSubData(sourceTexture, sourceView->firstMip, 0, 0, realSrcSlice, destinationTexture, destinationView->firstMip, 0, 0, destinationView->firstSlice, effectiveCopyWidth, effectiveCopyHeight, 1);
 			const uint64 eventCounter = LatteTexture_getNextUpdateEventCounter();

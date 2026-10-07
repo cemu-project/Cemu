@@ -811,13 +811,6 @@ void VulkanRenderer::surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* s
 		return;
 	}
 
-	// check if bpp size matches
-	if (srcTextureVk->GetBPP() != dstTextureVk->GetBPP())
-	{
-		cemuLog_logDebug(LogType::Force, "surfaceCopy_copySurfaceViaDrawcall(): Mismatching BPP");
-		return;
-	}
-
 	surfaceCopy_viaDrawcall(srcTextureVk, texSrcMip, texSrcSlice, dstTextureVk, texDstMip, texDstSlice, effectiveCopyWidth, effectiveCopyHeight);
 }
 
