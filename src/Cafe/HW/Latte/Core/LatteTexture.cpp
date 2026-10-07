@@ -601,7 +601,7 @@ bool LatteTexture_IsBlockedFormatRelation(LatteTexture* texture1, LatteTexture* 
 
 // called if two textures are known to overlap in memory
 // this function then tries to figure out the details and registers the relation in texture*->list_compatibleRelations
-void LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* texture2)
+bool LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* texture2)
 {
 	// make sure texture 2 is always at texture 1 mip level 0 or beyond
 	if (texture1->physAddress > texture2->physAddress)
@@ -612,11 +612,14 @@ void LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 	for (auto& it : texture1->list_compatibleRelations)
 	{
 		if (it->baseTexture == texture1 && it->subTexture == texture2)
-			return; // association already known
+			return true; // association already known
 	}
 	// check for blocked format combination
 	if (LatteTexture_IsBlockedFormatRelation(texture1, texture2))
-		return;
+		return false;
+	if (!LatteTexture_IsTexelSizeCompatibleFormat(texture1->format, texture2->format) ||
+		!LatteTexture_IsFormatViewCompatible(texture1->format, texture2->format))
+		return false;
 
 	if (texture1->physAddress == texture2->physAddress && false)
 	{
@@ -641,7 +644,7 @@ void LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 		{
 			if (LatteTexture_GetSubtextureSliceAndMip(texture1, texture2, &baseSliceIndex, &baseMipIndex) == false)
 			{
-				return;
+				return false;
 			}
 		}
 		sint32 sharedMipLevels = 1;
@@ -650,9 +653,9 @@ void LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 		LatteTextureSliceMipInfo* texture1SliceInfo = texture1->sliceMipInfo + texture1->GetSliceMipArrayIndex(baseSliceIndex, baseMipIndex);
 		LatteTextureSliceMipInfo* texture2SliceInfo = texture2->sliceMipInfo + texture2->GetSliceMipArrayIndex(0, 0);
 		if (_LatteTexture_IsTileModeCompatible(texture1, baseMipIndex, texture2, 0) == false)
-			return; // not compatible
+			return false; // not compatible
 		if (texture1SliceInfo->pitch != texture2SliceInfo->pitch)
-			return; // not compatible
+			return false; // not compatible
 		// calculate compatible depth range
 		sint32 baseRemainingDepth = texture1->GetMipDepth(baseMipIndex) - baseSliceIndex;
 		cemu_assert_debug(baseRemainingDepth >= 0);
@@ -672,6 +675,7 @@ void LatteTexture_TrackTextureRelation(LatteTexture* texture1, LatteTexture* tex
 		texture1->list_compatibleRelations.push_back(rel);
 		texture2->list_compatibleRelations.push_back(rel);
 	}
+	return true;
 }
 
 void LatteTexture_TrackDataOverlap(LatteTexture* texture, LatteTextureSliceMipInfo* sliceMipInfo, TexMemOccupancyEntry& occupancy)
