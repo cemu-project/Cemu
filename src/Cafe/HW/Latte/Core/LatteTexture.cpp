@@ -618,7 +618,10 @@ static bool LatteTexture_GetSubtextureRowOffset(LatteTexture* baseTexture, Latte
 	if (baseTexture->IsCompressedFormat() || subTexture->IsCompressedFormat() || baseTexture->format != subTexture->format)
 		return false;
 	if (baseTexture->tileMode != subTexture->tileMode || baseTexture->pitch != subTexture->pitch ||
-		baseTexture->width != subTexture->width || baseTexture->swizzle != subTexture->swizzle)
+		baseTexture->width != subTexture->width)
+		return false;
+	// 0x700 selects the pipe and bank swizzle bits
+	if ((baseTexture->swizzle & 0x700) != (subTexture->swizzle & 0x700))
 		return false;
 	if (baseTexture->physAddress > subTexture->physAddress)
 		return false;
