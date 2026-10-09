@@ -36,11 +36,24 @@ class MemptrPrinter:
     def to_string(self):
         return self._guest_address.format_string(format="x")
 
+class CafeStringPrinter:
+    PATTERN = re.compile("^CafeString<.*>$")
+
+    def __init__(self, obj):
+        self._data = obj["data"]
+        self._targetType = gdb.lookup_type("char").pointer()
+
+    def children(self):
+        return [("elems"), self._data];
+
+    def to_string(self):
+        return self._data.address.cast(self._targetType)
+
 def lookup(val):
     tag = val.type.strip_typedefs().unqualified().tag
     if tag is None:
         return None
-    printers = [BetypePrinter, MemptrPrinter]
+    printers = [BetypePrinter, MemptrPrinter, CafeStringPrinter]
     for printer in printers:
         if printer.PATTERN.match(tag):
             return printer(val)
