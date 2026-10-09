@@ -13,6 +13,8 @@ namespace GamePadSink
 	// Called on every DRC flip, whether or not Cemu's own GamePad window is open.
 	// Manages the bridge connection and asks the renderer to capture the frame.
 	void OnDrcFlip(LatteTextureView* texView);
+	// Called on every TV flip: keeps the bridge connection up while the game draws nothing on the GamePad.
+	void OnTvFlip();
 
 	// Used by the renderer's capture path once pixels are on the CPU side.
 	// BeginFrame returns false if the frame must be dropped (not connected, or no free slot).

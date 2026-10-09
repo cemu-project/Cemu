@@ -340,16 +340,16 @@ namespace GamePadSink
 		}
 	}
 
-	void OnDrcFlip(LatteTextureView* texView)
-	{
 #if BOOST_OS_LINUX
-		s.frameCounter.fetch_add(1, std::memory_order_relaxed);
+	// Connect / reconnect / notice handling, from any flip. True when frames can go to the bridge.
+	static bool MaintainConnection()
+	{
 		if (!GetGamePadBridgeConfig().enabled)
 		{
 			if (s.sock >= 0)
 				Disconnect(true);
 			s.noticeShownForOutage = false;
-			return;
+			return false;
 		}
 
 		if (s.ready && s.lostConnection)
@@ -364,7 +364,7 @@ namespace GamePadSink
 		{
 			const sint64 now = NowNs();
 			if (s.lastAttemptNs != 0 && now - s.lastAttemptNs < kRetryIntervalNs)
-				return;
+				return false;
 			s.lastAttemptNs = now;
 			if (!TryConnect())
 			{
@@ -372,10 +372,29 @@ namespace GamePadSink
 				if (!s.noticeShownForOutage)
 					Notice("GamePad Bridge is not running. Playing without the GamePad.", 10000);
 				s.noticeShownForOutage = true;
-				return;
+				return false;
 			}
 			s.noticeShownForOutage = false;
 		}
+		return true;
+	}
+#endif
+
+	void OnTvFlip()
+	{
+#if BOOST_OS_LINUX
+		// Some games draw nothing on the GamePad for minutes (Smash Bros.' intro and menus): connect from the TV
+		// flips too, so the bridge knows the game is running instead of showing "waiting for Cemu".
+		MaintainConnection();
+#endif
+	}
+
+	void OnDrcFlip(LatteTextureView* texView)
+	{
+#if BOOST_OS_LINUX
+		s.frameCounter.fetch_add(1, std::memory_order_relaxed);
+		if (!MaintainConnection())
+			return;
 
 		// Same preparation LatteRenderTarget_copyToBackbuffer does before displaying: the flipped texture
 		// can be stale, with the newest pixels in an overlapping cached texture. Without this the capture

@@ -1011,6 +1011,8 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 
 	if (renderTarget & RENDER_TARGET_DRC)
 		GamePadSink::OnDrcFlip(texView); // GamePad bridge (fork)
+	else if (renderTarget & RENDER_TARGET_TV)
+		GamePadSink::OnTvFlip(); // GamePad bridge (fork)
 	if ((renderTarget & RENDER_TARGET_DRC) && g_renderer->IsPadWindowActive())
 		LatteRenderTarget_copyToBackbuffer(texView, true);
 	if (((renderTarget & RENDER_TARGET_TV) && !showDRC) || ((renderTarget & RENDER_TARGET_DRC) && showDRC))
