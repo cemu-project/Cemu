@@ -20,7 +20,9 @@ class MemptrPrinter:
 
     def __init__(self, obj):
         self._ptr_type = obj.type.strip_typedefs().unqualified().template_argument(0).pointer()
-        self._guest_address = obj["m_value"].cast(gdb.lookup_type("uint32"))
+        underlying = obj["m_value"]
+        reversed_bytes = bytes(reversed(underlying.bytes))
+        self._guest_address = gdb.Value(reversed_bytes, gdb.lookup_type("uint32"))
 
     def ptr(self):
         if self._guest_address == 0:
