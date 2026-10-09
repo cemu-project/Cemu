@@ -105,7 +105,7 @@ public:
 
 	LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) override;
 
-	void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height) override;
+	void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height, sint32 srcX = 0, sint32 srcY = 0, sint32 dstX = 0, sint32 dstY = 0) override;
 
 	void attributeStream_reset();
 	void bufferCache_init(const sint32 bufferSize) override;
@@ -180,7 +180,7 @@ private:
 	void texture_setActiveTextureUnit(sint32 index);
 
 	void texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
-	void texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex);
+	void texture_syncSliceUncompressedToCompressed(LatteTexture* srcTexture, sint32 srcMip, sint32 srcX, sint32 srcY, sint32 srcSlice, LatteTexture* dstTexture, sint32 dstMip, sint32 dstX, sint32 dstY, sint32 dstSlice, sint32 blockWidth, sint32 blockHeight, sint32 depth);
 
 	GLuint m_pipeline = 0;
 
