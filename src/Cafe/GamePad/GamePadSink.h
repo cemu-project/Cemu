@@ -7,6 +7,7 @@
 // thread reads bridge messages; it never touches the video path except to mark slots free.
 
 class LatteTextureView;
+struct drcb_input_state;
 
 namespace GamePadSink
 {
@@ -44,6 +45,12 @@ namespace GamePadSink
 
 	// Monotonic clock shared with the bridge (CLOCK_MONOTONIC, ns).
 	sint64 NowNs();
+
+	// ---- input (any thread) ----
+	// The real GamePad's latest input, as the bridge sent it (DRCB_MSG_INPUT_STATE). False when none arrived in the
+	// last 500 ms: pad off or out of range, bridge not connected, or no title running (the sink connects from flips).
+	// Read by the "WiiUGamePad" input API (input/api/GamePadBridge).
+	bool LatestInput(drcb_input_state& out);
 
 	// Title stopped: say goodbye and disconnect.
 	void Shutdown();

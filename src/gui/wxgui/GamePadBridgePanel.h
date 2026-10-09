@@ -13,6 +13,7 @@ public:
 private:
 	void Build();
 	void RunSetup();
+	void RunReset();
 	void OnEnableChanged(wxCommandEvent& event);
 	void OnMirrorTvChanged(wxCommandEvent& event);
 

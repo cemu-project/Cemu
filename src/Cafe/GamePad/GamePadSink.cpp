@@ -25,6 +25,12 @@ namespace GamePadSink
 		constexpr sint64 kRetryIntervalNs = 5'000'000'000; // reconnect attempt while enabled but down
 		constexpr sint64 kMirrorAfterNs = 1'000'000'000; // no GamePad frame this long: show the TV picture
 		constexpr uint32 kPadWidth = 854, kPadHeight = 480;
+		constexpr sint64 kInputStaleNs = 500'000'000; // the pad sends input ~180 times a second
+
+		// latest input: written by the receiver thread, read by the input thread
+		std::mutex inputMutex;
+		drcb_input_state latestInput{};
+		sint64 latestInputNs = 0; // 0: none since connecting
 
 		struct State
 		{
@@ -171,7 +177,13 @@ namespace GamePadSink
 						s.padConnected = reinterpret_cast<drcb_pad_status*>(payload)->connected != 0;
 					break;
 				case DRCB_MSG_INPUT_STATE:
-					break; // input path is Task 8
+					if (n >= int(sizeof(drcb_input_state)))
+					{
+						std::lock_guard lock(inputMutex);
+						memcpy(&latestInput, payload, sizeof(drcb_input_state));
+						latestInputNs = NowNs();
+					}
+					break;
 				case DRCB_MSG_GOODBYE:
 					s.lostConnection = true;
 					return;
@@ -184,6 +196,10 @@ namespace GamePadSink
 
 		void Disconnect(bool sendGoodbye)
 		{
+			{
+				std::lock_guard lock(inputMutex);
+				latestInputNs = 0;
+			}
 			if (s.sock < 0)
 				return;
 			if (sendGoodbye)
@@ -487,6 +503,19 @@ namespace GamePadSink
 			s.submitted++;
 		else
 			s.slotBusy[target.slot].store(false, std::memory_order_release);
+#endif
+	}
+
+	bool LatestInput(drcb_input_state& out)
+	{
+#if BOOST_OS_LINUX
+		std::lock_guard lock(inputMutex);
+		if (latestInputNs == 0 || NowNs() - latestInputNs > kInputStaleNs)
+			return false;
+		out = latestInput;
+		return true;
+#else
+		return false;
 #endif
 	}
 

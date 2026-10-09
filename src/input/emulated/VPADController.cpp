@@ -7,6 +7,8 @@
 #include "input/InputManager.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/CafeSystem.h"
+#include "config/GamePadBridgeConfig.h"
+#include "input/api/GamePadBridge/GamePadBridgeController.h"
 
 enum ControllerVPADMapping2 : uint32
 {
@@ -77,7 +79,30 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 
 	m_homebutton_down |= is_home_down();
 
-	const auto axis = get_axis();
+	// the real GamePad, on top of the profile: buttons from either, each stick from whichever is pushed further
+	const auto real_pad = real_gamepad();
+	glm::vec2 real_axis{}, real_rotation{};
+	if (real_pad && real_pad->is_connected())
+	{
+		const ControllerState& real_state = real_pad->update_state();
+		real_axis = real_state.axis;
+		real_rotation = real_state.rotation;
+		static constexpr ButtonId kBits[] = {kButtonId_A, kButtonId_B, kButtonId_X, kButtonId_Y,
+			kButtonId_Left, kButtonId_Right, kButtonId_Up, kButtonId_Down, kButtonId_ZL, kButtonId_ZR,
+			kButtonId_L, kButtonId_R, kButtonId_Plus, kButtonId_Minus, kButtonId_Home, kButtonId_StickL, kButtonId_StickR};
+		for (uint32 bit = 0; bit < std::size(kBits); ++bit)
+		{
+			if (!real_state.buttons.GetButtonState(bit))
+				continue;
+			if (kBits[bit] == kButtonId_Home)
+				m_homebutton_down = true;
+			else
+				status.hold |= get_emulated_button_flag(kBits[bit]);
+		}
+	}
+	auto stronger = [](glm::vec2 a, const glm::vec2& b) { return glm::length(b) > glm::length(a) ? b : a; };
+
+	const auto axis = stronger(get_axis(), real_axis);
 	status.leftStick.x = axis.x;
 	status.leftStick.y = axis.y;
 
@@ -95,7 +120,7 @@ void VPADController::VPADRead(VPADStatus_t& status, const BtnRepeat& repeat)
 	else if (axis.y >= kAxisThreshold || (HAS_FLAG(last_hold, VPAD_STICK_L_UP) && axis.y >= kHoldAxisThreshold))
 		status.hold |= VPAD_STICK_L_UP;
 
-	const auto rotation = get_rotation();
+	const auto rotation = stronger(get_rotation(), real_rotation);
 	status.rightStick.x = rotation.x;
 	status.rightStick.y = rotation.y;
 
@@ -195,9 +220,11 @@ void VPADController::update_touch(VPADStatus_t& status)
 
 	auto& instance = InputManager::instance();
 	bool pad_view;
-	if (has_position())
+	const auto real_pad = real_gamepad();
+	const bool real_touch = real_pad && real_pad->has_position();
+	if (real_touch || has_position())
 	{
-		const auto mouse = get_position();
+		const auto mouse = real_touch ? real_pad->get_position() : get_position();
 
 		status.tpData.touch = kTpTouchOn;
 		status.tpData.validity = kTpValid;
@@ -238,9 +265,11 @@ void VPADController::update_touch(VPADStatus_t& status)
 
 void VPADController::update_motion(VPADStatus_t& status)
 {
-	if (has_motion())
+	const auto real_pad = real_gamepad();
+	const bool real_motion = real_pad && real_pad->is_connected() && real_pad->use_motion();
+	if (real_motion || has_motion())
 	{
-		auto motionSample = get_motion_data();
+		auto motionSample = real_motion ? real_pad->get_motion_sample() : get_motion_data();
 
 		glm::vec3 acc;
 		motionSample.getVPADAccelerometer(&acc[0]);
@@ -508,6 +537,18 @@ glm::vec2 VPADController::get_trigger() const
 	return {left, right};
 }
 
+std::shared_ptr<GamePadBridgeController> VPADController::real_gamepad()
+{
+	if (player_index() != 0 || !GetGamePadBridgeConfig().enabled)
+		return {};
+	for (const auto& c : get_controllers())
+		if (c->api() == InputAPI::GamePadBridge)
+			return {};
+	if (!m_real_gamepad)
+		m_real_gamepad = std::make_shared<GamePadBridgeController>();
+	return m_real_gamepad;
+}
+
 bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& controller)
 {
 	std::vector<std::pair<uint64, uint64>> mapping;
@@ -674,6 +715,44 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 			{kButtonId_StickR_Right, kRotationXP},
 		};
 		
+		break;
+	}
+	case InputAPI::GamePadBridge: // the real GamePad: every control to itself (GamePadBridgeController.h numbering)
+	{
+		mapping =
+		{
+			{kButtonId_A, kButton0},
+			{kButtonId_B, kButton1},
+			{kButtonId_X, kButton2},
+			{kButtonId_Y, kButton3},
+
+			{kButtonId_Left, kButton4},
+			{kButtonId_Right, kButton5},
+			{kButtonId_Up, kButton6},
+			{kButtonId_Down, kButton7},
+
+			{kButtonId_ZL, kButton8},
+			{kButtonId_ZR, kButton9},
+			{kButtonId_L, kButton10},
+			{kButtonId_R, kButton11},
+
+			{kButtonId_Plus, kButton12},
+			{kButtonId_Minus, kButton13},
+			{kButtonId_Home, kButton14},
+
+			{kButtonId_StickL, kButton15},
+			{kButtonId_StickR, kButton16},
+
+			{kButtonId_StickL_Up, kAxisYP},
+			{kButtonId_StickL_Down, kAxisYN},
+			{kButtonId_StickL_Left, kAxisXN},
+			{kButtonId_StickL_Right, kAxisXP},
+
+			{kButtonId_StickR_Up, kRotationYP},
+			{kButtonId_StickR_Down, kRotationYN},
+			{kButtonId_StickR_Left, kRotationXN},
+			{kButtonId_StickR_Right, kRotationXP},
+		};
 		break;
 	}
 	}

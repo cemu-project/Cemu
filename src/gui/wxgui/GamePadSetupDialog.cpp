@@ -11,6 +11,7 @@
 #include <wx/stattext.h>
 #include <wx/stream.h>
 #include <wx/utils.h>
+#include <wx/busyinfo.h>
 
 namespace
 {
@@ -86,6 +87,25 @@ GamePadSetupStatus GamePadSetupDialog::QueryStatus()
 			st.padState = line.Mid(4);
 	}
 	return st;
+}
+
+bool GamePadSetupDialog::RunReset(wxWindow* parent)
+{
+	const wxString helper = FindHelper();
+	if (helper.empty())
+		return false;
+	wxBusyCursor busy;
+	wxArrayString out, err;
+	// Synchronous is fine here: reset doesn't wait on anything (it stops the network service and deletes files).
+	const long rv = wxExecute(wxString::Format("pkexec \"%s\" reset", helper), out, err, wxEXEC_SYNC);
+	if (rv == 126 || rv == 127)
+		return false; // password dialog dismissed
+	if (rv != 0)
+	{
+		wxMessageBox(_("The GamePad setup couldn't be reset."), _("Reset GamePad"), wxOK | wxICON_ERROR, parent);
+		return false;
+	}
+	return true;
 }
 
 GamePadSetupDialog::GamePadSetupDialog(wxWindow* parent)

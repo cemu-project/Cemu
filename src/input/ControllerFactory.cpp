@@ -8,6 +8,7 @@
 #include "input/api/Keyboard/KeyboardController.h"
 #include "input/api/DSU/DSUController.h"
 #include "input/api/GameCube/GameCubeController.h"
+#include "input/api/GamePadBridge/GamePadBridgeController.h"
 
 #if BOOST_OS_WINDOWS
 #include "input/api/XInput/XInputController.h"
@@ -86,6 +87,8 @@ ControllerPtr ControllerFactory::CreateController(InputAPI::Type api, std::strin
 			return std::make_shared<DSUController>(index);
 		}
 #endif
+	case InputAPI::GamePadBridge:
+		return std::make_shared<GamePadBridgeController>();
 #if defined(HAS_GAMECUBE) && HAS_GAMECUBE && defined(HAS_LIBUSB)
 	case InputAPI::GameCube:
 		{
@@ -168,6 +171,8 @@ ControllerProviderPtr ControllerFactory::CreateControllerProvider(InputAPI::Type
 		}
 
 #endif
+	case InputAPI::GamePadBridge:
+		return std::make_shared<GamePadBridgeControllerProvider>();
 #if defined(HAS_GAMECUBE) && HAS_GAMECUBE && defined(HAS_LIBUSB)
 	case InputAPI::GameCube:
 		return std::make_shared<GameCubeControllerProvider>();

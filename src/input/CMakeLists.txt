@@ -15,6 +15,9 @@ add_library(CemuInput
 	api/DSU/DSUControllerProvider.h
 	api/DSU/DSUMessages.h
 	api/DSU/DSUMessages.cpp
+	api/GamePadBridge/GamePadBridgeController.cpp
+	api/GamePadBridge/GamePadBridgeController.h
+	api/GamePadBridge/GamePadBridgeControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.h
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp

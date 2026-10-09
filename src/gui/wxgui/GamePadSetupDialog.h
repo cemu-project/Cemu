@@ -29,6 +29,8 @@ public:
 	~GamePadSetupDialog() override;
 
 	static GamePadSetupStatus QueryStatus();
+	// Undo setup (asks for the password). True when it went through.
+	static bool RunReset(wxWindow* parent);
 
 private:
 	enum Page

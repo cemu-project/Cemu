@@ -962,6 +962,12 @@ void InputSettings2::on_controller_settings(wxCommandEvent& event)
 	}
 
 	case InputAPI::Keyboard: break;
+	case InputAPI::GamePadBridge:
+	{
+		DefaultControllerSettings wnd(this, wxGetMousePosition() + wxSize(5, 5), controller);
+		wnd.ShowModal();
+		break;
+	}
 
 	#ifdef SUPPORTS_WIIMOTE
 	case InputAPI::Wiimote: {

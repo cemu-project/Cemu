@@ -5,6 +5,7 @@
 
 #include <wx/button.h>
 #include <wx/checkbox.h>
+#include <wx/msgdlg.h>
 #include <wx/sizer.h>
 #include <wx/stattext.h>
 #include <wx/utils.h>
@@ -50,9 +51,15 @@ void GamePadBridgePanel::Build()
 	m_mirrorTv->Bind(wxEVT_CHECKBOX, &GamePadBridgePanel::OnMirrorTvChanged, this);
 	sizer->Add(m_mirrorTv, 0, wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
+	auto* buttons = new wxBoxSizer(wxHORIZONTAL);
 	auto* again = new wxButton(this, wxID_ANY, _("Set up again"));
 	again->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RunSetup(); });
-	sizer->Add(again, 0, wxLEFT | wxRIGHT | wxBOTTOM, 10);
+	buttons->Add(again, 0, wxRIGHT, 6);
+	auto* reset = new wxButton(this, wxID_ANY, _("Reset"));
+	reset->SetToolTip(_("Forget the GamePad and the Wi-Fi adapter. You'll need to set it up again to play with it."));
+	reset->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) { RunReset(); });
+	buttons->Add(reset, 0);
+	sizer->Add(buttons, 0, wxLEFT | wxRIGHT | wxBOTTOM, 10);
 
 	SetSizer(sizer, true);
 	Layout();
@@ -71,6 +78,20 @@ void GamePadBridgePanel::RunSetup()
 	}
 	// Rebuild after the dialog's event loop is gone: this handler's button is one of the children Build destroys.
 	CallAfter([this] { Build(); });
+}
+
+void GamePadBridgePanel::RunReset()
+{
+	if (wxMessageBox(_("Forget the GamePad and the Wi-Fi adapter?"), _("Reset GamePad"), wxYES_NO | wxICON_QUESTION, this) != wxYES)
+		return;
+	if (!GamePadSetupDialog::RunReset(this))
+		return;
+	{
+		auto lock = GetGamePadBridgeConfigHandle().Lock();
+		GetGamePadBridgeConfig().enabled = false;
+	}
+	GetConfigHandle().Save();
+	CallAfter([this] { Build(); }); // this handler's button is one of the children Build destroys
 }
 
 void GamePadBridgePanel::OnEnableChanged(wxCommandEvent& event)

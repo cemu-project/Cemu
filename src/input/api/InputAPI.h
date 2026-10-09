@@ -17,6 +17,8 @@ namespace InputAPI
 		WGIGamepad,
 		WGIRawController,
 
+		GamePadBridge, // the real Wii U GamePad via the GamePad bridge (fork-only)
+
 		MAX
 	};
 
@@ -42,6 +44,8 @@ namespace InputAPI
 			return "WGIRawController";
 		case SDLController:
 			return "SDLController";
+		case GamePadBridge:
+			return "WiiUGamePad";
 		default:
 			break;
 		}
@@ -67,6 +71,8 @@ namespace InputAPI
 			return SDLController;
 		else if (str == "DSU") // legacy
 			return DSUClient;
+		else if (str == to_string(GamePadBridge))
+			return GamePadBridge;
 		
 		//else if (str == "WGIGamepad")
 		//	return WGIGamepad;

@@ -107,4 +107,10 @@ private:
 	void update_touch(VPADStatus_t& status);
 	void update_motion(VPADStatus_t& status);
 	glm::ivec2 m_last_touch_position{};
+
+	// The real Wii U GamePad (GamePad bridge, fork-only), merged into player 1's GamePad on top of its profile, so it
+	// works alongside whatever controller is mapped there. Null when not in use (bridge off, another player, or the
+	// profile already lists the WiiUGamePad controller, which then goes through the normal mappings).
+	std::shared_ptr<class GamePadBridgeController> real_gamepad();
+	std::shared_ptr<class GamePadBridgeController> m_real_gamepad;
 };
