@@ -1,6 +1,9 @@
 #include "input/api/GamePadBridge/GamePadBridgeController.h"
 #include "Cafe/GamePad/GamePadSink.h"
 #include "Cafe/GamePad/drcbridge_ipc.h"
+#include "config/ActiveSettings.h"
+#include "input/emulated/VPADController.h"
+#include <pugixml.hpp>
 
 std::vector<std::shared_ptr<ControllerBase>> GamePadBridgeControllerProvider::get_controllers()
 {
@@ -127,4 +130,43 @@ std::string GamePadBridgeController::get_button_name(uint64 button) const
 	case kButton18: return "Power";
 	}
 	return base_type::get_button_name(button);
+}
+
+// Same layout InputManager::save writes, so Cemu loads it like any profile.
+void GamePadBridgeController::WriteProfile()
+{
+	fs::path path = ActiveSettings::GetConfigPath("controllerProfiles");
+	std::error_code ec;
+	fs::create_directories(path, ec);
+	path /= _utf8ToPath(fmt::format("{}.xml", kProfileName));
+	if (fs::exists(path, ec))
+		return; // the user's to change from here on
+
+	pugi::xml_document doc;
+	auto decl = doc.append_child(pugi::node_declaration);
+	decl.append_attribute("version") = "1.0";
+	decl.append_attribute("encoding") = "UTF-8";
+	auto root = doc.append_child("emulated_controller");
+	root.append_child("type").append_child(pugi::node_pcdata).set_value("Wii U GamePad");
+	root.append_child("profile").append_child(pugi::node_pcdata).set_value(kProfileName);
+	auto c = root.append_child("controller");
+	c.append_child("api").append_child(pugi::node_pcdata).set_value(std::string{to_string(InputAPI::GamePadBridge)}.c_str());
+	c.append_child("uuid").append_child(pugi::node_pcdata).set_value("0");
+	c.append_child("display_name").append_child(pugi::node_pcdata).set_value("Wii U GamePad");
+	c.append_child("motion").append_child(pugi::node_pcdata).set_value("true");
+	for (const char* group : {"axis", "rotation", "trigger"})
+	{
+		auto n = c.append_child(group);
+		n.append_child("deadzone").append_child(pugi::node_pcdata).set_value("0.1");
+		n.append_child("range").append_child(pugi::node_pcdata).set_value("1");
+	}
+	auto mappings = c.append_child("mappings");
+	for (const auto& [mapping, button] : VPADController::real_gamepad_mapping())
+	{
+		auto e = mappings.append_child("entry");
+		e.append_child("mapping").append_child(pugi::node_pcdata).set_value(fmt::format("{}", mapping).c_str());
+		e.append_child("button").append_child(pugi::node_pcdata).set_value(fmt::format("{}", button).c_str());
+	}
+	if (!doc.save_file(path.c_str()))
+		cemuLog_log(LogType::Force, "GamePad Bridge: couldn't write the controller profile {}", _pathToUtf8(path));
 }

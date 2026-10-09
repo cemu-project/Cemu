@@ -537,6 +537,46 @@ glm::vec2 VPADController::get_trigger() const
 	return {left, right};
 }
 
+const std::vector<std::pair<uint64, uint64>>& VPADController::real_gamepad_mapping()
+{
+	// GamePadBridgeController.h numbering (DRCB_BTN_* bit order); sticks +y up
+	static const std::vector<std::pair<uint64, uint64>> kMapping =
+	{
+		{kButtonId_A, kButton0},
+		{kButtonId_B, kButton1},
+		{kButtonId_X, kButton2},
+		{kButtonId_Y, kButton3},
+
+		{kButtonId_Left, kButton4},
+		{kButtonId_Right, kButton5},
+		{kButtonId_Up, kButton6},
+		{kButtonId_Down, kButton7},
+
+		{kButtonId_ZL, kButton8},
+		{kButtonId_ZR, kButton9},
+		{kButtonId_L, kButton10},
+		{kButtonId_R, kButton11},
+
+		{kButtonId_Plus, kButton12},
+		{kButtonId_Minus, kButton13},
+		{kButtonId_Home, kButton14},
+
+		{kButtonId_StickL, kButton15},
+		{kButtonId_StickR, kButton16},
+
+		{kButtonId_StickL_Up, kAxisYP},
+		{kButtonId_StickL_Down, kAxisYN},
+		{kButtonId_StickL_Left, kAxisXN},
+		{kButtonId_StickL_Right, kAxisXP},
+
+		{kButtonId_StickR_Up, kRotationYP},
+		{kButtonId_StickR_Down, kRotationYN},
+		{kButtonId_StickR_Left, kRotationXN},
+		{kButtonId_StickR_Right, kRotationXP},
+	};
+	return kMapping;
+}
+
 std::shared_ptr<GamePadBridgeController> VPADController::real_gamepad()
 {
 	if (player_index() != 0 || !GetGamePadBridgeConfig().enabled)
@@ -717,44 +757,9 @@ bool VPADController::set_default_mapping(const std::shared_ptr<ControllerBase>& 
 		
 		break;
 	}
-	case InputAPI::GamePadBridge: // the real GamePad: every control to itself (GamePadBridgeController.h numbering)
-	{
-		mapping =
-		{
-			{kButtonId_A, kButton0},
-			{kButtonId_B, kButton1},
-			{kButtonId_X, kButton2},
-			{kButtonId_Y, kButton3},
-
-			{kButtonId_Left, kButton4},
-			{kButtonId_Right, kButton5},
-			{kButtonId_Up, kButton6},
-			{kButtonId_Down, kButton7},
-
-			{kButtonId_ZL, kButton8},
-			{kButtonId_ZR, kButton9},
-			{kButtonId_L, kButton10},
-			{kButtonId_R, kButton11},
-
-			{kButtonId_Plus, kButton12},
-			{kButtonId_Minus, kButton13},
-			{kButtonId_Home, kButton14},
-
-			{kButtonId_StickL, kButton15},
-			{kButtonId_StickR, kButton16},
-
-			{kButtonId_StickL_Up, kAxisYP},
-			{kButtonId_StickL_Down, kAxisYN},
-			{kButtonId_StickL_Left, kAxisXN},
-			{kButtonId_StickL_Right, kAxisXP},
-
-			{kButtonId_StickR_Up, kRotationYP},
-			{kButtonId_StickR_Down, kRotationYN},
-			{kButtonId_StickR_Left, kRotationXN},
-			{kButtonId_StickR_Right, kRotationXP},
-		};
+	case InputAPI::GamePadBridge: // the real GamePad: every control to itself
+		mapping = real_gamepad_mapping();
 		break;
-	}
 	}
 
 	bool mapping_updated = false;

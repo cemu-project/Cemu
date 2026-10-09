@@ -30,6 +30,11 @@ public:
 
 	std::string get_button_name(uint64 button) const override;
 
+	// Writes the "Wii U GamePad" controller profile (Input settings > Profile) unless it exists: GamePad type, this
+	// controller, one-to-one mapping, motion on. Lets the real pad be picked for any player.
+	static void WriteProfile();
+	static constexpr const char* kProfileName = "Wii U GamePad";
+
 protected:
 	ControllerState raw_state() override;
 

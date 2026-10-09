@@ -181,7 +181,10 @@ namespace GamePadSink
 					{
 						std::lock_guard lock(inputMutex);
 						memcpy(&latestInput, payload, sizeof(drcb_input_state));
-						latestInputNs = NowNs();
+						const sint64 now = NowNs();
+						if (latestInputNs == 0 || now - latestInputNs > kInputStaleNs)
+							cemuLog_log(LogType::Force, "GamePad Bridge: GamePad input arriving");
+						latestInputNs = now;
 					}
 					break;
 				case DRCB_MSG_GOODBYE:

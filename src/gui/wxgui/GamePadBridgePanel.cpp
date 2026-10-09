@@ -2,6 +2,7 @@
 #include "config/CemuConfig.h"
 #include "config/GamePadBridgeConfig.h"
 #include "wxgui/GamePadSetupDialog.h"
+#include "input/api/GamePadBridge/GamePadBridgeController.h"
 
 #include <wx/button.h>
 #include <wx/checkbox.h>
@@ -35,6 +36,7 @@ void GamePadBridgePanel::Build()
 		return;
 	}
 
+	GamePadBridgeController::WriteProfile(); // set up before profiles existed: add it now (never overwrites)
 	const wxString padState = status.padState == "connected" ? _("Connected")
 							  : status.padState == "disconnected" ? _("Turn on the GamePad to connect")
 																  : _("Plug in your Wi-Fi adapter");
@@ -75,6 +77,7 @@ void GamePadBridgePanel::RunSetup()
 			GetGamePadBridgeConfig().enabled = true;
 		}
 		GetConfigHandle().Save();
+		GamePadBridgeController::WriteProfile();
 	}
 	// Rebuild after the dialog's event loop is gone: this handler's button is one of the children Build destroys.
 	CallAfter([this] { Build(); });

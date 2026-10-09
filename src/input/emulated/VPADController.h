@@ -87,6 +87,8 @@ public:
 	bool is_home_down() const override { return is_mapping_down(kButtonId_Home); }
 
 	bool set_default_mapping(const std::shared_ptr<ControllerBase>& controller) override;
+	// mapping id -> button for the real Wii U GamePad (WiiUGamePad input API), one to one
+	static const std::vector<std::pair<uint64, uint64>>& real_gamepad_mapping();
 
 	void load(const pugi::xml_node& node) override;
 	void save(pugi::xml_node& node) override;
