@@ -385,7 +385,9 @@ void GamePadSetupDialog::OnProcessEnded(wxProcessEvent& event)
 
 	if (m_succeeded)
 	{
-		RunHelper(m_helper, "install-user"); // the bridge's user service
+		// The bridge's user service. Not waited for: a blocking wait here once hung Cemu for good (the service start
+		// waited on the GamePad network, which wasn't up).
+		wxExecute(wxString::Format("\"%s\" install-user", m_helper), wxEXEC_ASYNC);
 		m_doneTitle->SetLabel(_("All set!"));
 		m_doneText->SetLabel(_("Turn on the GamePad and start a game."));
 		ShowPage(kPageDone);
