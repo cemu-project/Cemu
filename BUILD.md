@@ -242,11 +242,12 @@ Example usage: `cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DENABLE_SDL=ON -
 |--------------------|:--|-----------------------------------------------------------------------------|---------|--------------------|
 | ALLOW_PORTABLE     |   | Allow Cemu to use the `portable` directory to store configs and data        | ON      |                    |
 | CEMU_CXX_FLAGS     |   | Flags passed straight to the compiler, e.g. `-march=native`, `-Wall`, `/W3` | ""      |                    |
+| ENABLE_CAMERA      |   | Enable camera support                                                       | ON      |                    |
 | ENABLE_CUBEB       |   | Enable cubeb audio backend                                                  | ON      |                    |
 | ENABLE_DISCORD_RPC |   | Enable Discord Rich presence support                                        | ON      |                    |
 | ENABLE_OPENGL      |   | Enable OpenGL graphics backend                                              | ON      |                    |
 | ENABLE_HIDAPI      |   | Enable HIDAPI (used for Wiimote controller API)                             | ON      |                    |
-| ENABLE_SDL         |   | Enable SDLController controller API                                         | ON      |                    |
+| ENABLE_SDL         |   | Enable SDLController controller API/SDLCamera implementation                | ON      |                    |
 | ENABLE_VCPKG       |   | Use VCPKG package manager to obtain dependencies                            | ON      |                    |
 | ENABLE_VULKAN      |   | Enable the Vulkan graphics backend                                          | ON      |                    |
 | ENABLE_WXWIDGETS   |   | Enable wxWidgets UI                                                         | ON      | Currently required |

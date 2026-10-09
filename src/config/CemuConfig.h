@@ -512,6 +512,10 @@ struct CemuConfig
 	// debug
 	ConfigValueBounds<CrashDump> crash_dump{ CrashDump::Disabled };
 	ConfigValue<uint16> gdb_port{ 1337 };
+
+	// camera
+	ConfigValue<std::string> camera_id;
+
 #ifdef ENABLE_METAL
 	ConfigValue<std::string> gpu_capture_dir{ "" };
 	ConfigValue<bool> framebuffer_fetch{ true };
