@@ -206,7 +206,7 @@ public:
 
 	void HandleScreenshotRequest(LatteTextureView* texView, bool padView) override;
 	// GamePad bridge (fork): VulkanDrcCapture.cpp
-	bool DrcCapture(LatteTextureView* texView, sint64 tFlipNs) override;
+	bool DrcCapture(LatteTextureView* texView, sint64 tFlipNs, uint32 fitW, uint32 fitH) override;
 	void DrcCapture_Release();
 	void DrcCapture_HarvestFinished();
 	struct DrcCaptureState* m_drcCapture = nullptr;

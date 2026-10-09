@@ -28,6 +28,11 @@ GamePadBridgePanel::GamePadBridgePanel(wxWindow* parent)
 		description->Wrap(500);
 		box_sizer->Add(description, 0, wxALL, 5);
 
+		m_mirrorTv = new wxCheckBox(box, wxID_ANY, _("Show the TV picture on the GamePad when the game draws nothing there"));
+		m_mirrorTv->SetToolTip(_("Some games (Super Smash Bros. for Wii U) never use the GamePad screen. With this on, the GamePad shows the TV picture after a second without a GamePad frame."));
+		m_mirrorTv->Bind(wxEVT_CHECKBOX, &GamePadBridgePanel::OnMirrorTvChanged, this);
+		box_sizer->Add(m_mirrorTv, 0, wxALL, 5);
+
 		panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
 	}
 
@@ -69,6 +74,7 @@ GamePadBridgePanel::GamePadBridgePanel(wxWindow* parent)
 	m_enable->SetValue(GetGamePadBridgeConfig().enabled);
 	m_tvHold->SetValue(GetGamePadBridgeConfig().tvHoldMs);
 	m_pattern->SetValue(GetGamePadBridgeConfig().syncTestPattern);
+	m_mirrorTv->SetValue(GetGamePadBridgeConfig().mirrorTvWhenPadUnused);
 
 	SetSizerAndFit(panel_sizer);
 }
@@ -89,4 +95,10 @@ void GamePadBridgePanel::OnPatternChanged(wxCommandEvent& event)
 {
 	auto lock = GetGamePadBridgeConfigHandle().Lock();
 	GetGamePadBridgeConfig().syncTestPattern = m_pattern->IsChecked();
+}
+
+void GamePadBridgePanel::OnMirrorTvChanged(wxCommandEvent& event)
+{
+	auto lock = GetGamePadBridgeConfigHandle().Lock();
+	GetGamePadBridgeConfig().mirrorTvWhenPadUnused = m_mirrorTv->IsChecked();
 }

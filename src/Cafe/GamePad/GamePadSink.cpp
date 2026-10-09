@@ -23,6 +23,8 @@ namespace GamePadSink
 	namespace
 	{
 		constexpr sint64 kRetryIntervalNs = 5'000'000'000; // reconnect attempt while enabled but down
+		constexpr sint64 kMirrorAfterNs = 1'000'000'000; // no GamePad frame this long: show the TV picture
+		constexpr uint32 kPadWidth = 854, kPadHeight = 480;
 
 		struct State
 		{
@@ -45,6 +47,8 @@ namespace GamePadSink
 			uint64 submitted = 0, droppedNoSlot = 0, droppedCapture = 0, presented = 0;
 			std::atomic<uint64> presentedAtomic{0};
 			std::atomic<uint64> frameCounter{0};
+			sint64 lastDrcFlipNs = 0; // 0: the game hasn't drawn on the GamePad yet
+			bool mirroring = false;
 		} s;
 
 		// ---- screen sync measurement: pair TV and pad display times by frame counter ----
@@ -380,28 +384,16 @@ namespace GamePadSink
 	}
 #endif
 
-	void OnTvFlip()
-	{
 #if BOOST_OS_LINUX
-		// Some games draw nothing on the GamePad for minutes (Smash Bros.' intro and menus): connect from the TV
-		// flips too, so the bridge knows the game is running instead of showing "waiting for Cemu".
-		MaintainConnection();
-#endif
-	}
-
-	void OnDrcFlip(LatteTextureView* texView)
+	static void Capture(LatteTextureView* texView, uint32 fitW, uint32 fitH)
 	{
-#if BOOST_OS_LINUX
 		s.frameCounter.fetch_add(1, std::memory_order_relaxed);
-		if (!MaintainConnection())
-			return;
-
 		// Same preparation LatteRenderTarget_copyToBackbuffer does before displaying: the flipped texture
 		// can be stale, with the newest pixels in an overlapping cached texture. Without this the capture
 		// read only black whenever Cemu's own GamePad window was closed.
 		LatteTexture_UpdateDataToLatest(texView->baseTexture);
 		LatteTC_MarkTextureStillInUse(texView->baseTexture);
-		if (!g_renderer->DrcCapture(texView, NowNs()))
+		if (!g_renderer->DrcCapture(texView, NowNs(), fitW, fitH))
 		{
 			s.droppedCapture++;
 			if (!s.loggedUnsupportedRenderer && g_renderer->GetType() != RendererAPI::Vulkan)
@@ -410,6 +402,39 @@ namespace GamePadSink
 				s.loggedUnsupportedRenderer = true;
 			}
 		}
+	}
+#endif
+
+	void OnTvFlip(LatteTextureView* texView)
+	{
+#if BOOST_OS_LINUX
+		// Connect from the TV flips too: some games draw nothing on the GamePad for minutes, or never
+		// (Super Smash Bros. for Wii U: 0 GamePad frames through intro, menus and a match).
+		if (!MaintainConnection())
+			return;
+		const bool mirror = GetGamePadBridgeConfig().mirrorTvWhenPadUnused &&
+							(s.lastDrcFlipNs == 0 || NowNs() - s.lastDrcFlipNs > kMirrorAfterNs);
+		if (mirror != s.mirroring)
+		{
+			cemuLog_log(LogType::Force, mirror ? "GamePad Bridge: the game draws nothing on the GamePad; showing the TV picture there"
+											   : "GamePad Bridge: the game draws on the GamePad again");
+			s.mirroring = mirror;
+		}
+		if (mirror)
+			Capture(texView, kPadWidth, kPadHeight); // scaled down on the GPU: a 1080p readback per frame is 8 MB
+#endif
+	}
+
+	void OnDrcFlip(LatteTextureView* texView)
+	{
+#if BOOST_OS_LINUX
+		s.lastDrcFlipNs = NowNs();
+		if (!MaintainConnection())
+		{
+			s.frameCounter.fetch_add(1, std::memory_order_relaxed);
+			return;
+		}
+		Capture(texView, 0, 0);
 #endif
 	}
 
@@ -470,6 +495,8 @@ namespace GamePadSink
 #if BOOST_OS_LINUX
 		Disconnect(true);
 		s.lastAttemptNs = 0;
+		s.lastDrcFlipNs = 0;
+		s.mirroring = false;
 		s.noticeShownForOutage = false;
 		s.loggedUnsupportedRenderer = false;
 #endif

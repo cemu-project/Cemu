@@ -77,7 +77,7 @@ static void DrcHarvest(VulkanRenderer* r, DrcCaptureState& st)
 	}
 }
 
-bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
+bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs, uint32 fitW, uint32 fitH)
 {
 	if (!m_drcCapture)
 	{
@@ -98,6 +98,15 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 	baseTex->GetEffectiveSize(width, height, 0);
 	if (width <= 0 || height <= 0)
 		return false;
+	// Output size: the source, or scaled down to fit fitW x fitH (TV picture mirrored on the GamePad).
+	int outW = width, outH = height;
+	if (fitW && fitH && (width > (int)fitW || height > (int)fitH))
+	{
+		const double scale = std::min(double(fitW) / width, double(fitH) / height);
+		outW = std::clamp<int>((int)std::lround(width * scale), 1, (int)fitW);
+		outH = std::clamp<int>((int)std::lround(height * scale), 1, (int)fitH);
+	}
+	const bool scaled = outW != width || outH != height;
 
 	DrcReadback* slot = nullptr;
 	for (auto& e : st.slots)
@@ -109,7 +118,7 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 	if (!slot)
 		return false; // GPU hasn't finished the previous copies yet: drop, never wait
 
-	const VkDeviceSize size = VkDeviceSize(width) * height * 4;
+	const VkDeviceSize size = VkDeviceSize(outW) * outH * 4;
 	if (slot->capacity < size)
 	{
 		if (slot->buffer)
@@ -140,14 +149,14 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 	baseTex->GetImageObj()->flagForCurrentCommandBuffer();
 	VkImage srcImage = baseTex->GetImageObj()->m_image;
 	const VkFormat format = baseTex->GetFormat();
-	const bool direct = format == VK_FORMAT_R8G8B8A8_UNORM || format == VK_FORMAT_R8G8B8A8_SRGB;
+	const bool direct = !scaled && (format == VK_FORMAT_R8G8B8A8_UNORM || format == VK_FORMAT_R8G8B8A8_SRGB);
 
 	VkBufferImageCopy region{};
-	region.bufferRowLength = width;
-	region.bufferImageHeight = height;
+	region.bufferRowLength = outW;
+	region.bufferImageHeight = outH;
 	region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	region.imageSubresource.layerCount = 1;
-	region.imageExtent = {(uint32)width, (uint32)height, 1};
+	region.imageExtent = {(uint32)outW, (uint32)outH, 1};
 
 	if (direct)
 	{
@@ -166,6 +175,7 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 		VkFormatProperties props;
 		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, format, &props);
 		bool canBlit = (props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_SRC_BIT) != 0;
+		const bool linear = scaled && (props.optimalTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_FILTER_LINEAR_BIT) != 0;
 		vkGetPhysicalDeviceFormatProperties(m_physicalDevice, VK_FORMAT_R8G8B8A8_UNORM, &props);
 		canBlit &= (props.optimalTilingFeatures & VK_FORMAT_FEATURE_BLIT_DST_BIT) != 0;
 		if (!canBlit)
@@ -177,7 +187,7 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 			return false;
 		}
 
-		if (st.convW != (uint32)width || st.convH != (uint32)height)
+		if (st.convW != (uint32)outW || st.convH != (uint32)outH)
 		{
 			for (auto& e : st.slots)
 				if (e.pending && e.usesConvImage)
@@ -191,7 +201,7 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 			VkImageCreateInfo info{};
 			info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 			info.format = VK_FORMAT_R8G8B8A8_UNORM;
-			info.extent = {(uint32)width, (uint32)height, 1};
+			info.extent = {(uint32)outW, (uint32)outH, 1};
 			info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 			info.samples = VK_SAMPLE_COUNT_1_BIT;
 			info.arrayLayers = 1;
@@ -222,8 +232,8 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 				return false;
 			}
 			vkBindImageMemory(m_logicalDevice, st.convImage, st.convMemory, 0);
-			st.convW = width;
-			st.convH = height;
+			st.convW = outW;
+			st.convH = outH;
 		}
 
 		VkImageSubresourceRange dstRange{VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
@@ -235,9 +245,9 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 		blit.srcSubresource = srcLayers;
 		blit.srcOffsets[1] = {width, height, 1};
 		blit.dstSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1};
-		blit.dstOffsets[1] = {width, height, 1};
+		blit.dstOffsets[1] = {outW, outH, 1};
 		vkCmdBlitImage(m_state.currentCommandBuffer, srcImage, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, st.convImage,
-					   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_NEAREST);
+					   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, linear ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
 
 		barrier_image<TRANSFER_WRITE, TRANSFER_READ>(st.convImage, dstRange, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_GENERAL);
 		VkImageSubresourceLayers backLayers{baseTex->GetImageAspect(), 0, (uint32)texViewVk->firstSlice, 1};
@@ -249,8 +259,8 @@ bool VulkanRenderer::DrcCapture(LatteTextureView* texView, sint64 tFlipNs)
 		slot->usesConvImage = true;
 	}
 
-	slot->width = width;
-	slot->height = height;
+	slot->width = outW;
+	slot->height = outH;
 	slot->tFlipNs = tFlipNs;
 	slot->counter = GamePadSink::FrameCounter();
 	slot->commandBufferId = GetCurrentCommandBufferId();

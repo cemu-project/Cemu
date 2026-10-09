@@ -18,8 +18,10 @@ private:
 	void OnEnableChanged(wxCommandEvent& event);
 	void OnTvHoldChanged(wxSpinEvent& event);
 	void OnPatternChanged(wxCommandEvent& event);
+	void OnMirrorTvChanged(wxCommandEvent& event);
 
 	wxCheckBox* m_enable;
 	wxSpinCtrl* m_tvHold;
 	wxCheckBox* m_pattern;
+	wxCheckBox* m_mirrorTv;
 };

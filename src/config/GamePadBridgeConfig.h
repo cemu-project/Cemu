@@ -21,6 +21,10 @@ struct GamePadBridgeConfig
 	// counter (docs/SYNC.md). Goes through the gate and the pad path like normal frames.
 	bool syncTestPattern = false;
 
+	// Games that draw nothing on the GamePad (Smash Bros.): after a second without a GamePad frame, show the
+	// TV picture on the pad instead of a status screen. Not what a real Wii U does; the user's choice.
+	bool mirrorTvWhenPadUnused = true;
+
 	void Load(XMLConfigParser& parser);
 	void Save(XMLConfigParser& parser);
 };

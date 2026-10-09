@@ -14,7 +14,7 @@ namespace GamePadSink
 	// Manages the bridge connection and asks the renderer to capture the frame.
 	void OnDrcFlip(LatteTextureView* texView);
 	// Called on every TV flip: keeps the bridge connection up while the game draws nothing on the GamePad.
-	void OnTvFlip();
+	void OnTvFlip(LatteTextureView* texView);
 
 	// Used by the renderer's capture path once pixels are on the CPU side.
 	// BeginFrame returns false if the frame must be dropped (not connected, or no free slot).

@@ -74,7 +74,8 @@ public:
 
 	virtual void HandleScreenshotRequest(LatteTextureView* texView, bool padView){}
 	// GamePad bridge (fork): capture the DRC framebuffer for Cafe/GamePad/GamePadSink. false = not captured.
-	virtual bool DrcCapture(LatteTextureView* texView, sint64 tFlipNs) { return false; }
+	// fitW/fitH > 0: scale down (keeping the aspect ratio) to fit that size
+	virtual bool DrcCapture(LatteTextureView* texView, sint64 tFlipNs, uint32 fitW = 0, uint32 fitH = 0) { return false; }
 
 	virtual void DrawBackbufferQuad(LatteTextureView* texView, RendererOutputShader* shader, bool useLinearTexFilter,
 												sint32 imageX, sint32 imageY, sint32 imageWidth, sint32 imageHeight,

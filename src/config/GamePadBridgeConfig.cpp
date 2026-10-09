@@ -9,6 +9,7 @@ void GamePadBridgeConfig::Load(XMLConfigParser& parser)
 	enabled = section.get("Enabled", false);
 	tvHoldMs = std::clamp<sint32>(section.get("TvHoldMs", 0), 0, kMaxTvHoldMs);
 	syncTestPattern = section.get("SyncTestPattern", false);
+	mirrorTvWhenPadUnused = section.get("MirrorTvWhenPadUnused", true);
 }
 
 void GamePadBridgeConfig::Save(XMLConfigParser& parser)
@@ -17,4 +18,5 @@ void GamePadBridgeConfig::Save(XMLConfigParser& parser)
 	section.set("Enabled", enabled);
 	section.set("TvHoldMs", tvHoldMs);
 	section.set("SyncTestPattern", syncTestPattern);
+	section.set("MirrorTvWhenPadUnused", mirrorTvWhenPadUnused);
 }
