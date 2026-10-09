@@ -1,5 +1,8 @@
 #include "wxgui/GamePadBridgePanel.h"
 #include "config/GamePadBridgeConfig.h"
+#include "wxgui/GamePadSetupDialog.h"
+
+#include <wx/button.h>
 
 #include <wx/checkbox.h>
 #include <wx/sizer.h>
@@ -59,14 +62,19 @@ GamePadBridgePanel::GamePadBridgePanel(wxWindow* parent)
 	}
 
 	{
-		auto* box = new wxStaticBox(this, wxID_ANY, _("Status"));
+		auto* box = new wxStaticBox(this, wxID_ANY, _("Setup"));
 		auto* box_sizer = new wxStaticBoxSizer(box, wxVERTICAL);
 
-		auto* status = new wxStaticText(box, wxID_ANY,
-			_("The GamePad Bridge service works with the development mock GamePad (a window on this PC). "
-			  "The radio link to a real Wii U GamePad is not implemented yet."));
-		status->Wrap(500);
-		box_sizer->Add(status, 0, wxALL, 5);
+		auto* text = new wxStaticText(box, wxID_ANY,
+			_("Linux only. Choose and test the Wi-Fi adapter that hosts the GamePad's network."));
+		text->Wrap(500);
+		box_sizer->Add(text, 0, wxALL, 5);
+		auto* setup = new wxButton(box, wxID_ANY, _("Set up GamePad..."));
+		setup->Bind(wxEVT_BUTTON, [this](wxCommandEvent&) {
+			GamePadSetupDialog dialog(this);
+			dialog.ShowModal();
+		});
+		box_sizer->Add(setup, 0, wxALL, 5);
 
 		panel_sizer->Add(box_sizer, 0, wxEXPAND | wxALL, 5);
 	}

@@ -54,6 +54,8 @@ add_library(CemuWxGui STATIC
   GameUpdateWindow.h
   GamePadBridgePanel.cpp
   GamePadBridgePanel.h
+  GamePadSetupDialog.cpp
+  GamePadSetupDialog.h
   GeneralSettings2.cpp
   GeneralSettings2.h
   GettingStartedDialog.cpp
