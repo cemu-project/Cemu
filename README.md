@@ -1,3 +1,58 @@
+# Cemu with Wii U GamePad support
+
+Play Wii U games in Cemu with a **real Wii U GamePad**: the GamePad screen on the GamePad, plus its buttons, sticks,
+touchscreen and motion. **No Wii U console needed.**
+
+This is a fork of [Cemu](https://github.com/cemu-project/Cemu), shared with the Cemu team's permission. Everything
+else works exactly like normal Cemu (the original README is further down).
+
+## What you need
+
+- **A Linux PC.** Windows and macOS can't host the GamePad's Wi-Fi network (see [Why Linux only](#why-linux-only)).
+- **A Wii U GamePad**, charged. Any GamePad works; it doesn't need to have been paired with a console.
+- **A USB Wi-Fi adapter with an RT5572 chip** (driver `rt2800usb`). The PC uses it to host the GamePad's network,
+  the same way a Wii U does. Your normal Wi-Fi stays free for the internet. Built-in laptop Wi-Fi usually can't do
+  this. The setup window tells you whether an adapter will work.
+
+## Set up (once)
+
+1. Plug in the USB Wi-Fi adapter.
+2. In Cemu: **Options > General settings > GamePad > Set up GamePad**.
+3. Choose the adapter and press **Next**. Enter your password when asked (hosting a Wi-Fi network needs it once).
+4. Press the **SYNC** button on the back of the GamePad and enter the four symbols shown in Cemu.
+5. **All set.** The GamePad shows "GAMEPAD CONNECTED".
+
+## Play
+
+Turn the GamePad on and start a game, from Cemu or from a frontend like ES-DE.
+
+- The GamePad controls player 1's GamePad automatically, **alongside** any controller you've mapped there.
+- Games that draw nothing on the GamePad (Super Smash Bros. for Wii U) show the TV picture on it instead. You can turn
+  that off in the GamePad tab.
+- Input settings has a **Wii U GamePad** controller and profile, if you want the GamePad somewhere else.
+- **Reset** in the GamePad tab forgets the GamePad and the adapter.
+
+## Status
+
+Early release. Tested on one PC (Bazzite) with one GamePad, an RT5572 adapter, Nintendo Land, Pokkén Tournament and
+Super Smash Bros. for Wii U. Not done yet: GamePad audio and microphone, the camera, and a single download (for now
+the GamePad bridge is built from source, see its repository).
+
+## Why Linux only
+
+The PC has to act as the GamePad's console: host a 5 GHz Wi-Fi network the way a Wii U does, and stamp every video
+packet with the Wi-Fi adapter's internal clock, which the GamePad syncs to. Linux lets programs do both (hostapd, and
+reading the adapter's clock). Windows and macOS don't.
+
+## Credits
+
+Built on years of GamePad reverse engineering by others: [libdrc](https://github.com/GaryOderNichts/libdrc)
+(memahaxx), [Vanilla](https://github.com/vanilla-wiiu/vanilla), [drc-sim-c](https://github.com/rolandoislas/drc-sim-c),
+the drc-hostap forks, and drc-x264. Most of this fork's code was written with an AI assistant (Claude), directed and
+tested on real hardware by the maintainer.
+
+---
+
 # **Cemu - Wii U emulator**
 
 [![Build Process](https://github.com/cemu-project/Cemu/actions/workflows/build.yml/badge.svg)](https://github.com/cemu-project/Cemu/actions/workflows/build.yml)
