@@ -209,6 +209,20 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	// register info
 	sprintf(dumpLine, "\n");
 	cemuLog_writePlainToLog(dumpLine);
+#if defined(_M_ARM64)
+	// ARM64 Register Dump
+	sprintf(dumpLine, "X0 =%016I64x X1 =%016I64x X2 =%016I64x X3 =%016I64x\n", context->X0, context->X1, context->X2, context->X3);
+	cemuLog_writePlainToLog(dumpLine);
+	sprintf(dumpLine, "X4 =%016I64x X5 =%016I64x X6 =%016I64x X7 =%016I64x\n", context->X4, context->X5, context->X6, context->X7);
+	cemuLog_writePlainToLog(dumpLine);
+	sprintf(dumpLine, "X8 =%016I64x X9 =%016I64x X10=%016I64x X11=%016I64x\n", context->X8, context->X9, context->X10, context->X11);
+	cemuLog_writePlainToLog(dumpLine);
+	sprintf(dumpLine, "X12=%016I64x X13=%016I64x X14=%016I64x X15=%016I64x\n", context->X12, context->X13, context->X14, context->X15);
+	cemuLog_writePlainToLog(dumpLine);
+	sprintf(dumpLine, "SP =%016I64x PC =%016I64x\n", context->Sp, context->Pc);
+	cemuLog_writePlainToLog(dumpLine);
+#else
+	// x86_64 Register Dump
 	sprintf(dumpLine, "RAX=%016I64x RBX=%016I64x RCX=%016I64x RDX=%016I64x\n", context->Rax, context->Rbx, context->Rcx, context->Rdx);
 	cemuLog_writePlainToLog(dumpLine);
 	sprintf(dumpLine, "RSP=%016I64x RBP=%016I64x RDI=%016I64x RSI=%016I64x\n", context->Rsp, context->Rbp, context->Rdi, context->Rsi);
@@ -217,6 +231,7 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	cemuLog_writePlainToLog(dumpLine);
 	sprintf(dumpLine, "R12=%016I64x R13=%016I64x R14=%016I64x R15=%016I64x\n", context->R12, context->R13, context->R14, context->R15);
 	cemuLog_writePlainToLog(dumpLine);
+#endif
 
     CrashLog_SetOutputChannels(false, true);
     ExceptionHandler_LogGeneralInfo();
@@ -264,10 +279,13 @@ LONG WINAPI VectoredExceptionHandler(PEXCEPTION_POINTERS pExceptionInfo)
 		if (r != EXCEPTION_CONTINUE_SEARCH)
 			return r;
 
+#if !defined(_M_ARM64)
+		// Hardware breakpoints (Dr6) are x86-specific in the Windows CONTEXT struct
 		if (GetBits(pExceptionInfo->ContextRecord->Dr6, 0, 1) || GetBits(pExceptionInfo->ContextRecord->Dr6, 1, 1))
 			debugger_handleSingleStepException(pExceptionInfo->ContextRecord->Dr6);
 		else if (GetBits(pExceptionInfo->ContextRecord->Dr6, 2, 1) || GetBits(pExceptionInfo->ContextRecord->Dr6, 3, 1))
 			g_gdbstub->HandleAccessException(pExceptionInfo->ContextRecord->Dr6);
+#endif
 		return EXCEPTION_CONTINUE_EXECUTION;
 	}
 	return EXCEPTION_CONTINUE_SEARCH;
