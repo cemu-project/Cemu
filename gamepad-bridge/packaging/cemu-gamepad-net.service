@@ -1,0 +1,19 @@
+# The GamePad's network on the RT5572 (scripts/pad-net.sh, SERVICE=1). Started by udev whenever the adapter is
+# plugged in (70-cemu-gamepad.rules), also at boot; stops on its own when it's unplugged. Installed by
+# scripts/install.sh. Logs: journalctl -u cemu-gamepad-net, /var/log/cemu-gamepad/
+[Unit]
+Description=Wii U GamePad network (RT5572 access point)
+After=NetworkManager.service firewalld.service
+Wants=NetworkManager.service
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+Environment=SERVICE=1
+ExecStart=/usr/local/libexec/cemu-gamepad/scripts/pad-net.sh
+# pad-net.sh hands the adapter back (NetworkManager, firewall, MAC) itself on SIGTERM; only then the rest
+KillMode=mixed
+TimeoutStopSec=20
+Restart=on-failure
+RestartSec=5

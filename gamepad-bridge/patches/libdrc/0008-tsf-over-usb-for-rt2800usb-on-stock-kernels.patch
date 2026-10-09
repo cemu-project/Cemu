@@ -1,0 +1,128 @@
+diff --git a/src/tsf-linux.cpp b/src/tsf-linux.cpp
+index 51d96c2..5a69254 100644
+--- a/src/tsf-linux.cpp
++++ b/src/tsf-linux.cpp
+@@ -37,6 +37,10 @@
+ #include <cstdlib>
+ #include <cstring>
+ #include <time.h>
++#include <climits>
++#include <cstdlib>
++#include <linux/usbdevice_fs.h>
++#include <sys/ioctl.h>
+ 
+ namespace drc {
+ 
+@@ -101,6 +105,70 @@ bool ReadClockUs(clockid_t clk, u64* out) {
+   *out = static_cast<u64>(ts.tv_sec) * 1000000ULL + static_cast<u64>(ts.tv_nsec) / 1000ULL;
+   return true;
+ }
++
++// cemu-gamepad project (patches/libdrc/0008): RT2800 USB adapters (RT5572 etc.) without the patched mac80211.
++// rt2800usb implements get_tsf by reading TSF_TIMER_DW0/DW1 (0x111c/0x1120, kernel rt2800.h:977-986,
++// rt2800lib.c rt2800_get_tsf) with the vendor request USB_MULTI_READ = 7 (rt2x00usb.h:54, rt2x00usb_register_read:
++// request type USB_VENDOR_REQUEST_IN, value 0, index = register). usbfs lets us send the same control request, so
++// the stock kernel works. Measured 2026-10-09: every usbfs reading lay between two sysfs (patched mac80211) readings
++// taken around it; a read takes 60-200 us. Needs read-write access to /dev/bus/usb/BBB/DDD (udev uaccess rule).
++int OpenRt2800Usb(const std::string& ifname) {
++  char driver[PATH_MAX], usbdev[PATH_MAX];
++  const std::string dev = "/sys/class/net/" + ifname + "/device";
++  if (!realpath((dev + "/driver").c_str(), driver) || strcmp(strrchr(driver, '/') + 1, "rt2800usb") != 0) {
++    return -1;
++  }
++  if (!realpath((dev + "/..").c_str(), usbdev)) {  // the USB interface's parent: the USB device
++    return -1;
++  }
++  int busnum = -1, devnum = -1;
++  FILE* f = fopen((std::string(usbdev) + "/busnum").c_str(), "r");
++  if (f) { if (fscanf(f, "%d", &busnum) != 1) busnum = -1; fclose(f); }
++  f = fopen((std::string(usbdev) + "/devnum").c_str(), "r");
++  if (f) { if (fscanf(f, "%d", &devnum) != 1) devnum = -1; fclose(f); }
++  if (busnum < 0 || devnum < 0) {
++    return -1;
++  }
++  char node[64];
++  snprintf(node, sizeof (node), "/dev/bus/usb/%03d/%03d", busnum, devnum);
++  int fd = open(node, O_RDWR | O_CLOEXEC);
++  if (fd < 0) {
++    fprintf(stderr, "libdrc: %s is an rt2800usb adapter but %s can't be opened read-write (%s); "
++                    "the GamePad setup installs a udev rule for that\n", ifname.c_str(), node, strerror(errno));
++    return -1;
++  }
++  fprintf(stderr, "libdrc: TSF read over USB from %s (%s, rt2800usb)\n", ifname.c_str(), node);
++  return fd;
++}
++
++bool ReadRt2800UsbTsf(int fd, u64* out) {
++  for (int attempt = 0; attempt < 3; ++attempt) {
++    u8 b[8];
++    usbdevfs_ctrltransfer c;
++    memset(&c, 0, sizeof (c));
++    c.bRequestType = 0xC0;  // USB_DIR_IN | USB_TYPE_VENDOR | USB_RECIP_DEVICE
++    c.bRequest = 7;         // USB_MULTI_READ
++    c.wIndex = 0x111c;      // TSF_TIMER_DW0, then DW1
++    c.wLength = sizeof (b);
++    c.timeout = 100;
++    c.data = b;
++    if (ioctl(fd, USBDEVFS_CONTROL, &c) != static_cast<int>(sizeof (b))) {
++      return false;
++    }
++    const u32 lo = b[0] | (b[1] << 8) | (b[2] << 16) | (static_cast<u32>(b[3]) << 24);
++    const u32 hi = b[4] | (b[5] << 8) | (b[6] << 16) | (static_cast<u32>(b[7]) << 24);
++    // The two words aren't latched together: within 4 ms of the low word wrapping (every 71 min), the high word
++    // may be from the other side of the wrap. Read again once it's past.
++    if (lo > 0xFFFFF000u) {
++      usleep(5000);
++      continue;
++    }
++    *out = (static_cast<u64>(hi) << 32) | lo;
++    return true;
++  }
++  return false;
++}
++
+ }  // namespace
+ 
+ int GetTsf(u64 *tsf) {
+@@ -139,7 +207,8 @@ int GetTsf(u64 *tsf) {
+     return -1;
+   }
+ 
+-  if (fd == -1) {
++  static int usb_fd = -1;
++  if (fd == -1 && usb_fd == -1) {
+     std::string drc_if;
+ 
+     if (GetInterfaceOfIpv4("192.168.1.10", &drc_if) == 0) {
+@@ -150,13 +219,30 @@ int GetTsf(u64 *tsf) {
+         tsf_path = std::string("/sys/class/net/") + drc_if + "/tsf";
+         fd = open(tsf_path.c_str(), O_RDONLY);
+       }
++      if (fd == -1) {  // stock kernel: no tsf file
++        usb_fd = OpenRt2800Usb(drc_if);
++      }
+     }
+ 
+-    if (fd == -1) {
++    if (fd == -1 && usb_fd == -1) {
+       *tsf = last_good;
+       return -1;
+     }
+   }
++  if (usb_fd != -1) {
++    u64 value;
++    if (ReadRt2800UsbTsf(usb_fd, &value)) {
++      *tsf = last_good = value;
++      return 0;
++    }
++    perror("USB TSF read failed - GetTsf");
++    if (errno == ENODEV) {  // adapter unplugged: look again next time
++      close(usb_fd);
++      usb_fd = -1;
++    }
++    *tsf = last_good;
++    return -1;
++  }
+   for (int attempt = 0; attempt < 20; ++attempt) {
+     u64 value;
+     if (pread(fd, &value, sizeof (value), 0) == sizeof (value)) {

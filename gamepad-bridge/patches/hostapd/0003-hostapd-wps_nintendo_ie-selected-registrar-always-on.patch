@@ -1,0 +1,54 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] hostapd: wps_nintendo_ie - Selected Registrar always on
+
+A real Wii U pairing AP advertises Selected Registrar 1, Device Password ID 0
+(PIN) and Selected Registrar Config Methods 0x0084 for as long as it exists
+(RT5572 scan of a real console, runs/20261008-184452-console). Ours only did
+once WPS_PIN was armed, and on rt2800usb that Beacon update never reached the
+air (runs/20261008-182649-rt5572), so the passively scanning GamePad only ever
+saw a WPS AP without a selected registrar. Build the three attributes
+unconditionally in wps_nintendo_ie mode.
+---
+--- a/src/wps/wps_registrar.c	2026-10-08 18:48:46.172262569 -0400
++++ b/src/wps/wps_registrar.c	2026-10-08 18:48:46.189824734 -0400
+@@ -1331,6 +1331,27 @@
+ }
+ 
+ 
++/* A Wii U pairing AP is a PIN registrar for as long as it exists: the console's
++ * Probe Response (RT5572 scan of a real console, runs/20261008-184452-console)
++ * always carries Selected Registrar 1, Device Password ID 0 (PIN) and Selected
++ * Registrar Config Methods 0x0084. Write them unconditionally rather than when
++ * a PIN gets armed: the GamePad scans passively, and a Beacon update after
++ * WPS_PIN never reached the air (rt2800usb, runs/20261008-182649-rt5572: every
++ * Beacon lacked Selected Registrar while the Probe Responses had it). */
++static int wps_build_nin_sel_reg(struct wpabuf *msg)
++{
++	wpa_printf(MSG_DEBUG, "WPS:  * Selected Registrar (Wii U, always on)");
++	wpabuf_put_be16(msg, ATTR_SELECTED_REGISTRAR);
++	wpabuf_put_be16(msg, 1);
++	wpabuf_put_u8(msg, 1);
++	wpabuf_put_be16(msg, ATTR_DEV_PASSWORD_ID);
++	wpabuf_put_be16(msg, 2);
++	wpabuf_put_be16(msg, DEV_PW_DEFAULT);
++	return wps_build_nin_methods(msg,
++				     ATTR_SELECTED_REGISTRAR_CONFIG_METHODS);
++}
++
++
+ /* WPS attributes in the order and form of a real Wii U pairing AP's Probe
+  * Response (no WFA extension: no Version2, no AuthorizedMACs). */
+ static int wps_build_nin_attrs(struct wps_registrar *reg, struct wpabuf *msg)
+@@ -1338,11 +1359,7 @@
+ 	if (wps_build_version(msg) ||
+ 	    wps_build_wps_state(reg->wps, msg) ||
+ 	    wps_build_ap_setup_locked(reg->wps, msg) ||
+-	    wps_build_selected_registrar(reg, msg) ||
+-	    wps_build_sel_reg_dev_password_id(reg, msg) ||
+-	    (reg->sel_reg_union &&
+-	     wps_build_nin_methods(msg,
+-				   ATTR_SELECTED_REGISTRAR_CONFIG_METHODS)) ||
++	    wps_build_nin_sel_reg(msg) ||
+ 	    wps_build_resp_type(msg, WPS_RESP_AP) ||
+ 	    wps_build_uuid_e(msg, reg->wps->uuid) ||
+ 	    wps_build_device_attrs(&reg->wps->dev, msg) ||

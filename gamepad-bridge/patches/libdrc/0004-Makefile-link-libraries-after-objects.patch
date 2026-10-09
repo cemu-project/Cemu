@@ -1,0 +1,11 @@
+--- a/Makefile
++++ b/Makefile
+@@ -25,7 +25,7 @@
+ 	ar rcs $@ $^
+ 
+ libdrc.so: $(LIBDRC_OBJS) Makefile.config
+-	$(CXX) $(LDFLAGS) -shared -o $@ $(LIBDRC_OBJS)
++	$(CXX) -shared -o $@ $(LIBDRC_OBJS) $(LDFLAGS)
+ 
+ define build_demo
+ demos/$(1)/$(1): demos/$(1)/main.o demos/framework/framework.o libdrc.a

@@ -1,0 +1,11 @@
+--- a/src/video-converter.cpp
++++ b/src/video-converter.cpp
+@@ -165,7 +165,7 @@
+ 
+   SwsContext* ctx = sws_getCachedContext(ctxs_[params],
+       width, height, ConvertPixFmt(pixfmt),
+-      target_w, target_h, PIX_FMT_YUV420P,
++      target_w, target_h, AV_PIX_FMT_YUV420P,
+       SWS_FAST_BILINEAR, NULL, NULL, NULL);
+ 
+   ctxs_[params] = ctx;

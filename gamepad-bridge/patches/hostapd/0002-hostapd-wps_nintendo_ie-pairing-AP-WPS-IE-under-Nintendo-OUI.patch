@@ -1,0 +1,419 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] hostapd: wps_nintendo_ie - Wii U pairing AP WPS IE under the Nintendo OUI
+
+A real Wii U pairing AP sends its WPS attributes in a vendor element with the
+Nintendo OUI (a4:c0:e1, type f4) and no WFA (00:50:f2:04) WPS element
+(beacon capture: dvdhrm, "Wii U Gamepad Connection", 2013-03-23; drc-hostap's
+own wpa_supplicant accepts WPS_DEV_OUI_NIN for exactly this AP). A real
+GamePad in sync mode never approached a hostapd pairing AP that used the WFA
+element.
+
+New bss option wps_nintendo_ie=1 (CONFIG_TENDONIN builds): Beacon and Probe
+Response WPS IEs use WPS_DEV_OUI_NIN and carry the attributes the way the
+captured console does: WPS 1.0 (no WFA extension: no Version2, no
+AuthorizedMACs), Config Methods and Selected Registrar Config Methods 0x0084,
+in the console's order. The Beacon gets the same full set as the Probe
+Response (the capture only shows the Probe Response; the pad scans passively).
+Element layout follows the capture too: a4:c0:e1 f5 00 right before the WPS
+element, no Supported Operating Classes or Extended Capabilities, and WMM after
+the vendor elements. HT Capabilities/Operation are written as the console's bytes
+(Greenfield, A-MPDU 0x19, RIFS) regardless of driver support. Independently of the option, a station's
+WPS IE is also recognised under the Nintendo OUI (Probe Request, Association
+Request).
+---
+--- a/hostapd/config_file.c
++++ b/hostapd/config_file.c
+@@ -4065,6 +4065,8 @@
+ 			bss->ap_pin = os_strdup(pos);
+ 	} else if (os_strcmp(buf, "skip_cred_build") == 0) {
+ 		bss->skip_cred_build = atoi(pos);
++	} else if (os_strcmp(buf, "wps_nintendo_ie") == 0) {
++		bss->wps_nintendo_ie = atoi(pos);
+ 	} else if (os_strcmp(buf, "extra_cred") == 0) {
+ 		os_free(bss->extra_cred);
+ 		bss->extra_cred = (u8 *) os_readfile(pos, &bss->extra_cred_len);
+--- a/hostapd/hostapd.conf
++++ b/hostapd/hostapd.conf
+@@ -204,6 +204,11 @@
+ # that makes the configured channel usable. It then continues either way.
+ # Default: 0 (disabled)
+ #lar_scan=15
++
++# Wii U pairing AP (CONFIG_TENDONIN builds): send the WPS IE in Beacon and
++# Probe Response frames under the Nintendo OUI (a4:c0:e1, type f4) instead of
++# the WFA OUI. A real console's pairing AP does this; the GamePad needs it.
++#wps_nintendo_ie=1
+ #acs_chan_bias=1:0.8 6:0.8 11:0.8
+ 
+ # Channel list restriction. This option allows hostapd to select one of the
+--- a/src/ap/ap_config.h
++++ b/src/ap/ap_config.h
+@@ -522,6 +522,7 @@
+ 	u8 os_version[4];
+ 	char *ap_pin;
+ 	int skip_cred_build;
++	int wps_nintendo_ie;
+ 	u8 *extra_cred;
+ 	size_t extra_cred_len;
+ 	int wps_cred_processing;
+--- a/src/ap/beacon.c
++++ b/src/ap/beacon.c
+@@ -551,6 +551,44 @@
+ }
+ 
+ 
++/* wps_nintendo_ie: lay out Beacon/Probe Response elements like a real Wii U
++ * pairing AP (dvdhrm's 2013 capture): no Supported Operating Classes or
++ * Extended Capabilities, and WMM last, after the vendor elements. */
++static bool hostapd_nin_layout(struct hostapd_data *hapd)
++{
++#ifdef CONFIG_TENDONIN
++	return hapd->conf->wps_nintendo_ie;
++#else /* CONFIG_TENDONIN */
++	return false;
++#endif /* CONFIG_TENDONIN */
++}
++
++
++/* HT Capabilities + HT Operation exactly as the captured console sends them:
++ * caps 0x001c (HT20, SM PS disabled, RX Greenfield), A-MPDU 0x19 (16383 bytes,
++ * 8 usec), RX MCS 0-15, TX MCS undefined; HT op: primary channel, RIFS=1,
++ * everything else 0. Written as bytes: hostapd won't configure [GF] on a driver
++ * without Greenfield, and the beacon only has to look like the console's. */
++static u8 * hostapd_eid_nin_ht(struct hostapd_data *hapd, u8 *eid)
++{
++	*eid++ = WLAN_EID_HT_CAP;
++	*eid++ = 26;
++	os_memset(eid, 0, 26);
++	eid[0] = 0x1c;
++	eid[2] = 0x19;
++	eid[3] = 0xff;
++	eid[4] = 0xff;
++	eid += 26;
++	*eid++ = WLAN_EID_HT_OPERATION;
++	*eid++ = 22;
++	os_memset(eid, 0, 22);
++	eid[0] = hapd->iconf->channel;
++	eid[1] = 0x08;
++	eid += 22;
++	return eid;
++}
++
++
+ static u8 * hostapd_eid_supported_op_classes(struct hostapd_data *hapd, u8 *eid)
+ {
+ 	u8 op_class, channel;
+@@ -893,15 +931,20 @@
+ 		params->ecsa_pos = NULL;
+ 	pos = csa_pos;
+ 
+-	pos = hostapd_eid_supported_op_classes(hapd, pos);
+-	pos = hostapd_eid_ht_capabilities(hapd, pos);
+-	pos = hostapd_eid_ht_operation(hapd, pos);
++	if (!hostapd_nin_layout(hapd)) {
++		pos = hostapd_eid_supported_op_classes(hapd, pos);
++		pos = hostapd_eid_ht_capabilities(hapd, pos);
++		pos = hostapd_eid_ht_operation(hapd, pos);
++	} else {
++		pos = hostapd_eid_nin_ht(hapd, pos);
++	}
+ 
+ 	/* Probe Response frames always include all non-TX profiles except
+ 	 * when a list of known BSSes is included in the Probe Request frame. */
+-	pos = hostapd_eid_ext_capab(hapd, pos,
+-				    hapd->iconf->mbssid >= MBSSID_ENABLED &&
+-				    !params->known_bss_len);
++	if (!hostapd_nin_layout(hapd))
++		pos = hostapd_eid_ext_capab(hapd, pos,
++					    hapd->iconf->mbssid >= MBSSID_ENABLED &&
++					    !params->known_bss_len);
+ 
+ 	pos = hostapd_eid_time_adv(hapd, pos);
+ 	pos = hostapd_eid_time_zone(hapd, pos);
+@@ -998,7 +1041,8 @@
+ 	pos = hostapd_get_wpa_ie(hapd, pos, epos - pos);
+ 
+ 	/* Wi-Fi Alliance WMM */
+-	pos = hostapd_eid_wmm(hapd, pos);
++	if (!hostapd_nin_layout(hapd))
++		pos = hostapd_eid_wmm(hapd, pos);
+ 
+ #ifdef CONFIG_WPS
+ 	if (hapd->conf->wps_state && hapd->wps_probe_resp_ie) {
+@@ -1039,6 +1083,8 @@
+ 			  wpabuf_len(hapd->conf->vendor_elements));
+ 		pos += wpabuf_len(hapd->conf->vendor_elements);
+ 	}
++	if (hostapd_nin_layout(hapd))
++		pos = hostapd_eid_wmm(hapd, pos);
+ 
+ #ifdef CONFIG_TESTING_OPTIONS
+ 	if (hapd->conf->presp_elements) {
+@@ -2396,9 +2442,13 @@
+ 		hapd->cs_c_off_ecsa_beacon = csa_pos - tail - 1;
+ 	tailpos = csa_pos;
+ 
+-	tailpos = hostapd_eid_supported_op_classes(hapd, tailpos);
+-	tailpos = hostapd_eid_ht_capabilities(hapd, tailpos);
+-	tailpos = hostapd_eid_ht_operation(hapd, tailpos);
++	if (!hostapd_nin_layout(hapd)) {
++		tailpos = hostapd_eid_supported_op_classes(hapd, tailpos);
++		tailpos = hostapd_eid_ht_capabilities(hapd, tailpos);
++		tailpos = hostapd_eid_ht_operation(hapd, tailpos);
++	} else {
++		tailpos = hostapd_eid_nin_ht(hapd, tailpos);
++	}
+ 
+ 	/*
+ 	 * Include the Multiple BSSID element whenever MBSSID is enabled. The
+@@ -2415,7 +2465,8 @@
+ 			 params->mbssid.mbssid_elem_count == 1);
+ 	}
+ 
+-	tailpos = hostapd_eid_ext_capab(hapd, tailpos, complete);
++	if (!hostapd_nin_layout(hapd))
++		tailpos = hostapd_eid_ext_capab(hapd, tailpos, complete);
+ 
+ 	/*
+ 	 * TODO: Time Advertisement element should only be included in some
+@@ -2505,7 +2556,8 @@
+ 	tailpos = hostapd_get_wpa_ie(hapd, tailpos, tailend - tailpos);
+ 
+ 	/* Wi-Fi Alliance WMM */
+-	tailpos = hostapd_eid_wmm(hapd, tailpos);
++	if (!hostapd_nin_layout(hapd))
++		tailpos = hostapd_eid_wmm(hapd, tailpos);
+ 
+ #ifdef CONFIG_WPS
+ 	if (hapd->conf->wps_state && hapd->wps_beacon_ie) {
+@@ -2549,6 +2601,8 @@
+ 			  wpabuf_len(hapd->conf->vendor_elements));
+ 		tailpos += wpabuf_len(hapd->conf->vendor_elements);
+ 	}
++	if (hostapd_nin_layout(hapd))
++		tailpos = hostapd_eid_wmm(hapd, tailpos);
+ 
+ 	tail_len = tailpos > tail ? tailpos - tail : 0;
+ 
+--- a/src/ap/ieee802_11.c
++++ b/src/ap/ieee802_11.c
+@@ -5658,6 +5658,11 @@
+ 		wpabuf_free(sta->wps_ie);
+ 		sta->wps_ie = ieee802_11_vendor_ie_concat(ies, ies_len,
+ 							  WPS_IE_VENDOR_TYPE);
++#ifdef CONFIG_TENDONIN
++		if (!sta->wps_ie)
++			sta->wps_ie = ieee802_11_vendor_ie_concat(
++				ies, ies_len, WPS_DEV_OUI_NIN);
++#endif /* CONFIG_TENDONIN */
+ 		if (sta->wps_ie && wps_is_20(sta->wps_ie)) {
+ 			wpa_printf(MSG_DEBUG, "WPS: STA supports WPS 2.0");
+ 			sta->flags |= WLAN_STA_WPS2;
+--- a/src/ap/wps_hostapd.c
++++ b/src/ap/wps_hostapd.c
+@@ -1124,6 +1124,7 @@
+ 	wps->ssid_len = hapd->conf->ssid.ssid_len;
+ 	os_memcpy(wps->ssid, hapd->conf->ssid.ssid, wps->ssid_len);
+ 	wps->ap = 1;
++	wps->nintendo_ie = hapd->conf->wps_nintendo_ie;
+ 	os_memcpy(wps->dev.mac_addr, hapd->own_addr, ETH_ALEN);
+ 	wps->dev.device_name = hapd->conf->device_name ?
+ 		os_strdup(hapd->conf->device_name) : NULL;
+@@ -1657,6 +1658,11 @@
+ 		return 0; /* Not for us */
+ 
+ 	wps_ie = ieee802_11_vendor_ie_concat(ie, ie_len, WPS_DEV_OUI_WFA);
++#ifdef CONFIG_TENDONIN
++	if (wps_ie == NULL)
++		wps_ie = ieee802_11_vendor_ie_concat(ie, ie_len,
++						      WPS_DEV_OUI_NIN);
++#endif /* CONFIG_TENDONIN */
+ 	if (wps_ie == NULL)
+ 		return 0;
+ 	if (wps_validate_probe_req(wps_ie, addr) < 0) {
+--- a/src/common/ieee802_11_common.c
++++ b/src/common/ieee802_11_common.c
+@@ -222,6 +222,16 @@
+ 		}
+ 		break;
+ 
++#ifdef CONFIG_TENDONIN
++	case 0xa4c0e1: /* Nintendo; type f4 carries WPS attributes */
++		if (pos[3] == 0xf4 && !elems->wps_ie) {
++			elems->wps_ie = pos;
++			elems->wps_ie_len = elen;
++			break;
++		}
++		return -1;
++#endif /* CONFIG_TENDONIN */
++
+ 	default:
+ 		wpa_printf(MSG_EXCESSIVE, "unknown vendor specific "
+ 			   "information element ignored (vendor OUI "
+--- a/src/wps/wps_attr_build.c
++++ b/src/wps/wps_attr_build.c
+@@ -463,6 +463,12 @@
+ /* Encapsulate WPS IE data with one (or more, if needed) IE headers */
+ struct wpabuf * wps_ie_encapsulate(struct wpabuf *data)
+ {
++	return wps_ie_encapsulate_oui(data, WPS_DEV_OUI_WFA);
++}
++
++
++struct wpabuf * wps_ie_encapsulate_oui(struct wpabuf *data, u32 oui)
++{
+ 	struct wpabuf *ie;
+ 	const u8 *pos, *end;
+ 
+@@ -481,7 +487,7 @@
+ 			frag_len = 251;
+ 		wpabuf_put_u8(ie, WLAN_EID_VENDOR_SPECIFIC);
+ 		wpabuf_put_u8(ie, 4 + frag_len);
+-		wpabuf_put_be32(ie, WPS_DEV_OUI_WFA);
++		wpabuf_put_be32(ie, oui);
+ 		wpabuf_put_data(ie, pos, frag_len);
+ 		pos += frag_len;
+ 	}
+--- a/src/wps/wps.h
++++ b/src/wps/wps.h
+@@ -645,6 +645,12 @@
+ 	int ap;
+ 
+ 	/**
++	 * nintendo_ie - Send the AP's WPS IE under the Nintendo OUI (a4:c0:e1, type
++	 * f4) instead of the WFA one, like a Wii U pairing AP (CONFIG_TENDONIN)
++	 */
++	int nintendo_ie;
++
++	/**
+ 	 * registrar - Pointer to WPS registrar data from wps_registrar_init()
+ 	 */
+ 	struct wps_registrar *registrar;
+--- a/src/wps/wps_i.h
++++ b/src/wps/wps_i.h
+@@ -179,6 +179,7 @@
+ 			 const struct wpabuf *pubkey, const u8 *dev_pw,
+ 			 size_t dev_pw_len);
+ struct wpabuf * wps_ie_encapsulate(struct wpabuf *data);
++struct wpabuf * wps_ie_encapsulate_oui(struct wpabuf *data, u32 oui);
+ int wps_build_mac_addr(struct wpabuf *msg, const u8 *addr);
+ int wps_build_rf_bands_attr(struct wpabuf *msg, u8 rf_bands);
+ int wps_build_ap_channel(struct wpabuf *msg, u16 ap_channel);
+--- a/src/wps/wps_registrar.c
++++ b/src/wps/wps_registrar.c
+@@ -1299,6 +1299,75 @@
+ }
+ 
+ 
++#ifdef CONFIG_TENDONIN
++/* Config Methods as a real Wii U pairing AP advertises them: 0x0084 (Push Button
++ * + Label), WPS 1.0 style (dvdhrm's 2013 Probe Response capture). */
++#define WPS_NIN_CONFIG_METHODS 0x0084
++
++static struct wpabuf * wps_nin_prepend_f5(struct wpabuf *ie)
++{
++	static const u8 f5[] = { WLAN_EID_VENDOR_SPECIFIC, 5,
++				 0xa4, 0xc0, 0xe1, 0xf5, 0x00 };
++	struct wpabuf *out;
++
++	if (!ie)
++		return NULL;
++	out = wpabuf_alloc(sizeof(f5) + wpabuf_len(ie));
++	if (out) {
++		wpabuf_put_data(out, f5, sizeof(f5));
++		wpabuf_put_buf(out, ie);
++	}
++	wpabuf_free(ie);
++	return out;
++}
++
++
++static int wps_build_nin_methods(struct wpabuf *msg, u16 attr)
++{
++	wpabuf_put_be16(msg, attr);
++	wpabuf_put_be16(msg, 2);
++	wpabuf_put_be16(msg, WPS_NIN_CONFIG_METHODS);
++	return 0;
++}
++
++
++/* WPS attributes in the order and form of a real Wii U pairing AP's Probe
++ * Response (no WFA extension: no Version2, no AuthorizedMACs). */
++static int wps_build_nin_attrs(struct wps_registrar *reg, struct wpabuf *msg)
++{
++	if (wps_build_version(msg) ||
++	    wps_build_wps_state(reg->wps, msg) ||
++	    wps_build_ap_setup_locked(reg->wps, msg) ||
++	    wps_build_selected_registrar(reg, msg) ||
++	    wps_build_sel_reg_dev_password_id(reg, msg) ||
++	    (reg->sel_reg_union &&
++	     wps_build_nin_methods(msg,
++				   ATTR_SELECTED_REGISTRAR_CONFIG_METHODS)) ||
++	    wps_build_resp_type(msg, WPS_RESP_AP) ||
++	    wps_build_uuid_e(msg, reg->wps->uuid) ||
++	    wps_build_device_attrs(&reg->wps->dev, msg) ||
++	    wps_build_nin_methods(msg, ATTR_CONFIG_METHODS))
++		return -1;
++	return 0;
++}
++
++
++/* The captured console data is from a Probe Response; its Beacon is unknown.
++ * The GamePad scans passively in sync mode (it sent no Probe Requests to our
++ * AP), so it only ever sees the Beacon: send the full set there too, as
++ * Broadcom WPS APs commonly do. */
++static int wps_build_nin_ies(struct wps_registrar *reg, struct wpabuf *beacon,
++			     struct wpabuf *probe)
++{
++	wpa_printf(MSG_DEBUG, "WPS: Build Wii U style Beacon/Probe Response IEs");
++	if (wps_build_nin_attrs(reg, beacon) ||
++	    wps_build_nin_attrs(reg, probe))
++		return -1;
++	return 0;
++}
++#endif /* CONFIG_TENDONIN */
++
++
+ static int wps_set_ie(struct wps_registrar *reg)
+ {
+ 	struct wpabuf *beacon;
+@@ -1325,6 +1394,14 @@
+ 
+ 	auth_macs = wps_authorized_macs(reg, &count);
+ 
++#ifdef CONFIG_TENDONIN
++	if (reg->wps->nintendo_ie) {
++		if (wps_build_nin_ies(reg, beacon, probe))
++			goto fail;
++		goto encapsulate;
++	}
++#endif /* CONFIG_TENDONIN */
++
+ 	wpa_printf(MSG_DEBUG, "WPS: Build Beacon IEs");
+ 
+ 	if (wps_build_version(beacon) ||
+@@ -1365,8 +1442,22 @@
+ 	    wps_build_application_ext(&reg->wps->dev, probe))
+ 		goto fail;
+ 
+-	beacon = wps_ie_encapsulate(beacon);
+-	probe = wps_ie_encapsulate(probe);
++#ifdef CONFIG_TENDONIN
++encapsulate:
++	if (reg->wps->nintendo_ie) {
++		/* A Wii U pairing AP carries its WPS attributes under the
++		 * Nintendo OUI only; the GamePad looks for that. */
++		beacon = wps_ie_encapsulate_oui(beacon, WPS_DEV_OUI_NIN);
++		probe = wps_ie_encapsulate_oui(probe, WPS_DEV_OUI_NIN);
++		/* The console sends a4:c0:e1 f5 00 right before it */
++		beacon = wps_nin_prepend_f5(beacon);
++		probe = wps_nin_prepend_f5(probe);
++	} else
++#endif /* CONFIG_TENDONIN */
++	{
++		beacon = wps_ie_encapsulate(beacon);
++		probe = wps_ie_encapsulate(probe);
++	}
+ 
+ 	if (!beacon || !probe)
+ 		goto fail;

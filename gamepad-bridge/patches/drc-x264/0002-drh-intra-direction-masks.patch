@@ -1,0 +1,88 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] DRH: masks for Intra16x16 and chroma prediction directions
+
+The real GamePad rejected the IDRs of a still gradient and a checkerboard
+(runs/20261008-235548-vidtest) while a flat screen IDR of similar size
+decoded; libdrc already found planar prediction broken on the pad. These
+masks let a test restrict the remaining directions.
+---
+diff -ru a/encoder/analyse.c b/encoder/analyse.c
+--- a/encoder/analyse.c	2026-10-09 00:03:56.756376970 -0400
++++ b/encoder/analyse.c	2026-10-09 00:03:56.775232986 -0400
+@@ -600,7 +600,7 @@
+ /* Prediction modes allowed for various combinations of neighbors. */
+ /* Terminated by a -1. */
+ /* In order, no neighbors, left, top, top/left, top/left/topleft */
+-static const int8_t i16x16_mode_available[5][5] =
++static const int8_t i16x16_mode_available_all[5][5] =
+ {
+     {I_PRED_16x16_DC_128, -1, -1, -1, -1},
+     {I_PRED_16x16_DC_LEFT, I_PRED_16x16_H, -1, -1, -1},
+@@ -609,7 +609,7 @@
+     {I_PRED_16x16_V, I_PRED_16x16_H, I_PRED_16x16_DC, -1, -1},
+ };
+ 
+-static const int8_t chroma_mode_available[5][5] =
++static const int8_t chroma_mode_available_all[5][5] =
+ {
+     {I_PRED_CHROMA_DC_128, -1, -1, -1, -1},
+     {I_PRED_CHROMA_DC_LEFT, I_PRED_CHROMA_H, -1, -1, -1},
+@@ -618,6 +618,33 @@
+     {I_PRED_CHROMA_V, I_PRED_CHROMA_H, I_PRED_CHROMA_DC, -1, -1},
+ };
+ 
++/* cemu-gamepad: i_drh_i16x16_mask / i_drh_chroma_mask filter these copies at encoder open. Process-global:
++ * the last encoder opened decides (fine for one GamePad stream at a time). */
++static int8_t i16x16_mode_available[5][5];
++static int8_t chroma_mode_available[5][5];
++
++static void drh_filter_modes( int8_t dst[5][5], const int8_t src[5][5], int mask, int n_directional )
++{
++    for( int r = 0; r < 5; r++ )
++    {
++        int k = 0;
++        for( int c = 0; c < 5 && src[r][c] >= 0; c++ )
++        {
++            int m = src[r][c];
++            if( !mask || m >= n_directional || (mask & (1 << m)) )
++                dst[r][k++] = m;
++        }
++        while( k < 5 )
++            dst[r][k++] = -1;
++    }
++}
++
++void x264_analyse_drh_masks( int i16x16_mask, int chroma_mask )
++{
++    drh_filter_modes( i16x16_mode_available, i16x16_mode_available_all, i16x16_mask, 3 );
++    drh_filter_modes( chroma_mode_available, chroma_mode_available_all, chroma_mask, 3 );
++}
++
+ static const int8_t i8x8_mode_available[2][5][10] =
+ {
+     {
+diff -ru a/encoder/encoder.c b/encoder/encoder.c
+--- a/encoder/encoder.c	2026-10-09 00:03:56.758642598 -0400
++++ b/encoder/encoder.c	2026-10-09 00:03:56.775757614 -0400
+@@ -1352,6 +1352,8 @@
+ {
+     x264_t *h;
+     char buf[1000], *p;
++    void x264_analyse_drh_masks( int i16x16_mask, int chroma_mask );
++    x264_analyse_drh_masks( param->i_drh_i16x16_mask, param->i_drh_chroma_mask );
+     int qp, i_slicetype_length;
+ 
+     CHECKED_MALLOCZERO( h, sizeof(x264_t) );
+diff -ru a/x264.h b/x264.h
+--- a/x264.h	2026-10-09 00:03:56.754257614 -0400
++++ b/x264.h	2026-10-09 00:03:56.773761988 -0400
+@@ -327,6 +327,9 @@
+     int         b_drh_chunk_slices; /* DRH: neighbours across a 6-row chunk boundary are unavailable, as across a
+                                        slice edge (intra prediction, MV prediction, CABAC contexts); the CABAC
+                                        stream and everything else stay one slice. cemu-gamepad project. */
++    int         i_drh_i16x16_mask;  /* allowed Intra16x16 directions, bit per I_PRED_16x16_{V,H,DC} (0 = all); the
++                                       DC fallbacks (DC_LEFT/TOP/128) stay allowed. cemu-gamepad project. */
++    int         i_drh_chroma_mask;  /* same for chroma, bit per I_PRED_CHROMA_{DC,H,V} (0 = all) */
+ 
+     int         b_deblocking_filter;
+     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */

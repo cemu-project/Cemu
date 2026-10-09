@@ -1,0 +1,32 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] DRH: option to never use Intra16x16 (b_drh_no_i16x16)
+
+On the real GamePad, an encoder limited to Intra16x16 intra blocks made even
+a plain screen undecodable, while the default (4x4 + 16x16) recovered
+(runs/20261009-000618-vidtest). Same switch x264 uses for AVC-Intra compat.
+---
+diff -ru a/encoder/analyse.c b/encoder/analyse.c
+--- a/encoder/analyse.c	2026-10-09 00:11:02.567965745 -0400
++++ b/encoder/analyse.c	2026-10-09 00:11:02.584573242 -0400
+@@ -838,8 +838,8 @@
+     int lambda = a->i_lambda;
+ 
+     /*---------------- Try all mode and calculate their score ---------------*/
+-    /* Disabled i16x16 for AVC-Intra compat */
+-    if( !h->param.b_avcintra_compat )
++    /* Disabled i16x16 for AVC-Intra compat (and for the GamePad, b_drh_no_i16x16) */
++    if( !h->param.b_avcintra_compat && !h->param.b_drh_no_i16x16 )
+     {
+         const int8_t *predict_mode = predict_16x16_mode_available( h->mb.i_neighbour_intra );
+ 
+diff -ru a/x264.h b/x264.h
+--- a/x264.h	2026-10-09 00:11:02.565811590 -0400
++++ b/x264.h	2026-10-09 00:11:02.584045623 -0400
+@@ -330,6 +330,7 @@
+     int         i_drh_i16x16_mask;  /* allowed Intra16x16 directions, bit per I_PRED_16x16_{V,H,DC} (0 = all); the
+                                        DC fallbacks (DC_LEFT/TOP/128) stay allowed. cemu-gamepad project. */
+     int         i_drh_chroma_mask;  /* same for chroma, bit per I_PRED_CHROMA_{DC,H,V} (0 = all) */
++    int         b_drh_no_i16x16;    /* never use Intra16x16 macroblocks (4x4 intra only), as for AVC-Intra compat */
+ 
+     int         b_deblocking_filter;
+     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */

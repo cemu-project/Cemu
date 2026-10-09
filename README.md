@@ -14,6 +14,12 @@ else works exactly like normal Cemu (the original README is further down).
   the same way a Wii U does. Your normal Wi-Fi stays free for the internet. Built-in laptop Wi-Fi usually can't do
   this. The setup window tells you whether an adapter will work.
 
+## Install
+
+For now, Cemu and the GamePad bridge are built from source: Cemu as usual ([BUILD.md](BUILD.md)), then the bridge
+with `gamepad-bridge/build.sh` and `gamepad-bridge/scripts/install.sh` (see [gamepad-bridge/README.md](gamepad-bridge/README.md)).
+A single download is planned.
+
 ## Set up (once)
 
 1. Plug in the USB Wi-Fi adapter.
@@ -35,8 +41,7 @@ Turn the GamePad on and start a game, from Cemu or from a frontend like ES-DE.
 ## Status
 
 Early release. Tested on one PC (Bazzite) with one GamePad, an RT5572 adapter, Nintendo Land, Pokkén Tournament and
-Super Smash Bros. for Wii U. Not done yet: GamePad audio and microphone, the camera, and a single download (for now
-the GamePad bridge is built from source, see its repository).
+Super Smash Bros. for Wii U. Not done yet: GamePad audio and microphone, the camera, and a single download.
 
 ## Why Linux only
 

@@ -1,0 +1,79 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] DRH: cap the motion vector range (i_drh_mv_range_x/y)
+
+The real Wii U never sends a motion vector longer than 70 px horizontally or 55 px vertically (24,430 console
+frames, runs/20261009-104908-resync and -114650-resync, tools/qp/mvdump.c); ours reached 480 px in fast motion,
+and exactly then the GamePad showed blocks stuck until intra refresh repainted them. Clamp the search range, and
+don't use P_SKIP when the predicted (unsearched) MV falls outside the range.
+---
+diff -ru a/encoder/analyse.c b/encoder/analyse.c
+--- a/encoder/analyse.c	2026-10-09 00:11:02.859792264 -0400
++++ b/encoder/analyse.c	2026-10-09 12:02:23.046369427 -0400
+@@ -365,6 +365,14 @@
+     }
+ }
+ 
++/* GamePad (i_drh_mv_range_x/y): may this macroblock be P_SKIP, i.e. is its predicted MV within the range? */
++static int drh_pskip_in_range( x264_t *h )
++{
++    const int16_t *mv = h->mb.cache.pskip_mv;
++    return (h->param.i_drh_mv_range_x <= 0 || abs( mv[0] ) <= 4*h->param.i_drh_mv_range_x)
++        && (h->param.i_drh_mv_range_y <= 0 || abs( mv[1] ) <= 4*h->param.i_drh_mv_range_y);
++}
++
+ /* initialize an array of lambda*nbits for all possible mvs */
+ static void x264_mb_analyse_load_costs( x264_t *h, x264_mb_analysis_t *a )
+ {
+@@ -467,6 +475,11 @@
+             if( max_mv > 0 && h->mb.i_mb_x < h->fdec->i_pir_start_col )
+                 h->mb.mv_max_spel[0] = X264_MIN( h->mb.mv_max_spel[0], max_mv );
+         }
++        if( h->param.i_drh_mv_range_x > 0 )
++        {
++            h->mb.mv_min_spel[0] = X264_MAX( h->mb.mv_min_spel[0], -4*h->param.i_drh_mv_range_x );
++            h->mb.mv_max_spel[0] = X264_MIN( h->mb.mv_max_spel[0], 4*h->param.i_drh_mv_range_x );
++        }
+         h->mb.mv_limit_fpel[0][0] = (h->mb.mv_min_spel[0]>>2) + i_fpel_border;
+         h->mb.mv_limit_fpel[1][0] = (h->mb.mv_max_spel[0]>>2) - i_fpel_border;
+         if( h->mb.i_mb_x == 0 && !(h->mb.i_mb_y & PARAM_INTERLACED) )
+@@ -516,6 +529,11 @@
+                 h->mb.mv_min_spel[1] = x264_clip3( h->mb.mv_min[1], -i_fmv_range, i_fmv_range );
+                 h->mb.mv_max_spel[1] = CLIP_FMV( h->mb.mv_max[1] );
+                 h->mb.mv_max_spel[1] = X264_MIN( h->mb.mv_max_spel[1], thread_mvy_range*4 );
++                if( h->param.i_drh_mv_range_y > 0 )
++                {
++                    h->mb.mv_min_spel[1] = X264_MAX( h->mb.mv_min_spel[1], -4*h->param.i_drh_mv_range_y );
++                    h->mb.mv_max_spel[1] = X264_MIN( h->mb.mv_max_spel[1], 4*h->param.i_drh_mv_range_y );
++                }
+                 h->mb.mv_limit_fpel[0][1] = (h->mb.mv_min_spel[1]>>2) + i_fpel_border;
+                 h->mb.mv_limit_fpel[1][1] = (h->mb.mv_max_spel[1]>>2) - i_fpel_border;
+             }
+@@ -1438,6 +1456,7 @@
+             && m.cost-m.cost_mv < 300*a->i_lambda
+             &&  abs(m.mv[0]-h->mb.cache.pskip_mv[0])
+               + abs(m.mv[1]-h->mb.cache.pskip_mv[1]) <= 1
++            && drh_pskip_in_range( h )
+             && x264_macroblock_probe_pskip( h ) )
+         {
+             h->mb.i_type = P_SKIP;
+@@ -3136,7 +3155,7 @@
+                     h->fdec->mb_info[h->mb.i_mb_xy] &= ~X264_MBINFO_CONSTANT;
+             }
+ 
+-            int skip_invalid = h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1];
++            int skip_invalid = (h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1]) || !drh_pskip_in_range( h );
+             /* If the current macroblock is off the frame, just skip it. */
+             if( HAVE_INTERLACED && !MB_INTERLACED && h->mb.i_mb_y * 16 >= h->param.i_height && !skip_invalid )
+                 b_skip = 1;
+diff -ru a/x264.h b/x264.h
+--- a/x264.h	2026-10-09 00:11:02.860811374 -0400
++++ b/x264.h	2026-10-09 12:02:23.043486315 -0400
+@@ -331,6 +331,8 @@
+                                        DC fallbacks (DC_LEFT/TOP/128) stay allowed. cemu-gamepad project. */
+     int         i_drh_chroma_mask;  /* same for chroma, bit per I_PRED_CHROMA_{DC,H,V} (0 = all) */
+     int         b_drh_no_i16x16;    /* never use Intra16x16 macroblocks (4x4 intra only), as for AVC-Intra compat */
++    int         i_drh_mv_range_x;   /* max |motion vector| in full pixels, horizontal / vertical (0 = H.264 limits) */
++    int         i_drh_mv_range_y;
+ 
+     int         b_deblocking_filter;
+     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */

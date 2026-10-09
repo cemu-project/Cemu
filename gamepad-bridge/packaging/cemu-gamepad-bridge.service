@@ -1,0 +1,18 @@
+# The GamePad bridge, as you (systemd --user): waits for the GamePad network, streams to the pad while it's on
+# the Wi-Fi (an idle screen until Cemu starts), hands Cemu the pad's input. Cemu (any launch, ES-DE included)
+# connects to it on its own. Restarts with the network. Installed by scripts/install.sh, with @BRIDGE@ filled in.
+# Logs: journalctl --user -u cemu-gamepad-bridge
+[Unit]
+Description=Wii U GamePad bridge
+# it restarts every time the pad network does (and keeps retrying while it's down): never give up
+StartLimitIntervalSec=0
+
+[Service]
+ExecStartPre=/bin/sh -c 'until ip -4 addr show | grep -q "inet 192.168.1.10/"; do sleep 2; done'
+TimeoutStartSec=infinity
+ExecStart=@BRIDGE@ --pad real --stats-interval 10
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

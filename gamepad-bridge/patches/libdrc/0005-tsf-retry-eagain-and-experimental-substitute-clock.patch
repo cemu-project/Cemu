@@ -1,0 +1,110 @@
+--- a/src/tsf-linux.cpp
++++ b/src/tsf-linux.cpp
+@@ -32,6 +32,11 @@
+ #include <sys/socket.h>
+ #include <net/if.h>
+ #include <unistd.h>
++#include <cerrno>
++#include <cstdio>
++#include <cstdlib>
++#include <cstring>
++#include <time.h>
+ 
+ namespace drc {
+ 
+@@ -72,8 +77,67 @@
+ 
+ }  // namespace
+ 
++// cemu-gamepad project (patches/libdrc/0005): two changes to the original GetTsf.
++//
++// 1) Reliability of the sysfs TSF read. The original ignored pread failures (perror, then "return 0" with *tsf
++//    uninitialised), and callers ignore the return value anyway (video-streamer.cpp / audio-streamer.cpp
++//    GetTimestamp). Our mac80211 port (patches/mac80211) may return EAGAIN when the wiphy lock is busy, so retry
++//    briefly, and on failure hand back the last good value instead of garbage (and return -1).
++//
++// 2) EXPERIMENTAL substitute clock, opt-in via DRC_TSF_SOURCE, for Wi-Fi drivers without get_tsf (Intel iwlmvm,
++//    see docs/PROTOCOL.md "TSF"):
++//      DRC_TSF_SOURCE=ptp:/dev/ptpN   the NIC's PTP hardware clock (iwlwifi-PTP is the device's GP2 timer), in us
++//      DRC_TSF_SOURCE=monotonic       CLOCK_MONOTONIC, in us
++//    These are NOT the TSF the pad syncs to. Whether the pad accepts them is exactly what this experiment tests.
++//    Unset: original behaviour (sysfs).
++namespace {
++enum class TsfSource { kSysfs, kPtp, kMonotonic };
++
++bool ReadClockUs(clockid_t clk, u64* out) {
++  timespec ts;
++  if (clock_gettime(clk, &ts) != 0) {
++    return false;
++  }
++  *out = static_cast<u64>(ts.tv_sec) * 1000000ULL + static_cast<u64>(ts.tv_nsec) / 1000ULL;
++  return true;
++}
++}  // namespace
++
+ int GetTsf(u64 *tsf) {
++  static bool inited = false;
++  static TsfSource source = TsfSource::kSysfs;
++  static clockid_t ptp_clock = 0;
+   static int fd = -1;
++  static u64 last_good = 0;
++
++  if (!inited) {
++    inited = true;
++    const char* env = getenv("DRC_TSF_SOURCE");
++    if (env && !strncmp(env, "ptp:", 4)) {
++      int pfd = open(env + 4, O_RDONLY);
++      if (pfd < 0) {
++        fprintf(stderr, "libdrc: DRC_TSF_SOURCE=%s: cannot open: %s\n", env, strerror(errno));
++      } else {
++        source = TsfSource::kPtp;
++        ptp_clock = static_cast<clockid_t>((~static_cast<unsigned int>(pfd) << 3) | 3);  // FD_TO_CLOCKID
++        fprintf(stderr, "libdrc: EXPERIMENTAL timestamp source: PTP clock %s (not the Wi-Fi TSF)\n", env + 4);
++      }
++    } else if (env && !strcmp(env, "monotonic")) {
++      source = TsfSource::kMonotonic;
++      fprintf(stderr, "libdrc: EXPERIMENTAL timestamp source: CLOCK_MONOTONIC (not the Wi-Fi TSF)\n");
++    } else if (env && *env) {
++      fprintf(stderr, "libdrc: unknown DRC_TSF_SOURCE=%s; using the sysfs TSF\n", env);
++    }
++  }
++
++  if (source == TsfSource::kPtp || source == TsfSource::kMonotonic) {
++    if (ReadClockUs(source == TsfSource::kPtp ? ptp_clock : CLOCK_MONOTONIC, tsf)) {
++      last_good = *tsf;
++      return 0;
++    }
++    *tsf = last_good;
++    return -1;
++  }
+ 
+   if (fd == -1) {
+     std::string drc_if;
+@@ -89,13 +153,24 @@
+     }
+ 
+     if (fd == -1) {
++      *tsf = last_good;
+       return -1;
+     }
+   }
+-  if (pread(fd, tsf, sizeof (*tsf), 0) != sizeof (*tsf)) {
+-    perror("pread failed - GetTsf");
++  for (int attempt = 0; attempt < 20; ++attempt) {
++    u64 value;
++    if (pread(fd, &value, sizeof (value), 0) == sizeof (value)) {
++      *tsf = last_good = value;
++      return 0;
++    }
++    if (errno != EAGAIN) {
++      break;
++    }
++    usleep(50);
+   }
+-  return 0;
++  perror("pread failed - GetTsf");
++  *tsf = last_good;
++  return -1;
+ }
+ 
+ }  // namespace drc

@@ -1,0 +1,30 @@
+--- a/include/drc/internal/astrm-packet.h
++++ b/include/drc/internal/astrm-packet.h
+@@ -25,6 +25,7 @@
+ #pragma once
+ 
+ #include <array>
++#include <cstddef>
+ #include <drc/types.h>
+ #include <vector>
+ 
+--- a/include/drc/streamer.h
++++ b/include/drc/streamer.h
+@@ -27,6 +27,7 @@
+ #include <drc/input.h>
+ #include <drc/pixel-format.h>
+ #include <drc/types.h>
++#include <functional>
+ #include <memory>
+ #include <string>
+ #include <vector>
+--- a/src/events.cpp
++++ b/src/events.cpp
+@@ -24,6 +24,7 @@
+ 
+ #include <array>
+ #include <cassert>
++#include <cstdio>
+ #include <cstring>
+ #include <drc/internal/events.h>
+ #include <drc/types.h>

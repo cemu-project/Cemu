@@ -1,0 +1,75 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] hostapd: wps_nintendo_ie - Beacon exactly as a real console sends it
+
+Monitor capture of a real Wii U pairing AP (runs/20261008-185810-console):
+its Beacon differs from its Probe Response. The Beacon has a short WPS IE
+(Version, WPS State, Selected Registrar, Device Password ID, SR Config
+Methods), no a4:c0:e1 f5 element, and a Broadcom 00:90:4c 07 element right
+before the WPS IE. Both frames carry WMM QoS Info 0x82. With these, our Beacon
+and Probe Response match the console byte for byte apart from MAC, channel and
+TIM.
+---
+diff -ru a/src/ap/beacon.c b/src/ap/beacon.c
+--- a/src/ap/beacon.c	2026-10-08 19:02:28.798162890 -0400
++++ b/src/ap/beacon.c	2026-10-08 19:02:28.835032806 -0400
+@@ -2560,6 +2560,16 @@
+ 		tailpos = hostapd_eid_wmm(hapd, tailpos);
+ 
+ #ifdef CONFIG_WPS
++	if (hostapd_nin_layout(hapd)) {
++		/* Broadcom vendor element a real console's pairing Beacon has
++		 * right before its WPS IE (not in its Probe Responses),
++		 * runs/20261008-185810-console */
++		static const u8 nin_bcm[] = { WLAN_EID_VENDOR_SPECIFIC, 8,
++					      0x00, 0x90, 0x4c, 0x07,
++					      0x00, 0x51, 0x32, 0x06 };
++		os_memcpy(tailpos, nin_bcm, sizeof(nin_bcm));
++		tailpos += sizeof(nin_bcm);
++	}
+ 	if (hapd->conf->wps_state && hapd->wps_beacon_ie) {
+ 		os_memcpy(tailpos, wpabuf_head(hapd->wps_beacon_ie),
+ 			  wpabuf_len(hapd->wps_beacon_ie));
+diff -ru a/src/ap/wmm.c b/src/ap/wmm.c
+--- a/src/ap/wmm.c	2026-10-08 19:02:28.805235914 -0400
++++ b/src/ap/wmm.c	2026-10-08 19:02:28.835194872 -0400
+@@ -124,6 +124,12 @@
+ 	if (hapd->conf->wmm_uapsd &&
+ 	    (hapd->iface->drv_flags & WPA_DRIVER_FLAGS_AP_UAPSD))
+ 		wmm->qos_info |= 0x80;
++#ifdef CONFIG_TENDONIN
++	/* A real console's pairing AP: QoS Info 0x82 in Beacon and Probe
++	 * Response (runs/20261008-185810-console) */
++	if (hapd->conf->wps_nintendo_ie)
++		wmm->qos_info = 0x82;
++#endif /* CONFIG_TENDONIN */
+ 
+ 	wmm->reserved = 0;
+ 
+diff -ru a/src/wps/wps_registrar.c b/src/wps/wps_registrar.c
+--- a/src/wps/wps_registrar.c	2026-10-08 19:02:28.811953591 -0400
++++ b/src/wps/wps_registrar.c	2026-10-08 19:02:28.834582887 -0400
+@@ -1377,7 +1377,12 @@
+ 			     struct wpabuf *probe)
+ {
+ 	wpa_printf(MSG_DEBUG, "WPS: Build Wii U style Beacon/Probe Response IEs");
+-	if (wps_build_nin_attrs(reg, beacon) ||
++	/* A real console's pairing Beacon carries only Version, WPS State and
++	 * the Selected Registrar attributes (runs/20261008-185810-console);
++	 * its Probe Response has the full set. */
++	if (wps_build_version(beacon) ||
++	    wps_build_wps_state(reg->wps, beacon) ||
++	    wps_build_nin_sel_reg(beacon) ||
+ 	    wps_build_nin_attrs(reg, probe))
+ 		return -1;
+ 	return 0;
+@@ -1466,8 +1471,8 @@
+ 		 * Nintendo OUI only; the GamePad looks for that. */
+ 		beacon = wps_ie_encapsulate_oui(beacon, WPS_DEV_OUI_NIN);
+ 		probe = wps_ie_encapsulate_oui(probe, WPS_DEV_OUI_NIN);
+-		/* The console sends a4:c0:e1 f5 00 right before it */
+-		beacon = wps_nin_prepend_f5(beacon);
++		/* The console sends a4:c0:e1 f5 00 right before it, in
++		 * Probe Responses only */
+ 		probe = wps_nin_prepend_f5(probe);
+ 	} else
+ #endif /* CONFIG_TENDONIN */

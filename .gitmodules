@@ -25,3 +25,12 @@
 [submodule "dependencies/xbyak_aarch64"]
 	path = dependencies/xbyak_aarch64
 	url = https://github.com/fujitsu/xbyak_aarch64
+[submodule "gamepad-bridge/third_party/libdrc"]
+	path = gamepad-bridge/third_party/libdrc
+	url = https://github.com/GaryOderNichts/libdrc.git
+[submodule "gamepad-bridge/third_party/drc-x264"]
+	path = gamepad-bridge/third_party/drc-x264
+	url = https://bitbucket.org/memahaxx/drc-x264.git
+[submodule "gamepad-bridge/third_party/drc-hostap-vanilla"]
+	path = gamepad-bridge/third_party/drc-hostap-vanilla
+	url = https://github.com/vanilla-wiiu/drc-hostap.git

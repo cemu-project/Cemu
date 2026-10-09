@@ -1,0 +1,84 @@
+diff --git a/include/drc/internal/uvcuac-synchronizer.h b/include/drc/internal/uvcuac-synchronizer.h
+index 0c8e255..cd44d32 100644
+--- a/include/drc/internal/uvcuac-synchronizer.h
++++ b/include/drc/internal/uvcuac-synchronizer.h
+@@ -27,6 +27,9 @@
+ #include <drc/internal/cmd-protocol.h>
+ #include <drc/internal/events.h>
+ 
++#include <atomic>
++#include <mutex>
++
+ namespace drc {
+ 
+ class UvcUacStateSynchronizer : public ThreadedEventMachine {
+@@ -44,6 +47,8 @@ class UvcUacStateSynchronizer : public ThreadedEventMachine {
+ 
+  private:
+   UvcUacCmdPacket state_;
++  std::mutex state_mutex_;  // state_ is updated from the CmdClient's thread
++  std::atomic<bool> query_in_flight_{false};
+   CmdClient* cmd_client_;
+ };
+ 
+diff --git a/src/uvcuac-synchronizer.cpp b/src/uvcuac-synchronizer.cpp
+index d24f915..611ef38 100644
+--- a/src/uvcuac-synchronizer.cpp
++++ b/src/uvcuac-synchronizer.cpp
+@@ -47,27 +47,38 @@ void UvcUacStateSynchronizer::Stop() {
+ }
+ 
+ void UvcUacStateSynchronizer::InitEventsAndRun() {
++  // AsyncQuery, not Query: with no GamePad a blocking Query retries for ~10 s, and Stop() can't be handled until
++  // it returns (the bridge's shutdown took >15 s and was aborted). One query in flight at a time.
+   NewRepeatedTimerEvent(1000 * 1000 * 1000, [&](Event*) {
+-    std::vector<byte> drc_reply_state;
+-    bool success = cmd_client_->Query(CmdQueryType::kUvcUacCommand,
+-                                      state_.GetBytes(), state_.GetSize(),
+-                                      &drc_reply_state);
+-    if (success) {
+-      const byte * d = drc_reply_state.data();
+-      state_.SetMicVolume(d[0] | (d[1] << 8));
+-      state_.SetMicJackVolume(d[2] | (d[3] << 8));
++    if (query_in_flight_.exchange(true)) {
++      return true;
++    }
++    std::vector<byte> request;
++    {
++      std::lock_guard<std::mutex> lk(state_mutex_);
++      request.assign(state_.GetBytes(), state_.GetBytes() + state_.GetSize());
++    }
++    cmd_client_->AsyncQuery(CmdQueryType::kUvcUacCommand, request.data(), request.size(),
++        [this](bool success, const std::vector<byte>& drc_reply_state) {
++      if (success && drc_reply_state.size() >= 15) {
++        std::lock_guard<std::mutex> lk(state_mutex_);
++        const byte * d = drc_reply_state.data();
++        state_.SetMicVolume(d[0] | (d[1] << 8));
++        state_.SetMicJackVolume(d[2] | (d[3] << 8));
+ 
+-      // TODO(parlane) complete when someone finds out the
+-      //               meaning of these fields
+-      u32 unk_mc_video_cmos = d[4] | (d[5] << 8) | (d[6] << 16) | (d[7] << 24);
+-      (void)unk_mc_video_cmos;
+-      u32 unk8 = d[8] | (d[9] << 8) | (d[10] << 16) | (d[11] << 24);
+-      (void)unk8;
++        // TODO(parlane) complete when someone finds out the
++        //               meaning of these fields
++        u32 unk_mc_video_cmos = d[4] | (d[5] << 8) | (d[6] << 16) | (d[7] << 24);
++        (void)unk_mc_video_cmos;
++        u32 unk8 = d[8] | (d[9] << 8) | (d[10] << 16) | (d[11] << 24);
++        (void)unk8;
+ 
+-      state_.SetMicEnabled(d[12] != 0);
+-      state_.SetCamPowerFrequency(d[13]);
+-      state_.SetCamAutoExposureEnabled(d[14] != 0);
+-    }
++        state_.SetMicEnabled(d[12] != 0);
++        state_.SetCamPowerFrequency(d[13]);
++        state_.SetCamAutoExposureEnabled(d[14] != 0);
++      }
++      query_in_flight_ = false;
++    });
+     return true;
+   });
+ 

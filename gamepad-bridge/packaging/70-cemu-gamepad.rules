@@ -1,0 +1,5 @@
+# Wii U GamePad: bring up its network (cemu-gamepad-net.service) whenever the RT5572 (rt2800usb) is plugged in.
+# type 1 = an ordinary Wi-Fi interface (not a monitor interface left by a capture script).
+# Every event but remove, not just "add": NetworkManager renames wlan0 -> wlp... right after the add, and that
+# "move" event rewrote the device without the want, so a replugged adapter never started the service.
+ACTION!="remove", SUBSYSTEM=="net", DRIVERS=="rt2800usb", ATTR{type}=="1", TAG+="systemd", ENV{SYSTEMD_WANTS}+="cemu-gamepad-net.service"

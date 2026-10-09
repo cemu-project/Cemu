@@ -1,0 +1,39 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] h264-encoder: experimental DRC_QP override (default 32)
+
+The real GamePad showed a pixelated picture at libdrc QP 32
+(runs/20261008-194137-play). DRC_QP lets us try lower QPs without changing
+libdrc defaults.
+---
+--- a/src/h264-encoder.cpp	2026-10-08 19:45:26.943524958 -0400
++++ b/src/h264-encoder.cpp	2026-10-08 19:45:26.958582251 -0400
+@@ -24,6 +24,7 @@
+ 
+ #include <cassert>
+ #include <cstdio>
++#include <cstdlib>
+ #include <drc/internal/h264-encoder.h>
+ #include <drc/screen.h>
+ #include <drc/types.h>
+@@ -164,8 +165,20 @@
+   param.analyse.i_chroma_qp_offset = 0;
+ 
+   // Set QP = 32 for all frames.
++  // cemu-gamepad EXPERIMENT: DRC_QP=<10..40> overrides it. In DRH mode drc-x264 writes no slice header and
++  // starts every slice at QP 32 (encoder/encoder.c: sh.i_qp = 32, pps i_pic_init_qp = 32); a different QP is then
++  // carried by the first macroblock's mb_qp_delta, plain H.264. Unverified on the pad: a wrong picture means it
++  // doesn't work, so leave it unset for libdrc's behaviour.
++  int qp = 32;
++  if (const char* env = getenv("DRC_QP")) {
++    int v = atoi(env);
++    if (v >= 10 && v <= 40) {
++      qp = v;
++      fprintf(stderr, "libdrc: EXPERIMENTAL encoder QP %d (libdrc default 32)\n", qp);
++    }
++  }
+   param.rc.i_rc_method = X264_RC_CQP;
+-  param.rc.i_qp_constant = param.rc.i_qp_min = param.rc.i_qp_max = 32;
++  param.rc.i_qp_constant = param.rc.i_qp_min = param.rc.i_qp_max = qp;
+   param.rc.f_ip_factor = 1.0;
+ 
+   // Do not output SPS/PPS/SEI/unit delimeters.

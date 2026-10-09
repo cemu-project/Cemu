@@ -1,0 +1,64 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] DRH: optional chunk-slice neighbour availability (b_drh_chunk_slices)
+
+The real GamePad rejected every frame whose content crosses a 6-row chunk
+boundary with anything but flat colour (runs/20261008-235548-vidtest: still
+gradient and checkerboard rejected, noise strip inside one chunk and flat
+screens accepted). Hypothesis: the pad treats each chunk like a slice for
+neighbour availability. b_drh_chunk_slices makes x264 do the same while
+keeping one CABAC stream and one slice in the bitstream.
+---
+diff -ru a/encoder/encoder.c b/encoder/encoder.c
+--- a/encoder/encoder.c	2026-10-09 00:01:31.969818319 -0400
++++ b/encoder/encoder.c	2026-10-09 00:01:31.987566055 -0400
+@@ -2606,6 +2606,10 @@
+ 
+     int cabac_last_size = -2;
+     int b_cabac_chunk_ending = 0;
++    /* b_drh_chunk_slices: x264 judges neighbour availability by slice_table[] == sh.i_first_mb, so moving
++     * i_first_mb to each chunk's first MB makes the rows above unavailable. The real first MB is kept for the
++     * one place that is bitstream syntax (the end_of_slice_flag before every MB but the first). */
++    const int drh_first_mb = h->sh.i_first_mb;
+ 
+     while( 1 )
+     {
+@@ -2645,6 +2649,9 @@
+             h->mb.field[mb_xy] = MB_INTERLACED;
+         }
+ 
++        if( h->param.b_drh_mode && h->param.b_drh_chunk_slices && i_mb_x == 0 && i_mb_y > 0 && (i_mb_y % 6) == 0 )
++            h->sh.i_first_mb = mb_xy;
++
+         /* load cache */
+         if( SLICE_MBAFF )
+             x264_macroblock_cache_load_interlaced( h, i_mb_x, i_mb_y );
+@@ -2659,7 +2666,7 @@
+ 
+         if( h->param.b_cabac )
+         {
+-            if( mb_xy > h->sh.i_first_mb && !(SLICE_MBAFF && (i_mb_y&1)) )
++            if( mb_xy > drh_first_mb && !(SLICE_MBAFF && (i_mb_y&1)) )
+                 x264_cabac_encode_terminal( &h->cabac );
+ 
+             if( IS_SKIP( h->mb.i_type ) )
+@@ -2897,6 +2904,7 @@
+             i_mb_x = 0;
+         }
+     }
++    h->sh.i_first_mb = drh_first_mb;
+     if( h->sh.i_last_mb < h->sh.i_first_mb )
+         return 0;
+ 
+diff -ru a/x264.h b/x264.h
+--- a/x264.h	2026-10-09 00:01:31.966301923 -0400
++++ b/x264.h	2026-10-09 00:01:31.985750312 -0400
+@@ -324,6 +324,9 @@
+     int         b_avcintra_compat;
+ 
+     int         b_drh_mode;         /* Compatibility mode for Wii U Gamepad video encoding */
++    int         b_drh_chunk_slices; /* DRH: neighbours across a 6-row chunk boundary are unavailable, as across a
++                                       slice edge (intra prediction, MV prediction, CABAC contexts); the CABAC
++                                       stream and everything else stay one slice. cemu-gamepad project. */
+ 
+     int         b_deblocking_filter;
+     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */

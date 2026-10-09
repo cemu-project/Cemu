@@ -1,0 +1,206 @@
+From: toph <tophswetel145@gmail.com>
+Subject: [PATCH] hostapd: lar_scan - scan and wait for a self-managed regdom update
+
+Intel LAR firmware (seen on an AX200, iwlmvm) reports country 00 with every
+5 GHz channel NO-IR once the interface is switched to AP mode, so hostapd
+refuses any 5 GHz channel. The firmware lifts NO-IR after it has seen nearby
+APs advertise a country. That decision stays with the firmware: this only
+gives it a scan and waits for its answer before the channel list is read.
+
+New option lar_scan=N (seconds, 0 = off, default). If the configured channel
+is not usable, scan once, then continue setup when a channel-list-changed
+event makes it usable, or after N seconds either way.
+
+Idea from tildearrow's LAR hostapd patch (scan before the channel list is
+read); this is an independent implementation, event-driven, with no fixed sleep.
+---
+--- a/hostapd/config_file.c
++++ b/hostapd/config_file.c
+@@ -3401,6 +3401,14 @@
+ 			return 1;
+ 		}
+ 		conf->beacon_int = val;
++	} else if (os_strcmp(buf, "lar_scan") == 0) {
++		int val = atoi(pos);
++		if (val < 0 || val > 60) {
++			wpa_printf(MSG_ERROR, "Line %d: invalid lar_scan %d (expected 0..60)",
++				   line, val);
++			return 1;
++		}
++		conf->lar_scan = val;
+ #ifdef CONFIG_ACS
+ 	} else if (os_strcmp(buf, "acs_num_scans") == 0) {
+ 		int val = atoi(pos);
+--- a/hostapd/hostapd.conf
++++ b/hostapd/hostapd.conf
+@@ -195,6 +195,15 @@
+ #
+ # Defaults:
+ #acs_num_scans=5
++
++# Self-managed regulatory (e.g. Intel LAR): some firmware drops to a world
++# domain with every 5 GHz channel NO-IR once the interface becomes an AP, and
++# only lifts NO-IR after it has seen nearby APs advertise a country. With
++# lar_scan=N (seconds, 1..60), hostapd scans once before reading the channel
++# list and waits up to N seconds for the driver to report a regulatory update
++# that makes the configured channel usable. It then continues either way.
++# Default: 0 (disabled)
++#lar_scan=15
+ #acs_chan_bias=1:0.8 6:0.8 11:0.8
+ 
+ # Channel list restriction. This option allows hostapd to select one of the
+--- a/src/ap/ap_config.h
++++ b/src/ap/ap_config.h
+@@ -1175,6 +1175,8 @@
+ 	bool delay_eapol_tx;
+ #endif /* CONFIG_TESTING_OPTIONS */
+ 
++	int lar_scan; /* seconds to wait for a firmware regdom update; 0 = off */
++
+ #ifdef CONFIG_ACS
+ 	unsigned int acs_num_scans;
+ 	struct acs_bias {
+--- a/src/ap/hostapd.c
++++ b/src/ap/hostapd.c
+@@ -2111,6 +2111,91 @@
+ }
+ 
+ 
++/* Is the configured channel currently usable for an AP (not disabled, not
++ * NO-IR) according to the driver's channel list? */
++static bool lar_conf_chan_usable(struct hostapd_iface *iface)
++{
++	struct hostapd_data *hapd = iface->bss[0];
++	struct hostapd_hw_modes *modes;
++	u16 num_modes, flags;
++	u8 dfs_domain;
++	bool usable = false;
++	int i, j;
++
++	modes = hostapd_get_hw_feature_data(hapd, &num_modes, &flags,
++					    &dfs_domain);
++	if (!modes)
++		return false;
++	for (i = 0; i < num_modes; i++) {
++		if (modes[i].mode != iface->conf->hw_mode)
++			continue;
++		for (j = 0; j < modes[i].num_channels; j++) {
++			struct hostapd_channel_data *chan =
++				&modes[i].channels[j];
++
++			if (chan->chan == iface->conf->channel &&
++			    !is_6ghz_freq(chan->freq) &&
++			    !(chan->flag & (HOSTAPD_CHAN_DISABLED |
++					    HOSTAPD_CHAN_NO_IR)))
++				usable = true;
++		}
++	}
++	hostapd_free_hw_features(modes, num_modes);
++	return usable;
++}
++
++
++static void lar_scan_log_country(struct hostapd_iface *iface, const char *when)
++{
++	char country[4];
++
++	if (hostapd_get_country(iface->bss[0], country) < 0)
++		os_strlcpy(country, "??", sizeof(country));
++	wpa_printf(MSG_INFO, "LAR scan: %s, driver country %c%c", when,
++		   country[0], country[1]);
++}
++
++
++static void lar_scan_timeout(void *eloop_ctx, void *timeout_ctx)
++{
++	struct hostapd_iface *iface = eloop_ctx;
++
++	if (!iface->lar_scan_waiting)
++		return;
++	iface->lar_scan_waiting = 0;
++	lar_scan_log_country(iface, "timed out, continuing with the current channel list");
++	setup_interface2(iface);
++}
++
++
++/* Returns 1 if setup will continue from an event or timeout, 0 to go on now. */
++static int lar_scan_start(struct hostapd_iface *iface)
++{
++	struct wpa_driver_scan_params params;
++
++	if (!iface->conf->lar_scan || iface->lar_scan_done ||
++	    !iface->conf->channel)
++		return 0;
++	iface->lar_scan_done = 1;
++
++	if (lar_conf_chan_usable(iface)) {
++		lar_scan_log_country(iface, "configured channel already usable, no scan");
++		return 0;
++	}
++
++	lar_scan_log_country(iface, "configured channel not usable, scanning");
++	os_memset(&params, 0, sizeof(params));
++	if (hostapd_driver_scan(iface->bss[0], &params) < 0) {
++		wpa_printf(MSG_ERROR, "LAR scan: scan request failed, continuing without it");
++		return 0;
++	}
++	iface->lar_scan_waiting = 1;
++	eloop_register_timeout(iface->conf->lar_scan, 0, lar_scan_timeout,
++			       iface, NULL);
++	return 1;
++}
++
++
+ static void channel_list_update_timeout(void *eloop_ctx, void *timeout_ctx)
+ {
+ 	struct hostapd_iface *iface = eloop_ctx;
+@@ -2131,6 +2216,18 @@
+ 
+ void hostapd_channel_list_updated(struct hostapd_iface *iface, int initiator)
+ {
++	if (iface->lar_scan_waiting) {
++		if (!lar_conf_chan_usable(iface)) {
++			lar_scan_log_country(iface, "channel list changed, configured channel still not usable");
++			return;
++		}
++		iface->lar_scan_waiting = 0;
++		eloop_cancel_timeout(lar_scan_timeout, iface, NULL);
++		lar_scan_log_country(iface, "channel list changed, configured channel usable");
++		setup_interface2(iface);
++		return;
++	}
++
+ 	if (initiator == REGDOM_SET_BY_DRIVER) {
+ 		hostapd_for_each_interface(iface->interfaces,
+ 					   hostapd_no_ir_channel_list_updated,
+@@ -2216,6 +2313,9 @@
+ 		}
+ 	}
+ 
++	if (lar_scan_start(iface))
++		return 0;
++
+ 	return setup_interface2(iface);
+ }
+ 
+@@ -3089,6 +3189,9 @@
+ 	eloop_cancel_timeout(channel_list_update_timeout, iface, NULL);
+ 	iface->wait_channel_update = 0;
+ 	iface->is_no_ir = false;
++	eloop_cancel_timeout(lar_scan_timeout, iface, NULL);
++	iface->lar_scan_waiting = 0;
++	iface->lar_scan_done = 0;
+ 
+ #ifdef CONFIG_FST
+ 	if (iface->fst) {
+--- a/src/ap/hostapd.h
++++ b/src/ap/hostapd.h
+@@ -599,6 +599,8 @@
+ 	struct hostapd_data **bss;
+ 
+ 	unsigned int wait_channel_update:1;
++	unsigned int lar_scan_waiting:1;
++	unsigned int lar_scan_done:1;
+ 	unsigned int cac_started:1;
+ #ifdef CONFIG_FST
+ 	struct fst_iface *fst;
