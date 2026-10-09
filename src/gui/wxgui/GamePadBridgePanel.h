@@ -1,27 +1,21 @@
 #pragma once
 
 #include <wx/panel.h>
-#include <wx/spinctrl.h>
 
 class wxCheckBox;
-class wxSpinCtrl;
 
-// "GamePad" tab in the General settings dialog (fork-only).
-// Reads and writes GamePadBridgeConfig directly; the dialog's normal save on close
-// persists it, because GamePadBridgeConfig is a child of settings.xml.
+// Settings > GamePad (fork-only). Before setup: only a "Set up GamePad" button. After: status and a few options.
 class GamePadBridgePanel : public wxPanel
 {
 public:
 	GamePadBridgePanel(wxWindow* parent);
 
 private:
+	void Build();
+	void RunSetup();
 	void OnEnableChanged(wxCommandEvent& event);
-	void OnTvHoldChanged(wxSpinEvent& event);
-	void OnPatternChanged(wxCommandEvent& event);
 	void OnMirrorTvChanged(wxCommandEvent& event);
 
-	wxCheckBox* m_enable;
-	wxSpinCtrl* m_tvHold;
-	wxCheckBox* m_pattern;
-	wxCheckBox* m_mirrorTv;
+	wxCheckBox* m_enable = nullptr;
+	wxCheckBox* m_mirrorTv = nullptr;
 };
