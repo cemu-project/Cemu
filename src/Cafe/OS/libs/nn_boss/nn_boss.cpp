@@ -1215,6 +1215,7 @@ namespace nn::boss
 
 		void RPLUnmapped() override
 		{
+			s_ipcClient.Shutdown();
 			s_rplData.Deallocate();
 		}
 

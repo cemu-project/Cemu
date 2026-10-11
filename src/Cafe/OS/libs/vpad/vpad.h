@@ -3,12 +3,6 @@
 #include "Cafe/OS/libs/padscore/padscore.h"
 #include "Cafe/OS/RPL/COSModule.h"
 
-namespace vpad
-{
-	void load();
-	void start();
-}
-
 #define VPAD_MAX_CONTROLLERS (2)
 
 struct BtnRepeat

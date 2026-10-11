@@ -685,6 +685,8 @@ namespace swkbd
 		void RPLMapped() override
 		{
 			s_swkbdStaticData.Allocate();
+			isNeedCalcSubThreadFont = 0;
+			isNeedCalcSubThreadPredict = 0;
 			cafeExportRegisterFunc(SwkbdCreate, "swkbd", "SwkbdCreate__3RplFPUcQ3_2nn5swkbd10RegionTypeUiP8FSClient", LogType::SWKBD);
 			cafeExportRegisterFunc(SwkbdCalc, "swkbd", "SwkbdCalc__3RplFRCQ3_2nn5swkbd14ControllerInfo", LogType::SWKBD);
 			cafeExportRegisterFunc(SwkbdGetStateKeyboard, "swkbd", "SwkbdGetStateKeyboard__3RplFv", LogType::SWKBD);

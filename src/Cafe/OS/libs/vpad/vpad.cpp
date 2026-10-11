@@ -52,27 +52,23 @@ extern bool isLaunchTypeELF;
 
 constinit COSStaticData s_vpadStaticData;
 
-VPADDir g_vpadGyroDirOverwrite[VPAD_MAX_CONTROLLERS] =
-{
-		{{1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}, {0.0f, 0.0f, 0.1f}},
-		{{1.0f,0.0f,0.0f}, {0.0f,1.0f,0.0f}, {0.0f, 0.0f, 0.1f}}
-};
-uint32 g_vpadGyroZeroDriftMode[VPAD_MAX_CONTROLLERS] = { VPAD_GYRO_ZERODRIFT_STANDARD, VPAD_GYRO_ZERODRIFT_STANDARD };
+VPADDir g_vpadGyroDirOverwrite[VPAD_MAX_CONTROLLERS];
+uint32 g_vpadGyroZeroDriftMode[VPAD_MAX_CONTROLLERS];
 
 struct VPACGyroDirRevise_t
 {
 	bool enabled;
 	VPADDir vpadGyroDirReviseBase;
 	float weight;
-} g_vpadGyroDirRevise[VPAD_MAX_CONTROLLERS] = {};
+} g_vpadGyroDirRevise[VPAD_MAX_CONTROLLERS];
 
 struct VPADAccParam_t
 { // TODO P: use
 	float playRadius;
 	float sensitivity;
-} g_vpadAccParam[VPAD_MAX_CONTROLLERS] = { {0, 1}, {0, 1} };
+} g_vpadAccParam[VPAD_MAX_CONTROLLERS];
 
-uint32 g_vpadPlayMode[VPAD_MAX_CONTROLLERS] = { VPAD_PLAY_MODE_TIGHT, VPAD_PLAY_MODE_TIGHT }; // TODO P: use
+uint32 g_vpadPlayMode[VPAD_MAX_CONTROLLERS]; // TODO P: use
 
 #define VPAD_MIN_CLAMP	(0x102)
 #define VPAD_MAX_CLAMP	(0x397)
@@ -86,7 +82,7 @@ struct VPADStickClamp
 
 	sint32 rightMax;
 	sint32 rightMin;
-} vpadStickClamp[VPAD_MAX_CONTROLLERS] = { {false, VPAD_MAX_CLAMP, VPAD_MIN_CLAMP}, {false, VPAD_MAX_CLAMP, VPAD_MIN_CLAMP} };
+} vpadStickClamp[VPAD_MAX_CONTROLLERS];
 
 struct VPADCrossStickEmulationParams
 { // TODO P: use
@@ -97,10 +93,10 @@ struct VPADCrossStickEmulationParams
 	float rightRotation;
 	float rightInputRange;
 	float rightRadius;
-} vpadCrossStickEmulationParams[VPAD_MAX_CONTROLLERS] = {};
+} vpadCrossStickEmulationParams[VPAD_MAX_CONTROLLERS];
 
-uint8 vpadButtonProcMode[VPAD_MAX_CONTROLLERS] = { VPAD_BUTTON_PROC_MODE_TIGHT, VPAD_BUTTON_PROC_MODE_TIGHT }; // TODO P: use
-uint32 vpadLcdMode[VPAD_MAX_CONTROLLERS] = { VPAD_LCD_MODE_ON, VPAD_LCD_MODE_ON };
+uint8 vpadButtonProcMode[VPAD_MAX_CONTROLLERS]; // TODO P: use
+uint32 vpadLcdMode[VPAD_MAX_CONTROLLERS];
 
 struct VPADTPCalibrationParam
 { // TODO P: use
@@ -108,7 +104,7 @@ struct VPADTPCalibrationParam
 	uint16be offsetY;
 	float32be scaleX;
 	float32be scaleY;
-} vpadTPCalibrationParam[VPAD_MAX_CONTROLLERS] = { {92, 254, (1280.0f / 3883.0f), (720.0f / 3694.0f)}, {92, 254, (1280.0f / 3883.0f), (720.0f / 3694.0f)} };
+} vpadTPCalibrationParam[VPAD_MAX_CONTROLLERS];
 
 void _tpRawToResolution(sint32 x, sint32 y, sint32* outX, sint32* outY, sint32 width, sint32 height)
 {
@@ -168,7 +164,7 @@ namespace vpad
 
 		struct
 		{
-			uint64 drcLastCallTime = 0;
+			uint64 drcLastCallTime;
 
 			struct AccParam
 			{
@@ -179,26 +175,26 @@ namespace vpad
 			MEMPTR<void> sampling_callback;
 			PlayMode acc_play_mode;
 
-			VPADTPCalibrationParam tp_calibration_param{};
+			VPADTPCalibrationParam tp_calibration_param;
 			uint16 tp_size = 0xc;
 
 			struct
 			{
 				float rotation, range, radius;
-			}cross_stick_emulation_l{}, cross_stick_emulation_r{};
+			}cross_stick_emulation_l, cross_stick_emulation_r;
 
 			ButtonProcMode button_proc_mode;
 
 			struct
 			{
-				bool enabled = false;
+				bool enabled;
 				struct
 				{
 					sint32 min = 0x102, max = 0x397;
-				} left{}, right{};
-			}stick_cross_clamp{};
+				} left, right;
+			}stick_cross_clamp;
 
-		}controller_data[VPAD_MAX_CONTROLLERS]{};
+		}controller_data[VPAD_MAX_CONTROLLERS];
 	} g_vpad;
 
 	
@@ -1157,10 +1153,19 @@ namespace vpad
 		coreinit::OSSetPeriodicAlarm(&g_vpad.alarm, start_tick, period_tick, handler);
 	}
 
-	void load()
+	void SetChannelDefaults(sint32 channel)
 	{
-
-
+		g_vpad.controller_data[channel] = {};
+		g_vpadGyroDirOverwrite[channel] = {{1.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.0f, 0.0f, 0.1f}};
+		g_vpadGyroZeroDriftMode[channel] = VPAD_GYRO_ZERODRIFT_STANDARD;
+		g_vpadGyroDirRevise[channel] = {};
+		g_vpadAccParam[channel] = {0, 1};
+		g_vpadPlayMode[channel] = VPAD_PLAY_MODE_TIGHT;
+		vpadStickClamp[channel] = {false, VPAD_MAX_CLAMP, VPAD_MIN_CLAMP};
+		vpadCrossStickEmulationParams[channel] = {};
+		vpadButtonProcMode[channel] = VPAD_BUTTON_PROC_MODE_TIGHT;
+		vpadLcdMode[channel] = VPAD_LCD_MODE_ON;
+		vpadTPCalibrationParam[channel] = {92, 254, (1280.0f / 3883.0f), (720.0f / 3694.0f)};
 	}
 
 	class : public COSModule
@@ -1174,6 +1179,14 @@ namespace vpad
 		void RPLUnmapped() override
 		{
 			coreinit::OSCancelAlarm(g_vpad.alarm.GetPtr());
+			for (uint32 channel = 0; channel < VPAD_MAX_CONTROLLERS; channel++)
+			{
+				if (auto controller = InputManager::instance().get_vpad_controller(channel))
+				{
+					controller->clear_rumble();
+					controller->stop_rumble();
+				}
+			}
 			s_vpadStaticData.Deallocate();
 		}
 
@@ -1186,6 +1199,8 @@ namespace vpad
 		void RPLMapped() override
 		{
 			s_vpadStaticData.Allocate();
+			for (sint32 i = 0; i < VPAD_MAX_CONTROLLERS; i++)
+				SetChannelDefaults(i);
 			cafeExportRegister("vpad", VPADSetBtnRepeat, LogType::InputAPI);
 			cafeExportRegister("vpad", VPADSetSamplingCallback, LogType::InputAPI);
 			cafeExportRegister("vpad", VPADRead, LogType::InputAPI);

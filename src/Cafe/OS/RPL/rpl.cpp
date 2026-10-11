@@ -2186,6 +2186,7 @@ void RPLLoader_UpdateDependencies()
 				}
 				// remove from dependency list
 				s_rplDependencyList.erase(s_rplDependencyList.begin()+idx);
+				delete dependency;
 				idx--;
 				repeat = true; // unload can effect reference count of other dependencies
 				break;
@@ -2490,6 +2491,8 @@ void RPLLoader_UnloadAll()
 			dependency->rplHLEModule->rpl_entry(dependency->coreinitHandle, coreinit::RplEntryReason::Unloaded);
 		dependency->rplHLEModule->RPLUnmapped();
 	}
+	for (auto* dependency : s_rplDependencyList)
+		delete dependency;
 	s_rplDependencyList.clear();
 	// unload all remaining symbols
 	rplSymbolStorage_unloadAll();

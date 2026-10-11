@@ -1332,6 +1332,18 @@ namespace snd_user
 		__UnimplementedFXCallback(auxSamples, 96, true, true, true, false, false, false);
 	}
 
+	void ResetToDefaultState()
+	{
+		g_snd_user_data.initialized = false;
+		g_snd_user_data.max_voices = 0;
+		g_snd_user_data.device_info = {};
+		for (auto& channel : g_snd_user_data.mix_channel)
+			channel = {};
+		s_fxAlloc = nullptr;
+		s_fxFree = nullptr;
+		gUnsupportedSoundEffectWarning = false;
+	}
+
 	class : public COSModule
 	{
 		public:
@@ -1342,6 +1354,7 @@ namespace snd_user
 
 		void RPLMapped() override
 		{
+			ResetToDefaultState();
 			/* snd_user */
 			cafeExportRegister("snd_user", MIXInit, LogType::SoundAPI);
 			cafeExportRegister("snd_user", MIXSetSoundMode, LogType::SoundAPI);
@@ -1390,6 +1403,7 @@ namespace snd_user
 
 		void RPLMapped() override
 		{
+			ResetToDefaultState();
 			/* snduser2 */
 			cafeExportRegister("snduser2", MIXInit, LogType::SoundAPI);
 			cafeExportRegister("snduser2", MIXSetSoundMode, LogType::SoundAPI);

@@ -890,7 +890,10 @@ void nnNfp_update()
 		return;
 	// make sure amiibo is still touching after acquiring lock
 	if (nfp_data.hasActiveAmiibo == false)
+	{
+		nnNfpUnlock();
 		return;
+	}
 	uint32 amiiboElapsedTouchTime = GetTickCount() - nfp_data.amiiboTouchTime;
 	if (amiiboElapsedTouchTime >= 1500)
 	{
@@ -977,10 +980,9 @@ namespace nn::nfp
 		memcpy(callbackParam->uid, nfp_data.amiiboProcessedData.uid, nfp_data.amiiboProcessedData.uidLength);
 		callbackParam->uidLength = (uint8)nfp_data.amiiboProcessedData.uidLength;
 
-		PPCCoreCallback(functionPtr, index, 0, _callbackParam.GetPointer(), userParam);
-
 		nnNfpUnlock();
 
+		PPCCoreCallback(functionPtr, index, 0, _callbackParam.GetPointer(), userParam);
 
 		return 0; // 0 -> success
 	}
@@ -1047,6 +1049,9 @@ namespace nn::nfp
 
 		void RPLMapped() override
 		{
+			nnNfpLock();
+			nfp_data = {};
+			nnNfpUnlock();
 			nnNfp_load(); // legacy interface, update these to use cafeExportRegister / cafeExportRegisterFunc
 
 			cafeExportRegisterFunc(nn::nfp::GetErrorCode, "nn_nfp", "GetErrorCode__Q2_2nn3nfpFRCQ2_2nn6Result", LogType::NN_NFP);

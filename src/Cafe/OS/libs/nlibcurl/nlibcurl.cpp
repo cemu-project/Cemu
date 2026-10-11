@@ -662,7 +662,7 @@ void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
 	{
 		sint32 wuSocket = nsysnet_getVirtualSocketHandleFromHostHandle(s);
 		if (wuSocket < 0)
-			wuSocket = nsysnet_createVirtualSocketFromExistingSocket(s);
+			wuSocket = nsysnet_createVirtualSocketFromExistingSocket(s, true);
 		if (wuSocket >= 0)
 		{
 			c_maxFD = std::max(wuSocket, c_maxFD);
@@ -939,8 +939,14 @@ int ssl_verify_callback(int preverify_ok, X509_STORE_CTX* ctx)
 CURLcode ssl_ctx_callback(CURL* curl, void* sslctx, void* param)
 {
 	//peterBreak();
+	std::lock_guard lock(nsysnet::s_nsslContextMutex);
 	CURL_t* ppcCurl = (CURL_t*)param;
 	nsysnet::NSSLInternalState_t* nssl = nsysnet::GetNSSLContext((uint32)ppcCurl->hNSSL);
+	if (!nssl)
+	{
+		cemuLog_log(LogType::Force, "CURL invalid NSSL context");
+		return CURLE_SSL_CACERT;
+	}
 
 	for (uint32 i : nssl->serverPKIs)
 	{
@@ -1506,6 +1512,11 @@ CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_
 	class : public COSModule
 	{
 		public:
+		std::vector<std::string_view> GetDependencies() override
+		{
+			return {"nsysnet"};
+		}
+
 		std::string_view GetName() override
 		{
 			return "nlibcurl";

@@ -428,6 +428,8 @@ namespace snd_core
 	void AXOut_reset()
 	{
 		std::unique_lock lock(g_audioMutex);
+		tempAudioBlockCounter = 0;
+		tempDRCAudioBlockCounter = 0;
 		if (g_tvAudio)
 		{
 			g_tvAudio->Stop();

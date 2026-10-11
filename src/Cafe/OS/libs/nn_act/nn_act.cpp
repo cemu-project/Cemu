@@ -695,6 +695,8 @@ namespace nn::act
 
 		void RPLMapped() override
 		{
+			g_initializeCount = 0;
+			g_isParentalControlCheckEnabled = false;
 			osLib_addFunction("nn_act", "Initialize__Q2_2nn3actFv", nnActExport_Initialize);
 
 			osLib_addFunction("nn_act", "CreateConsoleAccount__Q2_2nn3actFv", nnActExport_CreateConsoleAccount);

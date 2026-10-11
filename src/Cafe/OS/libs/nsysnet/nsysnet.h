@@ -13,7 +13,7 @@
 
 typedef signed int WUSOCKET;
 
-WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket);
+WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket, bool isExternal = false);
 void nsysnet_notifyCloseSharedSocket(SOCKET existingSocket);
 
 struct wu_fd_set
@@ -42,6 +42,7 @@ namespace nsysnet
 	};
 
 	NSSLInternalState_t* GetNSSLContext(sint32 index);
+	extern std::mutex s_nsslContextMutex;
 
 	void wuResetFD(struct wu_fd_set* fdset);
 	void wuSetFD(struct wu_fd_set* fdset, sint32 fd);

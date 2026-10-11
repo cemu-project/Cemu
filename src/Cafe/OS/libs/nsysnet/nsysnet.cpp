@@ -87,20 +87,24 @@ bool sockLibReady = false;
 
 void nsysnetExport_socket_lib_init(PPCInterpreter_t* hCPU)
 {
-	sockLibReady = true;
 #if BOOST_OS_WINDOWS
-	WSADATA wsa;
-	WSAStartup(MAKEWORD(2, 2), &wsa);
+	if (!sockLibReady)
+	{
+		WSADATA wsa;
+		WSAStartup(MAKEWORD(2, 2), &wsa);
+	}
 #endif // BOOST_OS_WINDOWS
+	sockLibReady = true;
 	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
 }
 
 void nsysnetExport_socket_lib_finish(PPCInterpreter_t* hCPU)
 {
-	sockLibReady = false;
 #if BOOST_OS_WINDOWS
-	WSACleanup();
+	if (sockLibReady)
+		WSACleanup();
 #endif // BOOST_OS_WINDOWS
+	sockLibReady = false;
 	osLib_returnFromFunction(hCPU, 0); // 0 -> Success
 }
 
@@ -190,6 +194,7 @@ typedef struct
 	sint32 protocol;
 	// host side info
 	SOCKET s;
+	bool isExternal;
 	// socket options
 	bool isNonBlocking;
 }virtualSocket_t;
@@ -276,11 +281,10 @@ WUSOCKET nsysnet_createVirtualSocket(sint32 family, sint32 type, sint32 protocol
 	return vs->handle;
 }
 
-WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket)
+WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket, bool isExternal)
 {
-	cemuLog_logDebug(LogType::Force, "nsysnet_createVirtualSocketFromExistingSocket - incomplete");
-
-
+	if (isExternal)
+		cemuLog_logDebug(LogType::Force, "nsysnet_createVirtualSocketFromExistingSocket - incomplete");
 	sint32 s = _getFreeSocketHandle();
 	if (s == 0)
 	{
@@ -320,6 +324,7 @@ WUSOCKET nsysnet_createVirtualSocketFromExistingSocket(SOCKET existingSocket)
 	vs->handle = s;
 	virtualSocketTable[s - 1] = vs;
 	vs->s = existingSocket;
+	vs->isExternal = isExternal;
 	return vs->handle;
 }
 
@@ -2000,6 +2005,7 @@ void nsysnetExport_sendto_multi_ex(PPCInterpreter_t* hCPU)
 namespace nsysnet
 {
 	std::vector<NSSLInternalState_t> g_nsslInternalStates;
+	std::mutex s_nsslContextMutex;
 
 	NSSLInternalState_t* GetNSSLContext(sint32 index)
 	{
@@ -2214,11 +2220,29 @@ namespace nsysnet
 
 		void RPLUnmapped() override
 		{
+			for (auto& socket : virtualSocketTable)
+			{
+				if (!socket)
+					continue;
+				if (!socket->isExternal)
+					closesocket(socket->s);
+				free(socket);
+				socket = nullptr;
+			}
+			{
+				std::lock_guard lock(s_nsslContextMutex);
+				g_nsslInternalStates.clear();
+			}
+#if BOOST_OS_WINDOWS
+			if (sockLibReady)
+				WSACleanup();
+#endif
 			s_nsysnetData.Deallocate();
 		}
 
 		void RPLMapped() override
 		{
+			sockLibReady = false;
 			s_nsysnetData.Allocate();
 			cafeExportRegister("nsysnet", inet_ntop, LogType::Socket);
 

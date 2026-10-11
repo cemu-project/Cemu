@@ -11,6 +11,8 @@ namespace nn
 {
 	namespace idbe
 	{
+		std::atomic<uint32> s_activeTaskCount{0};
+
 		struct nnIdbeIconDataV0_t
 		{
 			// raw icon data as byte array
@@ -49,11 +51,11 @@ namespace nn
 				// icon does not exist or has the wrong size
 				cemuLog_log(LogType::Force, "IDBE: Failed to retrieve icon for title {:016x}", titleId);
 				memset(iconOut, 0, sizeof(nnIdbeEncryptedIcon_t));
-				coreinit::OSSignalEvent(event);
-				return;
 			}
-			memcpy(iconOut, idbeData.data(), sizeof(nnIdbeEncryptedIcon_t));
+			else
+				memcpy(iconOut, idbeData.data(), sizeof(nnIdbeEncryptedIcon_t));
 			coreinit::OSSignalEvent(event);
+			--s_activeTaskCount;
 		}
 
 		void export_DownloadIconFile(PPCInterpreter_t* hCPU)
@@ -65,7 +67,8 @@ namespace nn
 
 			StackAllocator<coreinit::OSEvent> event;
 			coreinit::OSInitEvent(&event, coreinit::OSEvent::EVENT_STATE::STATE_NOT_SIGNALED, coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
-			auto asyncTask = std::async(std::launch::async, asyncDownloadIconFile, titleId, encryptedIconData, &event);
+			++s_activeTaskCount;
+			std::thread(asyncDownloadIconFile, titleId, encryptedIconData, &event).detach();
 			coreinit::OSWaitEvent(&event);
 			osLib_returnFromFunction(hCPU, 1);
 		}
@@ -182,7 +185,13 @@ namespace nn
 			{
 				osLib_addFunction("nn_idbe", "DownloadIconFile__Q2_2nn4idbeFPvULUsb", export_DownloadIconFile);
 				osLib_addFunction("nn_idbe", "DecryptIconFile__Q2_2nn4idbeFPvPCv", export_DecryptIconFile);
-			};
+			}
+
+			void RPLUnmapped() override
+			{
+				while (s_activeTaskCount != 0)
+					std::this_thread::sleep_for(std::chrono::milliseconds(1));
+			}
 
 		}s_COSnnIdbeModule;
 

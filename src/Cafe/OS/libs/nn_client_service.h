@@ -199,6 +199,7 @@ public:
 
 	void Initialize(std::string_view devicePath, uint8_t* buffer, uint32_t bufferSize)
     {
+    	cemu_assert_debug(m_clientHandle == 0);
     	m_devicePath = devicePath;
     	m_buffer = buffer;
     	m_bufferSize = bufferSize;
@@ -216,11 +217,13 @@ public:
 
     void Shutdown()
     {
-        if (m_clientHandle != 0)
-        {
-	        coreinit::IOS_Close(m_clientHandle);
-            m_clientHandle = 0;
-        }
+        if (m_clientHandle != 0 && coreinit::OSIsSchedulerActive())
+            coreinit::IOS_Close(m_clientHandle);
+        m_clientHandle = 0;
+    	m_devicePath.clear();
+    	m_buffer = nullptr;
+    	m_bufferSize = 0;
+    	m_commandBuffersFree.clear();
     }
 
     IPCServiceCall Begin(uint32_t serviceId, uint32_t commandId)

@@ -41,7 +41,7 @@ namespace nn
 		{
 			if(s_initializeRefCount == 0)
 				return BUILD_NN_RESULT(NN_RESULT_LEVEL_STATUS, NN_RESULT_MODULE_NN_NDM, 0);
-			s_initializeRefCount++;
+			s_initializeRefCount--;
 			return BUILD_NN_RESULT(NN_RESULT_LEVEL_SUCCESS, NN_RESULT_MODULE_NN_NDM, 0);
 		}
 

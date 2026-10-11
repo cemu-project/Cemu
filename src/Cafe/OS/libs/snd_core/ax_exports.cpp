@@ -19,7 +19,10 @@ namespace snd_core
 		sndGeneric = {};
 		resetNumProcessedFrames();
 		if (g_sndStaticData.IsAllocated())
+		{
+			AXResetCallbacks();
 			AXVBP_Reset();
+		}
     }
 
 	bool AXIsInit()

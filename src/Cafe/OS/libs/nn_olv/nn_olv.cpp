@@ -108,11 +108,14 @@ namespace nn
 
 			void RPLUnmapped() override
 			{
+				OfflineDB_Shutdown();
 				s_nnolvStaticData.Deallocate();
 			}
 
 			void RPLMapped() override
 			{
+				g_ParamPack = {};
+				g_DiscoveryResults = {};
 				s_nnolvStaticData.Allocate();
 				loadOliveInitializeTypes();
 				loadOliveUploadCommunityTypes();
@@ -142,10 +145,6 @@ namespace nn
 					g_IsOnlineMode = false;
 					g_IsInitialized = false;
 					g_IsOfflineDBMode = false;
-				}
-				else if (reason == coreinit::RplEntryReason::Unloaded)
-				{
-					OfflineDB_Shutdown();
 				}
 			}
 		}s_COSnnOlvModule;
