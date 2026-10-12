@@ -117,10 +117,12 @@ void PPCRecompiler_recompileIfUnvisited(uint32 enterAddress)
 void PPCRecompiler_enter(PPCInterpreter_t* hCPU, PPCREC_JUMP_ENTRY funcPtr)
 {
 #if BOOST_OS_WINDOWS
-	uint32 prevState = _controlfp(0, 0);
-	_controlfp(_RC_NEAR, _MCW_RC);
+	uint32 prevCsr = _mm_getcsr();
+	if (prevCsr & _MM_ROUND_MASK) [[unlikely]]
+		_mm_setcsr(prevCsr & ~_MM_ROUND_MASK);
 	PPCRecompiler_enterRecompilerCode((uint64)funcPtr, (uint64)hCPU);
-	_controlfp(prevState, _MCW_RC);
+	if (prevCsr & _MM_ROUND_MASK) [[unlikely]]
+		_mm_setcsr((_mm_getcsr() & ~_MM_ROUND_MASK) | (prevCsr & _MM_ROUND_MASK));
 	// debug recompiler exit - useful to find frequently executed functions which couldn't be recompiled
 	#ifdef CEMU_DEBUG_ASSERT
 	if (hCPU->remainingCycles > 0 && GetAsyncKeyState(VK_F4))

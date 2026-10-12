@@ -1604,6 +1604,8 @@ bool PPCRecompiler_generateX64Code(PPCRecFunction_t* PPCRecFunction, ppcImlGenCo
 	return true;
 }
 
+static void* s_enterRecompilerCodeExit = nullptr;
+
 void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 {
 	x64GenContext_t x64GenContext{};
@@ -1617,23 +1619,9 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R13);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R14);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R15);
-	x64Gen_sub_reg64_imm32(&x64GenContext, X86_REG_RSP, 16 * 10 + 8);
+	x64Gen_sub_reg64_imm32(&x64GenContext, X86_REG_RSP, 8 + 16 * 10 + 8);
 	for (sint32 i = 0; i < 10; i++)
-		x64Gen_movupd_memReg128_xmmReg(&x64GenContext, 6 + i, X86_REG_ESP, 16 * i);
-
-	// 000000007775EF04 | E8 00 00 00 00                      call +0x00
-	x64Gen_writeU8(&x64GenContext, 0xE8);
-	x64Gen_writeU8(&x64GenContext, 0x00);
-	x64Gen_writeU8(&x64GenContext, 0x00);
-	x64Gen_writeU8(&x64GenContext, 0x00);
-	x64Gen_writeU8(&x64GenContext, 0x00);
-	//000000007775EF09 | 48 83 04 24 05                       add qword ptr ss:[rsp],5
-	x64Gen_writeU8(&x64GenContext, 0x48);
-	x64Gen_writeU8(&x64GenContext, 0x83);
-	x64Gen_writeU8(&x64GenContext, 0x04);
-	x64Gen_writeU8(&x64GenContext, 0x24);
-	uint32 jmpPatchOffset = x64GenContext.emitter->GetWriteIndex();
-	x64Gen_writeU8(&x64GenContext, 0); // skip the distance until after the JMP
+		x64Gen_movupd_memReg128_xmmReg(&x64GenContext, 6 + i, X86_REG_ESP, 8 + 16 * i);
 	x64Emit_mov_mem64_reg64(&x64GenContext, X86_REG_RDX, offsetof(PPCInterpreter_t, rspTemp), X86_REG_RSP);
 
 	// MOV RSP, RDX (ppc interpreter instance)
@@ -1646,12 +1634,11 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 	//JMP recFunc
 	x64Gen_jmp_reg64(&x64GenContext, X86_REG_RCX); // call argument 1
 
-	x64GenContext.emitter->GetBuffer()[jmpPatchOffset] = (x64GenContext.emitter->GetWriteIndex() -(jmpPatchOffset-4));
-
+	uint32 exitOffset = x64GenContext.emitter->GetWriteIndex();
 	//recompilerExit1:
 	for (sint32 i = 0; i < 10; i++)
-		x64Gen_movupd_xmmReg_memReg128(&x64GenContext, 6 + i, X86_REG_ESP, 16 * i);
-	x64Gen_add_reg64_imm32(&x64GenContext, X86_REG_RSP, 16 * 10 + 8);
+		x64Gen_movupd_xmmReg_memReg128(&x64GenContext, 6 + i, X86_REG_ESP, 8 + 16 * i);
+	x64Gen_add_reg64_imm32(&x64GenContext, X86_REG_RSP, 8 + 16 * 10 + 8);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R15);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R14);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R13);
@@ -1667,6 +1654,7 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 	// copy code to executable memory
 	memcpy(executableMemory, x64GenContext.emitter->GetBuffer().data(), x64GenContext.emitter->GetBuffer().size_bytes());
 	PPCRecompiler_enterRecompilerCode = (void ATTR_MS_ABI (*)(uint64,uint64))executableMemory;
+	s_enterRecompilerCodeExit = executableMemory + exitOffset;
 }
 
 
@@ -1679,8 +1667,9 @@ void* PPCRecompilerX64Gen_generateLeaveRecompilerCode()
 	x64Emit_mov_mem32_reg32(&x64GenContext, REG_RESV_HCPU, offsetof(PPCInterpreter_t, instructionPointer), X86_REG_EDX);
 	// MOV RSP, [hCPU->rspTemp]
 	x64Emit_mov_reg64_mem64(&x64GenContext, X86_REG_RSP, REG_RESV_HCPU, offsetof(PPCInterpreter_t, rspTemp));
-	// RET
-	x64Gen_ret(&x64GenContext);
+	// JMP recompilerExit1
+	x64Gen_mov_reg64_imm64(&x64GenContext, X86_REG_RAX, (uint64)s_enterRecompilerCodeExit);
+	x64Gen_jmp_reg64(&x64GenContext, X86_REG_RAX);
 
 	uint8* executableMemory = PPCRecompilerX86_allocateExecutableMemory(x64GenContext.emitter->GetBuffer().size_bytes());
 	// copy code to executable memory
