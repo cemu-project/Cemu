@@ -1608,22 +1608,18 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 {
 	x64GenContext_t x64GenContext{};
 
-	// start of recompiler entry function (15 regs)
-	x64Gen_push_reg64(&x64GenContext, X86_REG_RAX);
-	x64Gen_push_reg64(&x64GenContext, X86_REG_RCX);
-	x64Gen_push_reg64(&x64GenContext, X86_REG_RDX);
+	// start of recompiler entry function
 	x64Gen_push_reg64(&x64GenContext, X86_REG_RBX);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_RBP);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_RDI);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_RSI);
-	x64Gen_push_reg64(&x64GenContext, X86_REG_R8);
-	x64Gen_push_reg64(&x64GenContext, X86_REG_R9);
-	x64Gen_push_reg64(&x64GenContext, X86_REG_R10);
-	x64Gen_push_reg64(&x64GenContext, X86_REG_R11);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R12);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R13);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R14);
 	x64Gen_push_reg64(&x64GenContext, X86_REG_R15);
+	x64Gen_sub_reg64_imm32(&x64GenContext, X86_REG_RSP, 16 * 10 + 8);
+	for (sint32 i = 0; i < 10; i++)
+		x64Gen_movupd_memReg128_xmmReg(&x64GenContext, 6 + i, X86_REG_ESP, 16 * i);
 
 	// 000000007775EF04 | E8 00 00 00 00                      call +0x00
 	x64Gen_writeU8(&x64GenContext, 0xE8);
@@ -1653,21 +1649,17 @@ void PPCRecompilerX64Gen_generateEnterRecompilerCode()
 	x64GenContext.emitter->GetBuffer()[jmpPatchOffset] = (x64GenContext.emitter->GetWriteIndex() -(jmpPatchOffset-4));
 
 	//recompilerExit1:
+	for (sint32 i = 0; i < 10; i++)
+		x64Gen_movupd_xmmReg_memReg128(&x64GenContext, 6 + i, X86_REG_ESP, 16 * i);
+	x64Gen_add_reg64_imm32(&x64GenContext, X86_REG_RSP, 16 * 10 + 8);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R15);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R14);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R13);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_R12);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_R11);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_R10);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_R9);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_R8);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_RSI);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_RDI);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_RBP);
 	x64Gen_pop_reg64(&x64GenContext, X86_REG_RBX);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_RDX);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_RCX);
-	x64Gen_pop_reg64(&x64GenContext, X86_REG_RAX);
 	// RET
 	x64Gen_ret(&x64GenContext);
 
