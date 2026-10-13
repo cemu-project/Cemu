@@ -207,6 +207,33 @@ namespace coreinit
 		return alarmWasActive;
 	}
 
+	void OSCancelAlarms(uint32 group)
+	{
+		if (group == 0 || group == 0xFFFFFFFF)
+			return;
+		__OSLockScheduler();
+		for (auto itr = g_activeAlarms.begin(); itr != g_activeAlarms.end();)
+		{
+			if (itr->first->group == group)
+			{
+				OSHostAlarmDestroy(itr->second);
+				itr = g_activeAlarms.erase(itr);
+			}
+			else
+				++itr;
+		}
+		__OSUnlockScheduler();
+	}
+
+	void OSSetAlarmTag(OSAlarm_t* alarm, uint32 group)
+	{
+		if (group == 0xFFFFFFFF)
+			return;
+		__OSLockScheduler();
+		alarm->group = group;
+		__OSUnlockScheduler();
+	}
+
 	void __OSHostAlarmTriggered(uint64 currentTick, void* context)
 	{
 #ifdef ALARM_LOGGING
@@ -364,6 +391,8 @@ namespace coreinit
 		cafeExportRegister("coreinit", OSCreateAlarm, LogType::CoreinitAlarm);
 		cafeExportRegister("coreinit", OSCreateAlarmEx, LogType::CoreinitAlarm);
 		cafeExportRegister("coreinit", OSCancelAlarm, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSCancelAlarms, LogType::CoreinitAlarm);
+		cafeExportRegister("coreinit", OSSetAlarmTag, LogType::CoreinitAlarm);
 		cafeExportRegister("coreinit", OSSetAlarm, LogType::CoreinitAlarm);
 		cafeExportRegister("coreinit", OSSetPeriodicAlarm, LogType::CoreinitAlarm);
 		cafeExportRegister("coreinit", OSSetAlarmUserData, LogType::CoreinitAlarm);

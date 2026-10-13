@@ -13,7 +13,7 @@ namespace coreinit
 		/* +0x04 */ MEMPTR<const char> name;
 		/* +0x08 */ uint32	        ukn08;
 		/* +0x0C */ MPTR			handler;
-		/* +0x10 */ uint32          ukn10;
+		/* +0x10 */ uint32be        group;
 		/* +0x14 */ uint32			padding14;
 		/* +0x18 */ uint64	        nextTime; // next fire time
 		/* +0x20 */ MPTR			prev; // pointer to OSAlarm
