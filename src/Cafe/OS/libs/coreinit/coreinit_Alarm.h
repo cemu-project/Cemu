@@ -7,6 +7,20 @@ namespace coreinit
 	OSHostAlarm* OSHostAlarmCreate(uint64 nextFire, uint64 period, void(*callbackFunc)(uint64 currentTick, void* context), void* context);
 	void OSHostAlarmDestroy(OSHostAlarm* hostAlarm);
 
+	struct OSAlarm_t;
+
+	struct OSAlarmQueue
+	{
+		/* +0x00 */ uint32be magic;
+		/* +0x04 */ MEMPTR<const char> name;
+		/* +0x08 */ uint32be ukn08;
+		/* +0x0C */ OSThreadQueue threadQueue;
+		/* +0x1C */ MEMPTR<OSAlarm_t> head;
+		/* +0x20 */ MEMPTR<OSAlarm_t> tail;
+	};
+
+	static_assert(sizeof(OSAlarmQueue) == 0x24);
+
 	struct OSAlarm_t
 	{
 		/* +0x00 */ betype<uint32>  magic;
@@ -16,15 +30,15 @@ namespace coreinit
 		/* +0x10 */ uint32be        group;
 		/* +0x14 */ uint32			padding14;
 		/* +0x18 */ uint64	        nextTime; // next fire time
-		/* +0x20 */ MPTR			prev; // pointer to OSAlarm
-		/* +0x24 */ MPTR			next; // pointer to OSAlarm
+		/* +0x20 */ MEMPTR<OSAlarm_t> prev;
+		/* +0x24 */ MEMPTR<OSAlarm_t> next;
 		/* +0x28 */ uint64          period; // period (zero for non-periodic timer)
 		/* +0x30 */ uint64          startTime; // period start
 		/* +0x38 */ uint32be        userData;
 		/* +0x3C */ uint32		    ukn3C;
 		/* +0x40 */ OSThreadQueue   uknThreadQueue;
-		/* +0x50 */ MPTR			alarmQueue;
-		/* +0x54 */ MPTR			ukn54;
+		/* +0x50 */ MEMPTR<OSAlarmQueue> alarmQueue;
+		/* +0x54 */ MEMPTR<void>    context;
 
 		void setMagic()
 		{
