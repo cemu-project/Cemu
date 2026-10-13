@@ -83,7 +83,7 @@ namespace coreinit
 			}
 #endif
 			// debug end
-			while (true)
+			while (!g_activeAlarmList.empty())
 			{
 				auto firstAlarm = g_activeAlarmList.begin();
 				if (currentTick >= (*firstAlarm)->m_nextFire)
