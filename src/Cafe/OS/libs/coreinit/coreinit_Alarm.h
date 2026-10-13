@@ -41,9 +41,9 @@ namespace coreinit
 
 	void OSCreateAlarm(OSAlarm_t* alarm);
 	bool OSCancelAlarm(OSAlarm_t* alarm);
-	void OSSetAlarm(OSAlarm_t* alarm, uint64 time, MPTR handlerFunc);
+	bool OSSetAlarm(OSAlarm_t* alarm, uint64 time, MPTR handlerFunc);
 	void OSSetAlarmUserData(OSAlarm_t* alarm, uint32 userData);
-	void OSSetPeriodicAlarm(OSAlarm_t* OSAlarm, uint64 startTick, uint64 periodTick, MPTR OSAlarmHandler);
+	bool OSSetPeriodicAlarm(OSAlarm_t* OSAlarm, uint64 startTick, uint64 periodTick, MPTR OSAlarmHandler);
 
 	void OSAlarm_Shutdown();
 

@@ -229,9 +229,11 @@ namespace coreinit
 
 		if (isPeriodic)
 		{
-			cemu_assert_debug(period != 0);
-			if (period == 0)
+			if ((sint64)period <= 0)
+			{
+				cemuLog_log(LogType::APIErrors, "OSSetPeriodicAlarm(): Period must be positive, alarm is not set");
 				return;
+			}
 
 			uint64 currentTime = OSGetTime();
 
@@ -264,18 +266,25 @@ namespace coreinit
 		g_activeAlarms[alarm] = OSHostAlarmCreate(nextTime, period, __OSHostAlarmTriggered, nullptr);
 	}
 
-	void OSSetAlarm(OSAlarm_t* alarm, uint64 delayInTicks, MPTR handlerFunc)
+	bool OSSetAlarm(OSAlarm_t* alarm, uint64 delayInTicks, MPTR handlerFunc)
 	{
+		if ((sint64)delayInTicks <= 0)
+		{
+			cemuLog_log(LogType::APIErrors, "OSSetAlarm(): Delay must be positive, alarm is not set");
+			return true;
+		}
 		__OSLockScheduler();
 		__OSInitiateAlarm(alarm, OSGetTime() + delayInTicks, 0, handlerFunc, false);
 		__OSUnlockScheduler();
+		return true;
 	}
 
-	void OSSetPeriodicAlarm(OSAlarm_t* alarm, uint64 nextFire, uint64 period, MPTR handlerFunc)
+	bool OSSetPeriodicAlarm(OSAlarm_t* alarm, uint64 nextFire, uint64 period, MPTR handlerFunc)
 	{
 		__OSLockScheduler();
 		__OSInitiateAlarm(alarm, nextFire, period, handlerFunc, true);
 		__OSUnlockScheduler();
+		return true;
 	}
 
 	void OSSetAlarmUserData(OSAlarm_t* alarm, uint32 userData)
