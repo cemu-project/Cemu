@@ -119,6 +119,9 @@ void MetalSynchronizedRingAllocator::CleanupBuffer(MTL::CommandBuffer* latestFin
 		{
 			itr.queue_syncPoints.pop();
 		}
+		// the command buffer gets released after this and its address can be reused by the next one
+		if (itr.lastSyncpointCommandBuffer == latestFinishedCommandBuffer)
+			itr.lastSyncpointCommandBuffer = nullptr;
 		if (itr.queue_syncPoints.empty())
 			itr.cleanupCounter++;
 	}
