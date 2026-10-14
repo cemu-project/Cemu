@@ -430,6 +430,7 @@ add_library(CemuCafe
   OS/libs/nsyshid/Infinity.cpp
   OS/libs/nsyshid/Infinity.h
   OS/libs/nsyshid/Skylander.cpp
+  OS/libs/nsyshid/SkylanderPortalIPC.cpp
   OS/libs/nsyshid/Skylander.h
   OS/libs/nsyshid/SkylanderXbox360.cpp
   OS/libs/nsyshid/SkylanderXbox360.h
