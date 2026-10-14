@@ -11,6 +11,7 @@
 #include "Cafe/Account/Account.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/helpers.h"
+#include "Common/FileStream.h"
 
 #include "Cemu/napi/napi.h"
 #include "Cemu/ncrypto/ncrypto.h"
@@ -65,6 +66,7 @@ struct actAccountData_t
 
 actAccountData_t _actAccountData[IOSU_ACT_ACCOUNT_MAX_COUNT] = {};
 bool _actAccountDataInitialized = false;
+int _actAccountCount = 0;
 
 void FillAccountData(const Account& account, const bool online_enabled, int index)
 {
@@ -108,31 +110,32 @@ void iosuAct_loadAccounts()
 		return;
 
 	const bool online_enabled = ActiveSettings::IsOnlineEnabled();
-	const auto persistent_id = ActiveSettings::GetPersistentId();
 
-	// first account is always our selected one
+	// Load all accounts in order of persistantId; the active account keeps its natural position
 	int counter = 0;
-	const auto& first_acc = Account::GetAccount(persistent_id);
-	FillAccountData(first_acc, online_enabled, counter);
-	++counter;
-	// enable multiple accounts for cafe functions (badly tested)
-	//for (const auto& account : Account::GetAccounts())
-	//{
-	//	if (first_acc.GetPersistentId() != account.GetPersistentId())
-	//	{
-	//		FillAccountData(account, online_enabled, counter);
-	//		++counter;
-	//	}
-	//}
-
-	cemuLog_log(LogType::Force, "IOSU_ACT: using account {} in first slot", boost::nowide::narrow(first_acc.GetMiiName()));
-	
+	for (const auto& account : Account::GetAccounts())
+	{
+		if (counter >= IOSU_ACT_ACCOUNT_MAX_COUNT)
+			break;
+		FillAccountData(account, online_enabled, counter);
+		++counter;
+	}
+	_actAccountCount = counter;
 	_actAccountDataInitialized = true;
+
+	const uint8 activeSlot = iosu::act::getCurrentAccountSlot();
+	const auto& active_acc = Account::GetAccount(ActiveSettings::GetPersistentId());
+	cemuLog_log(LogType::Force, "IOSU_ACT: loaded {} account(s), using {} in slot {}", counter, boost::nowide::narrow(std::wstring(active_acc.GetMiiName())), activeSlot);
 }
 
 bool iosuAct_isAccountDataLoaded()
 {
 	return _actAccountDataInitialized;
+}
+
+int iosuAct_getNumAccounts()
+{
+	return _actAccountCount;
 }
 
 uint32 iosuAct_acquirePrincipalIdByAccountId(const char* nnid, uint32* pid)
@@ -154,10 +157,17 @@ uint32 iosuAct_acquirePrincipalIdByAccountId(const char* nnid, uint32* pid)
 
 sint32 iosuAct_getAccountIndexBySlot(uint8 slot)
 {
-	if (slot == iosu::act::ACT_SLOT_CURRENT)
-		return 0;
-	if (slot == 0xFF)
-		return 0; // ?
+	if (slot == iosu::act::ACT_SLOT_CURRENT || slot == 0xFF)
+	{
+		// find the active account's actual index by persistent ID
+		const uint32 persistent_id = ActiveSettings::GetPersistentId();
+		for (int i = 0; i < _actAccountCount; i++)
+		{
+			if (_actAccountData[i].isValid && _actAccountData[i].persistentId == persistent_id)
+				return i;
+		}
+		return 0; // fallback
+	}
 	cemu_assert_debug(slot != 0);
 	cemu_assert_debug(slot <= IOSU_ACT_ACCOUNT_MAX_COUNT);
 	return slot - 1;
@@ -165,8 +175,9 @@ sint32 iosuAct_getAccountIndexBySlot(uint8 slot)
 
 uint32 iosuAct_getAccountIdOfCurrentAccount()
 {
-	cemu_assert_debug(_actAccountData[0].isValid);
-	return _actAccountData[0].persistentId;
+	const sint32 index = iosuAct_getAccountIndexBySlot(iosu::act::ACT_SLOT_CURRENT);
+	cemu_assert_debug(_actAccountData[index].isValid);
+	return _actAccountData[index].persistentId;
 }
 
 // IOSU act API interface
@@ -386,7 +397,13 @@ namespace iosu
 	{
 		uint8 getCurrentAccountSlot()
 		{
-			return 1;
+			const uint32 persistent_id = ActiveSettings::GetPersistentId();
+			for (int i = 0; i < _actAccountCount; i++)
+			{
+				if (_actAccountData[i].isValid && _actAccountData[i].persistentId == persistent_id)
+					return (uint8)(i + 1); // slots are 1-based
+			}
+			return 1; // fallback
 		}
 
 		actAccountData_t* GetAccountBySlotNo(uint8 slotNo)
@@ -536,6 +553,44 @@ namespace iosu
 			}
 			*persistentId = _actAccountData[accountIndex].persistentId;
 			return true;
+		}
+
+		uint32 GetMiiImage(uint8 slot, uint32 imageType, void* outBuf, uint32 bufferSize, uint32* outImageSize)
+		{
+			uint32 persistentId = 0;
+			if (!GetPersistentId(slot, &persistentId))
+				return ACTResult_AccountDoesNotExist;
+
+			static constexpr uint32 kMaxMiiImageBytes = 2 * 1024 * 1024;
+
+			const auto filePath = ActiveSettings::GetMlcPath(
+				fmt::format("usr/save/system/act/{:08x}/miiimg{:02d}.dat", persistentId, imageType));
+
+			// reject oversized files before allocating. Prevents loading multi-GB crafted files into RAM
+			std::error_code ec;
+			if (fs::file_size(filePath, ec) > kMaxMiiImageBytes || ec)
+				return ACTResult_AccountDoesNotExist;
+
+			auto fileData = FileStream::LoadIntoMemory(filePath);
+			if (!fileData.has_value())
+				return ACTResult_AccountDoesNotExist;
+
+			// type 0 (FaceIcon) is stored raw; all others are zlib-compressed
+			if (imageType != 0)
+			{
+				fileData = zlibDecompress(*fileData);
+				if (!fileData.has_value())
+					return ACTResult_AccountDoesNotExist;
+			}
+
+			if (fileData->size() > kMaxMiiImageBytes)
+				return ACTResult_AccountDoesNotExist;
+
+			*outImageSize = (uint32)fileData->size();
+			if (bufferSize < *outImageSize)
+				return ACTResult_OutOfRange;
+			memcpy(outBuf, fileData->data(), fileData->size());
+			return 0;
 		}
 
 		nnResult AcquireNexToken(uint8 accountSlot, uint64 titleId, uint16 titleVersion, uint32 serverId, uint8* tokenOut, uint32 tokenLen)
