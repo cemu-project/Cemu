@@ -97,6 +97,7 @@ private:
 	void reader_thread();
 	void writer_thread();
 	void integrate_motion(uint8_t index, const DataResponse& data_response);
+	void RequestSilentPadData();
 
 	uint32 m_uid;
 	boost::asio::io_context m_io_service;
@@ -110,6 +111,7 @@ private:
 	mutable std::array<std::condition_variable, kMaxClients> m_wait_cond;
 
 	ConcurrentQueue<std::unique_ptr<ClientMessage>> m_writerJobs;
+	std::array<std::atomic_bool, kMaxClients> m_padDataRequested{};
 
 	std::array<WiiUMotionHandler, kMaxClients> m_motion_handler;
 	std::array<uint64, kMaxClients> m_last_motion_timestamp{};

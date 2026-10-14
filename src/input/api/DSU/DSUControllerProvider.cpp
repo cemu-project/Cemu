@@ -228,8 +228,29 @@ void DSUControllerProvider::request_pad_data(uint8_t index)
 	if (index >= kMaxClients)
 		return;
 
+	m_padDataRequested[index] = true;
 	auto msg = std::make_unique<DataRequest>(m_uid, index);
 	m_writerJobs.push(std::move(msg));
+}
+
+// pad data is only requested again after a received packet (see reader_thread), so a server
+// that starts late or restarts would never be asked again
+void DSUControllerProvider::RequestSilentPadData()
+{
+	constexpr auto kSilentTime = std::chrono::seconds(1);
+	const auto now = std::chrono::steady_clock::now();
+	for (uint8 i = 0; i < kMaxClients; i++)
+	{
+		if (!m_padDataRequested[i])
+			continue;
+		bool isSilent;
+		{
+			std::scoped_lock lock(m_mutex[i]);
+			isSilent = now - m_state[i].last_update >= kSilentTime;
+		}
+		if (isSilent)
+			request_pad_data(i);
+	}
 }
 
 MotionSample DSUControllerProvider::get_motion_sample(uint8_t index) const
@@ -382,11 +403,23 @@ void DSUControllerProvider::reader_thread()
 void DSUControllerProvider::writer_thread()
 {
 	SetThreadName("DSU-writer");
+	constexpr auto kSilentCheckInterval = std::chrono::seconds(1);
+	auto nextSilentCheck = std::chrono::steady_clock::now() + kSilentCheckInterval;
 	while (m_running.load(std::memory_order_relaxed))
 	{
-		std::unique_ptr<ClientMessage> msg = m_writerJobs.pop();
+		std::unique_ptr<ClientMessage> msg;
+		const bool hasMsg = m_writerJobs.pop(msg, kSilentCheckInterval);
 		if (!m_running.load(std::memory_order_relaxed))
 			return;
+		// check by time, not only on timeout: the queue never runs empty while another pad is streaming
+		const auto now = std::chrono::steady_clock::now();
+		if (now >= nextSilentCheck)
+		{
+			nextSilentCheck = now + kSilentCheckInterval;
+			RequestSilentPadData();
+		}
+		if (!hasMsg)
+			continue;
 		cemu_assert_debug(msg.get());
 #ifdef DEBUG_DSU_CLIENT
 		printf(" DSUControllerProvider::WriterThread: sending message: 0x%x (len: 0x%x)\n", (int)msg->GetMessageType(), msg->GetSize());
