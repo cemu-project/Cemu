@@ -8,7 +8,7 @@
 
 bool _relocateAddress(PatchGroup* group, PatchContext_t* ctx, uint32 addr, uint32& relocatedAddress)
 {
-	if (addr >= 0 && addr <= 1024 * 1024 * 8)
+	if (addr <= PatchGroup::CODECAVE_MAX_OFFSET)
 	{
 		// codecave address
 		relocatedAddress = group->getCodeCaveBase() + addr;
@@ -574,6 +574,12 @@ void GraphicPack2::ApplyPatchGroups(std::vector<PatchGroup*>& groups, const RPLM
 		if (patchGroup->codeCaveSize > 0)
 		{
 			auto codeCaveMem = RPLLoader_AllocateCodeCaveMem(256, patchGroup->codeCaveSize);
+			if (!codeCaveMem)
+			{
+				patchContext.errorHandler.printError(patchGroup, -1, fmt::format("Not enough code cave memory for {} bytes, the code caves of all graphic packs share {} bytes", patchGroup->codeCaveSize, MEMORY_CODECAVEAREA_SIZE));
+				patchContext.errorHandler.showStageErrorMessageBox();
+				return;
+			}
 			cemuLog_log(LogType::Force, "Applying patch group \'{}\' (Codecave: {:08x}-{:08x})", patchGroup->name, codeCaveMem.GetMPTR(), codeCaveMem.GetMPTR() + patchGroup->codeCaveSize);
 			patchGroup->codeCaveMem = codeCaveMem;
 		}
