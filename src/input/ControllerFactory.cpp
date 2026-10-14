@@ -1,5 +1,6 @@
 #include "input/ControllerFactory.h"
 
+#include "api/Mouse/MouseController.h"
 #include "input/emulated/VPADController.h"
 #include "input/emulated/ProController.h"
 #include "input/emulated/ClassicController.h"
@@ -30,6 +31,10 @@ ControllerPtr ControllerFactory::CreateController(InputAPI::Type api, std::strin
 #if HAS_KEYBOARD
 	case InputAPI::Keyboard:
 		return std::make_shared<KeyboardController>();
+#endif
+#if HAS_MOUSE
+	case InputAPI::Mouse:
+		return std::make_shared<MouseController>();
 #endif
 #if HAS_DIRECTINPUT
 	case InputAPI::DirectInput:
