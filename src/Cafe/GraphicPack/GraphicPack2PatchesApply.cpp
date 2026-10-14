@@ -514,37 +514,31 @@ bool _resolverPass(PatchContext_t& patchContext, std::vector<UnresolvedPatches_t
 	{
 		resolverState.currentGroup = unresolvedGroup.patchGroup;
 		auto& list_unresolvedPatches = unresolvedGroup.list_unresolvedPatches;
-		for (auto it = list_unresolvedPatches.begin(); it != list_unresolvedPatches.end();)
+		std::erase_if(list_unresolvedPatches, [&](PatchEntry* entry)
 		{
-			auto r = (*it)->resolve(patchContext);
+			auto r = entry->resolve(patchContext);
 			if (r == PATCH_RESOLVE_RESULT::RESOLVED)
 			{
-				// remove from list
-				it = list_unresolvedPatches.erase(it);
 				numResolvedEntries++;
-				continue;
+				return true;
 			}
 			else if (r == PATCH_RESOLVE_RESULT::UNKNOWN_VARIABLE)
 			{
 				// dependency on other not yet resolved entry, continue iterating
-				it++;
-				continue;
 			}
 			else if (r == PATCH_RESOLVE_RESULT::INVALID_ADDRESS ||
 				r == PATCH_RESOLVE_RESULT::VARIABLE_CONFLICT)
 			{
 				// errors handled and printed inside resolve()
-				it++;
-				continue;
 			}
 			else
 			{
 				// unknown error
-				sint32 lineNumber = (*it)->getLineNumber();
+				sint32 lineNumber = entry->getLineNumber();
 				patchContext.errorHandler.printError(resolverState.currentGroup, lineNumber, "Unable to parse expression or other internal error");
-				it++;
 			}
-		}
+			return false;
+		});
 	}
 	return numResolvedEntries;
 }
