@@ -9,6 +9,7 @@
 
 #include "Cafe/OS/libs/nsyshid/nsyshid.h"
 #include "Cafe/OS/libs/nsyshid/Dimensions.h"
+#include "Cafe/OS/libs/nsyshid/SkylanderRemote.h"
 
 #include "Common/FileStream.h"
 
@@ -28,6 +29,7 @@
 #include <wx/stream.h>
 #include <wx/textctrl.h>
 #include <wx/textentry.h>
+#include <wx/timer.h>
 #include <wx/valnum.h>
 #include <wx/wfstream.h>
 
@@ -55,7 +57,12 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	Centre(wxBOTH);
 }
 
-EmulatedUSBDeviceFrame::~EmulatedUSBDeviceFrame() {}
+EmulatedUSBDeviceFrame::~EmulatedUSBDeviceFrame()
+{
+	// the remote portal keeps running after this window closes; only the status timer stops
+	if (m_remoteStatusTimer)
+		m_remoteStatusTimer->Stop();
+}
 
 wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 {
@@ -77,6 +84,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 	});
 	row->Add(m_emulatePortal, 1, wxEXPAND | wxALL, 2);
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
+	boxSizer->Add(AddRemotePortalRow(box), 0, wxEXPAND | wxALL, 2);
 	for (int i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
 	{
 		boxSizer->Add(AddSkylanderRow(i, box), 1, wxEXPAND | wxALL, 2);
@@ -85,6 +93,79 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 	panel->SetSizerAndFit(panelSizer);
 
 	return panel;
+}
+
+wxBoxSizer* EmulatedUSBDeviceFrame::AddRemotePortalRow(wxStaticBox* box)
+{
+	auto* col = new wxBoxSizer(wxVERTICAL);
+	auto* row = new wxBoxSizer(wxHORIZONTAL);
+
+	m_remotePortal = new wxCheckBox(box, wxID_ANY, _("Let a friend place figures remotely"));
+	m_remotePortal->SetValue(nsyshid::SkylanderRemote::IsRunning());
+	row->Add(m_remotePortal, 0, wxALIGN_CENTER_VERTICAL | wxALL, 2);
+
+	row->Add(new wxStaticText(box, wxID_ANY, _("Port:")), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
+	m_remotePort = new wxTextCtrl(box, wxID_ANY, std::to_string(nsyshid::SkylanderRemote::DEFAULT_PORT),
+								  wxDefaultPosition, wxSize(60, -1), 0, wxIntegerValidator<uint16>());
+	row->Add(m_remotePort, 0, wxALL, 2);
+
+	row->Add(new wxStaticText(box, wxID_ANY, _("Password:")), 0, wxALIGN_CENTER_VERTICAL | wxLEFT, 8);
+	m_remotePassword = new wxTextCtrl(box, wxID_ANY, "", wxDefaultPosition, wxSize(120, -1), wxTE_PASSWORD);
+	row->Add(m_remotePassword, 1, wxALL, 2);
+	col->Add(row, 0, wxEXPAND);
+
+	m_realPortalViaApp = new wxCheckBox(box, wxID_ANY,
+		_("Use my real portal through the Remote Portal app (applies when a game starts)"));
+	m_realPortalViaApp->SetValue(GetConfig().emulated_usb_devices.skylander_real_portal_via_app);
+	m_realPortalViaApp->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+		GetConfig().emulated_usb_devices.skylander_real_portal_via_app = m_realPortalViaApp->IsChecked();
+		GetConfigHandle().Save();
+	});
+	col->Add(m_realPortalViaApp, 0, wxEXPAND | wxALL, 2);
+
+	m_remoteStatus = new wxStaticText(box, wxID_ANY, nsyshid::SkylanderRemote::GetStatus());
+	col->Add(m_remoteStatus, 0, wxEXPAND | wxALL, 2);
+
+	auto updateEnabled = [this]() {
+		bool running = nsyshid::SkylanderRemote::IsRunning();
+		m_remotePort->Enable(!running);
+		m_remotePassword->Enable(!running);
+		m_remoteStatus->SetLabel(nsyshid::SkylanderRemote::GetStatus());
+	};
+	updateEnabled();
+
+	m_remotePortal->Bind(wxEVT_CHECKBOX, [this, updateEnabled](wxCommandEvent&) {
+		if (m_remotePortal->IsChecked())
+		{
+			unsigned long port = 0;
+			if (!m_remotePort->GetValue().ToULong(&port) || port == 0 || port > 65535)
+			{
+				wxMessageBox(_("Enter a valid port (1-65535)."), _("Remote portal"), wxOK | wxICON_WARNING, this);
+				m_remotePortal->SetValue(false);
+				return;
+			}
+			std::string error;
+			if (!nsyshid::SkylanderRemote::Start(uint16(port), m_remotePassword->GetValue().utf8_string(), error))
+			{
+				wxMessageBox(wxString::FromUTF8("Could not start remote portal: " + error), _("Remote portal"),
+							 wxOK | wxICON_ERROR, this);
+				m_remotePortal->SetValue(false);
+			}
+		}
+		else
+		{
+			nsyshid::SkylanderRemote::Stop();
+		}
+		updateEnabled();
+	});
+
+	m_remoteStatusTimer = new wxTimer(this);
+	Bind(wxEVT_TIMER, [this](wxTimerEvent&) {
+		m_remoteStatus->SetLabel(nsyshid::SkylanderRemote::GetStatus());
+	}, m_remoteStatusTimer->GetId());
+	m_remoteStatusTimer->Start(1000);
+
+	return col;
 }
 
 wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)

@@ -815,7 +815,8 @@ namespace nsyshid
 		}
 	}
 
-	uint8 SkylanderUSB::LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file)
+	uint8 SkylanderUSB::LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file,
+									  std::function<void(const std::array<uint8, SKY_FIGURE_SIZE>&)> onSave)
 	{
 		std::lock_guard lock(m_skyMutex);
 
@@ -850,6 +851,7 @@ namespace nsyshid
 			auto& skylander = m_skylanders[foundSlot];
 			memcpy(skylander.data.data(), buf, skylander.data.size());
 			skylander.skyFile = std::move(file);
+			skylander.onSave = std::move(onSave);
 			skylander.status = Skylander::ADDED;
 			skylander.queuedStatus.push(Skylander::ADDED);
 			skylander.queuedStatus.push(Skylander::READY);
@@ -870,6 +872,7 @@ namespace nsyshid
 			thesky.queuedStatus.push(0);
 			thesky.Save();
 			thesky.skyFile.reset();
+			thesky.onSave = nullptr;
 			return true;
 		}
 
@@ -1022,6 +1025,9 @@ namespace nsyshid
 
 	void SkylanderUSB::Skylander::Save()
 	{
+		if (onSave)
+			onSave(data);
+
 		if (!skyFile)
 			return;
 

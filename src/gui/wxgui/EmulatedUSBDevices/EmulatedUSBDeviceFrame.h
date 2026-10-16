@@ -16,6 +16,8 @@ class wxPanel;
 class wxStaticBox;
 class wxString;
 class wxTextCtrl;
+class wxStaticText;
+class wxTimer;
 
 class EmulatedUSBDeviceFrame : public wxFrame
 {
@@ -26,6 +28,13 @@ class EmulatedUSBDeviceFrame : public wxFrame
 
   private:
 	wxCheckBox* m_emulatePortal;
+	wxCheckBox* m_remotePortal;
+	wxCheckBox* m_realPortalViaApp;
+	wxTextCtrl* m_remotePort;
+	wxTextCtrl* m_remotePassword;
+	wxStaticText* m_remoteStatus;
+	wxTimer* m_remoteStatusTimer;
+	wxBoxSizer* AddRemotePortalRow(wxStaticBox* box);
 	wxCheckBox* m_emulateBase;
 	wxCheckBox* m_emulateToypad;
 	std::array<wxTextCtrl*, nsyshid::MAX_SKYLANDERS> m_skylanderSlots;

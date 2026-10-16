@@ -532,6 +532,8 @@ struct CemuConfig
 	struct
 	{
 		ConfigValue<bool> emulate_skylander_portal{false};
+		// leave the real Skylanders portal to the Remote Portal app instead of passing it through
+		ConfigValue<bool> skylander_real_portal_via_app{false};
 		ConfigValue<bool> emulate_infinity_base{false};
 		ConfigValue<bool> emulate_dimensions_toypad{false};
 	}emulated_usb_devices{};

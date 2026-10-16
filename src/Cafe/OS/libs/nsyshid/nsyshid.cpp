@@ -6,6 +6,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 #include "Backend.h"
 #include "Whitelist.h"
+#include "config/CemuConfig.h"
 
 namespace nsyshid
 {
@@ -883,6 +884,10 @@ namespace nsyshid
 
 	bool Backend::IsDeviceWhitelisted(uint16 vendorId, uint16 productId)
 	{
+		// the real Skylanders portal is being read by the Remote Portal app, so don't grab it
+		if (vendorId == 0x1430 && productId == 0x0150 &&
+			GetConfig().emulated_usb_devices.skylander_real_portal_via_app)
+			return false;
 		return Whitelist::GetInstance().IsDeviceWhitelisted(vendorId, productId);
 	}
 

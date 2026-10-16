@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 #include <mutex>
 
 #include "nsyshid.h"
@@ -56,6 +57,8 @@ namespace nsyshid
 			std::queue<uint8> queuedStatus;
 			std::array<uint8, SKY_FIGURE_SIZE> data{};
 			uint32 lastId = 0;
+			// optional: called after every save with the current figure data (used by remote portal sharing)
+			std::function<void(const std::array<uint8, SKY_FIGURE_SIZE>&)> onSave;
 			void Save();
 
 			enum : uint8
@@ -85,7 +88,8 @@ namespace nsyshid
 		void WriteBlock(uint8 skyNum, uint8 block, const uint8* toWriteBuf,
 						uint8* replyBuf);
 
-		uint8 LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file);
+		uint8 LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file,
+							std::function<void(const std::array<uint8, SKY_FIGURE_SIZE>&)> onSave = {});
 		bool RemoveSkylander(uint8 skyNum);
 		bool CreateSkylander(fs::path pathName, uint16 skyId, uint16 skyVar);
 		uint16 SkylanderCRC16(uint16 initValue, const uint8* buffer, uint32 size);

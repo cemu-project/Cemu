@@ -287,6 +287,7 @@ XMLConfigParser CemuConfig::Load(XMLConfigParser& parser)
 	// emulatedusbdevices
 	auto usbdevices = parser.get("EmulatedUsbDevices");
 	emulated_usb_devices.emulate_skylander_portal = usbdevices.get("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal);
+	emulated_usb_devices.skylander_real_portal_via_app = usbdevices.get("SkylanderRealPortalViaApp", emulated_usb_devices.skylander_real_portal_via_app);
 	emulated_usb_devices.emulate_infinity_base = usbdevices.get("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base);
 	emulated_usb_devices.emulate_dimensions_toypad = usbdevices.get("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad);
 
@@ -452,6 +453,7 @@ XMLConfigParser CemuConfig::Save(XMLConfigParser& parser)
 	// emulated usb devices
 	auto usbdevices = config.set("EmulatedUsbDevices");
 	usbdevices.set("EmulateSkylanderPortal", emulated_usb_devices.emulate_skylander_portal.GetValue());
+	usbdevices.set("SkylanderRealPortalViaApp", emulated_usb_devices.skylander_real_portal_via_app.GetValue());
 	usbdevices.set("EmulateInfinityBase", emulated_usb_devices.emulate_infinity_base.GetValue());
 	usbdevices.set("EmulateDimensionsToypad", emulated_usb_devices.emulate_dimensions_toypad.GetValue());
 
