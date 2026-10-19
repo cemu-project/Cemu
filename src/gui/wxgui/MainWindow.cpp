@@ -1554,6 +1554,10 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 						m_usb_devices->Show(false);
 						event.Veto();
 					}
+					else {
+						m_usb_devices = nullptr;
+						event.Skip();
+					}
 				});
 			m_usb_devices->Show(true);
 		}

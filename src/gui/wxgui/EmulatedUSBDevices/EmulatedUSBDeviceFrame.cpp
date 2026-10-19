@@ -335,12 +335,13 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
 
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
-	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFFFF));
+	comboBox->Append("---Select---");
+	std::vector<uint32> variants; // follows the placeholder entry
 	wxArrayString filterlist;
 	for (const auto& it : nsyshid::g_skyportal.GetListSkylanders())
 	{
-		const uint32 variant = uint32(uint32(it.first.first) << 16) | uint32(it.first.second);
-		comboBox->Append(it.second, reinterpret_cast<void*>(variant));
+		variants.push_back(uint32(uint32(it.first.first) << 16) | uint32(it.first.second));
+		comboBox->Append(it.second);
 		filterlist.Add(it.second);
 	}
 	comboBox->SetSelection(0);
@@ -406,12 +407,13 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 		this->EndModal(0);
 	});
 
-	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editId, editVar, this](wxCommandEvent&) {
-		const uint64 sky_info = reinterpret_cast<uint64>(comboBox->GetClientData(comboBox->GetSelection()));
-		if (sky_info != 0xFFFFFFFF)
+	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editId, editVar, variants = std::move(variants)](wxCommandEvent&) {
+		const sint32 selection = comboBox->GetSelection();
+		if (selection > 0)
 		{
-			const uint16 skyId = sky_info >> 16;
-			const uint16 skyVar = sky_info & 0xFFFF;
+			const uint32 variant = variants[selection - 1];
+			const uint16 skyId = variant >> 16;
+			const uint16 skyVar = variant & 0xFFFF;
 
 			editId->SetValue(wxString::Format(wxT("%i"), skyId));
 			editVar->SetValue(wxString::Format(wxT("%i"), skyVar));
@@ -516,7 +518,8 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
 
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
-	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFF));
+	comboBox->Append("---Select---");
+	std::vector<uint32> figures; // follows the placeholder entry
 	wxArrayString filterlist;
 	for (const auto& it : nsyshid::g_infinitybase.GetFigureList())
 	{
@@ -528,7 +531,8 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 			((slot == 4 || slot == 5 || slot == 7 || slot == 8) &&
 			 (figure > 0x2DC6C0 && figure < 0x3D08FF)))
 		{
-			comboBox->Append(it.second.second, reinterpret_cast<void*>(figure));
+			figures.push_back(figure);
+			comboBox->Append(it.second.second);
 			filterlist.Add(it.second.second);
 		}
 	}
@@ -582,11 +586,11 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 		this->EndModal(0);
 	});
 
-	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editFigNum, this](wxCommandEvent&) {
-		const uint64 fig_info = reinterpret_cast<uint64>(comboBox->GetClientData(comboBox->GetSelection()));
-		if (fig_info != 0xFFFFFF)
+	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editFigNum, figures = std::move(figures)](wxCommandEvent&) {
+		const sint32 selection = comboBox->GetSelection();
+		if (selection > 0)
 		{
-			const uint32 figNum = fig_info & 0xFFFFFFFF;
+			const uint32 figNum = figures[selection - 1];
 
 			editFigNum->SetValue(wxString::Format(wxT("%i"), figNum));
 		}
@@ -695,12 +699,13 @@ CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
 
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
-	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFFFF));
+	comboBox->Append("---Select---");
+	std::vector<uint32> figures; // follows the placeholder entry
 	wxArrayString filterlist;
 	for (const auto& it : nsyshid::g_dimensionstoypad.GetListMinifigs())
 	{
-		const uint32 figure = it.first;
-		comboBox->Append(it.second, reinterpret_cast<void*>(figure));
+		figures.push_back(it.first);
+		comboBox->Append(it.second);
 		filterlist.Add(it.second);
 	}
 	comboBox->SetSelection(0);
@@ -753,11 +758,11 @@ CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 		this->EndModal(0);
 	});
 
-	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editFigNum, this](wxCommandEvent&) {
-		const uint64 fig_info = reinterpret_cast<uint64>(comboBox->GetClientData(comboBox->GetSelection()));
-		if (fig_info != 0xFFFF)
+	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editFigNum, figures = std::move(figures)](wxCommandEvent&) {
+		const sint32 selection = comboBox->GetSelection();
+		if (selection > 0)
 		{
-			const uint16 figNum = fig_info & 0xFFFF;
+			const uint16 figNum = figures[selection - 1] & 0xFFFF;
 
 			editFigNum->SetValue(wxString::Format(wxT("%i"), figNum));
 		}
