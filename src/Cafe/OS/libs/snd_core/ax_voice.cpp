@@ -573,7 +573,7 @@ namespace snd_core
 		{
 			channelCount = AX_DRC_CHANNEL_COUNT;
 			voiceMix = internal->deviceMixDRC + deviceIndex * 16;
-			deviceMixMask = internal->deviceMixMaskDRC;
+			deviceMixMask = internal->deviceMixMaskDRC + deviceIndex * AX_BUS_COUNT;
 		}
 		else if (device == AX_DEV_RMT)
 		{
