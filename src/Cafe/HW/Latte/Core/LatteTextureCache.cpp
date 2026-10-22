@@ -231,7 +231,8 @@ bool LatteTC_HasTextureChanged(LatteTexture* hostTexture, bool force)
 		return false;
 	hostTexture->lastDataUpdateFrameCounter = LatteGPUState.frameCounter;
 	// we assume that certain texture properties indicate that the texture will never be written by the CPU
-	if (hostTexture->width == 1280 && hostTexture->format != Latte::E_GX2SURFFMT::R8_UNORM && hostTexture->format != Latte::E_GX2SURFFMT::BC3_UNORM && force == false)
+	bool isCPUMirroredLinear = hostTexture->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED && hostTexture->enableReadback;
+	if (hostTexture->width == 1280 && !isCPUMirroredLinear && hostTexture->format != Latte::E_GX2SURFFMT::R8_UNORM && hostTexture->format != Latte::E_GX2SURFFMT::BC3_UNORM && force == false)
 	{
 		// todo - remove this or find a better way to handle excluded texture invalidation checks (maybe via game profile?)
 		return false;
