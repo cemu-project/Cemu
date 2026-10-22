@@ -291,7 +291,7 @@ namespace GX2
 			else
 			{
 				// current buffer is empty so we dont need to queue it
-				if (numU32sForNextBuffer > s_commandState->commandPoolSizeInU32s)
+				if (numU32sForNextBuffer > coreCBState.bufferSizeInU32s)
 					GX2Command_StartNewCommandBuffer(numU32sForNextBuffer);
 			}
 		}
