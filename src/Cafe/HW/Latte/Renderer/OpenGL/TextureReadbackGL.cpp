@@ -16,6 +16,11 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 		m_texFormatGL = GL_RGBA;
 		m_texDataTypeGL = GL_UNSIGNED_BYTE;
 	}
+	else if (textureView->format == Latte::E_GX2SURFFMT::R10_G10_B10_A2_UNORM)
+	{
+		m_texFormatGL = GL_RGBA;
+		m_texDataTypeGL = GL_UNSIGNED_INT_2_10_10_10_REV;
+	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_FLOAT)
 	{
 		m_texFormatGL = GL_RGBA;
@@ -43,6 +48,11 @@ LatteTextureReadbackInfoGL::LatteTextureReadbackInfoGL(LatteTextureView* texture
 			m_texFormatGL = GL_RED;
 			m_texDataTypeGL = GL_FLOAT;
 		}
+	}
+	else if (textureView->format == Latte::E_GX2SURFFMT::R16_FLOAT && !baseTexture->isDepth)
+	{
+		m_texFormatGL = GL_RED;
+		m_texDataTypeGL = GL_HALF_FLOAT;
 	}
 	else if (textureView->format == Latte::E_GX2SURFFMT::R16_UNORM)
 	{

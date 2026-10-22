@@ -731,10 +731,12 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 
 	cemuLog_log(LogType::TextureReadback, "[TextureReadback-Write] PhysAddr {:08x} Res {}x{} Fmt {} Slice {} Mip {}", textureData->physAddress, textureData->width, textureData->height, textureData->format, sliceIndex, mipIndex);
 
+	Latte::E_HWFMT hwFormat = Latte::GetHWFormat(textureData->format);
 	if (textureData->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
 	{
 		if (textureData->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM ||
-			textureData->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB)
+			textureData->format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_SRGB ||
+			hwFormat == Latte::E_HWFMT::HWFMT_2_10_10_10)
 		{
 			optimizedLinearReadbackWriteLoop<uint32>(&textureLoader, linearPixelData, sourceRowPitch);
 		}
@@ -796,7 +798,7 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		{
 			cemu_assert_unimplemented();
 		}
-		else if (textureData->format == Latte::E_GX2SURFFMT::R16_UNORM)
+		else if (textureData->format == Latte::E_GX2SURFFMT::R16_UNORM || textureData->format == Latte::E_GX2SURFFMT::R16_FLOAT)
 		{
 			optimizedLinearReadbackWriteLoop<uint16>(&textureLoader, linearPixelData, sourceRowPitch);
 		}
@@ -808,10 +810,9 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 		return;
 	}
 	// generic and slow decode loops
-	Latte::E_HWFMT hwFormat = Latte::GetHWFormat(textureData->format);
-	if (hwFormat == Latte::E_HWFMT::HWFMT_8_8_8_8)
+	if (hwFormat == Latte::E_HWFMT::HWFMT_8_8_8_8 || hwFormat == Latte::E_HWFMT::HWFMT_2_10_10_10)
 	{
-		// used in Bayonetta 2
+		// used in Bayonetta 2 and Color Splash
 		for (sint32 y = 0; y < textureLoader.height; y++)
 		{
 			uint8* pixelInput = linearPixelData + y * sourceRowPitch;
@@ -820,6 +821,20 @@ void LatteTextureLoader_writeReadbackTextureToMemory(LatteTextureDefinition* tex
 				uint8* outputData = LatteTextureLoader_GetInput(&textureLoader, x, y);
 				*(uint32*)(outputData + 0) = *(uint32*)pixelInput;
 				pixelInput += 4;
+			}
+		}
+	}
+	else if (textureData->format == Latte::E_GX2SURFFMT::R16_FLOAT)
+	{
+		// used in Xenoblade Chronicles X
+		for (sint32 y = 0; y < textureLoader.height; y++)
+		{
+			uint8* pixelInput = linearPixelData + y * sourceRowPitch;
+			for (sint32 x = 0; x < textureLoader.width; x++)
+			{
+				uint8* outputData = LatteTextureLoader_GetInput(&textureLoader, x, y);
+				*(uint16*)(outputData + 0) = *(uint16*)pixelInput;
+				pixelInput += 2;
 			}
 		}
 	}
