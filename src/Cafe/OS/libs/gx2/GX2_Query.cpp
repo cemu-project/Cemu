@@ -4,6 +4,7 @@
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/CafeSystem.h"
 #include "GX2_Query.h"
+#include "GX2_Command.h"
 
 #define LATTE_GC_NUM_RB							2
 #define _QUERY_REG_COUNT						8 // each reg/result is 64bits, little endian
@@ -17,6 +18,28 @@ namespace GX2
 	};
 
 	static_assert(sizeof(GX2Query) == 0x40);
+
+	static bool _IsCPUQueryPending(GX2Query* query)
+	{
+		return query->reg[LATTE_GC_NUM_RB * 4 + 1] == _swapEndianU32('OCPU') && query->reg[LATTE_GC_NUM_RB * 4 + 0] == 0;
+	}
+
+	// Wait for the GPU to catch up so that the results of all previously ended occlusion queries are written to memory
+	// Some games poll the result of a CPU occlusion query only a few ms after ending it, within the same frame
+	// (e.g. ZombiU tests lens flare visibility this way and treats a "not ready" result as fully visible).
+	// On hardware the GPU trails the CPU closely enough for the result to be available by then, but the
+	// GPU thread in Cemu can be much further behind
+	static void _SyncForPendingQueryResult()
+	{
+		if (GX2GetDisplayListWriteStatus())
+			return; // can't submit commands while a display list is being recorded
+		GX2ReserveCmdSpace(2);
+		gx2WriteGather_submitU32AsBE(pm4HeaderType3(IT_HLE_SYNC_ASYNC_OPERATIONS, 1));
+		gx2WriteGather_submitU32AsBE(0x00000000); // unused
+		GX2Command_Flush(0x100, true);
+		uint64 ts = GX2GetLastSubmittedTimeStamp();
+		GX2WaitTimeStamp(ts);
+	}
 
 	void _BeginOcclusionQuery(GX2Query* queryInfo, bool isGPUQuery)
 	{
@@ -98,7 +121,12 @@ namespace GX2
 
 	uint32 GX2QueryGetOcclusionResult(GX2Query* query, uint64be* resultOut)
 	{
-		if (query->reg[LATTE_GC_NUM_RB * 4 + 1] == _swapEndianU32('OCPU') && query->reg[LATTE_GC_NUM_RB * 4 + 0] == 0)
+		if (_IsCPUQueryPending(query))
+		{
+			// let the GPU catch up, then check again
+			_SyncForPendingQueryResult();
+		}
+		if (_IsCPUQueryPending(query))
 		{
 			// CPU query result not ready
 			return GX2_FALSE;
