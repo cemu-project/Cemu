@@ -398,6 +398,9 @@ namespace iosu::boss
 				case NetworkService::Pretendo:
 					requestUrl = PretendoURLs::BOSSURL;
 					break;
+				case NetworkService::Samtendo:
+					requestUrl = SamtendoURLs::BOSSURL;
+					break;
 				case NetworkService::Custom:
 					requestUrl = GetNetworkConfig().urls.BOSS.GetValue();
 					break;
