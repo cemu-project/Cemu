@@ -44,6 +44,8 @@ namespace NAPI
 			return NintendoURLs::NUSURL;
 		case NetworkService::Pretendo:
 			return PretendoURLs::NUSURL;
+		case NetworkService::Samtendo:
+			return SamtendoURLs::NUSURL;
 		case NetworkService::Custom:
 			return GetNetworkConfig().urls.NUS;
 		default:
