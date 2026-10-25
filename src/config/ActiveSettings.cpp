@@ -166,7 +166,7 @@ bool ActiveSettings::IsOnlineEnabled()
 	if(!HasRequiredOnlineFiles())
 		return false;
 	NetworkService networkService = static_cast<NetworkService>(GetConfig().GetAccountNetworkService(GetPersistentId()));
-	return networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Custom;
+	return networkService == NetworkService::Nintendo || networkService == NetworkService::Pretendo || networkService == NetworkService::Samtendo || networkService == NetworkService::Custom;
 }
 
 bool ActiveSettings::HasRequiredOnlineFiles()
