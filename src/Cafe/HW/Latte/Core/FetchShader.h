@@ -9,10 +9,16 @@ struct LatteParsedFetchShaderAttribute
 	LatteConst::VertexFetchType2		fetchType;
 	uint8								nfa;
 	uint8								isSigned;
+	sint8								stepRateRegIndex; // -1 -> divisor 1, 0 -> VGT_INSTANCE_STEP_RATE_0, 1 -> VGT_INSTANCE_STEP_RATE_1
 	LatteConst::VertexFetchEndianMode	endianSwap;
 	uint8								ds[4]; // destination component select
 	sint32								aluDivisor;
 	uint32								offset;
+
+	uint32 GetInstanceDivisor(const uint32* contextRegisters)
+	{
+		return stepRateRegIndex < 0 ? 1 : contextRegisters[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_0 + stepRateRegIndex];
+	}
 };
 
 struct LatteParsedFetchShaderBufferGroup
@@ -39,6 +45,7 @@ struct LatteFetchShader
 
 	uint64 key{};
 	uint32 attributeBufferMask{}; // mask of buffers sourced by this fetch shader
+	uint8 stepRateRegMask{}; // bit 0: VGT_INSTANCE_STEP_RATE_0 used, bit 1: VGT_INSTANCE_STEP_RATE_1 used
 
 	// Vulkan
 	uint64 vkPipelineHashFragment{}; // hash of all fetch shader state that influences the Vulkan graphics pipeline

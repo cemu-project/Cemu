@@ -372,6 +372,7 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 	for (auto& bufferGroup : fetchShader->bufferGroups)
 	{
 		std::optional<LatteConst::VertexFetchType2> fetchType;
+		std::optional<uint32> bufferInstanceDivisor; // instance divisor for this buffer
 
 		for (sint32 j = 0; j < bufferGroup.attribCount; ++j)
 		{
@@ -395,8 +396,9 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 
 			if (attr.fetchType == LatteConst::INSTANCE_DATA)
 			{
-				cemu_assert_debug(attr.aluDivisor == 1); // other divisor not yet supported
-				// use VK_EXT_vertex_attribute_divisor
+				uint32 divisor = attr.GetInstanceDivisor(latteRegister.GetRawView());
+				cemu_assert_debug(!bufferInstanceDivisor.has_value() || bufferInstanceDivisor == divisor); // Latte can set different divisors per attribute and thus have more than one divisor per buffer, but we don't support this yet
+				bufferInstanceDivisor = divisor;
 			}
 		}
 
@@ -421,6 +423,18 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 		}
 		entry.binding = bufferIndex;
 		vertexInputBindingDescription.emplace_back(entry);
+
+		if (bufferInstanceDivisor.has_value() && entry.inputRate == VK_VERTEX_INPUT_RATE_INSTANCE && bufferStride != 0 && bufferInstanceDivisor != 1)
+		{
+			uint32 instanceDivisor = *bufferInstanceDivisor;
+			auto vkRenderer = VulkanRenderer::GetInstance();
+			if (instanceDivisor == 0 || instanceDivisor > 0xFFFF || !vkRenderer->m_featureControl.deviceExtensions.vertex_attribute_divisor)
+			{
+				cemuLog_log(LogType::Force, "Vulkan: Unsupported vertex attribute divisor {}", instanceDivisor);
+			}
+			else
+				m_vertexInputBindingDivisors.push_back({bufferIndex, instanceDivisor});
+		}
 	}
 
 	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
@@ -428,6 +442,13 @@ void PipelineCompiler::InitVertexInputState(const LatteContextRegister& latteReg
 	vertexInputInfo.pVertexBindingDescriptions = vertexInputBindingDescription.data();
 	vertexInputInfo.vertexAttributeDescriptionCount = vertexInputAttributeDescription.size();
 	vertexInputInfo.pVertexAttributeDescriptions = vertexInputAttributeDescription.data();
+	if (!m_vertexInputBindingDivisors.empty())
+	{
+		m_vertexInputDivisorState.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_DIVISOR_STATE_CREATE_INFO_KHR;
+		m_vertexInputDivisorState.vertexBindingDivisorCount = static_cast<uint32>(m_vertexInputBindingDivisors.size());
+		m_vertexInputDivisorState.pVertexBindingDivisors = m_vertexInputBindingDivisors.data();
+		vertexInputInfo.pNext = &m_vertexInputDivisorState;
+	}
 }
 
 void PipelineCompiler::InitInputAssemblyState(const Latte::LATTE_VGT_PRIMITIVE_TYPE::E_PRIMITIVE_TYPE primitiveMode)

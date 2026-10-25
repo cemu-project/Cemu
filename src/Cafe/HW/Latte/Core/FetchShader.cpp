@@ -274,6 +274,7 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	attribGroup->minOffset = (std::min)(attribGroup->minOffset, offset);
 	attribGroup->totalAttribRangeSize = (std::max)(attribGroup->totalAttribRangeSize, offsetAfterAttrib);
 	// get alu divisor
+	attribGroup->attrib[groupAttribIndex].stepRateRegIndex = -1;
 	if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_X)
 	{
 		cemu_assert_debug(fetchType != LatteConst::VertexFetchType2::INSTANCE_DATA); // aluDivisor 0 in combination with instanced data is not allowed?
@@ -288,12 +289,14 @@ void _fetchShaderDecompiler_parseInstruction_VTX_SEMANTIC(LatteFetchShader* pars
 	else if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_Y)
 	{
 		// use alu divisor 1
+		attribGroup->attrib[groupAttribIndex].stepRateRegIndex = 0;
 		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_0];
 		cemu_assert_debug(attribGroup->attrib[groupAttribIndex].aluDivisor > 0);
 	}
 	else if (srcSelX == LatteClauseInstruction_VTX::SRC_SEL::SEL_Z)
 	{
 		// use alu divisor 2
+		attribGroup->attrib[groupAttribIndex].stepRateRegIndex = 1;
 		attribGroup->attrib[groupAttribIndex].aluDivisor = (sint32)contextRegister[Latte::REGADDR::VGT_INSTANCE_STEP_RATE_1];
 		cemu_assert_debug(attribGroup->attrib[groupAttribIndex].aluDivisor > 0);
 	}
@@ -433,6 +436,8 @@ LatteFetchShader* LatteShaderRecompiler_createFetchShader(LatteFetchShader::Cach
 			auto& attrib = bufferGroup.attrib[i];
 			bufferGroup.hasVtxIndexAccess |= (attrib.fetchType == LatteConst::VERTEX_DATA);
 			bufferGroup.hasInstanceIndexAccess |= (attrib.fetchType == LatteConst::INSTANCE_DATA);
+			if (attrib.fetchType == LatteConst::INSTANCE_DATA && attrib.stepRateRegIndex >= 0)
+				newFetchShader->stepRateRegMask |= (uint8)(1 << attrib.stepRateRegIndex);
 		}
 	}
 	LatteShader_calculateFSKey(newFetchShader);

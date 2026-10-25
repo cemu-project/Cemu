@@ -468,6 +468,7 @@ private:
 			bool present_wait = false; // VK_KHR_present_wait
 			bool depth_clip_enable = false; // VK_EXT_depth_clip_enable
 			bool pipeline_robustness = false; // VK_EXT_pipeline_robustness
+			bool vertex_attribute_divisor = false; // VK_KHR_vertex_attribute_divisor (with supportsNonZeroFirstInstance, vertexAttributeInstanceRateDivisor and maxVertexAttribDivisor >= 0xFFFF)
 			bool attachment_feedback_loop_layout = false; // VK_EXT_attachment_feedback_loop_layout
 			bool attachment_feedback_loop_dynamic_state = false; // VK_EXT_attachment_feedback_loop_dynamic_state (this is forced to false if VK_EXT_attachment_feedback_loop_layout is not supported)
 		}deviceExtensions;

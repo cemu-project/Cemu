@@ -61,6 +61,8 @@ public:
 	std::vector<VkVertexInputAttributeDescription> vertexInputAttributeDescription;
 	std::vector<VkVertexInputBindingDescription> vertexInputBindingDescription;
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+	std::vector<VkVertexInputBindingDivisorDescriptionKHR> m_vertexInputBindingDivisors;
+	VkPipelineVertexInputDivisorStateCreateInfoKHR m_vertexInputDivisorState{};
 
 	/* input assembly state */
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{};
