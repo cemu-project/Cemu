@@ -31,6 +31,7 @@ namespace nsysnet
 
 #define NSSL_OK (0)
 #define NSSL_INVALID_CTX (0xFFD7FFFF)
+#define NSSL_INVALID_SIZE (-0x280017)
 
 	struct NSSLInternalState_t
 	{

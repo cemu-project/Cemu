@@ -910,12 +910,12 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 	virtualSocket_t* vs = nsysnet_getVirtualSocketObject(s);
 	if (vs == NULL)
 	{
-		assert_dbg();
-		// todo
+		_setSockError(WU_SO_EINVAL);
+		osLib_returnFromFunction(hCPU, -1);
 		return;
 	}
 
-	if (memory_readU32(lenMPTR) != 16)
+	if (lenMPTR && memory_readU32(lenMPTR) != 16)
 	{
 		cemuLog_log(LogType::Force, "invalid sockaddr len in accept()");
 		cemu_assert_debug(false);
@@ -923,28 +923,45 @@ void nsysnetExport_accept(PPCInterpreter_t* hCPU)
 		return;
 	}
 
-	if (vs->isNonBlocking)
+	bool isNonBlocking = vs->isNonBlocking;
+	SOCKET hostSocket = vs->s;
+	while (true)
 	{
+		if (!isNonBlocking && _socket_nonblock(hostSocket, 1) == SOCKET_ERROR)
+		{
+			r = _translateError(-1, GETLASTERR, _ERROR_MODE_ACCEPT);
+			break;
+		}
 		sockaddr hostAddr;
 		socklen_t hostLen = sizeof(sockaddr);
-		SOCKET hr = accept(vs->s, &hostAddr, &hostLen);
+		SOCKET hr = accept(hostSocket, &hostAddr, &hostLen);
 		if (hr != SOCKET_ERROR)
 		{
+			if (!isNonBlocking)
+				_socket_nonblock(hr, 0);
 			r = nsysnet_createVirtualSocketFromExistingSocket(hr);
 			_setSockError(WU_SO_SUCCESS);
+			if (addr)
+				sockaddr_host2guest(&hostAddr, addr);
+			break;
 		}
-		else
+		sint32 hostError = GETLASTERR;
+		if (isNonBlocking || hostError != WSAEWOULDBLOCK)
 		{
-			r = _translateError((sint32)hr, (sint32)GETLASTERR, _ERROR_MODE_ACCEPT);
+			r = _translateError(-1, hostError, _ERROR_MODE_ACCEPT);
+			break;
 		}
-		sockaddr_host2guest(&hostAddr, addr);
+		coreinit::OSSleepTicks(coreinit::EspressoTime::GetTimerClock() / 10); // sleep 100ms
+		vs = nsysnet_getVirtualSocketObject(s);
+		if (!vs || vs->s != hostSocket)
+		{
+			_setSockError(WU_SO_EINVAL);
+			r = -1;
+			break;
+		}
 	}
-	else
-	{
-		// blocking accept is not supported yet
-		cemuLog_log(LogType::Force, "blocking accept() not supported");
-		cemu_assert_debug(false);
-	}
+	if (!isNonBlocking && vs && vs->s == hostSocket)
+		_socket_nonblock(hostSocket, vs->isNonBlocking);
 
 	osLib_returnFromFunction(hCPU, r);
 }
@@ -2021,6 +2038,7 @@ namespace nsysnet
 	void export_NSSLCreateContext(PPCInterpreter_t* hCPU)
 	{
 		ppcDefineParamU32(version, 0);
+		std::lock_guard lock(s_nsslContextMutex);
 
 		NSSLInternalState_t ssl = {};
 		ssl.sslVersion = version;
@@ -2038,6 +2056,7 @@ namespace nsysnet
 		ppcDefineParamU32(nsslHandle, 0);
 		ppcDefineParamU32(clientPKI, 1);
 		cemuLog_logDebug(LogType::Force, "NSSLSetClientPKI(0x{:x}, 0x{:x})", nsslHandle, clientPKI);
+		std::lock_guard lock(s_nsslContextMutex);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -2054,6 +2073,7 @@ namespace nsysnet
 		ppcDefineParamU32(nsslHandle, 0);
 		ppcDefineParamU32(serverPKI, 1);
 		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKI(0x{:x}, 0x{:x})", nsslHandle, serverPKI);
+		std::lock_guard lock(s_nsslContextMutex);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -2073,9 +2093,16 @@ namespace nsysnet
 		ppcDefineParamS32(certType, 3);
 
 		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKIExternal(0x{:x}, 0x{:08x}, 0x{:x}, {})", nsslHandle, certData.GetMPTR(), certLen, certType);
+		std::lock_guard lock(s_nsslContextMutex);
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
 			osLib_returnFromFunction(hCPU, NSSL_INVALID_CTX);
+			return;
+		}
+
+		if (certLen <= 0 || uint64(certData.GetMPTR()) + uint32(certLen) > 0x100000000ULL)
+		{
+			osLib_returnFromFunction(hCPU, NSSL_INVALID_SIZE);
 			return;
 		}
 
@@ -2091,6 +2118,7 @@ namespace nsysnet
 		ppcDefineParamMEMPTR(validCountOut, sint32, 2);
 		ppcDefineParamMEMPTR(invalidCountOut, sint32, 3);
 		cemuLog_logDebug(LogType::Force, "NSSLAddServerPKIGroups(0x{:x}, 0x{:x}, 0x{:08x}, 0x{:08x})", nsslHandle, groupMask, validCountOut.GetMPTR(), invalidCountOut.GetMPTR());
+		std::lock_guard lock(s_nsslContextMutex);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -2125,6 +2153,7 @@ namespace nsysnet
 	{
 		ppcDefineParamU32(nsslHandle, 0);
 		cemuLog_logDebug(LogType::Force, "NSSLDestroyContext(0x{:x})", nsslHandle);
+		std::lock_guard lock(s_nsslContextMutex);
 
 		if (g_nsslInternalStates.size() <= nsslHandle || g_nsslInternalStates[nsslHandle].destroyed)
 		{
@@ -2288,7 +2317,6 @@ namespace nsysnet
 
 			osLib_addFunction("nsysnet", "sendto_multi", nsysnetExport_sendto_multi);
 			osLib_addFunction("nsysnet", "sendto_multi_ex", nsysnetExport_sendto_multi_ex);
-
 
 			// NSSL API
 			osLib_addFunction("nsysnet", "NSSLCreateContext", nsysnet::export_NSSLCreateContext);
