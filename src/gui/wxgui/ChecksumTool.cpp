@@ -579,17 +579,16 @@ void ChecksumTool::VerifyJsonEntry(const rapidjson::Document& doc)
 				}
 				return;
 			}
-			else if (!missing_files.empty() && !invalid_hashes.empty())
+			else if (!missing_files.empty() || !invalid_hashes.empty())
 			{
 				const int result = wxMessageBox(formatWxString(
-						_("Multiple issues with your game files have been found!\nDo you want to export them to a file?"),
-						invalid_hashes.size()), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR, this);
+						_("Multiple issues with your game files have been found!\nDo you want to export them to a file?")), _("Error"), wxYES_NO | wxCENTRE | wxICON_ERROR, this);
 				if (result == wxYES)
 				{
 					writeMismatchInfoToLog();
 				}
 				return;
-			}	
+			}
 		}
 		wxMessageBox(_("Your game files are valid"), _("Success"), wxOK | wxCENTRE, this);
 	}
