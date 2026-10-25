@@ -27,6 +27,7 @@ void gx2Export_GX2SetGeometryShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetComputeShader(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetVertexUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2RSetVertexUniformBlock(PPCInterpreter_t* hCPU);
+void gx2Export_GX2RSetPixelUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetPixelUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2SetGeometryUniformBlock(PPCInterpreter_t* hCPU);
 void gx2Export_GX2CalcGeometryShaderInputRingBufferSize(PPCInterpreter_t* hCPU);
