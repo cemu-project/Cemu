@@ -64,6 +64,8 @@ namespace NAPI
 			return NintendoURLs::IASURL;
 		case NetworkService::Pretendo:
 			return PretendoURLs::IASURL;
+		case NetworkService::Samtendo:
+			return SamtendoURLs::IASURL;
 		case NetworkService::Custom:
 			return GetNetworkConfig().urls.IAS;
 		default:
@@ -83,6 +85,8 @@ namespace NAPI
 			return NintendoURLs::ECSURL;
 		case NetworkService::Pretendo:
 			return PretendoURLs::ECSURL;
+		case NetworkService::Samtendo:
+			return SamtendoURLs::ECSURL;
 		case NetworkService::Custom:
 			return GetNetworkConfig().urls.ECS;
 		default:
@@ -101,6 +105,8 @@ namespace NAPI
 			return NintendoURLs::CCSUURL;
 		case NetworkService::Pretendo:
 			return PretendoURLs::CCSUURL;
+		case NetworkService::Samtendo:
+			return SamtendoURLs::CCSURL;
 		case NetworkService::Custom:
 			return GetNetworkConfig().urls.CCSU;
 		default:
@@ -119,6 +125,8 @@ namespace NAPI
 			return NintendoURLs::CCSURL;
 		case NetworkService::Pretendo:
 			return PretendoURLs::CCSURL;
+		case NetworkService::Samtendo:
+			return SamtendoURLs::CCSURL;
 		case NetworkService::Custom:
 			return GetNetworkConfig().urls.CCS;
 		default:
