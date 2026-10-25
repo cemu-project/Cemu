@@ -90,7 +90,7 @@ bool LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 			UNREACHABLE;
 		}
 		// sourced from uniform registers
-		if (aluConstDirty)
+		if (aluConstDirty && shader->list_remappedUniformEntries_register.size() > 0)
 		{
 			uint32* aluConstBase = LatteGPUState.contextRegister + mmSQ_ALU_CONSTANT0_0 + shaderAluConst;
 			for (auto it : shader->list_remappedUniformEntries_register)
@@ -100,8 +100,20 @@ bool LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 				regDest[0] = uniformRegData[0];
 				regDest[1] = uniformRegData[1];
 			}
-			if (!shader->list_remappedUniformEntries_register.empty())
-				hasChange = true;
+			hasChange = true;
+		}
+		// uniform blocks should read as zero
+		for (auto& bufferGroup : shader->list_remappedUniformEntries_bufferGroups)
+		{
+			if ((uniformBufferDirtyMask&(1<<bufferGroup.bufferId)) == 0)
+				continue;
+			for (auto& it : bufferGroup.entries)
+			{
+				uint64* regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
+				regDest[0] = 0;
+				regDest[1] = 0;
+			}
+			hasChange = true;
 		}
 	}
 	else
@@ -151,6 +163,17 @@ bool LatteBufferCache_LoadRemappedUniforms(LatteDecompilerShader* shader, float*
 				}
 				hasChange = true;
 			}
+		}
+		// uniform registers should read as zero
+		if (aluConstDirty && shader->list_remappedUniformEntries_register.size() > 0)
+		{
+			for (auto it : shader->list_remappedUniformEntries_register)
+			{
+				uint64* __restrict regDest = (uint64*)((uint8*)uniformData + it.mappedIndexOffset);
+				regDest[0] = 0;
+				regDest[1] = 0;
+			}
+			hasChange = true;
 		}
 	}
 	return hasChange;
