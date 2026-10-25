@@ -8,6 +8,7 @@ enum class NetworkService
 	Offline,
 	Nintendo,
 	Pretendo,
+	Samtendo,
 	Custom,
 	COUNT = Custom
 };
@@ -71,6 +72,20 @@ struct PretendoURLs {
    inline static std::string OLVURL = "https://discovery.olv.pretendo.cc/v1/endpoint";
 };
 
+struct SamtendoURLs {
+   inline static std::string ACTURL =  "https://account.samtendo.net";
+   inline static std::string ECSURL = "https://ecs.wup.shop.samtendo.net/ecs/services/ECommerceSOAP";
+   inline static std::string NUSURL = "https://nus.c.shop.samtendo.net/nus/services/NetUpdateSOAP";
+   inline static std::string IASURL = "https://ias.c.shop.samtendo.net/ias/services/IdentityAuthenticationSOAP";
+   inline static std::string CCSUURL = "https://ccs.c.shop.samtendo.net/ccs/download";
+   inline static std::string CCSURL = "http://ccs.cdn.c.shop.samtendo.net/ccs/download";
+   inline static std::string IDBEURL = "https://idbe-wup.cdn.samtendo.net/icondata";
+   inline static std::string BOSSURL = "https://npts.app.samtendo.net/p01/tasksheet";
+   inline static std::string TAGAYAURL = "https://tagaya.wup.shop.samtendo.net/tagaya/versionlist";
+   inline static std::string OLVURL = "https://api-olv.samtendo.net/v1/endpoint";
+};
+
+
 typedef XMLDataConfig<NetworkConfig> XMLNetworkConfig_t;
 extern XMLNetworkConfig_t n_config;
 inline NetworkConfig& GetNetworkConfig() { return n_config.data();};
@@ -80,6 +95,8 @@ inline bool IsNetworkServiceSSLDisabled(NetworkService service)
 	if(service == NetworkService::Nintendo)
 		return false;
 	else if(service == NetworkService::Pretendo)
+		return true;
+	else if(service == NetworkService::Samtendo)
 		return true;
 	else if(service == NetworkService::Custom)
 		return GetNetworkConfig().disablesslver.GetValue();
