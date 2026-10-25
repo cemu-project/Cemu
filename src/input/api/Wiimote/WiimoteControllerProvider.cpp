@@ -12,20 +12,26 @@
 #include <numbers>
 #include <queue>
 
-WiimoteControllerProvider::WiimoteControllerProvider()
-	: m_running(true)
+void WiimoteControllerProvider::StartThreads()
 {
-	m_reader_thread = std::thread(&WiimoteControllerProvider::reader_thread, this);
-	m_writer_thread = std::thread(&WiimoteControllerProvider::writer_thread, this);
-	m_connectionThread = std::thread(&WiimoteControllerProvider::connectionThread, this);
+	if (!m_threadsRunning.exchange(true))
+	{
+		FindDevices(); // get controller list immediately so it's available when StartThreads() returns (as it is called by get_controllers initially)
+		m_reader_thread = std::thread(&WiimoteControllerProvider::reader_thread, this);
+		m_writer_thread = std::thread(&WiimoteControllerProvider::writer_thread, this);
+		m_connectionThread = std::thread(&WiimoteControllerProvider::connectionThread, this);
+	}
 }
 
 WiimoteControllerProvider::~WiimoteControllerProvider()
 {
-	if (m_running)
-	{
-		m_running = false;
+	StopThreads();
+}
 
+void WiimoteControllerProvider::StopThreads()
+{
+	if (m_threadsRunning.exchange(false))
+	{
 		{
 			std::scoped_lock lock(m_writer_mutex); 
 			m_writer_cond.notify_all();
@@ -54,6 +60,22 @@ WiimoteControllerProvider::~WiimoteControllerProvider()
 }
 
 std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_controllers()
+{
+	StartThreads();
+	RefreshControllers();
+
+	std::scoped_lock lock(m_device_mutex);
+	std::vector<std::shared_ptr<ControllerBase>> result;
+	result.reserve(m_wiimotes.size());
+	for (size_t i = 0; i < m_wiimotes.size(); ++i)
+	{
+		result.emplace_back(std::make_shared<NativeWiimoteController>(i));
+	}
+
+	return result;
+}
+
+void WiimoteControllerProvider::RefreshControllers()
 {
 	m_connectedDeviceMutex.lock();
 	auto devices = m_connectedDevices;
@@ -91,15 +113,6 @@ std::vector<std::shared_ptr<ControllerBase>> WiimoteControllerProvider::get_cont
 		else
 			m_wiimotes.push_back(std::make_unique<Wiimote>(device));
 	}
-
-	std::vector<std::shared_ptr<ControllerBase>> result;
-	result.reserve(m_wiimotes.size());
-	for (size_t i = 0; i < m_wiimotes.size(); ++i)
-	{
-		result.emplace_back(std::make_shared<NativeWiimoteController>(i));
-	}
-
-	return result;
 }
 
 bool WiimoteControllerProvider::is_connected(size_t index)
@@ -172,27 +185,31 @@ WiimoteControllerProvider::WiimoteState WiimoteControllerProvider::get_state(siz
 	return {};
 }
 
+void WiimoteControllerProvider::FindDevices()
+{
+	std::vector<WiimoteDevicePtr> devices;
+#ifdef HAS_HIDAPI
+	const auto& hidDevices = HidapiWiimote::get_devices();
+	std::ranges::move(hidDevices, std::back_inserter(devices));
+#endif
+#ifdef HAS_BLUEZ
+	const auto& l2capDevices = L2CapWiimote::get_devices();
+	std::ranges::move(l2capDevices, std::back_inserter(devices));
+#endif
+	std::scoped_lock lock(m_connectedDeviceMutex);
+	m_connectedDevices = std::move(devices);
+}
+
 void WiimoteControllerProvider::connectionThread()
 {
 	SetThreadName("Wiimote-connect");
-	while (m_running.load(std::memory_order_relaxed))
+	while (m_threadsRunning.load(std::memory_order_relaxed))
 	{
-		std::vector<WiimoteDevicePtr> devices;
-#ifdef HAS_HIDAPI
-		const auto& hidDevices = HidapiWiimote::get_devices();
-		std::ranges::move(hidDevices, std::back_inserter(devices));
-#endif
-#ifdef HAS_BLUEZ
-		const auto& l2capDevices = L2CapWiimote::get_devices();
-		std::ranges::move(l2capDevices, std::back_inserter(devices));
-#endif
-		{
-			std::scoped_lock lock(m_connectedDeviceMutex);
-			m_connectedDevices.clear();
-			std::ranges::move(devices, std::back_inserter(m_connectedDevices));
-		}
 		std::unique_lock<std::mutex> lock(m_connectionMutex);
-		m_connectionCond.wait_for(lock, std::chrono::seconds(2));
+		if (m_connectionCond.wait_for(lock, std::chrono::seconds(2), [this]() { return !m_threadsRunning.load(std::memory_order_relaxed); }))
+			return;
+		lock.unlock();
+		FindDevices();
 	}
 }
 
@@ -201,13 +218,13 @@ void WiimoteControllerProvider::reader_thread()
 {
 	SetThreadName("Wiimote-reader");
 	std::chrono::steady_clock::time_point lastCheck = {};
-	while (m_running.load(std::memory_order_relaxed))
+	while (m_threadsRunning.load(std::memory_order_relaxed))
 	{
 		const auto now = std::chrono::steady_clock::now();
 		if (std::chrono::duration_cast<std::chrono::seconds>(now - lastCheck) > std::chrono::milliseconds(500))
 		{
 			// check for new connected wiimotes
-			get_controllers();
+			RefreshControllers();
 			lastCheck = std::chrono::steady_clock::now();
 		}
 
@@ -951,14 +968,14 @@ void WiimoteControllerProvider::set_motion_plus(size_t index, bool state)
 void WiimoteControllerProvider::writer_thread()
 {
 	SetThreadName("Wiimote-writer");
-	while (m_running.load(std::memory_order_relaxed))
+	while (m_threadsRunning.load(std::memory_order_relaxed))
 	{
 		std::unique_lock writer_lock(m_writer_mutex);
 		while (m_write_queue.empty())
 		{
 			if (m_writer_cond.wait_for(writer_lock, std::chrono::milliseconds(250)) == std::cv_status::timeout)
 			{
-				if (!m_running.load(std::memory_order_relaxed))
+				if (!m_threadsRunning.load(std::memory_order_relaxed))
 					return;
 			}
 		}
