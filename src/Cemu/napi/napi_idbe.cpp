@@ -66,6 +66,9 @@ namespace NAPI
 		case NetworkService::Custom:
 			requestUrl = GetNetworkConfig().urls.IDBE.GetValue();
 			break;
+		case NetworkService::Samtendo:
+			requestUrl = SamtendoURLs::IDBEURL;
+			break;
 		case NetworkService::Nintendo:
 		default:
 			requestUrl = NintendoURLs::IDBEURL;
