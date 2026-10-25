@@ -431,8 +431,9 @@ bool iosuCrypto_addCustomCACertificate(void* sslctx, uint8* certData, sint32 cer
 		cemuLog_log(LogType::Force, "Invalid custom server PKI certificate");
 		return false;
 	}
-	X509_STORE_add_cert(store, cert);
-	return true;
+	int result = X509_STORE_add_cert(store, cert);
+	X509_free(cert);
+	return result == 1;
 }
 
 uint8* iosuCrypto_getCertificateDataById(sint32 certificateId, sint32* certificateSize)

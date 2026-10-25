@@ -254,6 +254,8 @@ void cafeCallableExportWrapper(PPCInterpreter_t* hCPU)
 	hCPU->instructionPointer = hCPU->spr.LR;
 }
 
+uint32 RPLLoader_MakePPCCallable(void(*ppcCallableExport)(struct PPCInterpreter_t* hCPU)); // declare to avoid having to include all of rpl.h
+
 template<auto fn>
 MPTR makeCallableExport()
 {

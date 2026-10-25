@@ -10,17 +10,11 @@
 #define CURL_STRICTER
 
 #include "curl/curl.h"
-#include <unordered_map>
-#include <atomic>
-
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/nsysnet/nsysnet.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM.h"
 
-#include "util/helpers/ConcurrentQueue.h"
 #include "Cafe/OS/common/PPCConcurrentQueue.h"
-#include "Common/FileStream.h"
-#include "config/ActiveSettings.h"
 
 namespace nlibcurl
 {
@@ -31,1483 +25,1357 @@ namespace nlibcurl
 #define NSSL_VERIFY_HOSTNAME	(1<<1)
 #define NSSL_VERIFY_DATE		(1<<2)
 
-	enum QueueOrder
+	struct
 	{
-		QueueOrder_None,
+		sint32 initialized;
 
-		QueueOrder_Result,
-		QueueOrder_CBDone,
+		MEMPTR<curl_malloc_callback> malloc;
+		MEMPTR<curl_free_callback> free;
+		MEMPTR<curl_strdup_callback> strdup;
+		MEMPTR<curl_calloc_callback> calloc;
+	} g_nlibcurl = {};
 
-		QueueOrder_HeaderCB,
-		QueueOrder_ReadCB,
-		QueueOrder_WriteCB,
-		QueueOrder_ProgressCB,
-
-		QueueOrder_Perform,
-		QueueOrder_Pause,
+	// option and info IDs as used by nlibcurl
+	enum class WU_CURLOPT : uint32
+	{
+		WRITEDATA = 10001,
+		URL = 10002,
+		PROXY = 10004,
+		READDATA = 10009,
+		WRITEFUNCTION = 20011,
+		READFUNCTION = 20012,
+		TIMEOUT = 13,
+		INFILESIZE = 14,
+		POSTFIELDS = 10015,
+		USERAGENT = 10018,
+		LOW_SPEED_LIMIT = 19,
+		LOW_SPEED_TIME = 20,
+		HTTPHEADER = 10023,
+		HEADERDATA = 10029,
+		NOPROGRESS = 43,
+		UPLOAD = 46,
+		POST = 47,
+		FOLLOWLOCATION = 52,
+		PUT = 54,
+		PROGRESSFUNCTION = 20056,
+		PROGRESSDATA = 10057,
+		CONNECTTIMEOUT = 78,
+		HEADERFUNCTION = 20079,
+		HTTPGET = 80,
+		NOSIGNAL = 99,
+		SHARE = 10100,
+		BUFFERSIZE = 98,
+		INFILESIZE_LARGE = 30115,
+		POSTFIELDSIZE_LARGE = 30120,
+		MAX_SEND_SPEED_LARGE = 30145,
+		MAX_RECV_SPEED_LARGE = 30146,
+		SOCKOPTFUNCTION = 20148,
+		SOCKOPTDATA = 10149,
+		CONNECTTIMEOUT_MS = 156,
+		NSSL_CONTEXT = 210, // set context created with NSSLCreateContext
+		NSSL_VERIFY_OPTIONS = 211,
 	};
 
-	struct QueueMsg_t
+	enum class WU_CURLINFO : uint32
 	{
-		QueueOrder order;
-		union
-		{
-			uint32 result;
-
-			struct
-			{
-				char* buffer;
-				uint32 size;
-				uint32 nitems;
-			} header_cb;
-
-			struct
-			{
-				char* buffer;
-				uint32 size;
-				uint32 nitems;
-			} read_cb;
-
-			struct
-			{
-				char* buffer;
-				uint32 size;
-				uint32 nmemb;
-			} write_cb;
-
-			struct
-			{
-				uint32 clientp;
-				double dltotal;
-				double dlnow;
-				double ultotal;
-				double ulnow;
-			} progress_cb;
-
-			struct
-			{
-				sint32 bitmask;
-			} pause;
-
-		};
-
+		RESPONSE_CODE = 0x200002,
+		SIZE_UPLOAD = 0x300007,
+		SIZE_DOWNLOAD = 0x300008,
+		SPEED_DOWNLOAD = 0x300009,
+		SPEED_UPLOAD = 0x30000A,
+		SSL_VERIFYRESULT = 0x20000D,
+		CONTENT_LENGTH_DOWNLOAD = 0x30000F,
+		CONTENT_TYPE = 0x100012,
+		REDIRECT_URL = 0x10001F,
 	};
 
-struct MEMPTRHash_t
-{
-	size_t operator()(const MEMPTR<void>& p) const
+	enum class WU_CURLcode
 	{
-		return p.GetMPTR();
-	}
-};
+		placeholder = 0,
+	};
 
-struct WU_curl_slist
-{
-	MEMPTR<char> data;
-	MEMPTR<WU_curl_slist> next;
-};
-
-enum class WU_CURLcode
-{
-	placeholder = 0,
-};
-
-struct
-{
-	sint32 initialized;
-
-	MEMPTR<void> proxyConfig;
-	MEMPTR<curl_malloc_callback> malloc;
-	MEMPTR<curl_free_callback> free;
-	MEMPTR<curl_realloc_callback> realloc;
-	MEMPTR<curl_strdup_callback> strdup;
-	MEMPTR<curl_calloc_callback> calloc;
-} g_nlibcurl = {};
-
-using WU_CURL_off_t = uint64be;
-
-enum class WU_HTTPREQ : uint32
-{
-	HTTPREQ_GET = 0x1,
-	HTTPREQ_POST = 0x2,
-	UKN_3 = 0x3,
-};
-
-struct WU_UserDefined
-{
-	// starting at 0xD8 (probably) in CURL_t
-	/* 0x0D8 / +0x00 */ uint32be ukn0D8;
-	/* 0x0DC / +0x04 */ uint32be ukn0DC;
-	/* 0x0E0 / +0x08 */ MEMPTR<WU_curl_slist> headers;
-	/* 0x0E4 / +0x0C */ uint32be ukn0E4;
-	/* 0x0E8 / +0x10 */ uint32be ukn0E8;
-	/* 0x0EC / +0x14 */ uint32be ukn0EC;
-	/* 0x0F0 / +0x18 */ uint32be ukn0F0[4];
-	/* 0x100 / +0x28 */ uint32be ukn100[4];
-	/* 0x110 / +0x38 */ uint32be ukn110[4]; // +0x40 -> WU_CURL_off_t postfieldsize ?
-	/* 0x120 / +0x48 */ uint32be ukn120[4];
-	/* 0x130 / +0x58 */ uint32be ukn130[4];
-	/* 0x140 / +0x68 */ uint32be ukn140[4];
-	/* 0x150 / +0x78 */ uint32be ukn150[4];
-	/* 0x160 / +0x88 */ uint32be ukn160[4];
-	/* 0x170 / +0x98 */ uint32be ukn170[4];
-	/* 0x180 / +0xA8 */ uint32be ukn180[4];
-	/* 0x190 / +0xB0 */ sint64be infilesize_190{0};
-	/* 0x198 / +0xB8 */ uint32be ukn198;
-	/* 0x19C / +0xBC */ uint32be ukn19C;
-	/* 0x1A0 / +0xC8 */ uint32be ukn1A0[4];
-	/* 0x1B0 / +0xD8 */ uint32be ukn1B0[4];
-	/* 0x1C0 / +0xE8 */ uint32be ukn1C0[4];
-	/* 0x1D0 / +0xF8 */ uint32be ukn1D0[4];
-	/* 0x1E0 / +0x108 */ uint32be ukn1E0;
-	/* 0x1E4 / +0x108 */ uint32be ukn1E4;
-	/* 0x1E8 / +0x108 */ uint32be ukn1E8;
-	/* 0x1EC / +0x108 */ betype<WU_HTTPREQ> httpreq_1EC;
-	/* 0x1F0 / +0x118 */ uint32be ukn1F0[4];
-
-	void SetToDefault()
+	enum class WU_HTTPREQ : uint32
 	{
-		memset(this, 0, sizeof(WU_UserDefined));
-		httpreq_1EC = WU_HTTPREQ::HTTPREQ_GET;
-	}
-};
+		HTTPREQ_NONE = 0,
+		HTTPREQ_GET = 1,
+		HTTPREQ_POST = 2,
+		HTTPREQ_POST_FORM = 3,
+		HTTPREQ_PUT = 4,
+		HTTPREQ_HEAD = 5,
+		HTTPREQ_CUSTOM = 6
+	};
 
-struct CURL_t
-{
-	CURL* curl;
-
-	uint32be hNSSL;
-	uint32be nsslVerifyOptions;
-	MEMPTR<void> out; // CURLOPT_WRITEDATA
-	MEMPTR<void> in_set; // CURLOPT_READDATA
-	MEMPTR<void> writeheader; // CURLOPT_HEADERDATA
-
-	MEMPTR<void> fwrite_func; // CURLOPT_WRITEFUNCTION
-	MEMPTR<void> fwrite_header; // CURLOPT_HEADERFUNCTION
-	MEMPTR<void> fread_func_set; // CURLOPT_READFUNCTION
-
-	MEMPTR<void> progress_client; // CURLOPT_PROGRESSDATA
-	MEMPTR<void> fprogress; // CURLOPT_PROGRESSFUNCTION
-
-	MEMPTR<void> fsockopt; // CURLOPT_SOCKOPTFUNCTION
-	MEMPTR<void> sockopt_client; // CURLOPT_SOCKOPTDATA
-
-	// Cemu specific
-	OSThread_t* curlThread;
-	MEMPTR<char> info_redirectUrl; // stores CURLINFO_REDIRECT_URL ptr
-	MEMPTR<char> info_contentType; // stores CURLINFO_CONTENT_TYPE ptr
-	bool isDirty{true};
-
-	// debug
-	struct  
+	// indices into WU_UserDefined::str
+	enum WU_StringIndex : uint32
 	{
-		uint32 activeRequestIndex{};
-		uint32 responseRequestIndex{}; // set to activeRequestIndex once perform is called
-		bool hasDumpedResultInfo{}; // set once the response info has been dumped (reset when next request is performed)
-		FileStream* file_requestParam{};
-		FileStream* file_responseHeaders{};
-		FileStream* file_responseRaw{};
-	}debug;
+		WU_STRING_PROXY = 16,
+		WU_STRING_URL = 19,
+		WU_STRING_USERAGENT = 25,
+		WU_STRING_LAST = 37
+	};
 
-	// fields below match the actual memory layout, above still needs refactoring
-	/* 0x78 */ uint32be ukn078;
-	/* 0x7C */ uint32be ukn07C;
-	/* 0x80 */ uint32be ukn080;
-	/* 0x84 */ uint32be ukn084;
-	/* 0x88 */ uint32be ukn088;
-	/* 0x8C */ uint32be ukn08C;
-	/* 0x90 */ uint32be ukn090[4];
-	/* 0xA0 */ uint32be ukn0A0[4];
-	/* 0xB0 */ uint32be ukn0B0[4];
-	/* 0xC0 */ uint32be ukn0C0[4];
-	/* 0xD0 */ uint32be ukn0D0;
-	/* 0xD4 */ uint32be ukn0D4;
-	/* 0xD8 */ WU_UserDefined set;
-	/* 0x200 */ uint32be ukn200[4];
-	/* 0x210 */ uint32be ukn210[4];
-	/* 0x220 */ uint32be ukn220[4];
-	/* 0x230 */ uint32be ukn230[4];
-	/* 0x240 */ uint32be ukn240[4];
-	/* 0x250 */ uint32be ukn250[4];
-	/* 0x260 */ uint32be ukn260[4];
-	/* 0x270 */ uint32be ukn270[4];
-	/* 0x280 */ uint8be ukn280;
-	/* 0x281 */ uint8be opt_no_body_281;
-	/* 0x282 */ uint8be ukn282;
-	/* 0x283 */ uint8be upload_283;
-};
-static_assert(sizeof(CURL_t) <= 0x8698);
-static_assert(offsetof(CURL_t, ukn078) == 0x78);
-static_assert(offsetof(CURL_t, set) == 0xD8);
-static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, headers) == 0xE0);
-static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, infilesize_190) == 0x190);
-static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, httpreq_1EC) == 0x1EC);
-static_assert(offsetof(CURL_t, opt_no_body_281) == 0x281);
-typedef MEMPTR<CURL_t> CURLPtr;
+#pragma pack(push, 1)
 
-#pragma pack(1) // may affect structs below, we can probably remove this but lets keep it for now as the code below is fragile
-
-typedef struct
-{
-	//uint32be specifier; // 0x00
-	//uint32be dirty; // 0x04
-	MEMPTR<void> lockfunc; // 0x08
-	MEMPTR<void> unlockfunc; // 0x0C
-	MEMPTR<void> data; // 0x10
-	//MEMPTR<void> uk14; // 0x14
-	//MEMPTR<void> uk18; // 0x18
-
-	CURLSH* curlsh;
-	MEMPTR <CURL_t> curl;
-	uint32 uk1;
-}CURLSH_t; // SCURL
-static_assert(sizeof(CURLSH_t) <= 0x1C);
-typedef MEMPTR<CURLSH_t> CURLSHPtr;
-
-typedef struct
-{
-	CURLM* curlm;
-	std::vector<MEMPTR<CURL_t>> curl;
-}CURLM_t;
-static_assert(sizeof(CURLM_t) <= 0x80, "sizeof(CURLM_t)");
-typedef MEMPTR<CURLM_t> CURLMPtr;
-
-static_assert(sizeof(WU_curl_slist) <= 0x8, "sizeof(curl_slist_t)");
-
-struct CURLMsg_t
-{
-	uint32be msg;
-	MEMPTR<CURL_t> curl;
-	uint32be result; // CURLcode
-};
-
-static_assert(sizeof(CURLMsg_t) <= 0xC, "sizeof(CURLMsg_t)");
-
-#pragma pack()
-
-#include "nlibcurlDebug.hpp"
-
-size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata);
-
-thread_local PPCConcurrentQueue<QueueMsg_t>* g_callerQueue;
-thread_local ConcurrentQueue<QueueMsg_t>* g_threadQueue;
-void CurlWorkerThread(CURL_t* curl, PPCConcurrentQueue<QueueMsg_t>* callerQueue, ConcurrentQueue<QueueMsg_t>* threadQueue)
-{
-	g_callerQueue = callerQueue;
-	g_threadQueue = threadQueue;
-
-	const QueueMsg_t msg = threadQueue->pop();
-
-	QueueMsg_t resultMsg = {};
-	resultMsg.order = QueueOrder_Result;
-
-	if (msg.order == QueueOrder_Perform)
-		resultMsg.result = ::curl_easy_perform(curl->curl);
-	else if(msg.order == QueueOrder_Pause)
-		resultMsg.result = ::curl_easy_pause(curl->curl, msg.pause.bitmask);
-	else
-		assert_dbg();
-
-	callerQueue->push(resultMsg, curl->curlThread);
-}
-
-uint32 SendOrderToWorker(CURL_t* curl, QueueOrder order, uint32 arg1 = 0)
-{
-	OSThread_t* currentThread = coreinit::OSGetCurrentThread();
-	curl->curlThread = currentThread;
-
-	// cemuLog_logDebug(LogType::Force, "CURRENTTHREAD: 0x{} -> {}",currentThread, order)
-
-	PPCConcurrentQueue<QueueMsg_t> callerQueue;
-	ConcurrentQueue<QueueMsg_t> threadQueue;
-	std::thread worker(CurlWorkerThread, curl, &callerQueue, &threadQueue);
-	worker.detach();
-
-	QueueMsg_t orderMsg = {};
-	orderMsg.order = order;
-
-	if (order == QueueOrder_Pause)
-		orderMsg.pause.bitmask = arg1;
-
-	threadQueue.push(orderMsg);
-
-	uint32 result;
-	while (true)
+	struct WU_curl_slist
 	{
-		const QueueMsg_t msg = callerQueue.pop(currentThread);
-		if (msg.order == QueueOrder_ProgressCB)
+		MEMPTR<char> data;
+		MEMPTR<WU_curl_slist> next;
+	};
+	static_assert(sizeof(WU_curl_slist) == 0x8);
+
+	struct WU_UserDefined
+	{
+		/* +0x000 */ uint8 ukn000[0x10];
+		/* +0x010 */ MEMPTR<void> out; // CURLOPT_WRITEDATA
+		/* +0x014 */ MEMPTR<void> in; // CURLOPT_READDATA
+		/* +0x018 */ MEMPTR<void> writeheader; // CURLOPT_HEADERDATA
+		/* +0x01C */ uint8 ukn01C[0x1C];
+		/* +0x038 */ MEMPTR<void> postfields;
+		/* +0x03C */ uint8 ukn03C[0x4];
+		/* +0x040 */ sint64be postfieldsize;
+		/* +0x048 */ uint8 ukn048[0x8];
+		/* +0x050 */ MEMPTR<void> fwrite_func;
+		/* +0x054 */ MEMPTR<void> fwrite_header;
+		/* +0x058 */ uint8 ukn058[0x4];
+		/* +0x05C */ MEMPTR<void> fread_func;
+		/* +0x060 */ uint8 ukn060[0x8];
+		/* +0x068 */ MEMPTR<void> fprogress;
+		/* +0x06C */ uint8 ukn06C[0x8];
+		/* +0x074 */ MEMPTR<void> fsockopt;
+		/* +0x078 */ MEMPTR<void> sockopt_client;
+		/* +0x07C */ uint8 ukn07C[0x20];
+		/* +0x09C */ MEMPTR<void> progress_client;
+		/* +0x0A0 */ uint8 ukn0A0[0x4];
+		/* +0x0A4 */ sint32be timeout; // in ms
+		/* +0x0A8 */ sint32be connecttimeout; // in ms
+		/* +0x0AC */ uint8 ukn0AC[0xC];
+		/* +0x0B8 */ sint64be infilesize;
+		/* +0x0C0 */ sint32be low_speed_limit;
+		/* +0x0C4 */ sint32be low_speed_time;
+		/* +0x0C8 */ sint64be max_send_speed;
+		/* +0x0D0 */ sint64be max_recv_speed;
+		/* +0x0D8 */ uint8 ukn0D8[0x8];
+		/* +0x0E0 */ MEMPTR<WU_curl_slist> headers;
+		/* +0x0E4 */ uint8 ukn0E4[0x30];
+		/* +0x114 */ betype<WU_HTTPREQ> httpreq;
+		/* +0x118 */ uint8 ukn118[0x40];
+		/* +0x158 */ sint32be hNSSL; // -1 if no NSSL context is set
+		/* +0x15C */ uint32be nsslVerifyOptions;
+		/* +0x160 */ uint8 ukn160[0x8];
+		/* +0x168 */ sint32be buffer_size;
+		/* +0x16C */ uint8 ukn16C[0x33];
+		/* +0x19F */ uint8 hide_progress;
+		/* +0x1A0 */ uint8 ukn1A0[0x1];
+		/* +0x1A1 */ uint8 http_follow_location;
+		/* +0x1A2 */ uint8 ukn1A2[0x7];
+		/* +0x1A9 */ uint8 opt_no_body;
+		/* +0x1AA */ uint8 ukn1AA[0x1];
+		/* +0x1AB */ uint8 upload;
+		/* +0x1AC */ uint8 ukn1AC[0x18];
+		/* +0x1C4 */ uint8 no_signal;
+		/* +0x1C5 */ uint8 ukn1C5[0x1F];
+		/* +0x1E4 */ MEMPTR<char> str[WU_STRING_LAST];
+		/* +0x278 */ uint8 ukn278[0x30];
+
+		void SetToDefault()
 		{
-			QueueMsg_t sendMsg = {};
-			sendMsg.order = QueueOrder_CBDone;
-			sendMsg.result = PPCCoreCallback(curl->fprogress.GetMPTR(), curl->progress_client.GetMPTR(), msg.progress_cb.dltotal, msg.progress_cb.dlnow, msg.progress_cb.ultotal, msg.progress_cb.ulnow);
-			threadQueue.push(sendMsg);
+			memset(this, 0, sizeof(WU_UserDefined));
+			postfieldsize = -1;
+			infilesize = -1;
+			httpreq = WU_HTTPREQ::HTTPREQ_GET;
+			hNSSL = -1;
+			nsslVerifyOptions = NSSL_VERIFY_PEER | NSSL_VERIFY_HOSTNAME;
+			hide_progress = 1;
 		}
-		else if (msg.order == QueueOrder_HeaderCB)
-		{
-			StackAllocator<char> tmp(msg.header_cb.size * msg.header_cb.nitems);
-			memcpy(tmp.GetPointer(), msg.header_cb.buffer, msg.header_cb.size * msg.header_cb.nitems);
+	};
+	static_assert(sizeof(WU_UserDefined) == 0x2A8);
 
-			QueueMsg_t sendMsg = {};
-			sendMsg.order = QueueOrder_CBDone;
-			sendMsg.result = PPCCoreCallback(curl->fwrite_header.GetMPTR(), tmp.GetMPTR(), msg.header_cb.size, msg.header_cb.nitems, curl->writeheader.GetMPTR());
-			threadQueue.push(sendMsg);
-		}
-		else if (msg.order == QueueOrder_ReadCB)
-		{
-			StackAllocator<char> tmp(msg.read_cb.size * msg.read_cb.nitems);
+	struct CURLSH_t
+	{
+		/* +0x00 */ uint32be specifier;
+		/* +0x04 */ uint32be dirty; // number of easy handles using this share
+		/* +0x08 */ MEMPTR<void> lockfunc;
+		/* +0x0C */ MEMPTR<void> unlockfunc;
+		/* +0x10 */ MEMPTR<void> data;
+		/* +0x14 */ uint8 ukn14[0x8];
+	};
+	static_assert(sizeof(CURLSH_t) == 0x1C);
 
-			QueueMsg_t sendMsg = {};
-			sendMsg.order = QueueOrder_CBDone;
-			cemuLog_logDebug(LogType::Force, "QueueOrder_ReadCB size: {} nitems: {}", msg.read_cb.size, msg.read_cb.nitems);
-			sendMsg.result = PPCCoreCallback(curl->fread_func_set.GetMPTR(), tmp.GetMPTR(), msg.read_cb.size, msg.read_cb.nitems, curl->in_set.GetMPTR());
-			cemuLog_logDebug(LogType::Force, "readcb size: {}", (sint32)sendMsg.result);
-			if (sendMsg.result > 0)
-				memcpy(msg.read_cb.buffer, tmp.GetPointer(), sendMsg.result);
+	struct CURL_t
+	{
+		/* +0x0000 */ uint8 ukn0000[0x10];
+		/* +0x0010 */ MEMPTR<CURLSH_t> share;
+		/* +0x0014 */ uint8 ukn0014[0xC4];
+		/* +0x00D8 */ WU_UserDefined set;
+		/* +0x0380 */ uint8 ukn0380[0x829C];
+		/* +0x861C */ MEMPTR<char> info_contentType; // CURLINFO_CONTENT_TYPE
+		/* +0x8620 */ MEMPTR<char> info_redirectUrl; // CURLINFO_REDIRECT_URL
+		/* +0x8624 */ uint8 ukn8624[0x74];
+	};
+	static_assert(sizeof(CURL_t) == 0x8698);
+	static_assert(offsetof(CURL_t, set) == 0xD8);
+	static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, infilesize) == 0x190);
+	static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, httpreq) == 0x1EC);
+	static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, hNSSL) == 0x230);
+	static_assert(offsetof(CURL_t, set) + offsetof(WU_UserDefined, opt_no_body) == 0x281);
 
-			threadQueue.push(sendMsg);
-		}
-		else if (msg.order == QueueOrder_WriteCB)
-		{
-			StackAllocator<char> tmp(msg.write_cb.size * msg.write_cb.nmemb);
-			memcpy(tmp.GetPointer(), msg.write_cb.buffer, msg.write_cb.size * msg.write_cb.nmemb);
+	struct CURLM_t
+	{
+		/* +0x00 */ uint32be magic; // CURL_MULTI_HANDLE
+		/* +0x04 */ uint8 ukn04[0x7C];
+	};
+	static_assert(sizeof(CURLM_t) == 0x80);
 
-			QueueMsg_t sendMsg = {};
-			sendMsg.order = QueueOrder_CBDone;
-			sendMsg.result = PPCCoreCallback(curl->fwrite_func.GetMPTR(), tmp.GetMPTR(), msg.write_cb.size, msg.write_cb.nmemb, curl->out.GetMPTR());
-			threadQueue.push(sendMsg);
-		}
-		else if (msg.order == QueueOrder_Result)
+	struct CURLMsg_t
+	{
+		uint32be msg;
+		MEMPTR<CURL_t> curl;
+		uint32be result; // CURLcode
+	};
+	static_assert(sizeof(CURLMsg_t) == 0xC);
+
+#pragma pack(pop)
+
+	// curl_easy_perform() blocks and curl_multi_perform() can take a while to return, so we delegate these to separate worker threads
+	struct CurlWorker
+	{
+		OSThread_t* ppcThread;
+		PPCConcurrentQueue<const std::function<uint32()>*> ppcQueue; // nullptr signals that the worker should be shutdown
+		std::optional<uint32> callbackResult;
+		uint32 result;
+	};
+
+	// handle wrapper to guard against races on the host CURL object. Only one PPC thread can access a handle at a time
+	struct CurlHostHandle
+	{
+		CurlWorker worker;
+		OSThread_t* usingThread{};
+		uint32 useCount{};
+
+		bool IsAccessible(bool exclusive) const
 		{
-			result = msg.result;
-			break;
+			return useCount == 0 || (!exclusive && usingThread == coreinit::OSGetCurrentThread());
 		}
+	};
+
+	struct CURLMHostState;
+
+	struct CURLHostState : CurlHostHandle
+	{
+		CURLHostState(CURL_t* ppcCurl) : ppcCurl(ppcCurl), curl(::curl_easy_init()) {}
+
+		~CURLHostState()
+		{
+			::curl_easy_cleanup(curl);
+			::curl_slist_free_all(headers);
+		}
+
+		CURL_t* ppcCurl;
+		CURL* curl;
+		bool isDirty{true}; // set when the options of the guest handle changed and need to be synced
+		curl_slist* headers{};
+		// like nlibcurl we keep using the read callback that was set when the transfer started
+		MEMPTR<void> readFunc;
+		MEMPTR<void> readData;
+		sint32 pauseMask{}; // set via curl_easy_pause
+		bool progressReset{}; // set by curl_easy_reset until the next transfer starts
+		CURLMHostState* multi{};
+		bool multiTransferStarted{};
+		MEMPTR<CURLMsg_t> multiMsg{}; // returned by curl_multi_info_read
+	};
+
+	struct CURLMHostState : CurlHostHandle
+	{
+		CURLMHostState() : curlm(::curl_multi_init()) {}
+
+		~CURLMHostState()
+		{
+			if (curlm)
+				::curl_multi_cleanup(curlm);
+		}
+
+		CURLM* curlm;
+		std::vector<CURLHostState*> easyHandles;
+		int runningHandles{};
+	};
+
+	std::mutex s_curlMutex;
+	std::condition_variable s_workerCondVar;
+	std::atomic_uint32_t s_activeWorkerCount;
+	std::atomic_bool s_abortWorkers; // set when nlibcurl is unmapped
+	thread_local CurlWorker* t_curlWorker{};
+
+	// host state is looked up via the address of the guest handle
+	// avoid storing host pointers in guest memory where they could be manipulated
+	std::unordered_map<CURL_t*, CURLHostState*> s_curlHandles;
+	std::unordered_map<CURLM_t*, CURLMHostState*> s_multiHandles;
+
+	// an easy handle is also in use while its multi handle is in use and vice versa. Requires s_curlMutex
+	bool CanAccess(CURLHostState* hostState, bool exclusive)
+	{
+		return hostState->IsAccessible(exclusive) && (!hostState->multi || hostState->multi->IsAccessible(exclusive));
 	}
 
-	return result;
-}
-
-static int curl_closesocket(void *clientp, curl_socket_t item)
-{
-	nsysnet_notifyCloseSharedSocket((SOCKET)item);
-	closesocket(item);
-	return 0;
-}
-
-void _curl_set_default_parameters(CURL_t* curl)
-{
-	curl->set.SetToDefault();
-
-	// default parameters
-	curl_easy_setopt(curl->curl, CURLOPT_HEADERFUNCTION, header_callback);
-	curl_easy_setopt(curl->curl, CURLOPT_HEADERDATA, curl);
-
-	curl_easy_setopt(curl->curl, CURLOPT_CLOSESOCKETFUNCTION, curl_closesocket);
-	curl_easy_setopt(curl->curl, CURLOPT_CLOSESOCKETDATA, nullptr);
-}
-
-void _curl_sync_parameters(CURL_t* curl)
-{
-	// sync ppc curl to actual curl state
-	// not all parameters are covered yet, many are still set directly in easy_setopt
-	bool isPost = curl->set.httpreq_1EC == WU_HTTPREQ::HTTPREQ_POST;
-	// http request type
-	if(curl->set.httpreq_1EC == WU_HTTPREQ::HTTPREQ_GET)
+	bool CanAccess(CURLMHostState* multiHostState, bool exclusive)
 	{
-		::curl_easy_setopt(curl->curl, CURLOPT_HTTPGET, 1);
-		cemu_assert_debug(curl->opt_no_body_281 == 0);
-		cemu_assert_debug(curl->upload_283 == 0);
-	}
-	else if(curl->set.httpreq_1EC == WU_HTTPREQ::HTTPREQ_POST)
-	{
-		::curl_easy_setopt(curl->curl, CURLOPT_POST, 1);
-		cemu_assert_debug(curl->upload_283 == 0);
-		::curl_easy_setopt(curl->curl, CURLOPT_NOBODY, curl->opt_no_body_281 ? 1 : 0);
-	}
-	else
-	{
-		cemu_assert_unimplemented();
-	}
-
-	// CURLOPT_HTTPHEADER
-	std::optional<uint64> manualHeaderContentLength;
-	if (curl->set.headers)
-	{
-		struct curl_slist* list = nullptr;
-		WU_curl_slist* ppcList = curl->set.headers;
-		while(ppcList)
+		if (!multiHostState->IsAccessible(exclusive))
+			return false;
+		for (CURLHostState* hostState : multiHostState->easyHandles)
 		{
-			if(isPost)
+			if (!hostState->IsAccessible(exclusive))
+				return false;
+		}
+		return true;
+	}
+
+	// looks up the host state of a guest handle and marks it as used by the current PPC thread for the lifetime of the guard
+	template<typename TGuest, typename THost>
+	class HostStateGuard
+	{
+	public:
+		HostStateGuard(std::unordered_map<TGuest*, THost*>& handleMap, TGuest* handle, bool exclusive = false)
+		{
+			std::unique_lock _l(s_curlMutex);
+			auto it = handleMap.find(handle);
+			if (it == handleMap.end() || !CanAccess(it->second, exclusive))
+				return;
+			m_hostState = it->second;
+			m_hostState->usingThread = coreinit::OSGetCurrentThread();
+			m_hostState->useCount++;
+		}
+
+		~HostStateGuard()
+		{
+			if (!m_hostState)
+				return;
+			std::unique_lock _l(s_curlMutex);
+			if (--m_hostState->useCount == 0)
+				m_hostState->usingThread = nullptr;
+		}
+
+		HostStateGuard(const HostStateGuard&) = delete;
+		HostStateGuard& operator=(const HostStateGuard&) = delete;
+
+		explicit operator bool() const { return m_hostState != nullptr; }
+		THost* operator->() const { return m_hostState; }
+		THost* Get() const { return m_hostState; }
+
+	private:
+		THost* m_hostState{};
+	};
+
+	// removes the host state from the lookup and keeps it marked as in use, so related handles stay blocked until it's destroyed
+	// the host side cleanup has to happen without holding s_curlMutex since curl can trigger guest callbacks during it
+	template<typename TGuest, typename THost>
+	THost* TakeHostState(std::unordered_map<TGuest*, THost*>& handleMap, TGuest* handle)
+	{
+		std::unique_lock _l(s_curlMutex);
+		auto it = handleMap.find(handle);
+		if (it == handleMap.end() || !CanAccess(it->second, true))
+			return nullptr;
+		THost* hostState = it->second;
+		handleMap.erase(it);
+		hostState->usingThread = coreinit::OSGetCurrentThread();
+		hostState->useCount = 1;
+		return hostState;
+	}
+
+	uint32 RunOnWorkerThread(CurlWorker& worker, std::function<uint32()> job)
+	{
+		worker.ppcThread = coreinit::OSGetCurrentThread();
+		s_activeWorkerCount++;
+		std::thread([&worker, job = std::move(job)]()
+		{
+			t_curlWorker = &worker;
+			worker.result = job();
+			worker.ppcQueue.push(nullptr, worker.ppcThread);
+			s_activeWorkerCount--;
+		}).detach();
+
+		while (const std::function<uint32()>* callback = worker.ppcQueue.pop(worker.ppcThread))
+		{
+			uint32 callbackResult = (*callback)();
+			std::unique_lock _l(s_curlMutex);
+			worker.callbackResult = callbackResult;
+			s_workerCondVar.notify_all();
+		}
+		return worker.result;
+	}
+
+	// guest code can only run on the PPC thread, so when called from a worker thread we forward it to the waiting PPC thread
+	uint32 CallOnPPCThread(const std::function<uint32()>& func, uint32 abortResult)
+	{
+		if (s_abortWorkers)
+			return abortResult;
+		CurlWorker* worker = t_curlWorker;
+		if (!worker)
+			return func();
+		worker->callbackResult.reset();
+		worker->ppcQueue.push(&func, worker->ppcThread);
+		std::unique_lock _l(s_curlMutex);
+		s_workerCondVar.wait(_l, [&]() { return worker->callbackResult.has_value() || s_abortWorkers; });
+		return worker->callbackResult.value_or(abortResult);
+	}
+
+	void GuestFree(void* mem)
+	{
+		if (mem)
+			PPCCoreCallback(g_nlibcurl.free.GetMPTR(), mem);
+	}
+
+	// copy a string into guest memory
+	MEMPTR<char> GuestStrdup(const char* str)
+	{
+		if (!str)
+			return nullptr;
+		uint32 size = (uint32)strlen(str) + 1;
+		MEMPTR<char> ppcStr{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), size) };
+		if (ppcStr)
+			memcpy(ppcStr.GetPtr(), str, size);
+		return ppcStr;
+	}
+
+	MEMPTR<char> UpdateGuestString(MEMPTR<char> ppcStr, const char* str)
+	{
+		if (ppcStr && str && strcmp(ppcStr.GetPtr(), str) == 0)
+			return ppcStr;
+		GuestFree(ppcStr);
+		return GuestStrdup(str);
+	}
+
+	void SetGuestString(CURL_t* curl, WU_StringIndex index, const char* str)
+	{
+		GuestFree(curl->set.str[index]);
+		curl->set.str[index] = GuestStrdup(str);
+	}
+
+	void FreeGuestStrings(CURL_t* curl)
+	{
+		for (uint32 i = 0; i < WU_STRING_LAST; i++)
+			SetGuestString(curl, (WU_StringIndex)i, nullptr);
+	}
+
+	// sharing data between handles is not implemented, we only keep track of which handles use a share
+	void SetShare(CURL_t* curl, CURLSH_t* share)
+	{
+		if (curl->share)
+			curl->share->dirty = curl->share->dirty - 1;
+		curl->share = share;
+		if (share)
+			share->dirty = share->dirty + 1;
+	}
+
+	int CloseSocketCallback(void* clientp, curl_socket_t item)
+	{
+		nsysnet_notifyCloseSharedSocket((SOCKET)item);
+		closesocket(item);
+		return 0;
+	}
+
+	size_t HeaderCallback(char* buffer, size_t size, size_t nitems, void* userdata)
+	{
+		CURL_t* curl = ((CURLHostState*)userdata)->ppcCurl;
+		if (curl->set.fwrite_header.IsNull())
+			return size * nitems;
+		return CallOnPPCThread([&]() -> uint32
+		{
+			StackAllocator<char> tmp((uint32)(size * nitems));
+			memcpy(tmp.GetPointer(), buffer, size * nitems);
+			return PPCCoreCallback(curl->set.fwrite_header.GetMPTR(), tmp.GetMPTR(), (uint32)size, (uint32)nitems, curl->set.writeheader);
+		}, 0);
+	}
+
+	size_t WriteCallback(char* ptr, size_t size, size_t nmemb, void* userdata)
+	{
+		CURLHostState* hostState = (CURLHostState*)userdata;
+		CURL_t* curl = hostState->ppcCurl;
+		cemuLog_logDebug(LogType::Force, "WriteCallback(0x{} 0x{:x}, 0x{:x}, 0x{:08x})", (void*)ptr, size, nmemb, curl->set.out.GetMPTR());
+		// curl may still deliver data after receiving was paused via curl_easy_pause, so we let curl buffer it until unpaused
+		if (HAS_FLAG(hostState->pauseMask, CURLPAUSE_RECV))
+			return CURL_WRITEFUNC_PAUSE;
+		if (curl->set.fwrite_func.IsNull())
+			return size * nmemb;
+		return CallOnPPCThread([&]() -> uint32
+		{
+			StackAllocator<char> tmp((uint32)(size * nmemb));
+			memcpy(tmp.GetPointer(), ptr, size * nmemb);
+			return PPCCoreCallback(curl->set.fwrite_func.GetMPTR(), tmp.GetMPTR(), (uint32)size, (uint32)nmemb, curl->set.out);
+		}, 0);
+	}
+
+	size_t ReadCallback(char* buffer, size_t size, size_t nitems, void* instream)
+	{
+		CURLHostState* hostState = (CURLHostState*)instream;
+		if (hostState->readFunc.IsNull())
+			return 0;
+		nitems = std::min<size_t>(nitems, 0x4000); // limit this to 16KB which is the limit in nlibcurl.rpl (Super Mario Maker crashes on level upload if the size is too big)
+		cemuLog_logDebug(LogType::Force, "ReadCallback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [func: 0x{:x}]", (void*)buffer, size, nitems, hostState->readData.GetMPTR(), hostState->readFunc.GetMPTR());
+		return CallOnPPCThread([&]() -> uint32
+		{
+			StackAllocator<char> tmp((uint32)(size * nitems));
+			uint32 result = PPCCoreCallback(hostState->readFunc.GetMPTR(), tmp.GetMPTR(), (uint32)size, (uint32)nitems, hostState->readData);
+			if (result <= size * nitems) // CURL_READFUNC_ABORT and CURL_READFUNC_PAUSE are not byte counts
+				memcpy(buffer, tmp.GetPointer(), result);
+			return result;
+		}, CURL_READFUNC_ABORT);
+	}
+
+	int SockoptCallback(void* clientp, curl_socket_t curlfd, curlsocktype purpose)
+	{
+		CURL_t* curl = ((CURLHostState*)clientp)->ppcCurl;
+		if (curl->set.fsockopt.IsNull())
+			return CURL_SOCKOPT_OK;
+		return (int)CallOnPPCThread([&]() -> uint32
+		{
+			WUSOCKET s = nsysnet_getVirtualSocketHandleFromHostHandle((SOCKET)curlfd);
+			if (s < 0)
+				s = nsysnet_createVirtualSocketFromExistingSocket((SOCKET)curlfd, true);
+			return PPCCoreCallback(curl->set.fsockopt.GetMPTR(), curl->set.sockopt_client, s, (uint32)purpose);
+		}, CURL_SOCKOPT_ERROR);
+	}
+
+	int ProgressCallback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
+	{
+		if (s_abortWorkers)
+			return 1;
+		CURL_t* curl = ((CURLHostState*)clientp)->ppcCurl;
+		if (curl->set.hide_progress || curl->set.fprogress.IsNull())
+			return 0;
+		return (int)CallOnPPCThread([&]() -> uint32
+		{
+			return PPCCoreCallback(curl->set.fprogress.GetMPTR(), curl->set.progress_client, dltotal, dlnow, ultotal, ulnow);
+		}, 1);
+	}
+
+	// does not call into guest code, so we can run this directly on the worker thread
+	CURLcode SSLContextCallback(CURL* curl, void* sslctx, void* param)
+	{
+		CURL_t* ppcCurl = ((CURLHostState*)param)->ppcCurl;
+		std::lock_guard lock(nsysnet::s_nsslContextMutex);
+		nsysnet::NSSLInternalState_t* nssl = nsysnet::GetNSSLContext(ppcCurl->set.hNSSL);
+		if (!nssl)
+		{
+			cemuLog_log(LogType::Force, "CURL invalid NSSL context");
+			return CURLE_SSL_CACERT;
+		}
+
+		for (uint32 i : nssl->serverPKIs)
+		{
+			if (iosuCrypto_addCACertificate(sslctx, i) == false)
 			{
-				// for recent libcurl manually adding Content-Length header is undefined behavior. Instead CURLOPT_INFILESIZE(_LARGE) should be set
-				// here we remove Content-Length and instead substitute it with CURLOPT_INFILESIZE (NEX DataStore in Super Mario Maker requires this)
-				if(strncmp(ppcList->data.GetPtr(), "Content-Length:", 15) == 0)
-				{
-					manualHeaderContentLength = std::stoull(ppcList->data.GetPtr() + 15);
-					ppcList = ppcList->next;
-					continue;
-				}
+				cemu_assert_suspicious();
+				return CURLE_SSL_CACERT;
 			}
-
-			cemuLog_logDebug(LogType::Force, "curl_slist_append: {}", ppcList->data.GetPtr());
-			curlDebug_logEasySetOptStr(curl, "CURLOPT_HTTPHEADER", (const char*)ppcList->data.GetPtr());
-			list = ::curl_slist_append(list, ppcList->data.GetPtr());
-			ppcList = ppcList->next;
 		}
-		::curl_easy_setopt(curl->curl, CURLOPT_HTTPHEADER, list);
-		// todo - prevent leaking of list (maybe store in host curl object, similar to how our zlib implementation does stuff)
-	}
-	else
-		::curl_easy_setopt(curl->curl, CURLOPT_HTTPHEADER, nullptr);
+		for (auto& customPKI : nssl->serverCustomPKIs)
+		{
+			if (iosuCrypto_addCustomCACertificate(sslctx, customPKI.data(), (sint32)customPKI.size()) == false)
+			{
+				cemu_assert_suspicious();
+				return CURLE_SSL_CACERT;
+			}
+		}
 
-	// infile size (post data size)
-	if (curl->set.infilesize_190)
-	{
-		cemu_assert_debug(manualHeaderContentLength == 0); // should not have both?
-		::curl_easy_setopt(curl->curl, CURLOPT_INFILESIZE_LARGE, curl->set.infilesize_190);
-	}
-	else
-	{
-		if(isPost && manualHeaderContentLength > 0)
-			::curl_easy_setopt(curl->curl, CURLOPT_INFILESIZE_LARGE, manualHeaderContentLength);
+		if (nssl->clientPKI != 0 && iosuCrypto_addClientCertificate(sslctx, nssl->clientPKI) == false)
+		{
+			cemu_assert_suspicious();
+			return CURLE_SSL_CERTPROBLEM;
+		}
+
+		uint32 flags = ppcCurl->set.nsslVerifyOptions;
+		// certificate dates are only checked if requested
+		X509_VERIFY_PARAM* verifyParam = ::SSL_CTX_get0_param((SSL_CTX*)sslctx);
+		if (HAS_FLAG(flags, NSSL_VERIFY_DATE))
+			::X509_VERIFY_PARAM_clear_flags(verifyParam, X509_V_FLAG_NO_CHECK_TIME);
 		else
-			::curl_easy_setopt(curl->curl, CURLOPT_INFILESIZE_LARGE, 0);
-	}
-}
+			::X509_VERIFY_PARAM_set_flags(verifyParam, X509_V_FLAG_NO_CHECK_TIME);
+		if (HAS_FLAG(flags, NSSL_VERIFY_PEER))
+		{
+			::SSL_CTX_set_cipher_list((SSL_CTX*)sslctx, "AES256-SHA"); // TLS_RSA_WITH_AES_256_CBC_SHA (in CURL it's called rsa_aes_256_sha)
+			::SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
+			::SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
+			::SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, nullptr); // the handshake fails if the certificate can't be verified
+		}
+		else
+		{
+			::SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_NONE, nullptr);
+		}
 
-void export_malloc(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamU32(size, 0);
-	MPTR memAddr = PPCCoreCallback(gCoreinitData->MEMAllocFromDefaultHeap, size);
-	osLib_returnFromFunction(hCPU, memAddr);
-}
-
-void export_calloc(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamU32(count, 0);
-	ppcDefineParamU32(size, 1);
-
-	MPTR memAddr = PPCCoreCallback(gCoreinitData->MEMAllocFromDefaultHeap, count*size);
-
-	osLib_returnFromFunction(hCPU, memAddr);
-}
-void export_free(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(mem, void, 0);
-	PPCCoreCallback(gCoreinitData->MEMFreeToDefaultHeap, mem.GetMPTR());
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-void export_strdup(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(str, const char, 0);
-	int len = (int)strlen(str.GetPtr()) + 1;
-	MEMPTR<char> result = (char*)coreinit::default_MEMAllocFromDefaultHeap(len);
-	strcpy(result.GetPtr(), str.GetPtr());
-	osLib_returnFromFunction(hCPU, result.GetMPTR());
-}
-
-void export_realloc(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(mem, void, 0);
-	ppcDefineParamU32(size, 1);
-	MEMPTR<void> result = coreinit::default_MEMAllocFromDefaultHeap(size);
-	memcpy(result.GetPtr(), mem.GetPtr(), size);
-	coreinit::default_MEMFreeToDefaultHeap(mem.GetPtr());
-	osLib_returnFromFunction(hCPU, result.GetMPTR());
-}
-
-CURLcode curl_global_init(uint32 flags)
-{
-	if (g_nlibcurl.initialized++)
-	{
 		return CURLE_OK;
 	}
 
-	g_nlibcurl.malloc = PPCInterpreter_makeCallableExportDepr(export_malloc);
-	g_nlibcurl.calloc = PPCInterpreter_makeCallableExportDepr(export_calloc);
-	g_nlibcurl.free = PPCInterpreter_makeCallableExportDepr(export_free);
-	g_nlibcurl.strdup = PPCInterpreter_makeCallableExportDepr(export_strdup);
-	g_nlibcurl.realloc = PPCInterpreter_makeCallableExportDepr(export_realloc);
-
-	// curl_read_default_proxy_config()
-
-	return ::curl_global_init(flags);
-}
-
-void export_curl_multi_init(PPCInterpreter_t* hCPU)
-{
-	CURLMPtr result{ PPCCoreCallback(g_nlibcurl.calloc, 1, ppcsizeof<CURLM_t>()) };
-	cemuLog_logDebug(LogType::Force, "curl_multi_init() -> 0x{:08x}", result.GetMPTR());
-	if (result)
+	// options are tracked in the PPC CURL object and only synced to the host CURL object right before easy_perform/multi_perform
+	bool SyncHostParameters(CURLHostState* hostState)
 	{
-		memset(result.GetPtr(), 0, sizeof(CURLM_t));
-		*result = {};
-		result->curlm = curl_multi_init();
-	}
+		if (!hostState->isDirty)
+			return true;
+		CURL_t* curl = hostState->ppcCurl;
+		CURL* hostCurl = hostState->curl;
+		WU_UserDefined& set = curl->set;
+		const bool isPost = !set.upload && set.httpreq == WU_HTTPREQ::HTTPREQ_POST;
 
-	osLib_returnFromFunction(hCPU, result.GetMPTR());
-}
-
-void export_curl_multi_add_handle(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamMEMPTR(curl, CURL_t, 1);
-
-	curlDebug_markActiveRequest(curl.GetPtr());
-	curlDebug_notifySubmitRequest(curl.GetPtr());
-
-	CURLMcode result = ::curl_multi_add_handle(curlm->curlm, curl->curl);
-	if (result == CURLM_OK)
-		curlm->curl.push_back(curl.GetPtr());
-
-	cemuLog_logDebug(LogType::Force, "curl_multi_add_handle(0x{:08x}, 0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), curl.GetMPTR(), result);
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_remove_handle(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamMEMPTR(curl, CURL_t, 1);
-
-	CURLMcode result = curl_multi_remove_handle(curlm->curlm, curl->curl);
-
-	if (result == CURLM_OK)
-	{
-		curlm->curl.erase(std::remove(curlm->curl.begin(), curlm->curl.end(), (void*)curl.GetPtr()), curlm->curl.end());
-	}
-
-	cemuLog_logDebug(LogType::Force, "curl_multi_remove_handle(0x{:08x}, 0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), curl.GetMPTR(), result);
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_timeout(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamMEMPTR(timeoParam, uint32be, 1);
-
-	long timeoutLE = (long)(uint32)*timeoParam;
-
-	CURLMcode result = ::curl_multi_timeout(curlm->curlm, &timeoutLE);
-	*timeoParam = (uint32)timeoutLE;
-
-	cemuLog_logDebug(LogType::Force, "curl_multi_timeout(0x{:08x}, 0x{:08x} [{}]) -> 0x{:x}", curlm.GetMPTR(), timeoParam.GetMPTR(), timeoutLE, result);
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_cleanup(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	CURLMcode result = ::curl_multi_cleanup(curlm->curlm);
-	cemuLog_logDebug(LogType::Force, "curl_multi_cleanup(0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), result);
-	curlm->curl.clear();
-	PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curlm.GetMPTR());
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_perform(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamMEMPTR(runningHandles, uint32be, 1);
-
-	//cemuLog_logDebug(LogType::Force, "curl_multi_perform(0x{:08x}, 0x{:08x})", curlm.GetMPTR(), runningHandles.GetMPTR());
-
-	//curl_multi_get_handles(curlm->curlm);
-
-	for(auto _curl : curlm->curl)
-	{
-		CURL_t* curl = (CURL_t*)_curl.GetPtr();
-		if(curl->isDirty)
+		// CURLOPT_HTTPHEADER
+		// for more recent libcurl manually adding Content-Length header is not supported, we remove it from the header list and instead set CURLOPT_POSTFIELDSIZE/CURLOPT_INFILESIZE
+		sint64 manualContentLength = -1;
+		curl_slist* headers = nullptr;
+		for (WU_curl_slist* ppcList = set.headers; ppcList; ppcList = ppcList->next)
 		{
-			curl->isDirty = false;
-			_curl_sync_parameters(curl);
-		}
-	}
-
-	//g_callerQueue = curlm->callerQueue;
-	//g_threadQueue = curlm->threadQueue;
-	int tempRunningHandles = 0;
-	CURLMcode result = curl_multi_perform(curlm->curlm, &tempRunningHandles);
-	*(runningHandles.GetPtr()) = tempRunningHandles;
-	cemuLog_logDebug(LogType::Force, "curl_multi_perform(0x{:08x}, 0x{:08x}) -> 0x{:x} (running handles: {})", curlm.GetMPTR(), runningHandles.GetMPTR(), result, tempRunningHandles);
-	//const uint32 result = SendOrderToWorker(curlm.GetPtr(), QueueOrder_MultiPerform);
-
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_fdset(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamMEMPTR(readFd, wu_fd_set, 1);
-	ppcDefineParamMEMPTR(writeFd, wu_fd_set, 2);
-	ppcDefineParamMEMPTR(exceptionFd, wu_fd_set, 3);
-	ppcDefineParamU32BEPtr(maxFd, 4);
-
-	fd_set h_readFd;
-	fd_set h_writeFd;
-	fd_set h_exceptionFd;
-	FD_ZERO(&h_readFd);
-	FD_ZERO(&h_writeFd);
-	FD_ZERO(&h_exceptionFd);
-	sint32 h_maxFd = 0;
-
-	CURLMcode result = curl_multi_fdset(curlm->curlm, &h_readFd, &h_writeFd, &h_exceptionFd, &h_maxFd);
-
-	nsysnet::wuResetFD(readFd.GetPtr());
-	nsysnet::wuResetFD(writeFd.GetPtr());
-	nsysnet::wuResetFD(exceptionFd.GetPtr());
-
-	sint32 c_maxFD = -1;
-
-	auto hostFdSet = [&](SOCKET s, wu_fd_set* fds)
-	{
-		sint32 wuSocket = nsysnet_getVirtualSocketHandleFromHostHandle(s);
-		if (wuSocket < 0)
-			wuSocket = nsysnet_createVirtualSocketFromExistingSocket(s, true);
-		if (wuSocket >= 0)
-		{
-			c_maxFD = std::max(wuSocket, c_maxFD);
-			nsysnet::wuSetFD(fds, wuSocket);
-		}
-	};
-
-#if BOOST_OS_UNIX
-	for (int s = 0; s < h_maxFd + 1; s++) 
-	{
-		if(FD_ISSET(s, &h_readFd))
-			hostFdSet(s, readFd.GetPtr());
-
-		if(FD_ISSET(s, &h_writeFd))
-			hostFdSet(s, writeFd.GetPtr());
-
-		if(FD_ISSET(s, &h_exceptionFd))
-			hostFdSet(s, exceptionFd.GetPtr());
-	}
-#else
-	// fd read set
-	for (uint32 i = 0; i < h_readFd.fd_count; i++)
-	{
-		hostFdSet(h_readFd.fd_array[i], readFd.GetPtr());
-	}
-	// fd write set
-	for (uint32 i = 0; i < h_writeFd.fd_count; i++)
-	{
-		hostFdSet(h_writeFd.fd_array[i], writeFd.GetPtr());
-	}
-	// fd exception set
-	for (uint32 i = 0; i < h_exceptionFd.fd_count; i++)
-	{
-		cemu_assert_debug(false);
-	}
-#endif
-
-	*maxFd = c_maxFD;
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_setopt(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamU32(option, 1);
-	ppcDefineParamMEMPTR(parameter, void, 2);
-	ppcDefineParamU64(parameterU64, 2);
-
-	CURLMcode result = CURLM_OK;
-	switch (option)
-	{
-	case CURLMOPT_MAXCONNECTS:
-		result = ::curl_multi_setopt(curlm->curlm, (CURLMoption)option, parameter.GetMPTR());
-		break;
-	default:
-		cemuLog_logDebug(LogType::Force, "curl_multi_setopt(0x{:08x}, {}, 0x{:08x}) unsupported option", curlm.GetMPTR(), option, parameter.GetMPTR());
-	}
-
-	cemuLog_logDebug(LogType::Force, "curl_multi_setopt(0x{:08x}, {}, 0x{:08x}) -> 0x{:x}", curlm.GetMPTR(), option, parameter.GetMPTR(), result);
-
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_multi_info_read(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlm, CURLM_t, 0);
-	ppcDefineParamMEMPTR(msgsInQueue, int, 1);
-
-	CURLMsg* msg = ::curl_multi_info_read(curlm->curlm, msgsInQueue.GetPtr());
-
-	cemuLog_logDebug(LogType::Force, "curl_multi_info_read - todo");
-	if (msg)
-	{
-		MEMPTR<CURLMsg_t> result{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<CURLMsg_t>()) };
-		result->msg = msg->msg;
-		result->result = msg->data.result;
-		if (msg->easy_handle)
-		{
-			const auto it = find_if(curlm->curl.cbegin(), curlm->curl.cend(),
-				[msg](const MEMPTR<CURL_t>& curl)
+			if (isPost && strncmp(ppcList->data.GetPtr(), "Content-Length:", 15) == 0)
 			{
-				const MEMPTR<CURL_t> _curl{ curl };
-				return _curl->curl = msg->easy_handle;
-			});
+				manualContentLength = std::strtoll(ppcList->data.GetPtr() + 15, nullptr, 10);
+				continue;
+			}
+			headers = ::curl_slist_append(headers, ppcList->data.GetPtr());
+		}
+		sint64 postFieldSize = manualContentLength >= 0 ? manualContentLength : (sint64)set.postfieldsize;
+		sint64 inFileSize = set.infilesize != -1 ? (sint64)set.infilesize : manualContentLength;
+		// curl reads the POST data directly from guest memory, make sure it stays within it
+		cemu_assert(manualContentLength < 0 || (uint64)set.postfields.GetMPTR() + (uint64)postFieldSize <= 0x100000000ULL);
+		::curl_easy_setopt(hostCurl, CURLOPT_HTTPHEADER, headers);
+		::curl_slist_free_all(hostState->headers);
+		hostState->headers = headers;
 
-			if (it != curlm->curl.cend())
-				result->curl = (CURL_t*)(*it).GetPtr();
+		// callbacks
+		hostState->readFunc = set.fread_func;
+		hostState->readData = set.in;
+		::curl_easy_setopt(hostCurl, CURLOPT_PRIVATE, hostState);
+		::curl_easy_setopt(hostCurl, CURLOPT_HEADERFUNCTION, HeaderCallback);
+		::curl_easy_setopt(hostCurl, CURLOPT_HEADERDATA, hostState);
+		::curl_easy_setopt(hostCurl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		::curl_easy_setopt(hostCurl, CURLOPT_WRITEDATA, hostState);
+		::curl_easy_setopt(hostCurl, CURLOPT_READFUNCTION, ReadCallback);
+		::curl_easy_setopt(hostCurl, CURLOPT_READDATA, hostState);
+		::curl_easy_setopt(hostCurl, CURLOPT_SOCKOPTFUNCTION, SockoptCallback);
+		::curl_easy_setopt(hostCurl, CURLOPT_SOCKOPTDATA, hostState);
+		::curl_easy_setopt(hostCurl, CURLOPT_CLOSESOCKETFUNCTION, CloseSocketCallback);
+		::curl_easy_setopt(hostCurl, CURLOPT_CLOSESOCKETDATA, nullptr);
+		// progress callback is always enabled (used to sync curl pause state)
+		::curl_easy_setopt(hostCurl, CURLOPT_NOPROGRESS, 0L);
+		::curl_easy_setopt(hostCurl, CURLOPT_PROGRESSFUNCTION, ProgressCallback);
+		::curl_easy_setopt(hostCurl, CURLOPT_PROGRESSDATA, hostState);
 
+		::curl_easy_setopt(hostCurl, CURLOPT_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
+		::curl_easy_setopt(hostCurl, CURLOPT_REDIR_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
+		::curl_easy_setopt(hostCurl, CURLOPT_URL, set.str[WU_STRING_URL].GetPtr());
+		::curl_easy_setopt(hostCurl, CURLOPT_PROXY, set.str[WU_STRING_PROXY].GetPtr());
+		::curl_easy_setopt(hostCurl, CURLOPT_USERAGENT, set.str[WU_STRING_USERAGENT].GetPtr());
+		::curl_easy_setopt(hostCurl, CURLOPT_NOSIGNAL, (long)set.no_signal);
+		::curl_easy_setopt(hostCurl, CURLOPT_FOLLOWLOCATION, (long)set.http_follow_location);
+		::curl_easy_setopt(hostCurl, CURLOPT_BUFFERSIZE, (long)set.buffer_size);
+		::curl_easy_setopt(hostCurl, CURLOPT_TIMEOUT_MS, (long)set.timeout);
+		::curl_easy_setopt(hostCurl, CURLOPT_CONNECTTIMEOUT_MS, (long)set.connecttimeout);
+		::curl_easy_setopt(hostCurl, CURLOPT_LOW_SPEED_LIMIT, (long)set.low_speed_limit);
+		::curl_easy_setopt(hostCurl, CURLOPT_LOW_SPEED_TIME, (long)set.low_speed_time);
+		::curl_easy_setopt(hostCurl, CURLOPT_MAX_SEND_SPEED_LARGE, (curl_off_t)set.max_send_speed);
+		::curl_easy_setopt(hostCurl, CURLOPT_MAX_RECV_SPEED_LARGE, (curl_off_t)set.max_recv_speed);
+
+		// nssl
+		uint32 verifyOptions = set.nsslVerifyOptions;
+		::curl_easy_setopt(hostCurl, CURLOPT_SSL_VERIFYPEER, HAS_FLAG(verifyOptions, NSSL_VERIFY_PEER) ? 1L : 0L);
+		::curl_easy_setopt(hostCurl, CURLOPT_SSL_VERIFYHOST, HAS_FLAG(verifyOptions, NSSL_VERIFY_HOSTNAME) ? 2L : 0L);
+		if ((sint32)set.hNSSL != -1)
+		{
+			::curl_easy_setopt(hostCurl, CURLOPT_SSL_CTX_FUNCTION, SSLContextCallback);
+			::curl_easy_setopt(hostCurl, CURLOPT_SSL_CTX_DATA, hostState);
+			std::lock_guard lock(nsysnet::s_nsslContextMutex);
+			nsysnet::NSSLInternalState_t* nssl = nsysnet::GetNSSLContext(set.hNSSL);
+			if (nssl && nssl->sslVersion == 2)
+				::curl_easy_setopt(hostCurl, CURLOPT_SSLVERSION, (long)CURL_SSLVERSION_SSLv3);
+			else // auto = highest = 0 || 2 for v3
+				::curl_easy_setopt(hostCurl, CURLOPT_SSLVERSION, (long)CURL_SSLVERSION_TLSv1_2);
 		}
 		else
-			result->curl = nullptr;
-
-		cemuLog_logDebug(LogType::Force, "curl_multi_info_read(0x{:08x}, 0x{:08x} [{}]) -> 0x{:08x} (0x{:x}, 0x{:08x}, 0x{:x})", curlm.GetMPTR(), msgsInQueue.GetMPTR(), *msgsInQueue.GetPtr(),			
-			result.GetMPTR(), msg->msg, result->curl.GetMPTR(), msg->data.result);
-		osLib_returnFromFunction(hCPU, result.GetMPTR());
-	}
-	else
-	{
-		osLib_returnFromFunction(hCPU, 0);
-	}
-}
-
-void lock_function(CURL* handle, curl_lock_data data, curl_lock_access access, void* userptr)
-{
-	CURLSH_t* share = (CURLSH_t*)userptr;
-	PPCCoreCallback(share->lockfunc.GetMPTR(), share->curl.GetMPTR(), (uint32)data, (uint32)access, share->data.GetMPTR());
-}
-
-void unlock_function(CURL* handle, curl_lock_data data, void* userptr)
-{
-	CURLSH_t* share = (CURLSH_t*)userptr;
-	PPCCoreCallback(share->unlockfunc.GetMPTR(), share->curl.GetMPTR(), (uint32)data, share->data.GetMPTR());
-}
-
-void export_curl_share_setopt(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(share, CURLSH_t, 0);
-	ppcDefineParamU32(option, 1);
-	ppcDefineParamMEMPTR(parameter, void, 2);
-
-	/*if(share->dirty)
-	{
-		osLib_returnFromFunction(hCPU, CURLSHE_IN_USE);
-		return;
-	}*/
-
-	CURLSH* curlSh = share->curlsh;
-
-	CURLSHcode result = CURLSHE_OK;
-	switch (option)
-	{
-		case CURLSHOPT_USERDATA:
-			share->data = parameter;
-			result = curl_share_setopt(curlSh, CURLSHOPT_USERDATA, share.GetPtr());
-			break;
-		case CURLSHOPT_LOCKFUNC:
-			share->lockfunc = parameter;
-			result = curl_share_setopt(curlSh, CURLSHOPT_LOCKFUNC, lock_function);
-			break;
-		case CURLSHOPT_UNLOCKFUNC:
-			share->unlockfunc = parameter;
-			result = curl_share_setopt(curlSh, CURLSHOPT_UNLOCKFUNC, unlock_function);
-			break;
-		case CURLSHOPT_SHARE:
 		{
-			const sint32 type = parameter.GetMPTR();
-			result = curl_share_setopt(curlSh, CURLSHOPT_SHARE, type);
-			break;
+			::curl_easy_setopt(hostCurl, CURLOPT_SSL_CTX_FUNCTION, nullptr);
+			::curl_easy_setopt(hostCurl, CURLOPT_SSLVERSION, (long)CURL_SSLVERSION_DEFAULT);
 		}
-		case CURLSHOPT_UNSHARE:
+
+		// http request type
+		::curl_easy_setopt(hostCurl, CURLOPT_POSTFIELDS, set.postfields.GetPtr());
+		::curl_easy_setopt(hostCurl, CURLOPT_UPLOAD, (long)set.upload);
+		if (!set.upload)
 		{
-			const sint32 type = parameter.GetMPTR();
-			result = curl_share_setopt(curlSh, CURLSHOPT_UNSHARE, type);
-			break;
+			if (set.httpreq == WU_HTTPREQ::HTTPREQ_GET)
+				::curl_easy_setopt(hostCurl, CURLOPT_HTTPGET, 1L);
+			else if (isPost)
+				::curl_easy_setopt(hostCurl, CURLOPT_POST, 1L);
+			else
+				cemu_assert_unimplemented();
 		}
-		default:
-			cemu_assert_unimplemented();
-	}
-	cemuLog_logDebug(LogType::Force, "curl_share_setopt(0x{:08x}, 0x{:x}, 0x{:08x}) -> 0x{:x}", share.GetMPTR(), option, parameter.GetMPTR(), result);
-	osLib_returnFromFunction(hCPU, result);
-}
+		::curl_easy_setopt(hostCurl, CURLOPT_NOBODY, (long)set.opt_no_body);
+		::curl_easy_setopt(hostCurl, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)postFieldSize);
+		::curl_easy_setopt(hostCurl, CURLOPT_INFILESIZE_LARGE, (curl_off_t)inFileSize);
 
-void export_curl_share_init(PPCInterpreter_t* hCPU)
-{
-	CURLSHPtr result{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), (uint32)1, ppcsizeof<CURLSH_t>()) };
-	cemuLog_logDebug(LogType::Force, "curl_share_init() -> 0x{:08x}", result.GetMPTR());
-	if (result)
-	{
-		memset(result.GetPtr(), 0, sizeof(CURLSH_t));
-		*result = {};
-		result->curlsh = curl_share_init();
+		hostState->isDirty = false;
+		return true;
 	}
 
-	osLib_returnFromFunction(hCPU, result.GetMPTR());
-}
-
-void export_curl_share_cleanup(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curlsh, CURLSH_t, 0);
-	uint32 result = ::curl_share_cleanup(curlsh->curlsh);
-	cemuLog_logDebug(LogType::Force, "curl_share_cleanup(0x{:08x}) -> 0x{:x}", curlsh.GetMPTR(), result);
-	PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curlsh.GetMPTR());
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-CURL_t* curl_easy_init()
-{
-	if (g_nlibcurl.initialized == 0)
+	void* DefaultMalloc(uint32 size)
 	{
-		if (curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
+		return coreinit::_weak_MEMAllocFromDefaultHeap(size);
+	}
+
+	void* DefaultCalloc(uint32 count, uint32 size)
+	{
+		void* mem = coreinit::_weak_MEMAllocFromDefaultHeap(count * size);
+		if (mem)
+			memset(mem, 0, count * size);
+		return mem;
+	}
+
+	void DefaultFree(void* mem)
+	{
+		coreinit::_weak_MEMFreeToDefaultHeap(mem);
+	}
+
+	char* DefaultStrdup(const char* str)
+	{
+		uint32 size = (uint32)strlen(str) + 1;
+		char* mem = (char*)coreinit::_weak_MEMAllocFromDefaultHeap(size);
+		if (mem)
+			memcpy(mem, str, size);
+		return mem;
+	}
+
+	CURLcode curl_global_init(uint32 flags)
+	{
+		if (g_nlibcurl.initialized++)
+			return CURLE_OK;
+
+		g_nlibcurl.malloc = makeCallableExport<DefaultMalloc>();
+		g_nlibcurl.calloc = makeCallableExport<DefaultCalloc>();
+		g_nlibcurl.free = makeCallableExport<DefaultFree>();
+		g_nlibcurl.strdup = makeCallableExport<DefaultStrdup>();
+
+		return ::curl_global_init(flags);
+	}
+
+	CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_callback, MEMPTR<curl_free_callback> free_callback, MEMPTR<curl_realloc_callback> realloc_callback, MEMPTR<curl_strdup_callback> strdup_callback, MEMPTR<curl_calloc_callback> calloc_callback)
+	{
+		if(!malloc_callback || !free_callback || !realloc_callback || !strdup_callback || !calloc_callback)
+			return CURLE_FAILED_INIT;
+
+		CURLcode result = CURLE_OK;
+		if (g_nlibcurl.initialized == 0)
 		{
-			return nullptr;
+			result = curl_global_init(flags);
+			if (result == CURLE_OK)
+			{
+				g_nlibcurl.malloc = malloc_callback;
+				g_nlibcurl.free = free_callback;
+				g_nlibcurl.strdup = strdup_callback;
+				g_nlibcurl.calloc = calloc_callback;
+			}
 		}
-	}
-
-	// Curl_open
-	MEMPTR<CURL_t> result{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), (uint32)1, ppcsizeof<CURL_t>()) };
-	cemuLog_logDebug(LogType::Force, "curl_easy_init() -> 0x{:08x}", result.GetMPTR());
-	if (result)
-	{
-		memset(result.GetPtr(), 0, sizeof(CURL_t));
-		*result = {};
-		result->curl = ::curl_easy_init();
-		result->curlThread = coreinit::OSGetCurrentThread();
-
-		result->info_contentType = nullptr;
-		result->info_redirectUrl = nullptr;
-
-		_curl_set_default_parameters(result.GetPtr());
-
-		if (g_nlibcurl.proxyConfig)
-		{
-			// todo
-		}
-	}
-
-	return result;
-}
-
-CURL_t* mw_curl_easy_init()
-{
-	return curl_easy_init();
-}
-
-void export_curl_easy_pause(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curl, CURL_t, 0);
-	ppcDefineParamS32(bitmask, 1);
-	cemuLog_logDebug(LogType::Force, "curl_easy_pause(0x{:08x}, 0x{:x})", curl.GetMPTR(), bitmask);
-
-	//const CURLcode result = ::curl_easy_pause(curl->curl, bitmask);
-	const uint32 result = SendOrderToWorker(curl.GetPtr(), QueueOrder_Pause, bitmask);
-	cemuLog_logDebug(LogType::Force, "curl_easy_pause(0x{:08x}, 0x{:x}) DONE", curl.GetMPTR(), bitmask);
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_easy_cleanup(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curl, CURL_t, 0);
-	cemuLog_logDebug(LogType::Force, "curl_easy_cleanup(0x{:08x})", curl.GetMPTR());
-
-	curlDebug_cleanup(curl.GetPtr());
-
-	::curl_easy_cleanup(curl->curl);
-	PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curl.GetMPTR());
-
-	if (curl->info_contentType.IsNull() == false)
-		PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curl->info_contentType.GetMPTR());
-	if (curl->info_redirectUrl.IsNull() == false)
-		PPCCoreCallback(g_nlibcurl.free.GetMPTR(), curl->info_redirectUrl.GetMPTR());
-
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-void export_curl_easy_reset(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curl, CURL_t, 0);
-	cemuLog_logDebug(LogType::Force, "curl_easy_reset(0x{:08x})", curl.GetMPTR());
-	// curl_apply_default_proxy_config();
-	::curl_easy_reset(curl->curl);
-	osLib_returnFromFunction(hCPU, 0);
-}
-
-int ssl_verify_callback(int preverify_ok, X509_STORE_CTX* ctx)
-{
-	if (preverify_ok) return preverify_ok;
-	int err = X509_STORE_CTX_get_error(ctx);
-	if(err != 0)
-		cemuLog_logDebug(LogType::Force, "ssl_verify_callback: Error {} but allow certificate anyway", err);
-	X509_STORE_CTX_set_error(ctx, 0);
-	return 1;
-}
-
-CURLcode ssl_ctx_callback(CURL* curl, void* sslctx, void* param)
-{
-	//peterBreak();
-	std::lock_guard lock(nsysnet::s_nsslContextMutex);
-	CURL_t* ppcCurl = (CURL_t*)param;
-	nsysnet::NSSLInternalState_t* nssl = nsysnet::GetNSSLContext((uint32)ppcCurl->hNSSL);
-	if (!nssl)
-	{
-		cemuLog_log(LogType::Force, "CURL invalid NSSL context");
-		return CURLE_SSL_CACERT;
-	}
-
-	for (uint32 i : nssl->serverPKIs)
-	{
-		if (iosuCrypto_addCACertificate(sslctx, i) == false)
-		{
-			cemu_assert_suspicious();
-			return CURLE_SSL_CACERT;
-		}
-	}
-	for (auto& customPKI : nssl->serverCustomPKIs)
-	{
-		if (iosuCrypto_addCustomCACertificate(sslctx, &customPKI[0], (sint32)customPKI.size()) == false)
-		{
-			cemu_assert_suspicious();
-			return CURLE_SSL_CACERT;
-		}
-	}
-
-	if (nssl->clientPKI != 0 && iosuCrypto_addClientCertificate(sslctx, nssl->clientPKI) == false)
-	{
-		cemu_assert_suspicious();
-		return CURLE_SSL_CERTPROBLEM;
-	}
-
-	uint32 flags = ppcCurl->nsslVerifyOptions;
-	if (HAS_FLAG(flags, NSSL_VERIFY_PEER))
-	{
-		::SSL_CTX_set_cipher_list((SSL_CTX*)sslctx, "AES256-SHA"); // TLS_RSA_WITH_AES_256_CBC_SHA (in CURL it's called rsa_aes_256_sha)
-		::SSL_CTX_set_mode((SSL_CTX*)sslctx, SSL_MODE_AUTO_RETRY);
-		::SSL_CTX_set_verify_depth((SSL_CTX*)sslctx, 2);
-		::SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_PEER, ssl_verify_callback);
-	}
-	else
-	{
-		::SSL_CTX_set_verify((SSL_CTX*)sslctx, SSL_VERIFY_NONE, nullptr);
-	}
-	
-	return CURLE_OK;
-}
-
-size_t header_callback(char* buffer, size_t size, size_t nitems, void* userdata)
-{
-	//peterBreak();
-	CURL_t* curl = (CURL_t*)userdata;
-
-	curlDebug_headerWrite(curl, buffer, size, nitems);
-
-	if (curl->fwrite_header.IsNull())
-	{
-		return size * nitems;
-	}
-
-	if (g_callerQueue == nullptr || g_threadQueue == nullptr)
-	{
-		StackAllocator<char> tmp((uint32)(size * nitems));
-		memcpy(tmp.GetPointer(), buffer, size * nitems);
-		return PPCCoreCallback(curl->fwrite_header.GetMPTR(), tmp.GetMPTR(), (uint32)size, (uint32)nitems, curl->writeheader.GetMPTR());
-	}
-
-	QueueMsg_t msg = {};
-	msg.order = QueueOrder_HeaderCB;
-	msg.header_cb.buffer = buffer;
-	msg.header_cb.size = (uint32)size;
-	msg.header_cb.nitems = (uint32)nitems;
-	g_callerQueue->push(msg, curl->curlThread);
-
-	msg = g_threadQueue->pop();
-	if (msg.order != QueueOrder_CBDone)
-		cemu_assert_suspicious();
-
-#ifdef CEMU_DEBUG_ASSERT
-	char debug[500];
-	cemu_assert_debug((size*nitems) < 500);
-	memcpy(debug, buffer, size*nitems);
-	debug[size*nitems] = 0;
-	cemuLog_logDebug(LogType::Force, "header_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [{}]", (void*)buffer, size, nitems, curl->writeheader.GetMPTR(), debug);
-#endif
-	return msg.result;
-}
-
-size_t write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
-{
-	CURL_t* curl = (CURL_t*)userdata;
-
-	curlDebug_resultWrite(curl, ptr, size, nmemb);
-	//StackAllocator<char> tmp(size * nmemb);
-	//memcpy(tmp.GetPointer(), ptr, size * nmemb);
-
-	cemuLog_logDebug(LogType::Force, "write_callback(0x{} 0x{:x}, 0x{:x}, 0x{:08x})", (void*)ptr, size, nmemb, curl->out.GetMPTR());
-
-	if (g_callerQueue == nullptr || g_threadQueue == nullptr)
-	{
-		StackAllocator<char> tmp((uint32)(size * nmemb));
-		memcpy(tmp.GetPointer(), ptr, size * nmemb);
-		int r = PPCCoreCallback(curl->fwrite_func.GetMPTR(), tmp.GetMPTR(), (uint32)size, (uint32)nmemb, curl->out.GetMPTR());
-		return r;
-	}
-
-	QueueMsg_t msg = {};
-	msg.order = QueueOrder_WriteCB;
-	msg.write_cb.buffer = ptr;
-	msg.write_cb.size = (uint32)size;
-	msg.write_cb.nmemb = (uint32)nmemb;
-	g_callerQueue->push(msg, curl->curlThread);
-
-	msg = g_threadQueue->pop();
-	if (msg.order != QueueOrder_CBDone)
-		cemu_assert_suspicious();
-
-	return msg.result;
-}
-
-int sockopt_callback(void* clientp, curl_socket_t curlfd, curlsocktype purpose)
-{
-	CURL_t* curl = (CURL_t*)clientp;
-
-	cemuLog_logDebug(LogType::Force, "sockopt_callback called!");
-
-	sint32 r = 0;
-
-	return r;
-}
-
-size_t read_callback(char* buffer, size_t size, size_t nitems, void* instream)
-{	
-	nitems = std::min<uint32>(nitems, 0x4000);
-	CURL_t* curl = (CURL_t*)instream;
-
-	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [func: 0x{:x}]", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());
-
-	if (g_callerQueue == nullptr || g_threadQueue == nullptr)
-	{
-		StackAllocator<char> tmp((uint32)(size * nitems));
-		const sint32 result = PPCCoreCallback(curl->fread_func_set.GetMPTR(), tmp.GetMPTR(), (uint32)size, (uint32)nitems, curl->in_set.GetMPTR());
-		memcpy(buffer, tmp.GetPointer(), result);
 		return result;
 	}
 
-	QueueMsg_t msg = {};
-	msg.order = QueueOrder_ReadCB;
-	msg.read_cb.buffer = buffer;
-	msg.read_cb.size = (uint32)size;
-	msg.read_cb.nitems = (uint32)std::min<uint32>(nitems, 0x4000); // limit this to 16KB which is the limit in nlibcurl.rpl (Super Mario Maker crashes on level upload if the size is too big)
-
-	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) [func: 0x{:x}] PUSH", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), curl->fread_func_set.GetMPTR());
-	g_callerQueue->push(msg, curl->curlThread);
-
-	msg = g_threadQueue->pop();
-	if (msg.order != QueueOrder_CBDone)
-		cemu_assert_suspicious();
-
-	cemuLog_logDebug(LogType::Force, "read_callback(0x{}, 0x{:x}, 0x{:x}, 0x{:08x}) DONE Result: {}", (void*)buffer, size, nitems, curl->in_set.GetMPTR(), msg.result);
-
-	return msg.result;
-}
-
-
-int progress_callback(void* clientp, double dltotal, double dlnow, double ultotal, double ulnow)
-{
-	//peterBreak();
-	CURL_t* curl = (CURL_t*)clientp;
-	//int result = PPCCoreCallback(curl->fprogress.GetMPTR(), curl->progress_client.GetMPTR(), dltotal, dlnow, ultotal, ulnow);
-	if(g_callerQueue == nullptr || g_threadQueue == nullptr)
-		return PPCCoreCallback(curl->fprogress.GetMPTR(), curl->progress_client.GetMPTR(), dltotal, dlnow, ultotal, ulnow);
-
-	QueueMsg_t msg = {};
-	msg.order = QueueOrder_ProgressCB;
-	msg.progress_cb.dltotal = dltotal;
-	msg.progress_cb.dlnow = dlnow;
-	msg.progress_cb.ultotal = ultotal;
-	msg.progress_cb.ulnow = ulnow;
-	g_callerQueue->push(msg, curl->curlThread);
-
-	msg = g_threadQueue->pop();
-	if (msg.order != QueueOrder_CBDone)
-		cemu_assert_suspicious();
-	
-	cemuLog_logDebug(LogType::Force, "progress_callback({:.02}, {:.02}, {:.02}, {:.02}) -> {}", dltotal, dlnow, ultotal, ulnow, msg.result);
-	return msg.result;
-}
-
-void export_curl_easy_setopt(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curl, CURL_t, 0);
-	ppcDefineParamU32(option, 1);
-	ppcDefineParamMEMPTR(parameter, void, 2);
-	ppcDefineParamU64(parameterU64, 2);
-
-	CURL* curlObj = curl->curl;
-	curl->isDirty = true;
-
-	CURLcode result = CURLE_OK;
-	switch (option)
+	CURLM_t* curl_multi_init()
 	{
-		case CURLOPT_POST:
-		{
-			if(parameter)
-			{
-				curl->set.httpreq_1EC = WU_HTTPREQ::HTTPREQ_POST;
-				curl->opt_no_body_281 = 0;
-			}
-			else
-				curl->set.httpreq_1EC = WU_HTTPREQ::HTTPREQ_GET;
-			break;
-		}
-		case CURLOPT_HTTPGET:
-		{
-			if (parameter)
-			{
-				curl->set.httpreq_1EC = WU_HTTPREQ::HTTPREQ_GET;
-				curl->opt_no_body_281 = 0;
-				curl->upload_283 = 0;
-			}
-			break;
-		}
-		case CURLOPT_INFILESIZE:
-		{
-			curl->set.infilesize_190 = (sint64)(sint32)(uint32)parameter.GetBEValue();
-			break;
-		}
-		case CURLOPT_INFILESIZE_LARGE:
-		{
-			curl->set.infilesize_190 = (sint64)(uint64)parameterU64;
-			break;
-		}
-		case CURLOPT_NOSIGNAL:
-		case CURLOPT_FOLLOWLOCATION:
-		case CURLOPT_BUFFERSIZE:
-		case CURLOPT_TIMEOUT:
-		case CURLOPT_CONNECTTIMEOUT_MS:
-		case CURLOPT_NOPROGRESS:
-		case CURLOPT_LOW_SPEED_LIMIT:
-		case CURLOPT_LOW_SPEED_TIME:
-		case CURLOPT_CONNECTTIMEOUT:
-		{
-			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetMPTR());
-			break;
-		}
-		case CURLOPT_URL:
-		{
-			curlDebug_logEasySetOptStr(curl.GetPtr(), "CURLOPT_URL", (const char*)parameter.GetPtr());
-			cemuLog_logDebug(LogType::Force, "curl_easy_setopt({}) [{}]", option, parameter.GetPtr());
-			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetPtr());
-			break;
-		}
+		if (g_nlibcurl.initialized == 0 && curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
+			return nullptr;
 
-		case CURLOPT_PROXY:
-		case CURLOPT_USERAGENT:
+		MEMPTR<CURLM_t> curlm{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), 1, ppcsizeof<CURLM_t>()) };
+		if (curlm)
 		{
-			cemuLog_logDebug(LogType::Force, "curl_easy_setopt({}) [{}]", option, parameter.GetPtr());
-			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetPtr());
-			break;
+			curlm->magic = CURL_MULTI_HANDLE;
+			std::unique_lock _l(s_curlMutex);
+			cemu_assert(!s_multiHandles.contains(curlm.GetPtr())); // previous handle with same address still live, should not happen as it requires memory to be double-allocated
+			s_multiHandles.emplace(curlm.GetPtr(), new CURLMHostState());
 		}
-
-		case CURLOPT_POSTFIELDS:
-		{
-			curlDebug_logEasySetOptStr(curl.GetPtr(), "CURLOPT_POSTFIELDS", (const char*)parameter.GetPtr());
-			cemuLog_logDebug(LogType::Force, "curl_easy_setopt({}) [{}]", option, parameter.GetPtr());
-			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameter.GetPtr());
-			break;
-		}
-
-		case CURLOPT_MAX_SEND_SPEED_LARGE:
-		case CURLOPT_MAX_RECV_SPEED_LARGE:
-		case CURLOPT_POSTFIELDSIZE_LARGE:
-		{
-			result = ::curl_easy_setopt(curlObj, (CURLoption)option, parameterU64);
-			break;
-		}
-		case 211: // verifyOpt
-		{
-			uint32 flags = parameter.GetMPTR();
-			curl->nsslVerifyOptions = flags;
-
-			if (HAS_FLAG(flags, NSSL_VERIFY_PEER))
-				::curl_easy_setopt(curlObj, CURLOPT_SSL_VERIFYPEER, 1);
-			else
-				::curl_easy_setopt(curlObj, CURLOPT_SSL_VERIFYPEER, 0);
-
-			if (HAS_FLAG(flags, NSSL_VERIFY_HOSTNAME))
-				::curl_easy_setopt(curlObj, CURLOPT_SSL_VERIFYHOST, 2);
-			else
-				::curl_easy_setopt(curlObj, CURLOPT_SSL_VERIFYHOST, 0);
-
-			break;
-		}
-		case 210: // SSL_CONTEXT -> set context created with NSSLCreateContext before
-		{
-			const uint32 nsslIndex = parameter.GetMPTR();
-
-			nsysnet::NSSLInternalState_t* nssl = nsysnet::GetNSSLContext(nsslIndex);
-			if (nssl)
-			{
-				curl->hNSSL = nsslIndex;
-				result = ::curl_easy_setopt(curlObj, CURLOPT_SSL_CTX_FUNCTION, ssl_ctx_callback);
-				::curl_easy_setopt(curlObj, CURLOPT_SSL_CTX_DATA, curl.GetPtr());
-
-				if (nssl->sslVersion == 2)
-					::curl_easy_setopt(curlObj, CURLOPT_SSLVERSION, CURL_SSLVERSION_SSLv3);
-				else // auto = highest = 0 || 2 for v3
-					::curl_easy_setopt(curlObj, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
-			}
-			else
-				cemu_assert_suspicious();
-			break;
-		}
-		case CURLOPT_SHARE:
-		{
-			CURLSH* shObj = nullptr;
-			if (parameter)
-			{
-				auto curlSh = (MEMPTR<CURLSH_t>)parameter;
-				curlSh->curl = curl;
-				shObj = curlSh->curlsh;
-			}
-			result = ::curl_easy_setopt(curlObj, CURLOPT_SHARE, shObj);
-			break;
-		}
-		case CURLOPT_HEADERFUNCTION:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_HEADERFUNCTION", parameter.GetMPTR());
-			curl->fwrite_header = parameter;
-			break;
-		}
-		case CURLOPT_HEADERDATA:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_HEADERDATA", parameter.GetMPTR());
-			curl->writeheader = parameter;
-			break;
-		}
-		case CURLOPT_WRITEFUNCTION:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_WRITEFUNCTION", parameter.GetMPTR());
-			curl->fwrite_func = parameter;
-			result = ::curl_easy_setopt(curlObj, CURLOPT_WRITEFUNCTION, write_callback);
-			::curl_easy_setopt(curlObj, CURLOPT_WRITEDATA, curl.GetPtr());
-			break;
-		}
-		case CURLOPT_WRITEDATA: // aka CURLOPT_FILE
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_WRITEDATA", parameter.GetMPTR());
-			curl->out = parameter;
-			break;
-		}
-		case CURLOPT_HTTPHEADER:
-		{
-			curl->set.headers = (WU_curl_slist*)parameter.GetPtr();
-			result = CURLE_OK;
-			break;
-		}
-		case CURLOPT_SOCKOPTFUNCTION:
-		{
-			curl->fsockopt = parameter;
-			result = ::curl_easy_setopt(curlObj, CURLOPT_SOCKOPTFUNCTION, sockopt_callback);
-			::curl_easy_setopt(curlObj, CURLOPT_SOCKOPTDATA, curl.GetPtr());
-			break;
-		}
-		case CURLOPT_SOCKOPTDATA:
-		{
-			curl->sockopt_client = parameter;
-			break;
-		}
-		case CURLOPT_READFUNCTION:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_READFUNCTION", parameter.GetMPTR());
-			curl->fread_func_set = parameter;
-			result = ::curl_easy_setopt(curlObj, CURLOPT_READFUNCTION, read_callback);
-			::curl_easy_setopt(curlObj, CURLOPT_READDATA, curl.GetPtr());
-			break;
-		}
-		case CURLOPT_READDATA:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_READDATA", parameter.GetMPTR());
-			curl->in_set = parameter;
-			break;
-		}
-		case CURLOPT_PROGRESSFUNCTION:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_PROGRESSFUNCTION", parameter.GetMPTR());
-			curl->fprogress = parameter;
-			result = ::curl_easy_setopt(curlObj, CURLOPT_PROGRESSFUNCTION, progress_callback);
-			::curl_easy_setopt(curlObj, CURLOPT_PROGRESSDATA, curl.GetPtr());
-			break;
-		}
-		case CURLOPT_PROGRESSDATA:
-		{
-			curlDebug_logEasySetOptPtr(curl.GetPtr(), "CURLOPT_PROGRESSDATA", parameter.GetMPTR());
-			curl->progress_client = parameter;
-			break;
-		}
-		default:
-			cemuLog_logDebug(LogType::Force, "curl_easy_setopt(0x{:08x}, {}, 0x{:08x}) unsupported option", curl.GetMPTR(), option, parameter.GetMPTR());
+		return curlm;
 	}
 
-	cemuLog_logDebug(LogType::Force, "curl_easy_setopt(0x{:08x}, {}, 0x{:08x}) -> 0x{:x}", curl.GetMPTR(), option, parameter.GetMPTR(), result);
-
-	osLib_returnFromFunction(hCPU, result);
-}
-
-WU_CURLcode curl_easy_perform(CURL_t* curl)
-{
-	curlDebug_markActiveRequest(curl);
-	curlDebug_notifySubmitRequest(curl);
-
-	if(curl->isDirty)
+	CURLMcode curl_multi_add_handle(CURLM_t* curlm, CURL_t* curl)
 	{
-		curl->isDirty = false;
-		_curl_sync_parameters(curl);
-	}
-	const uint32 result = SendOrderToWorker(curl, QueueOrder_Perform);
-	return static_cast<WU_CURLcode>(result);
-}
-
-void _updateGuestString(CURL_t* curl, MEMPTR<char>& ppcStr, char* hostStr)
-{
-	// free current string
-	if (ppcStr.IsNull() == false)
-	{
-		PPCCoreCallback(g_nlibcurl.free.GetMPTR(), ppcStr);
-		ppcStr = nullptr;
-	}
-	if (hostStr == nullptr)
-		return;
-	sint32 length = (sint32)strlen(hostStr);
-	ppcStr = PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), length+1);
-	memcpy(ppcStr.GetPtr(), hostStr, length + 1);
-}
-
-void export_curl_easy_getinfo(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamMEMPTR(curl, CURL_t, 0);
-	ppcDefineParamU32(info, 1);
-	ppcDefineParamMEMPTR(parameter, void, 2);
-
-	CURL* curlObj = curl->curl;
-
-	CURLcode result = CURLE_OK;
-	switch (info)
-	{
-		case CURLINFO_SIZE_DOWNLOAD:
-		case CURLINFO_SPEED_DOWNLOAD:
-		case CURLINFO_SIZE_UPLOAD:
-		case CURLINFO_SPEED_UPLOAD:
-		case CURLINFO_CONTENT_LENGTH_DOWNLOAD:
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+		HostStateGuard hostState(s_curlHandles, curl, true);
+		if (!hostState || hostState->multi)
+			return CURLM_BAD_EASY_HANDLE;
+		CURLMcode result = ::curl_multi_add_handle(multiHostState->curlm, hostState->curl);
+		if (result == CURLM_OK)
 		{
-			double tempDouble = 0.0;
-			result = curl_easy_getinfo(curlObj, (CURLINFO)info, &tempDouble);
-			*(uint64*)parameter.GetPtr() = _swapEndianU64(*(uint64*)&tempDouble);
-			break;
+			std::unique_lock _l(s_curlMutex);
+			multiHostState->easyHandles.push_back(hostState.Get());
+			hostState->multi = multiHostState.Get();
+			hostState->multiTransferStarted = false;
 		}
-		case CURLINFO_RESPONSE_CODE:
-		case CURLINFO_SSL_VERIFYRESULT:
-		{
-			long tempLong = 0;
-			result = curl_easy_getinfo(curlObj, (CURLINFO)info, &tempLong);
-			*(uint32*)parameter.GetPtr() = _swapEndianU32((uint32)tempLong);
-			break;
-		}
-		case CURLINFO_CONTENT_TYPE:
-		{
-			char* contentType = nullptr;
-			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &contentType);
-			_updateGuestString(curl.GetPtr(), curl->info_contentType, contentType);
-			*(MEMPTR<char>*)parameter.GetPtr() = curl->info_contentType;
-			break;
-		}
-		case CURLINFO_REDIRECT_URL:
-		{
-			char* redirectUrl = nullptr;
-			result = curl_easy_getinfo(curlObj, CURLINFO_REDIRECT_URL, &redirectUrl);
-			_updateGuestString(curl.GetPtr(), curl->info_redirectUrl, redirectUrl);
-			*(MEMPTR<char>*)parameter.GetPtr() = curl->info_redirectUrl;
-			break;
-		}
-		default:
-			cemu_assert_unimplemented();
-			result = curl_easy_getinfo(curlObj, (CURLINFO)info, (double*)parameter.GetPtr());
+		return result;
 	}
 
-	cemuLog_logDebug(LogType::Force, "curl_easy_getinfo(0x{:08x}, 0x{:x}, 0x{:08x}) -> 0x{:x}", curl.GetMPTR(), info, parameter.GetMPTR(), result);
-	osLib_returnFromFunction(hCPU, result);
-}
-
-void export_curl_easy_strerror(PPCInterpreter_t* hCPU)
-{
-	ppcDefineParamU32(code, 0);
-	MEMPTR<char> result;
-
-	const char* error = curl_easy_strerror((CURLcode)code);
-	if (error)
+	CURLMcode curl_multi_remove_handle(CURLM_t* curlm, CURL_t* curl)
 	{
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+		HostStateGuard hostState(s_curlHandles, curl);
+		if (!hostState || hostState->multi != multiHostState.Get())
+			return CURLM_BAD_EASY_HANDLE;
+		CURLMcode result = ::curl_multi_remove_handle(multiHostState->curlm, hostState->curl);
+		if (result == CURLM_OK)
+		{
+			std::unique_lock _l(s_curlMutex);
+			std::erase(multiHostState->easyHandles, hostState.Get());
+			hostState->multi = nullptr;
+		}
+		return result;
+	}
+
+	CURLMcode curl_multi_timeout(CURLM_t* curlm, sint32be* timeout)
+	{
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+		long hostTimeout = -1;
+		CURLMcode result = ::curl_multi_timeout(multiHostState->curlm, &hostTimeout);
+		*timeout = (sint32)hostTimeout;
+		return result;
+	}
+
+	CURLMcode curl_multi_cleanup(CURLM_t* curlm)
+	{
+		CURLMHostState* multiHostState = TakeHostState(s_multiHandles, curlm);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+		// the attached easy handles are blocked until they are detached
+		::curl_multi_cleanup(multiHostState->curlm);
+		multiHostState->curlm = nullptr;
+		{
+			std::unique_lock _l(s_curlMutex);
+			for (CURLHostState* hostState : multiHostState->easyHandles)
+				hostState->multi = nullptr;
+		}
+		delete multiHostState;
+		GuestFree(curlm);
+		return CURLM_OK;
+	}
+
+	CURLMcode curl_multi_perform(CURLM_t* curlm, sint32be* runningHandles)
+	{
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+		for (CURLHostState* hostState : multiHostState->easyHandles)
+		{
+			if (hostState->multiTransferStarted)
+				continue;
+			if (!SyncHostParameters(hostState))
+				return CURLM_INTERNAL_ERROR;
+			hostState->pauseMask = 0;
+			hostState->progressReset = false;
+			hostState->multiTransferStarted = true;
+		}
+		CURLMcode result = (CURLMcode)RunOnWorkerThread(multiHostState->worker, [multiHost = multiHostState.Get()]() -> uint32
+		{
+			return ::curl_multi_perform(multiHost->curlm, &multiHost->runningHandles);
+		});
+		*runningHandles = multiHostState->runningHandles;
+		return result;
+	}
+
+	CURLMcode curl_multi_fdset(CURLM_t* curlm, wu_fd_set* readFd, wu_fd_set* writeFd, wu_fd_set* exceptionFd, sint32be* maxFd)
+	{
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+
+		fd_set hostReadFd;
+		fd_set hostWriteFd;
+		fd_set hostExceptionFd;
+		FD_ZERO(&hostReadFd);
+		FD_ZERO(&hostWriteFd);
+		FD_ZERO(&hostExceptionFd);
+		int hostMaxFd = 0;
+
+		CURLMcode result = ::curl_multi_fdset(multiHostState->curlm, &hostReadFd, &hostWriteFd, &hostExceptionFd, &hostMaxFd);
+
+		nsysnet::wuResetFD(readFd);
+		nsysnet::wuResetFD(writeFd);
+		nsysnet::wuResetFD(exceptionFd);
+
+		sint32 guestMaxFd = -1;
+		auto hostFdSet = [&](SOCKET s, wu_fd_set* fds)
+		{
+			sint32 wuSocket = nsysnet_getVirtualSocketHandleFromHostHandle(s);
+			if (wuSocket < 0)
+				wuSocket = nsysnet_createVirtualSocketFromExistingSocket(s, true);
+			if (wuSocket >= 0)
+			{
+				guestMaxFd = std::max(wuSocket, guestMaxFd);
+				nsysnet::wuSetFD(fds, wuSocket);
+			}
+		};
+
+#if BOOST_OS_UNIX
+		for (int s = 0; s < hostMaxFd + 1; s++)
+		{
+			if (FD_ISSET(s, &hostReadFd))
+				hostFdSet(s, readFd);
+			if (FD_ISSET(s, &hostWriteFd))
+				hostFdSet(s, writeFd);
+			if (FD_ISSET(s, &hostExceptionFd))
+				hostFdSet(s, exceptionFd);
+		}
+#else
+		for (uint32 i = 0; i < hostReadFd.fd_count; i++)
+			hostFdSet(hostReadFd.fd_array[i], readFd);
+		for (uint32 i = 0; i < hostWriteFd.fd_count; i++)
+			hostFdSet(hostWriteFd.fd_array[i], writeFd);
+		for (uint32 i = 0; i < hostExceptionFd.fd_count; i++)
+			hostFdSet(hostExceptionFd.fd_array[i], exceptionFd);
+#endif
+
+		*maxFd = guestMaxFd;
+		return result;
+	}
+
+	CURLMcode curl_multi_setopt(CURLM_t* curlm, uint32 option, uint32 parameter)
+	{
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return CURLM_BAD_HANDLE;
+		if (option == CURLMOPT_MAXCONNECTS)
+			return ::curl_multi_setopt(multiHostState->curlm, CURLMOPT_MAXCONNECTS, (long)parameter);
+		cemuLog_logDebug(LogType::Force, "curl_multi_setopt(): Unsupported option {}", option);
+		return CURLM_OK;
+	}
+
+	CURLMsg_t* curl_multi_info_read(CURLM_t* curlm, sint32be* msgsInQueue)
+	{
+		HostStateGuard multiHostState(s_multiHandles, curlm, true);
+		if (!multiHostState)
+			return nullptr;
+		int hostMsgsInQueue = 0;
+		CURLMsg* msg = ::curl_multi_info_read(multiHostState->curlm, &hostMsgsInQueue);
+		*msgsInQueue = hostMsgsInQueue;
+		if (!msg)
+			return nullptr;
+
+		CURLHostState* hostState = nullptr;
+		::curl_easy_getinfo(msg->easy_handle, CURLINFO_PRIVATE, &hostState);
+		// like in nlibcurl the message is stored per easy handle and stays valid until the handle is destroyed
+		if (!hostState->multiMsg)
+			hostState->multiMsg = PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<CURLMsg_t>());
+		hostState->multiMsg->msg = msg->msg;
+		hostState->multiMsg->curl = hostState->ppcCurl;
+		hostState->multiMsg->result = msg->data.result;
+		return hostState->multiMsg;
+	}
+
+	CURLSH_t* curl_share_init()
+	{
+		MEMPTR<CURLSH_t> share{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), 1, ppcsizeof<CURLSH_t>()) };
+		if (share)
+			share->specifier = 1u << CURL_LOCK_DATA_SHARE;
+		return share;
+	}
+
+	CURLSHcode curl_share_setopt(CURLSH_t* share, uint32 option, uint32 parameter)
+	{
+		if (!share)
+			return CURLSHE_INVALID;
+		if (share->dirty)
+			return CURLSHE_IN_USE;
+
+		switch (option)
+		{
+			case CURLSHOPT_USERDATA:
+				share->data = parameter;
+				break;
+			case CURLSHOPT_LOCKFUNC:
+				share->lockfunc = parameter;
+				break;
+			case CURLSHOPT_UNLOCKFUNC:
+				share->unlockfunc = parameter;
+				break;
+			case CURLSHOPT_SHARE:
+				if (parameter >= 32)
+					return CURLSHE_BAD_OPTION;
+				share->specifier = share->specifier | (1u << parameter);
+				if (parameter != CURL_LOCK_DATA_COOKIE && parameter != CURL_LOCK_DATA_DNS)
+					return CURLSHE_BAD_OPTION;
+				break;
+			case CURLSHOPT_UNSHARE:
+				if (parameter >= 32)
+					return CURLSHE_BAD_OPTION;
+				share->specifier = share->specifier & ~(1u << parameter);
+				if (parameter < CURL_LOCK_DATA_COOKIE || parameter > CURL_LOCK_DATA_CONNECT)
+					return CURLSHE_BAD_OPTION;
+				break;
+			default:
+				return CURLSHE_BAD_OPTION;
+		}
+		return CURLSHE_OK;
+	}
+
+	CURLSHcode curl_share_cleanup(CURLSH_t* share)
+	{
+		if (!share)
+			return CURLSHE_INVALID;
+		if (share->dirty)
+			return CURLSHE_IN_USE;
+		GuestFree(share);
+		return CURLSHE_OK;
+	}
+
+	CURL_t* curl_easy_init()
+	{
+		if (g_nlibcurl.initialized == 0 && curl_global_init(CURL_GLOBAL_DEFAULT) != CURLE_OK)
+			return nullptr;
+
+		// Curl_open
+		MEMPTR<CURL_t> curl{ PPCCoreCallback(g_nlibcurl.calloc.GetMPTR(), 1, ppcsizeof<CURL_t>()) };
+		if (curl)
+		{
+			curl->set.SetToDefault();
+			std::unique_lock _l(s_curlMutex);
+			if (s_curlHandles.contains(curl.GetPtr()))
+				return nullptr; // address still belongs to another easy handle
+			s_curlHandles.emplace(curl.GetPtr(), new CURLHostState(curl));
+		}
+		return curl;
+	}
+
+	CURL_t* mw_curl_easy_init()
+	{
+		return curl_easy_init();
+	}
+
+	void curl_easy_cleanup(CURL_t* curl)
+	{
+		CURLHostState* hostState = TakeHostState(s_curlHandles, curl);
+		if (!hostState)
+			return;
+		// the multi handle stays blocked while this handle is still attached to it
+		if (CURLMHostState* multiHostState = hostState->multi)
+		{
+			::curl_multi_remove_handle(multiHostState->curlm, hostState->curl);
+			std::unique_lock _l(s_curlMutex);
+			std::erase(multiHostState->easyHandles, hostState);
+		}
+		GuestFree(hostState->multiMsg);
+		delete hostState;
+
+		SetShare(curl, nullptr);
+		FreeGuestStrings(curl);
+		GuestFree(curl->info_contentType);
+		GuestFree(curl->info_redirectUrl);
+		GuestFree(curl);
+	}
+
+	void curl_easy_reset(CURL_t* curl)
+	{
+		HostStateGuard hostState(s_curlHandles, curl, true);
+		if (!hostState)
+			return;
+		// curl_apply_default_proxy_config();
+		FreeGuestStrings(curl);
+		curl->set.SetToDefault();
+		// the host handle is not reset, since nlibcurl keeps the info of the last transfer (response code etc) after a reset
+		// only the progress is cleared. All options we use are applied again when the next transfer starts
+		hostState->isDirty = true;
+		hostState->progressReset = true;
+	}
+
+	CURLcode curl_easy_pause(CURL_t* curl, sint32 bitmask)
+	{
+		// the handle is either idle or in use by this thread, in which case we are inside a curl callback and the worker thread is blocked until it returns
+		HostStateGuard hostState(s_curlHandles, curl);
+		if (!hostState)
+			return CURLE_BAD_FUNCTION_ARGUMENT;
+		// update the mask first, since unpausing can replay buffered data to the write callback right away
+		sint32 previousMask = hostState->pauseMask;
+		hostState->pauseMask = bitmask;
+		CURLcode result = ::curl_easy_pause(hostState->curl, bitmask);
+		if (result != CURLE_OK)
+			hostState->pauseMask = previousMask;
+		return result;
+	}
+
+	// note: curl_easy_setopt is a macro in curl header, so we avoid reusing the same name for the HLE function
+	CURLcode nlibcurl_easy_setopt(MEMPTR<CURL_t> curl, uint32 option)
+	{
+		ppc_define_va_list(2, 0);
+
+		HostStateGuard hostState(s_curlHandles, curl.GetPtr());
+		if (!hostState)
+			return CURLE_BAD_FUNCTION_ARGUMENT;
+		// 64bit arguments are in 30000-39999 range
+		uint64 value64 = 0;
+		if (option >= 30000 && option < 39999)
+			value64 = *(uint64be*)_ppc_va_arg(&vargs, ppc_va_type::INT64);
+		else
+			value64 = (uint32)*(uint32be*)_ppc_va_arg(&vargs, ppc_va_type::INT32);
+		uint32 value32 = (uint32)value64;
+		MEMPTR<void> valuePtr{value32};
+		WU_UserDefined& set = curl->set;
+		hostState->isDirty = true;
+
+		switch ((WU_CURLOPT)option)
+		{
+			case WU_CURLOPT::UPLOAD:
+			case WU_CURLOPT::PUT:
+			{
+				set.upload = value32 != 0;
+				if (value32)
+				{
+					set.httpreq = WU_HTTPREQ::HTTPREQ_PUT;
+					set.opt_no_body = 0;
+				}
+				else
+					set.httpreq = WU_HTTPREQ::HTTPREQ_GET;
+				break;
+			}
+			case WU_CURLOPT::POST:
+			{
+				if (value32)
+				{
+					set.httpreq = WU_HTTPREQ::HTTPREQ_POST;
+					set.opt_no_body = 0;
+				}
+				else
+					set.httpreq = WU_HTTPREQ::HTTPREQ_GET;
+				break;
+			}
+			case WU_CURLOPT::HTTPGET:
+			{
+				if (value32)
+				{
+					set.httpreq = WU_HTTPREQ::HTTPREQ_GET;
+					set.opt_no_body = 0;
+					set.upload = 0;
+				}
+				break;
+			}
+			case WU_CURLOPT::INFILESIZE:
+				set.infilesize = (sint64)(sint32)value32;
+				break;
+			case WU_CURLOPT::INFILESIZE_LARGE:
+				set.infilesize = (sint64)value64;
+				break;
+			case WU_CURLOPT::NOSIGNAL:
+				set.no_signal = value32 != 0;
+				break;
+			case WU_CURLOPT::FOLLOWLOCATION:
+				set.http_follow_location = value32 != 0;
+				break;
+			case WU_CURLOPT::BUFFERSIZE:
+				set.buffer_size = (value32 >= 1 && value32 < 0x4000) ? value32 : 0; // 0 selects the default size of 16KB
+				break;
+			case WU_CURLOPT::TIMEOUT:
+				set.timeout = value32 * 1000;
+				break;
+			case WU_CURLOPT::CONNECTTIMEOUT:
+				set.connecttimeout = value32 * 1000;
+				break;
+			case WU_CURLOPT::CONNECTTIMEOUT_MS:
+				set.connecttimeout = value32;
+				break;
+			case WU_CURLOPT::NOPROGRESS:
+				set.hide_progress = value32 != 0;
+				break;
+			case WU_CURLOPT::LOW_SPEED_LIMIT:
+				set.low_speed_limit = value32;
+				break;
+			case WU_CURLOPT::LOW_SPEED_TIME:
+				set.low_speed_time = value32;
+				break;
+			case WU_CURLOPT::MAX_SEND_SPEED_LARGE:
+				set.max_send_speed = (sint64)value64;
+				break;
+			case WU_CURLOPT::MAX_RECV_SPEED_LARGE:
+				set.max_recv_speed = (sint64)value64;
+				break;
+			case WU_CURLOPT::URL:
+				cemuLog_logDebug(LogType::Force, "curl_easy_setopt(URL) [{}]", (const char*)valuePtr.GetPtr());
+				SetGuestString(curl, WU_STRING_URL, (const char*)valuePtr.GetPtr());
+				break;
+			case WU_CURLOPT::PROXY:
+				SetGuestString(curl, WU_STRING_PROXY, (const char*)valuePtr.GetPtr());
+				break;
+			case WU_CURLOPT::USERAGENT:
+				SetGuestString(curl, WU_STRING_USERAGENT, (const char*)valuePtr.GetPtr());
+				break;
+			case WU_CURLOPT::POSTFIELDS:
+				set.postfields = valuePtr;
+				set.httpreq = WU_HTTPREQ::HTTPREQ_POST;
+				break;
+			case WU_CURLOPT::POSTFIELDSIZE_LARGE:
+				set.postfieldsize = (sint64)value64;
+				break;
+			case WU_CURLOPT::NSSL_CONTEXT:
+				set.hNSSL = value32;
+				break;
+			case WU_CURLOPT::NSSL_VERIFY_OPTIONS:
+				set.nsslVerifyOptions = value32;
+				break;
+			case WU_CURLOPT::SHARE:
+				SetShare(curl, MEMPTR<CURLSH_t>(value32));
+				break;
+			case WU_CURLOPT::HEADERFUNCTION:
+				set.fwrite_header = valuePtr;
+				break;
+			case WU_CURLOPT::HEADERDATA:
+				set.writeheader = valuePtr;
+				break;
+			case WU_CURLOPT::WRITEFUNCTION:
+				set.fwrite_func = valuePtr;
+				break;
+			case WU_CURLOPT::WRITEDATA: // aka CURLOPT_FILE
+				set.out = valuePtr;
+				break;
+			case WU_CURLOPT::HTTPHEADER:
+				set.headers = (WU_curl_slist*)valuePtr.GetPtr();
+				break;
+			case WU_CURLOPT::SOCKOPTFUNCTION:
+				set.fsockopt = valuePtr;
+				break;
+			case WU_CURLOPT::SOCKOPTDATA:
+				set.sockopt_client = valuePtr;
+				break;
+			case WU_CURLOPT::READFUNCTION:
+				set.fread_func = valuePtr;
+				break;
+			case WU_CURLOPT::READDATA:
+				set.in = valuePtr;
+				break;
+			case WU_CURLOPT::PROGRESSFUNCTION:
+				set.fprogress = valuePtr;
+				break;
+			case WU_CURLOPT::PROGRESSDATA:
+				set.progress_client = valuePtr;
+				break;
+			default:
+				cemuLog_logDebug(LogType::Force, "curl_easy_setopt(0x{:08x}, {}, 0x{:08x}) unsupported option", curl.GetMPTR(), option, value32);
+		}
+
+		cemuLog_logDebug(LogType::Force, "curl_easy_setopt(0x{:08x}, {}, 0x{:08x})", curl.GetMPTR(), option, value32);
+		return CURLE_OK;
+	}
+
+	WU_CURLcode curl_easy_perform(CURL_t* curl)
+	{
+		HostStateGuard hostState(s_curlHandles, curl, true);
+		if (!hostState || !SyncHostParameters(hostState.Get()))
+			return static_cast<WU_CURLcode>(CURLE_BAD_FUNCTION_ARGUMENT);
+		hostState->pauseMask = 0;
+		hostState->progressReset = false;
+		CURL* hostCurl = hostState->curl;
+		const uint32 result = RunOnWorkerThread(hostState->worker, [hostCurl]() -> uint32
+		{
+			return ::curl_easy_perform(hostCurl);
+		});
+		return static_cast<WU_CURLcode>(result);
+	}
+
+	CURLcode curl_easy_getinfo(CURL_t* curl, uint32 info, void* parameter)
+	{
+		HostStateGuard hostState(s_curlHandles, curl);
+		if (!hostState || !parameter)
+			return CURLE_BAD_FUNCTION_ARGUMENT;
+		CURL* hostCurl = hostState->curl;
+		CURLcode result;
+		switch ((WU_CURLINFO)info)
+		{
+			case WU_CURLINFO::SIZE_DOWNLOAD:
+			case WU_CURLINFO::SPEED_DOWNLOAD:
+			case WU_CURLINFO::SIZE_UPLOAD:
+			case WU_CURLINFO::SPEED_UPLOAD:
+			case WU_CURLINFO::CONTENT_LENGTH_DOWNLOAD:
+			{
+				double tempDouble = 0.0;
+				result = ::curl_easy_getinfo(hostCurl, (CURLINFO)info, &tempDouble);
+				if (hostState->progressReset)
+					tempDouble = (WU_CURLINFO)info == WU_CURLINFO::CONTENT_LENGTH_DOWNLOAD ? -1.0 : 0.0;
+				*(float64be*)parameter = tempDouble;
+				break;
+			}
+			case WU_CURLINFO::RESPONSE_CODE:
+			case WU_CURLINFO::SSL_VERIFYRESULT:
+			{
+				long tempLong = 0;
+				result = ::curl_easy_getinfo(hostCurl, (CURLINFO)info, &tempLong);
+				*(sint32be*)parameter = (sint32)tempLong;
+				break;
+			}
+			case WU_CURLINFO::CONTENT_TYPE:
+			{
+				char* contentType = nullptr;
+				result = ::curl_easy_getinfo(hostCurl, CURLINFO_CONTENT_TYPE, &contentType);
+				curl->info_contentType = UpdateGuestString(curl->info_contentType, contentType);
+				*(MEMPTR<char>*)parameter = curl->info_contentType;
+				break;
+			}
+			case WU_CURLINFO::REDIRECT_URL:
+			{
+				char* redirectUrl = nullptr;
+				result = ::curl_easy_getinfo(hostCurl, CURLINFO_REDIRECT_URL, &redirectUrl);
+				curl->info_redirectUrl = UpdateGuestString(curl->info_redirectUrl, redirectUrl);
+				*(MEMPTR<char>*)parameter = curl->info_redirectUrl;
+				break;
+			}
+			default:
+				cemu_assert_unimplemented();
+				result = CURLE_BAD_FUNCTION_ARGUMENT;
+		}
+		return result;
+	}
+
+	const char* curl_easy_strerror(uint32 code)
+	{
+		const char* error = ::curl_easy_strerror((CURLcode)code);
+		if (!error)
+			return nullptr;
 		cemuLog_logDebug(LogType::Force, "curl_easy_strerror: {}", error);
-		int len = (int)strlen(error) + 1;
-		result = coreinit_allocFromSysArea(len, 4);
-		memcpy(result.GetPtr(), error, len);
-	}
-	osLib_returnFromFunction(hCPU, result.GetMPTR());
-}
-
-WU_curl_slist* curl_slist_append(WU_curl_slist* list, const char* data)
-{
-	MEMPTR<char> dupdata{ PPCCoreCallback(g_nlibcurl.strdup.GetMPTR(), data) };
-	if (!dupdata)
-	{
-		cemuLog_logDebug(LogType::Force, "curl_slist_append(): Failed to duplicate string");
-		return nullptr;
+		uint32 size = (uint32)strlen(error) + 1;
+		MEMPTR<char> result{ coreinit_allocFromSysArea(size, 4) };
+		memcpy(result.GetPtr(), error, size);
+		return result;
 	}
 
-	MEMPTR<WU_curl_slist> result{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<WU_curl_slist>()) };
-	if (result)
+	WU_curl_slist* curl_slist_append(WU_curl_slist* list, const char* data)
 	{
-		result->data = dupdata;
-		result->next = nullptr;
-
-		// update last obj of list
-		if (list)
+		MEMPTR<char> dupdata{ PPCCoreCallback(g_nlibcurl.strdup.GetMPTR(), data) };
+		if (!dupdata)
 		{
-			MEMPTR<WU_curl_slist> tmp = list;
-			while (tmp->next)
+			cemuLog_logDebug(LogType::Force, "curl_slist_append(): Failed to duplicate string");
+			return nullptr;
+		}
+
+		MEMPTR<WU_curl_slist> result{ PPCCoreCallback(g_nlibcurl.malloc.GetMPTR(), ppcsizeof<WU_curl_slist>()) };
+		if (result)
+		{
+			result->data = dupdata;
+			result->next = nullptr;
+
+			// update last obj of list
+			if (list)
 			{
-				tmp = tmp->next;
+				MEMPTR<WU_curl_slist> tmp = list;
+				while (tmp->next)
+				{
+					tmp = tmp->next;
+				}
+
+				tmp->next = result;
 			}
-
-			tmp->next = result;
 		}
-	}
-	else
-	{
-		cemuLog_logDebug(LogType::Force, "curl_slist_append(): Failed to allocate memory");
-		PPCCoreCallback(g_nlibcurl.free.GetMPTR(), dupdata.GetMPTR());
-	}
-	if(list)
-		return list;
-	return result;
-}
-	
-void curl_slist_free_all(WU_curl_slist* list)
-{
-	cemuLog_logDebug(LogType::Force, "export_curl_slist_free_all: TODO");
-}
-
-CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_callback, MEMPTR<curl_free_callback> free_callback, MEMPTR<curl_realloc_callback> realloc_callback, MEMPTR<curl_strdup_callback> strdup_callback, MEMPTR<curl_calloc_callback> calloc_callback)
-{
-	if(!malloc_callback || !free_callback || !realloc_callback || !strdup_callback || !calloc_callback)
-		return CURLE_FAILED_INIT;
-
-	CURLcode result = CURLE_OK;
-	if (g_nlibcurl.initialized == 0)
-	{
-		result = curl_global_init(flags);
-		if (result == CURLE_OK)
+		else
 		{
-			g_nlibcurl.malloc = malloc_callback;
-			g_nlibcurl.free = free_callback;
-			g_nlibcurl.realloc = realloc_callback;
-			g_nlibcurl.strdup = strdup_callback;
-			g_nlibcurl.calloc = calloc_callback;
+			cemuLog_logDebug(LogType::Force, "curl_slist_append(): Failed to allocate memory");
+			PPCCoreCallback(g_nlibcurl.free.GetMPTR(), dupdata.GetMPTR());
 		}
+		if(list)
+			return list;
+		return result;
 	}
-	return result;
-}
+
+	void curl_slist_free_all(WU_curl_slist* list)
+	{
+		cemuLog_logDebug(LogType::Force, "export_curl_slist_free_all: TODO");
+	}
 
 	class : public COSModule
 	{
@@ -1524,48 +1392,60 @@ CURLcode curl_global_init_mem(uint32 flags, MEMPTR<curl_malloc_callback> malloc_
 
 		void RPLMapped() override
 		{
+			s_abortWorkers = false;
+
 			cafeExportRegister("nlibcurl", curl_global_init_mem, LogType::nlibcurl);
 			cafeExportRegister("nlibcurl", curl_global_init, LogType::nlibcurl);
 
 			cafeExportRegister("nlibcurl", curl_slist_append, LogType::nlibcurl);
 			cafeExportRegister("nlibcurl", curl_slist_free_all, LogType::nlibcurl);
-			osLib_addFunction("nlibcurl", "curl_easy_strerror", export_curl_easy_strerror);
+			cafeExportRegister("nlibcurl", curl_easy_strerror, LogType::nlibcurl);
 
-			osLib_addFunction("nlibcurl", "curl_share_init", export_curl_share_init);
-			osLib_addFunction("nlibcurl", "curl_share_setopt", export_curl_share_setopt);
-			osLib_addFunction("nlibcurl", "curl_share_cleanup", export_curl_share_cleanup);
+			cafeExportRegister("nlibcurl", curl_share_init, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_share_setopt, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_share_cleanup, LogType::nlibcurl);
 
 			cafeExportRegister("nlibcurl", mw_curl_easy_init, LogType::nlibcurl);
-			osLib_addFunction("nlibcurl", "curl_multi_init", export_curl_multi_init);
-			osLib_addFunction("nlibcurl", "curl_multi_add_handle", export_curl_multi_add_handle);
-			osLib_addFunction("nlibcurl", "curl_multi_perform", export_curl_multi_perform);
-			osLib_addFunction("nlibcurl", "curl_multi_info_read", export_curl_multi_info_read);
-			osLib_addFunction("nlibcurl", "curl_multi_remove_handle", export_curl_multi_remove_handle);
-			osLib_addFunction("nlibcurl", "curl_multi_setopt", export_curl_multi_setopt);
-			osLib_addFunction("nlibcurl", "curl_multi_fdset", export_curl_multi_fdset);
-			osLib_addFunction("nlibcurl", "curl_multi_cleanup", export_curl_multi_cleanup);
-			osLib_addFunction("nlibcurl", "curl_multi_timeout", export_curl_multi_timeout);
+			cafeExportRegister("nlibcurl", curl_multi_init, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_add_handle, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_perform, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_info_read, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_remove_handle, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_setopt, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_fdset, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_cleanup, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_multi_timeout, LogType::nlibcurl);
 
 			cafeExportRegister("nlibcurl", curl_easy_init, LogType::nlibcurl);
-			osLib_addFunction("nlibcurl", "curl_easy_reset", export_curl_easy_reset);
-			osLib_addFunction("nlibcurl", "curl_easy_setopt", export_curl_easy_setopt);
-			osLib_addFunction("nlibcurl", "curl_easy_getinfo", export_curl_easy_getinfo);
+			cafeExportRegister("nlibcurl", curl_easy_reset, LogType::nlibcurl);
+			cafeExportRegisterFunc(nlibcurl_easy_setopt, "nlibcurl", "curl_easy_setopt", LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_easy_getinfo, LogType::nlibcurl);
 			cafeExportRegister("nlibcurl", curl_easy_perform, LogType::nlibcurl);
 
-			osLib_addFunction("nlibcurl", "curl_easy_cleanup", export_curl_easy_cleanup);
-			osLib_addFunction("nlibcurl", "curl_easy_pause", export_curl_easy_pause);
+			cafeExportRegister("nlibcurl", curl_easy_cleanup, LogType::nlibcurl);
+			cafeExportRegister("nlibcurl", curl_easy_pause, LogType::nlibcurl);
 		};
 
-		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
+		void RPLUnmapped() override
 		{
-			if (reason == coreinit::RplEntryReason::Loaded)
+			// abort transfers that are still active
 			{
-				// todo
+				std::unique_lock _l(s_curlMutex);
+				s_abortWorkers = true;
 			}
-			else if (reason == coreinit::RplEntryReason::Unloaded)
-			{
-				// todo
-			}
+			s_workerCondVar.notify_all();
+			while (s_activeWorkerCount != 0)
+				std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+			for (auto& it : s_multiHandles)
+				delete it.second;
+			s_multiHandles.clear();
+			for (auto& it : s_curlHandles)
+				delete it.second;
+			s_curlHandles.clear();
+			if (g_nlibcurl.initialized)
+				::curl_global_cleanup();
+			g_nlibcurl = {};
 		}
 	}s_COSnlibcurlModule;
 

@@ -356,7 +356,6 @@ add_library(CemuCafe
   OS/libs/nfc/TLV.cpp
   OS/libs/nfc/TLV.h
   OS/libs/nlibcurl/nlibcurl.cpp
-  OS/libs/nlibcurl/nlibcurlDebug.hpp
   OS/libs/nlibcurl/nlibcurl.h
   OS/libs/nlibnss/nlibnss.cpp
   OS/libs/nlibnss/nlibnss.h
