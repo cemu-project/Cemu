@@ -1227,6 +1227,24 @@ bool LatteTexture_GX2FormatHasStencil(bool isDepth, Latte::E_GX2SURFFMT format)
 		   format == Latte::E_GX2SURFFMT::D32_S8_FLOAT;
 }
 
+bool LatteTexture_ShouldEnableReadback(MPTR physAddress, Latte::E_GX2SURFFMT format, Latte::E_HWTILEMODE tileMode, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, bool isDepth)
+{
+	bool isMEM1 = physAddress >= MEMORY_MEM1_AREA_ADDR && physAddress < (MEMORY_MEM1_AREA_ADDR + MEMORY_MEM1_AREA_SIZE);
+	if (tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
+		return true;
+	// small tiled render targets holding values read by the CPU
+	if (tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1 && !isDepth && depth == 1 && mipLevels == 1)
+	{
+		// Cars 3 exposure
+		if (format == Latte::E_GX2SURFFMT::R32_FLOAT && width == 1 && height <= 8)
+			return true;
+		// Xenoblade Chronicles X luminance, 1x1 but allocated as 16x8
+		if (format == Latte::E_GX2SURFFMT::R16_FLOAT && width == 16 && height == 8 && !isMEM1)
+			return true;
+	}
+	return false;
+}
+
 LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddress, Latte::E_GX2SURFFMT format, uint32 width, uint32 height, uint32 depth, uint32 pitch, uint32 mipLevels, uint32 swizzle,
 	Latte::E_HWTILEMODE tileMode, bool isDepth)
 {
@@ -1318,18 +1336,7 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 			}
 		}
 	}
-	// determine if this texture should ever be mirrored to CPU RAM
-	bool readbackLinear = this->tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED;
-	// small tiled render targets may be read by the CPU
-	// fixes exposure readback in games like Cars 3
-	bool readbackSmallTiled =
-		tileMode == Latte::E_HWTILEMODE::TM_1D_TILED_THIN1 &&
-		format == Latte::E_GX2SURFFMT::R32_FLOAT &&
-		!isDepth && width == 1 && height <= 8 && depth == 1 && mipLevels == 1;
-	if (readbackLinear || readbackSmallTiled)
-	{
-		this->enableReadback = true;
-	}
+	this->enableReadback = LatteTexture_ShouldEnableReadback(physAddress, format, tileMode, width, height, depth, mipLevels, isDepth);
 
 	// calculate number of potential mip levels (from effective size)
 	sint32 effectiveWidth = width;
