@@ -1757,6 +1757,8 @@ void RPLLoader_LoadSectionDebugSymbols(RPLModule* rplLoaderContext, RPLFileSecti
 		RPLFileSectionEntry& symbolSection = rplLoaderContext->sectionTable[symSectionIndex];
 		if(symbolSection.type == SHT_RPL_EXPORTS || symbolSection.type == SHT_RPL_IMPORTS)
 			continue; // exports and imports are handled separately
+		if ((symbolSection.flags & SHF_EXECUTE) == 0)
+			continue;
 
 		uint32 symbolOffset = sym->symbolAddress - symbolSection.virtualAddress;
 
@@ -1764,7 +1766,9 @@ void RPLLoader_LoadSectionDebugSymbols(RPLModule* rplLoaderContext, RPLFileSecti
 		if (nameOffset > 0)
 		{
 			char* symbolName = (char*)strtabData + nameOffset;
-			if (sym->info == 0x12)
+			uint8 symbolType = sym->info & 0xF;
+			uint8 symbolBinding = sym->info >> 4;
+			if (symbolType == 2 && symbolBinding <= 2)
 			{
 				rplSymbolStorage_store(rplLoaderContext->moduleName.c_str(), symbolName, sym->symbolAddress);
 			}
