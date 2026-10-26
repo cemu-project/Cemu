@@ -43,6 +43,25 @@ void LatteSurfaceCopy_copySurfaceNew(const LatteSurfaceCopyParam& src, const Lat
 	cemu_assert_debug((rect.x + rect.width) <= dst.pitch * (Latte::IsCompressedFormat(dst.surfaceFormat)?4:1));
 	cemu_assert_debug((rect.x + rect.width) <= src.pitch * (Latte::IsCompressedFormat(src.surfaceFormat)?4:1));
 
+	// Lego games use GX2CopySurface for memcpy-style transfers in the graphics queue. Transferring not only texture data, but also vertex and index data this way
+	// here we try to detect raw transfers as a special case and force a RAM copy. Check every parameter to avoid catching regular texture transfers, although a small risk still exists since we can't really distinguish these from actual textures
+	// this is not a great solution, but unless we have a more generic approach it will suffice (maybe use invalidation flags as a clue?)
+	const bool isRawMemoryCopy =
+		rect.x == 0 && rect.y == 0 && rect.width == 64 &&
+		rect.height >= 32 && rect.height <= 1024 && (rect.height & (rect.height - 1)) == 0 && // height controls the transfer size
+		src.surfaceFormat == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && dst.surfaceFormat == src.surfaceFormat &&
+		src.pitch == 64 && dst.pitch == 64 && src.heightInTexels == rect.height && dst.heightInTexels == rect.height &&
+		src.tilemode == Latte::E_GX2TILEMODE::TM_2D_TILED_THIN1 && dst.tilemode == src.tilemode &&
+		src.dim == Latte::E_DIM::DIM_2D && dst.dim == Latte::E_DIM::DIM_2D &&
+		src.sliceIndex == 0 && dst.sliceIndex == 0 && src.aa == 0 && dst.aa == 0 &&
+		src.swizzle == 0x000D0000 && dst.swizzle == src.swizzle &&
+		(src.physDataAddr & 0x7FF) == 0 && (dst.physDataAddr & 0x7FF) == 0;
+	if (isRawMemoryCopy)
+	{
+		LatteSurfaceCopy_CopyInRAM(src, dst, rect);
+		return;
+	}
+
 	if (src.tilemode == Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL)
 	{
 		// todo - it's technically possible for a matching linear texture to be in the texture cache already
