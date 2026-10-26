@@ -1227,8 +1227,9 @@ bool LatteTexture_GX2FormatHasStencil(bool isDepth, Latte::E_GX2SURFFMT format)
 		   format == Latte::E_GX2SURFFMT::D32_S8_FLOAT;
 }
 
-bool LatteTexture_ShouldEnableReadback(Latte::E_GX2SURFFMT format, Latte::E_HWTILEMODE tileMode, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, bool isDepth)
+bool LatteTexture_ShouldEnableReadback(MPTR physAddress, Latte::E_GX2SURFFMT format, Latte::E_HWTILEMODE tileMode, uint32 width, uint32 height, uint32 depth, uint32 mipLevels, bool isDepth)
 {
+	bool isMEM1 = physAddress >= MEMORY_MEM1_AREA_ADDR && physAddress < (MEMORY_MEM1_AREA_ADDR + MEMORY_MEM1_AREA_SIZE);
 	if (tileMode == Latte::E_HWTILEMODE::TM_LINEAR_ALIGNED)
 		return true;
 	// small tiled render targets holding values read by the CPU
@@ -1236,6 +1237,9 @@ bool LatteTexture_ShouldEnableReadback(Latte::E_GX2SURFFMT format, Latte::E_HWTI
 	{
 		// Cars 3 exposure
 		if (format == Latte::E_GX2SURFFMT::R32_FLOAT && width == 1 && height <= 8)
+			return true;
+		// Xenoblade Chronicles X luminance, 1x1 but allocated as 16x8
+		if (format == Latte::E_GX2SURFFMT::R16_FLOAT && width == 16 && height == 8 && !isMEM1)
 			return true;
 	}
 	return false;
@@ -1332,7 +1336,7 @@ LatteTexture::LatteTexture(Latte::E_DIM dim, MPTR physAddress, MPTR physMipAddre
 			}
 		}
 	}
-	this->enableReadback = LatteTexture_ShouldEnableReadback(format, tileMode, width, height, depth, mipLevels, isDepth);
+	this->enableReadback = LatteTexture_ShouldEnableReadback(physAddress, format, tileMode, width, height, depth, mipLevels, isDepth);
 
 	// calculate number of potential mip levels (from effective size)
 	sint32 effectiveWidth = width;
