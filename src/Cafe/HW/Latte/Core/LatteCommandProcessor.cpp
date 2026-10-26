@@ -771,7 +771,7 @@ LatteCMDPtr LatteCP_itDrawImmediate(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 	// calculate size of index data in packet and read indices
 	uint32 numIndexU32s;
 	auto indexType = LatteGPUState.contextNew.VGT_DMA_INDEX_TYPE.get_INDEX_TYPE();
-	if (indexType == Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::U16_BE)
+	if (indexType == Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::U16_BE || indexType == Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::U16_LE)
 	{
 		// 16bit indices
 		numIndexU32s = (count + 1) / 2;
@@ -786,10 +786,9 @@ LatteCMDPtr LatteCP_itDrawImmediate(LatteCMDPtr cmd, uint32 nWords, DrawPassCont
 		}
 		LatteIndices_invalidate(memory_getPointerFromVirtualOffset(_tempIndexArrayMPTR), numIndexU32s * sizeof(uint32));
 	}
-	else if (indexType == Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::U32_BE)
+	else if (indexType == Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::U32_BE || indexType == Latte::LATTE_VGT_DMA_INDEX_TYPE::E_INDEX_TYPE::U32_LE)
 	{
 		// 32bit indices
-		cemu_assert_debug(false); // testing needed
 		numIndexU32s = count;
 		cemu_assert(numIndexU32s < 0x4000 && numIndexU32s <= nWords-2);
 		memcpy(memory_getPointerFromVirtualOffset(_tempIndexArrayMPTR), cmd, numIndexU32s * sizeof(uint32));
