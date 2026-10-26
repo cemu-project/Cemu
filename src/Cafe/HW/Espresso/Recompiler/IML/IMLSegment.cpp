@@ -50,7 +50,7 @@ void IMLSegment::SetLinkBranchTaken(IMLSegment* imlSegmentDst)
 IMLInstruction* IMLSegment::AppendInstruction()
 {
 	IMLInstruction& inst = imlList.emplace_back();
-	memset(&inst, 0, sizeof(IMLInstruction));
+	memset(static_cast<void*>(&inst), 0, sizeof(IMLInstruction));
 	return &inst;
 }
 
