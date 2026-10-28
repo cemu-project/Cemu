@@ -1459,6 +1459,7 @@ void VulkanRenderer::draw_execute_first(uint32 baseVertex, uint32 baseInstance, 
 	{
 		// invalid/uninitialized pipeline
 		m_state.activeVertexDS = nullptr;
+		m_state.drawSequenceSkip = true;
 		return;
 	}
 
@@ -1647,7 +1648,7 @@ void VulkanRenderer::draw_execute_continued(uint32 baseVertex, uint32 baseInstan
 	if (vkObjPipeline->GetPipeline() == VK_NULL_HANDLE)
 	{
 		// invalid/uninitialized pipeline
-		//m_state.activeVertexDS = nullptr;
+		m_state.drawSequenceSkip = true;
 		return;
 	}
 
