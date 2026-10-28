@@ -18,6 +18,8 @@ namespace coreinit
 	void OSFreeToSystem(void* ptr)
 	{
 		_sysHeapFreeCounter++;
+		if (!coreinit::OSIsSchedulerActive())
+			return;
 		coreinit::MEMFreeToExpHeap(_sysHeapHandle, ptr);
 	}
 
