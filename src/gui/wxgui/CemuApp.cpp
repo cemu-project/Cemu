@@ -266,6 +266,8 @@ bool CemuApp::OnInit()
 #if __WXGTK__
 	GTKSuppressDiagnostics(G_LOG_LEVEL_MASK & ~G_LOG_FLAG_FATAL);
 #endif
+	wxInitAllImageHandlers();
+
 	std::set<fs::path> failedWriteAccess;
 	DeterminePaths(failedWriteAccess);
 	// make sure default cemu directories exist
@@ -348,8 +350,6 @@ bool CemuApp::OnInit()
 	Bind(wxEVT_TIMER, &CemuApp::OnSDLEventPumpTimer, this);
 	m_sdlEventPumpTimer->Start(5, wxTIMER_CONTINUOUS);
 #endif
-
-	wxInitAllImageHandlers();
 
 	// fill colour db
 	wxTheColourDatabase->AddColour("ERROR", wxColour(0xCC, 0, 0));
