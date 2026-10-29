@@ -5,7 +5,7 @@
 #include <wx/display.h>
 
 #include "config/ActiveSettings.h"
-#include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "Cafe/CafeSystem.h"
 #ifdef ENABLE_OPENGL
 #include "wxgui/canvas/OpenGLCanvas.h"
 #endif
@@ -163,7 +163,7 @@ void PadViewFrame::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
 
-	if (swkbd_hasKeyboardInputHook())
+	if (CafeSystem::IsTextInputActive())
 		return;
 
 	const auto code = event.GetKeyCode();
@@ -187,46 +187,28 @@ void PadViewFrame::OnGesturePan(wxPanGestureEvent& event)
 
 void PadViewFrame::OnChar(wxKeyEvent& event)
 {
-	if (swkbd_hasKeyboardInputHook())
-		swkbd_keyInput(event.GetUnicodeKey());
+	CafeSystem::NotifyTextInput(event.GetUnicodeKey());
 
 	event.Skip();
 }
 
 void PadViewFrame::OnMouseMove(wxMouseEvent& event)
 {
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_pad_touch.m_mutex);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_pad_mouse.position = { physPos.x, physPos.y };
-
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseMove(true, physPos.x, physPos.y);
 	event.Skip();
 }
 
 void PadViewFrame::OnMouseLeft(wxMouseEvent& event)
 {
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_pad_mouse.m_mutex);
-	instance.m_pad_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_pad_mouse.position = { physPos.x, physPos.y };
-	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
-		instance.m_pad_mouse.left_down_toggle = true;
-
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseButton(true, CafeSystem::MouseButton::Left, event.ButtonDown(), physPos.x, physPos.y);
 }
 
 void PadViewFrame::OnMouseRight(wxMouseEvent& event)
 {
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_pad_mouse.m_mutex);
-	instance.m_pad_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_pad_mouse.position = { physPos.x, physPos.y };
-	if (event.ButtonDown(wxMOUSE_BTN_RIGHT))
-		instance.m_pad_mouse.right_down_toggle = true;
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseButton(true, CafeSystem::MouseButton::Right, event.ButtonDown(), physPos.x, physPos.y);
 }
 
 void PadViewFrame::OnSetWindowTitle(wxCommandEvent& event)
