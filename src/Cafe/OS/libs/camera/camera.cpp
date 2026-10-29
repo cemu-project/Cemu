@@ -216,7 +216,7 @@ namespace camera
 							  coreinit::OSEvent::EVENT_MODE::MODE_AUTO);
 
 		coreinit::__OSCreateThreadType(
-			s_cameraWorkerThread, RPLLoader_MakePPCCallable(WorkerThreadFunc), 0, nullptr,
+			s_cameraWorkerThread.GetPtr(), RPLLoader_MakePPCCallable(WorkerThreadFunc), 0, nullptr,
 			s_cameraWorkerThreadStack.GetPtr() + s_cameraWorkerThreadStack.GetByteSize(),
 			s_cameraWorkerThreadStack.GetByteSize(),
 			0x10, initInfo->threadFlags & 7, OSThread_t::THREAD_TYPE::TYPE_DRIVER);
@@ -228,23 +228,21 @@ namespace camera
 		return channel;
 	}
 
-	CAMStatus CAMClose(sint32 camHandle)
+	static CAMStatus cam_close(sint32 camHandle, bool acquireLock)
 	{
 		if (camHandle != CAM_HANDLE)
 			return CAM_STATUS_INVALID_HANDLE;
-
-		// Check necessary because this function is called on unload, and OSMutex needs an active scheduler
-		const auto schedulerActive = coreinit::OSIsSchedulerActive();
-		if (schedulerActive)
-			coreinit::OSLockMutex(s_cameraMutex);
-
+		CafeLockGuard lock(s_cameraMutex, acquireLock);
 		if (!s_instance.initialized || !s_instance.isOpen)
 			return CAM_STATUS_UNINITIALIZED;
 		s_instance.isOpen = false;
 		CameraManager::Close();
-		if (schedulerActive)
-			coreinit::OSUnlockMutex(s_cameraMutex);
 		return CAM_STATUS_SUCCESS;
+	}
+
+	CAMStatus CAMClose(sint32 camHandle)
+	{
+		return cam_close(camHandle, true);
 	}
 
 	CAMStatus CAMOpen(sint32 camHandle)
@@ -288,7 +286,7 @@ namespace camera
 		s_instance.isExiting = true;
 		s_instance.isWorkerExiting = true;
 		if (s_instance.isOpen)
-			CAMClose(camHandle);
+			cam_close(camHandle, false);
 		coreinit::OSSignalEvent(s_cameraOpenEvent.GetPtr());
 		s_instance.initialized = false;
 	}
@@ -308,6 +306,8 @@ namespace camera
 		void Done()
 		{
 			CAMClose(CAM_HANDLE);
+			// camera.rpl actually zeroes out everything, but this is good enough here
+			s_instance.initialized = false;
 		}
 	} // namespace Driver
 
@@ -334,7 +334,6 @@ namespace camera
 			cafeExportRegister("camera", CAMOpen, LogType::InputAPI);
 			cafeExportRegister("camera", CAMClose, LogType::InputAPI);
 			cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::InputAPI);
-		};
 		}
 
 		void RPLUnmapped() override
