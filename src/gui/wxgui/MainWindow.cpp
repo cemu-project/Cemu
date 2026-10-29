@@ -59,7 +59,6 @@
 
 //Cafe libs
 #include "Cafe/OS/libs/nfc/nfc.h"
-#include "Cafe/OS/libs/swkbd/swkbd.h"
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h" // For renderer API checks
 
@@ -1393,11 +1392,8 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 	m_mouse_position = wxGetMousePosition();
 	ShowCursor(true);
 
-	auto& instance = InputManager::instance();
-	std::unique_lock lock(instance.m_main_mouse.m_mutex);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	lock.unlock();
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseMove(false, physPos.x, physPos.y);
 
 	if (!IsFullScreen())
 		return;
@@ -1410,29 +1406,15 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 
 void MainWindow::OnMouseLeft(wxMouseEvent& event)
 {
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
-		instance.m_main_mouse.left_down_toggle = true;
-
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseButton(false, CafeSystem::MouseButton::Left, event.ButtonDown(), physPos.x, physPos.y);
 	event.Skip();
 }
 
 void MainWindow::OnMouseRight(wxMouseEvent& event)
 {
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_RIGHT);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	if(event.ButtonDown(wxMOUSE_BTN_RIGHT))
-		instance.m_main_mouse.right_down_toggle = true;
-
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseButton(false, CafeSystem::MouseButton::Right, event.ButtonDown(), physPos.x, physPos.y);
 	event.Skip();
 }
 
@@ -1466,7 +1448,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
 
-	if (swkbd_hasKeyboardInputHook())
+	if (CafeSystem::IsTextInputActive())
 		return;
 
 	HotkeySettings::CaptureInput(event);
@@ -1495,8 +1477,7 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
 
 void MainWindow::OnChar(wxKeyEvent& event)
 {
-	if (swkbd_hasKeyboardInputHook())
-		swkbd_keyInput(event.GetUnicodeKey());
+	CafeSystem::NotifyTextInput(event.GetUnicodeKey());
 
 	// event.Skip();
 }
@@ -1747,10 +1728,7 @@ void MainWindow::OnMemorySearcherClose(wxCloseEvent& event)
 
 void MainWindow::OnMouseWheel(wxMouseEvent& event)
 {
-	const float delta = event.GetWheelRotation(); // in 120 steps -> max reached ~480 (?)
-	auto& instance = InputManager::instance();
-	instance.m_mouse_wheel = (delta / 120.0f);
-
+	CafeSystem::NotifyMouseWheel(event.GetWheelRotation());
 	event.Skip();
 }
 

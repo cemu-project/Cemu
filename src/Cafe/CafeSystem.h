@@ -58,6 +58,18 @@ namespace CafeSystem
 	void RequestRecreateCanvas();
 	void NotifyPPCProcessExit(sint32 status);
 
+	// input of the game windows
+	enum class MouseButton : uint8
+	{
+		Left,
+		Right,
+	};
+	void NotifyMouseMove(bool padWindow, sint32 x, sint32 y); // physical pixels
+	void NotifyMouseButton(bool padWindow, MouseButton button, bool pressed, sint32 x, sint32 y);
+	void NotifyMouseWheel(sint32 rotation); // 120 per notch
+	void NotifyTextInput(uint32 codepoint);
+	bool IsTextInputActive();
+
 	void DumpCurrentRPX();
 };
 
