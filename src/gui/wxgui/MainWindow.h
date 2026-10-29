@@ -129,6 +129,8 @@ public:
 	void OnChar(wxKeyEvent& event);
 
 	void OnToolsInput(wxCommandEvent& event);
+	void OnUSBDevicesInput(wxCommandEvent& event);
+	void OnUSBDevicesUpdateUI(wxUpdateUIEvent& event);
 	void OnGesturePan(wxPanGestureEvent& event);
 
 	void OnGameLoaded();
@@ -141,6 +143,8 @@ public:
 	static void ShowCursor(bool state);
 
 	void SetMouseCaptured(bool state);
+	void SetUSBMouseEnabled(bool enabled);
+	void SetUSBKeyboardEnabled(bool enabled);
 
 	uintptr_t GetRenderCanvasHWND();
 
@@ -173,6 +177,7 @@ private:
 	MemorySearcherTool* m_toolWindow = nullptr;
 	TitleManager* m_title_manager = nullptr;
 	EmulatedUSBDeviceFrame* m_usb_devices = nullptr;
+	bool m_usb_keyboard_in_use = false;
 	PadViewFrame* m_padView = nullptr;
 	GraphicPacksWindow2* m_graphic_pack_window = nullptr;
 
