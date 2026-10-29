@@ -7,6 +7,7 @@
 #include "wxgui/wxHelper.h"
 #include "util/helpers/helpers.h"
 
+#include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/nsyshid/nsyshid.h"
 #include "Cafe/OS/libs/nsyshid/Dimensions.h"
 
@@ -47,6 +48,7 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	notebook->AddPage(AddSkylanderPage(notebook), _("Skylanders Portal"));
 	notebook->AddPage(AddInfinityPage(notebook), _("Infinity Base"));
 	notebook->AddPage(AddDimensionsPage(notebook), _("Dimensions Toypad"));
+	notebook->AddPage(AddKeyboardPage(notebook), _("Keyboard"));
 
 	sizer->Add(notebook, 1, wxEXPAND | wxALL, 2);
 
@@ -118,6 +120,30 @@ wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 	boxSizer->Add(AddInfinityRow("Player Two Ability Two", 8, box), 1, wxEXPAND | wxALL, 2);
 
 	panelSizer->Add(boxSizer, 1, wxEXPAND | wxALL, 2);
+	panel->SetSizerAndFit(panelSizer);
+
+	return panel;
+}
+
+wxPanel* EmulatedUSBDeviceFrame::AddKeyboardPage(wxNotebook* notebook)
+{
+	auto* panel = new wxPanel(notebook);
+	auto* panelSizer = new wxBoxSizer(wxVERTICAL);
+
+	auto* description = new wxStaticText(panel, wxID_ANY,
+		_("Sends input directly to games and homebrew that support USB keyboards."));
+	description->Wrap(FromDIP(480));
+	panelSizer->Add(description, 0, wxALL, 8);
+
+	m_emulateKeyboard = new wxCheckBox(panel, wxID_ANY, _("Emulate keyboard"));
+	m_emulateKeyboard->SetValue(GetConfig().emulated_usb_devices.emulate_keyboard);
+	m_emulateKeyboard->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+		CafeSystem::SetUSBKeyboardEnabled(m_emulateKeyboard->IsChecked());
+		GetConfigHandle().Save();
+	});
+	panelSizer->Add(m_emulateKeyboard, 0, wxEXPAND | wxALL, 2);
+	panelSizer->Add(new wxStaticText(panel, wxID_ANY,
+		_("Keyboard controls are paused while the game uses the keyboard.\nKeys are translated with the US layout.")), 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
 	panel->SetSizerAndFit(panelSizer);
 
 	return panel;
