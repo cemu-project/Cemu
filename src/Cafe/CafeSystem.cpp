@@ -554,8 +554,9 @@ namespace CafeSystem
 			platform = "Linux (AppImage)";
 		else if (getenv ("SNAP"))
 			platform = "Linux (Snap)";
-		else if (platform = getenv ("container"))
+		else if (getenv ("container"))
 		{
+			platform = getenv ("container");
 			if (strcmp (platform, "flatpak") == 0)
 				platform = "Linux (Flatpak)";
 		}

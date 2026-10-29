@@ -354,7 +354,7 @@ struct IMLInstruction
 	IMLInstruction() {}
 	IMLInstruction(const IMLInstruction& other) 
 	{
-		memcpy(this, &other, sizeof(IMLInstruction));
+		memcpy(static_cast<void*>(this), &other, sizeof(IMLInstruction));
 	}
 
 	uint8 type;
@@ -759,7 +759,7 @@ struct IMLInstruction
 	void make_fpr_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
 	{
 		this->type = PPCREC_IML_TYPE_FPR_COMPARE;
-		this->operation = -999;
+		this->operation = static_cast<uint8_t>(-999);
 		this->op_fpr_compare.regR = regR;
 		this->op_fpr_compare.regA = regA;
 		this->op_fpr_compare.regB = regB;
@@ -808,7 +808,7 @@ struct IMLInstruction
 	void make_x86_eflags_jcc(IMLCondition cond, bool invertedCondition)
 	{
 		this->type = PPCREC_IML_TYPE_X86_EFLAGS_JCC;
-		this->operation = -999;
+		this->operation = static_cast<uint8_t>(-999);
 		this->op_x86_eflags_jcc.cond = cond;
 		this->op_x86_eflags_jcc.invertedCondition = invertedCondition;
 	}
