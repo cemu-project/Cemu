@@ -48,7 +48,7 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	notebook->AddPage(AddSkylanderPage(notebook), _("Skylanders Portal"));
 	notebook->AddPage(AddInfinityPage(notebook), _("Infinity Base"));
 	notebook->AddPage(AddDimensionsPage(notebook), _("Dimensions Toypad"));
-	notebook->AddPage(AddKeyboardPage(notebook), _("Keyboard"));
+	notebook->AddPage(AddMouseKeyboardPage(notebook), _("Mouse && Keyboard"));
 
 	sizer->Add(notebook, 1, wxEXPAND | wxALL, 2);
 
@@ -125,17 +125,27 @@ wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 	return panel;
 }
 
-wxPanel* EmulatedUSBDeviceFrame::AddKeyboardPage(wxNotebook* notebook)
+wxPanel* EmulatedUSBDeviceFrame::AddMouseKeyboardPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook);
 	auto* panelSizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* description = new wxStaticText(panel, wxID_ANY,
-		_("Sends input directly to games and homebrew that support USB keyboards."));
+		_("Sends input directly to games and homebrew that support USB mice or keyboards."));
 	description->Wrap(FromDIP(480));
 	panelSizer->Add(description, 0, wxALL, 8);
 
-	m_emulateKeyboard = new wxCheckBox(panel, wxID_ANY, _("Emulate keyboard"));
+	m_emulateMouse = new wxCheckBox(panel, wxID_ANY, _("Emulate mouse"));
+	m_emulateMouse->SetValue(GetConfig().emulated_usb_devices.emulate_mouse);
+	m_emulateMouse->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+		CafeSystem::SetUSBMouseEnabled(m_emulateMouse->IsChecked());
+		GetConfigHandle().Save();
+	});
+	panelSizer->Add(m_emulateMouse, 0, wxEXPAND | wxALL, 2);
+	panelSizer->Add(new wxStaticText(panel, wxID_ANY,
+		_("Once the game uses the USB mouse, click its window to capture it (Windows only).\nSwitch to another window to release it.")), 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
+	m_emulateKeyboard =new wxCheckBox(panel, wxID_ANY, _("Emulate keyboard"));
 	m_emulateKeyboard->SetValue(GetConfig().emulated_usb_devices.emulate_keyboard);
 	m_emulateKeyboard->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
 		CafeSystem::SetUSBKeyboardEnabled(m_emulateKeyboard->IsChecked());

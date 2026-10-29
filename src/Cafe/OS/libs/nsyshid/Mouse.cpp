@@ -1,4 +1,5 @@
 #include "Mouse.h"
+#include "Cafe/CafeSystem.h"
 
 namespace nsyshid
 {
@@ -100,7 +101,6 @@ namespace nsyshid
 		uint8 buttons;
 	};
 
-	// the host mouse of the game window
 	static std::mutex s_hostMouseMutex;
 	static HostMouseState s_hostMouse{};
 	static uint8 s_hostButtonsClicked = 0;
@@ -134,12 +134,11 @@ namespace nsyshid
 	void ReleaseHostMouse()
 	{
 		std::unique_lock lock(s_hostMouseMutex);
-		// otherwise a quick click arrives after the release
 		s_hostMouse = {};
 		s_hostButtonsClicked = 0;
 	}
 
-	// returns the motion since the last call, a button which was clicked in between is reported as held once
+	// a click between two polls is still reported as held once
 	static HostMouseState PopHostMouseState()
 	{
 		std::unique_lock lock(s_hostMouseMutex);
@@ -183,7 +182,8 @@ namespace nsyshid
 			if (!m_isOpened)
 				return;
 			m_isOpened = false;
-			s_mouseInUse = false;
+			if (s_mouseInUse.exchange(false))
+				CafeSystem::NotifyUSBInputChanged();
 		}
 		m_closeCondition.notify_all();
 	}
@@ -203,7 +203,7 @@ namespace nsyshid
 		m_pendingWheel += state.wheel;
 	}
 
-	// motion beyond the range of a report is carried over to the next reports
+	// motion beyond the range of a report carries over to the next one
 	MouseDevice::Report MouseDevice::TakeReport()
 	{
 		Report report{};
@@ -244,8 +244,9 @@ namespace nsyshid
 		std::unique_lock lock(m_mutex);
 		if (!m_isOpened || message->length == 0)
 			return ReadResult::Error;
-		// titles read the descriptors of every device, only reading input means that the mouse is used
-		s_mouseInUse = true;
+		// titles open every device to read its descriptors, only reading input means the mouse is used
+		if (!s_mouseInUse.exchange(true))
+			CafeSystem::NotifyUSBInputChanged();
 		m_closeCondition.wait_until(lock, m_lastReportTime + POLLING_INTERVAL, [this] { return !m_isOpened; });
 		while (m_isOpened)
 		{
