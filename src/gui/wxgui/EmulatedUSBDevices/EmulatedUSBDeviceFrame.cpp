@@ -43,7 +43,7 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	auto& config = GetConfig();
 
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
-	auto* notebook = new wxNotebook(this, wxID_ANY);
+	auto* notebook = m_notebook = new wxNotebook(this, wxID_ANY);
 
 	notebook->AddPage(AddSkylanderPage(notebook), _("Skylanders Portal"));
 	notebook->AddPage(AddInfinityPage(notebook), _("Infinity Base"));
@@ -58,6 +58,11 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 }
 
 EmulatedUSBDeviceFrame::~EmulatedUSBDeviceFrame() {}
+
+void EmulatedUSBDeviceFrame::SelectPage(Page page)
+{
+	m_notebook->SetSelection(static_cast<size_t>(page));
+}
 
 wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 {
@@ -125,40 +130,6 @@ wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 	return panel;
 }
 
-wxPanel* EmulatedUSBDeviceFrame::AddMouseKeyboardPage(wxNotebook* notebook)
-{
-	auto* panel = new wxPanel(notebook);
-	auto* panelSizer = new wxBoxSizer(wxVERTICAL);
-
-	auto* description = new wxStaticText(panel, wxID_ANY,
-		_("Sends input directly to games and homebrew that support USB mice or keyboards."));
-	description->Wrap(FromDIP(480));
-	panelSizer->Add(description, 0, wxALL, 8);
-
-	m_emulateMouse = new wxCheckBox(panel, wxID_ANY, _("Emulate mouse"));
-	m_emulateMouse->SetValue(GetConfig().emulated_usb_devices.emulate_mouse);
-	m_emulateMouse->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
-		CafeSystem::SetUSBMouseEnabled(m_emulateMouse->IsChecked());
-		GetConfigHandle().Save();
-	});
-	panelSizer->Add(m_emulateMouse, 0, wxEXPAND | wxALL, 2);
-	panelSizer->Add(new wxStaticText(panel, wxID_ANY,
-		_("Once the game uses the USB mouse, click its window to capture it (Windows only).\nSwitch to another window to release it.")), 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
-
-	m_emulateKeyboard =new wxCheckBox(panel, wxID_ANY, _("Emulate keyboard"));
-	m_emulateKeyboard->SetValue(GetConfig().emulated_usb_devices.emulate_keyboard);
-	m_emulateKeyboard->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
-		CafeSystem::SetUSBKeyboardEnabled(m_emulateKeyboard->IsChecked());
-		GetConfigHandle().Save();
-	});
-	panelSizer->Add(m_emulateKeyboard, 0, wxEXPAND | wxALL, 2);
-	panelSizer->Add(new wxStaticText(panel, wxID_ANY,
-		_("Keyboard controls are paused while the game uses the keyboard.\nKeys are translated with the US layout.")), 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
-	panel->SetSizerAndFit(panelSizer);
-
-	return panel;
-}
-
 wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 {
 	auto* panel = new wxPanel(notebook);
@@ -198,6 +169,46 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 	box_sizer->Add(bottom_row, 1, wxEXPAND | wxALL, 2);
 	panel_sizer->Add(box_sizer, 1, wxEXPAND | wxALL, 2);
 	panel->SetSizerAndFit(panel_sizer);
+
+	return panel;
+}
+
+wxPanel* EmulatedUSBDeviceFrame::AddMouseKeyboardPage(wxNotebook* notebook)
+{
+	auto* panel = new wxPanel(notebook);
+	auto* panelSizer = new wxBoxSizer(wxVERTICAL);
+
+	auto* description = new wxStaticText(panel, wxID_ANY,
+		_("Sends input directly to games and homebrew that support USB mice or keyboards."));
+	description->Wrap(FromDIP(480));
+	panelSizer->Add(description, 0, wxALL, 8);
+
+	m_emulateMouse = new wxCheckBox(panel, wxID_ANY, _("Emulate mouse"));
+	m_emulateMouse->SetValue(GetConfig().emulated_usb_devices.emulate_mouse);
+	m_emulateMouse->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+		CafeSystem::SetUSBMouseEnabled(m_emulateMouse->IsChecked());
+		GetConfigHandle().Save();
+	});
+	m_emulateMouse->Bind(wxEVT_UPDATE_UI, [](wxUpdateUIEvent& event) {
+		event.Check(GetConfig().emulated_usb_devices.emulate_mouse);
+	});
+	panelSizer->Add(m_emulateMouse, 0, wxEXPAND | wxALL, 2);
+	panelSizer->Add(new wxStaticText(panel, wxID_ANY,
+		_("Once the game uses the USB mouse, click its window to capture it (Windows only).\nSwitch to another window to release it.")), 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+
+	m_emulateKeyboard = new wxCheckBox(panel, wxID_ANY, _("Emulate keyboard"));
+	m_emulateKeyboard->SetValue(GetConfig().emulated_usb_devices.emulate_keyboard);
+	m_emulateKeyboard->Bind(wxEVT_CHECKBOX, [this](wxCommandEvent&) {
+		CafeSystem::SetUSBKeyboardEnabled(m_emulateKeyboard->IsChecked());
+		GetConfigHandle().Save();
+	});
+	m_emulateKeyboard->Bind(wxEVT_UPDATE_UI, [](wxUpdateUIEvent& event) {
+		event.Check(GetConfig().emulated_usb_devices.emulate_keyboard);
+	});
+	panelSizer->Add(m_emulateKeyboard, 0, wxEXPAND | wxALL, 2);
+	panelSizer->Add(new wxStaticText(panel, wxID_ANY,
+		_("Keyboard controls are paused while the game uses the keyboard.\nKeys are translated with the US layout.")), 0, wxLEFT | wxRIGHT | wxBOTTOM, 8);
+	panel->SetSizerAndFit(panelSizer);
 
 	return panel;
 }

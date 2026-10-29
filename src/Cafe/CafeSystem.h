@@ -13,7 +13,7 @@ namespace CafeSystem
 	public:
 		virtual void CafeRecreateCanvas() = 0;
 		virtual void CafePPCProcessExit() = 0; // emulated process exited
-		virtual void CafeUSBInputChanged() = 0; // title started or stopped using the USB mouse or keyboard, called from emulation threads
+		virtual void CafeUSBInputChanged() = 0; // title started or stopped using the USB mouse or keyboard
 	};
 
 	enum class PREPARE_STATUS_CODE

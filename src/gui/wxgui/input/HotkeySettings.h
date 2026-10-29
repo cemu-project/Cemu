@@ -10,6 +10,7 @@ class HotkeySettings : public wxFrame
 {
 public:
 	static void Init(class MainWindow* mainWindow);
+	static wxString To_wxString(uKeyboardHotkey hotkey);
 
 	static void CaptureInput(wxKeyEvent& event);
 	static void CaptureInput(const ControllerState& currentState, const ControllerState& lastState);
@@ -39,7 +40,6 @@ private:
 	/* helpers */
 	void CreateColumnHeaders(void);
 	void CreateHotkeyRow(const wxString& label, sHotkeyCfg& cfgHotkey);
-	wxString To_wxString(uKeyboardHotkey hotkey);
 	wxString To_wxString(ControllerHotkey_t hotkey);
 	bool IsValidKeycodeUp(int keycode);
 	bool SetActiveController(void);

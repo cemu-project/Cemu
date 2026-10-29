@@ -4,6 +4,7 @@
 #include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 #include "Cafe/HW/Espresso/PPCCallback.h"
 #include "Common/CafeStaticVar.h"
+#include "Cafe/CafeSystem.h"
 #include "config/CemuConfig.h"
 #include "nsyskbd.h"
 
@@ -329,7 +330,9 @@ namespace nsyskbd
 	void SetHostChannelStatus(uint32 status)
 	{
 		s_channels[0].status = status;
-		s_hostKeyboardConnected = status == KBD_CHANNEL_STATUS_CONNECTED;
+		const bool connected = status == KBD_CHANNEL_STATUS_CONNECTED;
+		if (s_hostKeyboardConnected.exchange(connected) != connected)
+			CafeSystem::NotifyUSBInputChanged();
 	}
 
 	bool IsHostKeyboardConnected()
@@ -610,7 +613,8 @@ namespace nsyskbd
 		std::unique_lock _l(s_mutex);
 		for (uint8 i = 0; i < KBD_MAX_CHANNELS; i++)
 			InitChannel(s_channels[i], i);
-		s_hostKeyboardConnected = false;
+		if (s_hostKeyboardConnected.exchange(false))
+			CafeSystem::NotifyUSBInputChanged();
 		s_kbdSetup = false;
 		s_attachCallback = MPTR_NULL;
 		s_detachCallback = MPTR_NULL;
