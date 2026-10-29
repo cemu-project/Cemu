@@ -3,6 +3,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <queue>
+#include <chrono>
 
 template <typename T> 
 class ConcurrentQueue
@@ -77,6 +78,19 @@ public:
 
 		item = std::move(m_queue.front());
 		m_queue.pop();
+	}
+
+	// returns false if the queue stayed empty for the whole timeout
+	template<typename Rep, typename Period>
+	bool pop(T& item, const std::chrono::duration<Rep, Period>& timeout)
+	{
+		std::unique_lock<std::mutex> mlock(m_mutex);
+		if (!m_condVar.wait_for(mlock, timeout, [this]() { return !m_queue.empty(); }))
+			return false;
+
+		item = std::move(m_queue.front());
+		m_queue.pop();
+		return true;
 	}
 
 	void clear()
