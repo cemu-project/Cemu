@@ -165,7 +165,7 @@ void gx2SurfaceCopySoftware(
 // For GX2 CPU copies -> Submit as async command to the renderer (will be processed asap) and stall until completed
 // For GX2 GPU copies -> Submit as HLE command to Latte's command queue to be executed in order
 
-void GX2CopySurfaceInternal(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSlice, GX2Surface* dstSurface, uint32 dstMip, uint32 dstSlice)
+void GX2CopySurfaceInternal(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSlice, GX2Surface* dstSurface, uint32 dstMip, uint32 dstSlice, bool allowBppMismatch = false)
 {
 	sint32 dstWidth = dstSurface->width;
 	sint32 dstHeight = dstSurface->height;
@@ -199,7 +199,8 @@ void GX2CopySurfaceInternal(GX2Surface* srcSurface, uint32 srcMip, uint32 srcSli
 		return;
 	}
 	// make sure formats are compatible
-	if( surfOutSrc.bpp != surfOutDst.bpp )
+	bool isGPUCopy = srcSurface->tileMode != Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL && dstSurface->tileMode != Latte::E_GX2TILEMODE::TM_LINEAR_SPECIAL;
+	if( surfOutSrc.bpp != surfOutDst.bpp && (!allowBppMismatch || !isGPUCopy) )
 	{
 		cemuLog_logDebug(LogType::Force, "GX2CopySurface(): Format bpp mismatch (src=0x{:04x} dst=0x{:04x})", (sint32)srcFormat, (sint32)dstFormat);
 		return;
@@ -500,11 +501,14 @@ void gx2Export_GX2ConvertDepthBufferToTextureSurface(PPCInterpreter_t* hCPU)
 		return;
 	}
 
+	Latte::E_GX2SURFFMT dstFormat = dstSurface->format;
+	bool allowBppMismatch = dstFormat == Latte::E_GX2SURFFMT::R16_UNORM || dstFormat == Latte::E_GX2SURFFMT::R24_X8_UNORM || dstFormat == Latte::E_GX2SURFFMT::R32_FLOAT || dstFormat == Latte::E_GX2SURFFMT::R32_X8_FLOAT;
+
 	uint32 numSlices = std::max<uint32>(depthBuffer->viewNumSlices, 1);
 	for (uint32 subSliceIndex = 0; subSliceIndex < numSlices; subSliceIndex++)
 	{
 		// send copy command to GPU
-		GX2CopySurfaceInternal(&depthBuffer->surface, depthBuffer->viewMip.value(), depthBuffer->viewFirstSlice.value() + subSliceIndex, dstSurface, dstMip, dstSlice + subSliceIndex);
+		GX2CopySurfaceInternal(&depthBuffer->surface, depthBuffer->viewMip.value(), depthBuffer->viewFirstSlice.value() + subSliceIndex, dstSurface, dstMip, dstSlice + subSliceIndex, allowBppMismatch);
 	}
 
 	osLib_returnFromFunction(hCPU, 0);

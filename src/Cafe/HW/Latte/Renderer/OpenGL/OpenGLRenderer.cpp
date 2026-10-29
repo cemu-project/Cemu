@@ -1291,13 +1291,15 @@ void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 		}
 	}
 
-	if (srcGL->format == Latte::E_GX2SURFFMT::R32_G32_B32_A32_UINT && dstGL->format == Latte::E_GX2SURFFMT::BC3_UNORM)
+	if (!src->IsCompressedFormat() && dst->IsCompressedFormat() && glGetTextureSubImage)
 	{
-		if ((dstGL->width >> dstMip) < 4 ||	(dstGL->height >> dstMip) < 4)
+		// image copies reject partial edge blocks
+		sint32 dstMipWidth, dstMipHeight;
+		dst->GetEffectiveSize(dstMipWidth, dstMipHeight, dstMip);
+		if (effectiveDstX + effectiveCopyWidth * 4 > dstMipWidth || effectiveDstY + effectiveCopyHeight * 4 > dstMipHeight)
 		{
-			texture_syncSliceSpecialIntegerToBC3(srcGL, srcSlice, srcMip, dstGL, dstSlice, dstMip);
+			texture_syncSliceUncompressedToCompressed(srcGL, srcMip, effectiveSrcX, effectiveSrcY, srcSlice, dstGL, dstMip, effectiveDstX, effectiveDstY, dstSlice, effectiveCopyWidth, effectiveCopyHeight, srcDepth);
 			return;
-
 		}
 	}
 	catchOpenGLError();
@@ -1420,14 +1422,14 @@ void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint3
 	sint32 destTexWidth = std::max(dstTexture->width >> dstMipIndex, 1);
 	sint32 destTexHeight = std::max(dstTexture->height >> dstMipIndex, 1);
 
-	sint32 compressedCopyWidth = std::min(sourceTexWidth, std::max(1, destTexWidth / 4));
-	sint32 compressedCopyHeight = std::min(sourceTexHeight, std::max(1, destTexHeight / 4));
+	sint32 compressedCopyWidth = std::min(sourceTexWidth, (destTexWidth + 3) / 4);
+	sint32 compressedCopyHeight = std::min(sourceTexHeight, (destTexHeight + 3) / 4);
 
 	uint8* texelData = (uint8*)malloc(compressedCopyWidth*compressedCopyHeight * 8);
 	float* pixelRGBA16fData = (float*)malloc(destTexWidth*destTexHeight * sizeof(float) * 2);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	if (glGetTextureSubImage)
-		glGetTextureSubImage(srcTextureGL->glId_texture, 0, 0, 0, srcSliceIndex, compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER, GL_UNSIGNED_SHORT, compressedCopyWidth * compressedCopyHeight * 8, texelData);
+		glGetTextureSubImage(srcTextureGL->glId_texture, srcMipIndex, 0, 0, srcSliceIndex, compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER, GL_UNSIGNED_SHORT, compressedCopyWidth * compressedCopyHeight * 8, texelData);
 	for (sint32 bx = 0; bx < compressedCopyWidth; bx++)
 	{
 		for (sint32 by = 0; by < compressedCopyHeight; by++)
@@ -1453,49 +1455,28 @@ void OpenGLRenderer::texture_syncSliceSpecialBC4(LatteTexture* srcTexture, sint3
 	catchOpenGLError();
 }
 
-void OpenGLRenderer::texture_syncSliceSpecialIntegerToBC3(LatteTexture* srcTexture, sint32 srcSliceIndex, sint32 srcMipIndex, LatteTexture* dstTexture, sint32 dstSliceIndex, sint32 dstMipIndex)
+void OpenGLRenderer::texture_syncSliceUncompressedToCompressed(LatteTexture* srcTexture, sint32 srcMip, sint32 srcX, sint32 srcY, sint32 srcSlice, LatteTexture* dstTexture, sint32 dstMip, sint32 dstX, sint32 dstY, sint32 dstSlice, sint32 blockWidth, sint32 blockHeight, sint32 depth)
 {
-	auto srcTextureGL = (LatteTextureGL*)srcTexture;
-	auto dstTextureGL = (LatteTextureGL*)dstTexture;
+	auto src = (LatteTextureGL*)srcTexture;
+	auto dst = (LatteTextureGL*)dstTexture;
 
-	sint32 sourceTexWidth = std::max(srcTexture->width >> srcMipIndex, 1);
-	sint32 sourceTexHeight = std::max(srcTexture->height >> srcMipIndex, 1);
-	sint32 destTexWidth = std::max(dstTexture->width >> dstMipIndex, 1);
-	sint32 destTexHeight = std::max(dstTexture->height >> dstMipIndex, 1);
+	sint32 dstMipWidth, dstMipHeight;
+	dst->GetEffectiveSize(dstMipWidth, dstMipHeight, dstMip);
+	sint32 dstWidth = std::min(blockWidth * 4, dstMipWidth - dstX);
+	sint32 dstHeight = std::min(blockHeight * 4, dstMipHeight - dstY);
 
-	sint32 compressedCopyWidth = std::min(sourceTexWidth, std::max(1, destTexWidth / 4));
-	sint32 compressedCopyHeight = std::min(sourceTexHeight, std::max(1, destTexHeight / 4));
-
-	uint8* texelData = (uint8*)malloc(compressedCopyWidth*compressedCopyHeight * 16);
+	LatteTextureGL::FormatInfoGL srcFormatInfo;
+	LatteTextureGL::GetOpenGLFormatInfo(src->isDepth, src->overwriteInfo.hasFormatOverwrite ? (Latte::E_GX2SURFFMT)src->overwriteInfo.format : src->format, src->dim, &srcFormatInfo);
+	uint32 dataSize = blockWidth * blockHeight * depth * (src->GetBPP() / 8);
+	std::vector<uint8> data(dataSize);
 
 	catchOpenGLError();
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-	catchOpenGLError();
-	if (glGetTextureSubImage)
-		glGetTextureSubImage(srcTextureGL->glId_texture, 0, 0, 0, srcSliceIndex, compressedCopyWidth, compressedCopyHeight, 1, GL_RGBA_INTEGER, GL_UNSIGNED_INT, compressedCopyWidth * compressedCopyHeight * 16, texelData);
-	//float* pixelRGBA16fData = (float*)malloc(destTexWidth*destTexHeight * sizeof(float) * 2);
-	//for (sint32 bx = 0; bx < compressedCopyWidth; bx++)
-	//{
-	//	for (sint32 by = 0; by < compressedCopyHeight; by++)
-	//	{
-	//		float rBlock[4 * 4];
-	//		decodeBC4Block_UNORM(texelData + (bx + by * compressedCopyWidth) * 8, rBlock);
-	//		for (sint32 sy = 0; sy < min(4, destTexHeight - by * 4); sy++)
-	//		{
-	//			for (sint32 sx = 0; sx < min(4, destTexWidth - bx * 4); sx++)
-	//			{
-	//				sint32 pixelIndex = (bx * 4 + sx) + (by * 4 + sy)*destTexWidth;
-	//				pixelRGBA16fData[pixelIndex * 2] = rBlock[sx + sy * 4];
-	//				pixelRGBA16fData[pixelIndex * 2 + 1] = rBlock[sx + sy * 4];
-	//			}
-	//		}
-	//	}
-	//}
-	// upload mip
-	catchOpenGLError();
-	if (glGetTextureSubImage && glCompressedTextureSubImage3D)
-		glCompressedTextureSubImage3D(dstTextureGL->glId_texture, dstMipIndex, 0, 0, dstSliceIndex, destTexWidth, destTexHeight, 1, dstTextureGL->glInternalFormat, compressedCopyWidth * compressedCopyHeight * 16, texelData);
-	free(texelData);
+	glGetTextureSubImage(src->glId_texture, srcMip, srcX, srcY, srcSlice, blockWidth, blockHeight, depth, srcFormatInfo.glSuppliedFormat, srcFormatInfo.glSuppliedFormatType, dataSize, data.data());
+	if (dst->glTexTarget == GL_TEXTURE_2D)
+		glCompressedTextureSubImage2DWrapper(dst->glTexTarget, dst->glId_texture, dstMip, dstX, dstY, dstWidth, dstHeight, dst->glInternalFormat, dataSize, data.data());
+	else
+		glCompressedTextureSubImage3DWrapper(dst->glTexTarget, dst->glId_texture, dstMip, dstX, dstY, dstSlice, dstWidth, dstHeight, depth, dst->glInternalFormat, dataSize, data.data());
 	catchOpenGLError();
 }
 

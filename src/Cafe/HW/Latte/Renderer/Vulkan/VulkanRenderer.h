@@ -311,11 +311,11 @@ public:
 	LatteTextureReadbackInfo* texture_createReadback(LatteTextureView* textureView) override;
 
 	// surface copy
-	void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height) override;
+	void surfaceCopy_copySurfaceWithFormatConversion(LatteTexture* sourceTexture, sint32 srcMip, sint32 srcSlice, LatteTexture* destinationTexture, sint32 dstMip, sint32 dstSlice, sint32 width, sint32 height, sint32 srcX = 0, sint32 srcY = 0, sint32 dstX = 0, sint32 dstY = 0) override;
 	void surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTexture);
 
 	private:
-	void surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight);
+	void surfaceCopy_viaDrawcall(LatteTextureVk* srcTextureVk, sint32 texSrcMip, sint32 texSrcSlice, LatteTextureVk* dstTextureVk, sint32 texDstMip, sint32 texDstSlice, sint32 effectiveCopyWidth, sint32 effectiveCopyHeight, sint32 srcX = 0, sint32 srcY = 0, sint32 dstX = 0, sint32 dstY = 0);
 
 	void surfaceCopy_cleanup();
 

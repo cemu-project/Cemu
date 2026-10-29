@@ -3711,17 +3711,16 @@ void VulkanRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 	bool srcIsCompressed = Latte::IsCompressedFormat(srcVk->format);
 	bool dstIsCompressed = Latte::IsCompressedFormat(dstVk->format);
 
+	// image copies require matching copy sizes
+	bool copyViaBuffer = false;
+	VkExtent3D dstExtent = region.extent;
 	if (!srcIsCompressed && dstIsCompressed)
 	{
-		// handle the special case where the destination is compressed and not a multiple of the texel size (4)
-		sint32 mipWidth = std::max(dst->width >> dstMip, 1);
-		sint32 mipHeight = std::max(dst->height >> dstMip, 1);
-
-		if (mipWidth < 4 || mipHeight < 4)
-		{
-			cemuLog_logDebug(LogType::Force, "vkCmdCopyImage - blocked copy for unsupported uncompressed->compressed copy with dst smaller than 4x4");
-			return;
-		}
+		sint32 dstMipWidth, dstMipHeight;
+		dst->GetEffectiveSize(dstMipWidth, dstMipHeight, dstMip);
+		dstExtent.width = std::min<uint32>(region.extent.width * 4, dstMipWidth - effectiveDstX);
+		dstExtent.height = std::min<uint32>(region.extent.height * 4, dstMipHeight - effectiveDstY);
+		copyViaBuffer = dstExtent.width != region.extent.width * 4 || dstExtent.height != region.extent.height * 4;
 	}
 
 	// make sure all write operations to the src image have finished
@@ -3729,7 +3728,30 @@ void VulkanRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 	// make sure all read and write operations to the dst image have finished
 	barrier_image<SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER, SYNC_OP::ANY_TRANSFER>(dstVk, region.dstSubresource, VK_IMAGE_LAYOUT_GENERAL);
 
-	vkCmdCopyImage(m_state.currentCommandBuffer, srcVkObj->m_image, VK_IMAGE_LAYOUT_GENERAL, dstVkObj->m_image, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
+	if (copyViaBuffer)
+	{
+		const uint32 bufferSize = region.extent.width * region.extent.height * region.extent.depth * region.srcSubresource.layerCount * (src->GetBPP() / 8);
+		auto reservation = memoryManager->getStagingAllocator().AllocateBufferMemory(bufferSize, 256);
+
+		VkBufferImageCopy srcRegion{};
+		srcRegion.bufferOffset = reservation.bufferOffset;
+		srcRegion.imageSubresource = region.srcSubresource;
+		srcRegion.imageOffset = region.srcOffset;
+		srcRegion.imageExtent = region.extent;
+		vkCmdCopyImageToBuffer(m_state.currentCommandBuffer, srcVkObj->m_image, VK_IMAGE_LAYOUT_GENERAL, reservation.vkBuffer, 1, &srcRegion);
+
+		barrier_bufferRange<SYNC_OP::TRANSFER_WRITE, SYNC_OP::TRANSFER_READ>(reservation.vkBuffer, reservation.bufferOffset, bufferSize);
+
+		VkBufferImageCopy dstRegion{};
+		dstRegion.bufferOffset = reservation.bufferOffset;
+		dstRegion.imageSubresource = region.dstSubresource;
+		dstRegion.imageOffset = region.dstOffset;
+		dstRegion.imageExtent = dstExtent;
+		dstRegion.imageExtent.depth = dst->Is3DTexture() ? srcDepth : 1;
+		vkCmdCopyBufferToImage(m_state.currentCommandBuffer, reservation.vkBuffer, dstVkObj->m_image, VK_IMAGE_LAYOUT_GENERAL, 1, &dstRegion);
+	}
+	else
+		vkCmdCopyImage(m_state.currentCommandBuffer, srcVkObj->m_image, VK_IMAGE_LAYOUT_GENERAL, dstVkObj->m_image, VK_IMAGE_LAYOUT_GENERAL, 1, &region);
 
 	// make sure the transfer is finished before the image is read or written
 	barrier_image<SYNC_OP::ANY_TRANSFER, SYNC_OP::IMAGE_READ | SYNC_OP::IMAGE_WRITE | SYNC_OP::ANY_TRANSFER>(srcVk, region.srcSubresource, srcVk->GetDefaultLayout());
