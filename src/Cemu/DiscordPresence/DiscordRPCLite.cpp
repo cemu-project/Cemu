@@ -336,6 +336,8 @@ class NamedPipe : public NamedPipeImpl
 				jsonPayload.append(shim::format(R"("state": "{}",)", EscapeJSONString(presence.state)));
 			if (!presence.details.empty())
 				jsonPayload.append(shim::format(R"("details": "{}",)", EscapeJSONString(presence.details)));
+			if (presence.statusDisplayType != DiscordLiteRichPresence::StatusDisplayType_Name)
+				jsonPayload.append(shim::format(R"("status_display_type": {},)", static_cast<int>(presence.statusDisplayType)));
 			if (presence.startTimestamp || presence.endTimestamp)
 			{
 				jsonPayload.append(R"("timestamps": {)");
