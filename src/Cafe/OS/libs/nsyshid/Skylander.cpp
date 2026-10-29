@@ -815,7 +815,7 @@ namespace nsyshid
 		}
 	}
 
-	uint8 SkylanderUSB::LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file)
+	uint8 SkylanderUSB::LoadSkylander(uint8* buf, std::unique_ptr<FileStream> file, int requestedSlot)
 	{
 		std::lock_guard lock(m_skyMutex);
 
@@ -827,20 +827,30 @@ namespace nsyshid
 		}
 		uint8 foundSlot = 0xFF;
 
-		// mimics spot retaining on the portal
-		for (auto i = 0; i < 16; i++)
+		if (requestedSlot >= 0 && requestedSlot < 16)
 		{
-			if ((m_skylanders[i].status & 1) == 0)
+			if ((m_skylanders[requestedSlot].status & 1) == 0)
 			{
-				if (m_skylanders[i].lastId == skySerial)
+				foundSlot = static_cast<uint8>(requestedSlot);
+			}
+		}
+		else
+		{
+			// mimics spot retaining on the portal
+			for (auto i = 0; i < 16; i++)
+			{
+				if ((m_skylanders[i].status & 1) == 0)
 				{
-					foundSlot = i;
-					break;
-				}
+					if (m_skylanders[i].lastId == skySerial)
+					{
+						foundSlot = i;
+						break;
+					}
 
-				if (i < foundSlot)
-				{
-					foundSlot = i;
+					if (i < foundSlot)
+					{
+						foundSlot = i;
+					}
 				}
 			}
 		}
@@ -874,6 +884,24 @@ namespace nsyshid
 		}
 
 		return false;
+	}
+
+	void SkylanderUSB::GetFigureInfo(uint8 skyNum, uint8& outStatus, uint16& outId, uint16& outVariant)
+	{
+		std::lock_guard lock(m_skyMutex);
+		const auto& thesky = m_skylanders[skyNum];
+		outStatus = thesky.status;
+		
+		if (thesky.status & 1)
+		{
+			outId = (uint16(thesky.data[0x11]) << 8) | uint16(thesky.data[0x10]);
+			outVariant = (uint16(thesky.data[0x1D]) << 8) | uint16(thesky.data[0x1C]);
+		}
+		else
+		{
+			outId = 0;
+			outVariant = 0;
+		}
 	}
 
 	bool SkylanderUSB::CreateSkylander(fs::path pathName, uint16 skyId, uint16 skyVar)
