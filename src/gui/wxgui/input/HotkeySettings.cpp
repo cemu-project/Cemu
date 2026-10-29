@@ -99,7 +99,9 @@ std::optional<std::string> SaveScreenshot(std::vector<uint8> data, int width, in
 	}
 	if (save_screenshot)
 	{
-		auto imagePath = GenerateScreenshotFilename(mainWindow);
+		// GenerateScreenshotFilename takes isDRC, which is the opposite of mainWindow. Passing
+		// mainWindow directly gave TV captures the _GamePad suffix and GamePad captures none
+		auto imagePath = GenerateScreenshotFilename(!mainWindow);
 		if (imagePath.has_value() && SaveScreenshotToFile(imagePath.value(), image))
 		{
 			if (mainWindow)
