@@ -89,6 +89,18 @@ jobs:
           path: cemu-appimage-x64
 
       - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: cemu-bin-linux-arm
+          path: cemu-bin-linux-arm
+
+      - uses: actions/download-artifact@v8
+        continue-on-error: true
+        with:
+          name: cemu-appimage-arm
+          path: cemu-appimage-arm
+
+      - uses: actions/download-artifact@v8
         with:
           name: cemu-bin-windows-x64
           path: cemu-bin-windows-x64
@@ -133,8 +145,10 @@ jobs:
           VERSION=${{ env.CEMU_VERSION }}
           echo "Cemu Version is $VERSION"
           ls cemu-appimage-x64
-          mv cemu-appimage-x64/Cemu-*-x86_64.AppImage upload/Cemu-$VERSION-x86_64.AppImage
-        
+          mv cemu-appimage-x64/Cemu-*-x86_64.AppImage upload/Cemu-$VERSION-x86_64.AppImage          
+          ls cemu-appimage-arm
+          mv cemu-appimage-arm/Cemu-*-aarch64.AppImage upload/Cemu-$VERSION-arm64.AppImage
+
       - name: Create release from linux-bin
         run: |
           ls ./
@@ -142,6 +156,10 @@ jobs:
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
           mv cemu-bin-linux-x64/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-22.04-x64.zip ${{ env.CEMU_FOLDER_NAME }}
+          rm -r ./${{ env.CEMU_FOLDER_NAME }}                  
+          cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
+          mv cemu-bin-linux-arm/Cemu ./${{ env.CEMU_FOLDER_NAME }}/Cemu
+          zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-ubuntu-22.04-arm64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
           
       - name: Create release from macos-bin
