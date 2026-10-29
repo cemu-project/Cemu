@@ -110,14 +110,17 @@ namespace camera
 		RingBuffer<MEMPTR<uint8>, 20> inTargetBuffers{};
 	} s_instance;
 
-	SysAllocator<coreinit::OSMutex> s_cameraMutex;
-	SysAllocator<CAMDecodeEventParam> s_cameraEventData;
-	SysAllocator<OSThread_t> s_cameraWorkerThread;
-	SysAllocator<uint8, 1024 * 64> s_cameraWorkerThreadStack;
-	SysAllocator s_cameraWorkerThreadName("CameraWorkerThread");
-	SysAllocator<coreinit::OSEvent> s_cameraOpenEvent;
-	SysAllocator<coreinit::OSDriverInterface> s_driverInterface;
-	SysAllocator s_driverName("CAM");
+	COSStaticData s_staticData;
+
+	CafeStaticVar<coreinit::OSMutex> s_cameraMutex{s_staticData};
+	CafeStaticVar<CAMDecodeEventParam> s_cameraEventData{s_staticData};
+
+	CafeStaticVar<OSThread_t> s_cameraWorkerThread{s_staticData};
+	CafeStaticVar<uint8, 1024 * 64> s_cameraWorkerThreadStack{s_staticData};
+	CafeStaticVar s_cameraWorkerThreadName(s_staticData, "CameraWorkerThread");
+	CafeStaticVar<coreinit::OSEvent> s_cameraOpenEvent{s_staticData};
+	CafeStaticVar<coreinit::OSDriverInterface> s_driverInterface{s_staticData};
+	CafeStaticVar s_driverName(s_staticData, "CAM");
 
 	static void WorkerThreadFunc(PPCInterpreter_t*)
 	{
@@ -323,6 +326,7 @@ namespace camera
 
 		void RPLMapped() override
 		{
+			s_staticData.Allocate();
 			cafeExportRegister("camera", CAMGetMemReq, LogType::InputAPI);
 			cafeExportRegister("camera", CAMCheckMemSegmentation, LogType::InputAPI);
 			cafeExportRegister("camera", CAMInit, LogType::InputAPI);
@@ -331,6 +335,12 @@ namespace camera
 			cafeExportRegister("camera", CAMClose, LogType::InputAPI);
 			cafeExportRegister("camera", CAMSubmitTargetSurface, LogType::InputAPI);
 		};
+		}
+
+		void RPLUnmapped() override
+		{
+			s_staticData.Deallocate();
+		}
 
 		void rpl_entry(uint32 moduleHandle, coreinit::RplEntryReason reason) override
 		{
