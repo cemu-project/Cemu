@@ -2,6 +2,7 @@
 
 #include "Dimensions.h"
 #include "Infinity.h"
+#include "Mouse.h"
 #include "Skylander.h"
 #include "config/CemuConfig.h"
 #include "SkylanderXbox360.h"
@@ -51,6 +52,26 @@ namespace nsyshid::backend::emulated
 			// Add Dimensions Toypad
 			auto device = std::make_shared<DimensionsToypadDevice>();
 			AttachDevice(device);
+		}
+		UpdateVisibleDevices();
+	}
+
+	// the mouse can be connected and disconnected while a title is running
+	void BackendEmulated::UpdateVisibleDevices()
+	{
+		auto mouse = FindDevice([](const std::shared_ptr<Device>& device) {
+			return dynamic_cast<MouseDevice*>(device.get()) != nullptr;
+		});
+		const bool emulateMouse = GetConfig().emulated_usb_devices.emulate_mouse;
+		if (emulateMouse && !mouse)
+		{
+			cemuLog_logDebug(LogType::Force, "Attaching Emulated Mouse");
+			AttachDevice(std::make_shared<MouseDevice>());
+		}
+		else if (!emulateMouse && mouse)
+		{
+			cemuLog_logDebug(LogType::Force, "Detaching Emulated Mouse");
+			DetachDevice(mouse);
 		}
 	}
 } // namespace nsyshid::backend::emulated

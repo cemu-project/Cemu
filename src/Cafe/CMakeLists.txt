@@ -429,6 +429,8 @@ add_library(CemuCafe
   OS/libs/nsyshid/Dimensions.h
   OS/libs/nsyshid/Infinity.cpp
   OS/libs/nsyshid/Infinity.h
+  OS/libs/nsyshid/Mouse.cpp
+  OS/libs/nsyshid/Mouse.h
   OS/libs/nsyshid/Skylander.cpp
   OS/libs/nsyshid/Skylander.h
   OS/libs/nsyshid/SkylanderXbox360.cpp
