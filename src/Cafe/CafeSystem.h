@@ -69,6 +69,10 @@ namespace CafeSystem
 	void NotifyMouseWheel(sint32 rotation); // 120 per notch
 	void NotifyTextInput(uint32 codepoint);
 	bool IsTextInputActive();
+	void NotifyKeyEvent(uint8 hidUsage, bool pressed);
+	void ReleaseInput();
+	bool IsUSBKeyboardInUse();
+	void SetUSBKeyboardEnabled(bool enabled);
 
 	void DumpCurrentRPX();
 };

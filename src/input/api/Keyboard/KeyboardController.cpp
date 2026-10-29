@@ -2,6 +2,7 @@
 
 #include "input/api/Keyboard/KeyboardController.h"
 #include "WindowSystem.h"
+#include "Cafe/CafeSystem.h"
 
 KeyboardController::KeyboardController()
 	: base_type("keyboard", "Keyboard")
@@ -18,7 +19,7 @@ ControllerState KeyboardController::raw_state()
 {
 	ControllerState result{};
 
-	if (WindowSystem::GetWindowInfo().debugger_focused)
+	if (WindowSystem::GetWindowInfo().debugger_focused || CafeSystem::IsUSBKeyboardInUse())
 		return result;
 
 	boost::container::small_vector<uint32, 16> pressedKeys;

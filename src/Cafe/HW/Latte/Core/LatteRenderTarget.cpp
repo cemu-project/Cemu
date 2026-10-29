@@ -14,6 +14,7 @@
 #include "HW/Latte/Renderer/RendererCore.h"
 #include "config/ActiveSettings.h"
 #include "WindowSystem.h"
+#include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/erreula/erreula.h"
 #include "input/InputManager.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
@@ -991,7 +992,7 @@ void LatteRenderTarget_itHLECopyColorBufferToScanBuffer(MPTR colorBufferPtr, uin
 		return {pressed && !toggle, pressed && toggle};
 	};
 
-	const bool tabPressed = WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::TAB);
+	const bool tabPressed = !CafeSystem::IsUSBKeyboardInUse() && WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::TAB);
 	const bool ctrlPressed = WindowSystem::IsKeyDown(WindowSystem::PlatformKeyCodes::LCONTROL);
 	const auto [vpad0Active, vpad0Toggle] = getVPADScreenActive(0);
 	const auto [vpad1Active, vpad1Toggle] = getVPADScreenActive(1);

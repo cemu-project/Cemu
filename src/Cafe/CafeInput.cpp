@@ -1,6 +1,8 @@
 #include "Cafe/CafeSystem.h"
 #include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "Cafe/OS/libs/nsyskbd/nsyskbd.h"
 #include "input/InputManager.h"
+#include "config/CemuConfig.h"
 
 namespace CafeSystem
 {
@@ -42,5 +44,29 @@ namespace CafeSystem
 	bool IsTextInputActive()
 	{
 		return swkbd_hasKeyboardInputHook();
+	}
+
+	void NotifyKeyEvent(uint8 hidUsage, bool pressed)
+	{
+		// typed text goes to the software keyboard instead
+		if (pressed && swkbd_hasKeyboardInputHook())
+			return;
+		nsyskbd::SetHostKeyState(hidUsage, pressed);
+	}
+
+	void ReleaseInput()
+	{
+		nsyskbd::ReleaseHostKeys();
+	}
+
+	bool IsUSBKeyboardInUse()
+	{
+		return nsyskbd::IsHostKeyboardConnected();
+	}
+
+	// nsyskbd connects or disconnects the keyboard on its next poll
+	void SetUSBKeyboardEnabled(bool enabled)
+	{
+		GetConfig().emulated_usb_devices.emulate_keyboard = enabled;
 	}
 }
