@@ -117,8 +117,7 @@ public:
 	void OnDebugViewAudioDebugger(wxCommandEvent& event);
 	void OnDebugViewTextureRelations(wxCommandEvent& event);
 	void OnMouseMove(wxMouseEvent& event);
-	void OnMouseLeft(wxMouseEvent& event);
-	void OnMouseRight(wxMouseEvent& event);
+	void OnMouseButton(wxMouseEvent& event);
 	void OnGameListBeginUpdate(wxCommandEvent& event);
 	void OnGameListEndUpdate(wxCommandEvent& event);
 	void OnAccountListRefresh(wxCommandEvent& event);
@@ -141,6 +140,8 @@ public:
 
 	static void ShowCursor(bool state);
 
+	void SetMouseCaptured(bool state);
+
 	uintptr_t GetRenderCanvasHWND();
 
 	static void RequestGameListRefresh();
@@ -156,9 +157,12 @@ private:
 
 	void OnTimer(wxTimerEvent& event);
 
+	void ClipCapturedMouse();
+
 	// CafeSystem implementation
 	void CafeRecreateCanvas() override;
 	void CafePPCProcessExit() override;
+	void CafeUSBInputChanged() override;
 
 	void OnRequestRestart(wxCommandEvent& event);
 	void OnRequestRecreateCanvas(wxCommandEvent& event);
@@ -175,6 +179,7 @@ private:
 	wxTimer* m_timer;
 	wxPoint m_mouse_position{};
 	std::chrono::steady_clock::time_point m_last_mouse_move_time;
+	bool m_mouse_captured = false;
 	wxSize m_restored_size;
 	wxPoint m_restored_position;
 
