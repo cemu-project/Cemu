@@ -1,6 +1,7 @@
 #include "wxgui/CemuApp.h"
 #include "wxCemuConfig.h"
 #include "wxgui/MainWindow.h"
+#include "wxgui/PadViewFrame.h"
 #include "wxgui/wxgui.h"
 #include "config/CemuConfig.h"
 #ifdef ENABLE_VULKAN
@@ -461,24 +462,60 @@ void CemuApp::OnAssertFailure(const wxChar* file, int line, const wxChar* func, 
 	cemu_assert_debug(false);
 }
 
+static bool IsGameWindowEvent(const wxEvent& event)
+{
+	auto* window = wxDynamicCast(event.GetEventObject(), wxWindow);
+	if (!window || !g_mainFrame)
+		return false;
+	const wxWindow* topLevelWindow = wxGetTopLevelParent(window);
+	return topLevelWindow == g_mainFrame || topLevelWindow == g_mainFrame->GetPadView();
+}
+
+// while the game uses the USB keyboard its keys don't trigger menus, shortcuts or focus changes
+static bool IsUSBKeyboardEvent(const wxEvent& event)
+{
+	if (!CafeSystem::IsUSBKeyboardInUse() || !IsGameWindowEvent(event))
+		return false;
+	// the char hook has to pass, wxGTK only sends the key down event after it
+	const auto type = event.GetEventType();
+	if (type == wxEVT_NAVIGATION_KEY)
+		return true;
+	if (type == wxEVT_KEY_DOWN || type == wxEVT_CHAR)
+		return !CafeSystem::IsTextInputActive();
+	return false;
+}
+
 int CemuApp::FilterEvent(wxEvent& event)
 {
 	if(event.GetEventType() == wxEVT_KEY_DOWN)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), true);
+		const uint8 usage = raw_keycode_to_hid_usage(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags());
+		if (usage != 0 && IsGameWindowEvent(event))
+			CafeSystem::NotifyKeyEvent(usage, true);
 	}
 	else if(event.GetEventType() == wxEVT_KEY_UP)
 	{
 		const auto& key_event = (wxKeyEvent&)event;
 		g_window_info.set_keystate(fix_raw_keycode(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags()), false);
+		// releases come from any window since the focus may have moved while the key was held
+		const uint8 usage = raw_keycode_to_hid_usage(key_event.GetRawKeyCode(), key_event.GetRawKeyFlags());
+		if (usage != 0)
+			CafeSystem::NotifyKeyEvent(usage, false);
 	}
 	else if(event.GetEventType() == wxEVT_ACTIVATE_APP)
 	{
 		const auto& activate_event = (wxActivateEvent&)event;
 		if(!activate_event.GetActive())
+		{
 			g_window_info.set_keystatesup();
+			CafeSystem::ReleaseInput();
+		}
 	}
+
+	if (IsUSBKeyboardEvent(event))
+		return Event_Processed;
 
 	// track if debugger window or its child windows are focused
 	if (s_debuggerWindow && (event.GetEventType() == wxEVT_SET_FOCUS || event.GetEventType() == wxEVT_ACTIVATE))

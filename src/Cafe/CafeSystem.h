@@ -13,6 +13,7 @@ namespace CafeSystem
 	public:
 		virtual void CafeRecreateCanvas() = 0;
 		virtual void CafePPCProcessExit() = 0; // emulated process exited
+		virtual void CafeUSBInputChanged() = 0; // title started or stopped using the USB mouse or keyboard
 	};
 
 	enum class PREPARE_STATUS_CODE
@@ -57,6 +58,31 @@ namespace CafeSystem
 	uint32 GetRPXHashUpdated();
 	void RequestRecreateCanvas();
 	void NotifyPPCProcessExit(sint32 status);
+
+	// game window input
+	enum class MouseButton : uint8
+	{
+		Left,
+		Right,
+		Middle,
+		Back,
+		Forward,
+	};
+	void NotifyMouseMove(bool padWindow, sint32 x, sint32 y); // physical pixels
+	void NotifyMouseButton(bool padWindow, MouseButton button, bool pressed, sint32 x, sint32 y);
+	void NotifyMouseWheel(sint32 rotation); // 120 per notch
+	void NotifyMouseMotion(sint32 deltaX, sint32 deltaY); // captured mouse only
+	bool IsUSBMouseInUse();
+	void SetUSBMouseEnabled(bool enabled);
+
+	void NotifyKeyEvent(uint8 hidUsage, bool pressed);
+	void NotifyTextInput(uint32 codepoint);
+	bool IsTextInputActive();
+	bool IsUSBKeyboardInUse();
+	void SetUSBKeyboardEnabled(bool enabled);
+
+	void NotifyUSBInputChanged();
+	void ReleaseInput();
 
 	void DumpCurrentRPX();
 };

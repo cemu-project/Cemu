@@ -162,6 +162,8 @@ HotkeySettings::HotkeySettings(wxWindow* parent)
 	CreateHotkeyRow(_tr("End emulation"), s_cfgHotkeys.endEmulation);
 #endif
 	CreateHotkeyRow(_tr("Exit application"), s_cfgHotkeys.exitApplication);
+	CreateHotkeyRow(_tr("Emulate USB mouse"), s_cfgHotkeys.toggleUSBMouse);
+	CreateHotkeyRow(_tr("Emulate USB keyboard"), s_cfgHotkeys.toggleUSBKeyboard);
 
 	m_controllerTimer = new wxTimer(this);
 	Bind(wxEVT_TIMER, &HotkeySettings::OnControllerTimer, this);
@@ -201,6 +203,12 @@ void HotkeySettings::Init(MainWindow* mainWindowFrame)
 			auto closeEvent = new wxCloseEvent{wxEVT_CLOSE_WINDOW, s_mainWindow->GetId()};
 			closeEvent->SetCanVeto(false);
 			wxQueueEvent(s_mainWindow, closeEvent);
+		 }},
+		{&s_cfgHotkeys.toggleUSBMouse, [](void) {
+			 s_mainWindow->CallAfter([]() { s_mainWindow->SetUSBMouseEnabled(!GetConfig().emulated_usb_devices.emulate_mouse); });
+		 }},
+		{&s_cfgHotkeys.toggleUSBKeyboard, [](void) {
+			 s_mainWindow->CallAfter([]() { s_mainWindow->SetUSBKeyboardEnabled(!GetConfig().emulated_usb_devices.emulate_keyboard); });
 		 }},
 #ifdef CEMU_DEBUG_ASSERT
 		{&s_cfgHotkeys.endEmulation, [](void) {
@@ -463,7 +471,7 @@ bool HotkeySettings::IsValidKeycodeUp(int keycode)
 wxString HotkeySettings::To_wxString(uKeyboardHotkey hotkey)
 {
 	if (hotkey.raw == sHotkeyCfg::keyboardNone) {
-		return m_disabledHotkeyText;
+		return _("----");
 	}
 	wxString ret{};
 	if (hotkey.alt)
