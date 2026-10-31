@@ -176,7 +176,7 @@ jobs:
         cd build
         echo "[INFO] BUILD_FLAGS: ${{ env.BUILD_FLAGS }}"
         echo "[INFO] BUILD_MODE: ${{ env.BUILD_MODE }}"
-        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DVCPKG_INSTALL_OPTIONS="--clean-after-build"
+        cmake .. ${{ env.BUILD_FLAGS }} -DCMAKE_BUILD_TYPE=${{ env.BUILD_MODE }} -DVCPKG_INSTALL_OPTIONS="--clean-after-build" "-DCMAKE_EXE_LINKER_FLAGS_RELEASE=/INCREMENTAL:NO /PDBALTPATH:Cemu.pdb"
 
     - name: "Build Cemu"
       run: |
@@ -184,7 +184,9 @@ jobs:
         cmake --build . --config ${{ env.BUILD_MODE }}
 
     - name: Prepare artifact
-      run: Rename-Item bin/Cemu_release.exe Cemu.exe
+      run: |
+        Rename-Item bin/Cemu_release.exe Cemu.exe
+        Rename-Item bin/Cemu_release.pdb Cemu.pdb
 
     - name: Build NSIS Installer
       shell: cmd
@@ -196,7 +198,9 @@ jobs:
       uses: actions/upload-artifact@v6
       with:
         name: cemu-bin-windows-x64
-        path: ./bin/Cemu.exe
+        path: |
+          ./bin/Cemu.exe
+          ./bin/Cemu.pdb
 
     - name: Upload NSIS Installer
       uses: actions/upload-artifact@v6

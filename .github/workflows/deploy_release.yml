@@ -122,6 +122,7 @@ jobs:
           ls ./bin/
           cp -R ./bin ./${{ env.CEMU_FOLDER_NAME }}
           mv cemu-bin-windows-x64/Cemu.exe ./${{ env.CEMU_FOLDER_NAME }}/Cemu.exe
+          mv cemu-bin-windows-x64/Cemu.pdb ./${{ env.CEMU_FOLDER_NAME }}/Cemu.pdb
           zip -9 -r upload/cemu-${{ env.CEMU_VERSION }}-windows-x64.zip ${{ env.CEMU_FOLDER_NAME }}
           rm -r ./${{ env.CEMU_FOLDER_NAME }}
 

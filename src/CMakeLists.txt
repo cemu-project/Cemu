@@ -12,6 +12,8 @@ endif()
 
 if(MSVC)
 	add_compile_definitions(WIN32_LEAN_AND_MEAN CURL_STATICLIB)
+	# generate symbols for Release build
+	string(APPEND CMAKE_CXX_FLAGS_RELEASE " /Zi")
 elseif(UNIX)
 	if(APPLE)
 		if (ENABLE_VULKAN)
@@ -70,6 +72,20 @@ add_executable(CemuBin
 )
 
 cemu_use_precompiled_header(CemuBin)
+
+if(MSVC)
+	# set pdb and linker options for Release builds
+	target_link_options(CemuBin PRIVATE
+		"$<$<CONFIG:Release>:/DEBUG:FULL;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO>"
+	)
+	if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+		# produce pdb in a subdirectory and then strip it to decrease shipping size
+		set_property(TARGET CemuBin PROPERTY PDB_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}/symbols")
+		target_link_options(CemuBin PRIVATE
+			"$<$<CONFIG:Release>:/PDBSTRIPPED:$<TARGET_FILE_DIR:CemuBin>/$<TARGET_FILE_BASE_NAME:CemuBin>.pdb>"
+		)
+	endif()
+endif()
 
 if(MSVC AND MSVC_VERSION EQUAL 1940)
 	# workaround for an msvc issue on VS 17.10 where generated ILK files are too large
