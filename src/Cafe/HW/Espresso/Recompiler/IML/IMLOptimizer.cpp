@@ -35,7 +35,7 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 		if (imlInstruction->IsSuffixInstruction())
 			break;
 		// check if FPR is stored
-		if ((imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE || imlInstruction->type == PPCREC_IML_TYPE_FPR_STORE_INDEXED) &&
+		if ((imlInstruction->type == IMLType::FPR_STORE || imlInstruction->type == IMLType::FPR_STORE_INDEXED) &&
 			(imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE || imlInstruction->op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE_FTZ))
 		{
 			if (imlInstruction->op_storeLoad.registerData.GetRegID() == fprIndex)
@@ -56,7 +56,7 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 			}
 		}
 		// if the FPR is copied then keep track of it. We can expand the copies instead of the original
-		if (imlInstruction->type == PPCREC_IML_TYPE_FPR_R_R && imlInstruction->operation == PPCREC_IML_OP_FPR_ASSIGN && imlInstruction->op_fpr_r_r.regA.GetRegID() == fprIndex)
+		if (imlInstruction->type == IMLType::FPR_R_R && imlInstruction->operation == IMLOperation::OP_FPR_ASSIGN && imlInstruction->op_fpr_r_r.regA.GetRegID() == fprIndex)
 		{
 			if (imlInstruction->op_fpr_r_r.regR.GetRegID() == fprIndex)
 			{
@@ -99,16 +99,16 @@ void PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext_t* ppcI
 			else
 				lastStore++;
 
-			cemu_assert_debug(imlMoveInstruction->type == PPCREC_IML_TYPE_FPR_R_R && imlMoveInstruction->op_fpr_r_r.regA.GetRegID() == fprIndex);
+			cemu_assert_debug(imlMoveInstruction->type == IMLType::FPR_R_R && imlMoveInstruction->op_fpr_r_r.regA.GetRegID() == fprIndex);
 			cemu_assert_debug(imlMoveInstruction->op_fpr_r_r.regA.GetRegFormat() == IMLRegFormat::F64);
 			auto dstReg = imlMoveInstruction->op_fpr_r_r.regR;
 			IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, realPosition+1); // one after the move
-			newExpand->make_fpr_r(PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, dstReg);
+			newExpand->make_fpr_r(IMLOperation::OP_FPR_EXPAND_F32_TO_F64, dstReg);
 			positionBias++;
 		}
 		// insert expand instruction after store
 		IMLInstruction* newExpand = PPCRecompiler_insertInstruction(imlSegment, lastStore);
-		newExpand->make_fpr_r(PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, _FPRRegFromID(fprIndex));
+		newExpand->make_fpr_r(IMLOperation::OP_FPR_EXPAND_F32_TO_F64, _FPRRegFromID(fprIndex));
 	}
 }
 
@@ -130,11 +130,11 @@ void IMLOptimizer_OptimizeDirectFloatCopies(ppcImlGenContext_t* ppcImlGenContext
 		for (sint32 i = 0; i < segIt->imlList.size(); i++)
 		{
 			IMLInstruction* imlInstruction = segIt->imlList.data() + i;
-			if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE)
+			if (imlInstruction->type == IMLType::FPR_LOAD && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE)
 			{
 				PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
 			}
-			else if (imlInstruction->type == PPCREC_IML_TYPE_FPR_LOAD_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE)
+			else if (imlInstruction->type == IMLType::FPR_LOAD_INDEXED && imlInstruction->op_storeLoad.mode == PPCREC_FPR_LD_MODE_SINGLE)
 			{
 				PPCRecompiler_optimizeDirectFloatCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
 			}
@@ -161,7 +161,7 @@ void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* pp
 		if (imlInstruction->IsSuffixInstruction())
 			break;
 		// check if GPR is stored
-		if ((imlInstruction->type == PPCREC_IML_TYPE_STORE && imlInstruction->op_storeLoad.copyWidth == 32 ) )
+		if ((imlInstruction->type == IMLType::STORE && imlInstruction->op_storeLoad.copyWidth == 32 ) )
 		{
 			if (imlInstruction->op_storeLoad.registerMem.GetRegID() == gprIndex)
 				break;
@@ -193,7 +193,7 @@ void PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext_t* pp
 	}
 	if (foundMatch)
 	{
-		PPCRecompiler_insertInstruction(imlSegment, i)->make_r_r(PPCREC_IML_OP_ENDIAN_SWAP, gprReg, gprReg);
+		PPCRecompiler_insertInstruction(imlSegment, i)->make_r_r(IMLOperation::OP_ENDIAN_SWAP, gprReg, gprReg);
 	}
 }
 
@@ -214,7 +214,7 @@ void IMLOptimizer_OptimizeDirectIntegerCopies(ppcImlGenContext_t* ppcImlGenConte
 		for (sint32 i = 0; i < segIt->imlList.size(); i++)
 		{
 			IMLInstruction* imlInstruction = segIt->imlList.data() + i;
-			if (imlInstruction->type == PPCREC_IML_TYPE_LOAD && imlInstruction->op_storeLoad.copyWidth == 32 && imlInstruction->op_storeLoad.flags2.swapEndian )
+			if (imlInstruction->type == IMLType::LOAD && imlInstruction->op_storeLoad.copyWidth == 32 && imlInstruction->op_storeLoad.flags2.swapEndian )
 			{
 				PPCRecompiler_optimizeDirectIntegerCopiesScanForward(ppcImlGenContext, segIt, i, imlInstruction->op_storeLoad.registerData);
 			}
@@ -553,9 +553,9 @@ sint32 IMLUtil_MoveInstructionTo(IMLSegment& seg, sint32 initialIndex, sint32 ta
 bool IMLOptimizerX86_ModifiesEFlags(IMLInstruction& inst)
 {
 	// this is a very conservative implementation. There are more cases but this is good enough for now
-	if(inst.type == PPCREC_IML_TYPE_NAME_R || inst.type == PPCREC_IML_TYPE_R_NAME)
+	if(inst.type == IMLType::NAME_R || inst.type == IMLType::R_NAME)
 		return false;
-	if((inst.type == PPCREC_IML_TYPE_R_R || inst.type == PPCREC_IML_TYPE_R_S32) && inst.operation == PPCREC_IML_OP_ASSIGN)
+	if((inst.type == IMLType::R_R || inst.type == IMLType::R_S32) && inst.operation == IMLOperation::OP_ASSIGN)
 		return false;
 	return true; // if we dont know for sure, assume it does
 }
@@ -634,7 +634,7 @@ void IMLOptimizerX86_SubstituteCJumpForEflagsJump(IMLOptimizerRegIOAnalysis& reg
 	if(cjmpInstIndex < 0)
 		return;
 	IMLInstruction& cjumpInstr = seg.imlList[cjmpInstIndex];
-	if( cjumpInstr.type != PPCREC_IML_TYPE_CONDITIONAL_JUMP )
+	if( cjumpInstr.type != IMLType::CONDITIONAL_JUMP )
 		return;
 	IMLReg regCondBool = cjumpInstr.op_conditional_jump.registerBool;
 	bool invertedCondition = !cjumpInstr.op_conditional_jump.mustBeTrue;
@@ -645,9 +645,9 @@ void IMLOptimizerX86_SubstituteCJumpForEflagsJump(IMLOptimizerRegIOAnalysis& reg
 	// check if its an instruction combo which can be optimized (currently only cmp + cjump) and get the condition
 	IMLInstruction& condSetterInstr = seg.imlList[cmpInstrIndex];
 	IMLCondition cond;
-	if(condSetterInstr.type == PPCREC_IML_TYPE_COMPARE)
+	if(condSetterInstr.type == IMLType::COMPARE)
 		cond = condSetterInstr.op_compare.cond;
-	else if(condSetterInstr.type == PPCREC_IML_TYPE_COMPARE_S32)
+	else if(condSetterInstr.type == IMLType::COMPARE_S32)
 		cond = condSetterInstr.op_compare_s32.cond;
 	else
 		return;
@@ -684,18 +684,18 @@ void IMLOptimizerX86_SubstituteCJumpForEflagsJump(IMLOptimizerRegIOAnalysis& reg
 		return; // bool register is used beyond the CMP, we can't drop it
 
 	auto& cmpInstr = seg.imlList[cmpInstrIndex];
-	cemu_assert_debug(cmpInstr.type == PPCREC_IML_TYPE_COMPARE || cmpInstr.type == PPCREC_IML_TYPE_COMPARE_S32);
-	if(cmpInstr.type == PPCREC_IML_TYPE_COMPARE)
+	cemu_assert_debug(cmpInstr.type == IMLType::COMPARE || cmpInstr.type == IMLType::COMPARE_S32);
+	if(cmpInstr.type == IMLType::COMPARE)
 	{
 		IMLReg regA = cmpInstr.op_compare.regA;
 		IMLReg regB = cmpInstr.op_compare.regB;
-		seg.imlList[cmpInstrIndex].make_r_r(PPCREC_IML_OP_X86_CMP, regA, regB);
+		seg.imlList[cmpInstrIndex].make_r_r(IMLOperation::OP_X86_CMP, regA, regB);
 	}
 	else
 	{
 		IMLReg regA = cmpInstr.op_compare_s32.regA;
 		sint32 val = cmpInstr.op_compare_s32.immS32;
-		seg.imlList[cmpInstrIndex].make_r_s32(PPCREC_IML_OP_X86_CMP, regA, val);
+		seg.imlList[cmpInstrIndex].make_r_s32(IMLOperation::OP_X86_CMP, regA, val);
 	}
 
 }
@@ -730,8 +730,8 @@ static bool IMLIsSinglePrecisionRegister(const IMLSinglePrecisionRegisters& sing
 static void IMLUpdateSinglePrecisionRegisters(const IMLInstruction& inst, IMLSinglePrecisionRegisters& singlePrecisionRegisters)
 {
 	// calls and macros can change registers without reporting them
-	if (inst.type == PPCREC_IML_TYPE_CALL_IMM ||
-		(inst.type == PPCREC_IML_TYPE_MACRO && inst.operation != PPCREC_IML_MACRO_COUNT_CYCLES))
+	if (inst.type == IMLType::CALL_IMM ||
+		(inst.type == IMLType::MACRO && inst.operation != IMLOperation::MACRO_COUNT_CYCLES))
 	{
 		singlePrecisionRegisters.reset();
 		return;
@@ -739,28 +739,28 @@ static void IMLUpdateSinglePrecisionRegisters(const IMLInstruction& inst, IMLSin
 
 	IMLReg result = IMLREG_INVALID;
 	bool knownSingle = false;
-	if (inst.type == PPCREC_IML_TYPE_FPR_R)
+	if (inst.type == IMLType::FPR_R)
 	{
 		result = inst.op_fpr_r.regR;
 		switch (inst.operation)
 		{
-		case PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM:
-		case PPCREC_IML_OP_FPR_LOAD_ONE:
+		case IMLOperation::OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM:
+		case IMLOperation::OP_FPR_LOAD_ONE:
 			knownSingle = true;
 			break;
-		case PPCREC_IML_OP_FPR_NEGATE:
-		case PPCREC_IML_OP_FPR_ABS:
-		case PPCREC_IML_OP_FPR_NEGATIVE_ABS:
+		case IMLOperation::OP_FPR_NEGATE:
+		case IMLOperation::OP_FPR_ABS:
+		case IMLOperation::OP_FPR_NEGATIVE_ABS:
 			knownSingle = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, result);
 			break;
 		}
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R && inst.operation == PPCREC_IML_OP_FPR_ASSIGN)
+	else if (inst.type == IMLType::FPR_R_R && inst.operation == IMLOperation::OP_FPR_ASSIGN)
 	{
 		result = inst.op_fpr_r_r.regR;
 		knownSingle = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_fpr_r_r.regA);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R_R && inst.operation == PPCREC_IML_OP_FPR_SELECT)
+	else if (inst.type == IMLType::FPR_R_R_R_R && inst.operation == IMLOperation::OP_FPR_SELECT)
 	{
 		result = inst.op_fpr_r_r_r_r.regR;
 		knownSingle = IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_fpr_r_r_r_r.regB) &&
@@ -787,10 +787,10 @@ void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenCon
 		segments[i]->momentaryIndex = static_cast<sint32>(i);
 		for (auto& inst : segments[i]->imlList)
 		{
-			if (inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
+			if (inst.type == IMLType::FPR_STORE || inst.type == IMLType::FPR_STORE_INDEXED)
 				hasStore |= inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded;
-			hasProducer |= inst.type == PPCREC_IML_TYPE_FPR_R &&
-				(inst.operation == PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM || inst.operation == PPCREC_IML_OP_FPR_LOAD_ONE);
+			hasProducer |= inst.type == IMLType::FPR_R &&
+				(inst.operation == IMLOperation::OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM || inst.operation == IMLOperation::OP_FPR_LOAD_ONE);
 		}
 	}
 	if (!hasStore || !hasProducer)
@@ -872,7 +872,7 @@ void IMLOptimizer_OptimizeSinglePrecisionStores(ppcImlGenContext_t& ppcImlGenCon
 		readInput(seg);
 		for (auto& inst : seg->imlList)
 		{
-			if ((inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED) &&
+			if ((inst.type == IMLType::FPR_STORE || inst.type == IMLType::FPR_STORE_INDEXED) &&
 				inst.op_storeLoad.mode == PPCREC_FPR_ST_MODE_SINGLE && !inst.op_storeLoad.flags2.notExpanded &&
 				IMLIsSinglePrecisionRegister(singlePrecisionRegisters, inst.op_storeLoad.registerData))
 				inst.op_storeLoad.mode = PPCREC_FPR_ST_MODE_SINGLE_FTZ;

@@ -9,59 +9,59 @@
 const char* IMLDebug_GetOpcodeName(const IMLInstruction* iml)
 {
 	static char _tempOpcodename[32];
-	uint32 op = iml->operation;
-	if (op == PPCREC_IML_OP_ASSIGN)
+	IMLOperation op = iml->operation;
+	if (op == IMLOperation::OP_ASSIGN)
 		return "MOV";
-	else if (op == PPCREC_IML_OP_ADD)
+	else if (op == IMLOperation::OP_ADD)
 		return "ADD";
-	else if (op == PPCREC_IML_OP_ADD_WITH_CARRY)
+	else if (op == IMLOperation::OP_ADD_WITH_CARRY)
 		return "ADC";
-	else if (op == PPCREC_IML_OP_SUB)
+	else if (op == IMLOperation::OP_SUB)
 		return "SUB";
-	else if (op == PPCREC_IML_OP_OR)
+	else if (op == IMLOperation::OP_OR)
 		return "OR";
-	else if (op == PPCREC_IML_OP_AND)
+	else if (op == IMLOperation::OP_AND)
 		return "AND";
-	else if (op == PPCREC_IML_OP_XOR)
+	else if (op == IMLOperation::OP_XOR)
 		return "XOR";
-	else if (op == PPCREC_IML_OP_LEFT_SHIFT)
+	else if (op == IMLOperation::OP_LEFT_SHIFT)
 		return "LSH";
-	else if (op == PPCREC_IML_OP_RIGHT_SHIFT_U)
+	else if (op == IMLOperation::OP_RIGHT_SHIFT_U)
 		return "RSH";
-	else if (op == PPCREC_IML_OP_RIGHT_SHIFT_S)
+	else if (op == IMLOperation::OP_RIGHT_SHIFT_S)
 		return "ARSH";
-	else if (op == PPCREC_IML_OP_LEFT_ROTATE)
+	else if (op == IMLOperation::OP_LEFT_ROTATE)
 		return "LROT";
-	else if (op == PPCREC_IML_OP_MULTIPLY_SIGNED)
+	else if (op == IMLOperation::OP_MULTIPLY_SIGNED)
 		return "MULS";
-	else if (op == PPCREC_IML_OP_DIVIDE_SIGNED)
+	else if (op == IMLOperation::OP_DIVIDE_SIGNED)
 		return "DIVS";
-	else if (op == PPCREC_IML_OP_FPR_ASSIGN)
+	else if (op == IMLOperation::OP_FPR_ASSIGN)
 		return "FMOV";
-	else if (op == PPCREC_IML_OP_FPR_ADD)
+	else if (op == IMLOperation::OP_FPR_ADD)
 		return "FADD";
-	else if (op == PPCREC_IML_OP_FPR_SUB)
+	else if (op == IMLOperation::OP_FPR_SUB)
 		return "FSUB";
-	else if (op == PPCREC_IML_OP_FPR_MULTIPLY)
+	else if (op == IMLOperation::OP_FPR_MULTIPLY)
 		return "FMUL";
-	else if (op == PPCREC_IML_OP_FPR_DIVIDE)
+	else if (op == IMLOperation::OP_FPR_DIVIDE)
 		return "FDIV";
-	else if (op == PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64)
+	else if (op == IMLOperation::OP_FPR_EXPAND_F32_TO_F64)
 		return "F32TOF64";
-	else if (op == PPCREC_IML_OP_FPR_ABS)
+	else if (op == IMLOperation::OP_FPR_ABS)
 		return "FABS";
-	else if (op == PPCREC_IML_OP_FPR_NEGATE)
+	else if (op == IMLOperation::OP_FPR_NEGATE)
 		return "FNEG";
-	else if (op == PPCREC_IML_OP_FPR_NEGATIVE_ABS)
+	else if (op == IMLOperation::OP_FPR_NEGATIVE_ABS)
 		return "FNABS";
-	else if (op == PPCREC_IML_OP_FPR_FLOAT_TO_INT)
+	else if (op == IMLOperation::OP_FPR_FLOAT_TO_INT)
 		return "F2I";
-	else if (op == PPCREC_IML_OP_FPR_INT_TO_FLOAT)
+	else if (op == IMLOperation::OP_FPR_INT_TO_FLOAT)
 		return "I2F";
-	else if (op == PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT)
+	else if (op == IMLOperation::OP_FPR_BITCAST_INT_TO_FLOAT)
 		return "BITMOVE";
 
-	sprintf(_tempOpcodename, "OP0%02x_T%d", iml->operation, iml->type);
+	sprintf(_tempOpcodename, "OP0%02x_T%d", static_cast<uint32>(iml->operation), static_cast<sint32>(iml->type));
 	return _tempOpcodename;
 }
 
@@ -196,16 +196,16 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 
 	StringBuf strOutput(1024);
 	strOutput.reset();
-	if (inst.type == PPCREC_IML_TYPE_R_NAME || inst.type == PPCREC_IML_TYPE_NAME_R)
+	if (inst.type == IMLType::R_NAME || inst.type == IMLType::NAME_R)
 	{
-		if (inst.type == PPCREC_IML_TYPE_R_NAME)
+		if (inst.type == IMLType::R_NAME)
 			strOutput.add("R_NAME");
 		else
 			strOutput.add("NAME_R");
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
 			strOutput.add(" ");
 
-		if(inst.type == PPCREC_IML_TYPE_R_NAME)
+		if(inst.type == IMLType::R_NAME)
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_name.regR);
 
 		strOutput.add("name_");
@@ -241,14 +241,14 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		{
 			strOutput.addFmt("name_ukn{}", inst.op_r_name.name);
 		}
-		if (inst.type != PPCREC_IML_TYPE_R_NAME)
+		if (inst.type != IMLType::R_NAME)
 		{
 			strOutput.add(", ");
 			IMLDebug_AppendRegisterParam(strOutput, inst.op_r_name.regR, true);
 		}
 
 	}
-	else if (inst.type == PPCREC_IML_TYPE_R_R)
+	else if (inst.type == IMLType::R_R)
 	{
 		strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -256,7 +256,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r.regR);
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r.regA, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_R_R_R)
+	else if (inst.type == IMLType::R_R_R)
 	{
 		strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -265,7 +265,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r.regA);
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r.regB, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_R_R_R_CARRY)
+	else if (inst.type == IMLType::R_R_R_CARRY)
 	{
 		strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -275,7 +275,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r_carry.regB);
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_r_carry.regCarry, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_COMPARE)
+	else if (inst.type == IMLType::COMPARE)
 	{
 		strOutput.add("CMP ");
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -286,7 +286,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		strOutput.add(" -> ");
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_compare.regR, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_COMPARE_S32)
+	else if (inst.type == IMLType::COMPARE_S32)
 	{
 		strOutput.add("CMP ");
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -297,7 +297,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		strOutput.add(" -> ");
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_compare_s32.regR, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_CONDITIONAL_JUMP)
+	else if (inst.type == IMLType::CONDITIONAL_JUMP)
 	{
 		strOutput.add("CJUMP ");
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -306,11 +306,11 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		if (!inst.op_conditional_jump.mustBeTrue)
 			strOutput.add("(inverted)");
 	}
-	else if (inst.type == PPCREC_IML_TYPE_JUMP)
+	else if (inst.type == IMLType::JUMP)
 	{
 		strOutput.add("JUMP");
 	}
-	else if (inst.type == PPCREC_IML_TYPE_R_R_S32)
+	else if (inst.type == IMLType::R_R_S32)
 	{
 		strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -320,7 +320,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32.regA);
 		IMLDebug_AppendS32Param(strOutput, inst.op_r_r_s32.immS32, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_R_R_S32_CARRY)
+	else if (inst.type == IMLType::R_R_S32_CARRY)
 	{
 		strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -331,7 +331,7 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendS32Param(strOutput, inst.op_r_r_s32_carry.immS32);
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_r_s32_carry.regCarry, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_R_S32)
+	else if (inst.type == IMLType::R_S32)
 	{
 		strOutput.addFmt("{}", IMLDebug_GetOpcodeName(&inst));
 		while ((sint32)strOutput.getLen() < lineOffsetParameters)
@@ -340,10 +340,10 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_r_immS32.regR);
 		IMLDebug_AppendS32Param(strOutput, inst.op_r_immS32.immS32, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_STORE ||
-			 inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
+	else if (inst.type == IMLType::LOAD || inst.type == IMLType::STORE ||
+			 inst.type == IMLType::LOAD_INDEXED || inst.type == IMLType::STORE_INDEXED)
 	{
-		if (inst.type == PPCREC_IML_TYPE_LOAD || inst.type == PPCREC_IML_TYPE_LOAD_INDEXED)
+		if (inst.type == IMLType::LOAD || inst.type == IMLType::LOAD_INDEXED)
 			strOutput.add("LD_");
 		else
 			strOutput.add("ST_");
@@ -359,12 +359,12 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_storeLoad.registerData);
 
-		if (inst.type == PPCREC_IML_TYPE_LOAD_INDEXED || inst.type == PPCREC_IML_TYPE_STORE_INDEXED)
+		if (inst.type == IMLType::LOAD_INDEXED || inst.type == IMLType::STORE_INDEXED)
 			strOutput.addFmt("[{}+{}]", IMLDebug_GetRegName(inst.op_storeLoad.registerMem), IMLDebug_GetRegName(inst.op_storeLoad.registerMem2));
 		else
 			strOutput.addFmt("[{}+{}]", IMLDebug_GetRegName(inst.op_storeLoad.registerMem), inst.op_storeLoad.immS32);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
+	else if (inst.type == IMLType::ATOMIC_CMP_STORE)
 	{
 		strOutput.add("ATOMIC_ST_U32");
 
@@ -376,42 +376,42 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_atomic_compare_store.regWriteValue);
 		IMLDebug_AppendRegisterParam(strOutput, inst.op_atomic_compare_store.regBoolOut, true);
 	}
-	else if (inst.type == PPCREC_IML_TYPE_NO_OP)
+	else if (inst.type == IMLType::NO_OP)
 	{
 		strOutput.add("NOP");
 	}
-	else if (inst.type == PPCREC_IML_TYPE_MACRO)
+	else if (inst.type == IMLType::MACRO)
 	{
-		if (inst.operation == PPCREC_IML_MACRO_B_TO_REG)
+		if (inst.operation == IMLOperation::MACRO_B_TO_REG)
 		{
 			strOutput.addFmt("MACRO B_TO_REG {}", IMLDebug_GetRegName(inst.op_macro.paramReg));
 		}
-		else if (inst.operation == PPCREC_IML_MACRO_BL)
+		else if (inst.operation == IMLOperation::MACRO_BL)
 		{
 			strOutput.addFmt("MACRO BL 0x{:08x} -> 0x{:08x} cycles (depr): {}", inst.op_macro.param, inst.op_macro.param2, (sint32)inst.op_macro.paramU16);
 		}
-		else if (inst.operation == PPCREC_IML_MACRO_B_FAR)
+		else if (inst.operation == IMLOperation::MACRO_B_FAR)
 		{
 			strOutput.addFmt("MACRO B_FAR 0x{:08x} -> 0x{:08x} cycles (depr): {}", inst.op_macro.param, inst.op_macro.param2, (sint32)inst.op_macro.paramU16);
 		}
-		else if (inst.operation == PPCREC_IML_MACRO_LEAVE)
+		else if (inst.operation == IMLOperation::MACRO_LEAVE)
 		{
 			strOutput.addFmt("MACRO LEAVE ppc: 0x{:08x}", inst.op_macro.param);
 		}
-		else if (inst.operation == PPCREC_IML_MACRO_HLE)
+		else if (inst.operation == IMLOperation::MACRO_HLE)
 		{
 			strOutput.addFmt("MACRO HLE ppcAddr: 0x{:08x} funcId: 0x{:08x}", inst.op_macro.param, inst.op_macro.param2);
 		}
-		else if (inst.operation == PPCREC_IML_MACRO_COUNT_CYCLES)
+		else if (inst.operation == IMLOperation::MACRO_COUNT_CYCLES)
 		{
 			strOutput.addFmt("MACRO COUNT_CYCLES cycles: {}", inst.op_macro.param);
 		}
 		else
 		{
-			strOutput.addFmt("MACRO ukn operation {}", inst.operation);
+			strOutput.addFmt("MACRO ukn operation {}", static_cast<uint32>(inst.operation));
 		}
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_LOAD)
+	else if (inst.type == IMLType::FPR_LOAD)
 	{
 		strOutput.addFmt("{} = ", IMLDebug_GetRegName(inst.op_storeLoad.registerData));
 		if (inst.op_storeLoad.flags2.signExtend)
@@ -424,13 +424,13 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 			strOutput.addFmt(" <No expand>");
 		}
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_STORE || inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
+	else if (inst.type == IMLType::FPR_STORE || inst.type == IMLType::FPR_STORE_INDEXED)
 	{
 		if (inst.op_storeLoad.flags2.signExtend)
 			strOutput.add("S");
 		else
 			strOutput.add("U");
-		if (inst.type == PPCREC_IML_TYPE_FPR_STORE_INDEXED)
+		if (inst.type == IMLType::FPR_STORE_INDEXED)
 			strOutput.addFmt("{} [{}+{}+{}]", inst.op_storeLoad.copyWidth / 8, IMLDebug_GetRegName(inst.op_storeLoad.registerMem), IMLDebug_GetRegName(inst.op_storeLoad.registerMem2), inst.op_storeLoad.immS32);
 		else
 			strOutput.addFmt("{} [t{}+{}]", inst.op_storeLoad.copyWidth / 8, inst.op_storeLoad.registerMem.GetRegID(), inst.op_storeLoad.immS32);
@@ -438,37 +438,37 @@ void IMLDebug_DisassembleInstruction(const IMLInstruction& inst, std::string& di
 		if (inst.op_storeLoad.flags2.notExpanded)
 			strOutput.add(" <No expand>");
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_R)
+	else if (inst.type == IMLType::FPR_R)
 	{
 		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}", IMLDebug_GetRegName(inst.op_fpr_r.regR));
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R)
+	else if (inst.type == IMLType::FPR_R_R)
 	{
 		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}, {}", IMLDebug_GetRegName(inst.op_fpr_r_r.regR), IMLDebug_GetRegName(inst.op_fpr_r_r.regA));
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R_R)
+	else if (inst.type == IMLType::FPR_R_R_R_R)
 	{
 		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}, {}, {}, {}", IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regR), IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regA), IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regB), IMLDebug_GetRegName(inst.op_fpr_r_r_r_r.regC));
 	}
-	else if (inst.type == PPCREC_IML_TYPE_FPR_R_R_R)
+	else if (inst.type == IMLType::FPR_R_R_R)
 	{
 		strOutput.addFmt("{:<6} ", IMLDebug_GetOpcodeName(&inst));
 		strOutput.addFmt("{}, {}, {}", IMLDebug_GetRegName(inst.op_fpr_r_r_r.regR), IMLDebug_GetRegName(inst.op_fpr_r_r_r.regA), IMLDebug_GetRegName(inst.op_fpr_r_r_r.regB));
 	}
-	else if (inst.type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK)
+	else if (inst.type == IMLType::CJUMP_CYCLE_CHECK)
 	{
 		strOutput.addFmt("CYCLE_CHECK");
 	}
-	else if (inst.type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
+	else if (inst.type == IMLType::X86_EFLAGS_JCC)
 	{
 		strOutput.addFmt("X86_JCC {}", IMLDebug_GetConditionName(inst.op_x86_eflags_jcc.cond));
 	}
 	else
 	{
-		strOutput.addFmt("Unknown iml type {}", inst.type);
+		strOutput.addFmt("Unknown iml type {}", static_cast<uint32>(inst.type));
 	}
 	disassemblyLineOut.assign(strOutput.c_str());
 }
@@ -502,7 +502,7 @@ void IMLDebug_DumpSegment(ppcImlGenContext_t* ctx, IMLSegment* imlSegment, bool 
 	{
 		const IMLInstruction& inst = imlSegment->imlList[i];
 		// don't log NOP instructions
-		if (inst.type == PPCREC_IML_TYPE_NO_OP)
+		if (inst.type == IMLType::NO_OP)
 			continue;
 		strOutput.reset();
 		strOutput.addFmt("{:02x} ", i);

@@ -315,8 +315,6 @@ void gx2Export_GX2SetGeometryUniformBlock(PPCInterpreter_t* hCPU)
 
 void gx2Export_GX2RSetVertexUniformBlock(PPCInterpreter_t* hCPU)
 {
-	GX2::GX2ReserveCmdSpace(9);
-
 	GX2RBuffer* bufferPtr = (GX2RBuffer*)memory_getPointerFromVirtualOffset(hCPU->gpr[3]);
 	uint32 index = hCPU->gpr[4];
 	uint32 offset = hCPU->gpr[5];

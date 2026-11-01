@@ -132,7 +132,7 @@ static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRe
 
 	// The purpose of GetInstructionFixedRegisters() is to constraint virtual registers to specific physical registers for instructions which need it
 	// on x86 this is used for instructions like SHL <reg>, CL where the CL register is hardwired. On aarch it's probably only necessary for setting up the calling convention
-	if (instruction->type == PPCREC_IML_TYPE_CALL_IMM)
+	if (instruction->type == IMLType::CALL_IMM)
 	{
 		const IMLPhysReg intParamToPhysReg[3] = {IMLArchAArch64::PHYSREG_GPR_BASE + 0, IMLArchAArch64::PHYSREG_GPR_BASE + 1, IMLArchAArch64::PHYSREG_GPR_BASE + 2};
 		const IMLPhysReg floatParamToPhysReg[3] = {IMLArchAArch64::PHYSREG_FPR_BASE + 0, IMLArchAArch64::PHYSREG_FPR_BASE + 1, IMLArchAArch64::PHYSREG_FPR_BASE + 2};
@@ -154,9 +154,9 @@ static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRe
 	fixedRegs.listInput.clear();
 	fixedRegs.listOutput.clear();
 
-	if (instruction->type == PPCREC_IML_TYPE_R_R_R)
+	if (instruction->type == IMLType::R_R_R)
 	{
-		if (instruction->operation == PPCREC_IML_OP_LEFT_SHIFT || instruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_S || instruction->operation == PPCREC_IML_OP_RIGHT_SHIFT_U)
+		if (instruction->operation == IMLOperation::OP_LEFT_SHIFT || instruction->operation == IMLOperation::OP_RIGHT_SHIFT_S || instruction->operation == IMLOperation::OP_RIGHT_SHIFT_U)
 		{
 			if(!g_CPUFeatures.x86.bmi2)
 			{
@@ -166,14 +166,14 @@ static void GetInstructionFixedRegisters(IMLInstruction* instruction, IMLFixedRe
 			}
 		}
 	}
-	else if (instruction->type == PPCREC_IML_TYPE_ATOMIC_CMP_STORE)
+	else if (instruction->type == IMLType::ATOMIC_CMP_STORE)
 	{
 		IMLPhysRegisterSet ps;
 		ps.SetAvailable(IMLArchX86::PHYSREG_GPR_BASE + X86_REG_EAX);
 		fixedRegs.listInput.emplace_back(IMLREG_INVALID, ps); // none of the inputs may use EAX
 		fixedRegs.listOutput.emplace_back(instruction->op_atomic_compare_store.regBoolOut, ps); // but we output to EAX
 	}
-	else if (instruction->type == PPCREC_IML_TYPE_CALL_IMM)
+	else if (instruction->type == IMLType::CALL_IMM)
 	{
 		const IMLPhysReg intParamToPhysReg[3] = {IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RCX, IMLArchX86::PHYSREG_GPR_BASE + X86_REG_RDX, IMLArchX86::PHYSREG_GPR_BASE + X86_REG_R8};
 		const IMLPhysReg floatParamToPhysReg[3] = {IMLArchX86::PHYSREG_FPR_BASE + 0, IMLArchX86::PHYSREG_FPR_BASE + 1, IMLArchX86::PHYSREG_FPR_BASE + 2};

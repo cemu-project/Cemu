@@ -103,81 +103,79 @@ static const IMLRegID IMLRegID_INVALID(0xFFFF);
 
 using IMLName = uint32;
 
-enum
+enum class IMLOperation : uint8
 {
-	PPCREC_IML_OP_ASSIGN,			// '=' operator
-	PPCREC_IML_OP_ENDIAN_SWAP,		// '=' operator with 32bit endian swap
-	PPCREC_IML_OP_MULTIPLY_SIGNED,  // '*' operator (signed multiply)
-	PPCREC_IML_OP_MULTIPLY_HIGH_UNSIGNED, // unsigned 64bit multiply, store only high 32bit-word of result
-	PPCREC_IML_OP_MULTIPLY_HIGH_SIGNED, // signed 64bit multiply, store only high 32bit-word of result
-	PPCREC_IML_OP_DIVIDE_SIGNED,	// '/' operator (signed divide)
-	PPCREC_IML_OP_DIVIDE_UNSIGNED,	// '/' operator (unsigned divide)
+	OP_INVALID = 0, // also used by instruction types without an operation
+
+	OP_ASSIGN,			// '=' operator
+	OP_ENDIAN_SWAP,		// '=' operator with 32bit endian swap
+	OP_MULTIPLY_SIGNED,  // '*' operator (signed multiply)
+	OP_MULTIPLY_HIGH_UNSIGNED, // unsigned 64bit multiply, store only high 32bit-word of result
+	OP_MULTIPLY_HIGH_SIGNED, // signed 64bit multiply, store only high 32bit-word of result
+	OP_DIVIDE_SIGNED,	// '/' operator (signed divide)
+	OP_DIVIDE_UNSIGNED,	// '/' operator (unsigned divide)
 
 	// binary operation
-	PPCREC_IML_OP_OR,				// '|' operator
-	PPCREC_IML_OP_AND,				// '&' operator
-	PPCREC_IML_OP_XOR,				// '^' operator
-	PPCREC_IML_OP_LEFT_ROTATE,		// left rotate operator
-	PPCREC_IML_OP_LEFT_SHIFT,		// shift left operator
-	PPCREC_IML_OP_RIGHT_SHIFT_U,	// right shift operator (unsigned)
-	PPCREC_IML_OP_RIGHT_SHIFT_S,	// right shift operator (signed)
+	OP_OR,				// '|' operator
+	OP_AND,				// '&' operator
+	OP_XOR,				// '^' operator
+	OP_LEFT_ROTATE,		// left rotate operator
+	OP_LEFT_SHIFT,		// shift left operator
+	OP_RIGHT_SHIFT_U,	// right shift operator (unsigned)
+	OP_RIGHT_SHIFT_S,	// right shift operator (signed)
 	// ppc
-	PPCREC_IML_OP_SLW,				// SLW (shift based on register by up to 63 bits)
-	PPCREC_IML_OP_SRW,				// SRW (shift based on register by up to 63 bits)
-	PPCREC_IML_OP_CNTLZW,
+	OP_SLW,				// SLW (shift based on register by up to 63 bits)
+	OP_SRW,				// SRW (shift based on register by up to 63 bits)
+	OP_CNTLZW,
 	// FPU
-	PPCREC_IML_OP_FPR_ASSIGN,
-	PPCREC_IML_OP_FPR_LOAD_ONE, // load constant 1.0 into register
-	PPCREC_IML_OP_FPR_ADD,
-	PPCREC_IML_OP_FPR_SUB,
-	PPCREC_IML_OP_FPR_MULTIPLY,
-	PPCREC_IML_OP_FPR_DIVIDE,
-	PPCREC_IML_OP_FPR_EXPAND_F32_TO_F64, // expand f32 to f64 in-place
-	PPCREC_IML_OP_FPR_NEGATE,
-	PPCREC_IML_OP_FPR_ABS, // abs(fpr)
-	PPCREC_IML_OP_FPR_NEGATIVE_ABS, // -abs(fpr)
-	PPCREC_IML_OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, // round 64bit double to 64bit double with 32bit float precision (in bottom half of xmm register)
-	PPCREC_IML_OP_FPR_FCTIWZ,
-	PPCREC_IML_OP_FPR_SELECT, // selectively copy bottom value from operand B or C based on value in operand A
+	OP_FPR_ASSIGN,
+	OP_FPR_LOAD_ONE, // load constant 1.0 into register
+	OP_FPR_ADD,
+	OP_FPR_SUB,
+	OP_FPR_MULTIPLY,
+	OP_FPR_DIVIDE,
+	OP_FPR_EXPAND_F32_TO_F64, // expand f32 to f64 in-place
+	OP_FPR_NEGATE,
+	OP_FPR_ABS, // abs(fpr)
+	OP_FPR_NEGATIVE_ABS, // -abs(fpr)
+	OP_FPR_ROUND_TO_SINGLE_PRECISION_BOTTOM, // round 64bit double to 64bit double with 32bit float precision (in bottom half of xmm register)
+	OP_FPR_FCTIWZ,
+	OP_FPR_SELECT, // selectively copy bottom value from operand B or C based on value in operand A
 	// Conversion (FPR_R_R)
-	PPCREC_IML_OP_FPR_INT_TO_FLOAT, // convert integer value in gpr to floating point value in fpr
-	PPCREC_IML_OP_FPR_FLOAT_TO_INT, // convert floating point value in fpr to integer value in gpr
+	OP_FPR_INT_TO_FLOAT, // convert integer value in gpr to floating point value in fpr
+	OP_FPR_FLOAT_TO_INT, // convert floating point value in fpr to integer value in gpr
 
 	// Bitcast (FPR_R_R)
-	PPCREC_IML_OP_FPR_BITCAST_INT_TO_FLOAT,
+	OP_FPR_BITCAST_INT_TO_FLOAT,
 
 	// R_R_R + R_R_S32
-	PPCREC_IML_OP_ADD, // also R_R_R_CARRY
-	PPCREC_IML_OP_SUB,
+	OP_ADD, // also R_R_R_CARRY
+	OP_SUB,
 
 	// R_R only
-	PPCREC_IML_OP_NOT,
-	PPCREC_IML_OP_NEG,
-	PPCREC_IML_OP_ASSIGN_S16_TO_S32,
-	PPCREC_IML_OP_ASSIGN_S8_TO_S32,
+	OP_NOT,
+	OP_NEG,
+	OP_ASSIGN_S16_TO_S32,
+	OP_ASSIGN_S8_TO_S32,
 
 	// R_R_R_carry
-	PPCREC_IML_OP_ADD_WITH_CARRY, // similar to ADD but also adds carry bit (0 or 1)
+	OP_ADD_WITH_CARRY, // similar to ADD but also adds carry bit (0 or 1)
 
 	// X86 extension
-	PPCREC_IML_OP_X86_CMP, // R_R and R_S32
+	OP_X86_CMP, // R_R and R_S32
 
-	PPCREC_IML_OP_INVALID
-};
+	// Macros share the operation field and use distinct values as well.
+	MACRO_B_TO_REG,		// branch to PPC address in register (used for BCCTR, BCLR)
 
-#define PPCREC_IML_OP_FPR_COPY_PAIR (PPCREC_IML_OP_ASSIGN)
-
-enum
-{
-	PPCREC_IML_MACRO_B_TO_REG,		// branch to PPC address in register (used for BCCTR, BCLR)
-
-	PPCREC_IML_MACRO_BL,			// call to different function (can be within same function)
-	PPCREC_IML_MACRO_B_FAR,			// branch to different function
-	PPCREC_IML_MACRO_COUNT_CYCLES,	// decrease current remaining thread cycles by a certain amount
-	PPCREC_IML_MACRO_HLE,			// HLE function call
-	PPCREC_IML_MACRO_LEAVE,			// leaves recompiler and switches to interpeter
+	MACRO_BL,			// call to different function (can be within same function)
+	MACRO_B_FAR,			// branch to different function
+	MACRO_COUNT_CYCLES,	// decrease current remaining thread cycles by a certain amount
+	MACRO_HLE,			// HLE function call
+	MACRO_LEAVE,			// leaves recompiler and switches to interpeter
 	// debugging
-	PPCREC_IML_MACRO_DEBUGBREAK,	// throws a debugbreak
+	MACRO_DEBUGBREAK,	// throws a debugbreak
+
+	OP_FPR_COPY_PAIR = OP_ASSIGN,
 };
 
 enum class IMLCondition : uint8
@@ -201,51 +199,51 @@ enum class IMLCondition : uint8
 	ORDERED_U
 };
 
-enum
+enum class IMLType : uint8
 {
-	PPCREC_IML_TYPE_NONE,
-	PPCREC_IML_TYPE_NO_OP,				// no-op instruction
-	PPCREC_IML_TYPE_R_R,				// r* = (op) *r			(can also be r* (op) *r) 
-	PPCREC_IML_TYPE_R_R_R,				// r* = r* (op) r*
-	PPCREC_IML_TYPE_R_R_R_CARRY,		// r* = r* (op) r*		(reads and/or updates carry)
-	PPCREC_IML_TYPE_R_R_S32,			// r* = r* (op) s32*
-	PPCREC_IML_TYPE_R_R_S32_CARRY,		// r* = r* (op) s32*	(reads and/or updates carry)
-	PPCREC_IML_TYPE_LOAD,				// r* = [r*+s32*]
-	PPCREC_IML_TYPE_LOAD_INDEXED,		// r* = [r*+r*]
-	PPCREC_IML_TYPE_STORE,				// [r*+s32*] = r*
-	PPCREC_IML_TYPE_STORE_INDEXED,		// [r*+r*] = r*
-	PPCREC_IML_TYPE_R_NAME,				// r* = name
-	PPCREC_IML_TYPE_NAME_R,				// name* = r*
-	PPCREC_IML_TYPE_R_S32,				// r* (op) imm
-	PPCREC_IML_TYPE_MACRO,
-	PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK,	// jumps only if remaining thread cycles < 0
+	NONE = 0,
+	NO_OP,				// no-op instruction
+	R_R,				// r* = (op) *r			(can also be r* (op) *r)
+	R_R_R,				// r* = r* (op) r*
+	R_R_R_CARRY,		// r* = r* (op) r*		(reads and/or updates carry)
+	R_R_S32,			// r* = r* (op) s32*
+	R_R_S32_CARRY,		// r* = r* (op) s32*	(reads and/or updates carry)
+	LOAD,				// r* = [r*+s32*]
+	LOAD_INDEXED,		// r* = [r*+r*]
+	STORE,				// [r*+s32*] = r*
+	STORE_INDEXED,		// [r*+r*] = r*
+	R_NAME,				// r* = name
+	NAME_R,				// name* = r*
+	R_S32,				// r* (op) imm
+	MACRO,
+	CJUMP_CYCLE_CHECK,	// jumps only if remaining thread cycles < 0
 
 	// conditions and branches
-	PPCREC_IML_TYPE_COMPARE,			// r* = r* CMP[cond] r*
-	PPCREC_IML_TYPE_COMPARE_S32,		// r* = r* CMP[cond] imm
-	PPCREC_IML_TYPE_JUMP,				// jump always
-	PPCREC_IML_TYPE_CONDITIONAL_JUMP,	// jump conditionally based on boolean value in register
+	COMPARE,			// r* = r* CMP[cond] r*
+	COMPARE_S32,		// r* = r* CMP[cond] imm
+	JUMP,				// jump always
+	CONDITIONAL_JUMP,	// jump conditionally based on boolean value in register
 
 	// atomic
-	PPCREC_IML_TYPE_ATOMIC_CMP_STORE,
+	ATOMIC_CMP_STORE,
 
 	// function call
-	PPCREC_IML_TYPE_CALL_IMM,			// call to fixed immediate address
+	CALL_IMM,			// call to fixed immediate address
 
 	// FPR
-	PPCREC_IML_TYPE_FPR_LOAD,			// r* = (bitdepth) [r*+s32*] (single or paired single mode)
-	PPCREC_IML_TYPE_FPR_LOAD_INDEXED,	// r* = (bitdepth) [r*+r*] (single or paired single mode)
-	PPCREC_IML_TYPE_FPR_STORE,			// (bitdepth) [r*+s32*] = r* (single or paired single mode)
-	PPCREC_IML_TYPE_FPR_STORE_INDEXED,	// (bitdepth) [r*+r*] = r* (single or paired single mode)
-	PPCREC_IML_TYPE_FPR_R_R,
-	PPCREC_IML_TYPE_FPR_R_R_R,
-	PPCREC_IML_TYPE_FPR_R_R_R_R,
-	PPCREC_IML_TYPE_FPR_R,
+	FPR_LOAD,			// r* = (bitdepth) [r*+s32*] (single or paired single mode)
+	FPR_LOAD_INDEXED,	// r* = (bitdepth) [r*+r*] (single or paired single mode)
+	FPR_STORE,			// (bitdepth) [r*+s32*] = r* (single or paired single mode)
+	FPR_STORE_INDEXED,	// (bitdepth) [r*+r*] = r* (single or paired single mode)
+	FPR_R_R,
+	FPR_R_R_R,
+	FPR_R_R_R_R,
+	FPR_R,
 
-	PPCREC_IML_TYPE_FPR_COMPARE,		// r* = r* CMP[cond] r*
+	FPR_COMPARE,		// r* = r* CMP[cond] r*
 
 	// X86 specific
-	PPCREC_IML_TYPE_X86_EFLAGS_JCC,
+	X86_EFLAGS_JCC,
 };
 
 enum // IMLName
@@ -357,8 +355,8 @@ struct IMLInstruction
 		memcpy(static_cast<void*>(this), &other, sizeof(IMLInstruction));
 	}
 
-	uint8 type;
-	uint8 operation;
+	IMLType type;
+	IMLOperation operation;
 	union
 	{
 		struct
@@ -512,15 +510,15 @@ struct IMLInstruction
 
 	bool IsSuffixInstruction() const
 	{
-		if (type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_BL ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_B_FAR ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_B_TO_REG ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_LEAVE ||
-			type == PPCREC_IML_TYPE_MACRO && operation == PPCREC_IML_MACRO_HLE ||
-			type == PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK ||
-			type == PPCREC_IML_TYPE_JUMP ||
-			type == PPCREC_IML_TYPE_CONDITIONAL_JUMP ||
-			type == PPCREC_IML_TYPE_X86_EFLAGS_JCC)
+		if (type == IMLType::MACRO && operation == IMLOperation::MACRO_BL ||
+			type == IMLType::MACRO && operation == IMLOperation::MACRO_B_FAR ||
+			type == IMLType::MACRO && operation == IMLOperation::MACRO_B_TO_REG ||
+			type == IMLType::MACRO && operation == IMLOperation::MACRO_LEAVE ||
+			type == IMLType::MACRO && operation == IMLOperation::MACRO_HLE ||
+			type == IMLType::CJUMP_CYCLE_CHECK ||
+			type == IMLType::JUMP ||
+			type == IMLType::CONDITIONAL_JUMP ||
+			type == IMLType::X86_EFLAGS_JCC)
 			return true;
 		return false;
 	}
@@ -528,15 +526,15 @@ struct IMLInstruction
 	// instruction setters
 	void make_no_op()
 	{
-		type = PPCREC_IML_TYPE_NO_OP;
-		operation = 0;
+		type = IMLType::NO_OP;
+		operation = IMLOperation::OP_INVALID;
 	}
 
 	void make_r_name(IMLReg regR, IMLName name)
 	{
 		cemu_assert_debug(regR.GetBaseFormat() == regR.GetRegFormat()); // for name load/store instructions the register must match the base format
-		type = PPCREC_IML_TYPE_R_NAME;
-		operation = PPCREC_IML_OP_ASSIGN;
+		type = IMLType::R_NAME;
+		operation = IMLOperation::OP_ASSIGN;
 		op_r_name.regR = regR;
 		op_r_name.name = name;
 	}
@@ -544,20 +542,20 @@ struct IMLInstruction
 	void make_name_r(IMLName name, IMLReg regR)
 	{
 		cemu_assert_debug(regR.GetBaseFormat() == regR.GetRegFormat()); // for name load/store instructions the register must match the base format
-		type = PPCREC_IML_TYPE_NAME_R;
-		operation = PPCREC_IML_OP_ASSIGN;
+		type = IMLType::NAME_R;
+		operation = IMLOperation::OP_ASSIGN;
 		op_r_name.regR = regR;
 		op_r_name.name = name;
 	}
 
 	void make_debugbreak(uint32 currentPPCAddress = 0)
 	{
-		make_macro(PPCREC_IML_MACRO_DEBUGBREAK, 0, currentPPCAddress, 0, IMLREG_INVALID);
+		make_macro(IMLOperation::MACRO_DEBUGBREAK, 0, currentPPCAddress, 0, IMLREG_INVALID);
 	}
 
-	void make_macro(uint32 macroId, uint32 param, uint32 param2, uint16 paramU16, IMLReg regParam)
+	void make_macro(IMLOperation macroId, uint32 param, uint32 param2, uint16 paramU16, IMLReg regParam)
 	{
-		this->type = PPCREC_IML_TYPE_MACRO;
+		this->type = IMLType::MACRO;
 		this->operation = macroId;
 		this->op_macro.param = param;
 		this->op_macro.param2 = param2;
@@ -567,38 +565,38 @@ struct IMLInstruction
 
 	void make_cjump_cycle_check()
 	{
-		this->type = PPCREC_IML_TYPE_CJUMP_CYCLE_CHECK;
-		this->operation = 0;
+		this->type = IMLType::CJUMP_CYCLE_CHECK;
+		this->operation = IMLOperation::OP_INVALID;
 	}
 
-	void make_r_r(uint32 operation, IMLReg regR, IMLReg regA)
+	void make_r_r(IMLOperation operation, IMLReg regR, IMLReg regA)
 	{
-		this->type = PPCREC_IML_TYPE_R_R;
+		this->type = IMLType::R_R;
 		this->operation = operation;
 		this->op_r_r.regR = regR;
 		this->op_r_r.regA = regA;
 	}
 
-	void make_r_s32(uint32 operation, IMLReg regR, sint32 immS32)
+	void make_r_s32(IMLOperation operation, IMLReg regR, sint32 immS32)
 	{
-		this->type = PPCREC_IML_TYPE_R_S32;
+		this->type = IMLType::R_S32;
 		this->operation = operation;
 		this->op_r_immS32.regR = regR;
 		this->op_r_immS32.immS32 = immS32;
 	}
 
-	void make_r_r_r(uint32 operation, IMLReg regR, IMLReg regA, IMLReg regB)
+	void make_r_r_r(IMLOperation operation, IMLReg regR, IMLReg regA, IMLReg regB)
 	{
-		this->type = PPCREC_IML_TYPE_R_R_R;
+		this->type = IMLType::R_R_R;
 		this->operation = operation;
 		this->op_r_r_r.regR = regR;
 		this->op_r_r_r.regA = regA;
 		this->op_r_r_r.regB = regB;
 	}
 
-	void make_r_r_r_carry(uint32 operation, IMLReg regR, IMLReg regA, IMLReg regB, IMLReg regCarry)
+	void make_r_r_r_carry(IMLOperation operation, IMLReg regR, IMLReg regA, IMLReg regB, IMLReg regCarry)
 	{
-		this->type = PPCREC_IML_TYPE_R_R_R_CARRY;
+		this->type = IMLType::R_R_R_CARRY;
 		this->operation = operation;
 		this->op_r_r_r_carry.regR = regR;
 		this->op_r_r_r_carry.regA = regA;
@@ -606,18 +604,18 @@ struct IMLInstruction
 		this->op_r_r_r_carry.regCarry = regCarry;
 	}
 
-	void make_r_r_s32(uint32 operation, IMLReg regR, IMLReg regA, sint32 immS32)
+	void make_r_r_s32(IMLOperation operation, IMLReg regR, IMLReg regA, sint32 immS32)
 	{
-		this->type = PPCREC_IML_TYPE_R_R_S32;
+		this->type = IMLType::R_R_S32;
 		this->operation = operation;
 		this->op_r_r_s32.regR = regR;
 		this->op_r_r_s32.regA = regA;
 		this->op_r_r_s32.immS32 = immS32;
 	}
 
-	void make_r_r_s32_carry(uint32 operation, IMLReg regR, IMLReg regA, sint32 immS32, IMLReg regCarry)
+	void make_r_r_s32_carry(IMLOperation operation, IMLReg regR, IMLReg regA, sint32 immS32, IMLReg regCarry)
 	{
-		this->type = PPCREC_IML_TYPE_R_R_S32_CARRY;
+		this->type = IMLType::R_R_S32_CARRY;
 		this->operation = operation;
 		this->op_r_r_s32_carry.regR = regR;
 		this->op_r_r_s32_carry.regA = regA;
@@ -627,8 +625,8 @@ struct IMLInstruction
 
 	void make_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
 	{
-		this->type = PPCREC_IML_TYPE_COMPARE;
-		this->operation = PPCREC_IML_OP_INVALID;
+		this->type = IMLType::COMPARE;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_compare.regR = regR;
 		this->op_compare.regA = regA;
 		this->op_compare.regB = regB;
@@ -637,8 +635,8 @@ struct IMLInstruction
 
 	void make_compare_s32(IMLReg regA, sint32 immS32, IMLReg regR, IMLCondition cond)
 	{
-		this->type = PPCREC_IML_TYPE_COMPARE_S32;
-		this->operation = PPCREC_IML_OP_INVALID;
+		this->type = IMLType::COMPARE_S32;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_compare_s32.regR = regR;
 		this->op_compare_s32.regA = regA;
 		this->op_compare_s32.immS32 = immS32;
@@ -647,23 +645,23 @@ struct IMLInstruction
 
 	void make_conditional_jump(IMLReg regBool, bool mustBeTrue)
 	{
-		this->type = PPCREC_IML_TYPE_CONDITIONAL_JUMP;
-		this->operation = PPCREC_IML_OP_INVALID;
+		this->type = IMLType::CONDITIONAL_JUMP;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_conditional_jump.registerBool = regBool;
 		this->op_conditional_jump.mustBeTrue = mustBeTrue;
 	}
 
 	void make_jump()
 	{
-		this->type = PPCREC_IML_TYPE_JUMP;
-		this->operation = PPCREC_IML_OP_INVALID;
+		this->type = IMLType::JUMP;
+		this->operation = IMLOperation::OP_INVALID;
 	}
 
 	// load from memory
 	void make_r_memory(IMLReg regD, IMLReg regMem, sint32 immS32, uint32 copyWidth, bool signExtend, bool switchEndian)
 	{
-		this->type = PPCREC_IML_TYPE_LOAD;
-		this->operation = 0;
+		this->type = IMLType::LOAD;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_storeLoad.registerData = regD;
 		this->op_storeLoad.registerMem = regMem;
 		this->op_storeLoad.immS32 = immS32;
@@ -675,8 +673,8 @@ struct IMLInstruction
 	// store to memory
 	void make_memory_r(IMLReg regS, IMLReg regMem, sint32 immS32, uint32 copyWidth, bool switchEndian)
 	{
-		this->type = PPCREC_IML_TYPE_STORE;
-		this->operation = 0;
+		this->type = IMLType::STORE;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_storeLoad.registerData = regS;
 		this->op_storeLoad.registerMem = regMem;
 		this->op_storeLoad.immS32 = immS32;
@@ -687,8 +685,8 @@ struct IMLInstruction
 
 	void make_atomic_cmp_store(IMLReg regEA, IMLReg regCompareValue, IMLReg regWriteValue, IMLReg regSuccessOutput)
 	{
-		this->type = PPCREC_IML_TYPE_ATOMIC_CMP_STORE;
-		this->operation = 0;
+		this->type = IMLType::ATOMIC_CMP_STORE;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_atomic_compare_store.regEA = regEA;
 		this->op_atomic_compare_store.regCompareValue = regCompareValue;
 		this->op_atomic_compare_store.regWriteValue = regWriteValue;
@@ -697,8 +695,8 @@ struct IMLInstruction
 
 	void make_call_imm(uintptr_t callAddress, IMLReg param0, IMLReg param1, IMLReg param2, IMLReg regReturn)
 	{
-		this->type = PPCREC_IML_TYPE_CALL_IMM;
-		this->operation = 0;
+		this->type = IMLType::CALL_IMM;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_call_imm.callAddress = callAddress;
 		this->op_call_imm.regParam0 = param0;
 		this->op_call_imm.regParam1 = param1;
@@ -711,8 +709,8 @@ struct IMLInstruction
 	// load from memory
 	void make_fpr_r_memory(IMLReg registerDestination, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian)
 	{
-		this->type = PPCREC_IML_TYPE_FPR_LOAD;
-		this->operation = 0;
+		this->type = IMLType::FPR_LOAD;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_storeLoad.registerData = registerDestination;
 		this->op_storeLoad.registerMem = registerMemory;
 		this->op_storeLoad.immS32 = immS32;
@@ -722,8 +720,8 @@ struct IMLInstruction
 
 	void make_fpr_r_memory_indexed(IMLReg registerDestination, IMLReg registerMemory1, IMLReg registerMemory2, uint32 mode, bool switchEndian)
 	{
-		this->type = PPCREC_IML_TYPE_FPR_LOAD_INDEXED;
-		this->operation = 0;
+		this->type = IMLType::FPR_LOAD_INDEXED;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_storeLoad.registerData = registerDestination;
 		this->op_storeLoad.registerMem = registerMemory1;
 		this->op_storeLoad.registerMem2 = registerMemory2;
@@ -735,8 +733,8 @@ struct IMLInstruction
 	// store to memory
 	void make_fpr_memory_r(IMLReg registerSource, IMLReg registerMemory, sint32 immS32, uint32 mode, bool switchEndian)
 	{
-		this->type = PPCREC_IML_TYPE_FPR_STORE;
-		this->operation = 0;
+		this->type = IMLType::FPR_STORE;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_storeLoad.registerData = registerSource;
 		this->op_storeLoad.registerMem = registerMemory;
 		this->op_storeLoad.immS32 = immS32;
@@ -746,8 +744,8 @@ struct IMLInstruction
 
 	void make_fpr_memory_r_indexed(IMLReg registerSource, IMLReg registerMemory1, IMLReg registerMemory2, sint32 immS32, uint32 mode, bool switchEndian)
 	{
-		this->type = PPCREC_IML_TYPE_FPR_STORE_INDEXED;
-		this->operation = 0;
+		this->type = IMLType::FPR_STORE_INDEXED;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_storeLoad.registerData = registerSource;
 		this->op_storeLoad.registerMem = registerMemory1;
 		this->op_storeLoad.registerMem2 = registerMemory2;
@@ -758,45 +756,45 @@ struct IMLInstruction
 
 	void make_fpr_compare(IMLReg regA, IMLReg regB, IMLReg regR, IMLCondition cond)
 	{
-		this->type = PPCREC_IML_TYPE_FPR_COMPARE;
-		this->operation = static_cast<uint8_t>(-999);
+		this->type = IMLType::FPR_COMPARE;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_fpr_compare.regR = regR;
 		this->op_fpr_compare.regA = regA;
 		this->op_fpr_compare.regB = regB;
 		this->op_fpr_compare.cond = cond;
 	}
 
-	void make_fpr_r(sint32 operation, IMLReg registerResult)
+	void make_fpr_r(IMLOperation operation, IMLReg registerResult)
 	{
 		// OP (fpr)
-		this->type = PPCREC_IML_TYPE_FPR_R;
+		this->type = IMLType::FPR_R;
 		this->operation = operation;
 		this->op_fpr_r.regR = registerResult;
 	}
 
-	void make_fpr_r_r(sint32 operation, IMLReg registerResult, IMLReg registerOperand, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+	void make_fpr_r_r(IMLOperation operation, IMLReg registerResult, IMLReg registerOperand, sint32 crRegister=PPC_REC_INVALID_REGISTER)
 	{
 		// fpr OP fpr
-		this->type = PPCREC_IML_TYPE_FPR_R_R;
+		this->type = IMLType::FPR_R_R;
 		this->operation = operation;
 		this->op_fpr_r_r.regR = registerResult;
 		this->op_fpr_r_r.regA = registerOperand;
 	}
 
-	void make_fpr_r_r_r(sint32 operation, IMLReg registerResult, IMLReg registerOperand1, IMLReg registerOperand2, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+	void make_fpr_r_r_r(IMLOperation operation, IMLReg registerResult, IMLReg registerOperand1, IMLReg registerOperand2, sint32 crRegister=PPC_REC_INVALID_REGISTER)
 	{
 		// fpr = OP (fpr,fpr)
-		this->type = PPCREC_IML_TYPE_FPR_R_R_R;
+		this->type = IMLType::FPR_R_R_R;
 		this->operation = operation;
 		this->op_fpr_r_r_r.regR = registerResult;
 		this->op_fpr_r_r_r.regA = registerOperand1;
 		this->op_fpr_r_r_r.regB = registerOperand2;
 	}
 
-	void make_fpr_r_r_r_r(sint32 operation, IMLReg registerResult, IMLReg registerOperandA, IMLReg registerOperandB, IMLReg registerOperandC, sint32 crRegister=PPC_REC_INVALID_REGISTER)
+	void make_fpr_r_r_r_r(IMLOperation operation, IMLReg registerResult, IMLReg registerOperandA, IMLReg registerOperandB, IMLReg registerOperandC, sint32 crRegister=PPC_REC_INVALID_REGISTER)
 	{
 		// fpr = OP (fpr,fpr,fpr)
-		this->type = PPCREC_IML_TYPE_FPR_R_R_R_R;
+		this->type = IMLType::FPR_R_R_R_R;
 		this->operation = operation;
 		this->op_fpr_r_r_r_r.regR = registerResult;
 		this->op_fpr_r_r_r_r.regA = registerOperandA;
@@ -807,8 +805,8 @@ struct IMLInstruction
 	/* X86 specific */
 	void make_x86_eflags_jcc(IMLCondition cond, bool invertedCondition)
 	{
-		this->type = PPCREC_IML_TYPE_X86_EFLAGS_JCC;
-		this->operation = static_cast<uint8_t>(-999);
+		this->type = IMLType::X86_EFLAGS_JCC;
+		this->operation = IMLOperation::OP_INVALID;
 		this->op_x86_eflags_jcc.cond = cond;
 		this->op_x86_eflags_jcc.invertedCondition = invertedCondition;
 	}
