@@ -94,24 +94,41 @@ bool CreateMiniDump(CrashDump dump, EXCEPTION_POINTERS* pep)
 	return result != FALSE;
 }
 
-void DumpThreadStackTrace()
+void DumpThreadStackTrace(const CONTEXT* context)
 {
 	HANDLE process = GetCurrentProcess();
 	SymInitialize(process, NULL, TRUE);
 
 	char dumpLine[1024 * 4];
-	void* stack[100];
-
-	const unsigned short frames = CaptureStackBackTrace(0, 40, stack, NULL);
+	uint64 stack[40];
+	uint32 frameCount = 0;
+	// copy context since StackWalk64 modifies it
+	CONTEXT unwindContext = *context;
+	STACKFRAME64 frame{};
+	frame.AddrPC = {unwindContext.Rip, 0, AddrModeFlat};
+	frame.AddrStack = {unwindContext.Rsp, 0, AddrModeFlat};
+	frame.AddrFrame = {unwindContext.Rbp, 0, AddrModeFlat};
+	uint64 previousStackPointer = 0;
+	while (frameCount < std::size(stack) && StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, GetCurrentThread(), &frame, &unwindContext, nullptr, SymFunctionTableAccess64, SymGetModuleBase64, nullptr))
+	{
+		if (!frame.AddrPC.Offset || (frameCount > 0 && stack[frameCount - 1] == frame.AddrPC.Offset && previousStackPointer == frame.AddrStack.Offset))
+			break;
+		stack[frameCount++] = frame.AddrPC.Offset;
+		previousStackPointer = frame.AddrStack.Offset;
+	}
+	// if stack unwinding fails then manually add the faulting instruction as the only stack frame
+	if (frameCount == 0 && context->Rip)
+		stack[frameCount++] = context->Rip;
 	SYMBOL_INFO* symbol = (SYMBOL_INFO*)calloc(sizeof(SYMBOL_INFO) + 256 * sizeof(char), 1);
 	symbol->MaxNameLen = 255;
 	symbol->SizeOfStruct = sizeof(SYMBOL_INFO);
 
-    CrashLog_WriteHeader("Stack trace");
-	for (unsigned int i = 0; i < frames; i++)
+	CrashLog_WriteHeader("Stack trace");
+	for (uint32 i = 0; i < frameCount; i++)
 	{
-		DWORD64 stackTraceOffset = (DWORD64)stack[i];
-		SymFromAddr(process, stackTraceOffset, 0, symbol);
+		uint64 stackTraceOffset = stack[i];
+		if (!SymFromAddr(process, stackTraceOffset, 0, symbol))
+			symbol->Name[0] = '\0';
 		sprintf(dumpLine, "0x%016I64x ", (uint64)(size_t)stack[i]);
 		cemuLog_writePlainToLog(dumpLine);
 		// module name
@@ -153,6 +170,13 @@ void DumpThreadStackTrace()
 	free(symbol);
 }
 
+void DumpThreadStackTrace()
+{
+	CONTEXT context;
+	RtlCaptureContext(&context);
+	DumpThreadStackTrace(&context);
+}
+
 void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 {
     if(!CrashLog_Create())
@@ -174,7 +198,7 @@ void createCrashlog(EXCEPTION_POINTERS* e, PCONTEXT context)
 	sprintf(dumpLine, "Date: %02d-%02d-%04d %02d:%02d:%02d\n\n", (sint32)sysTime.wDay, (sint32)sysTime.wMonth, (sint32)sysTime.wYear, (sint32)sysTime.wHour, (sint32)sysTime.wMinute, (sint32)sysTime.wSecond);
 	cemuLog_writePlainToLog(dumpLine);
 
-	DumpThreadStackTrace();
+	DumpThreadStackTrace(context);
 	// info about exception
 	if (e->ExceptionRecord)
 	{
