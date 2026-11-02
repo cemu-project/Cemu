@@ -48,7 +48,7 @@ EmulatedUSBDeviceFrame::EmulatedUSBDeviceFrame(wxWindow* parent)
 	notebook->AddPage(AddSkylanderPage(notebook), _("Skylanders Portal"));
 	notebook->AddPage(AddInfinityPage(notebook), _("Infinity Base"));
 	notebook->AddPage(AddDimensionsPage(notebook), _("Dimensions Toypad"));
-	notebook->AddPage(AddMouseKeyboardPage(notebook), _("Mouse && Keyboard"));
+	notebook->AddPage(AddMouseKeyboardPage(notebook), _("Mouse and Keyboard"));
 
 	sizer->Add(notebook, 1, wxEXPAND | wxALL, 2);
 
