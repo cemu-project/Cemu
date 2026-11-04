@@ -638,3 +638,25 @@ extern MPTR activeThread[256];
 extern sint32 activeThreadCount;
 
 extern SlimRWLock srwlock_activeThreadList;
+
+class CafeLockGuard
+{
+public:
+	explicit CafeLockGuard(coreinit::OSMutex* mutex, bool acquire = true)
+		: m_mutex(mutex), m_actuallyAcquire(acquire && coreinit::OSIsSchedulerActive())
+	{
+		if (m_actuallyAcquire)
+			coreinit::OSLockMutex(m_mutex);
+	}
+	~CafeLockGuard()
+	{
+		if (m_actuallyAcquire)
+			coreinit::OSUnlockMutex(m_mutex);
+	}
+	CafeLockGuard(const CafeLockGuard&) = delete;
+	CafeLockGuard(CafeLockGuard&&) = delete;
+	CafeLockGuard& operator=(const CafeLockGuard&) = delete;
+private:
+	coreinit::OSMutex* m_mutex;
+	bool m_actuallyAcquire;
+};
