@@ -13,8 +13,8 @@
 #include "Cafe/IOSU/legacy/iosu_crypto.h"
 #include "Cafe/OS/libs/nsysnet/nsysnet.h"
 #include "Cafe/OS/libs/coreinit/coreinit_MEM.h"
-
 #include "Cafe/OS/common/PPCConcurrentQueue.h"
+#include "config/CemuConfig.h"
 
 namespace nlibcurl
 {
@@ -657,7 +657,10 @@ namespace nlibcurl
 		::curl_easy_setopt(hostCurl, CURLOPT_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
 		::curl_easy_setopt(hostCurl, CURLOPT_REDIR_PROTOCOLS, (long)(CURLPROTO_HTTP | CURLPROTO_HTTPS));
 		::curl_easy_setopt(hostCurl, CURLOPT_URL, set.str[WU_STRING_URL].GetPtr());
-		::curl_easy_setopt(hostCurl, CURLOPT_PROXY, set.str[WU_STRING_PROXY].GetPtr());
+		if (GetConfig().proxy_server.GetValue() != "") // proxy in Cemu settings overwrites nlibcurl proxy settings
+			::curl_easy_setopt(hostCurl, CURLOPT_PROXY, GetConfig().proxy_server.GetValue().c_str());
+		else
+			::curl_easy_setopt(hostCurl, CURLOPT_PROXY, set.str[WU_STRING_PROXY].GetPtr());
 		::curl_easy_setopt(hostCurl, CURLOPT_USERAGENT, set.str[WU_STRING_USERAGENT].GetPtr());
 		::curl_easy_setopt(hostCurl, CURLOPT_NOSIGNAL, (long)set.no_signal);
 		::curl_easy_setopt(hostCurl, CURLOPT_FOLLOWLOCATION, (long)set.http_follow_location);
