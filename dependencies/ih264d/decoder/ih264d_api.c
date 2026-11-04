@@ -2636,12 +2636,9 @@ WORD32 ih264d_video_decode(iv_obj_t *dec_hdl, void *pv_api_ip, void *pv_api_op)
 
 
     {
-        /* In case the decoder is configured to run in low delay mode,
-         * then get display buffer and then format convert.
-         * Note in this mode, format conversion does not run paralelly in a thread and adds to the codec cycles
-         */
-
-        if((IVD_DECODE_FRAME_OUT == ps_dec->e_frm_out_mode)
+        // Cemu: adjust this late buffer check so that a frame that became available during current decode is immediately output. Otherwise we'd have an extra frame of delay in buffered mode (unbuffered mode is unaffected)
+        if(((IVD_DECODE_FRAME_OUT == ps_dec->e_frm_out_mode)
+                        || (0 == ps_dec->u4_output_present))
                         && ps_dec->u1_init_dec_flag)
         {
 

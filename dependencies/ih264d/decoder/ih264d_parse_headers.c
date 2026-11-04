@@ -1137,6 +1137,7 @@ WORD32 ih264d_parse_sps(dec_struct_t *ps_dec, dec_bit_stream_t *ps_bitstrm)
 
         if(ps_seq->u1_frame_mbs_only_flag != 1)
             reorder_depth *= 2;
+        reorder_depth = MIN(reorder_depth, MAX_DISPLAY_DELAY);
         ps_dec->i4_reorder_depth = reorder_depth + DISPLAY_LATENCY;
     }
     ps_dec->u2_disp_height = i4_cropped_ht;

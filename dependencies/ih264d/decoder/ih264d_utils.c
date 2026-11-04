@@ -823,6 +823,9 @@ WORD32 ih264d_init_pic(dec_struct_t *ps_dec,
                 ps_dec->i4_display_delay = ps_seq->s_vui.u4_num_reorder_frames * 2 + 2;
         }
 
+        // Cemu: cap to 5 frames of display delay
+        ps_dec->i4_display_delay = MIN(ps_dec->i4_display_delay, MAX_DISPLAY_DELAY);
+
         if(IVD_DECODE_FRAME_OUT == ps_dec->e_frm_out_mode)
             ps_dec->i4_display_delay = 0;
 
