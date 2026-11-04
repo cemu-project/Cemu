@@ -1,6 +1,6 @@
 # Contributing
 
-Pull requests are welcome. For easier coordination you can visit the developer discussion channel on [Discord](https://discord.gg/5psYsup) or alternatively the [Matrix Server](https://matrix.to/#/#cemu:cemu.info).
+Pull requests are welcome. For easier coordination you can visit the developer discussion channel on [Discord](https://discord.gg/5psYsup).
 Before submitting a pull request, please read and follow our code style guidelines listed in [CODING_STYLE.md](/CODING_STYLE.md).
 
 If coding isn't your thing, testing games and making detailed bug reports or updating the (usually outdated) compatibility wiki is also appreciated!
