@@ -117,8 +117,7 @@ public:
 	void OnDebugViewAudioDebugger(wxCommandEvent& event);
 	void OnDebugViewTextureRelations(wxCommandEvent& event);
 	void OnMouseMove(wxMouseEvent& event);
-	void OnMouseLeft(wxMouseEvent& event);
-	void OnMouseRight(wxMouseEvent& event);
+	void OnMouseButton(wxMouseEvent& event);
 	void OnGameListBeginUpdate(wxCommandEvent& event);
 	void OnGameListEndUpdate(wxCommandEvent& event);
 	void OnAccountListRefresh(wxCommandEvent& event);
@@ -130,6 +129,8 @@ public:
 	void OnChar(wxKeyEvent& event);
 
 	void OnToolsInput(wxCommandEvent& event);
+	void OnUSBDevicesInput(wxCommandEvent& event);
+	void OnUSBDevicesUpdateUI(wxUpdateUIEvent& event);
 	void OnGesturePan(wxPanGestureEvent& event);
 
 	void OnGameLoaded();
@@ -140,6 +141,10 @@ public:
 	void DestroyCanvas();
 
 	static void ShowCursor(bool state);
+
+	void SetMouseCaptured(bool state);
+	void SetUSBMouseEnabled(bool enabled);
+	void SetUSBKeyboardEnabled(bool enabled);
 
 	uintptr_t GetRenderCanvasHWND();
 
@@ -156,9 +161,12 @@ private:
 
 	void OnTimer(wxTimerEvent& event);
 
+	void ClipCapturedMouse();
+
 	// CafeSystem implementation
 	void CafeRecreateCanvas() override;
 	void CafePPCProcessExit() override;
+	void CafeUSBInputChanged() override;
 
 	void OnRequestRestart(wxCommandEvent& event);
 	void OnRequestRecreateCanvas(wxCommandEvent& event);
@@ -169,12 +177,14 @@ private:
 	MemorySearcherTool* m_toolWindow = nullptr;
 	TitleManager* m_title_manager = nullptr;
 	EmulatedUSBDeviceFrame* m_usb_devices = nullptr;
+	bool m_usb_keyboard_in_use = false;
 	PadViewFrame* m_padView = nullptr;
 	GraphicPacksWindow2* m_graphic_pack_window = nullptr;
 
 	wxTimer* m_timer;
 	wxPoint m_mouse_position{};
 	std::chrono::steady_clock::time_point m_last_mouse_move_time;
+	bool m_mouse_captured = false;
 	wxSize m_restored_size;
 	wxPoint m_restored_position;
 

@@ -59,7 +59,7 @@
 
 //Cafe libs
 #include "Cafe/OS/libs/nfc/nfc.h"
-#include "Cafe/OS/libs/swkbd/swkbd.h"
+#include "Cafe/HW/Latte/Core/LatteOverlay.h"
 
 #include "Cafe/HW/Latte/Renderer/Renderer.h" // For renderer API checks
 
@@ -113,7 +113,13 @@ enum
 	MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER = 20600,
 	MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER,
 	MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER,
-	MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES,
+	// usb devices
+	MAINFRAME_MENU_ID_USB_MOUSE = 20650,
+	MAINFRAME_MENU_ID_USB_KEYBOARD,
+	MAINFRAME_MENU_ID_USB_SETTINGS,
+	MAINFRAME_MENU_ID_USB_SKYLANDERS,
+	MAINFRAME_MENU_ID_USB_INFINITY,
+	MAINFRAME_MENU_ID_USB_DIMENSIONS,
 	// cpu
 	// cpu->timer speed
 	MAINFRAME_MENU_ID_TIMER_SPEED_1X = 20700,
@@ -199,7 +205,9 @@ EVT_MENU(MAINFRAME_MENU_ID_OPTIONS_MAC_SETTINGS, MainWindow::OnOptionsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_MEMORY_SEARCHER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, MainWindow::OnToolsInput)
 EVT_MENU(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, MainWindow::OnToolsInput)
-EVT_MENU(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, MainWindow::OnToolsInput)
+// usb devices menu
+EVT_MENU_RANGE(MAINFRAME_MENU_ID_USB_MOUSE, MAINFRAME_MENU_ID_USB_DIMENSIONS, MainWindow::OnUSBDevicesInput)
+EVT_UPDATE_UI_RANGE(MAINFRAME_MENU_ID_USB_MOUSE, MAINFRAME_MENU_ID_USB_KEYBOARD, MainWindow::OnUSBDevicesUpdateUI)
 // cpu menu
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_8X, MainWindow::OnDebugSetting)
 EVT_MENU(MAINFRAME_MENU_ID_TIMER_SPEED_4X, MainWindow::OnDebugSetting)
@@ -373,6 +381,11 @@ MainWindow::MainWindow()
 
 	Bind(wxEVT_OPEN_GRAPHIC_PACK, &MainWindow::OnGraphicWindowOpen, this);
 	Bind(wxEVT_LAUNCH_GAME, &MainWindow::OnLaunchFromFile, this);
+	Bind(wxEVT_ACTIVATE, [this](wxActivateEvent& event) {
+		if (!event.GetActive())
+			SetMouseCaptured(false);
+		event.Skip();
+	});
 
 	if (LaunchSettings::GDBStubEnabled())
 	{
@@ -838,6 +851,13 @@ WXLRESULT MainWindow::MSWWindowProc(WXUINT nMsg, WXWPARAM wParam, WXLPARAM lPara
 			InputManager::instance().on_device_changed();
 		}
 	}
+	else if (nMsg == WM_INPUT && m_mouse_captured)
+	{
+		RAWINPUT input;
+		UINT size = sizeof(input);
+		if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, &input, &size, sizeof(RAWINPUTHEADER)) != (UINT)-1 && input.header.dwType == RIM_TYPEMOUSE && !(input.data.mouse.usFlags & MOUSE_MOVE_ABSOLUTE))
+			CafeSystem::NotifyMouseMotion(input.data.mouse.lLastX, input.data.mouse.lLastY);
+	}
 
 	return wxFrame::MSWWindowProc(nMsg, wParam, lParam);
 }
@@ -1270,6 +1290,53 @@ void MainWindow::ShowCursor(bool state)
 	#endif
 }
 
+static std::string GetTurnOffHint(const sHotkeyCfg& hotkey)
+{
+	if (hotkey.keyboard.raw == sHotkeyCfg::keyboardNone)
+		return _tr("Turn it off in the USB Devices menu.");
+	return _tr("Press {} to turn it off.", HotkeySettings::To_wxString(hotkey.keyboard).utf8_string());
+}
+
+void MainWindow::SetMouseCaptured(bool state)
+{
+#if BOOST_OS_WINDOWS
+	if (m_mouse_captured == state)
+		return;
+	if (state && (!m_render_canvas || !CafeSystem::IsUSBMouseInUse()))
+		return;
+	m_mouse_captured = state;
+	RAWINPUTDEVICE device{};
+	device.usUsagePage = 0x01; // generic desktop
+	device.usUsage = 0x02; // mouse
+	if (state)
+	{
+		device.hwndTarget = GetHWND();
+		RegisterRawInputDevices(&device, 1, sizeof(device));
+		ClipCapturedMouse();
+		ShowCursor(false);
+		LatteOverlay_pushNotification(_tr("Mouse captured.") + " " + GetTurnOffHint(GetWxGUIConfig().hotkeys.toggleUSBMouse), 5000);
+	}
+	else
+	{
+		device.dwFlags = RIDEV_REMOVE;
+		RegisterRawInputDevices(&device, 1, sizeof(device));
+		ClipCursor(nullptr);
+		m_last_mouse_move_time = std::chrono::steady_clock::now();
+		ShowCursor(true);
+	}
+#endif
+}
+
+void MainWindow::ClipCapturedMouse()
+{
+#if BOOST_OS_WINDOWS
+	const wxSize size = m_render_canvas->GetClientSize();
+	const wxPoint centre = m_render_canvas->ClientToScreen(wxPoint(size.x / 2, size.y / 2));
+	const RECT rect{centre.x, centre.y, centre.x + 1, centre.y + 1};
+	ClipCursor(&rect);
+#endif
+}
+
 uintptr_t MainWindow::GetRenderCanvasHWND()
 {
 	// deprecated. We can use the global cross-platform window info structs now
@@ -1389,15 +1456,15 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 {
 	event.Skip();
 
+	if (m_mouse_captured)
+		return;
+
 	m_last_mouse_move_time = std::chrono::steady_clock::now();
 	m_mouse_position = wxGetMousePosition();
 	ShowCursor(true);
 
-	auto& instance = InputManager::instance();
-	std::unique_lock lock(instance.m_main_mouse.m_mutex);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	lock.unlock();
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	CafeSystem::NotifyMouseMove(false, physPos.x, physPos.y);
 
 	if (!IsFullScreen())
 		return;
@@ -1408,32 +1475,39 @@ void MainWindow::OnMouseMove(wxMouseEvent& event)
 		SetMenuVisible(event.GetPosition().y < 50);
 }
 
-void MainWindow::OnMouseLeft(wxMouseEvent& event)
+void MainWindow::OnMouseButton(wxMouseEvent& event)
 {
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.left_down = event.ButtonDown(wxMOUSE_BTN_LEFT);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	if (event.ButtonDown(wxMOUSE_BTN_LEFT))
-		instance.m_main_mouse.left_down_toggle = true;
-
 	event.Skip();
-}
-
-void MainWindow::OnMouseRight(wxMouseEvent& event)
-{
-	auto& instance = InputManager::instance();
-
-	std::scoped_lock lock(instance.m_main_mouse.m_mutex);
-	instance.m_main_mouse.right_down = event.ButtonDown(wxMOUSE_BTN_RIGHT);
-	auto physPos = ToPhys(event.GetPosition());
-	instance.m_main_mouse.position = { physPos.x, physPos.y };
-	if(event.ButtonDown(wxMOUSE_BTN_RIGHT))
-		instance.m_main_mouse.right_down_toggle = true;
-
-	event.Skip();
+	if (!m_mouse_captured && event.LeftDown() && CafeSystem::IsUSBMouseInUse())
+	{
+		SetMouseCaptured(true);
+		if (m_mouse_captured)
+			return;
+	}
+	CafeSystem::MouseButton button;
+	switch (event.GetButton())
+	{
+	case wxMOUSE_BTN_LEFT:
+		button = CafeSystem::MouseButton::Left;
+		break;
+	case wxMOUSE_BTN_RIGHT:
+		button = CafeSystem::MouseButton::Right;
+		break;
+	case wxMOUSE_BTN_MIDDLE:
+		button = CafeSystem::MouseButton::Middle;
+		break;
+	case wxMOUSE_BTN_AUX1:
+		button = CafeSystem::MouseButton::Back;
+		break;
+	case wxMOUSE_BTN_AUX2:
+		button = CafeSystem::MouseButton::Forward;
+		break;
+	default:
+		return;
+	}
+	const wxPoint physPos = ToPhys(event.GetPosition());
+	// a fast second click arrives as a double click instead of a button down event
+	CafeSystem::NotifyMouseButton(false, button, event.ButtonDown() || event.ButtonDClick(), physPos.x, physPos.y);
 }
 
 void MainWindow::OnGameListBeginUpdate(wxCommandEvent& event)
@@ -1466,7 +1540,7 @@ void MainWindow::OnKeyUp(wxKeyEvent& event)
 {
 	event.Skip();
 
-	if (swkbd_hasKeyboardInputHook())
+	if (CafeSystem::IsTextInputActive())
 		return;
 
 	HotkeySettings::CaptureInput(event);
@@ -1495,8 +1569,7 @@ void MainWindow::OnKeyDown(wxKeyEvent& event)
 
 void MainWindow::OnChar(wxKeyEvent& event)
 {
-	if (swkbd_hasKeyboardInputHook())
-		swkbd_keyInput(event.GetUnicodeKey());
+	CafeSystem::NotifyTextInput(event.GetUnicodeKey());
 
 	// event.Skip();
 }
@@ -1537,30 +1610,75 @@ void MainWindow::OnToolsInput(wxCommandEvent& event)
 		}
 		break;
 	}
-	case MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES:
+	}
+}
+
+void MainWindow::SetUSBMouseEnabled(bool enabled)
+{
+	CafeSystem::SetUSBMouseEnabled(enabled);
+	GetConfigHandle().Save();
+	if (m_game_launched)
+		LatteOverlay_pushNotification(enabled ? _tr("USB mouse on") : _tr("USB mouse off"), 3000);
+}
+
+void MainWindow::SetUSBKeyboardEnabled(bool enabled)
+{
+	CafeSystem::SetUSBKeyboardEnabled(enabled);
+	GetConfigHandle().Save();
+	if (m_game_launched)
+		LatteOverlay_pushNotification(enabled ? _tr("USB keyboard on") : _tr("USB keyboard off"), 3000);
+}
+
+void MainWindow::OnUSBDevicesUpdateUI(wxUpdateUIEvent& event)
+{
+	const auto& config = GetConfig().emulated_usb_devices;
+	event.Check(event.GetId() == MAINFRAME_MENU_ID_USB_MOUSE ? config.emulate_mouse : config.emulate_keyboard);
+}
+
+void MainWindow::OnUSBDevicesInput(wxCommandEvent& event)
+{
+	EmulatedUSBDeviceFrame::Page page;
+	switch (event.GetId())
 	{
-		if (m_usb_devices)
-		{
-			m_usb_devices->Show(true);
-			m_usb_devices->Raise();
-			m_usb_devices->SetFocus();
-		}
-		else
-		{
-			m_usb_devices = new EmulatedUSBDeviceFrame(this);
-			m_usb_devices->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event)
-				{
-					if (event.CanVeto()) {
-						m_usb_devices->Show(false);
-						event.Veto();
-					}
-				});
-			m_usb_devices->Show(true);
-		}
+	case MAINFRAME_MENU_ID_USB_MOUSE:
+		SetUSBMouseEnabled(event.IsChecked());
+		return;
+	case MAINFRAME_MENU_ID_USB_KEYBOARD:
+		SetUSBKeyboardEnabled(event.IsChecked());
+		return;
+	case MAINFRAME_MENU_ID_USB_SKYLANDERS:
+		page = EmulatedUSBDeviceFrame::Page::Skylanders;
+		break;
+	case MAINFRAME_MENU_ID_USB_INFINITY:
+		page = EmulatedUSBDeviceFrame::Page::Infinity;
+		break;
+	case MAINFRAME_MENU_ID_USB_DIMENSIONS:
+		page = EmulatedUSBDeviceFrame::Page::Dimensions;
+		break;
+	default:
+		page = EmulatedUSBDeviceFrame::Page::MouseKeyboard;
 		break;
 	}
-	break;
+
+	if (!m_usb_devices)
+	{
+		m_usb_devices = new EmulatedUSBDeviceFrame(this);
+		m_usb_devices->Bind(wxEVT_CLOSE_WINDOW, [this](wxCloseEvent& event)
+			{
+				if (event.CanVeto()) {
+					m_usb_devices->Show(false);
+					event.Veto();
+				}
+				else {
+					m_usb_devices = nullptr;
+					event.Skip();
+				}
+			});
 	}
+	m_usb_devices->SelectPage(page);
+	m_usb_devices->Show(true);
+	m_usb_devices->Raise();
+	m_usb_devices->SetFocus();
 }
 
 void MainWindow::OnGesturePan(wxPanGestureEvent& event)
@@ -1623,10 +1741,9 @@ void MainWindow::CreateCanvas()
 	// mouse events
 	m_render_canvas->Bind(wxEVT_MOTION, &MainWindow::OnMouseMove, this);
 	m_render_canvas->Bind(wxEVT_MOUSEWHEEL, &MainWindow::OnMouseWheel, this);
-	m_render_canvas->Bind(wxEVT_LEFT_DOWN, &MainWindow::OnMouseLeft, this);
-	m_render_canvas->Bind(wxEVT_LEFT_UP, &MainWindow::OnMouseLeft, this);
-	m_render_canvas->Bind(wxEVT_RIGHT_DOWN, &MainWindow::OnMouseRight, this);
-	m_render_canvas->Bind(wxEVT_RIGHT_UP, &MainWindow::OnMouseRight, this);
+	for (const auto eventType : {wxEVT_LEFT_DOWN, wxEVT_LEFT_UP, wxEVT_LEFT_DCLICK, wxEVT_RIGHT_DOWN, wxEVT_RIGHT_UP, wxEVT_RIGHT_DCLICK, wxEVT_MIDDLE_DOWN, wxEVT_MIDDLE_UP, wxEVT_MIDDLE_DCLICK,
+								 wxEVT_AUX1_DOWN, wxEVT_AUX1_UP, wxEVT_AUX1_DCLICK, wxEVT_AUX2_DOWN, wxEVT_AUX2_UP, wxEVT_AUX2_DCLICK})
+		m_render_canvas->Bind(eventType, &MainWindow::OnMouseButton, this);
 
 	m_render_canvas->Bind(wxEVT_GESTURE_PAN, &MainWindow::OnGesturePan, this);
 
@@ -1647,6 +1764,7 @@ void MainWindow::CreateCanvas()
 
 void MainWindow::DestroyCanvas()
 {
+	SetMouseCaptured(false);
 	if (m_padView)
 	{
 		m_padView->DestroyCanvas();
@@ -1674,6 +1792,10 @@ void MainWindow::OnSizeEvent(wxSizeEvent& event)
 	g_window_info.phys_width = ToPhys(client_size.GetWidth());
 	g_window_info.phys_height = ToPhys(client_size.GetHeight());
 	g_window_info.dpi_scale = GetDPIScaleFactor();
+
+	// the canvas gets its new size after this event
+	if (m_mouse_captured)
+		CallAfter([this]() { if (m_mouse_captured) ClipCapturedMouse(); });
 
 	if (m_debugger_window && m_debugger_window->IsShown())
 		m_debugger_window->OnParentMove(GetPosition(), event.GetSize());
@@ -1706,6 +1828,9 @@ void MainWindow::OnMove(wxMoveEvent& event)
 	#ifdef ENABLE_VULKAN
 	VsyncDriver_notifyWindowPosChanged();
 	#endif
+
+	if (m_mouse_captured)
+		ClipCapturedMouse();
 }
 
 void MainWindow::OnDebuggerClose(wxCloseEvent& event)
@@ -1743,10 +1868,8 @@ void MainWindow::OnMemorySearcherClose(wxCloseEvent& event)
 
 void MainWindow::OnMouseWheel(wxMouseEvent& event)
 {
-	const float delta = event.GetWheelRotation(); // in 120 steps -> max reached ~480 (?)
-	auto& instance = InputManager::instance();
-	instance.m_mouse_wheel = (delta / 120.0f);
-
+	if (event.GetWheelAxis() == wxMOUSE_WHEEL_VERTICAL)
+		CafeSystem::NotifyMouseWheel(event.GetWheelRotation());
 	event.Skip();
 }
 
@@ -1867,6 +1990,12 @@ void MainWindow::OnTimer(wxTimerEvent& event)
 		}
 
 		m_update_available = {};
+	}
+
+	if (m_mouse_captured)
+	{
+		ClipCapturedMouse(); // windows resets the clip rect in some cases
+		return;
 	}
 
 	if (!IsFullScreen() || m_menu_visible)
@@ -2276,9 +2405,19 @@ void MainWindow::RecreateMenu()
 	m_memorySearcherMenuItem->Enable(false);
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_TITLE_MANAGER, _("&Title Manager"));
 	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_DOWNLOAD_MANAGER, _("&Download Manager"));
-	toolsMenu->Append(MAINFRAME_MENU_ID_TOOLS_EMULATED_USB_DEVICES, _("&Emulated USB Devices"));
 
 	m_menuBar->Append(toolsMenu, _("&Tools"));
+
+	// usb devices menu
+	wxMenu* usbDevicesMenu = new wxMenu();
+	usbDevicesMenu->AppendCheckItem(MAINFRAME_MENU_ID_USB_MOUSE, _("Emulate &mouse"));
+	usbDevicesMenu->AppendCheckItem(MAINFRAME_MENU_ID_USB_KEYBOARD, _("Emulate &keyboard"));
+	usbDevicesMenu->Append(MAINFRAME_MENU_ID_USB_SETTINGS, _("More &settings..."));
+	usbDevicesMenu->AppendSeparator();
+	usbDevicesMenu->Append(MAINFRAME_MENU_ID_USB_SKYLANDERS, _("&Skylanders Portal"));
+	usbDevicesMenu->Append(MAINFRAME_MENU_ID_USB_INFINITY, _("&Infinity Base"));
+	usbDevicesMenu->Append(MAINFRAME_MENU_ID_USB_DIMENSIONS, _("&Dimensions Toypad"));
+	m_menuBar->Append(usbDevicesMenu, _("&USB Devices"));
 
 	// cpu timer speed menu
 	wxMenu* timerSpeedMenu = new wxMenu();
@@ -2493,6 +2632,18 @@ void MainWindow::CafePPCProcessExit()
 {
 	// this is called from the emulated PPC thread, so queue an event instead of handling it directly
 	wxQueueEvent(g_mainFrame, new wxCommandEvent(wxEVT_REQUEST_GAME_EXIT));
+}
+
+void MainWindow::CafeUSBInputChanged()
+{
+	CallAfter([this]() {
+		if (!CafeSystem::IsUSBMouseInUse())
+			SetMouseCaptured(false);
+		const bool keyboardInUse = CafeSystem::IsUSBKeyboardInUse();
+		if (keyboardInUse && !m_usb_keyboard_in_use)
+			LatteOverlay_pushNotification(_tr("The game uses the keyboard, keyboard controls are paused.") + " " + GetTurnOffHint(GetWxGUIConfig().hotkeys.toggleUSBKeyboard), 5000);
+		m_usb_keyboard_in_use = keyboardInUse;
+	});
 }
 
 void MainWindow::OnRequestGameExit(wxCommandEvent& event)

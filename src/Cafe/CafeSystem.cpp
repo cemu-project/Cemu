@@ -1194,6 +1194,12 @@ namespace CafeSystem
 		s_implementation->CafePPCProcessExit();
 	}
 
+	void NotifyUSBInputChanged()
+	{
+		if (s_implementation)
+			s_implementation->CafeUSBInputChanged();
+	}
+
 	std::optional<sint32> GetForegroundTitleReturnStatus()
 	{
 		return s_foregroundReturnStatus;
