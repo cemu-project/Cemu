@@ -19,6 +19,10 @@ add_library(CemuInput
 	api/Keyboard/KeyboardControllerProvider.cpp
 	api/Keyboard/KeyboardController.cpp
 	api/Keyboard/KeyboardController.h
+	api/Mouse/MouseControllerProvider.h
+	api/Mouse/MouseControllerProvider.cpp
+	api/Mouse/MouseController.cpp
+	api/Mouse/MouseController.h
 	emulated/ProController.cpp
 	emulated/EmulatedController.h
 	emulated/EmulatedController.cpp
