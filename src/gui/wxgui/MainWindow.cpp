@@ -1297,6 +1297,15 @@ static std::string GetTurnOffHint(const sHotkeyCfg& hotkey)
 	return _tr("Press {} to turn it off.", HotkeySettings::To_wxString(hotkey.keyboard).utf8_string());
 }
 
+static std::string GetMouseCapturedMessage(uKeyboardHotkey switchWindowKeys)
+{
+	std::string message = _tr("Mouse captured. Switch to another window ({}) to release it.", HotkeySettings::To_wxString(switchWindowKeys).utf8_string());
+	const auto& hotkey = GetWxGUIConfig().hotkeys.toggleUSBMouse;
+	if (hotkey.keyboard.raw != sHotkeyCfg::keyboardNone)
+		message += "\n" + _tr("Press {} to disable mouse emulation.", HotkeySettings::To_wxString(hotkey.keyboard).utf8_string());
+	return message;
+}
+
 void MainWindow::SetMouseCaptured(bool state)
 {
 #if BOOST_OS_WINDOWS
@@ -1314,7 +1323,7 @@ void MainWindow::SetMouseCaptured(bool state)
 		RegisterRawInputDevices(&device, 1, sizeof(device));
 		ClipCapturedMouse();
 		ShowCursor(false);
-		LatteOverlay_pushNotification(_tr("Mouse captured.") + " " + GetTurnOffHint(GetWxGUIConfig().hotkeys.toggleUSBMouse), 5000);
+		LatteOverlay_pushNotification(GetMouseCapturedMessage(uKeyboardHotkey{WXK_TAB, true}), 6000);
 	}
 	else
 	{
