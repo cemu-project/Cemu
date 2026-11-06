@@ -55,10 +55,10 @@ jobs:
       next_version_minor: ${{ needs.calculate-version.outputs.next_version_minor }}
   deploy:
     name: Deploy release
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     needs: [call-release-build, calculate-version]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 

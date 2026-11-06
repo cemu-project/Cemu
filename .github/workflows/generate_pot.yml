@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout repo"
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: "Install gettext"
         run: |
@@ -36,7 +36,7 @@ jobs:
           -o cemu.pot
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: POT file
           path: ./cemu.pot
