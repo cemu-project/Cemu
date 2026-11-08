@@ -434,8 +434,15 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 		}
 	}
 
-	// misc notifications
-	static std::vector< std::pair<std::string, std::chrono::steady_clock::time_point> > s_misc_notifications;
+	// misc notifications, each in its own window since an auto-resized window lags a frame behind its content
+	struct MiscNotification
+	{
+		uint32 id;
+		std::string text;
+		std::chrono::steady_clock::time_point expires;
+	};
+	static std::vector<MiscNotification> s_misc_notifications;
+	static uint32 s_misc_notification_id = 0;
 
 	std::unique_lock misc_lock(g_notification_mutex);
 	if (!g_notifications.empty())
@@ -444,29 +451,23 @@ void LatteOverlay_RenderNotifications(ImVec2& position, ImVec2& pivot, sint32 di
 
 		for (const auto& entry : g_notifications)
 		{
-			s_misc_notifications.emplace_back(entry.first, tick + std::chrono::milliseconds(entry.second));
+			s_misc_notifications.push_back({s_misc_notification_id++, entry.first, tick + std::chrono::milliseconds(entry.second)});
 		}
 
 		g_notifications.clear();
 	}
 	misc_lock.unlock();
 
-	if (!s_misc_notifications.empty())
+	const auto tick = tick_cached();
+	std::erase_if(s_misc_notifications, [tick](const MiscNotification& notification) { return tick >= notification.expires; });
+	for (const auto& notification : s_misc_notifications)
 	{
 		ImGui::SetNextWindowPos(position, ImGuiCond_Always, pivot);
 		ImGui::SetNextWindowBgAlpha(kBackgroundAlpha);
-		if (ImGui::Begin("Misc notifications", nullptr, kPopupFlags))
+		// window names are reused long after their notification is gone, imgui sizes a reappearing window from scratch
+		if (ImGui::Begin(fmt::format("Misc notification {}", notification.id % 32).c_str(), nullptr, kPopupFlags))
 		{
-			const auto tick = tick_cached();
-			for (auto it = s_misc_notifications.cbegin(); it != s_misc_notifications.cend();)
-			{
-				ImGui::TextUnformatted(it->first.c_str(), it->first.c_str() + it->first.size());
-				if (tick >= it->second)
-					it = s_misc_notifications.erase(it);
-				else
-					++it;
-			}
-
+			ImGui::TextUnformatted(notification.text.c_str(), notification.text.c_str() + notification.text.size());
 			position.y += (ImGui::GetWindowSize().y + 10.0f) * direction;
 		}
 		ImGui::End();
