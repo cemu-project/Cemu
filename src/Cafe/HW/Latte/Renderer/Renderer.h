@@ -3,14 +3,15 @@
 #include "Cafe/HW/Latte/Core/Latte.h"
 #include "Cafe/HW/Latte/Core/LatteCachedFBO.h"
 #include "Cafe/HW/Latte/Renderer/RendererShader.h"
-#include "Cafe/HW/Latte/Core/LatteTextureLoader.h"
 #include "Cafe/HW/Latte/Core/LatteTextureReadbackInfo.h"
 #include "Cafe/HW/Latte/Core/LatteQueryObject.h"
 #include "Cafe/HW/Latte/Renderer/RendererOuputShader.h"
 
 #if BOOST_OS_WINDOWS
-#include "util/DXGIWrapper/DXGIWrapper.h"
+class DXGIWrapper;
 #endif
+
+class TextureDecoder;
 
 // imgui forward declarations
 struct ImFontAtlas;
@@ -50,8 +51,8 @@ public:
 		U32
 	};
 
-	Renderer(RendererAPI api) : m_rendererAPI(api) {};
-	virtual ~Renderer() = default;
+	Renderer(RendererAPI api);
+	virtual ~Renderer();
 
 	RendererAPI GetType() const { return m_rendererAPI; }
 	const std::string& GetDeviceName() { return m_selectedDeviceName; }

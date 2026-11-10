@@ -1,6 +1,7 @@
 #include "wxgui/input/InputAPIAddWindow.h"
 
 #include "input/InputManager.h"
+#include "input/api/DSU/DSUControllerProvider.h"
 #include "wxgui/helpers/wxCustomData.h"
 #include "wxgui/helpers/wxHelpers.h"
 #include "input/api/Controller.h"

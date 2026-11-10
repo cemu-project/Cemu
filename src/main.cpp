@@ -27,6 +27,7 @@
 #include "audio/IAudioInputAPI.h"
 #if BOOST_OS_WINDOWS
 #include <WinSock2.h>
+#include <objbase.h>
 #pragma comment(lib,"Dbghelp.lib")
 #endif
 

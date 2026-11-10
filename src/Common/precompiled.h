@@ -5,7 +5,6 @@
 #include "version.h"
 #include "platform.h"
 
-#define FMT_HEADER_ONLY
 #define FMT_USE_GRISU 1
 #include <fmt/core.h>
 #include <fmt/format.h>
@@ -15,14 +14,6 @@
 #endif
 
 #define SDL_MAIN_HANDLED
-
-// #if FMT_VERSION > 80102
-// // restore generic formatter for enum (class) to underlying. We currently utilize this for HLE call logging
-// template <typename Enum, std::enable_if_t<std::is_enum<Enum>::value, int> = 0>
-// constexpr auto format_as(Enum e) noexcept -> std::underlying_type<Enum> {
-//   return static_cast<std::underlying_type<Enum>>(e);
-// }
-// #endif
 
 // arch defines
 
@@ -81,7 +72,6 @@
 #include <boost/nowide/convert.hpp>
 #include <boost/algorithm/string.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
 
 namespace fs = std::filesystem;
 

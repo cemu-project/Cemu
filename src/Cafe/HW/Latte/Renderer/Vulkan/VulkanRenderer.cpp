@@ -6,6 +6,11 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/CocoaSurface.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanPipelineCompiler.h"
 
+#include "Cafe/HW/Latte/Core/LatteTextureLoader.h"
+#if BOOST_OS_WINDOWS
+#include "util/DXGIWrapper/DXGIWrapper.h"
+#endif
+
 #include "Cafe/HW/Latte/Core/LatteBufferCache.h"
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"

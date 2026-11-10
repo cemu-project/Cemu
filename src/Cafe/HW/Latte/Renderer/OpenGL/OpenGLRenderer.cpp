@@ -1,6 +1,11 @@
 #include "Cafe/HW/Latte/Renderer/OpenGL/OpenGLRenderer.h"
 #include "WindowSystem.h"
 
+#include "Cafe/HW/Latte/Core/LatteTextureLoader.h"
+#if BOOST_OS_WINDOWS
+#include "util/DXGIWrapper/DXGIWrapper.h"
+#endif
+
 #include "Cafe/HW/Latte/Core/LatteRingBuffer.h"
 #include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"

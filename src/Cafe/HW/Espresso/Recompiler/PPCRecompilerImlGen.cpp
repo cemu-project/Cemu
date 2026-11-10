@@ -702,7 +702,6 @@ bool PPCRecompilerImlGen_BCSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		if (sprReg == SPR_LR)
 		{
 			// if the branch target is LR, then preserve it in a temporary
-			cemu_assert_suspicious(); // this case needs testing
 			IMLReg tmpRegister = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_TEMPORARY);
 			ppcImlGenContext->emitInst().make_r_r(IMLOperation::OP_ASSIGN, tmpRegister, branchDestReg);
 			branchDestReg = tmpRegister;

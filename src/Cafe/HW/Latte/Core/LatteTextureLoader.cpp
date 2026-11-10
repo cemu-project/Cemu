@@ -1,3 +1,4 @@
+#include "Cafe/HW/Latte/Core/LatteTextureLoader.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "config/ActiveSettings.h"

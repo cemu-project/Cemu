@@ -3,8 +3,6 @@
 #include "Cafe/HW/Espresso/PPCState.h"
 #include "Cafe/HW/MMU/MMU.h"
 
-#include <fmt/ostream.h>
-#include <fmt/compile.h>
 #include <fmt/ranges.h>
 
 class cafeExportParamWrapper
