@@ -1,7 +1,6 @@
 #include "input/InputManager.h"
 #include "config/ActiveSettings.h"
 #include "input/ControllerFactory.h"
-#include <boost/property_tree/ini_parser.hpp>
 #include <pugixml.hpp>
 #include "Cafe/GameProfile/GameProfile.h"
 #include "util/EventService.h"
@@ -79,12 +78,7 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 	else
 		file_path = ActiveSettings::GetConfigPath("controllerProfiles/{}", filename);
 
-	auto old_file = file_path;
-	old_file.replace_extension(".txt"); // test .txt extension
 	file_path.replace_extension(".xml"); // force .xml extension
-
-	if (fs::exists(old_file) && !fs::exists(file_path))
-		migrate_config(old_file);
 
 	if (!fs::exists(file_path))
 		return false;
@@ -209,220 +203,6 @@ bool InputManager::load(size_t player_index, std::string_view filename)
 		cemuLog_log(LogType::Force, "can't load config file: {}", ex.what());
 		return false;
 	}
-}
-
-bool InputManager::migrate_config(const fs::path& file_path)
-{
-	try
-	{
-		auto xmlData = FileStream::LoadIntoMemory(file_path);
-		if (!xmlData || xmlData->empty())
-			return false;
-
-		std::string iniDataStr((const char*)xmlData->data(), xmlData->size());
-
-		std::stringstream iniData(iniDataStr);
-		boost::property_tree::ptree m_data;
-		read_ini(iniData, m_data);
-
-		const auto emulate_string = m_data.get<std::string>("General.emulate");
-		const auto api_string = m_data.get<std::string>("General.api");
-		auto uuid_opt = m_data.get_optional<std::string>("General.controller");
-		const auto display_name = m_data.get_optional<std::string>("General.display");
-
-		std::string uuid;
-		if (api_string == to_string(InputAPI::Keyboard))
-			uuid = to_string(InputAPI::Keyboard);
-		else
-		{
-			if (!uuid_opt)
-				return false;
-
-			uuid = uuid_opt.value();
-			if (api_string == to_string(InputAPI::SDLController))
-			{
-				uuid += "_0";
-			}
-		}
-
-		fs::path out_file = file_path;
-		out_file.replace_extension(".xml");
-
-		pugi::xml_document doc;
-		auto declaration_node = doc.append_child(pugi::node_declaration);
-		declaration_node.append_attribute("version") = "1.0";
-		declaration_node.append_attribute("encoding") = "UTF-8";
-
-		auto emulated_controller = doc.append_child("emulated_controller");
-		emulated_controller.append_child("type").append_child(pugi::node_pcdata).set_value(emulate_string.c_str());
-
-		bool has_keyboard = api_string == to_string(InputAPI::Keyboard);
-		if (!has_keyboard) // test if only keyboard configured
-		{
-			auto controller = emulated_controller.append_child("controller");
-			controller.append_child("api").append_child(pugi::node_pcdata).set_value(api_string.c_str());
-			controller.append_child("uuid").append_child(pugi::node_pcdata).set_value(uuid.c_str());
-			if (display_name.has_value() && !display_name->empty())
-				controller.append_child("display_name").append_child(pugi::node_pcdata).set_value(
-					display_name.value().c_str());
-
-
-			controller.append_child("rumble").append_child(pugi::node_pcdata).set_value(
-				m_data.get<std::string>("Controller.rumble").c_str());
-
-			auto axis_node = controller.append_child("axis");
-			axis_node.append_child("deadzone").append_child(pugi::node_pcdata).set_value(
-				m_data.get<std::string>("Controller.leftDeadzone").c_str());
-			axis_node.append_child("range").append_child(pugi::node_pcdata).set_value(
-				m_data.get<std::string>("Controller.leftRange").c_str());
-
-			auto rotation_node = controller.append_child("rotation");
-			rotation_node.append_child("deadzone").append_child(pugi::node_pcdata).set_value(
-				m_data.get<std::string>("Controller.rightDeadzone").c_str());
-			rotation_node.append_child("range").append_child(pugi::node_pcdata).set_value(
-				m_data.get<std::string>("Controller.rightRange").c_str());
-
-			auto mappings_node = controller.append_child("mappings");
-			for (int i = 1; i < 28; ++i) // test all possible mappings (max is 27 for vpad controller)
-			{
-				auto mapping = m_data.get_optional<std::string>(fmt::format("Controller.{}", i));
-				if (!mapping || mapping->empty())
-					continue;
-
-				if (!boost::starts_with(mapping.value(), "button_"))
-				{
-					if (boost::starts_with(mapping.value(), "key_"))
-						has_keyboard = true;
-
-					continue;
-				}
-
-				const auto button = ConvertString<uint64>(mapping.value().substr(7), 16);
-
-				uint64 flag_bit = 0;
-				for (auto b = 0; b < 64; ++b)
-				{
-					if (HAS_BIT(button, b))
-					{
-						flag_bit = b;
-						break;
-					}
-				}
-
-				// fix old flag layout to new one for all kind of axis stuff
-				if (flag_bit >= 24 && flag_bit <= 31)
-					flag_bit += 8;
-				else if (flag_bit == 32) flag_bit = kTriggerXP;
-				else if (flag_bit == 33) flag_bit = kRotationXP;
-				else if (flag_bit == 34) flag_bit = kRotationYP;
-				else if (flag_bit == 35) flag_bit = kTriggerYP;
-				else if (flag_bit == 36) flag_bit = kAxisXN;
-				else if (flag_bit == 37) flag_bit = kAxisYN;
-				else if (flag_bit == 38) flag_bit = kTriggerXN;
-				else if (flag_bit == 39) flag_bit = kRotationXN;
-				else if (flag_bit == 40) flag_bit = kRotationYN;
-				else if (flag_bit == 41) flag_bit = kTriggerYN;
-
-				// fix old api mappings
-				if (api_string == to_string(InputAPI::XInput))
-				{
-					const std::unordered_map<uint64, uint64> xinput =
-					{
-						{kButton0, 12}, // XINPUT_GAMEPAD_A
-						{kButton1, 13}, // XINPUT_GAMEPAD_B
-						{kButton2, 14}, // XINPUT_GAMEPAD_X
-						{kButton3, 15}, // XINPUT_GAMEPAD_Y
-
-						{kButton4, 8}, // XINPUT_GAMEPAD_LEFT_SHOULDER
-						{kButton5, 9}, // XINPUT_GAMEPAD_LEFT_SHOULDER
-
-						{kButton6, 4}, // XINPUT_GAMEPAD_START
-						{kButton7, 5}, // XINPUT_GAMEPAD_BACK
-
-						{kButton8, 6}, // XINPUT_GAMEPAD_LEFT_THUMB
-						{kButton9, 7}, // XINPUT_GAMEPAD_RIGHT_THUMB
-
-						{kButton10, 0}, // XINPUT_GAMEPAD_DPAD_UP
-						{kButton11, 1}, // XINPUT_GAMEPAD_DPAD_DOWN
-						{kButton12, 2}, // XINPUT_GAMEPAD_DPAD_LEFT
-						{kButton13, 3}, // XINPUT_GAMEPAD_DPAD_RIGHT
-					};
-
-					const auto it = xinput.find(flag_bit);
-					if (it != xinput.cend())
-						flag_bit = it->second;
-				}
-				else if (api_string == "DSU")
-				{
-					const std::unordered_map<uint64, uint64> dsu =
-					{
-						{7, kButton0}, // ButtonSelect
-						{8, kButton1}, // ButtonLStick
-						{9, kButton2}, // ButtonRStick
-						{6, kButton3}, // ButtonStart
-
-						{4, kButton10}, // ButtonL
-						{5, kButton11}, // ButtonR
-
-						{0, kButton14}, // ButtonA
-						{1, kButton13}, // ButtonB
-						{2, kButton15}, // ButtonX
-						{3, kButton12}, // ButtonY
-					};
-
-					const auto it = dsu.find(flag_bit);
-					if (it != dsu.cend())
-						flag_bit = it->second;
-				}
-
-
-				auto entry_node = mappings_node.append_child("entry");
-				entry_node.append_child("mapping").append_child(pugi::node_pcdata).set_value(
-					fmt::format("{}", i).c_str());
-				entry_node.append_child("button").append_child(pugi::node_pcdata).set_value(
-					fmt::format("{}", flag_bit).c_str());
-			}
-		}
-
-		if (has_keyboard)
-		{
-			auto controller = emulated_controller.append_child("controller");
-			controller.append_child("api").append_child(pugi::node_pcdata).set_value("Keyboard");
-			controller.append_child("uuid").append_child(pugi::node_pcdata).set_value("Keyboard");
-
-			auto mappings_node = controller.append_child("mappings");
-			for (int i = 1; i < 28; ++i) // test all possible mappings (max is 27 for vpad controller)
-			{
-				auto mapping = m_data.get_optional<std::string>(fmt::format("Controller.{}", i));
-				if (!mapping || mapping->empty())
-					continue;
-
-				if (!boost::starts_with(mapping.value(), "key_"))
-					continue;
-
-				const auto button = ConvertString<uint64>(mapping.value().substr(4));
-
-				auto entry_node = mappings_node.append_child("entry");
-				entry_node.append_child("mapping").append_child(pugi::node_pcdata).set_value(
-					fmt::format("{}", i).c_str());
-				entry_node.append_child("button").append_child(pugi::node_pcdata).set_value(
-					fmt::format("{}", button).c_str());
-			}
-		}
-
-		std::ofstream write_file(out_file, std::ios::out | std::ios::trunc);
-		if (write_file.is_open())
-		{
-			doc.save(write_file);
-			return true;
-		}
-	}
-	catch (const std::exception& ex)
-	{
-		cemuLog_log(LogType::Force, "can't migrate config file {}: {}", file_path.string(), ex.what());
-	}
-
-	return false;
 }
 
 void InputManager::save() noexcept
@@ -664,7 +444,6 @@ EmulatedControllerPtr InputManager::delete_controller(size_t player_index, bool 
 			{
 				std::error_code ec{};
 				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.xml", player_index), ec);
-				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.txt", player_index), ec);
 			}
 
 			return result;
@@ -682,7 +461,6 @@ EmulatedControllerPtr InputManager::delete_controller(size_t player_index, bool 
 			{
 				std::error_code ec{};
 				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.xml", player_index), ec);
-				fs::remove(ActiveSettings::GetConfigPath("controllerProfiles/controller{}.txt", player_index), ec);
 			}
 
 			return result;
@@ -792,7 +570,7 @@ std::vector<std::string> InputManager::get_profiles()
 	for (const auto& entry : fs::directory_iterator(path))
 	{
 		const auto& p = entry.path();
-		if (p.has_extension() && (p.extension() == ".xml" || p.extension() == ".txt"))
+		if (p.extension() == ".xml")
 		{
 			auto stem = _pathToUtf8(p.filename().stem());
 			if (is_valid_profilename(stem))

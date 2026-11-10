@@ -39,8 +39,6 @@ public:
 	void load() noexcept;
 	bool load(size_t player_index, std::string_view filename = {});
 
-	bool migrate_config(const fs::path& file_path);
-
 	void save() noexcept;
 	bool save(size_t player_index, std::string_view filename = {});
 

@@ -23,7 +23,6 @@
     "boost-optional",
     "boost-signals2",
     "boost-ptr-container",
-    "boost-property-tree",
     "boost-static-string",
     "boost-random",
     {
