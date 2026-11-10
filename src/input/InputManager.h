@@ -91,10 +91,17 @@ public:
 	glm::ivec2 get_mouse_position(bool pad_window) const;
 	std::optional<glm::ivec2> get_left_down_mouse_info(bool* is_pad);
 	std::optional<glm::ivec2> get_right_down_mouse_info(bool* is_pad);
+	// Returns the mouse position relative to the render canvas (see MainWindow::m_render_canvas).
+	// (0, 0) is up left; (1, 1) is down right. The values may be negative or above 1 if the mouse cursor
+	// is outside the render canvas. At the time of writing this, it is used only for mouse-to-wiimote pointer feature.
+	glm::vec2 GetMousePositionInRenderBox() const;
+	void SetMousePositionInRenderBox(glm::vec2 newMousePosition);
 
 	std::atomic<float> m_mouse_wheel;
 
 private:
+	glm::vec2 m_mouseInRenderCanvas{};
+
 	void update_thread();
 
 	std::thread m_update_thread;
