@@ -4,13 +4,16 @@
 #include "util/helpers/TempState.h"
 
 #include <SDL3/SDL.h>
-#include <boost/functional/hash.hpp>
 
 struct SDL_JoystickGUIDHash
 {
-	std::size_t operator()(const SDL_GUID& guid) const
+	std::size_t operator()(const SDL_GUID& guid) const noexcept
 	{
-		return boost::hash_value(guid.data);
+		// FNV-1a
+		std::uint64_t hash = 14695981039346656037ull;
+		for (const auto byte : guid.data)
+			hash = (hash ^ byte) * 1099511628211ull;
+		return static_cast<std::size_t>(hash);
 	}
 };
 
