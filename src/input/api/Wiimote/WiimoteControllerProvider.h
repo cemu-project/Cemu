@@ -11,10 +11,6 @@
 #include <variant>
 #include <boost/ptr_container/ptr_vector.hpp>
 
-#ifndef HAS_WIIMOTE
-#define HAS_WIIMOTE 1
-#endif
-
 #define WIIMOTE_DEBUG 1
 
 class WiimoteControllerProvider : public ControllerProviderBase

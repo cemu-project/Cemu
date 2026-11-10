@@ -5,7 +5,7 @@
 #include "input/api/XInput/XInputControllerProvider.h"
 #endif
 
-#ifdef SUPPORTS_WIIMOTE
+#if HAS_WIIMOTE
 #include "input/api/Wiimote/WiimoteControllerProvider.h"
 #endif
 

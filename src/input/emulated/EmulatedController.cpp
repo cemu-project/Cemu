@@ -2,7 +2,7 @@
 
 #include "input/api/Controller.h"
 
-#ifdef SUPPORTS_WIIMOTE
+#if HAS_WIIMOTE
 #include "input/api/Wiimote/NativeWiimoteController.h"
 #endif
 
@@ -131,7 +131,7 @@ bool EmulatedController::has_second_motion() const
 		if(controller->use_motion())
 		{
 			// if wiimote has nunchuck connected, we use its acceleration
-            #if SUPPORTS_WIIMOTE
+            #if HAS_WIIMOTE
             if(controller->api() == InputAPI::Wiimote)
 			{
 				if(((NativeWiimoteController*)controller.get())->get_extension() == NativeWiimoteController::Nunchuck)
@@ -156,7 +156,7 @@ MotionSample EmulatedController::get_second_motion_data() const
 		if (controller->use_motion())
 		{
 			// if wiimote has nunchuck connected, we use its acceleration
-            #ifdef SUPPORTS_WIIMOTE
+            #if HAS_WIIMOTE
 			if (controller->api() == InputAPI::Wiimote)
 			{
 				if (((NativeWiimoteController*)controller.get())->get_extension() == NativeWiimoteController::Nunchuck)
@@ -222,7 +222,7 @@ void EmulatedController::add_controller(std::shared_ptr<ControllerBase> controll
 {
 	controller->connect();
 
-    #ifdef SUPPORTS_WIIMOTE
+    #if HAS_WIIMOTE
     if (const auto wiimote = std::dynamic_pointer_cast<NativeWiimoteController>(controller)) {
 		wiimote->set_player_index(m_player_index);
 	}
