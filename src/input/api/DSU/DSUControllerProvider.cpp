@@ -1,16 +1,8 @@
 #include "input/api/DSU/DSUControllerProvider.h"
 #include "input/api/DSU/DSUController.h"
 
-#if BOOST_OS_WINDOWS
-#include <boost/asio/detail/socket_option.hpp>
-#include <winsock2.h>
-#elif BOOST_OS_LINUX || BOOST_OS_MACOS
-#include <sys/time.h>
-#include <sys/socket.h>
-#endif
-
 DSUControllerProvider::DSUControllerProvider()
-	: base_type(), m_uid(rand()), m_socket(m_io_service)
+	: base_type(), m_uid(rand())
 {
 	if (!connect())
 	{
@@ -18,13 +10,12 @@ DSUControllerProvider::DSUControllerProvider()
 	}
 
 	m_running = true;
-	m_reader_thread = std::thread(&DSUControllerProvider::reader_thread, this);
-	m_writer_thread = std::thread(&DSUControllerProvider::writer_thread, this);
+	m_workerThread = std::thread(&DSUControllerProvider::WorkerThread, this);
 	request_version();
 }
 
 DSUControllerProvider::DSUControllerProvider(const DSUProviderSettings& settings)
-	: base_type(settings), m_uid(rand()), m_socket(m_io_service)
+	: base_type(settings), m_uid(rand())
 {
 	if (!connect())
 	{
@@ -32,8 +23,7 @@ DSUControllerProvider::DSUControllerProvider(const DSUProviderSettings& settings
 	}
 
 	m_running = true;
-	m_reader_thread = std::thread(&DSUControllerProvider::reader_thread, this);
-	m_writer_thread = std::thread(&DSUControllerProvider::writer_thread, this);
+	m_workerThread = std::thread(&DSUControllerProvider::WorkerThread, this);
 	request_version();
 }
 
@@ -42,24 +32,8 @@ DSUControllerProvider::~DSUControllerProvider()
 	if (m_running)
 	{
 		m_running = false;
-		// wake up the reader thread by sending a packet to self
-		if (m_socketWakeupEndpoint.port() != 0)
-		{
-			boost::asio::io_context io_context;
-			boost::asio::ip::udp::socket socket(io_context);
-			boost::system::error_code ec;
-			socket.open(m_socketWakeupEndpoint.protocol(), ec);
-			if (!ec)
-			{
-				std::array<char, 1> data{};
-				socket.send_to(boost::asio::buffer(data), m_socketWakeupEndpoint, 0, ec);
-			}
-			else
-				cemuLog_log(LogType::Force, "DSUControllerProvider wakeup failed");
-		}
-		m_reader_thread.join();
-		m_writerJobs.push(nullptr); // wake up writer thread by pushing an empty message
-		m_writer_thread.join();
+		m_socketWaiter.InterruptWait();
+		m_workerThread.join();
 	}
 }
 
@@ -86,34 +60,26 @@ std::vector<std::shared_ptr<ControllerBase>> DSUControllerProvider::get_controll
 bool DSUControllerProvider::connect()
 {
 	// already connected?
-	if (m_receiver_endpoint.address().to_string() == get_settings().ip && m_receiver_endpoint.port() == get_settings().port)
+	if (m_receiverPort != 0)
 		return true;
 
-	try
+	std::optional<SocketIPv4> ip = UDPSocket::Resolve(get_settings().ip);
+	if (!ip)
 	{
-		using namespace boost::asio;
-
-		ip::udp::resolver resolver(m_io_service);
-		m_receiver_endpoint = *resolver.resolve(get_settings().ip, fmt::format("{}", get_settings().port)).cbegin();
-
-		if (m_socket.is_open())
-			m_socket.close();
-
-		m_socket.open(ip::udp::v4());
-		m_socket.bind(ip::udp::endpoint(ip::udp::v4(), 0));
-		m_socketWakeupEndpoint = ip::udp::endpoint(boost::asio::ip::address_v4::loopback(), m_socket.local_endpoint().port());
-		// reset data
-		m_state = {};
-		m_prev_state = {};
-
-		// restart threads
-		return true;
-	}
-	catch (const std::exception& ex)
-	{
-		cemuLog_log(LogType::Force, "dsu client connect error: {}", ex.what());
+		cemuLog_log(LogType::Force, "dsu client connect error: unable to resolve {}", get_settings().ip);
 		return false;
 	}
+	if (!m_socket.IsValid() || !m_socket.Bind(0, 0))
+	{
+		cemuLog_log(LogType::Force, "dsu client connect error: unable to create udp socket");
+		return false;
+	}
+	m_receiverIP = *ip;
+	m_receiverPort = get_settings().port;
+	// reset data
+	m_state = {};
+	m_prev_state = {};
+	return true;
 }
 
 bool DSUControllerProvider::is_connected(uint8_t index) const
@@ -196,16 +162,22 @@ uint32_t DSUControllerProvider::get_packet_index(uint8_t index) const
 	return m_state[index].packet_index;
 }
 
+void DSUControllerProvider::QueueMessage(std::unique_ptr<ClientMessage> msg)
+{
+	m_sendQueue.push(std::move(msg));
+	m_socketWaiter.InterruptWait();
+}
+
 void DSUControllerProvider::request_version()
 {
 	auto msg = std::make_unique<VersionRequest>(m_uid);
-	m_writerJobs.push(std::move(msg));
+	QueueMessage(std::move(msg));
 }
 
 void DSUControllerProvider::request_pad_info()
 {
 	auto msg = std::make_unique<ListPorts>(m_uid, 4, std::array<uint8_t, 4>{0, 1, 2, 3});
-	m_writerJobs.push(std::move(msg));
+	QueueMessage(std::move(msg));
 }
 
 void DSUControllerProvider::request_pad_info(uint8_t index)
@@ -214,13 +186,13 @@ void DSUControllerProvider::request_pad_info(uint8_t index)
 		return;
 
 	auto msg = std::make_unique<ListPorts>(m_uid, 1, std::array<uint8_t, 4>{index});
-	m_writerJobs.push(std::move(msg));
+	QueueMessage(std::move(msg));
 }
 
 void DSUControllerProvider::request_pad_data()
 {
 	auto msg = std::make_unique<DataRequest>(m_uid);
-	m_writerJobs.push(std::move(msg));
+	QueueMessage(std::move(msg));
 }
 
 void DSUControllerProvider::request_pad_data(uint8_t index)
@@ -228,8 +200,9 @@ void DSUControllerProvider::request_pad_data(uint8_t index)
 	if (index >= kMaxClients)
 		return;
 
+	m_padDataRequested[index] = true;
 	auto msg = std::make_unique<DataRequest>(m_uid, index);
-	m_writerJobs.push(std::move(msg));
+	QueueMessage(std::move(msg));
 }
 
 MotionSample DSUControllerProvider::get_motion_sample(uint8_t index) const
@@ -241,166 +214,124 @@ MotionSample DSUControllerProvider::get_motion_sample(uint8_t index) const
 }
 
 
-void DSUControllerProvider::reader_thread()
+void DSUControllerProvider::WorkerThread()
 {
-	SetThreadName("DSU-reader");
-	bool first_read = true;
+	SetThreadName("DSU-Worker");
+	UDPSocket* sockets[] = {&m_socket};
+	std::vector<UDPSocket*> readySockets;
 	while (m_running.load(std::memory_order_relaxed))
 	{
-		ServerMessage* msg;
-		//try
-		//{
-		std::array<char, 100> recv_buf; // NOLINT(cppcoreguidelines-pro-type-member-init, hicpp-member-init)
-		boost::asio::ip::udp::endpoint sender_endpoint;
-		boost::system::error_code ec{};
-		const size_t len = m_socket.receive_from(boost::asio::buffer(recv_buf), sender_endpoint, 0, ec);
-		if (!m_running.load(std::memory_order_relaxed))
+		std::array<char, 100> recvBuf;
+		SocketIPv4 senderIP;
+		uint16 senderPort;
+		// process any received messages
+		while (std::optional<size_t> len = m_socket.RecvFrom(senderIP, senderPort, recvBuf.data(), recvBuf.size()))
+			ProcessMessage(recvBuf.data(), *len);
+		// send any queued outgoing messages
+		std::unique_ptr<ClientMessage> msg;
+		while (m_sendQueue.try_pop(msg))
+			SendClientMessage(*msg);
+
+		ResendPadDataRequests();
+		// wait for next message to be received or until interrupted to send a message. With 250ms timeout so that ResendStalledPadDataRequests can be called periodically
+		m_socketWaiter.WaitForRecv(sockets, readySockets, 250);
+	}
+}
+
+void DSUControllerProvider::ProcessMessage(const char* data, size_t len)
+{
+	cemuLog_log(LogType::DSUProvider, "DSU: received message with len: 0x{:x}", len);
+	if (len < sizeof(ServerMessage)) // too short to be a valid message
+		return;
+	const auto msg = (const ServerMessage*)data;
+	switch (msg->GetMessageType())
+	{
+	case MessageType::Version:
+		{
+			const auto rsp = (const VersionResponse*)msg;
+			if (!rsp->IsValid())
+			{
+				cemuLog_log(LogType::DSUProvider, "DSU: VersionResponse is invalid!");
+				return;
+			}
+			cemuLog_log(LogType::DSUProvider, "DSU: server version is: 0x{:x}", rsp->GetVersion());
+			m_server_version = rsp->GetVersion();
 			break;
-		if (ec)
-		{
-
-#ifdef DEBUG_DSU_CLIENT
-				printf(" DSUControllerProvider::ReaderThread: exception %s\n", ec.what());
-#endif
-
-			// there's probably no server listening on the given address:port
-			if (first_read) // workaroud: first read always fails?
-				first_read = false;
-			else
-			{
-				std::this_thread::sleep_for(std::chrono::milliseconds(250));
-				std::this_thread::yield();
-			}
-			continue;
 		}
-
-#ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::ReaderThread: received message with len: 0x%llx\n", len);
-#endif
-
-		if (len < sizeof(ServerMessage)) // cant be a valid message
-			continue;
-
-		msg = (ServerMessage*)recv_buf.data();
-		//		}
-		//		catch (const std::exception&)
-		//		{
-		//#ifdef DEBUG_DSU_CLIENT
-		//			printf(" DSUControllerProvider::ReaderThread: exception %s\n", ex.what());
-		//#endif
-		//
-		//			// there's probably no server listening on the given address:port
-		//			if (first_read) // workaroud: first read always fails?
-		//				first_read = false;
-		//			else
-		//			{
-		//				std::this_thread::sleep_for(std::chrono::milliseconds(250));
-		//				std::this_thread::yield();
-		//			}
-		//			continue;
-		//		}
-
-		uint8_t index = 0xFF;
-		switch (msg->GetMessageType())
+	case MessageType::Information:
 		{
-		case MessageType::Version:
+			const auto info = (const PortInfo*)msg;
+			if (!info->IsValid())
 			{
-				const auto rsp = (VersionResponse*)msg;
-				if (!rsp->IsValid())
-				{
-#ifdef DEBUG_DSU_CLIENT
-				printf(" DSUControllerProvider::ReaderThread: VersionResponse is invalid!\n");
-#endif
-					continue;
-				}
-
-#ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::ReaderThread: server version is: 0x%x\n", rsp->GetVersion());
-#endif
-
-				m_server_version = rsp->GetVersion();
-				// wdc
-				break;
+				cemuLog_log(LogType::DSUProvider, "DSU: PortInfo is invalid!");
+				return;
 			}
-		case MessageType::Information:
+
+			const uint8 index = info->GetIndex();
+			cemu_assert(index < kMaxClients);
+			cemuLog_log(LogType::DSUProvider, "DSU: received PortInfo for index {}", index);
+
 			{
-				const auto info = (PortInfo*)msg;
-				if (!info->IsValid())
-				{
-#ifdef DEBUG_DSU_CLIENT
-				printf(" DSUControllerProvider::ReaderThread: PortInfo is invalid!\n");
-#endif
-					continue;
-				}
-
-				index = info->GetIndex();
-				cemu_assert(index < kMaxClients);
-#ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::ReaderThread: received PortInfo for index %d\n", index);
-#endif
-
-				auto& mutex = m_mutex[index];
-				std::scoped_lock lock(mutex);
+				std::scoped_lock lock(m_mutex[index]);
 				m_prev_state[index] = m_state[index];
 				m_state[index] = *info;
 				m_wait_cond[index].notify_all();
-				break;
 			}
-		case MessageType::Data:
+			SendPadDataRequest(index);
+			break;
+		}
+	case MessageType::Data:
+		{
+			const auto rsp = (const DataResponse*)msg;
+			if (!rsp->IsValid())
 			{
-				const auto rsp = (DataResponse*)msg;
-				if (!rsp->IsValid())
-				{
-#ifdef DEBUG_DSU_CLIENT
-				printf(" DSUControllerProvider::ReaderThread: DataResponse is invalid!\n");
-#endif
-					continue;
-				}
+				cemuLog_log(LogType::DSUProvider, "DSU: DataResponse is invalid!");
+				return;
+			}
 
-				index = rsp->GetIndex();
-				cemu_assert(index < kMaxClients);
-#ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::ReaderThread: received DataResponse for index %d\n", index);
-#endif
+			const uint8 index = rsp->GetIndex();
+			cemu_assert(index < kMaxClients);
+			cemuLog_log(LogType::DSUProvider, "DSU: received DataResponse for index {}", index);
 
-				auto& mutex = m_mutex[index];
-				std::scoped_lock lock(mutex);
+			{
+				std::scoped_lock lock(m_mutex[index]);
 				m_prev_state[index] = m_state[index];
 				m_state[index] = *rsp;
 				m_wait_cond[index].notify_all();
 				// update motion info immediately, guaranteeing that we dont drop packets
 				integrate_motion(index, *rsp);
-				break;
 			}
+			m_padDataResendCount[index] = 0;
+			SendPadDataRequest(index);
+			break;
 		}
-
-		if (index != 0xFF)
-			request_pad_data(index);
 	}
 }
 
-void DSUControllerProvider::writer_thread()
+void DSUControllerProvider::SendClientMessage(const ClientMessage& msg)
 {
-	SetThreadName("DSU-writer");
-	while (m_running.load(std::memory_order_relaxed))
+	cemuLog_log(LogType::DSUProvider, "DSU: sending message: 0x{:x} (len: 0x{:x})", (int)msg.GetMessageType(), msg.GetSize());
+	m_socket.SendTo(m_receiverIP, m_receiverPort, &msg, msg.GetSize()); // failed sends are not retried, stalled streams recover via ResendStalledPadDataRequests()
+}
+
+void DSUControllerProvider::SendPadDataRequest(uint8 index)
+{
+	SendClientMessage(DataRequest(m_uid, index));
+	m_lastPadDataRequest[index] = std::chrono::steady_clock::now();
+}
+
+// re-request data from pad servers which didn't respond, with increasing cooldown (500ms to 5s)
+void DSUControllerProvider::ResendPadDataRequests()
+{
+	auto now = std::chrono::steady_clock::now();
+	for (uint8 i = 0; i < kMaxClients; i++)
 	{
-		std::unique_ptr<ClientMessage> msg = m_writerJobs.pop();
-		if (!m_running.load(std::memory_order_relaxed))
-			return;
-		cemu_assert_debug(msg.get());
-#ifdef DEBUG_DSU_CLIENT
-		printf(" DSUControllerProvider::WriterThread: sending message: 0x%x (len: 0x%x)\n", (int)msg->GetMessageType(), msg->GetSize());
-#endif
-		try
+		auto delay = std::min(std::chrono::milliseconds(500 << (m_padDataResendCount[i]/10)), std::chrono::milliseconds(5000));
+		if (m_padDataRequested[i] && now - m_lastPadDataRequest[i] >= delay)
 		{
-			m_socket.send_to(boost::asio::buffer(msg.get(), msg->GetSize()), m_receiver_endpoint);
-		}
-		catch (const std::exception& ec)
-		{
-#ifdef DEBUG_DSU_CLIENT
-			printf(" DSUControllerProvider::WriterThread: exception %s\n", ec.what());
-#endif
-			std::this_thread::sleep_for(std::chrono::milliseconds(250));
+			SendPadDataRequest(i);
+			if (m_padDataResendCount[i] < 40)
+				m_padDataResendCount[i]++;
 		}
 	}
 }

@@ -190,7 +190,7 @@ namespace GX2
 		while (coreinit::OSWaitSemaphore(s_eventCbQueueSemaphore))
 		{
 			GX2EventQueueEntry entry;
-			if (!s_eventCbQueue.peek2(entry))
+			if (!s_eventCbQueue.try_pop(entry))
 				continue;
 			if(!s_eventCallback[(size_t)entry.eventType].callbackFuncPtr)
 				continue;

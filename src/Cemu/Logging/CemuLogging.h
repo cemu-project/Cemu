@@ -42,12 +42,14 @@ enum class LogType : sint32
 	ProcUi = 39,
 	nlibcurl = 41,
 	SWKBD = 45,
+	DSUProvider = 46,
 
 	PRUDP = 40,
 
 	NFC	= 43,
 	NTAG = 44,
 	Recompiler = 60,
+
 };
 
 template <>
