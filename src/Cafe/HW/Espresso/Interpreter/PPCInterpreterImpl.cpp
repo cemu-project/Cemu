@@ -96,7 +96,7 @@ public:
 
 	inline static uint64 getTB(PPCInterpreter_t* hCPU)
 	{
-		return PPCInterpreter_getMainCoreCycleCounter();
+		return PPCInterpreter_GetMFTB();
 	}
 };
 

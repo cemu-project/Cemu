@@ -155,6 +155,7 @@ PPCInterpreter_t* PPCInterpreter_getCurrentInstance();
 void PPCInterpreter_setCurrentInstance(PPCInterpreter_t* hCPU);
 
 uint64 PPCInterpreter_getMainCoreCycleCounter();
+uint64 PPCInterpreter_GetMFTB();
 
 void PPCInterpreter_nextInstruction(PPCInterpreter_t* cpuInterpreter);
 void PPCInterpreter_jumpToInstruction(PPCInterpreter_t* cpuInterpreter, uint32 newIP);

@@ -43,6 +43,13 @@ uint64 PPCInterpreter_getMainCoreCycleCounter()
 	return PPCTimer_getFromRDTSC();
 }
 
+uint64 PPCInterpreter_GetMFTB()
+{
+	// bus clock is 1/5th of core clock
+	// timer clock is 1/4th of bus clock
+	return PPCInterpreter_getMainCoreCycleCounter() / 20ULL;
+}
+
 void PPCInterpreter_nextInstruction(PPCInterpreter_t* cpuInterpreter)
 {
 	cpuInterpreter->instructionPointer += 4;

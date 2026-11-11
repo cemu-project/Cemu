@@ -3,16 +3,9 @@
 
 namespace coreinit
 {
-	uint64 coreinit_GetMFTB()
-	{
-		// bus clock is 1/5th of core clock
-		// timer clock is 1/4th of bus clock
-		return PPCInterpreter_getMainCoreCycleCounter() / 20ULL;
-	}
-
 	uint64 OSGetSystemTime()
 	{
-		return coreinit_GetMFTB();
+		return PPCInterpreter_GetMFTB();
 	}
 
 	uint64 OSGetTime()
@@ -22,7 +15,7 @@ namespace coreinit
 
 	uint32 OSGetSystemTick()
 	{
-		return static_cast<uint32>(coreinit_GetMFTB());
+		return static_cast<uint32>(PPCInterpreter_GetMFTB());
 	}
 
 	uint32 OSGetTick()

@@ -6,7 +6,6 @@
 #include "IML/IML.h"
 #include "IML/IMLRegisterAllocatorRanges.h"
 #include "PPCFunctionBoundaryTracker.h"
-#include "Cafe/OS/libs/coreinit/coreinit_Time.h"
 
 bool PPCRecompiler_decodePPCInstruction(ppcImlGenContext_t* ppcImlGenContext);
 
@@ -449,12 +448,12 @@ bool PPCRecompilerImlGen_MFSPR(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 
 ATTR_MS_ABI uint32 PPCRecompiler_GetTBL()
 {
-	return (uint32)coreinit::OSGetSystemTime();
+	return (uint32)PPCInterpreter_GetMFTB();
 }
 
 ATTR_MS_ABI uint32 PPCRecompiler_GetTBU()
 {
-	return (uint32)(coreinit::OSGetSystemTime() >> 32);
+	return (uint32)(PPCInterpreter_GetMFTB() >> 32);
 }
 
 bool PPCRecompilerImlGen_MFTB(ppcImlGenContext_t* ppcImlGenContext, uint32 opcode)
