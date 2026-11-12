@@ -77,7 +77,7 @@ static sockaddr_in MakeAddress(SocketIPv4 ip, uint16 port)
 UDPSocket::UDPSocket()
 {
 	m_socket = static_cast<std::intptr_t>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
-	if (IsValid())
+	if (!IsValid())
 		Close();
 	SetSocketSettings(Native(m_socket));
 }
