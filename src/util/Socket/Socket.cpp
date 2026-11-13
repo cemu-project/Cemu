@@ -78,7 +78,10 @@ UDPSocket::UDPSocket()
 {
 	m_socket = static_cast<std::intptr_t>(socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP));
 	if (!IsValid())
-		Close();
+	{
+		cemuLog_log(LogType::Force, "UDP socket creation failed");
+		return;
+	}
 	SetSocketSettings(Native(m_socket));
 }
 

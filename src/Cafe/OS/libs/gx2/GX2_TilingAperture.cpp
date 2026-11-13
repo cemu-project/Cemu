@@ -1,6 +1,7 @@
 #include "Cafe/OS/common/OSCommon.h"
 #include "GX2.h"
 #include "GX2_Resource.h"
+#include "GX2_Surface.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "Cafe/HW/Latte/Core/LatteTextureLoader.h"
 

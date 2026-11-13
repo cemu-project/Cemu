@@ -73,7 +73,6 @@ add_library(CemuCafe
   HW/Espresso/Recompiler/IML/IMLInstruction.cpp
   HW/Espresso/Recompiler/IML/IMLInstruction.h
   HW/Espresso/Recompiler/IML/IMLDebug.cpp
-  HW/Espresso/Recompiler/IML/IMLAnalyzer.cpp
   HW/Espresso/Recompiler/IML/IMLOptimizer.cpp
   HW/Espresso/Recompiler/IML/IMLRegisterAllocator.cpp
   HW/Espresso/Recompiler/IML/IMLRegisterAllocator.h

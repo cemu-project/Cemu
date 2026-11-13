@@ -6,6 +6,7 @@
 #include "GX2_Resource.h"
 #include "GX2_Streamout.h"
 #include "GX2_Draw.h"
+#include "GX2_Surface.h"
 
 namespace GX2
 {

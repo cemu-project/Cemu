@@ -1,5 +1,4 @@
 #pragma once
-#include "Cafe/HW/Latte/Core/LatteConst.h"
 #include "Cafe/OS/RPL/COSModule.h"
 
 // base defines for GX2
@@ -7,8 +6,6 @@
 #define GX2_FALSE	0
 #define GX2_ENABLE	1
 #define GX2_DISABLE	0
-
-#include "GX2_Surface.h"
 
 // general
 

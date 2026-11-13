@@ -1,14 +1,12 @@
 #include "Cafe/OS/common/OSCommon.h"
-#include "Cafe/HW/Latte/ISA/RegDefines.h"
 #include "Cafe/HW/Latte/Core/LattePM4.h"
 #include "Cafe/HW/Latte/Core/Latte.h"
-#include "Cafe/HW/Latte/Core/LatteDraw.h"
 #include "Cafe/HW/Latte/Core/LatteAsyncCommands.h"
 #include "Cafe/HW/Latte/Core/LatteSurfaceCopy.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 #include "util/highresolutiontimer/HighResolutionTimer.h"
 #include "GX2.h"
-#include "GX2_Resource.h"
+#include "GX2_Surface.h"
 
 template<uint32 copyBpp>
 void gx2SurfaceCopySoftware_specialized(
