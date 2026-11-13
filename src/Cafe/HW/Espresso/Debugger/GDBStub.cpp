@@ -58,14 +58,12 @@ template<typename F>
 static void selectThread(sint64 selectorId, F&& action_for_thread)
 {
 	__OSLockScheduler();
-	cemu_assert_debug(activeThreadCount != 0);
-
+	auto threadList = coreinit::OSLockActiveThreadList();
+	cemu_assert_debug(!threadList.empty());
 	if (selectorId == -1)
 	{
-		for (sint32 i = 0; i < activeThreadCount; i++)
-		{
-			action_for_thread(GET_THREAD_BY_ID(activeThread[i]));
-		}
+		for (auto& thread : threadList)
+			action_for_thread(thread);
 	}
 	else if (selectorId == 0)
 	{
@@ -75,9 +73,8 @@ static void selectThread(sint64 selectorId, F&& action_for_thread)
 	}
 	else if (selectorId > 0)
 	{
-		for (sint32 i = 0; i < activeThreadCount; i++)
+		for (auto& thread : threadList)
 		{
-			auto* thread = GET_THREAD_BY_ID(activeThread[i]);
 			if (GET_THREAD_ID(thread) == selectorId)
 			{
 				action_for_thread(thread);
@@ -85,6 +82,7 @@ static void selectThread(sint64 selectorId, F&& action_for_thread)
 			}
 		}
 	}
+	coreinit::OSUnlockActiveThreadList();
 	__OSUnlockScheduler();
 }
 
@@ -92,44 +90,44 @@ template<typename F>
 static void selectAndBreakThread(sint64 selectorId, F&& action_for_thread)
 {
 	__OSLockScheduler();
-	cemu_assert_debug(activeThreadCount != 0);
+	auto threadList = coreinit::OSLockActiveThreadList();
+	cemu_assert_debug(!threadList.empty());
 
 	std::vector<OSThread_t*> pausedThreads;
 	if (selectorId == -1)
 	{
-		for (sint32 i = 0; i < activeThreadCount; i++)
+		for (auto& thread : threadList)
 		{
-			coreinit::__OSSuspendThreadNolock(GET_THREAD_BY_ID(activeThread[i]));
-			pausedThreads.emplace_back(GET_THREAD_BY_ID(activeThread[i]));
+			coreinit::__OSSuspendThreadNolock(thread);
+			pausedThreads.emplace_back(thread);
 		}
 	}
 	else if (selectorId == 0)
 	{
 		// Use first thread if attempted to be stopped
-		OSThread_t* thread = GET_THREAD_BY_ID(activeThread[0]);
-		for (sint32 i = 0; i < activeThreadCount; i++)
+		cemu_assert(!threadList.empty());
+		OSThread_t* thread = threadList[0];
+		for (auto& threadItr : threadList)
 		{
-			if (GET_THREAD_ID(GET_THREAD_BY_ID(activeThread[i])) < GET_THREAD_ID(thread))
-			{
-				thread = GET_THREAD_BY_ID(activeThread[i]);
-			}
+			if (threadItr < thread)
+				thread = threadItr;
 		}
 		coreinit::__OSSuspendThreadNolock(thread);
 		pausedThreads.emplace_back(thread);
 	}
 	else if (selectorId > 0)
 	{
-		for (sint32 i = 0; i < activeThreadCount; i++)
+		for (auto& threadItr : threadList)
 		{
-			auto* thread = GET_THREAD_BY_ID(activeThread[i]);
-			if (GET_THREAD_ID(thread) == selectorId)
+			if (GET_THREAD_ID(threadItr) == selectorId)
 			{
-				coreinit::__OSSuspendThreadNolock(thread);
-				pausedThreads.emplace_back(thread);
+				coreinit::__OSSuspendThreadNolock(threadItr);
+				pausedThreads.emplace_back(threadItr);
 				break;
 			}
 		}
 	}
+	coreinit::OSUnlockActiveThreadList();
 	__OSUnlockScheduler();
 
 	for (OSThread_t* thread : pausedThreads)
@@ -143,14 +141,13 @@ static void selectAndBreakThread(sint64 selectorId, F&& action_for_thread)
 static void selectAndResumeThread(sint64 selectorId)
 {
 	__OSLockScheduler();
-	cemu_assert_debug(activeThreadCount != 0);
+	auto threadList = coreinit::OSLockActiveThreadList();
+	cemu_assert_debug(!threadList.empty());
 
 	if (selectorId == -1)
 	{
-		for (sint32 i = 0; i < activeThreadCount; i++)
-		{
-			coreinit::__OSResumeThreadInternal(GET_THREAD_BY_ID(activeThread[i]), 4);
-		}
+		for (auto& thread : threadList)
+			coreinit::__OSResumeThreadInternal(thread, 4);
 	}
 	else if (selectorId == 0)
 	{
@@ -159,9 +156,8 @@ static void selectAndResumeThread(sint64 selectorId)
 	}
 	else if (selectorId > 0)
 	{
-		for (sint32 i = 0; i < activeThreadCount; i++)
+		for (auto& thread : threadList)
 		{
-			auto* thread = GET_THREAD_BY_ID(activeThread[i]);
 			if (GET_THREAD_ID(thread) == selectorId)
 			{
 				coreinit::__OSResumeThreadInternal(thread, 1);
@@ -169,6 +165,7 @@ static void selectAndResumeThread(sint64 selectorId)
 			}
 		}
 	}
+	coreinit::OSUnlockActiveThreadList();
 	__OSUnlockScheduler();
 }
 
@@ -179,10 +176,10 @@ static void waitForBrokenThreads(std::unique_ptr<GDBServer::CommandContext> cont
 	// The trapped thread should be paused by the trap word instruction handler (aka the running thread)
 	std::vector<OSThread_t*> threadsList;
 	__OSLockScheduler();
-	for (sint32 i = 0; i < activeThreadCount; i++)
-	{
-		threadsList.emplace_back(GET_THREAD_BY_ID(activeThread[i]));
-	}
+	auto threadList = coreinit::OSLockActiveThreadList();
+	for (auto& thread : threadList)
+		threadsList.emplace_back(thread);
+	coreinit::OSUnlockActiveThreadList();
 	__OSUnlockScheduler();
 
 	for (OSThread_t* thread : threadsList)
@@ -197,21 +194,23 @@ static void waitForBrokenThreads(std::unique_ptr<GDBServer::CommandContext> cont
 static void breakThreads(sint64 trappedThread)
 {
 	__OSLockScheduler();
-	cemu_assert_debug(activeThreadCount != 0);
+	auto threadList = coreinit::OSLockActiveThreadList();
+	cemu_assert_debug(!threadList.empty());
 
 	// First, break other threads
 	OSThread_t* mainThread = nullptr;
-	for (sint32 i = 0; i < activeThreadCount; i++)
+	for (auto& thread : threadList)
 	{
-		if (GET_THREAD_ID(GET_THREAD_BY_ID(activeThread[i])) == trappedThread)
+		if (GET_THREAD_ID(thread) == trappedThread)
 		{
-			mainThread = GET_THREAD_BY_ID(activeThread[i]);
+			mainThread = thread;
 		}
 		else
 		{
-			coreinit::__OSSuspendThreadNolock(GET_THREAD_BY_ID(activeThread[i]));
+			coreinit::__OSSuspendThreadNolock(thread);
 		}
 	}
+	coreinit::OSUnlockActiveThreadList();
 
 	// Second, break trapped thread itself which should also pause execution of this handler
 	// This will temporarily lift the scheduler lock until it's resumed from its suspension

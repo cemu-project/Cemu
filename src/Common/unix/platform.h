@@ -18,6 +18,11 @@ public:
 		m_sm.lock();
 	}
 
+	bool TryLockWrite()
+	{
+		return m_sm.try_lock();
+	}
+
 	void UnlockWrite()
 	{
 		m_sm.unlock();

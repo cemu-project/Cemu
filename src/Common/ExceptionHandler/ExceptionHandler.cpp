@@ -123,38 +123,45 @@ void ExceptionHandler_LogGeneralInfo()
     // PPC thread log
     CrashLog_WriteLine("");
     CrashLog_WriteHeader("PPC threads");
-    if (activeThreadCount == 0)
-    {
-        CrashLog_WriteLine("None active");
-    }
-    for (sint32 i = 0; i < activeThreadCount; i++)
-    {
-        MPTR threadItrMPTR = activeThread[i];
-        OSThread_t* threadItrBE = (OSThread_t*)memory_getPointerFromVirtualOffset(threadItrMPTR);
-
-        // get thread state
-        OSThread_t::THREAD_STATE threadState = threadItrBE->state;
-        const char* threadStateStr = "UNDEFINED";
-        if (threadItrBE->suspendCounter != 0)
-            threadStateStr = "SUSPENDED";
-        else if (threadState == OSThread_t::THREAD_STATE::STATE_NONE)
-            threadStateStr = "NONE";
-        else if (threadState == OSThread_t::THREAD_STATE::STATE_READY)
-            threadStateStr = "READY";
-        else if (threadState == OSThread_t::THREAD_STATE::STATE_RUNNING)
-            threadStateStr = "RUNNING";
-        else if (threadState == OSThread_t::THREAD_STATE::STATE_WAITING)
-            threadStateStr = "WAITING";
-        else if (threadState == OSThread_t::THREAD_STATE::STATE_MORIBUND)
-            threadStateStr = "MORIBUND";
-        // generate log line
-        uint8 affinity = threadItrBE->attr;
-        sint32 effectivePriority = threadItrBE->effectivePriority;
-        const char* threadName = "NULL";
-        if (!threadItrBE->threadName.IsNull())
-            threadName = threadItrBE->threadName.GetPtr();
-        sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s", threadItrMPTR, threadItrBE->entrypoint.GetMPTR(), threadItrBE->context.srr0, _swapEndianU32(threadItrBE->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
-        // write line to log
-        CrashLog_WriteLine(dumpLine);
-    }
+	std::span<OSThread_t*> activeThreads;
+	bool hasThreadList = coreinit::OSTryLockActiveThreadList(activeThreads);
+	if (hasThreadList)
+	{
+		if (activeThreads.empty())
+		{
+			CrashLog_WriteLine("None active");
+		}
+		for (auto& thread : activeThreads)
+		{
+			// get thread state
+			OSThread_t::THREAD_STATE threadState = thread->state;
+			const char* threadStateStr = "UNDEFINED";
+			if (thread->suspendCounter != 0)
+				threadStateStr = "SUSPENDED";
+			else if (threadState == OSThread_t::THREAD_STATE::STATE_NONE)
+				threadStateStr = "NONE";
+			else if (threadState == OSThread_t::THREAD_STATE::STATE_READY)
+				threadStateStr = "READY";
+			else if (threadState == OSThread_t::THREAD_STATE::STATE_RUNNING)
+				threadStateStr = "RUNNING";
+			else if (threadState == OSThread_t::THREAD_STATE::STATE_WAITING)
+				threadStateStr = "WAITING";
+			else if (threadState == OSThread_t::THREAD_STATE::STATE_MORIBUND)
+				threadStateStr = "MORIBUND";
+			// generate log line
+			uint8 affinity = thread->attr;
+			sint32 effectivePriority = thread->effectivePriority;
+			const char* threadName = "NULL";
+			if (!thread->threadName.IsNull())
+				threadName = thread->threadName.GetPtr();
+			sprintf(dumpLine, "%08x Ent %08x IP %08x LR %08x %-9s Aff %d%d%d Pri %2d Name %s", MEMPTR<OSThread_t>(thread).GetMPTR(), thread->entrypoint.GetMPTR(), thread->context.srr0, _swapEndianU32(thread->context.lr), threadStateStr, (affinity >> 0) & 1, (affinity >> 1) & 1, (affinity >> 2) & 1, effectivePriority, threadName);
+			// write line to log
+			CrashLog_WriteLine(dumpLine);
+		}
+		coreinit::OSUnlockActiveThreadList();
+	}
+	else
+	{
+		CrashLog_WriteLine("Not accessible");
+	}
 }

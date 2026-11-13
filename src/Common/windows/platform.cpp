@@ -23,6 +23,11 @@ void SlimRWLock::LockWrite()
 	AcquireSRWLockExclusive((SRWLOCK*)&m_lock);
 }
 
+bool SlimRWLock::TryLockWrite()
+{
+	return TryAcquireSRWLockExclusive((SRWLOCK*)&m_lock) != 0;
+}
+
 void SlimRWLock::UnlockWrite()
 {
 	ReleaseSRWLockExclusive((SRWLOCK*)&m_lock);

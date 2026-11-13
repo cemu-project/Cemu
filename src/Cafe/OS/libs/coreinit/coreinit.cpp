@@ -322,8 +322,6 @@ namespace coreinit
 			coreinit::PrepareGHSRuntime();
 			coreinit::MapThreadExports();
 
-			// reset threads
-			activeThreadCount = 0;
 			// init submodules
 			coreinit::InitializeMEM();
 			coreinit::InitializeMEMFrmHeap();

@@ -175,20 +175,20 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 	const int scrollPos = m_thread_list->GetScrollPos(0);
 	m_thread_list->DeleteAllItems();
 
-	if (activeThreadCount > 0)
+	if (coreinit::OSIsSchedulerActive())
 	{
 		__OSLockScheduler();
-		srwlock_activeThreadList.LockWrite();
-		for (sint32 i = 0; i < activeThreadCount; i++)
+		std::span<OSThread_t*> threadList = coreinit::OSLockActiveThreadList();
+		for (sint32 i = 0; i < threadList.size(); i++)
 		{
-			MPTR threadItrMPTR = activeThread[i];
-			OSThread_t* cafeThread = (OSThread_t*)memory_getPointerFromVirtualOffset(threadItrMPTR);
+			OSThread_t* cafeThread = threadList[i];
+			MPTR threadMPTR = MEMPTR<OSThread_t>(cafeThread).GetMPTR();
 
 			wxListItem item;
 			item.SetId(i);
-			item.SetText(wxString::Format("%08X", threadItrMPTR));
+			item.SetText(wxString::Format("%08X", threadMPTR));
 			m_thread_list->InsertItem(item);
-			m_thread_list->SetItemData(item, (long)threadItrMPTR);
+			m_thread_list->SetItemData(item, (long)threadMPTR);
 			// entry point
 			m_thread_list->SetItem(i, 1, wxString::Format("%08X", cafeThread->entrypoint.GetMPTR()));
 			// stack base (low)
@@ -256,13 +256,13 @@ void DebugPPCThreadsWindow::RefreshThreadList()
 
 			m_thread_list->SetItem(i, 12, extraInfoLabel);
 
-			if (selected_thread != 0 && selected_thread == (long)threadItrMPTR)
+			if (selected_thread != 0 && selected_thread == (long)threadMPTR)
 			{
 				m_thread_list->Select(i);
 				m_thread_list->Focus(i);
 			}
 		}
-		srwlock_activeThreadList.UnlockWrite();
+		coreinit::OSUnlockActiveThreadList();
 		__OSUnlockScheduler();
 	}
 

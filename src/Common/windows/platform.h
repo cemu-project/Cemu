@@ -19,6 +19,7 @@ public:
 	void LockRead();
 	void UnlockRead();
 	void LockWrite();
+	bool TryLockWrite();
 	void UnlockWrite();
 
 private:

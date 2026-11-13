@@ -40,11 +40,9 @@ static void ConfigureHostFloatingPointEnvironment()
 #endif
 }
 
-SlimRWLock srwlock_activeThreadList;
+SlimRWLock s_activeThreadListSRWLock;
+std::vector<OSThread_t*> s_activeThreads;
 
-// public list of active threads
-MPTR activeThread[256];
-sint32 activeThreadCount = 0;
 
 void nnNfp_update();
 
@@ -138,27 +136,12 @@ namespace coreinit
 
 		g_activeThreadQueue->addThread(thread, &thread->activeThreadChain); // todo - check if thread already in queue
 
-		MPTR threadMPTR = memory_getVirtualOffsetFromPointer(thread);
-
-		srwlock_activeThreadList.LockWrite();
-		bool alreadyActive = false;
-		for (sint32 i = 0; i < activeThreadCount; i++)
-		{
-			if (activeThread[i] == threadMPTR)
-			{
-				cemu_assert_debug(false); // should not happen
-				alreadyActive = true;
-			}
-		}
-		if (alreadyActive == false)
-		{
-			activeThread[activeThreadCount] = threadMPTR;
-			activeThreadCount++;
-		}
-
+		s_activeThreadListSRWLock.LockWrite();
+		cemu_assert_debug(std::find(s_activeThreads.begin(), s_activeThreads.end(), thread) == s_activeThreads.end()); // thread should not be in list already
+		s_activeThreads.push_back(thread);
 		__OSCreateHostThread(thread);
 
-		srwlock_activeThreadList.UnlockWrite();
+		s_activeThreadListSRWLock.UnlockWrite();
 	}
 
 	// remove thread from active queue. Reset id and state
@@ -167,21 +150,11 @@ namespace coreinit
 		cemu_assert_debug(__OSHasSchedulerLock());
 
 		// remove thread from active thread list
-		MPTR t = memory_getVirtualOffsetFromPointer(thread);
-		srwlock_activeThreadList.LockWrite();
-		bool noHit = true;
-		for (sint32 i = 0; i < activeThreadCount; i++)
-		{
-			if (activeThread[i] == t)
-			{
-				activeThread[i] = activeThread[activeThreadCount - 1];
-				activeThreadCount--;
-				noHit = false;
-				break;
-			}
-		}
-		cemu_assert_debug(noHit == false);
-		srwlock_activeThreadList.UnlockWrite();
+		s_activeThreadListSRWLock.LockWrite();
+		auto it = std::find(s_activeThreads.begin(), s_activeThreads.end(), thread);
+		cemu_assert(it != s_activeThreads.end());
+		s_activeThreads.erase(it);
+		s_activeThreadListSRWLock.UnlockWrite();
 		
 		g_activeThreadQueue->removeThread(thread, &thread->activeThreadChain); // todo - check if thread in queue
 		
@@ -195,19 +168,10 @@ namespace coreinit
 	bool __OSIsThreadActive(OSThread_t* thread)
 	{
 		cemu_assert_debug(__OSHasSchedulerLock());
-		MPTR threadMPTR = memory_getVirtualOffsetFromPointer(thread);
-		srwlock_activeThreadList.LockWrite();
-		bool isRunable = false;
-		for (sint32 i = 0; i < activeThreadCount; i++)
-		{
-			if (activeThread[i] == threadMPTR)
-			{
-				srwlock_activeThreadList.UnlockWrite();
-				return true;
-			}
-		}
-		srwlock_activeThreadList.UnlockWrite();
-		return false;
+		s_activeThreadListSRWLock.LockWrite();
+		bool isInActiveList = std::find(s_activeThreads.begin(), s_activeThreads.end(), thread) != s_activeThreads.end();
+		s_activeThreadListSRWLock.UnlockWrite();
+		return isInActiveList;
 	}
 
 	// thread
@@ -1224,11 +1188,11 @@ namespace coreinit
     void __OSDeleteAllActivePPCThreads()
     {
         __OSLockScheduler();
-        while(activeThreadCount > 0)
+		while(!s_activeThreads.empty())
         {
-            MEMPTR<OSThread_t> t{activeThread[0]};
-            t->state = OSThread_t::THREAD_STATE::STATE_NONE;
-            __OSDeactivateThread(t.GetPtr());
+			OSThread_t* thread = s_activeThreads[0];
+            thread->state = OSThread_t::THREAD_STATE::STATE_NONE;
+            __OSDeactivateThread(thread);
         }
         __OSUnlockScheduler();
     }
@@ -1593,8 +1557,29 @@ namespace coreinit
 		}
 	}
 
+	std::span<OSThread_t*> OSLockActiveThreadList()
+	{
+		s_activeThreadListSRWLock.LockWrite();
+		return s_activeThreads;
+	}
+
+	bool OSTryLockActiveThreadList(std::span<OSThread_t*>& threadList)
+	{
+		if (!s_activeThreadListSRWLock.TryLockWrite())
+			return false;
+		threadList = s_activeThreads;
+		return true;
+	}
+
+	void OSUnlockActiveThreadList()
+	{
+		s_activeThreadListSRWLock.UnlockWrite();
+	}
+
 	void MapThreadExports()
 	{
+		s_activeThreads.clear();
+
 		cafeExportRegister("coreinit", OSCreateThreadType, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", OSCreateThread, LogType::CoreinitThread);
 		cafeExportRegister("coreinit", __OSCreateThreadType, LogType::CoreinitThread);
