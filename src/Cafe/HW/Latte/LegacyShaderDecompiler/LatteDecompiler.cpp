@@ -1151,6 +1151,8 @@ void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* cont
 	else
 	{
 		shaderContext.parsedGSCopyShader = LatteGSCopyShaderParser_parse(gsCopyProgramData, gsCopyProgramSize);
+		if (!shaderContext.parsedGSCopyShader)
+			shader->hasError = true;
 	}
 	for (sint32 i = 0; i < LATTE_NUM_MAX_TEX_UNITS; i++)
 	{
@@ -1158,7 +1160,8 @@ void LatteDecompiler_DecompileGeometryShader(uint64 shaderBaseHash, uint32* cont
 		shader->textureUsesDepthCompare[i] = false;
 	}
 	// parse & compile
-	_LatteDecompiler_Process(&shaderContext, programData, programSize);
+	if (!shader->hasError)
+		_LatteDecompiler_Process(&shaderContext, programData, programSize);
 	performanceMonitor.gpuTime_shaderCreate.endMeasuring();
 }
 
