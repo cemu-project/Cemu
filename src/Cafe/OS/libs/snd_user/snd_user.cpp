@@ -682,7 +682,7 @@ namespace snd_user
 				mix[j][i].delta = (sint16)(target - volume) / inputSamples;
 			}
 		}
-		AXSetVoiceDeviceMix(channel->voice.GetPtr(), AX_DEV_TV, 0, (snd_core::AXCHMIX_DEPR*)&mix[0][0]);
+		AXSetVoiceDeviceMix(channel->voice.GetPtr(), AX_DEV_TV, 0, &mix[0][0]);
 	}
 
 	void _MIXUpdateDRC(MixChannel* channel, sint32 index)
