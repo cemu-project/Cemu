@@ -122,34 +122,37 @@ bool ControllerBase::operator==(const ControllerBase& c) const
 
 float ControllerBase::get_axis_value(uint64 button) const
 {
-	if (m_last_state.buttons.GetButtonState(button))
+	if (button <= kButtonNoneAxisMAX || !has_axis())
+		return m_last_state.buttons.GetButtonState(button) ? 1.0f : 0.0f;
+
+	switch (button)
 	{
-		if (button <= kButtonNoneAxisMAX || !has_axis())
-			return 1.0f;
+	case kAxisXP:
+		return std::max(0.0f, m_last_state.axis.x);
+	case kAxisXN:
+		return std::max(0.0f, -m_last_state.axis.x);
+	case kAxisYP:
+		return std::max(0.0f, m_last_state.axis.y);
+	case kAxisYN:
+		return std::max(0.0f, -m_last_state.axis.y);
 
-		switch (button)
-		{
-		case kAxisXP:
-		case kAxisXN:
-			return std::abs(m_last_state.axis.x);
-		case kAxisYP:
-		case kAxisYN:
-			return std::abs(m_last_state.axis.y);
+	case kRotationXP:
+		return std::max(0.0f, m_last_state.rotation.x);
+	case kRotationXN:
+		return std::max(0.0f, -m_last_state.rotation.x);
+	case kRotationYP:
+		return std::max(0.0f, m_last_state.rotation.y);
+	case kRotationYN:
+		return std::max(0.0f, -m_last_state.rotation.y);
 
-		case kRotationXP:
-		case kRotationXN:
-			return std::abs(m_last_state.rotation.x);
-		case kRotationYP:
-		case kRotationYN:
-			return std::abs(m_last_state.rotation.y);
-
-		case kTriggerXP:
-		case kTriggerXN:
-			return std::abs(m_last_state.trigger.x);
-		case kTriggerYP:
-		case kTriggerYN:
-			return std::abs(m_last_state.trigger.y);
-		}
+	case kTriggerXP:
+		return std::max(0.0f, m_last_state.trigger.x);
+	case kTriggerXN:
+		return std::max(0.0f, -m_last_state.trigger.x);
+	case kTriggerYP:
+		return std::max(0.0f, m_last_state.trigger.y);
+	case kTriggerYN:
+		return std::max(0.0f, -m_last_state.trigger.y);
 	}
 
 	return 0;
