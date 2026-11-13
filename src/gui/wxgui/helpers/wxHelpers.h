@@ -104,5 +104,7 @@ T get_prev_sibling(const T element)
 void update_slider_text(wxCommandEvent& event, const wxFormatString& format = "%d%%");
 
 uint32 fix_raw_keycode(uint32 keycode, uint32 raw_flags);
+// USB HID usage of the physical key, 0 if unknown
+uint8 raw_keycode_to_hid_usage(uint32 keycode, uint32 raw_flags);
 
 WindowSystem::WindowHandleInfo initHandleContextFromWxWidgetsWindow(wxWindow* wxw);

@@ -180,6 +180,19 @@ namespace nsyshid
 		}
 	}
 
+	void UpdateEmulatedDevices()
+	{
+		std::list<std::shared_ptr<Backend>> backendListCopy;
+		{
+			std::lock_guard<std::recursive_mutex> lock(hidMutex);
+			backendListCopy = backendList;
+		}
+		for (const auto& backend : backendListCopy)
+		{
+			backend->OnSettingsChanged();
+		}
+	}
+
 	void AttachDefaultBackends()
 	{
 		backend::AttachDefaultBackends();
@@ -905,6 +918,13 @@ namespace nsyshid
 		std::lock_guard<std::recursive_mutex> lock(this->m_devicesMutex);
 		DetachAllDevices();
 		m_isAttached = false;
+	}
+
+	void Backend::OnSettingsChanged()
+	{
+		std::lock_guard<std::recursive_mutex> lock(this->m_devicesMutex);
+		if (m_isAttached)
+			UpdateVisibleDevices();
 	}
 
 	bool Backend::IsBackendAttached()

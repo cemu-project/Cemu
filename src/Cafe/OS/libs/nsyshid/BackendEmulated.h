@@ -12,5 +12,7 @@ namespace nsyshid::backend::emulated
 
 	  protected:
 		void AttachVisibleDevices() override;
+
+		void UpdateVisibleDevices() override;
 	};
 } // namespace nsyshid::backend::emulated
