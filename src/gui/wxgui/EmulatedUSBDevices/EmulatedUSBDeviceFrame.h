@@ -4,6 +4,7 @@
 
 #include <wx/dialog.h>
 #include <wx/frame.h>
+#include <wx/timer.h>
 
 #include "Cafe/OS/libs/nsyshid/Infinity.h"
 #include "Cafe/OS/libs/nsyshid/Skylander.h"
@@ -26,8 +27,11 @@ class EmulatedUSBDeviceFrame : public wxFrame
 
   private:
 	wxCheckBox* m_emulatePortal;
+	wxCheckBox* m_skylanderIpcServer;
 	wxCheckBox* m_emulateBase;
 	wxCheckBox* m_emulateToypad;
+	wxTimer m_skylanderUpdateTimer;
+
 	std::array<wxTextCtrl*, nsyshid::MAX_SKYLANDERS> m_skylanderSlots;
 	std::array<wxTextCtrl*, nsyshid::MAX_FIGURES> m_infinitySlots;
 	std::array<wxTextCtrl*, 7> m_dimensionSlots;
@@ -45,6 +49,8 @@ class EmulatedUSBDeviceFrame : public wxFrame
 	void CreateSkylander(uint8 slot);
 	void ClearSkylander(uint8 slot);
 	void UpdateSkylanderEdits();
+	void OnSkylanderTimer(wxTimerEvent& event);
+	void UpdateIpcServerState();
 	void LoadFigure(uint8 slot);
 	void LoadFigurePath(uint8 slot, wxString path);
 	void CreateFigure(uint8 slot);
