@@ -34,8 +34,8 @@ vertex void vertexCopyBufferToBuffer(uint vid [[vertex_id]], device uint8_t* src
     dst[vid] = src[vid];
 }
 
-fragment float4 fragmentCopyDepthToColor(VertexOut in [[stage_in]], texture2d<float, access::read> src [[texture(GET_TEXTURE_BINDING(0))]]) {
-    return float4(src.read(uint2(in.position.xy)).r, 0.0, 0.0, 0.0);
+fragment float4 fragmentCopyDepthToColor(VertexOut in [[stage_in]], texture2d<float, access::read> src [[texture(GET_TEXTURE_BINDING(0))]], constant int2& srcTexelOffset [[buffer(GET_BUFFER_BINDING(0))]]) {
+    return float4(src.read(uint2(int2(in.position.xy) + srcTexelOffset)).r, 0.0, 0.0, 0.0);
 }
 
 //struct RestrideParams {
