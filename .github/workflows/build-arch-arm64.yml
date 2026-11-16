@@ -49,10 +49,21 @@ jobs:
           restore-keys: vcpkg-archarm-
 
       - name: "Create Arch Linux ARM image"
+        # Le certificat HTTPS de os.archlinuxarm.org ne correspond pas à son nom d'hôte :
+        # on télécharge en HTTP (comme dans la doc officielle) et on vérifie la signature PGP.
         run: |
-          curl -fsSL -o alarm.tar.gz https://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
+          FPR=68B3537F39A313B3E574D06777193F152BDBE6A6   # Arch Linux ARM Build System
+          URL=http://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
+          curl -fsSL --retry 3 -o alarm.tar.gz "$URL"
+          curl -fsSL --retry 3 -o alarm.tar.gz.sig "$URL.sig"
+          export GNUPGHOME="$(mktemp -d)"
+          for ks in hkps://keyserver.ubuntu.com hkps://keys.openpgp.org; do
+            gpg --batch --keyserver "$ks" --recv-keys "$FPR" && break
+          done
+          gpg --batch --status-fd 1 --verify alarm.tar.gz.sig alarm.tar.gz | tee verify.log
+          grep -Eq "^\[GNUPG:\] VALIDSIG .*$FPR" verify.log
           docker import alarm.tar.gz alarm:latest
-          rm alarm.tar.gz
+          rm -f alarm.tar.gz alarm.tar.gz.sig verify.log
           mkdir -p "$HOME/vcpkg-cache" out
 
       - name: "Build package with makepkg"
