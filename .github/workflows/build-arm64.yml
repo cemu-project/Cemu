@@ -1,0 +1,101 @@
+name: Build ARM64 Linux
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branche, tag ou commit à compiler"
+        default: main
+
+env:
+  VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
+  VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
+  VCPKG_FORCE_DOWNLOADED_BINARIES: true
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build:
+    name: build-ubuntu-arm64
+    runs-on: ubuntu-22.04-arm
+    timeout-minutes: 300
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          submodules: "recursive"
+          fetch-depth: 0
+
+      - name: "Install system dependencies"
+        run: |
+          sudo apt update -qq
+          sudo apt install -y clang-15 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev libudev-dev nasm ninja-build libbluetooth-dev
+
+      - name: "Bootstrap vcpkg"
+        run: |
+          bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+
+      - name: "Setup NuGet credentials for vcpkg"
+        shell: bash
+        run: |
+          mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+          sources add \
+          -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json" \
+          -storepasswordincleartext \
+          -name "GitHub" \
+          -username "${{ github.repository_owner }}" \
+          -password "${{ secrets.GITHUB_TOKEN }}"
+          mono `./dependencies/vcpkg/vcpkg fetch nuget | tail -n 1` \
+          setapikey "${{ secrets.GITHUB_TOKEN }}" \
+          -source "https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json"
+
+      - name: "cmake"
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=release -DCMAKE_C_COMPILER=/usr/bin/clang-15 -DCMAKE_CXX_COMPILER=/usr/bin/clang++-15 -G Ninja -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja
+
+      - name: "Build Cemu"
+        run: |
+          cmake --build build
+
+      - name: Prepare artifact
+        run: mv bin/Cemu_release bin/Cemu
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-bin-linux-arm64
+          path: ./bin/Cemu
+
+  appimage:
+    name: build-appimage-arm64
+    runs-on: ubuntu-22.04-arm
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: cemu-bin-linux-arm64
+          path: bin
+
+      - name: "Install system dependencies"
+        run: |
+          sudo apt update -qq
+          sudo apt install -y clang-15 cmake freeglut3-dev libgcrypt20-dev libglm-dev libgtk-3-dev libpulse-dev libsecret-1-dev libsystemd-dev nasm ninja-build appstream libbluetooth-dev
+
+      - name: "Build AppImage"
+        run: |
+          export LD_LIBRARY_PATH="/usr/local/lib:$LD_LIBRARY_PATH"
+          export DEPLOY_GTK_VERSION=3
+          dist/linux/appimage.sh ${{ runner.arch }}
+
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-appimage-arm64
+          path: artifacts
