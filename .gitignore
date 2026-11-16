@@ -55,3 +55,8 @@ bin/graphicPacks/*
 
 # Ignore Finder view option files created by OS X
 .DS_Store
+# PKGBUILD local
+dist/linux/arch/src/
+dist/linux/arch/pkg/
+dist/linux/arch/*.pkg.tar.*
+out/

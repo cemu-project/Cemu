@@ -1,0 +1,78 @@
+# Maintainer: rakhenmanoa
+#
+# PKGBUILD local : compile le dépôt dans lequel il se trouve (pas de téléchargement
+# des sources). Prévu pour Arch Linux ARM (aarch64).
+#
+# Usage, depuis ce dossier (dist/linux/arch) :
+#   makepkg -sf
+# Pour compiler un autre dossier de sources :
+#   CEMU_SRC=/chemin/vers/Cemu makepkg -sf
+#
+# Les dépendances de bibliothèques sont compilées par vcpkg pendant le build : il faut
+# donc un accès réseau et beaucoup de temps/RAM la première fois.
+
+pkgname=cemu-arm64-git
+pkgver=r0
+pkgrel=1
+pkgdesc='Wii U emulator (build ARM64, depuis ce dépôt)'
+arch=('aarch64')
+url='https://github.com/cemu-project/Cemu'
+license=('MPL-2.0')
+depends=('gtk3' 'libgcrypt' 'libpulse' 'libsecret' 'systemd-libs' 'bluez-libs'
+         'vulkan-icd-loader' 'mesa' 'glu' 'hicolor-icon-theme')
+makedepends=('git' 'cmake' 'ninja' 'clang' 'nasm' 'curl' 'zip' 'unzip' 'tar'
+             'pkgconf' 'autoconf' 'automake' 'libtool' 'perl' 'python'
+             'freeglut' 'glm' 'libx11' 'libxext' 'libxrandr' 'libxi' 'libxcursor'
+             'libxinerama' 'libxss' 'libxxf86vm' 'libxkbcommon' 'wayland' 'dbus'
+             'alsa-lib')
+optdepends=('vulkan-freedreno: pilote Vulkan Turnip pour les GPU Adreno')
+provides=('cemu')
+conflicts=('cemu')
+options=('!lto' '!debug')
+source=()
+sha256sums=()
+
+_src="${CEMU_SRC:-$(realpath "$startdir/../../..")}"
+
+pkgver() {
+  cd "$_src"
+  printf 'r%s.g%s' "$(git rev-list --count HEAD 2>/dev/null || echo 0)" \
+                    "$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
+}
+
+build() {
+  # Les flags par défaut de makepkg (-Werror=format-security, LTO, etc.) peuvent
+  # casser la compilation des dépendances vcpkg : on les retire.
+  unset CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
+
+  export VCPKG_ROOT="$_src/dependencies/vcpkg"
+  export VCPKG_FORCE_SYSTEM_BINARIES=1
+  # Pour réutiliser un cache de paquets vcpkg, définir VCPKG_BINARY_SOURCES
+  # (ex. "clear;files,/chemin/cache,readwrite") avant de lancer makepkg.
+
+  cd "$_src"
+  bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+
+  cmake -S "$_src" -B "$srcdir/build" -G Ninja \
+    -DCMAKE_BUILD_TYPE=release \
+    -DCMAKE_C_COMPILER=clang \
+    -DCMAKE_CXX_COMPILER=clang++
+  cmake --build "$srcdir/build"
+}
+
+package() {
+  cd "$_src"
+
+  # Même disposition que l'AppImage : binaire dans /usr/bin, ressources dans /usr/share/Cemu
+  install -Dm755 bin/Cemu_release "$pkgdir/usr/bin/Cemu"
+  install -d "$pkgdir/usr/share/Cemu"
+  cp -r bin/gameProfiles bin/resources "$pkgdir/usr/share/Cemu/"
+
+  install -Dm644 dist/linux/info.cemu.Cemu.desktop \
+    "$pkgdir/usr/share/applications/info.cemu.Cemu.desktop"
+  install -Dm644 dist/linux/info.cemu.Cemu.png \
+    "$pkgdir/usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png"
+  install -Dm644 dist/linux/info.cemu.Cemu.metainfo.xml \
+    "$pkgdir/usr/share/metainfo/info.cemu.Cemu.metainfo.xml"
+  install -Dm644 LICENSE.txt "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
