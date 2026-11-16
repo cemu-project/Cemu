@@ -51,6 +51,7 @@ add_library(CemuQtGui STATIC
 set_target_properties(CemuQtGui PROPERTIES
   AUTOMOC ON
   AUTORCC ON
+  AUTOGEN_ORIGIN_DEPENDS OFF
 )
 
 target_compile_definitions(CemuQtGui PRIVATE QT_NO_KEYWORDS)
