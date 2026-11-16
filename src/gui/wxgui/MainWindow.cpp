@@ -309,6 +309,7 @@ MainWindow::MainWindow()
 
 	RecreateMenu();
 	SetClientSize(1280, 720);
+	FitToSmallScreen();
 	SetIcon(wxICON(M_WND_ICON128));
 
 #if BOOST_OS_MACOS
@@ -1301,6 +1302,20 @@ wxRect MainWindow::GetDesktopRect()
 	return { 0,0,800,600 };
 }
 
+void MainWindow::FitToSmallScreen()
+{
+	// on screens smaller than the default 1280x720 window (phones, small tablets) use the whole work area
+	const int displayIndex = wxDisplay::GetFromWindow(this);
+	const wxRect area = wxDisplay(displayIndex == wxNOT_FOUND ? 0 : displayIndex).GetClientArea();
+	if (area.width <= 0 || area.height <= 0)
+		return;
+	const wxSize size = GetSize();
+	if (size.x <= area.width && size.y <= area.height)
+		return;
+	SetSize(area);
+	Maximize();
+}
+
 void MainWindow::LoadSettings()
 {
 	GetConfigHandle().Load();
@@ -1319,6 +1334,7 @@ void MainWindow::LoadSettings()
 		if (config.window_maximized)
 			this->Maximize();
 	}
+	FitToSmallScreen();
 
 	if (config.pad_position != Vector2i{ -1,-1 })
 	{

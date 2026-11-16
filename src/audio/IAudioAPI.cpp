@@ -110,7 +110,22 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint3
 
 	auto& config = GetConfig();
 
-	const auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
+	auto audio_api = (IAudioAPI::AudioAPI)config.audio_api;
+	// The config default (and configs copied from Windows) point at DirectSound, which doesn't exist
+	// outside of Windows. Without this fallback no audio device can be created (and there is no sound)
+	// until the user opens the audio settings once and saves them.
+	if ((sint32)audio_api < 0 || audio_api >= AudioAPIEnd || !IsAudioAPIAvailable(audio_api))
+	{
+		for (sint32 i = 0; i < (sint32)AudioAPIEnd; i++)
+		{
+			if (!s_availableApis[i])
+				continue;
+			cemuLog_log(LogType::Force, "Configured audio API {} is not available, using API {} instead", (sint32)config.audio_api, i);
+			audio_api = (IAudioAPI::AudioAPI)i;
+			config.audio_api = i;
+			break;
+		}
+	}
 	auto selectedDevice = GetDeviceFromType(type);
 
 	if (selectedDevice.empty())
@@ -123,6 +138,12 @@ AudioAPIPtr IAudioAPI::CreateDeviceFromConfig(AudioType type, sint32 rate, sint3
 		const auto it = std::find_if(devices.begin(), devices.end(), [&selectedDevice](const auto& d) { return d->GetIdentifier() == selectedDevice; });
 		if (it != devices.end())
 			device_description = *it;
+		else if (!devices.empty())
+		{
+			// the saved device no longer exists (e.g. other audio backend or unplugged device): use the default one
+			cemuLog_log(LogType::Force, "Configured audio device not found, using the default device");
+			device_description = devices.front();
+		}
 	}
 	if (!device_description)
 		throw std::runtime_error("failed to find selected device while trying to create audio device");

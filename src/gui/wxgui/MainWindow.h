@@ -195,6 +195,7 @@ private:
 
 	wxMenuItem* m_check_update_menu{};
 	void LoadSettings();
+	void FitToSmallScreen();
 	void SaveSettings();
 
 	void OnGraphicWindowClose(wxCloseEvent& event);

@@ -172,6 +172,7 @@ bool CubebAPI::InitializeStatic()
 		cemuLog_log(LogType::Force, "can't create cubeb audio api");
 		return false;
 	}
+	cemuLog_log(LogType::Force, "Cubeb backend: {}", cubeb_get_backend_id(s_context));
 	return true;
 }
 

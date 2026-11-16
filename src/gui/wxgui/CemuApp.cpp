@@ -265,6 +265,8 @@ bool CemuApp::OnInit()
 {
 #if __WXGTK__
 	GTKSuppressDiagnostics(G_LOG_LEVEL_MASK & ~G_LOG_FLAG_FATAL);
+	// small screens (phones, e.g. Plasma Mobile): let wxWidgets make dialogs scrollable when they don't fit
+	wxDialog::EnableLayoutAdaptation(true);
 #endif
 	wxInitAllImageHandlers();
 
