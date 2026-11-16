@@ -19,13 +19,17 @@ arch=('aarch64')
 url='https://github.com/cemu-project/Cemu'
 license=('MPL-2.0')
 depends=('gtk3' 'libgcrypt' 'libpulse' 'libsecret' 'systemd-libs' 'bluez-libs'
-         'vulkan-icd-loader' 'mesa' 'glu' 'hicolor-icon-theme')
+         'vulkan-icd-loader' 'mesa' 'glu' 'hicolor-icon-theme'
+         # interface tactile Qt (Cemu --mobile-ui)
+         'qt6-base' 'qt6-declarative' 'qt6-wayland')
 makedepends=('git' 'cmake' 'ninja' 'clang' 'nasm' 'curl' 'zip' 'unzip' 'tar'
              'pkgconf' 'autoconf' 'automake' 'libtool' 'perl' 'python'
              'freeglut' 'glm' 'libx11' 'libxext' 'libxrandr' 'libxi' 'libxcursor'
              'libxinerama' 'libxss' 'libxxf86vm' 'libxkbcommon' 'wayland' 'dbus'
              'alsa-lib')
 optdepends=('vulkan-freedreno: pilote Vulkan Turnip pour les GPU Adreno'
+            'qqc2-breeze-style: style Plasma Mobile pour l interface tactile'
+            'qqc2-desktop-style: style Plasma de bureau pour l interface tactile'
             'pipewire-pulse: sortie audio via PipeWire (serveur PulseAudio)'
             'breeze-gtk: thème Breeze pour que l interface suive le style KDE'
             'kde-gtk-config: applique automatiquement le thème et les couleurs Plasma')
@@ -59,6 +63,7 @@ build() {
   cmake -S "$_src" -B "$srcdir/build" -G Ninja \
     -DCMAKE_BUILD_TYPE=release \
     -DVCPKG_INSTALL_OPTIONS=--clean-after-build \
+    -DENABLE_QT_MOBILE_UI=ON \
     -DCMAKE_C_COMPILER=clang \
     -DCMAKE_CXX_COMPILER=clang++
   cmake --build "$srcdir/build"
@@ -74,6 +79,9 @@ package() {
 
   install -Dm644 dist/linux/info.cemu.Cemu.desktop \
     "$pkgdir/usr/share/applications/info.cemu.Cemu.desktop"
+  # deuxième lanceur : interface tactile Qt
+  install -Dm644 dist/linux/arch/info.cemu.Cemu.mobile.desktop \
+    "$pkgdir/usr/share/applications/info.cemu.Cemu.mobile.desktop"
   install -Dm644 dist/linux/info.cemu.Cemu.png \
     "$pkgdir/usr/share/icons/hicolor/128x128/apps/info.cemu.Cemu.png"
   install -Dm644 dist/linux/info.cemu.Cemu.metainfo.xml \

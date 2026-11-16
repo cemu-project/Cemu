@@ -1,0 +1,14 @@
+[Desktop Entry]
+Name=Cemu Mobile
+Type=Application
+Terminal=false
+Icon=info.cemu.Cemu
+Exec=Cemu --mobile-ui
+GenericName=Wii U Emulator (touch interface)
+GenericName[fr]=Émulateur de Wii U (interface tactile)
+Comment=Touch-friendly Qt interface for the Cemu Wii U emulator
+Comment[fr]=Interface Qt tactile pour l'émulateur Wii U Cemu
+Categories=Game;Emulator;
+Keywords=Nintendo;
+StartupWMClass=Cemu
+X-KDE-FormFactors=handset;tablet;desktop;

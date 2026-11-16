@@ -148,6 +148,7 @@ endif()
 option(ENABLE_CUBEB "Enabled cubeb backend" ON)
 
 option(ENABLE_WXWIDGETS "Build with wxWidgets UI (Currently required)" ON)
+option(ENABLE_QT_MOBILE_UI "Also build the touch-friendly Qt/QML interface (--mobile-ui, Linux only, needs Qt 6)" OFF)
 
 find_package(Threads REQUIRED)
 find_package(CURL REQUIRED)

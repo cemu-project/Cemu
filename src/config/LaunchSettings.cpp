@@ -68,6 +68,7 @@ std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstr
 		("mlc,m", po::wvalue<std::wstring>(), "Custom mlc folder location")
 
 		("fullscreen,f", po::value<bool>()->implicit_value(true), "Launch games in fullscreen mode")
+		("mobile-ui", po::value<bool>()->implicit_value(true), "Use the touch-friendly Qt interface (only in builds with ENABLE_QT_MOBILE_UI)")
 		("ud,u", po::value<bool>()->implicit_value(true), "Render output upside-down")
 
 		("account,a", po::value<std::string>(), "Persistent id of account")
@@ -135,6 +136,9 @@ std::optional<int> LaunchSettings::HandleCommandline(const std::vector<std::wstr
 
 		if (vm.count("verbose"))
 			s_verbose = true;
+
+		if (vm.count("mobile-ui"))
+			s_mobile_ui = vm["mobile-ui"].as<bool>();
 
 		if (vm.count("game"))
 		{

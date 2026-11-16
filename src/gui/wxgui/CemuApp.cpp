@@ -16,6 +16,9 @@
 #include "Cemu/ncrypto/ncrypto.h"
 #include "wxgui/input/HotkeySettings.h"
 #include "wxgui/debugger/DebuggerWindow2.h"
+#ifdef HAS_QT_MOBILE_UI
+#include "QtMobileUI.h"
+#endif
 #include <wx/language.h>
 
 #if ( BOOST_OS_LINUX || BOOST_OS_BSD ) && HAS_WAYLAND
@@ -261,6 +264,17 @@ std::string TranslationCallback(std::string_view msgId)
 	return wxGetTranslation(wxString::FromUTF8(msgId)).utf8_string();
 }
 
+#ifdef HAS_QT_MOBILE_UI
+static bool IsMobileUIRequested()
+{
+	if (LaunchSettings::MobileUIEnabled())
+		return true;
+	// same switch for launchers that cannot pass arguments
+	const char* env = getenv("CEMU_MOBILE_UI");
+	return env && env[0] == '1';
+}
+#endif
+
 bool CemuApp::OnInit()
 {
 #if __WXGTK__
@@ -369,6 +383,19 @@ bool CemuApp::OnInit()
 	#ifdef ENABLE_VULKAN
 	InitializeGlobalVulkan();
 	#endif
+
+#ifdef HAS_QT_MOBILE_UI
+	if (IsMobileUIRequested())
+	{
+		// Everything above (paths, config, title list, Vulkan) is shared with the desktop interface.
+		// From here on Qt takes over: no wxWidgets window is created and Qt runs the event loop.
+		cemuLog_log(LogType::Force, "Starting mobile interface (Qt)");
+		g_window_info.app_active = true;
+		QtMobileUI::Run();
+		// returning false makes wxWidgets exit without entering its own main loop
+		return false;
+	}
+#endif
 
 	Bind(wxEVT_ACTIVATE_APP, &CemuApp::ActivateApp, this);
 

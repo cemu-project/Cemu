@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/cemu/mobile">
+        <file alias="Main.qml">qml/Main.qml</file>
+        <file alias="GamesPage.qml">qml/GamesPage.qml</file>
+        <file alias="FoldersPage.qml">qml/FoldersPage.qml</file>
+    </qresource>
+</RCC>

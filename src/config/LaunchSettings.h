@@ -24,6 +24,7 @@ public:
 	static std::optional<bool> FullscreenEnabled() { return s_fullscreen; }
 
 	static bool Verbose() { return s_verbose; }
+	static bool MobileUIEnabled() { return s_mobile_ui; }
 
 	static bool ForwardConsoleLogging() { return s_forward_console_logging; }
 	static std::optional<std::string> CosArgstr() { return s_cos_argstr; }
@@ -51,6 +52,7 @@ private:
 	inline static std::optional<bool> s_fullscreen{};
 
 	inline static bool s_verbose = false;
+	inline static bool s_mobile_ui = false;
 
 	inline static bool s_forward_console_logging = false;
 	inline static std::optional<std::string> s_cos_argstr{};
