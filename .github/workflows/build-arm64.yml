@@ -1,11 +1,16 @@
 name: Build ARM64 Linux
 
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
   workflow_dispatch:
     inputs:
       ref:
-        description: "Branche, tag ou commit à compiler"
-        default: main
+        description: "Branche, tag ou commit à compiler (vide = main)"
+        required: false
 
 env:
   VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
@@ -25,7 +30,7 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.sha }}
           submodules: "recursive"
           fetch-depth: 0
 
@@ -76,7 +81,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref }}
+          ref: ${{ inputs.ref || github.sha }}
 
       - uses: actions/download-artifact@v4
         with:
