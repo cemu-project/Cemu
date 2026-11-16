@@ -55,6 +55,7 @@ build() {
 
   cmake -S "$_src" -B "$srcdir/build" -G Ninja \
     -DCMAKE_BUILD_TYPE=release \
+    -DVCPKG_INSTALL_OPTIONS=--clean-after-build \
     -DCMAKE_C_COMPILER=clang \
     -DCMAKE_CXX_COMPILER=clang++
   cmake --build "$srcdir/build"

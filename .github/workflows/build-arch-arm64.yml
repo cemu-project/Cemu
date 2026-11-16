@@ -1,6 +1,7 @@
 name: Build Arch Linux ARM
 
-# Compile Cemu dans un conteneur Arch Linux ARM (même base que le diting).
+# Construit le paquet pacman (.pkg.tar.zst) de Cemu pour Arch Linux ARM à partir de
+# dist/linux/arch/PKGBUILD, dans un conteneur Arch Linux ARM sur un runner ARM64 natif.
 # Lancement manuel uniquement.
 on:
   workflow_dispatch:
@@ -9,12 +10,24 @@ on:
         description: "Branche, tag ou commit à compiler (vide = main)"
         required: false
 
+concurrency:
+  group: build-arch-arm64
+  cancel-in-progress: true
+
 jobs:
   build:
     name: build-archlinuxarm
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     steps:
+      - name: "Free disk space"
+        # Les runners ARM publics ont peu de disque ; vcpkg + Cemu en consomment beaucoup.
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/share/boost /opt/hostedtoolcache || true
+          docker system prune -af || true
+          df -h /
+
       - name: "Checkout repo"
         uses: actions/checkout@v4
         with:
@@ -26,7 +39,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/vcpkg-cache
-          key: vcpkg-archarm-${{ hashFiles('vcpkg.json') }}
+          key: vcpkg-archarm-${{ hashFiles('vcpkg.json', 'dist/linux/arch/PKGBUILD') }}
           restore-keys: vcpkg-archarm-
 
       - name: "Create Arch Linux ARM image"
@@ -34,38 +47,60 @@ jobs:
           curl -fsSL -o alarm.tar.gz https://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
           docker import alarm.tar.gz alarm:latest
           rm alarm.tar.gz
-          mkdir -p "$HOME/vcpkg-cache"
+          mkdir -p "$HOME/vcpkg-cache" out
 
-      - name: "Build package with makepkg in Arch Linux ARM"
+      - name: "Build package with makepkg"
         run: |
-          mkdir -p out
           docker run --rm \
             -v "$PWD":/src \
             -v "$PWD/out":/out \
             -v "$HOME/vcpkg-cache":/vcpkg-cache \
             -w /src \
             alarm:latest bash -euxc '
+              # pacman en conteneur : pas de test d espace disque, pas de sandbox Landlock,
+              # pas de mise à jour du noyau (inutile ici, et ses hooks échoueraient)
               sed -i "s/^CheckSpace/#CheckSpace/" /etc/pacman.conf
               sed -i "/^\[options\]/a DisableSandbox" /etc/pacman.conf
+              sed -i "/^\[options\]/a IgnorePkg = linux-aarch64 linux-aarch64-headers" /etc/pacman.conf
+              sed -i "s/^#ParallelDownloads.*/ParallelDownloads = 5/" /etc/pacman.conf
               pacman-key --init
               pacman-key --populate archlinuxarm
               pacman -Syu --noconfirm --needed base-devel git sudo
+
               # makepkg refuse de tourner en root : utilisateur dédié
               useradd -m builder
               echo "builder ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
-              chown -R builder /src /vcpkg-cache
-              mkdir -p /out && chown builder /out
-              sudo -u builder git config --global --add safe.directory "*"
+              chown -R builder /src /out /vcpkg-cache
+              sudo -Hu builder git config --global --add safe.directory "*"
+
               cd /src/dist/linux/arch
-              sudo -u builder env \
+              sudo -Hu builder env \
                 PKGDEST=/out \
                 VCPKG_BINARY_SOURCES="clear;files,/vcpkg-cache,readwrite" \
                 makepkg -sf --noconfirm
             '
-          sudo chown -R "$USER" "$PWD" "$HOME/vcpkg-cache"
+
+      - name: "Show result"
+        if: always()
+        run: |
+          sudo chown -R "$USER" "$PWD" "$HOME/vcpkg-cache" || true
+          ls -lh out || true
+          df -h /
 
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
           name: cemu-archlinuxarm-pkg
           path: out/*.pkg.tar.*
+          if-no-files-found: error
+
+      - name: Upload build logs (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            dependencies/vcpkg/buildtrees/**/*.log
+            dist/linux/arch/src/build/CMakeFiles/CMakeConfigureLog.yaml
+          if-no-files-found: ignore
+          retention-days: 7
