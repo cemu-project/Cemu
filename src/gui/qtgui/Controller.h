@@ -5,6 +5,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <QUrl>
+#include <QVariant>
 
 class GameListModel;
 class GameWindow;
@@ -35,6 +36,21 @@ class Controller : public QObject
 	Q_INVOKABLE void addGamePath(const QUrl& folder);
 	Q_INVOKABLE void addLocalGamePath(const QString& path);
 	Q_INVOKABLE void removeGamePath(const QString& path);
+
+	// settings shared with the desktop interface. Keys: see SettingTable() in MobileBackend.cpp
+	Q_INVOKABLE int setting(const QString& key) const;
+	Q_INVOKABLE void setSetting(const QString& key, int value);
+	Q_INVOKABLE QVariantList audioDevices() const; // [{id, name}], first entry = disabled
+	Q_INVOKABLE QString tvAudioDevice() const;
+	Q_INVOKABLE void setTvAudioDevice(const QString& id);
+
+	// per game actions
+	Q_INVOKABLE int shaderCacheCount(const QString& titleId) const;
+	Q_INVOKABLE int removeShaderCaches(const QString& titleId);
+	// [{index, name, path, description, enabled, presets: [{category, presets: [..], active}]}]
+	Q_INVOKABLE QVariantList graphicPacks(const QString& titleId) const;
+	Q_INVOKABLE void setGraphicPackEnabled(int index, bool enabled);
+	Q_INVOKABLE void setGraphicPackPreset(int index, const QString& category, const QString& preset);
 
 	// stops the emulator. Must be called while the render window still exists
 	void shutdown();

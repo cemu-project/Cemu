@@ -11,6 +11,11 @@
 #include "input/InputManager.h"
 #include "util/helpers/helpers.h"
 #include "Common/version.h"
+#include "Cafe/GraphicPack/GraphicPack2.h"
+#include "Cafe/TitleList/TitleId.h"
+#include "audio/IAudioAPI.h"
+
+#include <boost/nowide/convert.hpp>
 
 #ifdef ENABLE_VULKAN
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
@@ -467,5 +472,264 @@ namespace MobileBackend
 	std::string GetVersionString()
 	{
 		return BUILD_VERSION_WITH_NAME_STRING;
+	}
+	// ---------------------------------------------------------------- settings
+
+	namespace
+	{
+		struct SettingAccessor
+		{
+			std::function<int(CemuConfig&)> get;
+			std::function<void(CemuConfig&, int)> set;
+		};
+
+		const std::unordered_map<std::string, SettingAccessor>& SettingTable()
+		{
+			// clang-format off
+			static const std::unordered_map<std::string, SettingAccessor> table = {
+				// general
+				{"console_language",    {[](CemuConfig& c) { return (int)c.console_language.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.console_language = (CafeConsoleLanguage)std::clamp(v, (int)CafeConsoleLanguage::JA, (int)CafeConsoleLanguage::TW); }}},
+				{"play_boot_sound",     {[](CemuConfig& c) { return (int)c.play_boot_sound.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.play_boot_sound = v != 0; }}},
+				{"disable_screensaver", {[](CemuConfig& c) { return (int)c.disable_screensaver.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.disable_screensaver = v != 0; }}},
+				// graphics (the mobile interface always uses Vulkan)
+				{"vsync",               {[](CemuConfig& c) { return (int)c.vsync.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.vsync = std::clamp(v, 0, 2); }}},
+				{"async_compile",       {[](CemuConfig& c) { return (int)c.async_compile.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.async_compile = v != 0; }}},
+				{"upscale_filter",      {[](CemuConfig& c) { return (int)c.upscale_filter.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.upscale_filter = std::clamp(v, 0, 3); }}},
+				{"downscale_filter",    {[](CemuConfig& c) { return (int)c.downscale_filter.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.downscale_filter = std::clamp(v, 0, 3); }}},
+				{"fullscreen_scaling",  {[](CemuConfig& c) { return (int)c.fullscreen_scaling.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.fullscreen_scaling = std::clamp(v, 0, 1); }}},
+				// audio
+				{"audio_delay",         {[](CemuConfig& c) { return (int)c.audio_delay; },
+				                         [](CemuConfig& c, int v) { c.audio_delay = std::clamp(v, 0, (int)IAudioAPI::kBlockCount - 1); }}},
+				{"tv_channels",         {[](CemuConfig& c) { return (int)c.tv_channels; },
+				                         [](CemuConfig& c, int v) { c.tv_channels = (AudioChannels)std::clamp(v, 0, 2); }}},
+				{"tv_volume",           {[](CemuConfig& c) { return (int)c.tv_volume; },
+				                         [](CemuConfig& c, int v) { c.tv_volume = std::clamp(v, 0, 100); }}},
+				// overlay
+				{"overlay_position",    {[](CemuConfig& c) { return (int)c.overlay.position; },
+				                         [](CemuConfig& c, int v) { c.overlay.position = (ScreenPosition)std::clamp(v, 0, 6); }}},
+				{"overlay_scale",       {[](CemuConfig& c) { return (int)c.overlay.text_scale; },
+				                         [](CemuConfig& c, int v) { c.overlay.text_scale = std::clamp(v, 50, 300); }}},
+				{"overlay_fps",         {[](CemuConfig& c) { return (int)c.overlay.fps; },
+				                         [](CemuConfig& c, int v) { c.overlay.fps = v != 0; }}},
+				{"overlay_cpu",         {[](CemuConfig& c) { return (int)c.overlay.cpu_usage; },
+				                         [](CemuConfig& c, int v) { c.overlay.cpu_usage = v != 0; }}},
+				{"overlay_ram",         {[](CemuConfig& c) { return (int)c.overlay.ram_usage; },
+				                         [](CemuConfig& c, int v) { c.overlay.ram_usage = v != 0; }}},
+				{"overlay_vram",        {[](CemuConfig& c) { return (int)c.overlay.vram_usage; },
+				                         [](CemuConfig& c, int v) { c.overlay.vram_usage = v != 0; }}},
+				{"notification_position", {[](CemuConfig& c) { return (int)c.notification.position; },
+				                         [](CemuConfig& c, int v) { c.notification.position = (ScreenPosition)std::clamp(v, 0, 6); }}},
+				{"notification_scale",  {[](CemuConfig& c) { return (int)c.notification.text_scale; },
+				                         [](CemuConfig& c, int v) { c.notification.text_scale = std::clamp(v, 50, 300); }}},
+				{"notification_shaders", {[](CemuConfig& c) { return (int)c.notification.shader_compiling; },
+				                         [](CemuConfig& c, int v) { c.notification.shader_compiling = v != 0; }}},
+			};
+			// clang-format on
+			return table;
+		}
+	} // namespace
+
+	int GetSetting(const std::string& key)
+	{
+		const auto& table = SettingTable();
+		auto it = table.find(key);
+		if (it == table.end())
+		{
+			cemuLog_log(LogType::Force, "Mobile UI: unknown setting {}", key);
+			return 0;
+		}
+		return it->second.get(GetConfig());
+	}
+
+	void SetSetting(const std::string& key, int value)
+	{
+		const auto& table = SettingTable();
+		auto it = table.find(key);
+		if (it == table.end())
+		{
+			cemuLog_log(LogType::Force, "Mobile UI: unknown setting {}", key);
+			return;
+		}
+		it->second.set(GetConfig(), value);
+		GetConfigHandle().Save();
+	}
+
+	std::vector<AudioDevice> GetAudioDevices()
+	{
+		std::vector<AudioDevice> result;
+		auto api = (IAudioAPI::AudioAPI)GetConfig().audio_api;
+		if (!IAudioAPI::IsAudioAPIAvailable(api))
+		{
+			// same fallback as IAudioAPI::CreateDeviceFromConfig
+			for (sint32 i = 0; i < (sint32)IAudioAPI::AudioAPIEnd; i++)
+			{
+				if (IAudioAPI::IsAudioAPIAvailable((IAudioAPI::AudioAPI)i))
+				{
+					api = (IAudioAPI::AudioAPI)i;
+					break;
+				}
+			}
+		}
+		if (!IAudioAPI::IsAudioAPIAvailable(api))
+			return result;
+		for (const auto& device : IAudioAPI::GetDevices(api))
+			result.push_back({boost::nowide::narrow(device->GetIdentifier()), boost::nowide::narrow(device->GetName())});
+		return result;
+	}
+
+	std::string GetTVAudioDevice()
+	{
+		return boost::nowide::narrow(GetConfig().tv_device);
+	}
+
+	void SetTVAudioDevice(const std::string& id)
+	{
+		GetConfig().tv_device = boost::nowide::widen(id);
+		GetConfigHandle().Save();
+	}
+
+	// ---------------------------------------------------------------- per game actions
+
+	namespace
+	{
+		// same list as the desktop game list ("Remove shader caches")
+		std::vector<fs::path> GetExistingShaderCaches(uint64 titleId)
+		{
+			titleId = TitleIdParser::MakeBaseTitleId(titleId);
+			std::vector<fs::path> paths{
+				ActiveSettings::GetCachePath(L"shaderCache/driver/vk/{:016x}.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_spirv.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_gl.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/precompiled/{:016x}_air.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_shaders.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_mtlshaders.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_vkpipeline.bin", titleId),
+				ActiveSettings::GetCachePath(L"shaderCache/transferable/{:016x}_mtlpipeline.bin", titleId)};
+			std::erase_if(paths, [](const fs::path& p) {
+				std::error_code ec;
+				return !fs::exists(p, ec);
+			});
+			return paths;
+		}
+	} // namespace
+
+	int CountShaderCaches(uint64_t titleId)
+	{
+		return (int)GetExistingShaderCaches(titleId).size();
+	}
+
+	int RemoveShaderCaches(uint64_t titleId)
+	{
+		int removed = 0;
+		for (const auto& path : GetExistingShaderCaches(titleId))
+		{
+			std::error_code ec;
+			if (fs::remove(path, ec))
+				removed++;
+			else
+				cemuLog_log(LogType::Force, "Mobile UI: failed to remove {}: {}", _pathToUtf8(path), ec.message());
+		}
+		return removed;
+	}
+
+	namespace
+	{
+		std::shared_ptr<GraphicPack2> GraphicPackByIndex(int index)
+		{
+			const auto& packs = GraphicPack2::GetGraphicPacks();
+			if (index < 0 || index >= (int)packs.size())
+				return {};
+			return packs[index];
+		}
+
+		// same format as GraphicPacksWindow2::SaveStateToConfig
+		void SaveGraphicPackState()
+		{
+			auto& data = GetConfig();
+			data.graphic_pack_entries.clear();
+			for (const auto& gp : GraphicPack2::GetGraphicPacks())
+			{
+				auto filename = _utf8ToPath(gp->GetNormalizedPathString());
+				if (gp->IsEnabled())
+				{
+					auto& entry = data.graphic_pack_entries[filename];
+					for (const auto& preset : gp->GetActivePresets())
+						entry.try_emplace(preset->category, preset->name);
+				}
+				else if (gp->IsDefaultEnabled())
+				{
+					data.graphic_pack_entries[filename].try_emplace("_disabled", "false");
+				}
+			}
+			GetConfigHandle().Save();
+		}
+	} // namespace
+
+	std::vector<GraphicPackInfo> GetGraphicPacks(uint64_t titleId)
+	{
+		std::vector<GraphicPackInfo> result;
+		const auto& packs = GraphicPack2::GetGraphicPacks();
+		for (int i = 0; i < (int)packs.size(); i++)
+		{
+			const auto& gp = packs[i];
+			if (gp->IsUniversal() || !gp->ContainsTitleId(titleId))
+				continue;
+			GraphicPackInfo info;
+			info.index = i;
+			info.name = gp->GetName();
+			info.path = gp->GetVirtualPath();
+			info.description = gp->GetDescription();
+			info.enabled = gp->IsEnabled();
+
+			std::vector<std::string> order;
+			auto categorized = gp->GetCategorizedPresets(order);
+			for (const auto& category : order)
+			{
+				GraphicPackPresetGroup group;
+				group.category = category;
+				for (const auto& preset : categorized[category])
+				{
+					if (!preset->visible)
+						continue;
+					group.presets.push_back(preset->name);
+					if (preset->active)
+						group.active = preset->name;
+				}
+				if (group.presets.empty())
+					continue;
+				if (group.active.empty())
+					group.active = group.presets.front();
+				info.presetGroups.push_back(std::move(group));
+			}
+			result.push_back(std::move(info));
+		}
+		std::sort(result.begin(), result.end(), [](const GraphicPackInfo& a, const GraphicPackInfo& b) { return a.path < b.path; });
+		return result;
+	}
+
+	void SetGraphicPackEnabled(int index, bool enabled)
+	{
+		auto gp = GraphicPackByIndex(index);
+		if (!gp)
+			return;
+		gp->SetEnabled(enabled);
+		SaveGraphicPackState();
+	}
+
+	void SetGraphicPackPreset(int index, const std::string& category, const std::string& preset)
+	{
+		auto gp = GraphicPackByIndex(index);
+		if (!gp)
+			return;
+		gp->SetActivePreset(category, preset);
+		SaveGraphicPackState();
 	}
 } // namespace MobileBackend

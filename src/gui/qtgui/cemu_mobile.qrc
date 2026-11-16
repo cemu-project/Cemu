@@ -3,5 +3,7 @@
         <file alias="Main.qml">qml/Main.qml</file>
         <file alias="GamesPage.qml">qml/GamesPage.qml</file>
         <file alias="FoldersPage.qml">qml/FoldersPage.qml</file>
+        <file alias="SettingsPage.qml">qml/SettingsPage.qml</file>
+        <file alias="GraphicPacksPage.qml">qml/GraphicPacksPage.qml</file>
     </qresource>
 </RCC>

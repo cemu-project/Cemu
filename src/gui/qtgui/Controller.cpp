@@ -178,3 +178,100 @@ void Controller::shutdown()
 	m_reloadTimer.stop();
 	MobileBackend::Shutdown();
 }
+
+// ---------------------------------------------------------------- settings
+
+namespace
+{
+	quint64 ParseTitleId(const QString& titleId)
+	{
+		bool ok = false;
+		const quint64 id = titleId.toULongLong(&ok, 16);
+		return ok ? id : 0;
+	}
+} // namespace
+
+int Controller::setting(const QString& key) const
+{
+	return MobileBackend::GetSetting(key.toStdString());
+}
+
+void Controller::setSetting(const QString& key, int value)
+{
+	MobileBackend::SetSetting(key.toStdString(), value);
+}
+
+QVariantList Controller::audioDevices() const
+{
+	QVariantList result;
+	result.push_back(QVariantMap{{"id", QString()}, {"name", tr("Disabled")}});
+	for (const auto& device : MobileBackend::GetAudioDevices())
+		result.push_back(QVariantMap{{"id", QString::fromStdString(device.id)}, {"name", QString::fromStdString(device.name)}});
+	return result;
+}
+
+QString Controller::tvAudioDevice() const
+{
+	return QString::fromStdString(MobileBackend::GetTVAudioDevice());
+}
+
+void Controller::setTvAudioDevice(const QString& id)
+{
+	MobileBackend::SetTVAudioDevice(id.toStdString());
+}
+
+// ---------------------------------------------------------------- per game actions
+
+int Controller::shaderCacheCount(const QString& titleId) const
+{
+	const quint64 id = ParseTitleId(titleId);
+	return id ? MobileBackend::CountShaderCaches(id) : 0;
+}
+
+int Controller::removeShaderCaches(const QString& titleId)
+{
+	const quint64 id = ParseTitleId(titleId);
+	return id ? MobileBackend::RemoveShaderCaches(id) : 0;
+}
+
+QVariantList Controller::graphicPacks(const QString& titleId) const
+{
+	QVariantList result;
+	const quint64 id = ParseTitleId(titleId);
+	if (!id)
+		return result;
+	for (const auto& gp : MobileBackend::GetGraphicPacks(id))
+	{
+		QVariantList groups;
+		for (const auto& group : gp.presetGroups)
+		{
+			QStringList presets;
+			for (const auto& p : group.presets)
+				presets.push_back(QString::fromStdString(p));
+			groups.push_back(QVariantMap{
+				{"category", QString::fromStdString(group.category)},
+				{"presets", presets},
+				{"active", QString::fromStdString(group.active)},
+			});
+		}
+		result.push_back(QVariantMap{
+			{"index", gp.index},
+			{"name", QString::fromStdString(gp.name)},
+			{"path", QString::fromStdString(gp.path)},
+			{"description", QString::fromStdString(gp.description)},
+			{"enabled", gp.enabled},
+			{"presets", groups},
+		});
+	}
+	return result;
+}
+
+void Controller::setGraphicPackEnabled(int index, bool enabled)
+{
+	MobileBackend::SetGraphicPackEnabled(index, enabled);
+}
+
+void Controller::setGraphicPackPreset(int index, const QString& category, const QString& preset)
+{
+	MobileBackend::SetGraphicPackPreset(index, category.toStdString(), preset.toStdString());
+}

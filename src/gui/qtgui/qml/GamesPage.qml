@@ -7,6 +7,54 @@ Item {
 
     property string title: "Cemu"
     signal openFolders()
+    signal openGraphicPacks(string titleId, string name)
+
+    // long press menu of a game
+    Menu {
+        id: gameMenu
+        property string titleId: ""
+        property string name: ""
+        property int cacheCount: 0
+
+        function openFor(item, titleId, name) {
+            gameMenu.titleId = titleId
+            gameMenu.name = name
+            gameMenu.cacheCount = cemu.shaderCacheCount(titleId)
+            gameMenu.popup(item, item.width / 2, item.height / 2)
+        }
+
+        MenuItem {
+            text: qsTr("Start")
+            onTriggered: cemu.launch(gameMenu.titleId)
+        }
+        MenuItem {
+            text: qsTr("Graphic packs")
+            onTriggered: page.openGraphicPacks(gameMenu.titleId, gameMenu.name)
+        }
+        MenuItem {
+            text: qsTr("Remove shader caches")
+            enabled: gameMenu.cacheCount > 0
+            onTriggered: removeCacheDialog.open()
+        }
+    }
+
+    Dialog {
+        id: removeCacheDialog
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+        width: Math.max(200, Math.min(parent.width - 32, 420))
+        standardButtons: Dialog.Yes | Dialog.No
+        onAccepted: cemu.removeShaderCaches(gameMenu.titleId)
+
+        Label {
+            id: removeCacheLabel
+            width: removeCacheDialog.availableWidth
+            wrapMode: Text.Wrap
+            textFormat: Text.StyledText
+            text: "<b>" + qsTr("Remove shader caches") + "</b><br><br>" + qsTr("Remove the shader caches of %1? They will be rebuilt the next time the game is played, which causes stutter at first.").arg(gameMenu.name)
+        }
+    }
 
     GridView {
         id: grid
@@ -36,6 +84,7 @@ Item {
             height: grid.cellHeight
             padding: 6
             onClicked: cemu.launch(cell.titleId)
+            onPressAndHold: gameMenu.openFor(cell, cell.titleId, cell.name)
 
             contentItem: ColumnLayout {
                 spacing: 4

@@ -30,3 +30,11 @@ mixing them in one translation unit clashes (X11/GTK macros, integer typedefs, `
 
 Leaving a game restarts the process to get back to the list, because stopping a title
 and starting another one in the same process is not reliable in the core.
+
+## Menus available in the mobile interface
+
+- **⋮ › Settings**: console language, screen saver, intro sound, VSync, asynchronous shader compilation,
+  scaling and filters, audio output device / volume / channels / latency, overlay and notifications.
+- **Long press on a game**: start, graphic packs of that game (enable + presets), remove shader caches.
+
+Everything is stored in the same `settings.xml` as the desktop interface.

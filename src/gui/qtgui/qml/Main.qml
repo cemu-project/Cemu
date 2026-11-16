@@ -60,6 +60,10 @@ ApplicationWindow {
                         onTriggered: stack.push(foldersPage)
                     }
                     MenuItem {
+                        text: qsTr("Settings")
+                        onTriggered: stack.push(settingsPage)
+                    }
+                    MenuItem {
                         text: qsTr("Quit")
                         onTriggered: Qt.quit()
                     }
@@ -78,12 +82,25 @@ ApplicationWindow {
         id: gamesPage
         GamesPage {
             onOpenFolders: stack.push(foldersPage)
+            onOpenGraphicPacks: function(titleId, name) {
+                stack.push(graphicPacksPage, {"titleId": titleId, "gameName": name})
+            }
         }
     }
 
     Component {
         id: foldersPage
         FoldersPage {}
+    }
+
+    Component {
+        id: settingsPage
+        SettingsPage {}
+    }
+
+    Component {
+        id: graphicPacksPage
+        GraphicPacksPage {}
     }
 
     // shown while the game window is being created and the title is mounted

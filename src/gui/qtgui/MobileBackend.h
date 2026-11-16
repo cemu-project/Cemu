@@ -70,4 +70,40 @@ namespace MobileBackend
 	void SetTouch(int physX, int physY, bool down);
 
 	std::string GetVersionString();
+
+	// ---- settings (shared with the desktop interface, saved to settings.xml) ----
+	// integer/bool settings addressed by key, see the table in MobileBackend.cpp. Unknown keys return 0
+	int GetSetting(const std::string& key);
+	void SetSetting(const std::string& key, int value); // saves the config
+	struct AudioDevice
+	{
+		std::string id; // empty = disabled
+		std::string name;
+	};
+	std::vector<AudioDevice> GetAudioDevices(); // output devices of the active audio API
+	std::string GetTVAudioDevice();
+	void SetTVAudioDevice(const std::string& id);
+
+	// ---- per game actions ----
+	int CountShaderCaches(uint64_t titleId);
+	int RemoveShaderCaches(uint64_t titleId); // returns the number of deleted files
+
+	struct GraphicPackPresetGroup
+	{
+		std::string category; // empty = default category
+		std::vector<std::string> presets;
+		std::string active;
+	};
+	struct GraphicPackInfo
+	{
+		int index = 0; // stable handle for the lifetime of the process
+		std::string name;
+		std::string path; // position in the graphic pack tree, e.g. "Resolution/BotW"
+		std::string description;
+		bool enabled = false;
+		std::vector<GraphicPackPresetGroup> presetGroups; // only categories with visible presets
+	};
+	std::vector<GraphicPackInfo> GetGraphicPacks(uint64_t titleId);
+	void SetGraphicPackEnabled(int index, bool enabled);
+	void SetGraphicPackPreset(int index, const std::string& category, const std::string& preset);
 }
