@@ -1,0 +1,77 @@
+name: Build Arch Linux ARM
+
+# Compile Cemu dans un conteneur Arch Linux ARM (même base que le diting).
+# Lancement manuel uniquement.
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branche, tag ou commit à compiler (vide = main)"
+        required: false
+
+jobs:
+  build:
+    name: build-archlinuxarm
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 360
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || 'main' }}
+          submodules: "recursive"
+          fetch-depth: 0
+
+      - name: "Cache vcpkg"
+        uses: actions/cache@v4
+        with:
+          path: ~/vcpkg-cache
+          key: vcpkg-archarm-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-archarm-
+
+      - name: "Create Arch Linux ARM image"
+        run: |
+          curl -fsSL -o alarm.tar.gz https://os.archlinuxarm.org/os/ArchLinuxARM-aarch64-latest.tar.gz
+          docker import alarm.tar.gz alarm:latest
+          rm alarm.tar.gz
+          mkdir -p "$HOME/vcpkg-cache"
+
+      - name: "Build Cemu in Arch Linux ARM"
+        run: |
+          docker run --rm \
+            -v "$PWD":/src \
+            -v "$HOME/vcpkg-cache":/vcpkg-cache \
+            -w /src \
+            alarm:latest bash -euxc '
+              sed -i "s/^CheckSpace/#CheckSpace/" /etc/pacman.conf
+              sed -i "/^\[options\]/a DisableSandbox" /etc/pacman.conf
+              pacman-key --init
+              pacman-key --populate archlinuxarm
+              pacman -Syu --noconfirm --needed \
+                base-devel git cmake ninja clang nasm curl zip unzip tar pkgconf \
+                autoconf automake libtool perl python \
+                gtk3 freeglut libgcrypt glm libpulse libsecret systemd-libs bluez-libs \
+                libx11 libxext libxrandr libxi libxcursor libxinerama libxss libxxf86vm \
+                libxkbcommon wayland dbus alsa-lib mesa vulkan-icd-loader
+              git config --global --add safe.directory "*"
+              export VCPKG_ROOT=/src/dependencies/vcpkg
+              export VCPKG_FORCE_SYSTEM_BINARIES=1
+              export VCPKG_BINARY_SOURCES="clear;files,/vcpkg-cache,readwrite"
+              bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
+              cmake -S . -B build -G Ninja \
+                -DCMAKE_BUILD_TYPE=release \
+                -DCMAKE_C_COMPILER=clang \
+                -DCMAKE_CXX_COMPILER=clang++
+              cmake --build build
+            '
+
+      - name: Prepare artifact
+        run: |
+          sudo chown -R "$USER" .
+          mv bin/Cemu_release bin/Cemu
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-archlinuxarm
+          path: ./bin/Cemu
