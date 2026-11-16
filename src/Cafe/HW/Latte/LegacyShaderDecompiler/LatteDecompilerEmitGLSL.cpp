@@ -3273,6 +3273,12 @@ void _emitExportCode(LatteDecompilerShaderContext* shaderContext, LatteDecompile
 						break;
 					}
 					src->add(" uf_alphaTestRef");
+					if (alphaTestFunc == Latte::E_COMPAREFUNC::GEQUAL && ActiveSettings::AlphaTestBias())
+					{
+						// Tekken Tag 2 matches interpolated varying values against >= 1.0, which on nvidia hardware (AMD untested) seems to be very slightly noisy (all 1.0 as input sometimes arrives 1.0, sometimes arrives as 0.999...)
+						// seen for example in Tulip Festival stage
+						src->add("-0.0000001");
+					}
 					src->add(") == false) discard;" _CRLF);
 				}
 				// pixel color output

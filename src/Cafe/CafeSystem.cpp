@@ -707,6 +707,11 @@ namespace CafeSystem
 		s_foregroundTitleCompatibility = TitleCompatibility::Default;
 		switch (titleId)
 		{
+		case 0x0005000010100600: // Tekken Tag Tournament 2 (JP)
+		case 0x000500001010F800: // Tekken Tag Tournament 2 (EU)
+		case 0x0005000010110000: // Tekken Tag Tournament 2 (US)
+			s_foregroundTitleCompatibility = TitleCompatibility::TekkenTagTournament2;
+			break;
 		case 0x000500001017BF00: // Art Academy: Home Studio (US)
 		case 0x000500001017BE00: // Art Academy: Home Studio (JP)
 		case 0x000500001017B500: // Art Academy: Atelier (EU)

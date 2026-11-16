@@ -259,6 +259,13 @@ bool ActiveSettings::ForceSamplerRoundToPrecision()
 	return compatibility == CafeSystem::TitleCompatibility::AdventureTimeExploreTheDungeon || compatibility == CafeSystem::TitleCompatibility::DuckTalesRemastered;
 }
 
+bool ActiveSettings::AlphaTestBias()
+{
+	// Tekken Tag Tournament 2 alpha-tests pixels with >= 1.0. The alpha is partially sourced from varyings, which seem to be noisy on Nvidia hardware and randomly return slightly less than 1.0 (even if all the vertex outputs are hardcoded to 1.0)
+	// see LatteDecompiler comments for more info
+	return CafeSystem::GetForegroundTitleCompatibility() == CafeSystem::TitleCompatibility::TekkenTagTournament2;
+}
+
 fs::path ActiveSettings::GetMlcPath()
 {
 	cemu_assert_debug(s_setPathsCalled);

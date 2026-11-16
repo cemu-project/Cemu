@@ -18,6 +18,7 @@ namespace CafeSystem
 	enum class TitleCompatibility
 	{
 		Default,
+		TekkenTagTournament2,
 		ArtAcademyHomeStudio,
 		NewSuperMarioBrosU,
 		NewSuperMarioBrosUAndNewSuperLuigiU,

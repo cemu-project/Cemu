@@ -117,11 +117,12 @@ public:
 	static void EnableDumpRecompilerFunctions(bool state);
 	static void EnableDumpLibcurlRequests(bool state);
 
-	// hacks
+	// game specific hacks/workarounds
 	[[nodiscard]] static bool VPADDelayEnabled();
 	[[nodiscard]] static bool ShaderPreventInfiniteLoopsEnabled();
 	[[nodiscard]] static bool FlushGPUCacheOnSwap();
 	[[nodiscard]] static bool ForceSamplerRoundToPrecision();
+	[[nodiscard]] static bool AlphaTestBias();
 
 private:
 	inline static bool s_setPathsCalled = false;

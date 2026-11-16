@@ -1,4 +1,5 @@
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanRenderer.h"
+#include "Cafe/CafeSystem.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/VulkanAPI.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/LatteTextureVk.h"
 #include "Cafe/HW/Latte/Renderer/Vulkan/RendererShaderVk.h"
@@ -198,8 +199,17 @@ bool VulkanRenderer::IsAsyncPipelineAllowed(uint32 numIndices)
 	// frame debuggers dont handle async well (as of 2020)
 	if (IsTracingToolEnabled())
 		return false;
-
 	CachedFBOVk* currentFBO = m_state.activeFBO;
+
+	if (CafeSystem::GetForegroundTitleCompatibility() == CafeSystem::TitleCompatibility::TekkenTagTournament2)
+	{
+		// stricter rules for Tekken Tag Tournament 2 which uses on-GPU texture compression and streamout for persistent vertex data
+		if (LatteGPUState.contextRegister[mmVGT_STRMOUT_EN] != 0)
+			return false;
+		if (numIndices <= 6 && currentFBO->hasDepthBuffer() && !LatteGPUState.contextNew.DB_DEPTH_CONTROL.get_Z_ENABLE())
+			return false;
+	}
+
 	auto fboExtend = currentFBO->GetExtend();
 
 	if (fboExtend.width == 1600 && fboExtend.height == 1600)

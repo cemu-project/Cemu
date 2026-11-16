@@ -3,6 +3,7 @@
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteTexture.h"
 
+#include "CafeSystem.h"
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "Cafe/HW/Latte/LatteAddrLib/LatteAddrLib.h"
 
@@ -1240,6 +1241,12 @@ bool LatteTexture_ShouldEnableReadback(MPTR physAddress, Latte::E_GX2SURFFMT for
 			return true;
 		// Xenoblade Chronicles X luminance, 1x1 but allocated as 16x8
 		if (format == Latte::E_GX2SURFFMT::R16_FLOAT && width == 16 && height == 8 && !isMEM1)
+			return true;
+	}
+	else if (tileMode == Latte::E_HWTILEMODE::TM_2D_TILED_THIN1  && !isDepth && depth == 1 && mipLevels == 1)
+	{
+		// Tekken Tag 2 luminance texture, too generic to always enable it
+		if (width == 64 && height == 64 && format == Latte::E_GX2SURFFMT::R8_G8_B8_A8_UNORM && CafeSystem::GetForegroundTitleCompatibility() == CafeSystem::TitleCompatibility::TekkenTagTournament2)
 			return true;
 	}
 	return false;
