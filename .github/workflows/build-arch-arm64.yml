@@ -2,8 +2,14 @@ name: Build Arch Linux ARM
 
 # Construit le paquet pacman (.pkg.tar.zst) de Cemu pour Arch Linux ARM à partir de
 # dist/linux/arch/PKGBUILD, dans un conteneur Arch Linux ARM sur un runner ARM64 natif.
-# Lancement manuel uniquement.
+# GitHub ne propose pas de runner Arch : "runs-on: ubuntu-24.04-arm" n'est que la machine
+# hôte ARM64. Toute la compilation se fait dans le conteneur Arch Linux ARM.
 on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "*.md"
   workflow_dispatch:
     inputs:
       ref:
@@ -16,7 +22,7 @@ concurrency:
 
 jobs:
   build:
-    name: build-archlinuxarm
+    name: Arch Linux ARM (aarch64) package
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     steps:
@@ -31,7 +37,7 @@ jobs:
       - name: "Checkout repo"
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.ref || 'main' }}
+          ref: ${{ inputs.ref || github.sha }}
           submodules: "recursive"
           fetch-depth: 0
 
