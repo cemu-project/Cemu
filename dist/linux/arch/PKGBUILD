@@ -65,7 +65,9 @@ build() {
     -DVCPKG_INSTALL_OPTIONS=--clean-after-build \
     -DENABLE_QT_MOBILE_UI=ON \
     -DCMAKE_C_COMPILER=clang \
-    -DCMAKE_CXX_COMPILER=clang++
+    -DCMAKE_CXX_COMPILER=clang++ \
+    -DCMAKE_CXX_SCAN_FOR_MODULES=OFF \
+    -DCMAKE_CXX_MODULE_STD=OFF
   cmake --build "$srcdir/build"
 }
 
