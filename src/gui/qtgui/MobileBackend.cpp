@@ -24,6 +24,8 @@
 
 #include <unistd.h>
 
+extern "C" int __llvm_profile_write_file(void) __attribute__((weak));
+
 namespace MobileBackend
 {
 	namespace
@@ -413,8 +415,16 @@ namespace MobileBackend
 		s_gameRunning = false;
 	}
 
+	void FlushProfileData()
+	{
+		// PGO instrumented builds only: execv()/_exit() skip the atexit handler that writes the profile
+		if (&__llvm_profile_write_file)
+			__llvm_profile_write_file();
+	}
+
 	void RestartProcess()
 	{
+		FlushProfileData();
 		char exePath[4096];
 		const ssize_t len = readlink("/proc/self/exe", exePath, sizeof(exePath) - 1);
 		if (len <= 0)

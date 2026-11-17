@@ -60,7 +60,25 @@ build() {
   cd "$_src"
   bash ./dependencies/vcpkg/bootstrap-vcpkg.sh
 
+  # PGO (optimisation guidée par profil), variable CEMU_PGO :
+  #   (vide)    build normal
+  #   generate  build instrumenté : à lancer et jouer, il écrit des fichiers .profraw
+  #   use       build optimisé avec dist/linux/arch/cemu.profdata
+  local _pgo_flags=""
+  case "${CEMU_PGO:-}" in
+    generate)
+      _pgo_flags="-fprofile-instr-generate"
+      ;;
+    use)
+      [ -f "$_src/dist/linux/arch/cemu.profdata" ] || { echo "cemu.profdata introuvable"; return 1; }
+      _pgo_flags="-fprofile-instr-use=$_src/dist/linux/arch/cemu.profdata -Wno-profile-instr-unprofiled -Wno-profile-instr-out-of-date -Wno-backend-plugin"
+      ;;
+  esac
+
   cmake -S "$_src" -B "$srcdir/build" -G Ninja \
+    -DCMAKE_C_FLAGS="$_pgo_flags" \
+    -DCMAKE_CXX_FLAGS="$_pgo_flags" \
+    -DCMAKE_EXE_LINKER_FLAGS="$_pgo_flags" \
     -DCMAKE_BUILD_TYPE=release \
     -DVCPKG_INSTALL_OPTIONS=--clean-after-build \
     -DENABLE_QT_MOBILE_UI=ON \

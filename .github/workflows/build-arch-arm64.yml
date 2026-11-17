@@ -15,6 +15,11 @@ on:
       ref:
         description: "Branche, tag ou commit à compiler (vide = main)"
         required: false
+      pgo:
+        description: "PGO : none (normal), generate (instrumenté), use (avec dist/linux/arch/cemu.profdata)"
+        type: choice
+        options: [none, generate, use]
+        default: none
 
 concurrency:
   group: build-arch-arm64
@@ -93,6 +98,7 @@ jobs:
               cd /src/dist/linux/arch
               sudo -Hu builder env \
                 PKGDEST=/out \
+                CEMU_PGO="${{ inputs.pgo == 'none' && '' || inputs.pgo }}" \
                 VCPKG_BINARY_SOURCES="clear;files,/vcpkg-cache,readwrite" \
                 makepkg -sf --noconfirm
             '

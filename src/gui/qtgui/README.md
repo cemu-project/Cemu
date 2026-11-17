@@ -38,3 +38,10 @@ and starting another one in the same process is not reliable in the core.
 - **Long press on a game**: start, graphic packs of that game (enable + presets), remove shader caches.
 
 Everything is stored in the same `settings.xml` as the desktop interface.
+
+## PGO (profile-guided optimization)
+
+1. Run the workflow manually (Actions › Run workflow) with `pgo = generate`, install the package.
+2. On the phone: `LLVM_PROFILE_FILE="$HOME/cemu-%m.profraw" Cemu --mobile-ui`, play a few minutes with several games, quit the game normally.
+3. `sudo pacman -S llvm`, then `llvm-profdata merge -output=cemu.profdata ~/cemu-*.profraw`.
+4. Commit `cemu.profdata` to `dist/linux/arch/`, run the workflow with `pgo = use`.
