@@ -135,8 +135,11 @@ void LattePerformanceMonitor_frameEnd()
 			double coreIdle[3];
 			for (sint32 c = 0; c < 3; c++)
 				coreIdle[c] = 100.0 * (double)PPCTimer_tscToMicroseconds(coreinit::__CemuGetAndResetCoreIdleTicks(c)) / 1000.0 / (double)std::max<uint32>(elapsedTime, 1);
-			cemuLog_log(LogType::Force, "PERF fps={:.1f} frame={:.1f}ms | latte: waiting-for-guest={:.1f}ms fence={:.1f}ms async={:.1f}ms working={:.1f}ms | guest cores idle%: c0={:.0f} c1={:.0f} c2={:.0f} | draws/frame={} threadYields/s={} recompilerLeaves/s={}",
+			// also printed on stderr: the regular log only goes to log.txt unless --verbose is used
+			const std::string perfLine = fmt::format("PERF fps={:.1f} frame={:.1f}ms | latte: waiting-for-guest={:.1f}ms fence={:.1f}ms async={:.1f}ms working={:.1f}ms | guest cores idle%: c0={:.0f} c1={:.0f} c2={:.0f} | draws/frame={} threadYields/s={} recompilerLeaves/s={}",
 				fps, frameMs, idleMs, fenceMs, asyncMs, busyMs, coreIdle[0], coreIdle[1], coreIdle[2], drawCallCounter / elapsedFrames, tlps, rlps);
+			fprintf(stderr, "%s\n", perfLine.c_str());
+			cemuLog_log(LogType::Force, perfLine);
 		}
 		if (s_perfLogEnabled)
 		{
