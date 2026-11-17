@@ -1312,6 +1312,9 @@ void OpenGLRenderer::texture_copyImageSubData(LatteTexture* src, sint32 srcMip, 
 
 LatteTextureReadbackInfo* OpenGLRenderer::texture_createReadback(LatteTextureView* textureView)
 {
+	LatteTextureGL* textureGL = static_cast<LatteTextureGL*>(textureView->baseTexture);
+	if (Latte::GetHWFormat(textureView->format) == Latte::E_HWFMT::HWFMT_BC1 && (textureGL->isAlternativeFormat || !glGetCompressedTextureSubImage))
+		return nullptr;
 	return new LatteTextureReadbackInfoGL(textureView);
 }
 
