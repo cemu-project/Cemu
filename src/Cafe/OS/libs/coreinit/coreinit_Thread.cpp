@@ -1209,12 +1209,22 @@ namespace coreinit
 
 	Fiber* g_idleLoopFiber[3]{};
 
+	// profiling: time spent in the idle fiber, per core (only measured when CEMU_PERF_LOG is set)
+	static const bool s_perfLogEnabled = getenv("CEMU_PERF_LOG") != nullptr;
+	static std::atomic<uint64> s_coreIdleTicks[3]{};
+
+	uint64 __CemuGetAndResetCoreIdleTicks(sint32 coreIndex)
+	{
+		return s_coreIdleTicks[coreIndex].exchange(0, std::memory_order_relaxed);
+	}
+
 	// idle fiber per core if no thread is runnable
 	// this is necessary since we can't block in __OSThreadSwitchToNext() (__OSStoreThread + thread switch must happen inside same scheduler lock)
 	void __OSThreadCoreIdle(void* unusedParam)
 	{
 		bool isMainCore = g_isMulticoreMode == false || t_assignedCoreIndex == 1;
 		sint32 coreIndex = t_assignedCoreIndex;
+		uint64 idleStart = s_perfLogEnabled ? PPCTimer_getRawTsc() : 0;
 		__OSUnlockScheduler();
 		while (true)
 		{
@@ -1225,7 +1235,11 @@ namespace coreinit
 				if (nextThread)
 				{
 					cemu_assert_debug(nextThread->state == OSThread_t::THREAD_STATE::STATE_RUNNING);
+					if (s_perfLogEnabled)
+						s_coreIdleTicks[t_assignedCoreIndex].fetch_add(PPCTimer_getRawTsc() - idleStart, std::memory_order_relaxed);
 					__OSSwitchToThreadFiber(nextThread, coreIndex);
+					if (s_perfLogEnabled)
+						idleStart = PPCTimer_getRawTsc();
 				}
 				__OSUnlockScheduler();
 			}

@@ -45,3 +45,16 @@ Everything is stored in the same `settings.xml` as the desktop interface.
 2. On the phone: `LLVM_PROFILE_FILE="$HOME/cemu-%m.profraw" Cemu --mobile-ui`, play a few minutes with several games, quit the game normally.
 3. `sudo pacman -S llvm`, then `llvm-profdata merge -output=cemu.profdata ~/cemu-*.profraw`.
 4. Commit `cemu.profdata` to `dist/linux/arch/`, run the workflow with `pgo = use`.
+
+## Built-in frame profiler
+
+`CEMU_PERF_LOG=1 Cemu --mobile-ui` prints one line per second while a game runs:
+
+```
+PERF fps=16.2 frame=61.7ms | latte: waiting-for-guest=35.1ms fence=4.2ms async=0.3ms working=22.1ms | guest cores idle%: c0=62 c1=57 c2=60 | ...
+```
+
+- `waiting-for-guest`: the GPU command thread has nothing to do (the game thread is the bottleneck)
+- `fence`: it waits for a condition in memory
+- `working`: it is really processing draw calls (Cemu + Vulkan driver)
+- `guest cores idle%`: share of the second a PPC core had no runnable thread

@@ -1,8 +1,18 @@
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "WindowSystem.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
 
 performanceMonitor_t performanceMonitor{};
+
+// CEMU_PERF_LOG=1 : prints one line per second with the time split of a frame (see README of the mobile UI)
+static const bool s_perfLogEnabled = getenv("CEMU_PERF_LOG") != nullptr;
+static struct
+{
+	uint64 frameTicks = 0, idleTicks = 0, fenceTicks = 0, asyncTicks = 0;
+	uint32 frames = 0;
+	uint32 drawCalls = 0;
+} s_perfSum;
 
 void LattePerformanceMonitor_frameEnd()
 {
@@ -19,6 +29,15 @@ void LattePerformanceMonitor_frameEnd()
 	performanceMonitor.gpuTime_dcStageMRT.frameFinished();
 	performanceMonitor.gpuTime_dcStageDrawcallAPI.frameFinished();
 	performanceMonitor.gpuTime_waitForAsync.frameFinished();
+
+	if (s_perfLogEnabled)
+	{
+		s_perfSum.frameTicks += performanceMonitor.gpuTime_frameTime.getPreviousFrameValue();
+		s_perfSum.idleTicks += performanceMonitor.gpuTime_idleTime.getPreviousFrameValue();
+		s_perfSum.fenceTicks += performanceMonitor.gpuTime_fenceTime.getPreviousFrameValue();
+		s_perfSum.asyncTicks += performanceMonitor.gpuTime_waitForAsync.getPreviousFrameValue();
+		s_perfSum.frames++;
+	}
 
 	uint32 elapsedTime = GetTickCount() - performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate;
 	if (elapsedTime >= 1000)
@@ -102,6 +121,29 @@ void LattePerformanceMonitor_frameEnd()
 
 		// next update in 1 second
 		performanceMonitor.cycle[performanceMonitor.cycleIndex].lastUpdate = GetTickCount();
+
+		if (s_perfLogEnabled && !isFirstUpdate && s_perfSum.frames > 0)
+		{
+			const double n = (double)s_perfSum.frames;
+			auto ms = [&](uint64 ticks) { return (double)PPCTimer_tscToMicroseconds(ticks) / 1000.0 / n; };
+			const double frameMs = ms(s_perfSum.frameTicks);
+			const double idleMs = ms(s_perfSum.idleTicks);
+			const double fenceMs = ms(s_perfSum.fenceTicks);
+			const double asyncMs = ms(s_perfSum.asyncTicks);
+			const double busyMs = std::max(0.0, frameMs - idleMs - fenceMs - asyncMs);
+			// guest cores: share of the last second spent without any runnable guest thread
+			double coreIdle[3];
+			for (sint32 c = 0; c < 3; c++)
+				coreIdle[c] = 100.0 * (double)PPCTimer_tscToMicroseconds(coreinit::__CemuGetAndResetCoreIdleTicks(c)) / 1000.0 / (double)std::max<uint32>(elapsedTime, 1);
+			cemuLog_log(LogType::Force, "PERF fps={:.1f} frame={:.1f}ms | latte: waiting-for-guest={:.1f}ms fence={:.1f}ms async={:.1f}ms working={:.1f}ms | guest cores idle%: c0={:.0f} c1={:.0f} c2={:.0f} | draws/frame={} threadYields/s={} recompilerLeaves/s={}",
+				fps, frameMs, idleMs, fenceMs, asyncMs, busyMs, coreIdle[0], coreIdle[1], coreIdle[2], drawCallCounter / elapsedFrames, tlps, rlps);
+		}
+		if (s_perfLogEnabled)
+		{
+			s_perfSum = {};
+			for (sint32 c = 0; c < 3; c++)
+				coreinit::__CemuGetAndResetCoreIdleTicks(c);
+		}
 
 		if (isFirstUpdate)
 		{

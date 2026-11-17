@@ -520,6 +520,9 @@ namespace coreinit
 
 	bool __CemuIsMulticoreMode();
 
+	// profiling (CEMU_PERF_LOG=1): raw TSC ticks a PPC core spent without a runnable thread since the last call
+	uint64 __CemuGetAndResetCoreIdleTicks(sint32 coreIndex);
+
 	OSThread_t* OSGetDefaultThread(sint32 coreIndex);
 	void* OSGetDefaultThreadStack(sint32 coreIndex, uint32& size);
 
