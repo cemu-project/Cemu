@@ -35,7 +35,7 @@ optdepends=('vulkan-freedreno: pilote Vulkan Turnip pour les GPU Adreno'
             'kde-gtk-config: applique automatiquement le thème et les couleurs Plasma')
 provides=('cemu')
 conflicts=('cemu')
-options=('!lto' '!debug')
+options=('!lto' '!debug' '!strip')  # symboles conservés pour perf
 source=()
 sha256sums=()
 
