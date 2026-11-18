@@ -507,6 +507,8 @@ namespace MobileBackend
 				// graphics (the mobile interface always uses Vulkan)
 				{"vsync",               {[](CemuConfig& c) { return (int)c.vsync.GetValue(); },
 				                         [](CemuConfig& c, int v) { c.vsync = std::clamp(v, 0, 2); }}},
+				{"vk_accurate_barriers", {[](CemuConfig& c) { return (int)c.vk_accurate_barriers.GetValue(); },
+				                         [](CemuConfig& c, int v) { c.vk_accurate_barriers = v != 0; }}},
 				{"async_compile",       {[](CemuConfig& c) { return (int)c.async_compile.GetValue(); },
 				                         [](CemuConfig& c, int v) { c.async_compile = v != 0; }}},
 				{"upscale_filter",      {[](CemuConfig& c) { return (int)c.upscale_filter.GetValue(); },

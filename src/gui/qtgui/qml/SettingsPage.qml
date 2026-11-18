@@ -167,6 +167,11 @@ Item {
                 text: qsTr("Asynchronous shader compilation")
                 hint: qsTr("Less stutter, but objects may be missing for a moment")
             }
+            SwitchRow {
+                key: "vk_accurate_barriers"
+                text: qsTr("Accurate barriers")
+                hint: qsTr("Turn off for more speed on heavy scenes; may cause rare graphical glitches. Applies on next game start")
+            }
             ComboRow {
                 key: "fullscreen_scaling"
                 label: qsTr("Scaling")
