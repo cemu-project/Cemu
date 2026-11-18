@@ -7,9 +7,7 @@
 
 #define PPC_REC_ALIGN_TO_4MB(__v)	(((__v)+4*1024*1024-1)&~(4*1024*1024-1))
 
-#define PPC_REC_MAX_VIRTUAL_GPR		(40 + 32) // enough to store 32 GPRs + a few SPRs + temp registers (usually only 1-2)
-
-struct ppcRecRange_t
+struct PPCRecRange
 {
 	uint32 ppcAddress;
 	uint32 ppcSize;
@@ -30,14 +28,14 @@ struct PPCRecFunction_t
 	uint32 ppcSize; // ppc code size of function
 	void*  x86Code; // pointer to x86 code
 	size_t x86Size;
-	std::vector<ppcRecRange_t> list_ranges;
+	boost::container::small_vector<PPCRecRange, 2> list_ranges; // small vector because a large majority of functions will be 1 or 2 ranges
 	boost::container::small_vector<JumpTableEntry, 2> jumpTableEntries;
 };
 
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLInstruction.h"
 #include "Cafe/HW/Espresso/Recompiler/IML/IMLSegment.h"
 
-struct IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(struct ppcImlGenContext_t* ppcImlGenContext);
+IMLInstruction* PPCRecompilerImlGen_generateNewEmptyInstruction(struct ppcImlGenContext_t* ppcImlGenContext);
 
 struct ppcImlGenContext_t
 {
