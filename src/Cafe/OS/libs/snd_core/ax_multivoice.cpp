@@ -166,7 +166,7 @@ namespace snd_core
 
 	sint32 AXSetMultiVoiceDeviceMix(AXVPBMULTI* mv, sint32 deviceType, sint32 deviceIndex, uint32 busIndex, uint16 vol, sint16 delta)
 	{
-		if (busIndex > AX_BUS_COUNT) [[unlikely]]
+		if (busIndex >= AX_BUS_COUNT) [[unlikely]]
 		{
 			cemuLog_log(LogType::APIErrors, "AXSetMultiVoiceDeviceMix: Invalid bus index {}", busIndex);
 			return 0;

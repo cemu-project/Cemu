@@ -628,7 +628,7 @@ namespace snd_core
 				deviceMix[channel][busIndex] = mix[busIndex * channelCount + channel];
 			}
 		}
-		return AXSetVoiceDeviceMix(vpb, AX_DEV_TV, 1, &deviceMix[0][0]);
+		return AXSetVoiceDeviceMix(vpb, AX_DEV_TV, 0, &deviceMix[0][0]);
 	}
 
 	sint32 AXSetVoiceDRCMix(AXVPB* vpb, const AXCHMIX2* mix)
