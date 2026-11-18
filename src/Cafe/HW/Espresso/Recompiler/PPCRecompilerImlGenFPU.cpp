@@ -321,7 +321,7 @@ bool PPCRecompilerImlGen_FMSUB(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 		ppcImlGenContext->emitInst().make_fpr_r_r(IMLOperation::OP_FPR_MULTIPLY, fprTemp, fprC);
 		ppcImlGenContext->emitInst().make_fpr_r_r(IMLOperation::OP_FPR_SUB, fprTemp, fprB);
 		ppcImlGenContext->emitInst().make_fpr_r_r(IMLOperation::OP_FPR_ASSIGN, fprD, fprTemp);
-		return false;
+		return true;
 	}
 	if( frD == frC )
 	{
