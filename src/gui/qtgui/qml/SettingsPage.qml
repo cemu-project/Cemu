@@ -283,7 +283,7 @@ Item {
                 wrapMode: Text.Wrap
                 font.pixelSize: 12
                 opacity: 0.6
-                text: qsTr("Controllers, accounts and the other options are still set up in the desktop interface (Cemu launcher). Both interfaces share the same settings.")
+                text: qsTr("Accounts and the other options are still set up in the desktop interface (Cemu launcher). Both interfaces share the same settings.")
             }
         }
     }

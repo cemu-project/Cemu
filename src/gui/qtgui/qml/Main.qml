@@ -60,6 +60,10 @@ ApplicationWindow {
                         onTriggered: stack.push(foldersPage)
                     }
                     MenuItem {
+                        text: qsTr("Controllers")
+                        onTriggered: stack.push(controllersPage)
+                    }
+                    MenuItem {
                         text: qsTr("Settings")
                         onTriggered: stack.push(settingsPage)
                     }
@@ -91,6 +95,11 @@ ApplicationWindow {
     Component {
         id: foldersPage
         FoldersPage {}
+    }
+
+    Component {
+        id: controllersPage
+        ControllersPage {}
     }
 
     Component {

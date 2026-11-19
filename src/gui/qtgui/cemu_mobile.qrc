@@ -5,5 +5,6 @@
         <file alias="FoldersPage.qml">qml/FoldersPage.qml</file>
         <file alias="SettingsPage.qml">qml/SettingsPage.qml</file>
         <file alias="GraphicPacksPage.qml">qml/GraphicPacksPage.qml</file>
+        <file alias="ControllersPage.qml">qml/ControllersPage.qml</file>
     </qresource>
 </RCC>

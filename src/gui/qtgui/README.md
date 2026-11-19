@@ -8,9 +8,10 @@ What it does today:
 
 - game list (grid with icons), refresh, launch
 - game folder management
+- controllers: pick the SDL controller for player 1, default mapping, live button test
 - full screen Vulkan render window with keyboard, mouse and touch forwarding
 
-Everything else (input mapping, graphics/audio settings, graphic packs, title manager,
+Everything else (custom input mapping, graphics/audio settings, graphic packs, title manager,
 debugger, ...) is still only available in the desktop interface; both share the same
 configuration files.
 

@@ -106,4 +106,37 @@ namespace MobileBackend
 	std::vector<GraphicPackInfo> GetGraphicPacks(uint64_t titleId);
 	void SetGraphicPackEnabled(int index, bool enabled);
 	void SetGraphicPackPreset(int index, const std::string& category, const std::string& preset);
+
+	// ---- controllers (profiles are shared with the desktop interface: controllerProfiles/controllerN.xml) ----
+	struct InputDevice
+	{
+		std::string uuid;
+		std::string name;
+		std::string api;
+		bool connected = false;
+	};
+	struct InputPlayer
+	{
+		bool enabled = false;	  // false = no emulated controller on this player slot
+		std::string type;		  // "Wii U GamePad", "Wii U Pro Controller", ...
+		std::vector<InputDevice> devices; // physical devices assigned to the slot
+	};
+	struct InputPressedButton
+	{
+		int id = 0;
+		std::string emulatedName; // name of the Wii U button
+		std::string deviceName;	  // name of the physical button/axis mapped to it
+	};
+	std::vector<std::string> GetInputControllerTypes();
+	InputPlayer GetInputPlayer(int player);
+	// physical devices seen by SDL right now
+	std::vector<InputDevice> GetAvailableInputDevices();
+	// type "" removes the emulated controller of the slot. Both save the profile
+	bool SetInputPlayerType(int player, const std::string& type, std::string& errorOut);
+	// replaces the devices of the slot by the given one and applies the default mapping. Saves the profile
+	bool AssignInputDevice(int player, const std::string& uuid, std::string& errorOut);
+	void RemoveInputDevice(int player, const std::string& uuid);
+	bool ResetInputMapping(int player, std::string& errorOut);
+	// Wii U buttons currently held on this slot, for the test screen
+	std::vector<InputPressedButton> GetPressedInputButtons(int player);
 }

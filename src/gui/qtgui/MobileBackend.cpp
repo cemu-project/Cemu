@@ -9,6 +9,10 @@
 #include "config/CemuConfig.h"
 #include "config/ActiveSettings.h"
 #include "input/InputManager.h"
+#include "input/api/Controller.h"
+#include "input/emulated/ProController.h"
+#include "input/emulated/ClassicController.h"
+#include "input/emulated/WiimoteController.h"
 #include "util/helpers/helpers.h"
 #include "Common/version.h"
 #include "Cafe/GraphicPack/GraphicPack2.h"
@@ -743,5 +747,229 @@ namespace MobileBackend
 			return;
 		gp->SetActivePreset(category, preset);
 		SaveGraphicPackState();
+	}
+
+	// ---------------------------------------------------------------- controllers
+
+	namespace
+	{
+		constexpr int kMobilePlayerCount = 2; // VPAD slots are the ones that matter on a handheld
+
+		InputDevice ToInputDevice(const std::shared_ptr<ControllerBase>& c)
+		{
+			InputDevice d;
+			d.uuid = c->uuid();
+			d.name = c->display_name();
+			d.api = std::string(c->api_name());
+			d.connected = c->is_connected();
+			return d;
+		}
+
+		std::string EmulatedButtonName(EmulatedController::Type type, int id)
+		{
+			std::string_view name;
+			switch (type)
+			{
+			case EmulatedController::VPAD:
+				name = VPADController::get_button_name((VPADController::ButtonId)id);
+				break;
+			case EmulatedController::Pro:
+				name = ProController::get_button_name((ProController::ButtonId)id);
+				break;
+			case EmulatedController::Classic:
+				name = ClassicController::get_button_name((ClassicController::ButtonId)id);
+				break;
+			case EmulatedController::Wiimote:
+				name = WiimoteController::get_button_name((WiimoteController::ButtonId)id);
+				break;
+			default:
+				break;
+			}
+			return name.empty() ? fmt::format("#{}", id) : std::string(name);
+		}
+
+		std::vector<std::shared_ptr<ControllerBase>> SDLControllers()
+		{
+			auto& manager = InputManager::instance();
+			if (!manager.is_api_available(InputAPI::SDLController))
+				return {};
+			return manager.get_api_provider(InputAPI::SDLController)->get_controllers();
+		}
+	} // namespace
+
+	std::vector<std::string> GetInputControllerTypes()
+	{
+		std::vector<std::string> result;
+		for (int t = 0; t < (int)EmulatedController::MAX; t++)
+			result.emplace_back(EmulatedController::type_to_string((EmulatedController::Type)t));
+		return result;
+	}
+
+	InputPlayer GetInputPlayer(int player)
+	{
+		InputPlayer result;
+		if (player < 0 || player >= kMobilePlayerCount)
+			return result;
+		auto controller = InputManager::instance().get_controller((size_t)player);
+		if (!controller)
+			return result;
+		result.enabled = true;
+		result.type = std::string(controller->type_string());
+		for (const auto& c : controller->get_controllers())
+			result.devices.push_back(ToInputDevice(c));
+		return result;
+	}
+
+	std::vector<InputDevice> GetAvailableInputDevices()
+	{
+		std::vector<InputDevice> result;
+		for (const auto& c : SDLControllers())
+			result.push_back(ToInputDevice(c));
+		return result;
+	}
+
+	bool SetInputPlayerType(int player, const std::string& type, std::string& errorOut)
+	{
+		if (player < 0 || player >= kMobilePlayerCount)
+		{
+			errorOut = "invalid player";
+			return false;
+		}
+		auto& manager = InputManager::instance();
+		if (type.empty())
+		{
+			manager.delete_controller((size_t)player, true);
+			return true;
+		}
+		try
+		{
+			const auto emulatedType = EmulatedController::type_from_string(type);
+			if (auto current = manager.get_controller((size_t)player); current && current->type() == emulatedType)
+				return true;
+			auto controller = manager.set_controller((size_t)player, emulatedType);
+			if (!controller)
+			{
+				errorOut = "can't create this controller type (all slots of this kind are used)";
+				return false;
+			}
+			for (const auto& c : controller->get_controllers())
+				controller->set_default_mapping(c);
+			manager.save((size_t)player);
+			return true;
+		}
+		catch (const std::exception& ex)
+		{
+			errorOut = ex.what();
+			return false;
+		}
+	}
+
+	bool AssignInputDevice(int player, const std::string& uuid, std::string& errorOut)
+	{
+		if (player < 0 || player >= kMobilePlayerCount)
+		{
+			errorOut = "invalid player";
+			return false;
+		}
+		std::shared_ptr<ControllerBase> device;
+		for (const auto& c : SDLControllers())
+		{
+			if (c->uuid() == uuid)
+			{
+				device = c;
+				break;
+			}
+		}
+		if (!device)
+		{
+			errorOut = "this controller is no longer available";
+			return false;
+		}
+		auto& manager = InputManager::instance();
+		auto controller = manager.get_controller((size_t)player);
+		if (!controller)
+		{
+			controller = manager.set_controller((size_t)player, EmulatedController::VPAD);
+			if (!controller)
+			{
+				errorOut = "can't create the emulated controller";
+				return false;
+			}
+		}
+		controller->clear_controllers();
+		controller->clear_mappings();
+		controller->add_controller(device);
+		device->connect();
+		if (!controller->set_default_mapping(device))
+		{
+			errorOut = "no default mapping for this controller";
+			manager.save((size_t)player);
+			return false;
+		}
+		manager.save((size_t)player);
+		return true;
+	}
+
+	void RemoveInputDevice(int player, const std::string& uuid)
+	{
+		if (player < 0 || player >= kMobilePlayerCount)
+			return;
+		auto controller = InputManager::instance().get_controller((size_t)player);
+		if (!controller)
+			return;
+		std::vector<std::shared_ptr<ControllerBase>> toRemove;
+		for (const auto& c : controller->get_controllers())
+		{
+			if (c->uuid() == uuid)
+				toRemove.push_back(c);
+		}
+		for (const auto& c : toRemove)
+			controller->remove_controller(c);
+		InputManager::instance().save((size_t)player);
+	}
+
+	bool ResetInputMapping(int player, std::string& errorOut)
+	{
+		if (player < 0 || player >= kMobilePlayerCount)
+		{
+			errorOut = "invalid player";
+			return false;
+		}
+		auto controller = InputManager::instance().get_controller((size_t)player);
+		if (!controller || controller->get_controllers().empty())
+		{
+			errorOut = "no controller assigned";
+			return false;
+		}
+		controller->clear_mappings();
+		bool ok = false;
+		for (const auto& c : controller->get_controllers())
+			ok = controller->set_default_mapping(c) || ok;
+		InputManager::instance().save((size_t)player);
+		if (!ok)
+			errorOut = "no default mapping for this controller";
+		return ok;
+	}
+
+	std::vector<InputPressedButton> GetPressedInputButtons(int player)
+	{
+		std::vector<InputPressedButton> result;
+		if (player < 0 || player >= kMobilePlayerCount)
+			return result;
+		auto controller = InputManager::instance().get_controller((size_t)player);
+		if (!controller)
+			return result;
+		const size_t maxId = controller->get_highest_mapping_id();
+		for (size_t id = 1; id < maxId; id++)
+		{
+			if (!controller->is_mapping_down(id))
+				continue;
+			InputPressedButton b;
+			b.id = (int)id;
+			b.emulatedName = EmulatedButtonName(controller->type(), (int)id);
+			b.deviceName = controller->get_mapping_name(id);
+			result.push_back(std::move(b));
+		}
+		return result;
 	}
 } // namespace MobileBackend

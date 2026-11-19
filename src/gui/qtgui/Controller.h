@@ -52,6 +52,16 @@ class Controller : public QObject
 	Q_INVOKABLE void setGraphicPackEnabled(int index, bool enabled);
 	Q_INVOKABLE void setGraphicPackPreset(int index, const QString& category, const QString& preset);
 
+	// controllers. player 0 = player 1. Profiles are shared with the desktop interface
+	Q_INVOKABLE QStringList inputTypes() const;
+	Q_INVOKABLE QVariantMap inputPlayer(int player) const; // {enabled, type, devices: [{uuid, name, api, connected}]}
+	Q_INVOKABLE QVariantList availableInputDevices() const; // [{uuid, name, api, connected}] seen by SDL right now
+	Q_INVOKABLE bool setInputPlayerType(int player, const QString& type); // empty type = disabled
+	Q_INVOKABLE bool assignInputDevice(int player, const QString& uuid);
+	Q_INVOKABLE void removeInputDevice(int player, const QString& uuid);
+	Q_INVOKABLE bool resetInputMapping(int player);
+	Q_INVOKABLE QVariantList pressedInputButtons(int player) const; // [{id, name, device}]
+
 	// stops the emulator. Must be called while the render window still exists
 	void shutdown();
 
@@ -60,6 +70,7 @@ class Controller : public QObject
 	void launchingChanged();
 	void gameRunningChanged();
 	void gamePathsChanged();
+	void inputChanged();
 	void errorOccurred(const QString& message);
 
   private:

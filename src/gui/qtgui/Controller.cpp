@@ -5,6 +5,7 @@
 
 #include <QCoreApplication>
 #include <QDir>
+#include <QVariantMap>
 
 #include <unistd.h>
 
@@ -274,4 +275,98 @@ void Controller::setGraphicPackEnabled(int index, bool enabled)
 void Controller::setGraphicPackPreset(int index, const QString& category, const QString& preset)
 {
 	MobileBackend::SetGraphicPackPreset(index, category.toStdString(), preset.toStdString());
+}
+
+// ---------------------------------------------------------------- controllers
+
+namespace
+{
+	QVariantMap deviceToVariant(const MobileBackend::InputDevice& d)
+	{
+		QVariantMap m;
+		m[QStringLiteral("uuid")] = QString::fromStdString(d.uuid);
+		m[QStringLiteral("name")] = QString::fromStdString(d.name);
+		m[QStringLiteral("api")] = QString::fromStdString(d.api);
+		m[QStringLiteral("connected")] = d.connected;
+		return m;
+	}
+}
+
+QStringList Controller::inputTypes() const
+{
+	QStringList result;
+	for (const std::string& t : MobileBackend::GetInputControllerTypes())
+		result.push_back(QString::fromStdString(t));
+	return result;
+}
+
+QVariantMap Controller::inputPlayer(int player) const
+{
+	const MobileBackend::InputPlayer info = MobileBackend::GetInputPlayer(player);
+	QVariantMap m;
+	m[QStringLiteral("enabled")] = info.enabled;
+	m[QStringLiteral("type")] = QString::fromStdString(info.type);
+	QVariantList devices;
+	for (const auto& d : info.devices)
+		devices.push_back(deviceToVariant(d));
+	m[QStringLiteral("devices")] = devices;
+	return m;
+}
+
+QVariantList Controller::availableInputDevices() const
+{
+	QVariantList result;
+	for (const auto& d : MobileBackend::GetAvailableInputDevices())
+		result.push_back(deviceToVariant(d));
+	return result;
+}
+
+bool Controller::setInputPlayerType(int player, const QString& type)
+{
+	std::string error;
+	const bool ok = MobileBackend::SetInputPlayerType(player, type.toStdString(), error);
+	if (!ok)
+		Q_EMIT errorOccurred(QString::fromStdString(error));
+	Q_EMIT inputChanged();
+	return ok;
+}
+
+bool Controller::assignInputDevice(int player, const QString& uuid)
+{
+	std::string error;
+	const bool ok = MobileBackend::AssignInputDevice(player, uuid.toStdString(), error);
+	if (!ok)
+		Q_EMIT errorOccurred(QString::fromStdString(error));
+	Q_EMIT inputChanged();
+	return ok;
+}
+
+void Controller::removeInputDevice(int player, const QString& uuid)
+{
+	MobileBackend::RemoveInputDevice(player, uuid.toStdString());
+	Q_EMIT inputChanged();
+}
+
+bool Controller::resetInputMapping(int player)
+{
+	std::string error;
+	const bool ok = MobileBackend::ResetInputMapping(player, error);
+	if (!ok)
+		Q_EMIT errorOccurred(QString::fromStdString(error));
+	Q_EMIT inputChanged();
+	return ok;
+}
+
+QVariantList Controller::pressedInputButtons(int player) const
+{
+	QVariantList result;
+	for (const auto& b : MobileBackend::GetPressedInputButtons(player))
+	{
+		QVariantMap m;
+		m[QStringLiteral("id")] = b.id;
+		m[QStringLiteral("name")] = QString::fromStdString(b.emulatedName);
+		m[QStringLiteral("device")] = QString::fromStdString(b.deviceName);
+		result.push_back(m);
+	}
+	return result;
 }
