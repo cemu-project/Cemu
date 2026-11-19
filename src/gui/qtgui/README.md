@@ -9,6 +9,7 @@ What it does today:
 - game list (grid with icons), refresh, launch
 - game folder management
 - controllers: pick the SDL controller for player 1, default mapping, live button test
+- navigation with a gamepad (D-pad / left stick, A = select, B = back, Y = game menu)
 - full screen Vulkan render window with keyboard, mouse and touch forwarding
 
 Everything else (custom input mapping, graphics/audio settings, graphic packs, title manager,

@@ -4,6 +4,9 @@
 #include "MobileBackend.h"
 
 #include <QCoreApplication>
+#include <QGuiApplication>
+#include <QKeyEvent>
+#include <QWindow>
 #include <QDir>
 #include <QVariantMap>
 
@@ -41,6 +44,52 @@ Controller::Controller(QObject* parent) : QObject(parent)
 
 	m_scanning = MobileBackend::IsScanning();
 	m_games->reload();
+
+	// gamepad navigation: the actions are turned into key events for the focused window
+	m_navTimer.setInterval(16);
+	connect(&m_navTimer, &QTimer::timeout, this, &Controller::pollNavigation);
+	m_navTimer.start();
+}
+
+namespace
+{
+	// returns whether an item of the window handled the key press
+	bool sendKey(QWindow* window, int key)
+	{
+		QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+		QCoreApplication::sendEvent(window, &press);
+		QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+		QCoreApplication::sendEvent(window, &release);
+		return press.isAccepted();
+	}
+}
+
+void Controller::pollNavigation()
+{
+	if (m_gameRunning || m_launching)
+		return;
+	const std::vector<int> actions = MobileBackend::PollUiNavigation();
+	QWindow* window = QGuiApplication::focusWindow();
+	if (!window)
+		return;
+	for (const int action : actions)
+	{
+		switch (action)
+		{
+		case MobileBackend::kNavUp: sendKey(window, Qt::Key_Up); break;
+		case MobileBackend::kNavDown: sendKey(window, Qt::Key_Down); break;
+		case MobileBackend::kNavLeft: sendKey(window, Qt::Key_Left); break;
+		case MobileBackend::kNavRight: sendKey(window, Qt::Key_Right); break;
+		case MobileBackend::kNavAccept:
+			// Return first (lists, combo box popups), Space for buttons and switches
+			if (!sendKey(window, Qt::Key_Return))
+				sendKey(window, Qt::Key_Space);
+			break;
+		case MobileBackend::kNavBack: sendKey(window, Qt::Key_Escape); break;
+		case MobileBackend::kNavMenu: sendKey(window, Qt::Key_Menu); break;
+		default: break;
+		}
+	}
 }
 
 Controller::~Controller()

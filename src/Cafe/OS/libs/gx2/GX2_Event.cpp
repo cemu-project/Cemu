@@ -218,6 +218,12 @@ namespace GX2
 		__OSUnlockScheduler();
 	}
 
+	// EXPERIMENT (CEMU_DRAWDONE_LAG=1): GX2DrawDone waits for the previous DrawDone's timestamp instead of its own,
+	// so the game can run one DrawDone ahead of the GPU instead of being serialized with it. Off by default:
+	// the game may then read data (readbacks, render targets) that the GPU has not finished yet.
+	static const bool s_drawDoneLag = getenv("CEMU_DRAWDONE_LAG") != nullptr;
+	static std::atomic<uint64> s_prevDrawDoneTimestamp{0};
+
 	bool GX2DrawDone()
 	{
 		// optional force full sync (texture readback and occlusion queries)
@@ -235,6 +241,13 @@ namespace GX2
 		GX2Command_Flush(0x100, true);
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();
+		if (s_drawDoneLag)
+		{
+			const uint64 prevTs = s_prevDrawDoneTimestamp.exchange(ts);
+			if (prevTs == 0 || prevTs >= ts)
+				return true;
+			ts = prevTs;
+		}
 		GuestWaitProf::Scope prof(GuestWaitProf::DRAWDONE);
 		return GX2WaitTimeStampInternal(ts);
 	}

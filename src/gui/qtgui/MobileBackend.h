@@ -139,4 +139,19 @@ namespace MobileBackend
 	bool ResetInputMapping(int player, std::string& errorOut);
 	// Wii U buttons currently held on this slot, for the test screen
 	std::vector<InputPressedButton> GetPressedInputButtons(int player);
+
+	// ---- navigation of the interface with a gamepad ----
+	enum NavAction
+	{
+		kNavUp = 1,
+		kNavDown,
+		kNavLeft,
+		kNavRight,
+		kNavAccept, // south button (A / cross)
+		kNavBack,	// east button (B / circle)
+		kNavMenu	// north button (Y / triangle)
+	};
+	// polls every connected gamepad (D-pad, left stick, A/B/Y) and returns the actions triggered since the last call,
+	// with key repeat for the directions. Call regularly from the UI thread while no game runs
+	std::vector<int> PollUiNavigation();
 }

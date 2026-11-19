@@ -27,6 +27,10 @@
 #endif
 
 #include <unistd.h>
+#ifdef HAS_SDL
+#include <SDL3/SDL.h>
+#endif
+#include <chrono>
 
 extern "C" int __llvm_profile_write_file(void) __attribute__((weak));
 
@@ -975,6 +979,93 @@ namespace MobileBackend
 			b.deviceName = controller->get_mapping_name(id);
 			result.push_back(std::move(b));
 		}
+		return result;
+	}
+
+	// ---------------------------------------------------------------- gamepad navigation
+
+#ifdef HAS_SDL
+	namespace
+	{
+		std::unordered_map<SDL_JoystickID, SDL_Gamepad*> s_navPads;
+		bool s_navDown[8]{};
+		std::chrono::steady_clock::time_point s_navNextRepeat[8];
+	} // namespace
+#endif
+
+	std::vector<int> PollUiNavigation()
+	{
+		std::vector<int> result;
+#ifdef HAS_SDL
+		// SDL is initialized by the input provider the first time the input manager exists
+		InputManager::instance();
+		if (!(SDL_WasInit(SDL_INIT_GAMEPAD) & SDL_INIT_GAMEPAD))
+			return result;
+
+		int count = 0;
+		SDL_JoystickID* ids = SDL_GetGamepads(&count);
+		std::unordered_set<SDL_JoystickID> present;
+		if (ids)
+		{
+			for (int i = 0; i < count; i++)
+			{
+				present.insert(ids[i]);
+				if (!s_navPads.count(ids[i]))
+				{
+					if (SDL_Gamepad* pad = SDL_OpenGamepad(ids[i]))
+						s_navPads[ids[i]] = pad;
+				}
+			}
+			SDL_free(ids);
+		}
+		for (auto it = s_navPads.begin(); it != s_navPads.end();)
+		{
+			if (!present.count(it->first))
+			{
+				SDL_CloseGamepad(it->second);
+				it = s_navPads.erase(it);
+			}
+			else
+				++it;
+		}
+
+		bool now[8]{};
+		constexpr float kStick = 0.6f;
+		for (const auto& entry : s_navPads)
+		{
+			SDL_Gamepad* pad = entry.second;
+			const float x = (float)SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTX) / 32767.0f;
+			const float y = (float)SDL_GetGamepadAxis(pad, SDL_GAMEPAD_AXIS_LEFTY) / 32767.0f;
+			now[kNavUp] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_UP) || y < -kStick;
+			now[kNavDown] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_DOWN) || y > kStick;
+			now[kNavLeft] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_LEFT) || x < -kStick;
+			now[kNavRight] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_DPAD_RIGHT) || x > kStick;
+			now[kNavAccept] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_SOUTH);
+			now[kNavBack] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_EAST);
+			now[kNavMenu] |= SDL_GetGamepadButton(pad, SDL_GAMEPAD_BUTTON_NORTH);
+		}
+
+		const auto t = std::chrono::steady_clock::now();
+		for (int a = kNavUp; a <= kNavMenu; a++)
+		{
+			if (!now[a])
+			{
+				s_navDown[a] = false;
+				continue;
+			}
+			if (!s_navDown[a])
+			{
+				s_navDown[a] = true;
+				s_navNextRepeat[a] = t + std::chrono::milliseconds(400);
+				result.push_back(a);
+			}
+			else if (a <= kNavRight && t >= s_navNextRepeat[a])
+			{
+				s_navNextRepeat[a] = t + std::chrono::milliseconds(110);
+				result.push_back(a);
+			}
+		}
+#endif
 		return result;
 	}
 } // namespace MobileBackend

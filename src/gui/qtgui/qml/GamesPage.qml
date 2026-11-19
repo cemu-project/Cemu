@@ -6,6 +6,8 @@ Item {
     id: page
 
     property string title: "Cemu"
+    // the grid takes the keyboard / gamepad focus whenever this page becomes the current one
+    StackView.onActivated: grid.forceActiveFocus()
     signal openFolders()
     signal openGraphicPacks(string titleId, string name)
 
@@ -69,6 +71,23 @@ Item {
         cellHeight: cellWidth + 44
         model: cemu.games
         boundsBehavior: Flickable.DragAndOvershootBounds
+        focus: true
+        activeFocusOnTab: true
+        keyNavigationEnabled: true
+        highlightFollowsCurrentItem: true
+
+        // gamepad / keyboard: A or Enter starts the game, Y or the menu key opens the game menu
+        Keys.onPressed: function(event) {
+            if (!grid.currentItem)
+                return
+            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                cemu.launch(grid.currentItem.titleId)
+                event.accepted = true
+            } else if (event.key === Qt.Key_Menu) {
+                gameMenu.openFor(grid.currentItem, grid.currentItem.titleId, grid.currentItem.name)
+                event.accepted = true
+            }
+        }
 
         ScrollBar.vertical: ScrollBar {}
 
@@ -83,6 +102,8 @@ Item {
             width: grid.cellWidth
             height: grid.cellHeight
             padding: 6
+            focusPolicy: Qt.NoFocus // the grid owns the focus, the current cell is shown as highlighted
+            highlighted: GridView.isCurrentItem && grid.activeFocus
             onClicked: cemu.launch(cell.titleId)
             onPressAndHold: gameMenu.openFor(cell, cell.titleId, cell.name)
 

@@ -76,10 +76,47 @@ ApplicationWindow {
         }
     }
 
+    // moves the keyboard focus to the next/previous control (used by the gamepad D-pad)
+    function moveFocus(forward) {
+        const current = root.activeFocusItem
+        if (!current)
+            return
+        const next = current.nextItemInFocusChain(forward)
+        if (next && next !== current)
+            next.forceActiveFocus(forward ? Qt.TabFocusReason : Qt.BacktabFocusReason)
+    }
+
     StackView {
         id: stack
         anchors.fill: parent
         initialItem: gamesPage
+        focus: true
+
+        // arrows / D-pad: lists, grids, text fields and the left/right of sliders keep their own behaviour,
+        // everything else moves the focus from one control to the next
+        Keys.priority: Keys.BeforeItem
+        Keys.onPressed: function(event) {
+            const k = event.key
+            const horizontal = k === Qt.Key_Left || k === Qt.Key_Right
+            if (!horizontal && k !== Qt.Key_Up && k !== Qt.Key_Down)
+                return
+            const item = root.activeFocusItem
+            if (item) {
+                if (item.keyNavigationEnabled !== undefined) // ListView, GridView
+                    return
+                if (item.cursorPosition !== undefined) // text fields
+                    return
+                if (horizontal && item.stepSize !== undefined) // sliders, spin boxes
+                    return
+            }
+            root.moveFocus(k === Qt.Key_Down || k === Qt.Key_Right)
+            event.accepted = true
+        }
+        // B / circle: back (popups close by themselves on Escape)
+        Keys.onEscapePressed: {
+            if (stack.depth > 1)
+                stack.pop()
+        }
     }
 
     Component {

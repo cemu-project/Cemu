@@ -74,6 +74,7 @@ class Controller : public QObject
 	void errorOccurred(const QString& message);
 
   private:
+	void pollNavigation();
 	void onWindowReady();
 	void onWindowClosed();
 	void endSession();
@@ -83,6 +84,7 @@ class Controller : public QObject
 	GameWindow* m_window = nullptr;
 	QTimer m_reloadTimer;
 	QTimer m_scanPollTimer;
+	QTimer m_navTimer; // gamepad navigation of the interface
 	quint64 m_pendingTitleId = 0;
 	bool m_scanning = false;
 	bool m_launching = false;
