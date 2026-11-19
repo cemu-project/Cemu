@@ -103,6 +103,12 @@ std::vector<std::shared_ptr<ControllerBase>> SDLControllerProvider::get_controll
 		}
 		SDL_free(gamepad_ids);
 	}
+	if (s_inputLogEnabled)
+	{
+		const std::string line = fmt::format("INPUT get_controllers: {} gamepad(s) returned (SDL_GetGamepads count={}, ids ptr={})", result.size(), gamepad_count, gamepad_ids ? "ok" : "null");
+		fprintf(stderr, "%s\n", line.c_str());
+		cemuLog_log(LogType::Force, line);
+	}
 	return result;
 }
 
@@ -217,14 +223,24 @@ void SDLControllerProvider::HandleSDLEvent(SDL_Event& event)
 			LogJoystickInfo(event.jdevice.which, "joystick-added");
 			break;
 		}
+		case SDL_EVENT_JOYSTICK_REMOVED:
+		{
+			if (s_inputLogEnabled)
+				fprintf(stderr, "INPUT joystick-removed: id=%u\n", (uint32)event.jdevice.which);
+			break;
+		}
 		case SDL_EVENT_GAMEPAD_ADDED: /**< A new Game controller has been inserted into the system */
 		{
+			if (s_inputLogEnabled)
+				fprintf(stderr, "INPUT gamepad-added: id=%u\n", (uint32)event.gdevice.which);
 			std::scoped_lock _l(s_mutex);
 			InputManager::instance().on_device_changed();
 			break;
 		}
 		case SDL_EVENT_GAMEPAD_REMOVED: /**< An opened Game controller has been removed */
 		{
+			if (s_inputLogEnabled)
+				fprintf(stderr, "INPUT gamepad-removed: id=%u\n", (uint32)event.gdevice.which);
 			std::scoped_lock _l(s_mutex);
 			InputManager::instance().on_device_changed();
 			s_motion_states.erase(event.gdevice.which);
