@@ -6,7 +6,7 @@ LatteTextureReadbackInfoVk::LatteTextureReadbackInfoVk(VkDevice device, LatteTex
 	: LatteTextureReadbackInfo(textureView, textureView->firstMip), m_device(device)
 {
 	m_image_size = GetImageSize(textureView);
-	m_rowPitch = m_image_size / textureView->baseTexture->GetMipHeight(m_firstMip);
+	m_rowPitch = GetReadbackRowPitch(textureView);
 }
 
 LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk()
@@ -16,7 +16,8 @@ LatteTextureReadbackInfoVk::~LatteTextureReadbackInfoVk()
 uint32 LatteTextureReadbackInfoVk::GetImageSize(LatteTextureView* textureView)
 {
 	auto* baseTexture = (LatteTextureVk*)textureView->baseTexture;
-	if (baseTexture->m_isAlternateFormat || baseTexture->IsCompressedFormat())
+	if (baseTexture->m_isAlternateFormat ||
+		(baseTexture->IsCompressedFormat() && Latte::GetHWFormat(baseTexture->format) != Latte::E_HWFMT::HWFMT_BC1))
 	{
 		cemuLog_logDebug(LogType::Force, "Vulkan does not support readback of texture format 0x{:x}", (uint32)baseTexture->format);
 		return 0;
@@ -46,6 +47,11 @@ void LatteTextureReadbackInfoVk::StartTransfer()
 
 	region.imageOffset = {0,0,0};
 	region.imageExtent = {region.bufferRowLength, region.bufferImageHeight, 1};
+	if (baseTexture->IsCompressedFormat())
+	{
+		region.bufferRowLength = (region.bufferRowLength + 3) & ~3u;
+		region.bufferImageHeight = (region.bufferImageHeight + 3) & ~3u;
+	}
 
 	const auto renderer = VulkanRenderer::GetInstance();
 	renderer->draw_endRenderPass();

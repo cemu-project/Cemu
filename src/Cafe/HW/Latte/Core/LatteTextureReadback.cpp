@@ -173,6 +173,11 @@ bool LatteTextureReadback_ReadbackToLinearBlocking(LatteTextureView* sourceView,
 	uint8* data = info->GetData(); // returned pixel format should match Latte format
 	uint32 bpp = Latte::GetFormatBits(sourceView->baseTexture->format) / 8;
 	uint32 srcRowBytes = info->m_rowPitch;
+	if (Latte::IsCompressedFormat(sourceView->baseTexture->format))
+	{
+		dstWidth = (dstWidth + 3) / 4;
+		dstHeight = (dstHeight + 3) / 4;
+	}
 	uint32 dstRowBytes = dstWidth * bpp;
 	for (uint32 y = 0; y < dstHeight; y++)
 		memcpy(dstPtr + y * dstPitch * bpp, data + y * srcRowBytes, dstRowBytes);

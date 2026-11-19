@@ -15,6 +15,21 @@ namespace CafeSystem
 		virtual void CafePPCProcessExit() = 0; // emulated process exited
 	};
 
+	enum class TitleCompatibility
+	{
+		Default,
+		TekkenTagTournament2,
+		ArtAcademyHomeStudio,
+		NewSuperMarioBrosU,
+		NewSuperMarioBrosUAndNewSuperLuigiU,
+		NewSuperLuigiU,
+		FatalFrameMaidenOfBlackWater,
+		PacManAndTheGhostlyAdventures,
+		PacManAndTheGhostlyAdventures2,
+		AdventureTimeExploreTheDungeon,
+		DuckTalesRemastered,
+	};
+
 	enum class PREPARE_STATUS_CODE
 	{
 		SUCCESS,
@@ -36,6 +51,7 @@ namespace CafeSystem
 	void UnsetOverrideArgs();
 
 	TitleId GetForegroundTitleId();
+	TitleCompatibility GetForegroundTitleCompatibility();
 	uint16 GetForegroundTitleVersion();
 	uint32 GetForegroundTitleSDKVersion();
 	CafeConsoleRegion GetForegroundTitleRegion();

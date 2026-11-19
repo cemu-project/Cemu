@@ -407,7 +407,7 @@ bool PPCRecompiler_makeRecompiledFunctionActive(uint32 initialEntryPoint, PPCFun
 
 	// due to inlining, some entrypoints can get optimized away
 	// therefore we reset all addresses that are still marked as visited (but not recompiled)
-	// we dont remove the points from the queue but any address thats not marked as visited won't get recompiled
+	// we dont remove the addresses from the queue but any address thats not marked as visited won't get recompiled
 	// if they are reachable, the interpreter will queue them again
 	for (uint32 v = range.startAddress; v < (range.startAddress + range.length); v += 4)
 	{

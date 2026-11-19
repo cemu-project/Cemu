@@ -447,6 +447,7 @@ namespace CafeSystem
 
 	bool sSystemRunning = false;
 	TitleId sForegroundTitleId = 0;
+	static TitleCompatibility s_foregroundTitleCompatibility = TitleCompatibility::Default;
 
 	GameInfo2 sGameInfo_ForegroundTitle;
 
@@ -701,6 +702,61 @@ namespace CafeSystem
 		}
 	}
 
+	static void IdentifyTitle(TitleId titleId)
+	{
+		s_foregroundTitleCompatibility = TitleCompatibility::Default;
+		switch (titleId)
+		{
+		case 0x0005000010100600: // Tekken Tag Tournament 2 (JP)
+		case 0x000500001010F800: // Tekken Tag Tournament 2 (EU)
+		case 0x0005000010110000: // Tekken Tag Tournament 2 (US)
+			s_foregroundTitleCompatibility = TitleCompatibility::TekkenTagTournament2;
+			break;
+		case 0x000500001017BF00: // Art Academy: Home Studio (US)
+		case 0x000500001017BE00: // Art Academy: Home Studio (JP)
+		case 0x000500001017B500: // Art Academy: Atelier (EU)
+			s_foregroundTitleCompatibility = TitleCompatibility::ArtAcademyHomeStudio;
+			break;
+		case 0x0005000010101C00: // New Super Mario Bros. U (JP)
+		case 0x0005000010101D00: // New Super Mario Bros. U (US)
+		case 0x0005000010101E00: // New Super Mario Bros. U (EU)
+			s_foregroundTitleCompatibility = TitleCompatibility::NewSuperMarioBrosU;
+			break;
+		case 0x000500001014B700: // New Super Mario Bros. U + New Super Luigi U (US)
+		case 0x000500001014B800: // New Super Mario Bros. U + New Super Luigi U (EU)
+			s_foregroundTitleCompatibility = TitleCompatibility::NewSuperMarioBrosUAndNewSuperLuigiU;
+			break;
+		case 0x0005000010142300: // New Super Luigi U (US)
+		case 0x0005000010142400: // New Super Luigi U (EU)
+			s_foregroundTitleCompatibility = TitleCompatibility::NewSuperLuigiU;
+			break;
+		case 0x00050000101D0300: // Project Zero: Maiden of Black Water (EU)
+		case 0x00050000101D0600: // Fatal Frame: Maiden of Black Water (US)
+		case 0x000500001014D200: // Project Zero: Maiden of Black Water (JP)
+		case 0x00050000101D3F00: // Project Zero: Maiden of Black Water (Trial, EU)
+			s_foregroundTitleCompatibility = TitleCompatibility::FatalFrameMaidenOfBlackWater;
+			break;
+		case 0x0005000010147900: // PAC-MAN and the Ghostly Adventures (EU)
+		case 0x0005000010146300: // PAC-MAN and the Ghostly Adventures (US)
+			s_foregroundTitleCompatibility = TitleCompatibility::PacManAndTheGhostlyAdventures;
+			break;
+		case 0x000500001017E500: // PAC-MAN and the Ghostly Adventures 2 (EU)
+		case 0x000500001017E600: // PAC-MAN and the Ghostly Adventures 2 (US)
+			s_foregroundTitleCompatibility = TitleCompatibility::PacManAndTheGhostlyAdventures2;
+			break;
+		case 0x000500001014E100: // Adventure Time: Explore the Dungeon Because I Don't Know! (EU)
+		case 0x0005000010144000: // Adventure Time: Explore the Dungeon Because I Don't Know! (US)
+			s_foregroundTitleCompatibility = TitleCompatibility::AdventureTimeExploreTheDungeon;
+			break;
+		case 0x0005000010129200: // DuckTales Remastered (EU)
+		case 0x0005000010129000: // DuckTales Remastered (US)
+			s_foregroundTitleCompatibility = TitleCompatibility::DuckTalesRemastered;
+			break;
+		default:
+			break;
+		}
+	}
+
 	PREPARE_STATUS_CODE LoadAndMountForegroundTitle(TitleId titleId)
 	{
         cemuLog_log(LogType::Force, "Mounting title {:016x}", (uint64)titleId);
@@ -759,6 +815,7 @@ namespace CafeSystem
 		else
 			cemuLog_log(LogType::Force, "DLC: Not present");
 		sForegroundTitleId = titleId;
+		IdentifyTitle(titleId);
 		return PREPARE_STATUS_CODE::SUCCESS;
 	}
 
@@ -834,6 +891,7 @@ namespace CafeSystem
 
 	PREPARE_STATUS_CODE PrepareForegroundTitle(TitleId titleId)
 	{
+		s_foregroundTitleCompatibility = TitleCompatibility::Default;
 		CafeTitleList::WaitForMandatoryScan();
 		sLaunchModeIsStandalone = false;
 		s_foregroundReturnStatus = std::nullopt;
@@ -861,6 +919,7 @@ namespace CafeSystem
 
 	PREPARE_STATUS_CODE PrepareForegroundTitleFromStandaloneRPX(const fs::path& path)
 	{
+		s_foregroundTitleCompatibility = TitleCompatibility::Default;
 		sLaunchModeIsStandalone = true;
 		cemuLog_log(LogType::Force, "Launching executable in standalone mode due to incorrect layout or missing meta files");
 		fs::path executablePath = path;
@@ -934,6 +993,11 @@ namespace CafeSystem
 	{
 		cemu_assert_debug(sForegroundTitleId != 0);
 		return sForegroundTitleId;
+	}
+
+	TitleCompatibility GetForegroundTitleCompatibility()
+	{
+		return s_foregroundTitleCompatibility;
 	}
 
 	uint16 GetForegroundTitleVersion()
@@ -1088,6 +1152,7 @@ namespace CafeSystem
 		DestroyMemorySpace();
 		LaunchSettings::ClearCosArgstr();
 		sSystemRunning = false;
+		s_foregroundTitleCompatibility = TitleCompatibility::Default;
 	}
 
 	/* Virtual mlc storage */

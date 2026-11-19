@@ -18,6 +18,7 @@ public:
 
 private:
 	bool WaitForCompletion(GLuint64 timeout);
+	bool m_isCompressed = false;
 	GLuint m_texFormatGL;
 	GLuint m_texDataTypeGL;
 

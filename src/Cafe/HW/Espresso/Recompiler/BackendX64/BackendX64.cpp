@@ -769,10 +769,10 @@ bool PPCRecompilerX64Gen_imlInstruction_r_r_r(PPCRecFunction_t* PPCRecFunction, 
 		// check if CL/ECX/RCX is available
 		if( rRegResult != X86_REG_RCX && rRegOperand1 != X86_REG_RCX && rRegOperand2 != X86_REG_RCX )
 		{
-			// swap operand 2 with RCX
-			x64Gen_xchg_reg64_reg64(x64GenContext, X86_REG_RCX, rRegOperand2);
 			// move operand 1 to temp register
 			x64Gen_mov_reg64_reg64(x64GenContext, REG_RESV_TEMP, rRegOperand1);
+			// swap operand 2 with RCX
+			x64Gen_xchg_reg64_reg64(x64GenContext, X86_REG_RCX, rRegOperand2);
 			// rotate
 			x64Gen_rol_reg64Low32_cl(x64GenContext, REG_RESV_TEMP);
 			// undo swap operand 2 with RCX

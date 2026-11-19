@@ -1513,7 +1513,7 @@ bool PPCRecompilerImlGen_STWCX(ppcImlGenContext_t* ppcImlGenContext, uint32 opco
 	IMLReg regCrGT = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_GT);
 	IMLReg regCrEQ = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_EQ);
 	IMLReg regCrSO = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_SO);
-	IMLReg regXerSO = _GetRegCR(ppcImlGenContext, 0, Espresso::CR_BIT_INDEX_SO);
+	IMLReg regXerSO = PPCRecompilerImlGen_loadRegister(ppcImlGenContext, PPCREC_NAME_XER_SO);
 	ppcImlGenContext->emitInst().make_r_s32(IMLOperation::OP_ASSIGN, regCrLT, 0);
 	ppcImlGenContext->emitInst().make_r_s32(IMLOperation::OP_ASSIGN, regCrGT, 0);
 	ppcImlGenContext->emitInst().make_r_r(IMLOperation::OP_ASSIGN, regCrSO, regXerSO);
@@ -2868,7 +2868,6 @@ void PPCRecompiler_DetermineBasicBlockRange(std::vector<PPCBasicBlockInfo>& basi
 
 	PPCBasicBlockInfo* curBlockInfo = &basicBlockList.emplace_back(currentAddr, entryAddresses);
 
-	uint32 basicBlockStart = currentAddr;	
 	while (currentAddr <= ppcEnd)
 	{
 		curBlockInfo->lastAddress = currentAddr;
@@ -2899,7 +2898,6 @@ void PPCRecompiler_DetermineBasicBlockRange(std::vector<PPCBasicBlockInfo>& basi
 				curBlockInfo = &basicBlockList.emplace_back(currentAddr, entryAddresses);
 			}
 		}
-
 	}
 }
 
@@ -3249,13 +3247,14 @@ bool PPCRecompiler_generateIntermediateCode(ppcImlGenContext_t& ppcImlGenContext
 	if (!PPCRecompiler_GenerateIML(ppcImlGenContext, boundaryTracker, entryAddresses))
 		return false;
 
-	// set range
-	// todo - support non-continuous functions for the range tracking?
-	ppcRecRange_t recRange;
-	recRange.ppcAddress = ppcRecFunc->ppcAddress;
-	recRange.ppcSize = ppcRecFunc->ppcSize;
-	ppcRecFunc->list_ranges.push_back(recRange);
+	// track ranges covered by this recompiled function
+	for (auto& range : boundaryTracker.GetRanges())
+	{
+		PPCRecRange recRange;
+		recRange.ppcAddress = range.startAddress;
+		recRange.ppcSize = range.length;
+		ppcRecFunc->list_ranges.push_back(recRange);
+	}
 
-	
 	return true;
 }

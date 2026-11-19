@@ -1,7 +1,5 @@
 #include "EmulatedUSBDeviceFrame.h"
 
-#include <algorithm>
-
 #include "config/CemuConfig.h"
 #include "wxgui/helpers/wxHelpers.h"
 #include "wxgui/wxHelper.h"
@@ -9,8 +7,6 @@
 
 #include "Cafe/OS/libs/nsyshid/nsyshid.h"
 #include "Cafe/OS/libs/nsyshid/Dimensions.h"
-
-#include "Common/FileStream.h"
 
 #include <wx/arrstr.h>
 #include <wx/button.h>
@@ -75,7 +71,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddSkylanderPage(wxNotebook* notebook)
 			m_emulatePortal->IsChecked();
 		GetConfigHandle().Save();
 	});
-	row->Add(m_emulatePortal, 1, wxEXPAND | wxALL, 2);
+	row->Add(m_emulatePortal, 1, wxALIGN_TOP | wxALL, 2);
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
 	for (int i = 0; i < nsyshid::MAX_SKYLANDERS; i++)
 	{
@@ -105,7 +101,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddInfinityPage(wxNotebook* notebook)
 			m_emulateBase->IsChecked();
 		GetConfigHandle().Save();
 	});
-	row->Add(m_emulateBase, 1, wxEXPAND | wxALL, 2);
+	row->Add(m_emulateBase, 1, wxALIGN_TOP | wxALL, 2);
 	boxSizer->Add(row, 1, wxEXPAND | wxALL, 2);
 	boxSizer->Add(AddInfinityRow("Play Set/Power Disc", 0, box), 1, wxEXPAND | wxALL, 2);
 	boxSizer->Add(AddInfinityRow("Power Disc Two", 1, box), 1, wxEXPAND | wxALL, 2);
@@ -141,7 +137,7 @@ wxPanel* EmulatedUSBDeviceFrame::AddDimensionsPage(wxNotebook* notebook)
 			m_emulateToypad->IsChecked();
 		GetConfigHandle().Save();
 	});
-	row->Add(m_emulateToypad, 1, wxEXPAND | wxALL, 2);
+	row->Add(m_emulateToypad, 1, wxALIGN_TOP | wxALL, 2);
 	box_sizer->Add(row, 1, wxEXPAND | wxALL, 2);
 	auto* top_row = new wxBoxSizer(wxHORIZONTAL);
 	auto* bottom_row = new wxBoxSizer(wxHORIZONTAL);
@@ -328,19 +324,19 @@ void EmulatedUSBDeviceFrame::ClearSkylander(uint8 slot)
 }
 
 CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
-	: wxDialog(parent, wxID_ANY, _("Skylander Figure Creator"), wxDefaultPosition, wxSize(500, 150))
+	: wxDialog(parent, wxID_ANY, _("Skylander Figure Creator"))
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
 
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
-	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFFFF));
+	comboBox->Append("---Select---", reinterpret_cast<void*>(static_cast<std::uintptr_t>(0xFFFFFFFF)));
 	wxArrayString filterlist;
 	for (const auto& it : nsyshid::g_skyportal.GetListSkylanders())
 	{
 		const uint32 variant = uint32(uint32(it.first.first) << 16) | uint32(it.first.second);
-		comboBox->Append(it.second, reinterpret_cast<void*>(variant));
+		comboBox->Append(it.second, reinterpret_cast<void*>(static_cast<std::uintptr_t>(variant)));
 		filterlist.Add(it.second);
 	}
 	comboBox->SetSelection(0);
@@ -407,7 +403,7 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 	});
 
 	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editId, editVar, this](wxCommandEvent&) {
-		const uint64 sky_info = reinterpret_cast<uint64>(comboBox->GetClientData(comboBox->GetSelection()));
+		const std::uintptr_t sky_info = reinterpret_cast<std::uintptr_t>(comboBox->GetClientData(comboBox->GetSelection()));
 		if (sky_info != 0xFFFFFFFF)
 		{
 			const uint16 skyId = sky_info >> 16;
@@ -425,7 +421,7 @@ CreateSkylanderDialog::CreateSkylanderDialog(wxWindow* parent, uint8 slot)
 	sizer->Add(idVarRow, 1, wxEXPAND | wxALL, 2);
 	sizer->Add(buttonRow, 1, wxEXPAND | wxALL, 2);
 
-	this->SetSizer(sizer);
+	this->SetSizerAndFit(sizer);
 	this->Centre(wxBOTH);
 }
 
@@ -509,14 +505,14 @@ void EmulatedUSBDeviceFrame::ClearFigure(uint8 slot)
 }
 
 CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 slot)
-	: wxDialog(parent, wxID_ANY, _("Infinity Figure Creator"), wxDefaultPosition, wxSize(500, 150))
+	: wxDialog(parent, wxID_ANY, _("Infinity Figure Creator"))
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
 
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
-	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFF));
+	comboBox->Append("---Select---", reinterpret_cast<void*>(static_cast<std::uintptr_t>(0xFFFFFF)));
 	wxArrayString filterlist;
 	for (const auto& it : nsyshid::g_infinitybase.GetFigureList())
 	{
@@ -528,7 +524,7 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 			((slot == 4 || slot == 5 || slot == 7 || slot == 8) &&
 			 (figure > 0x2DC6C0 && figure < 0x3D08FF)))
 		{
-			comboBox->Append(it.second.second, reinterpret_cast<void*>(figure));
+			comboBox->Append(it.second.second, reinterpret_cast<void*>(static_cast<std::uintptr_t>(figure)));
 			filterlist.Add(it.second.second);
 		}
 	}
@@ -583,7 +579,7 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 	});
 
 	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editFigNum, this](wxCommandEvent&) {
-		const uint64 fig_info = reinterpret_cast<uint64>(comboBox->GetClientData(comboBox->GetSelection()));
+		const std::uintptr_t fig_info = reinterpret_cast<std::uintptr_t>(comboBox->GetClientData(comboBox->GetSelection()));
 		if (fig_info != 0xFFFFFF)
 		{
 			const uint32 figNum = fig_info & 0xFFFFFFFF;
@@ -599,7 +595,7 @@ CreateInfinityFigureDialog::CreateInfinityFigureDialog(wxWindow* parent, uint8 s
 	sizer->Add(figNumRow, 1, wxEXPAND | wxALL, 2);
 	sizer->Add(buttonRow, 1, wxEXPAND | wxALL, 2);
 
-	this->SetSizer(sizer);
+	this->SetSizerAndFit(sizer);
 	this->Centre(wxBOTH);
 }
 
@@ -688,19 +684,19 @@ void EmulatedUSBDeviceFrame::MoveMinifig(uint8 pad, uint8 index)
 }
 
 CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
-	: wxDialog(parent, wxID_ANY, _("Dimensions Figure Creator"), wxDefaultPosition, wxSize(500, 200))
+	: wxDialog(parent, wxID_ANY, _("Dimensions Figure Creator"))
 {
 	auto* sizer = new wxBoxSizer(wxVERTICAL);
 
 	auto* comboRow = new wxBoxSizer(wxHORIZONTAL);
 
 	auto* comboBox = new wxComboBox(this, wxID_ANY);
-	comboBox->Append("---Select---", reinterpret_cast<void*>(0xFFFFFFFF));
+	comboBox->Append("---Select---", reinterpret_cast<void*>(static_cast<std::uintptr_t>(0xFFFFFFFF)));
 	wxArrayString filterlist;
 	for (const auto& it : nsyshid::g_dimensionstoypad.GetListMinifigs())
 	{
 		const uint32 figure = it.first;
-		comboBox->Append(it.second, reinterpret_cast<void*>(figure));
+		comboBox->Append(it.second, reinterpret_cast<void*>(static_cast<std::uintptr_t>(figure)));
 		filterlist.Add(it.second);
 	}
 	comboBox->SetSelection(0);
@@ -754,7 +750,7 @@ CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 	});
 
 	comboBox->Bind(wxEVT_COMBOBOX, [comboBox, editFigNum, this](wxCommandEvent&) {
-		const uint64 fig_info = reinterpret_cast<uint64>(comboBox->GetClientData(comboBox->GetSelection()));
+		const std::uintptr_t fig_info = reinterpret_cast<std::uintptr_t>(comboBox->GetClientData(comboBox->GetSelection()));
 		if (fig_info != 0xFFFF)
 		{
 			const uint16 figNum = fig_info & 0xFFFF;
@@ -770,7 +766,7 @@ CreateDimensionFigureDialog::CreateDimensionFigureDialog(wxWindow* parent)
 	sizer->Add(figNumRow, 1, wxEXPAND | wxALL, 2);
 	sizer->Add(buttonRow, 1, wxEXPAND | wxALL, 2);
 
-	this->SetSizer(sizer);
+	this->SetSizerAndFit(sizer);
 	this->Centre(wxBOTH);
 }
 
