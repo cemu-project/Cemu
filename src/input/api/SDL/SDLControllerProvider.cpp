@@ -17,6 +17,28 @@ struct SDL_JoystickGUIDHash
 	}
 };
 
+// CEMU_INPUT_LOG=1 : log every joystick SDL detects (name, GUID, whether it is a gamepad and which mapping it got), on stderr and in log.txt
+static const bool s_inputLogEnabled = getenv("CEMU_INPUT_LOG") != nullptr;
+
+static void LogJoystickInfo(SDL_JoystickID id, const char* origin)
+{
+	if (!s_inputLogEnabled)
+		return;
+	char guidStr[64]{};
+	SDL_GUIDToString(SDL_GetJoystickGUIDForID(id), guidStr, sizeof(guidStr));
+	const char* name = SDL_GetJoystickNameForID(id);
+	const char* path = SDL_GetJoystickPathForID(id);
+	const bool isGamepad = SDL_IsGamepad(id);
+	char* mapping = isGamepad ? SDL_GetGamepadMappingForID(id) : nullptr;
+	const std::string line = fmt::format("INPUT {}: id={} name=\"{}\" path={} vid={:04x} pid={:04x} guid={} isGamepad={} mapping={}",
+		origin, (uint32)id, name ? name : "?", path ? path : "?", SDL_GetJoystickVendorForID(id), SDL_GetJoystickProductForID(id),
+		guidStr, isGamepad ? "yes" : "NO", mapping ? mapping : "-");
+	if (mapping)
+		SDL_free(mapping);
+	fprintf(stderr, "%s\n", line.c_str());
+	cemuLog_log(LogType::Force, line);
+}
+
 SDLControllerProvider::SDLControllerProvider()
 {
 #if !BOOST_OS_MACOS
@@ -135,6 +157,18 @@ void SDLControllerProvider::InitSDL()
 		throw std::runtime_error(fmt::format("couldn't initialize SDL: {}", SDL_GetError()));
 	}
 
+	if (s_inputLogEnabled)
+	{
+		int joyCount = 0;
+		if (SDL_JoystickID* joyIds = SDL_GetJoysticks(&joyCount))
+		{
+			fprintf(stderr, "INPUT: SDL sees %d joystick(s) at startup\n", joyCount);
+			for (int i = 0; i < joyCount; ++i)
+				LogJoystickInfo(joyIds[i], "startup");
+			SDL_free(joyIds);
+		}
+	}
+
 	SDL_SetGamepadEventsEnabled(true);
 	if (!SDL_GamepadEventsEnabled())
 	{
@@ -176,6 +210,11 @@ void SDLControllerProvider::HandleSDLEvent(SDL_Event& event)
 		}
 		case SDL_EVENT_GAMEPAD_BUTTON_UP: /**< Game controller button released */
 		{
+			break;
+		}
+		case SDL_EVENT_JOYSTICK_ADDED:
+		{
+			LogJoystickInfo(event.jdevice.which, "joystick-added");
 			break;
 		}
 		case SDL_EVENT_GAMEPAD_ADDED: /**< A new Game controller has been inserted into the system */
