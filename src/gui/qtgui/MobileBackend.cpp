@@ -330,6 +330,8 @@ namespace MobileBackend
 			errorOut = "A game is already running.";
 			return false;
 		}
+		// connect the controllers of the saved profiles now: SDL may have announced them before the profiles were loaded
+		InputManager::instance().on_device_changed();
 		if (!g_vulkan_available)
 		{
 			errorOut = "Vulkan is not available on this device.";
@@ -959,6 +961,9 @@ namespace MobileBackend
 		auto controller = InputManager::instance().get_controller((size_t)player);
 		if (!controller)
 			return result;
+		// the states are only refreshed by the game (VPADRead) or by the desktop input dialog, so do it here for the test screen
+		controller->connect();
+		controller->controllers_update_states();
 		const size_t maxId = controller->get_highest_mapping_id();
 		for (size_t id = 1; id < maxId; id++)
 		{
