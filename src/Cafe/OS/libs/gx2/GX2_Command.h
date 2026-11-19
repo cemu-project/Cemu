@@ -91,6 +91,7 @@ namespace GX2
 	uint64 GX2GetLastSubmittedTimeStamp();
 	uint64 GX2GetRetiredTimeStamp();
 	bool GX2WaitTimeStamp(uint64 tsWait);
+	bool GX2WaitTimeStampInternal(uint64 tsWait); // not profiled as WAITTS
 
 	void GX2BeginDisplayList(MEMPTR<void> displayListAddr, uint32 size);
 	void GX2BeginDisplayListEx(MEMPTR<void> displayListAddr, uint32 size, bool profiling);

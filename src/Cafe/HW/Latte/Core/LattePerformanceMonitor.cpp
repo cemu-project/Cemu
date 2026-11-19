@@ -1,4 +1,5 @@
 #include "Cafe/HW/Latte/Core/LattePerformanceMonitor.h"
+#include "Cafe/HW/Latte/Core/GuestWaitProfiler.h"
 #include "Cafe/HW/Latte/Core/LatteOverlay.h"
 #include "WindowSystem.h"
 #include "Cafe/OS/libs/coreinit/coreinit_Thread.h"
@@ -135,9 +136,19 @@ void LattePerformanceMonitor_frameEnd()
 			double coreIdle[3];
 			for (sint32 c = 0; c < 3; c++)
 				coreIdle[c] = 100.0 * (double)PPCTimer_tscToMicroseconds(coreinit::__CemuGetAndResetCoreIdleTicks(c)) / 1000.0 / (double)std::max<uint32>(elapsedTime, 1);
+			// guest threads blocked in GPU waits (ms per frame summed over all guest threads, calls per frame)
+			static const char* const kWaitNames[GuestWaitProf::COUNT] = {"vsync", "flip", "drawDone", "waitTS", "cmdBuf"};
+			std::string waitStr;
+			for (uint32 w = 0; w < GuestWaitProf::COUNT; w++)
+			{
+				uint64 wTicks;
+				uint32 wCalls;
+				GuestWaitProf::GetAndReset((GuestWaitProf::Cat)w, wTicks, wCalls);
+				waitStr += fmt::format(" {}={:.1f}ms/{:.2f}x", kWaitNames[w], ms(wTicks), (double)wCalls / n);
+			}
 			// also printed on stderr: the regular log only goes to log.txt unless --verbose is used
-			const std::string perfLine = fmt::format("PERF fps={:.1f} frame={:.1f}ms | latte: waiting-for-guest={:.1f}ms fence={:.1f}ms async={:.1f}ms working={:.1f}ms | guest cores idle%: c0={:.0f} c1={:.0f} c2={:.0f} | draws/frame={} threadYields/s={} recompilerLeaves/s={}",
-				fps, frameMs, idleMs, fenceMs, asyncMs, busyMs, coreIdle[0], coreIdle[1], coreIdle[2], drawCallCounter / elapsedFrames, tlps, rlps);
+			const std::string perfLine = fmt::format("PERF fps={:.1f} frame={:.1f}ms | latte: waiting-for-guest={:.1f}ms fence={:.1f}ms async={:.1f}ms working={:.1f}ms | guest cores idle%: c0={:.0f} c1={:.0f} c2={:.0f} | draws/frame={} threadYields/s={} recompilerLeaves/s={} | guest blocked/frame:{}",
+				fps, frameMs, idleMs, fenceMs, asyncMs, busyMs, coreIdle[0], coreIdle[1], coreIdle[2], drawCallCounter / elapsedFrames, tlps, rlps, waitStr);
 			fprintf(stderr, "%s\n", perfLine.c_str());
 			cemuLog_log(LogType::Force, perfLine);
 		}
@@ -146,6 +157,12 @@ void LattePerformanceMonitor_frameEnd()
 			s_perfSum = {};
 			for (sint32 c = 0; c < 3; c++)
 				coreinit::__CemuGetAndResetCoreIdleTicks(c);
+			for (uint32 w = 0; w < GuestWaitProf::COUNT; w++)
+			{
+				uint64 t;
+				uint32 c;
+				GuestWaitProf::GetAndReset((GuestWaitProf::Cat)w, t, c);
+			}
 		}
 
 		if (isFirstUpdate)

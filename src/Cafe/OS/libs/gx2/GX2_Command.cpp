@@ -11,6 +11,7 @@
 #include "GX2_Shader.h"
 #include "GX2_Misc.h"
 #include "OS/libs/coreinit/coreinit_MEM.h"
+#include "Cafe/HW/Latte/Core/GuestWaitProfiler.h"
 
 namespace GX2
 {
@@ -129,7 +130,8 @@ namespace GX2
 		uint64 submissionTimeStamp = _lastSubmissionTime.load();
 		if (retiredTimeStamp > submissionTimeStamp)
 			retiredTimeStamp = submissionTimeStamp;
-		GX2WaitTimeStamp(retiredTimeStamp);
+		GuestWaitProf::Scope prof(GuestWaitProf::CMDBUF);
+		GX2WaitTimeStampInternal(retiredTimeStamp);
 	}
 
 	void GX2Command_SetupCoreCommandBuffer(uint32be* buffer, uint32 sizeInU32s, bool isDisplayList)
@@ -315,11 +317,17 @@ namespace GX2
 		return ts;
 	}
 
-	bool GX2WaitTimeStamp(uint64 tsWait)
+	bool GX2WaitTimeStampInternal(uint64 tsWait)
 	{
 		// handle GPU timeout here? But for now we timeout after 60 seconds
 		TCL::TCLWaitTimestamp(TCL::TCLTimestampId::TIMESTAMP_LAST_BUFFER_RETIRED, tsWait, Espresso::TIMER_CLOCK * 60);
 		return true;
+	}
+
+	bool GX2WaitTimeStamp(uint64 tsWait)
+	{
+		GuestWaitProf::Scope prof(GuestWaitProf::WAITTS);
+		return GX2WaitTimeStampInternal(tsWait);
 	}
 
 	/*

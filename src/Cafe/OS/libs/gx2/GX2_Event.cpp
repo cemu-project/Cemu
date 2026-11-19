@@ -9,6 +9,7 @@
 #include "Cafe/HW/Latte/Renderer/Renderer.h"
 #include "config/ActiveSettings.h"
 #include "util/helpers/ConcurrentQueue.h"
+#include "Cafe/HW/Latte/Core/GuestWaitProfiler.h"
 
 namespace GX2
 {
@@ -201,6 +202,7 @@ namespace GX2
 
 	void GX2WaitForVsync()
 	{
+		GuestWaitProf::Scope prof(GuestWaitProf::VSYNC);
 		__OSLockScheduler();
 		g_vsyncThreadQueue.GetPtr()->queueAndWait(coreinit::OSGetCurrentThread());
 		__OSUnlockScheduler();
@@ -210,6 +212,7 @@ namespace GX2
 	{
 		if ((sint32)(_swapEndianU32(LatteGPUState.sharedArea->flipRequestCountBE) == _swapEndianU32(LatteGPUState.sharedArea->flipExecuteCountBE)))
 			return; // dont wait if no flip is requested
+		GuestWaitProf::Scope prof(GuestWaitProf::FLIP);
 		__OSLockScheduler();
 		g_flipThreadQueue.GetPtr()->queueAndWait(coreinit::OSGetCurrentThread());
 		__OSUnlockScheduler();
@@ -232,7 +235,8 @@ namespace GX2
 		GX2Command_Flush(0x100, true);
 
 		uint64 ts = GX2GetLastSubmittedTimeStamp();
-		return GX2WaitTimeStamp(ts);
+		GuestWaitProf::Scope prof(GuestWaitProf::DRAWDONE);
+		return GX2WaitTimeStampInternal(ts);
 	}
 
 	void GX2Init_event()
