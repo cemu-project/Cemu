@@ -1,6 +1,7 @@
 #include "Cafe/OS/libs/snd_core/ax.h"
 #include "Cafe/OS/libs/snd_core/ax_internal.h"
 #include "Cafe/HW/MMU/MMU.h"
+#include "Cafe/OS/libs/coreinit/coreinit_Memory.h"
 #include "config/ActiveSettings.h"
 #include "Common/CafeStaticVar.h"
 
@@ -31,14 +32,79 @@ namespace snd_core
 		// todo
 	}
 
+	sint32 AXDecodeAdpcmData(uint8* input, AXDSPADPCM* info, sint32 sampleCount, sint16be* output)
+	{
+		if (!input || !info || !output || sampleCount <= 0)
+			return 0;
+
+		sint32 numSamples = (sint32)(info->numSamples.value());
+		uint32 loopOffset = info->loopOffset;
+		uint32 endOffset = info->endOffset;
+		uint32 nibbleOffset = info->currentOffset;
+		uint16 loopFlag = info->isLooped;
+		if (numSamples <= 0 || loopFlag > 1 || info->format != AX_FORMAT_ADPCM || loopOffset > endOffset || nibbleOffset > endOffset)
+		{
+			cemuLog_log(LogType::APIErrors, "AXDecodeAdpcmData: ADPCM struct contains invalid parameter");
+			return 0;
+		}
+
+		const uint32 samplesPerFrame = 14;
+		uint32 tailSamples = numSamples % samplesPerFrame;
+		uint32 nibbleCount = numSamples / samplesPerFrame * 16 + (tailSamples ? tailSamples + 2 : 0);
+		if (info->numAdpcmNibbles != nibbleCount)
+		{
+			cemuLog_log(LogType::APIErrors, "AXDecodeAdpcmData: Expected {} ADPCM nibbles for {} samples, got {}", nibbleCount, numSamples, info->numAdpcmNibbles.value());
+			return 0;
+		}
+
+		uint16 predictorScale = info->scale;
+		sint32 history1 = info->yn1.value();
+		sint32 history2 = info->yn2.value();
+		sint32 samplesWritten = 0;
+		while (samplesWritten < sampleCount && nibbleOffset < nibbleCount)
+		{
+			if (nibbleOffset % 16 == 0)
+			{
+				predictorScale = input[nibbleOffset / 2];
+				nibbleOffset += 2;
+			}
+
+			uint32 predictor = predictorScale >> 4;
+			sint32 coef1 = info->coef[predictor * 2];
+			sint32 coef2 = info->coef[predictor * 2 + 1];
+			sint32 scale = (sint16)(1 << (predictorScale & 0xF));
+			uint8 sampleByte = input[nibbleOffset / 2];
+			sint32 nibble = (nibbleOffset & 1) ? (sampleByte << 4) : (sampleByte & 0xF0);
+			sint32 residual = ((sint8)nibble) >> 4;
+
+			sint64 acc = static_cast<sint64>(coef1) * history1 + coef2 * history2 + residual * scale * 2048;
+			sint32 sample = ((static_cast<sint32>(acc) >> 10) + 1) >> 1;
+			history2 = history1;
+			history1 = std::clamp<sint32>(sample, -32768, 32767);
+			output[samplesWritten] = (sint16)history1;
+			samplesWritten++;
+			nibbleOffset++;
+			if (nibbleOffset > endOffset)
+			{
+				if (loopFlag == 0)
+					break;
+				nibbleOffset = loopOffset;
+				predictorScale = info->loopScale;
+				history1 = info->loopYn1.value();
+				history2 = info->loopYn2.value();
+			}
+		}
+		return samplesWritten;
+	}
+
 #define handleAdpcmDecodeLoop() \
 	if (internalShadowCopy->internalOffsets.loopFlag != 0) \
 	{	\
 		scale = _swapEndianU16(internalShadowCopy->adpcmLoop.loopScale); \
 		delta = 1 << (scale & 0xF); \
 		coefIndex = (scale >> 4) & 7; \
-		coefA = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0]); \
-		coefB = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1]); \
+		coefA = (sint32)(sint16)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0]; \
+		coefB = (sint32)(sint16)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1]; \
 		playbackNibbleOffset = vpbLoopOffset; \
 	} \
 	else \
@@ -84,8 +150,8 @@ namespace snd_core
 		sint32 delta = 1 << (scale & 0xF);
 		sint32 coefIndex = (scale >> 4) & 7;
 
-		sint32 coefA = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0]);
-		sint32 coefB = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1]);
+		sint32 coefA = (sint32)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0];
+		sint32 coefB = (sint32)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1];
 
 		sint32 hist0 = (sint32)_swapEndianS16(internalShadowCopy->adpcmData.yn1);
 		sint32 hist1 = (sint32)_swapEndianS16(internalShadowCopy->adpcmData.yn2);
@@ -133,8 +199,8 @@ namespace snd_core
 				scale = (uint8)sampleInputData[0];
 				delta = 1 << (scale & 0xF);
 				coefIndex = (scale >> 4) & 7;
-				coefA = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0]);
-				coefB = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1]);
+				coefA = (sint32)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0];
+				coefB = (sint32)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1];
 				playbackNibbleOffset += 2;
 				// decode samples
 				sampleInputData++;
@@ -186,8 +252,8 @@ namespace snd_core
 				scale = sampleBase[(sint32)playbackNibbleOffset >> 1];
 				delta = 1 << (scale & 0xF);
 				coefIndex = (scale >> 4) & 7;
-				coefA = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0]);
-				coefB = (sint32)(sint16)_swapEndianU16(internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1]);
+				coefA = (sint32)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 0];
+				coefB = (sint32)internalShadowCopy->adpcmData.coef[coefIndex * 2 + 1];
 				playbackNibbleOffset += 2;
 			}
 			sint8 nibble = (sint8)sampleBase[(sint32)playbackNibbleOffset >> 1];

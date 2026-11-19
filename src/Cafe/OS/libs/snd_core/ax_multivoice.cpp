@@ -100,12 +100,12 @@ namespace snd_core
 		{
 			AXPBADPCM_t tmp;
 			tmp.gain = adpcm[i].gain.bevalue();
-			tmp.yn1 = adpcm[i].yn1.bevalue();
-			tmp.yn2 = adpcm[i].yn2.bevalue();
+			tmp.yn1 = (uint16)adpcm[i].yn1.bevalue();
+			tmp.yn2 = (uint16)adpcm[i].yn2.bevalue();
 			tmp.scale = adpcm[i].scale.bevalue();
 
-			static_assert(sizeof(tmp.a) == sizeof(adpcm->coef));
-			memcpy(tmp.a, adpcm[i].coef, sizeof(tmp.a));
+			static_assert(sizeof(tmp.coef) == sizeof(adpcm->coef));
+			memcpy(tmp.coef, adpcm[i].coef, sizeof(tmp.coef));
 
 			AXSetVoiceAdpcm(mv->voice[i].GetPtr(), &tmp);
 		}

@@ -50,7 +50,7 @@ namespace snd_core
 
 	struct axADPCMInternal_t
 	{
-		/* +0x00 | +0x190 */ uint16 coef[16];
+		/* +0x00 | +0x190 */ sint16be coef[16];
 		/* +0x20 | +0x1B0 */ uint16 gain;
 		/* +0x22 | +0x1B2 */ uint16 scale;
 		/* +0x24 | +0x1B4 */ uint16 yn1;

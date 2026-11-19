@@ -168,7 +168,7 @@ namespace snd_core
 
 	struct AXPBADPCM_t
 	{
-		uint16 a[16];
+		sint16be coef[16];
 		uint16 gain;
 		uint16 scale;
 		uint16 yn1;
@@ -346,26 +346,28 @@ namespace snd_core
 	struct AXDSPADPCM
 	{
 		/* +0x00 */ uint32be numSamples;
-		/* +0x04 */ uint32be ukn04;
+		/* +0x04 */ uint32be numAdpcmNibbles;
 		/* +0x08 */ uint32be sampleRate;
 		/* +0x0C */ uint16be isLooped;
 		/* +0x0E */ uint16be format;
-		/* +0x10 */ uint32be ukn10;
-		/* +0x14 */ uint32be ukn14;
-		/* +0x18 */ uint32be ukn18;
-		/* +0x1C */ uint16be coef[16];
+		/* +0x10 */ uint32be loopOffset;
+		/* +0x14 */ uint32be endOffset;
+		/* +0x18 */ uint32be currentOffset;
+		/* +0x1C */ sint16be coef[16];
 		/* +0x3C */ uint16be gain;
 		/* +0x3E */ uint16be scale;
-		/* +0x40 */ uint16be yn1;
-		/* +0x42 */ uint16be yn2;
-		/* +0x44 */ uint16be ukn44;
-		/* +0x46 */ uint16be ukn46;
-		/* +0x48 */ uint16be ukn48;
+		/* +0x40 */ sint16be yn1;
+		/* +0x42 */ sint16be yn2;
+		/* +0x44 */ uint16be loopScale;
+		/* +0x46 */ sint16be loopYn1;
+		/* +0x48 */ sint16be loopYn2;
 		/* +0x4A */ uint16be channelCount;
 		/* +0x4C */ uint16be ukn4C;
 		/* +0x4E */ uint8 _padding4E[0x12];
 	};
 	static_assert(sizeof(AXDSPADPCM) == 0x60);
+
+	sint32 AXDecodeAdpcmData(uint8* input, AXDSPADPCM* info, sint32 sampleCount, sint16be* output);
 
 	void AXMultiVoice_Init();
 

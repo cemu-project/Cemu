@@ -678,7 +678,7 @@ namespace snd_core
 	{
 		AXVPBInternal_t* internal = __AXVPBInternalVoiceArray + (sint32)(vpb->index);
 		for (sint32 i = 0; i < 16; i++)
-			internal->adpcmData.coef[i] = adpcm->a[i];
+			internal->adpcmData.coef[i] = adpcm->coef[i];
 		internal->adpcmData.gain = adpcm->gain;
 		internal->adpcmData.scale = adpcm->scale;
 		AXSetSyncFlag(vpb, AX_SYNCFLAG_ADPCMDATA);
