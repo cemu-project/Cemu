@@ -10,8 +10,10 @@ public:
 	LatteTextureViewVk(VkDevice device, class LatteTextureVk* texture, Latte::E_DIM dim, Latte::E_GX2SURFFMT format, sint32 firstMip, sint32 mipCount, sint32 firstSlice, sint32 sliceCount);
 	~LatteTextureViewVk();
 
+	static constexpr uint32 LATTE_RGBA_SWIZZLE = 0x06880000;
+
 	uint64 GetUniqueId() const { return m_uniqueId; };
-	VKRObjectTextureView* GetViewRGBA();
+	VKRObjectTextureView* GetIdentityView(); // for attachments
 	VKRObjectTextureView* GetSamplerView(uint32 gpuSamplerSwizzle);
 	VkSampler GetDefaultTextureSampler(bool useLinearTexFilter);
 	VkFormat GetFormat() const { return m_format; }
@@ -23,9 +25,9 @@ public:
 
 private:
 	VkImageViewType GetImageViewTypeFromGX2Dim(Latte::E_DIM dim);
-	VKRObjectTextureView* CreateView(uint32 gpuSamplerSwizzle);
+	VKRObjectTextureView* CreateView(VkComponentSwizzle r, VkComponentSwizzle g, VkComponentSwizzle b, VkComponentSwizzle a);
 
-	// each texture view holds one Vulkan image view per swizzle mask. Image views are only instantiated when requested via GetViewRGBA/GetSamplerView
+	// sampler views are created lazily and are cached by their GPU component swizzle mask
 	// since a large majority of texture views will only have 1 or 2 instantiated image views, we use a small fixed-size cache
 	// and only allocate the larger map (m_fallbackCache) if necessary
 	inline static const uint32 CACHE_EMPTY_ENTRY = 0xFFFFFFFF;
@@ -35,7 +37,8 @@ private:
 	VKRObjectTextureView* m_smallCacheView0 = {};
 	VKRObjectTextureView* m_smallCacheView1 = {};
 	std::unordered_map<uint32, VKRObjectTextureView*>* m_fallbackCache{};
-	
+	VKRObjectTextureView* m_identityView{}; // attachment view when the default Latte RGBA sampler view is not a valid Vulkan identity view
+
 	VkDevice m_device;
 	VkFormat m_format;
 	std::vector<struct VkDescriptorSetInfo*> list_descriptorSets; // list of descriptors sets referencing this view

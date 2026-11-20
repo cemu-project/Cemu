@@ -63,7 +63,6 @@ struct CopySurfacePipelineInfo
 	struct FramebufferValue
 	{
 		VKRObjectFramebuffer* vkObjFramebuffer;
-		VKRObjectTextureView* vkObjImageView;
 	};
 
 	struct DescriptorValue
@@ -87,7 +86,6 @@ struct CopySurfacePipelineInfo
 			for(auto& fb : i.second.m_array)
 			{
 				renderer->ReleaseDestructibleObject(fb->vkObjFramebuffer);
-				renderer->ReleaseDestructibleObject(fb->vkObjImageView);
 			}
 		}
 
@@ -228,13 +226,13 @@ VKRObjectRenderPass* VulkanRenderer::copySurface_createRenderpass(VkCopySurfaceS
 
 	if (state.destinationTexture->isDepth)
 	{
-		attachmentInfo.depthAttachment.viewObj = ((LatteTextureViewVk*)state.destinationTexture->baseView)->GetViewRGBA();
+		attachmentInfo.depthAttachment.viewObj = ((LatteTextureViewVk*)state.destinationTexture->baseView)->GetIdentityView();
 		attachmentInfo.depthAttachment.format = state.destinationTexture->GetFormat();
 		attachmentInfo.depthAttachment.hasStencil = state.destinationTexture->hasStencil;
 	}
 	else
 	{
-		attachmentInfo.colorAttachment[0].viewObj = ((LatteTextureViewVk*)state.destinationTexture->baseView)->GetViewRGBA();
+		attachmentInfo.colorAttachment[0].viewObj = ((LatteTextureViewVk*)state.destinationTexture->baseView)->GetIdentityView();
 		attachmentInfo.colorAttachment[0].format = state.destinationTexture->GetFormat();
 	}
 
@@ -484,7 +482,8 @@ VKRObjectFramebuffer* VulkanRenderer::surfaceCopy_getOrCreateFramebuffer(VkCopyS
 	}
 
 	// create view
-	VKRObjectTextureView* vkObjTextureView = surfaceCopy_createImageView(state.destinationTexture, state.dstSlice, state.dstMip);
+	auto* textureView = static_cast<LatteTextureViewVk*>(state.destinationTexture->GetOrCreateView(Latte::E_DIM::DIM_2D, state.destinationTexture->format, state.dstMip, 1, state.dstSlice, 1));
+	VKRObjectTextureView* vkObjTextureView = textureView->GetIdentityView();
 
 	// create new framebuffer
 	sint32 effectiveWidth, effectiveHeight;
@@ -499,8 +498,7 @@ VKRObjectFramebuffer* VulkanRenderer::surfaceCopy_getOrCreateFramebuffer(VkCopyS
 	auto insertResult = pipelineInfo->map_framebuffers.try_emplace(state.destinationTexture, state.destinationTexture);
 	CopySurfacePipelineInfo::FramebufferValue* framebufferVal = insertResult.first->second.create(state.dstSlice, state.dstMip);
 	framebufferVal->vkObjFramebuffer = vkObjFramebuffer;
-	framebufferVal->vkObjImageView = vkObjTextureView;
-	
+
 	return vkObjFramebuffer;
 }
 
@@ -851,12 +849,7 @@ void VulkanRenderer::surfaceCopy_notifyTextureRelease(LatteTextureVk* hostTextur
 			for (auto p : itrFramebuffers->second.m_array)
 			{
 				if (p)
-				{
 					VulkanRenderer::GetInstance()->ReleaseDestructibleObject(p->vkObjFramebuffer);
-					p->vkObjFramebuffer = nullptr;
-					VulkanRenderer::GetInstance()->ReleaseDestructibleObject(p->vkObjImageView);
-					p->vkObjImageView = nullptr;
-				}
 			}
 			pipelineInfo->map_framebuffers.erase(itrFramebuffers);
 		}

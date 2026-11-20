@@ -82,6 +82,8 @@ LatteTextureViewVk::~LatteTextureViewVk()
 		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_smallCacheView0);
 	if (m_smallCacheView1)
 		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_smallCacheView1);
+	if (m_identityView)
+		VulkanRenderer::GetInstance()->ReleaseDestructibleObject(m_identityView);
 
 	if (m_fallbackCache)
 	{
@@ -92,17 +94,8 @@ LatteTextureViewVk::~LatteTextureViewVk()
 	}
 }
 
-VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
+VKRObjectTextureView* LatteTextureViewVk::CreateView(VkComponentSwizzle r, VkComponentSwizzle g, VkComponentSwizzle b, VkComponentSwizzle a)
 {
-	uint32 compSelR = (gpuSamplerSwizzle >> 16) & 0x7;
-	uint32 compSelG = (gpuSamplerSwizzle >> 19) & 0x7;
-	uint32 compSelB = (gpuSamplerSwizzle >> 22) & 0x7;
-	uint32 compSelA = (gpuSamplerSwizzle >> 25) & 0x7;
-	compSelR = LatteTextureVk_AdjustTextureCompSel(format, compSelR);
-	compSelG = LatteTextureVk_AdjustTextureCompSel(format, compSelG);
-	compSelB = LatteTextureVk_AdjustTextureCompSel(format, compSelB);
-	compSelA = LatteTextureVk_AdjustTextureCompSel(format, compSelA);
-
 	VkImageViewCreateInfo viewInfo{};
 	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewInfo.image = GetBaseImage()->GetImageObj()->m_image;
@@ -126,22 +119,7 @@ VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
 		viewInfo.subresourceRange.layerCount = this->numSlice;
 	}
 
-	static const VkComponentSwizzle swizzle[] =
-	{
-		VK_COMPONENT_SWIZZLE_R,
-		VK_COMPONENT_SWIZZLE_G,
-		VK_COMPONENT_SWIZZLE_B,
-		VK_COMPONENT_SWIZZLE_A,
-		VK_COMPONENT_SWIZZLE_ZERO,
-		VK_COMPONENT_SWIZZLE_ONE,
-		VK_COMPONENT_SWIZZLE_ZERO,
-		VK_COMPONENT_SWIZZLE_ZERO
-	};
-
-	viewInfo.components.r = swizzle[compSelR];
-	viewInfo.components.g = swizzle[compSelG];
-	viewInfo.components.b = swizzle[compSelB];
-	viewInfo.components.a = swizzle[compSelA];
+	viewInfo.components = { r, g, b, a };
 
 	VkImageView view;
 	if (vkCreateImageView(m_device, &viewInfo, nullptr, &view) != VK_SUCCESS)
@@ -150,9 +128,17 @@ VKRObjectTextureView* LatteTextureViewVk::CreateView(uint32 gpuSamplerSwizzle)
 	return new VKRObjectTextureView(GetBaseImage()->GetImageObj(), view);
 }
 
-VKRObjectTextureView* LatteTextureViewVk::GetViewRGBA()
-{ 
-	return GetSamplerView(0x06880000); // RGBA swizzle
+VKRObjectTextureView* LatteTextureViewVk::GetIdentityView()
+{
+	if (LatteTextureVk_AdjustTextureCompSel(format, 0) == 0 &&
+		LatteTextureVk_AdjustTextureCompSel(format, 1) == 1 &&
+		LatteTextureVk_AdjustTextureCompSel(format, 2) == 2 &&
+		LatteTextureVk_AdjustTextureCompSel(format, 3) == 3)
+		return GetSamplerView(LATTE_RGBA_SWIZZLE);
+	if (m_identityView)
+		return m_identityView;
+	m_identityView = CreateView(VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY);
+	return m_identityView;
 }
 
 VKRObjectTextureView* LatteTextureViewVk::GetSamplerView(uint32 gpuSamplerSwizzle)
@@ -172,7 +158,22 @@ VKRObjectTextureView* LatteTextureViewVk::GetSamplerView(uint32 gpuSamplerSwizzl
 			return it->second;
 	}
 	// not cached, create new view and store in cache
-	auto viewObj = CreateView(gpuSamplerSwizzle);
+	static constexpr VkComponentSwizzle swizzle[] =
+	{
+		VK_COMPONENT_SWIZZLE_R,
+		VK_COMPONENT_SWIZZLE_G,
+		VK_COMPONENT_SWIZZLE_B,
+		VK_COMPONENT_SWIZZLE_A,
+		VK_COMPONENT_SWIZZLE_ZERO,
+		VK_COMPONENT_SWIZZLE_ONE,
+		VK_COMPONENT_SWIZZLE_ZERO,
+		VK_COMPONENT_SWIZZLE_ZERO
+	};
+	const uint32 compSelR = LatteTextureVk_AdjustTextureCompSel(format, (gpuSamplerSwizzle >> 16) & 0x7);
+	const uint32 compSelG = LatteTextureVk_AdjustTextureCompSel(format, (gpuSamplerSwizzle >> 19) & 0x7);
+	const uint32 compSelB = LatteTextureVk_AdjustTextureCompSel(format, (gpuSamplerSwizzle >> 22) & 0x7);
+	const uint32 compSelA = LatteTextureVk_AdjustTextureCompSel(format, (gpuSamplerSwizzle >> 25) & 0x7);
+	auto viewObj = CreateView(swizzle[compSelR], swizzle[compSelG], swizzle[compSelB], swizzle[compSelA]);
 	if (m_smallCacheSwizzle0 == CACHE_EMPTY_ENTRY)
 	{
 		m_smallCacheSwizzle0 = gpuSamplerSwizzle;
@@ -194,7 +195,7 @@ VKRObjectTextureView* LatteTextureViewVk::GetSamplerView(uint32 gpuSamplerSwizzl
 
 VkSampler LatteTextureViewVk::GetDefaultTextureSampler(bool useLinearTexFilter)
 {
-	VkSampler& sampler = GetViewRGBA()->m_textureDefaultSampler[useLinearTexFilter ? 1 : 0];
+	VkSampler& sampler = GetSamplerView(LATTE_RGBA_SWIZZLE)->m_textureDefaultSampler[useLinearTexFilter ? 1 : 0];
 
 	if (sampler != VK_NULL_HANDLE)
 		return sampler;

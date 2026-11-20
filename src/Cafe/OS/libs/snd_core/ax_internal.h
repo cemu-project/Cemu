@@ -118,7 +118,7 @@ namespace snd_core
 		/* +0x088 */ AXCHMIX2 deviceMixDRC[AX_BUS_COUNT * AX_DRC_CHANNEL_COUNT * 2]; // DRC device mix
 		/* +0x108 */ AXCHMIX2 deviceMixRMT[0x40 / 4]; // RMT device mix (size unknown)
 		/* +0x148 */ uint16 reserved148_voiceRmtOn;
-		/* +0x14A */ uint16 deviceMixMaskRMT[0x10];
+		/* +0x14A */ uint16be deviceMixMaskRMT[0x10];
 		/* +0x16A */ uint16 playbackState;
 		// itd (0x16C - 0x1B4?)
 		/* +0x16C */ uint16 reserved16C;

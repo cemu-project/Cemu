@@ -80,8 +80,6 @@ VKAPI_ATTR VkBool32 VKAPI_CALL DebugUtilsCallback(VkDebugUtilsMessageSeverityFla
 	// validation errors which are difficult to fix
 	if (pCallbackData->messageIdNumber == 0x6c3b517c || pCallbackData->messageIdNumber == 0xffffffffa6b17cdf || pCallbackData->messageIdNumber == 0xffffffffc406fcb7)
 		return VK_FALSE; // its illegal to render to and sample from same texture
-	if (pCallbackData->messageIdNumber == 0x6e633069)
-		return VK_FALSE; // framebuffer attachments should have identity swizzle
 	if (pCallbackData->messageIdNumber == 0xffffffffb408bc0b)
 		return VK_FALSE; // too many samplers
 
@@ -3345,9 +3343,11 @@ void VulkanRenderer::CreateDescriptorPool()
 
 VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorSetLayout descriptor_set_layout, LatteTextureViewVk* texViewVk, bool useLinearTexFilter)
 {
+	auto* view = texViewVk->GetSamplerView(LatteTextureViewVk::LATTE_RGBA_SWIZZLE);
+	VkSampler sampler = texViewVk->GetDefaultTextureSampler(useLinearTexFilter);
 	uint64 hash = 0;
-	hash += (uint64)texViewVk->GetViewRGBA();
-	hash += (uint64)texViewVk->GetDefaultTextureSampler(useLinearTexFilter);
+	hash += (uint64)view;
+	hash += (uint64)sampler;
 
 	const auto it = m_backbufferBlitDescriptorSetCache.find(hash);
 	if (it != m_backbufferBlitDescriptorSetCache.cend())
@@ -3366,8 +3366,8 @@ VkDescriptorSet VulkanRenderer::backbufferBlit_createDescriptorSet(VkDescriptorS
 
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = static_cast<LatteTextureVk*>(texViewVk->baseTexture)->GetDefaultLayout();
-	imageInfo.imageView = texViewVk->GetViewRGBA()->m_textureImageView;
-	imageInfo.sampler = texViewVk->GetDefaultTextureSampler(useLinearTexFilter);
+	imageInfo.imageView = view->m_textureImageView;
+	imageInfo.sampler = sampler;
 
 	VkWriteDescriptorSet descriptorWrites[2]{};
 

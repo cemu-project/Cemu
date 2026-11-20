@@ -16,7 +16,7 @@ void CachedFBOVk::CreateRenderPass()
 			continue;
 		}
 		// setup color attachment
-		auto viewObj = textureViewVk->GetViewRGBA();
+		auto viewObj = textureViewVk->GetIdentityView();
 		attachmentInfo.colorAttachment[i].viewObj = viewObj;
 		attachmentInfo.colorAttachment[i].format = textureViewVk->GetFormat();
 	}
@@ -25,7 +25,7 @@ void CachedFBOVk::CreateRenderPass()
 	if (depthBuffer.texture)
 	{
 		LatteTextureViewVk* depthTexVk = static_cast<LatteTextureViewVk*>(depthBuffer.texture);
-		auto depthBufferViewObj = depthTexVk->GetViewRGBA();
+		auto depthBufferViewObj = depthTexVk->GetIdentityView();
 		attachmentInfo.depthAttachment.viewObj = depthBufferViewObj;
 		attachmentInfo.depthAttachment.format = depthTexVk->GetFormat();
 		attachmentInfo.depthAttachment.hasStencil = depthTexVk->baseTexture->hasStencil;
@@ -60,7 +60,7 @@ VKRObjectTextureView* CachedFBOVk::GetColorBufferImageView(uint32 index)
 	auto viewDim = textureViewVk->dim;
 	if (viewDim == Latte::E_DIM::DIM_3D)
 		viewDim = Latte::E_DIM::DIM_2D; // bind 3D texture slices as 2D images
-	return textureViewVk->GetViewRGBA();
+	return textureViewVk->GetIdentityView();
 }
 
 VKRObjectTextureView* CachedFBOVk::GetDepthStencilBufferImageView(bool& hasStencil)
@@ -71,7 +71,7 @@ VKRObjectTextureView* CachedFBOVk::GetDepthStencilBufferImageView(bool& hasStenc
 		return nullptr;
 	cemu_assert_debug(textureViewVk->numMip == 1);
 	hasStencil = textureViewVk->baseTexture->hasStencil;
-	return textureViewVk->GetViewRGBA();
+	return textureViewVk->GetIdentityView();
 }
 
 void CachedFBOVk::CreateFramebuffer()
