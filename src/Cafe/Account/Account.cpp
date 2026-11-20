@@ -323,13 +323,18 @@ const std::vector<Account>& Account::RefreshAccounts()
 				result.emplace_back(account);
 		}
 	}
-	
+
 	// we always force at least one account
 	if (result.empty())
 	{
 		result.emplace_back(kMinPersistendId, L"default");
 		result.begin()->Save();
 	}
+
+	std::sort(result.begin(), result.end(), [](const Account& a, const Account& b)
+	{
+		return a.GetPersistentId() < b.GetPersistentId();
+	});
 
 	s_account_list = result;
 	UpdatePersisidDat();
@@ -350,6 +355,7 @@ void Account::UpdatePersisidDat()
 	else
 		cemuLog_log(LogType::Force, "Unable to save persisid.dat");
 }
+
 
 bool Account::HasFreeAccountSlots()
 {
@@ -400,10 +406,10 @@ uint32 Account::GetNextPersistentId()
 			}
 		}
 	}
-	
+
 	// next id
 	++result;
-	
+
 	const auto it = std::max_element(s_account_list.cbegin(), s_account_list.cend(), [](const Account& acc1, const Account& acc2) {return acc1.GetPersistentId() < acc2.GetPersistentId(); });
 	if (it != s_account_list.cend())
 		return std::max(result, it->GetPersistentId() + 1);
