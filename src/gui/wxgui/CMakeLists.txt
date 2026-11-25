@@ -189,6 +189,10 @@ if (ENABLE_WXWIDGETS)
 	target_link_libraries(CemuWxGui PUBLIC wxWidgets::wxWidgets)
 endif()
 
+if(APPLE)
+	target_link_libraries(CemuWxGui PRIVATE "-framework CoreFoundation" "-framework ImageIO")
+endif()
+
 if(WIN32)
 	target_link_libraries(CemuWxGui PRIVATE bthprops)
 endif()

@@ -6,6 +6,13 @@
 #include <wx/msgdlg.h>
 #include <wx/radiobox.h>
 #include <wx/button.h>
+#include <wx/image.h>
+#include <wx/stdpaths.h>
+
+#if BOOST_OS_MACOS
+#include <CoreFoundation/CoreFoundation.h>
+#include <ImageIO/ImageIO.h>
+#endif
 
 #include "config/ActiveSettings.h"
 #include "wxCemuConfig.h"
@@ -25,13 +32,48 @@
 
 wxDEFINE_EVENT(EVT_REFRESH_FIRST_PAGE, wxCommandEvent); // used to refresh the first page after the language change
 
+#if BOOST_OS_MACOS
+static wxBitmap LoadMacOSAppIcon()
+{
+	const wxString iconPath = wxStandardPaths::Get().GetResourcesDir() + "/cemu.icns";
+	const wxScopedCharBuffer pathBuffer = iconPath.mb_str(wxConvUTF8);
+
+	CFURLRef iconUrl = CFURLCreateFromFileSystemRepresentation(
+		kCFAllocatorDefault,
+		reinterpret_cast<const UInt8*>(pathBuffer.data()),
+		pathBuffer.length(),
+		false);
+	if (!iconUrl)
+		return wxBitmap(wxICON(M_WND_ICON128)).ConvertToImage().Scale(32, 32, wxIMAGE_QUALITY_HIGH);
+
+	CGImageSourceRef imageSource = CGImageSourceCreateWithURL(iconUrl, nullptr);
+	CFRelease(iconUrl);
+	if (!imageSource)
+		return wxBitmap(wxICON(M_WND_ICON128)).ConvertToImage().Scale(32, 32, wxIMAGE_QUALITY_HIGH);
+
+	CGImageRef cgImage = CGImageSourceCreateImageAtIndex(imageSource, 0, nullptr);
+	CFRelease(imageSource);
+	if (!cgImage)
+		return wxBitmap(wxICON(M_WND_ICON128)).ConvertToImage().Scale(32, 32, wxIMAGE_QUALITY_HIGH);
+
+	wxBitmap icon(cgImage);
+	CGImageRelease(cgImage);
+	return icon.ConvertToImage().Scale(32, 32, wxIMAGE_QUALITY_HIGH);
+}
+#endif
+
 wxPanel* GettingStartedDialog::CreatePage1()
 {
 	auto* mainPanel = new wxPanel(m_notebook, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxTAB_TRAVERSAL);
 	auto* page1_sizer = new wxBoxSizer(wxVERTICAL);
 	{
 		auto* sizer = new wxBoxSizer(wxHORIZONTAL);
-		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, wxICON(M_WND_ICON128)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
+#if BOOST_OS_MACOS
+		wxBitmap icon = LoadMacOSAppIcon();
+#else
+		wxBitmap icon(wxICON(M_WND_ICON128));
+#endif
+		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, icon), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_page1.staticText11 = new wxStaticText(mainPanel, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"));
 		m_page1.staticText11->Wrap(-1);
 		sizer->Add(m_page1.staticText11, 0, wxALL, 5);
