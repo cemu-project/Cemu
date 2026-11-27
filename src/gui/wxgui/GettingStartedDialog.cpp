@@ -1,5 +1,7 @@
 #include "wxgui/GettingStartedDialog.h"
 
+#include <wx/bitmap.h>
+#include <wx/image.h>
 #include <wx/sizer.h>
 #include <wx/filepicker.h>
 #include <wx/statbox.h>
@@ -31,9 +33,14 @@ wxPanel* GettingStartedDialog::CreatePage1()
 	auto* page1_sizer = new wxBoxSizer(wxVERTICAL);
 	{
 		auto* sizer = new wxBoxSizer(wxHORIZONTAL);
-		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, wxICON(M_WND_ICON128)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_page1.staticText11 = new wxStaticText(mainPanel, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"));
 		m_page1.staticText11->Wrap(-1);
+		wxBitmap iconBitmap;
+		iconBitmap.CopyFromIcon(wxICON(M_WND_ICON128));
+		const wxImage iconImage = iconBitmap.ConvertToImage();
+		const int iconHeight = m_page1.staticText11->GetBestSize().GetHeight();
+		const int iconWidth = iconImage.GetWidth() * iconHeight / iconImage.GetHeight();
+		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, iconImage.Scale(iconWidth, iconHeight, wxIMAGE_QUALITY_HIGH)), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		sizer->Add(m_page1.staticText11, 0, wxALL, 5);
 		page1_sizer->Add(sizer, 0, wxALL | wxEXPAND, 5);
 	}
