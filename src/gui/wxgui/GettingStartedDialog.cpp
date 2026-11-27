@@ -71,7 +71,7 @@ wxPanel* GettingStartedDialog::CreatePage1()
 #if BOOST_OS_MACOS
 		wxBitmap icon = LoadMacOSAppIcon();
 #else
-		wxBitmap icon(wxICON(M_WND_ICON128));
+		wxBitmap icon = wxICON(M_WND_ICON128);
 #endif
 		sizer->Add(new wxStaticBitmap(mainPanel, wxID_ANY, icon), 0, wxALIGN_CENTER_VERTICAL | wxALL, 5);
 		m_page1.staticText11 = new wxStaticText(mainPanel, wxID_ANY, _("It looks like you're starting Cemu for the first time.\nThis quick setup assistant will help you get the best experience"));
